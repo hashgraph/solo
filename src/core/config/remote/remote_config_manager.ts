@@ -231,7 +231,7 @@ export class RemoteConfigManager {
    * @returns the remote configuration data.
    * @throws {@link SoloError} if the ConfigMap could not be read and the error is not a 404 status.
    */
-  private async getConfigMap(): Promise<k8s.V1ConfigMap> {
+  public async getConfigMap(): Promise<k8s.V1ConfigMap> {
     try {
       return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (error: any) {

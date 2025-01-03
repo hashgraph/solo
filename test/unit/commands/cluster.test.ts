@@ -36,7 +36,11 @@ import * as test from 'node:test';
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
   helm: sinon.stub(),
-  k8: sinon.stub(),
+  k8: {
+    isMinioInstalled: sinon.stub().returns(false),
+    isPrometheusInstalled: sinon.stub().returns(false),
+    isCertManagerInstalled: sinon.stub().returns(false),
+  },
   chartManager: sinon.stub(),
   configManager: sinon.stub(),
   depManager: sinon.stub(),

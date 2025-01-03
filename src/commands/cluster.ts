@@ -41,7 +41,7 @@ export class ClusterCommand extends BaseCommand {
       this.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
       this.logger.showUser('\n');
       return true;
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       this.logger.showUserError(e);
     }
 
@@ -101,7 +101,7 @@ export class ClusterCommand extends BaseCommand {
 
             self.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
 
-            ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+            ctx.isChartInstalled = await self.chartManager.isChartInstalled(
               ctx.config.clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
             );
@@ -109,13 +109,47 @@ export class ClusterCommand extends BaseCommand {
         },
         {
           title: 'Prepare chart values',
-          task: async (ctx, _) => {
-            ctx.chartPath = await this.prepareChartPath(
+          task: async ctx => {
+            ctx.chartPath = await self.prepareChartPath(
               ctx.config.chartDir,
               constants.SOLO_TESTING_CHART_URL,
               constants.SOLO_CLUSTER_SETUP_CHART,
             );
-            ctx.valuesArg = this.prepareValuesArg(
+
+            // if minio is already present, don't deploy it
+            if (ctx.config.deployMinio && (await self.k8.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
+              ctx.config.deployMinio = false;
+            }
+
+            // if prometheus is found, don't deploy it
+            if (
+              ctx.config.deployPrometheusStack &&
+              !(await self.k8.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
+            ) {
+              ctx.config.deployPrometheusStack = false;
+            }
+
+            // if cert manager is installed, don't deploy it
+            if (
+              (ctx.config.deployCertManager || ctx.config.deployCertManagerCrds) &&
+              (await self.k8.isCertManagerInstalled())
+            ) {
+              ctx.config.deployCertManager = false;
+              ctx.config.deployCertManagerCrds = false;
+            }
+
+            // If all are already present or not wanted, skip installation
+            if (
+              !ctx.config.deployPrometheusStack &&
+              !ctx.config.deployMinio &&
+              !ctx.config.deployCertManager &&
+              !ctx.config.deployCertManagerCrds
+            ) {
+              ctx.isChartInstalled = true;
+              return;
+            }
+
+            ctx.valuesArg = self.prepareValuesArg(
               ctx.config.chartDir,
               ctx.config.deployPrometheusStack,
               ctx.config.deployMinio,
@@ -127,7 +161,7 @@ export class ClusterCommand extends BaseCommand {
         },
         {
           title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-          task: async (ctx, _) => {
+          task: async ctx => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
             const version = ctx.config.soloChartVersion;
             const valuesArg = ctx.valuesArg;
@@ -141,7 +175,7 @@ export class ClusterCommand extends BaseCommand {
                 version,
                 valuesArg,
               );
-            } catch (e: Error | any) {
+            } catch (e: Error | unknown) {
               // if error, uninstall the chart and rethrow the error
               self.logger.debug(
                 `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
@@ -149,8 +183,8 @@ export class ClusterCommand extends BaseCommand {
               );
               try {
                 await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
-              } catch (ex) {
-                // ignore error during uninstall since we are doing the best-effort uninstall here
+              } catch {
+                // ignore error during uninstallation since we are doing the best-effort uninstallation here
               }
 
               throw e;
@@ -171,7 +205,7 @@ export class ClusterCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError('Error on cluster setup', e);
     }
 
@@ -203,6 +237,7 @@ export class ClusterCommand extends BaseCommand {
               });
 
               if (!confirm) {
+                // eslint-disable-next-line n/no-process-exit
                 process.exit(0);
               }
             }
@@ -213,7 +248,7 @@ export class ClusterCommand extends BaseCommand {
               clusterSetupNamespace: self.configManager.getFlag<string>(flags.clusterSetupNamespace) as string,
             };
 
-            ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+            ctx.isChartInstalled = await self.chartManager.isChartInstalled(
               ctx.config.clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
             );
@@ -226,8 +261,24 @@ export class ClusterCommand extends BaseCommand {
         },
         {
           title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-          task: async (ctx, _) => {
+          task: async (ctx, task) => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
+
+            if (!argv.force && (await self.k8.isRemoteConfigPresentInAnyNamespace())) {
+              const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
+                type: 'toggle',
+                default: false,
+                message:
+                  'There is remote config for one of the deployments' +
+                  'Are you sure you would like to uninstall the cluster?',
+              });
+
+              if (!confirm) {
+                // eslint-disable-next-line n/no-process-exit
+                process.exit(0);
+              }
+            }
+
             await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
             if (argv.dev) {
               await self.showInstalledChartList(clusterSetupNamespace);
@@ -244,7 +295,7 @@ export class ClusterCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError('Error on cluster reset', e);
     } finally {
       await lease.release();
@@ -271,9 +322,11 @@ export class ClusterCommand extends BaseCommand {
                 const r = self.showClusterList();
                 self.logger.debug('==== Finished running `cluster list`====');
 
+                // eslint-disable-next-line n/no-process-exit
                 if (!r) process.exit(1);
               } catch (err) {
                 self.logger.showUserError(err);
+                // eslint-disable-next-line n/no-process-exit
                 process.exit(1);
               }
             },
@@ -287,9 +340,11 @@ export class ClusterCommand extends BaseCommand {
                 const r = this.getClusterInfo();
                 self.logger.debug('==== Finished running `cluster info`====');
 
+                // eslint-disable-next-line n/no-process-exit
                 if (!r) process.exit(1);
-              } catch (err: Error | any) {
+              } catch (err: Error | unknown) {
                 self.logger.showUserError(err);
+                // eslint-disable-next-line n/no-process-exit
                 process.exit(1);
               }
             },
@@ -317,11 +372,12 @@ export class ClusterCommand extends BaseCommand {
                 .setup(argv)
                 .then(r => {
                   self.logger.debug('==== Finished running `cluster setup`====');
-
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },
@@ -338,11 +394,12 @@ export class ClusterCommand extends BaseCommand {
                 .reset(argv)
                 .then(r => {
                   self.logger.debug('==== Finished running `cluster reset`====');
-
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },
@@ -371,9 +428,9 @@ export class ClusterCommand extends BaseCommand {
     let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
-    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
     valuesArg += ` --set cloud.certManager.enabled=${certManagerEnabled}`;
     valuesArg += ` --set cert-manager.installCRDs=${certManagerCrdsEnabled}`;
+    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
 
     if (certManagerEnabled && !certManagerCrdsEnabled) {
       this.logger.showUser(
