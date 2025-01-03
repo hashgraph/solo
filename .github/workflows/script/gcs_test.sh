@@ -21,20 +21,6 @@ fi
 
 echo "Using bucket name: ${streamBucket}"
 
-echo "Generate mirror value file gcs_mirror_values.yaml"
-echo "importer:" > gcs_mirror_values.yaml
-echo "  config:" >> gcs_mirror_values.yaml
-echo "    hedera:" >> gcs_mirror_values.yaml
-echo "      mirror:" >> gcs_mirror_values.yaml
-echo "        importer:" >> gcs_mirror_values.yaml
-echo "          downloader:" >> gcs_mirror_values.yaml
-echo "            bucketName: ${streamBucket}" >> gcs_mirror_values.yaml
-echo "  env:" >> gcs_mirror_values.yaml
-echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE: gcp" >> gcs_mirror_values.yaml
-echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI: https://storage.googleapis.com" >> gcs_mirror_values.yaml
-echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY: ${GCS_ACCESS_KEY}" >> gcs_mirror_values.yaml
-echo "    HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY: ${GCS_SECRET_KEY}" >> gcs_mirror_values.yaml
-
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
@@ -42,14 +28,20 @@ SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 npm run solo-test -- init
-npm run solo-test -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+npm run solo-test -- cluster setup \
+  -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
-npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" --storage-endpoint "https://storage.googleapis.com" \
-  --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" --storage-type "gcs_and_minio" --storage-bucket "${streamBucket}"
+npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
+  --storage-endpoint "https://storage.googleapis.com" \
+  --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
+  --storage-type "gcs_and_minio" --storage-bucket "${streamBucket}"
 
 npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"
-npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -f gcs_mirror_values.yaml
+npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" \
+  --storage-endpoint "https://storage.googleapis.com" \
+  --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
+  --storage-type "gcs_and_minio" --storage-bucket "${streamBucket}"
 
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > /dev/null 2>&1 &

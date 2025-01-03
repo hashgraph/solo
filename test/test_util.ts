@@ -289,11 +289,9 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
-          flags.storageType.constName,
           flags.storageAccessKey.constName,
           flags.storageSecrets.constName,
           flags.storageEndpoint.constName,
-          flags.storageBucket.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 
