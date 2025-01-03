@@ -264,19 +264,18 @@ export class ClusterCommand extends BaseCommand {
           task: async (ctx, task) => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
-            if (await this.k8.isRemoteConfigPresentInAnyNamespace()) {
-              if (!argv.force) {
-                const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-                  type: 'toggle',
-                  default: false,
-                  message:
-                    'There is remote config for one of the deployments' +
-                    'Are you sure you would like to uninstall the cluster?',
-                });
+            if (!argv.force && (await this.k8.isRemoteConfigPresentInAnyNamespace())) {
+              const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
+                type: 'toggle',
+                default: false,
+                message:
+                  'There is remote config for one of the deployments' +
+                  'Are you sure you would like to uninstall the cluster?',
+              });
 
-                if (!confirm) {
-                  process.exit(0);
-                }
+              if (!confirm) {
+                // eslint-disable-next-line n/no-process-exit
+                process.exit(0);
               }
             }
 

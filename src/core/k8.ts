@@ -34,13 +34,7 @@ import {ConfigManager} from './config_manager.js';
 import {SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
-import {
-  HEDERA_HAPI_PATH,
-  ROOT_CONTAINER,
-  SOLO_LOGS_DIR,
-  SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
-  SOLO_REMOTE_CONFIGMAP_LABELS,
-} from './constants.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';

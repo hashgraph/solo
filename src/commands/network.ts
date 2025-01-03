@@ -326,8 +326,6 @@ export class NetworkCommand extends BaseCommand {
     interface Context {
       config: NetworkDeployConfigClass;
     }
-    // if specified that monitoring is wanted
-    // we should validate that they exist
 
     const tasks = new Listr<Context>(
       [
