@@ -1635,7 +1635,7 @@ export class Flags {
     name: 'storage-secrets',
     definition: {
       defaultValue: '',
-      describe: 'storage secrets',
+      describe: 'storage secret key',
       type: 'string',
     },
     prompt: undefined,
