@@ -59,7 +59,7 @@ npm run solo-test -- init
 npm run solo-test -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1,node2
 npm run solo-test -- network deploy -i node1,node2 -n "${SOLO_NAMESPACE}" -f gcs_values.yaml --storage-endpoint "https://storage.googleapis.com" \
-  --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" --storage-type "gcs"
+  --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" --storage-type "gcs_and_minio"
 npm run solo-test -- node setup -i node1,node2 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1,node2 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -f gcs_mirror_values.yaml

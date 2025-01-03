@@ -39,12 +39,6 @@ import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
-import {
-  CLOUD_STORAGE_SECRET_NAME,
-  GCP_STORAGE_TYPE,
-  NEW_MINIO_SECRET_NAME,
-  SOLO_DEPLOYMENT_CHART,
-} from '../core/constants.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 
@@ -76,7 +70,7 @@ export interface NetworkDeployConfigClass {
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
-  storageType: string;
+  storageType: constants.StorageType;
   storageAccessKey: string;
   storageSecrets: string;
   storageEndpoint: string;
@@ -173,20 +167,26 @@ export class NetworkCommand extends BaseCommand {
       // Generating cloud storage secrets
       const {storageAccessKey, storageSecrets, storageEndpoint} = config;
       const cloudData = {};
-      if (config.storageType === constants.AWS_STORAGE_TYPE) {
+      if (
+        config.storageType === constants.StorageType.S3_ONLY ||
+        config.storageType === constants.StorageType.S3_AND_GCS
+      ) {
         cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
         cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
         cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
-      } else if (config.storageType === constants.GCP_STORAGE_TYPE) {
+      }
+      if (
+        config.storageType === constants.StorageType.GCS_ONLY ||
+        config.storageType === constants.StorageType.S3_AND_GCS ||
+        config.storageType === constants.StorageType.GCS_AND_MINIO
+      ) {
         cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
         cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
         cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
-
-        // used by minio
+      }
+      if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
         cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
         cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
-      } else {
-        throw new SoloError(`unsupported storage type ${config.storageType}`);
       }
       this.logger.debug(`storage secrets data = ${JSON.stringify(cloudData)}`);
 

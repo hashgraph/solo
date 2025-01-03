@@ -1612,9 +1612,9 @@ export class Flags {
     constName: 'storageType',
     name: 'storage-type',
     definition: {
-      defaultValue: '',
-      describe: 'cloud storage type for saving stream files, available options are: "gcs", or "s3"',
-      type: 'string',
+      defaultValue: constants.StorageType.MINIO_ONLY,
+      describe: 'storage type for saving stream files, available options are defined in enum StorageType',
+      type: 'StorageType',
     },
     prompt: undefined,
   };
