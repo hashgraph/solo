@@ -94,7 +94,6 @@ describe('NetworkCommand', () => {
         flags.applicationEnv.constName,
         flags.applicationProperties.constName,
         flags.bootstrapProperties.constName,
-        flags.genesisThrottlesFile.constName,
         flags.chainId.constName,
         flags.log4j2Xml.constName,
         flags.profileFile.constName,
