@@ -103,9 +103,15 @@ export interface ServiceEndpoint {
   domainName: string;
 }
 
+export interface NodeAccountId {
+  accountId: {
+    accountNum: string;
+  };
+}
+
 export interface GenesisNetworkNodeStructure {
   nodeId: number;
-  accountId: AccountId;
+  accountId: NodeAccountId;
   description: string;
   gossipEndpoint: ServiceEndpoint[];
   serviceEndpoint: ServiceEndpoint[];
@@ -114,4 +120,11 @@ export interface GenesisNetworkNodeStructure {
   weight: number;
   deleted: boolean;
   adminKey: PublicKey;
+}
+
+export interface GenesisNetworkRosterStructure {
+  nodeId: number;
+  weight: number;
+  gossipEndpoint: ServiceEndpoint[];
+  gossipCaCertificate: string;
 }

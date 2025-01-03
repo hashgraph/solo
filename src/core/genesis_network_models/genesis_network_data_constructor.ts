@@ -16,7 +16,6 @@
  */
 import crypto from 'node:crypto';
 import {PrivateKey} from '@hashgraph/sdk';
-import {Templates} from '../templates.js';
 import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
 import * as x509 from '@peculiar/x509';
 import * as constants from '../constants.js';
@@ -24,12 +23,14 @@ import * as constants from '../constants.js';
 import type {KeyManager} from '../key_manager.js';
 import type {ToJSON} from '../../types/index.js';
 import type {JsonString, NodeAlias, NodeAliases} from '../../types/aliases.js';
+import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_entry_data_wrapper.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
  */
 export class GenesisNetworkDataConstructor implements ToJSON {
   public readonly nodes: Record<NodeAlias, GenesisNetworkNodeDataWrapper> = {};
+  public readonly rosters: Record<NodeAlias, GenesisNetworkRosterEntryDataWrapper> = {};
 
   private constructor(
     private readonly nodeAliases: NodeAliases,
@@ -42,6 +43,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
       const adminPubKey = adminPrivateKey.publicKey;
 
       this.nodes[nodeAlias] = new GenesisNetworkNodeDataWrapper(nodeId, adminPubKey, nodeAlias);
+      this.rosters[nodeAlias] = new GenesisNetworkRosterEntryDataWrapper(nodeId);
     });
   }
 
@@ -69,7 +71,8 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         const certPem = nodeKeys.certificate.toString();
 
         //* Assign the PEM certificate
-        this.nodes[nodeAlias].gossipCaCertificate = nodeKeys.certificate.toString('base64');
+        this.rosters[nodeAlias].gossipCaCertificate = this.nodes[nodeAlias].gossipCaCertificate =
+          nodeKeys.certificate.toString('base64');
 
         //* Decode the PEM to DER format
         const tlsCertDer = new Uint8Array(x509.PemConverter.decode(certPem)[0]);
@@ -81,6 +84,14 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   }
 
   public toJSON(): JsonString {
-    return JSON.stringify({nodeMetadata: Object.values(this.nodes).map(node => node.toObject())});
+    const nodeMetadata = [];
+    Object.keys(this.nodes).forEach(nodeAlias => {
+      nodeMetadata.push({
+        node: this.nodes[nodeAlias].toObject(),
+        rosterEntry: this.rosters[nodeAlias].toObject(),
+      });
+    });
+
+    return JSON.stringify({nodeMetadata: nodeMetadata});
   }
 }

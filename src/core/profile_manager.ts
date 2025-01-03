@@ -477,7 +477,7 @@ export class ProfileManager {
    * @param namespace - namespace where the network is deployed
    * @param nodeAccountMap - the map of node aliases to account IDs
    * @param destPath - path to the destination directory to write the config.txt file
-   * @param releaseTag - release tag e.g. v0.42.0
+   * @param releaseTagOverride - release tag override
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
    * @param genesisNetworkData
@@ -508,7 +508,7 @@ export class ProfileManager {
     const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
 
-    // @ts-ignore
+    // @ts-expect-error - TS2353: Object literal may only specify known properties, and includePrerelease does not exist in type Options
     const releaseVersion = semver.parse(releaseTag, {includePrerelease: true}) as SemVer;
 
     try {
@@ -526,16 +526,18 @@ export class ProfileManager {
           // TODO: Use the "nodeSeq"
 
           const nodeDataWrapper = genesisNetworkData.nodes[nodeAlias];
+          const rosterDataWrapper = genesisNetworkData.rosters[nodeAlias];
 
-          nodeDataWrapper.weight = nodeStakeAmount;
+          rosterDataWrapper.weight = nodeDataWrapper.weight = nodeStakeAmount;
           nodeDataWrapper.accountId = AccountId.fromString(account);
 
-          //? Add gossip endpoints
+          // Add gossip endpoints
           nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
+          rosterDataWrapper.addGossipEndpoint(externalIP, externalPort);
 
           const haProxyFqdn = Templates.renderFullyQualifiedHaProxyName(nodeAlias, namespace);
 
-          //? Add service endpoints
+          // Add service endpoints
           nodeDataWrapper.addServiceEndpoint(haProxyFqdn, constants.GRPC_PORT);
         }
 
