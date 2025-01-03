@@ -222,6 +222,8 @@ export class AccountManager {
     skipNodeAlias: string,
   ) {
     let nodes = {};
+    const configureNodeAccessPromiseArray = [];
+
     try {
       let localPort = constants.LOCAL_NODE_START_PORT;
 
@@ -230,11 +232,24 @@ export class AccountManager {
           networkNodeService.accountId !== IGNORED_NODE_ACCOUNT_ID &&
           networkNodeService.nodeAlias !== skipNodeAlias
         ) {
-          const addlNode = await this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size);
-          nodes = {...nodes, ...addlNode};
+          configureNodeAccessPromiseArray.push(
+            this.configureNodeAccess(networkNodeService, localPort, networkNodeServicesMap.size),
+          );
           localPort++;
         }
       }
+
+      await Promise.allSettled(configureNodeAccessPromiseArray).then(results => {
+        for (const result of results) {
+          switch (result.status) {
+            case REJECTED:
+              throw new SoloError(`failed to configure node access: ${result.reason}`);
+            case FULFILLED:
+              nodes = {...nodes, ...result.value};
+              break;
+          }
+        }
+      });
 
       let formattedNetworkConnection = '';
       Object.keys(nodes).forEach(key => (formattedNetworkConnection += `${key}:${nodes[key]}, `));
