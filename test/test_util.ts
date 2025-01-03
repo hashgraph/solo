@@ -293,6 +293,7 @@ export function e2eTestSuite(
           flags.storageAccessKey.constName,
           flags.storageSecrets.constName,
           flags.storageEndpoint.constName,
+          flags.storageBucket.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 

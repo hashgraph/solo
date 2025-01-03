@@ -74,6 +74,7 @@ export interface NetworkDeployConfigClass {
   storageAccessKey: string;
   storageSecrets: string;
   storageEndpoint: string;
+  storageBucket: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -139,6 +140,7 @@ export class NetworkCommand extends BaseCommand {
       flags.storageAccessKey,
       flags.storageSecrets,
       flags.storageEndpoint,
+      flags.storageBucket,
     ];
   }
 
@@ -220,6 +222,11 @@ export class NetworkCommand extends BaseCommand {
     haproxyIpsParsed?: Record<NodeAlias, IP>;
     envoyIpsParsed?: Record<NodeAlias, IP>;
     genesisNetworkData: GenesisNetworkDataConstructor;
+    storageType: constants.StorageType;
+    storageAccessKey: string;
+    storageSecrets: string;
+    storageEndpoint: string;
+    storageBucket: string;
   }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
@@ -234,6 +241,41 @@ export class NetworkCommand extends BaseCommand {
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias, 1);
     } else {
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);
+    }
+
+    if (
+      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.GCS_AND_MINIO
+    ) {
+      valuesArg += ' --set cloud.gcs.enabled=true';
+    }
+
+    if (
+      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.S3_ONLY
+    ) {
+      valuesArg += ' --set cloud.s3.enabled=true';
+    }
+
+    if (
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.S3_ONLY ||
+      config.storageType === constants.StorageType.S3_AND_GCS
+    ) {
+      valuesArg += ' --set cloud.minio.enabled=false';
+    }
+
+    if (config.storageBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
+    }
+
+    // if any cloud storage is enabled, need to generate new minio secrets
+    if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+      valuesArg += ' --set minio-server.tenant.configuration.name=new-minio-secrets';
+      if (config.storageBucket) {
+        valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+      }
     }
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -306,6 +348,7 @@ export class NetworkCommand extends BaseCommand {
       flags.storageAccessKey,
       flags.storageSecrets,
       flags.storageEndpoint,
+      flags.storageBucket,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);

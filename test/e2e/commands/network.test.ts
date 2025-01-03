@@ -106,6 +106,7 @@ describe('NetworkCommand', () => {
         flags.storageAccessKey.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
+        flags.storageBucket.constName,
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);

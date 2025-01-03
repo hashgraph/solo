@@ -1652,6 +1652,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly storageBucket: CommandFlag = {
+    constName: 'storageBucket',
+    name: 'storage-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of storage bucket',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1732,6 +1743,7 @@ export class Flags {
     Flags.storageAccessKey,
     Flags.storageSecrets,
     Flags.storageEndpoint,
+    Flags.storageBucket,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
