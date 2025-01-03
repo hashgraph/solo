@@ -9,7 +9,7 @@ env:
   SOLO_NETWORK_SIZE: 10
   SOLO_NAMESPACE: %SOLO_NAMESPACE%
   SOLO_CHART_VERSION: 0.36.3
-  # CONSENSUS_NODE_VERSION: 0.0.0
+  CONSENSUS_NODE_VERSION: 0.0.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
   SETTINGS_FLAG: "--settings-txt {{.USER_WORKING_DIR}}/settings.txt"
   SOLO_HOME: "{{.solo_home_override_dir}}"
