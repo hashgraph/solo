@@ -34,10 +34,17 @@ import {ConfigManager} from './config_manager.js';
 import {SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
+import {
+  HEDERA_HAPI_PATH,
+  ROOT_CONTAINER,
+  SOLO_LOGS_DIR,
+  SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
+  SOLO_REMOTE_CONFIGMAP_LABELS,
+} from './constants.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import type {Namespace} from './config/remote/types.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -65,6 +72,7 @@ export class K8 {
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
+  private networkingApi: k8s.NetworkingV1Api;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -93,6 +101,7 @@ export class K8 {
     }
 
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+    this.networkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
     return this; // to enable chaining
@@ -1396,6 +1405,7 @@ export class K8 {
   }
 
   // --------------------------------------- LEASES --------------------------------------- //
+
   async createNamespacedLease(namespace: string, leaseName: string, holderName: string, durationSeconds = 20) {
     const lease = new k8s.V1Lease();
 
@@ -1476,7 +1486,7 @@ export class K8 {
    */
   public async isCertManagerInstalled(): Promise<boolean> {
     try {
-      const pods = await this.kubeClient.listPodForAllNamespaces(_, _, _, 'app=cert-manager');
+      const pods = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, 'app=cert-manager');
 
       return pods.body.items.length > 0;
     } catch (e) {
@@ -1490,10 +1500,69 @@ export class K8 {
    * Check if minio is installed inside the namespace.
    * @returns if minio is found
    */
-  public async isMinioInstalled(): Promise<boolean> {
-    const namespace = this._getNamespace();
+  public async isMinioInstalled(namespace: Namespace): Promise<boolean> {
     try {
-      const pods = await this.kubeClient.listNamespacedPod(namespace, _, _, _, _, 'app=minio');
+      // TODO DETECT THE OPERATOR
+      const pods = await this.kubeClient.listNamespacedPod(
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'app=minio',
+      );
+
+      return pods.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
+  /**
+   * Check if the ingress controller is installed inside any namespace.
+   * @returns if ingress controller is found
+   */
+  public async isIngressControllerInstalled(): Promise<boolean> {
+    try {
+      const response = await this.networkingApi.listIngressClass();
+
+      return response.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
+  public async isRemoteConfigPresentInAnyNamespace() {
+    try {
+      const configmaps = await this.kubeClient.listConfigMapForAllNamespaces(
+        undefined,
+        undefined,
+        undefined,
+        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
+      );
+
+      return configmaps.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
+  public async isPrometheusInstalled(namespace: Namespace) {
+    try {
+      const pods = await this.kubeClient.listNamespacedPod(
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'app.kubernetes.io/name=prometheus',
+      );
 
       return pods.body.items.length > 0;
     } catch (e) {

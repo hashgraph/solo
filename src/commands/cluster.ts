@@ -115,6 +115,40 @@ export class ClusterCommand extends BaseCommand {
               constants.SOLO_TESTING_CHART_URL,
               constants.SOLO_CLUSTER_SETUP_CHART,
             );
+
+            // if minio is already present, don't deploy it
+            if (ctx.config.deployMinio && (await this.k8.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
+              ctx.config.deployMinio = false;
+            }
+
+            // if prometheus is found, don't deploy it
+            if (
+              ctx.config.deployPrometheusStack &&
+              !(await this.k8.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
+            ) {
+              ctx.config.deployPrometheusStack = false;
+            }
+
+            // if cert manager is installed, don't deploy it
+            if (
+              (ctx.config.deployCertManager || ctx.config.deployCertManagerCrds) &&
+              (await this.k8.isCertManagerInstalled())
+            ) {
+              ctx.config.deployCertManager = false;
+              ctx.config.deployCertManagerCrds = false;
+            }
+
+            // If all are already present or not wanted, skip installation
+            if (
+              !ctx.config.deployPrometheusStack &&
+              !ctx.config.deployMinio &&
+              !ctx.config.deployCertManager &&
+              !ctx.config.deployCertManagerCrds
+            ) {
+              ctx.isChartInstalled = true;
+              return;
+            }
+
             ctx.valuesArg = this.prepareValuesArg(
               ctx.config.chartDir,
               ctx.config.deployPrometheusStack,
@@ -227,8 +261,25 @@ export class ClusterCommand extends BaseCommand {
         },
         {
           title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-          task: async ctx => {
+          task: async (ctx, task) => {
             const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
+
+            if (await this.k8.isRemoteConfigPresentInAnyNamespace()) {
+              if (!argv.force) {
+                const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
+                  type: 'toggle',
+                  default: false,
+                  message:
+                    'There is remote config for one of the deployments' +
+                    'Are you sure you would like to uninstall the cluster?',
+                });
+
+                if (!confirm) {
+                  process.exit(0);
+                }
+              }
+            }
+
             await self.chartManager.uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
             if (argv.dev) {
               await self.showInstalledChartList(clusterSetupNamespace);
@@ -378,9 +429,9 @@ export class ClusterCommand extends BaseCommand {
     let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
-    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
     valuesArg += ` --set cloud.certManager.enabled=${certManagerEnabled}`;
     valuesArg += ` --set cert-manager.installCRDs=${certManagerCrdsEnabled}`;
+    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
 
     if (certManagerEnabled && !certManagerCrdsEnabled) {
       this.logger.showUser(
