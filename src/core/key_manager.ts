@@ -509,4 +509,17 @@ export class KeyManager {
 
     return subTasks;
   }
+
+  /**
+   * Given the path to the PEM certificate (Base64 ASCII), will return the DER (raw binary) bytes
+   * @param pemCertFullPath
+   */
+  getDerFromPemCertificate(pemCertFullPath: string) {
+    const certPem = fs.readFileSync(pemCertFullPath).toString();
+    const decodedDers = x509.PemConverter.decode(certPem);
+    if (!decodedDers || decodedDers.length === 0) {
+      throw new SoloError('unable to load perm key: ' + pemCertFullPath);
+    }
+    return new Uint8Array(decodedDers[0]);
+  }
 }

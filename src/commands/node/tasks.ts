@@ -73,7 +73,6 @@ import {
   type SkipCheck,
 } from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import * as x509 from '@peculiar/x509';
 import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
@@ -305,16 +304,21 @@ export class NodeCommandTasks {
       config: {namespace},
     } = ctx;
 
+    const enableDebugger = 'debugNodeAlias' in ctx.config && status !== NodeStatusCodes.FREEZE_COMPLETE;
+
     const subTasks = nodeAliases.map((nodeAlias, i) => {
       const reminder =
         'debugNodeAlias' in ctx.config &&
         ctx.config.debugNodeAlias === nodeAlias &&
         status !== NodeStatusCodes.FREEZE_COMPLETE
-          ? 'Please attach JVM debugger now.'
+          ? 'Please attach JVM debugger now.  Sleeping for 1 hour, hit ctrl-c once debugging is complete.'
           : '';
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`;
 
       const subTask = async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        if (enableDebugger) {
+          await sleep(Duration.ofHours(1));
+        }
         ctx.config.podNames[nodeAlias] = await this._checkNetworkNodeActiveness(
           namespace,
           nodeAlias,
@@ -509,15 +513,6 @@ export class NodeCommandTasks {
         ),
       (ctx: any) => !ctx.config.grpcTlsCertificatePath && !ctx.config.grpcWebTlsCertificatePath,
     );
-  }
-
-  _loadPermCertificate(certFullPath: string) {
-    const certPem = fs.readFileSync(certFullPath).toString();
-    const decodedDers = x509.PemConverter.decode(certPem);
-    if (!decodedDers || decodedDers.length === 0) {
-      throw new SoloError('unable to load perm key: ' + certFullPath);
-    }
-    return new Uint8Array(decodedDers[0]);
   }
 
   async _addStake(
@@ -1215,7 +1210,7 @@ export class NodeCommandTasks {
       const config = ctx.config;
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
       const signingCertFullPath = path.join(config.keysDir, signingCertFile);
-      ctx.signingCertDer = this._loadPermCertificate(signingCertFullPath);
+      ctx.signingCertDer = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
     });
   }
 
@@ -1224,7 +1219,7 @@ export class NodeCommandTasks {
       const config = ctx.config;
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias);
       const tlsCertFullPath = path.join(config.keysDir, tlsCertFile);
-      const tlsCertDer = this._loadPermCertificate(tlsCertFullPath);
+      const tlsCertDer = this.keyManager.getDerFromPemCertificate(tlsCertFullPath);
       ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
     });
   }
@@ -1305,7 +1300,7 @@ export class NodeCommandTasks {
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`);
-          const tlsCertDer = self._loadPermCertificate(config.tlsPublicKey);
+          const tlsCertDer = self.keyManager.getDerFromPemCertificate(config.tlsPublicKey);
           const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
           nodeUpdateTx = nodeUpdateTx.setCertificateHash(tlsCertHash);
 
@@ -1317,7 +1312,7 @@ export class NodeCommandTasks {
 
         if (config.gossipPublicKey && config.gossipPrivateKey) {
           self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`);
-          const signingCertDer = self._loadPermCertificate(config.gossipPublicKey);
+          const signingCertDer = self.keyManager.getDerFromPemCertificate(config.gossipPublicKey);
           nodeUpdateTx = nodeUpdateTx.setGossipCaCertificate(signingCertDer);
 
           const publicKeyFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);

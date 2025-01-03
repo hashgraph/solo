@@ -17,13 +17,15 @@
 import crypto from 'node:crypto';
 import {PrivateKey} from '@hashgraph/sdk';
 import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
-import * as x509 from '@peculiar/x509';
 import * as constants from '../constants.js';
 
 import type {KeyManager} from '../key_manager.js';
 import type {ToJSON} from '../../types/index.js';
 import type {JsonString, NodeAlias, NodeAliases} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_entry_data_wrapper.js';
+import {Templates} from '../templates.js';
+import path from 'path';
+import {Base64} from 'js-base64';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -65,20 +67,16 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   private async load() {
     await Promise.all(
       this.nodeAliases.map(async nodeAlias => {
-        const nodeKeys = await this.keyManager.loadSigningKey(nodeAlias, this.keysDir);
+        const signingCertFile = Templates.renderGossipPemPublicKeyFile(nodeAlias);
+        const signingCertFullPath = path.join(this.keysDir, signingCertFile);
+        const derCertificate = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
 
-        //* Convert the certificate to PEM format
-        const certPem = nodeKeys.certificate.toString();
-
-        //* Assign the PEM certificate
+        //* Assign the DER formatted certificate
         this.rosters[nodeAlias].gossipCaCertificate = this.nodes[nodeAlias].gossipCaCertificate =
-          nodeKeys.certificate.toString('base64');
-
-        //* Decode the PEM to DER format
-        const tlsCertDer = new Uint8Array(x509.PemConverter.decode(certPem)[0]);
+          Buffer.from(derCertificate).toString('base64');
 
         //* Generate the SHA-384 hash
-        this.nodes[nodeAlias].grpcCertificateHash = crypto.createHash('sha384').update(tlsCertDer).digest('base64');
+        this.nodes[nodeAlias].grpcCertificateHash = '';
       }),
     );
   }

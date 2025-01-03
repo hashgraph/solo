@@ -19,10 +19,6 @@ vars:
     sh: (echo "/tmp/var-check-$(date +%Y%m%d%H%M%S)")
   minio_flag_file:
     sh: (echo "/tmp/minio-flag-$(date +%Y%m%d%H%M%S)")
-  solo_chart_file:
-    sh: (echo "/tmp/solo-chart-$(date +%Y%m%d%H%M%S)")
-  solo_consensus_file:
-    sh: (echo "/tmp/solo-consensus-$(date +%Y%m%d%H%M%S)")
 
 env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
@@ -74,6 +70,7 @@ tasks:
       - echo "LOG4J2_FLAG=${LOG4J2_FLAG}"
       - echo "APPLICATION_PROPERTIES_FLAG=${APPLICATION_PROPERTIES_FLAG}"
       - echo "LOCAL_BUILD_FLAG=${LOCAL_BUILD_FLAG}"
+      - echo "DEBUG_NODE_ALIAS=${DEBUG_NODE_ALIAS}"
       - touch {{ .var_check_file }}
 
   readme:
@@ -156,14 +153,16 @@ tasks:
       - task: "init"
     cmds:
       - |
-        unset RELEASE_FLAG
-        if [[ "${LOCAL_BUILD_FLAG}" == "" ]]; then
-          export RELEASE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
+        if [[ "${DEBUG_NODE_ALIAS}" != "" ]]; then
+          export DEBUG_NODE_FLAG="--debug-node-alias {{ .DEBUG_NODE_ALIAS }}"
+        fi
+        if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
+          export CONSENSUS_NODE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
         if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
           export SOLO_CHART_FLAG='--solo-chart-version ${SOLO_CHART_VERSION}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${RELEASE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} -q
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${DEBUG_NODE_FLAG} -q
       - |
         if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
           export CONSENSUS_NODE_FLAG='--release-tag ${CONSENSUS_NODE_VERSION}'
@@ -182,7 +181,11 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q {{ .CLI_ARGS }}
+      - |
+        if [[ "${DEBUG_NODE_ALIAS}" != "" ]]; then
+          export DEBUG_NODE_FLAG="--debug-node-alias {{ .DEBUG_NODE_ALIAS }}"
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }}
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Node"
@@ -411,5 +414,3 @@ tasks:
       - rm -f /tmp/run-build-*
       - rm -f /tmp/var-check-*
       - rm -f /tmp/minio-flag-*
-      - rm -f /tmp/solo-chart-*
-      - rm -f /tmp/solo-consensus-*
