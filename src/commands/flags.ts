@@ -1646,7 +1646,7 @@ export class Flags {
     name: 'storage-endpoint',
     definition: {
       defaultValue: '',
-      describe: 'storage endpoint url',
+      describe: 'storage endpoint URL',
       type: 'string',
     },
     prompt: undefined,
