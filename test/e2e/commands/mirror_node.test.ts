@@ -101,6 +101,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.tlsClusterIssuerType.constName,
         flags.clusterSetupNamespace.constName,
         flags.soloChartVersion.constName,
+        flags.storageSecrets.constName,
+        flags.storageEndpoint.constName,
       ]);
     }).timeout(Duration.ofMinutes(10).toMillis());
 

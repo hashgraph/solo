@@ -1297,7 +1297,7 @@ export class K8 {
 
   /**
    * Delete a secret from the namespace
-   * @param name - the name of the new secret
+   * @param name - the name of the existing secret
    * @param namespace - the namespace to store the secret
    * @returns whether the secret was deleted successfully
    */
