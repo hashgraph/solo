@@ -51,6 +51,15 @@ export const HEDERA_NODE_INTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_INTERNAL_G
 export const HEDERA_NODE_EXTERNAL_GOSSIP_PORT = process.env.SOLO_NODE_EXTERNAL_GOSSIP_PORT || '50111';
 export const HEDERA_NODE_DEFAULT_STAKE_AMOUNT = +process.env.SOLO_NODE_DEFAULT_STAKE_AMOUNT || 500;
 
+export const HEDERA_NODE_SIDECARS = [
+  'recordStreamUploader',
+  'eventStreamUploader',
+  'backupUploader',
+  'accountBalanceUploader',
+  'otelCollector',
+  'blockstreamUploader',
+];
+
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = 'solo-setup';
 export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts';

@@ -29,6 +29,7 @@ import * as version from '../../../version.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
+import {HEDERA_NODE_SIDECARS} from '../../../src/core/constants.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
@@ -110,13 +111,7 @@ describe('ProfileManager', () => {
         expect(valuesYaml.defaults.root.resources.limits.memory).not.to.be.null;
 
         // check all sidecars have resources
-        for (const component of [
-          'recordStreamUploader',
-          'eventStreamUploader',
-          'backupUploader',
-          'accountBalanceUploader',
-          'otelCollector',
-        ]) {
+        for (const component of constants.HEDERA_NODE_SIDECARS) {
           expect(valuesYaml.defaults.sidecars[component].resources.limits.cpu).not.to.be.null;
           expect(valuesYaml.defaults.sidecars[component].resources.limits.memory).not.to.be.null;
         }
