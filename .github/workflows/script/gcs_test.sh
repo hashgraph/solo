@@ -19,6 +19,12 @@ else
   streamBucket=${BUCKET_NAME}
 fi
 
+if [ -z "${STORAGE_TYPE}" ]; then
+  streamBucket="gcs_minio"
+else
+  streamBucket=${STORAGE_TYPE}
+fi
+
 echo "Using bucket name: ${streamBucket}"
 
 SOLO_CLUSTER_NAME=solo-e2e

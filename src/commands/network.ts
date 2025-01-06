@@ -658,6 +658,11 @@ export class NetworkCommand extends BaseCommand {
                   constants.PODS_RUNNING_MAX_ATTEMPTS,
                   constants.PODS_RUNNING_DELAY,
                 ),
+              // skip if storageType is not set to minio
+              skip: ctx =>
+                ctx.config.storageType === constants.StorageType.GCS_ONLY ||
+                ctx.config.storageType === constants.StorageType.S3_ONLY ||
+                ctx.config.storageType === constants.StorageType.S3_AND_GCS,
             });
 
             // set up the subtasks
