@@ -203,7 +203,9 @@ export class NetworkCommand extends BaseCommand {
         true,
       );
       if (!isCloudSecretCreated) {
-        throw new SoloError(`failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`);
+        throw new SoloError(
+          `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
+        );
       }
     } catch (e: Error | any) {
       const errorMessage = 'failed to create Kubernetes storage secret ';
@@ -270,7 +272,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      valuesArg += ' --set cloud.generateNewSecrets=true';
+      valuesArg += ' --set cloud.generateNewSecrets=false';
     }
 
     if (config.storageBucket) {
