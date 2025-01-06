@@ -21,7 +21,7 @@ import {BaseCommand} from './../base.js';
 import {type Opts} from '../../types/command_types.js';
 import {ClusterCommandTasks} from './tasks.js';
 import {ClusterCommandHandlers} from './handlers.js';
-import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from "./flags.js";
+import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
 
 /**
  * Defines the core functionalities of 'node' command

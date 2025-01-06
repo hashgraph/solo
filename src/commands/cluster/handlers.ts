@@ -63,9 +63,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
     const action = this.parent.commandActionBuilder(
-      [
-        this.tasks.showClusterList(),
-      ],
+      [this.tasks.showClusterList()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -82,9 +80,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
     const action = this.parent.commandActionBuilder(
-      [
-        this.tasks.getClusterInfo()
-      ],
+      [this.tasks.getClusterInfo()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -102,9 +98,9 @@ export class ClusterCommandHandlers implements CommandHandlers {
 
     const action = this.parent.commandActionBuilder(
       [
-          this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
-          this.tasks.prepareChartValues(argv),
-          this.tasks.installClusterChart(argv)
+        this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
+        this.tasks.prepareChartValues(argv),
+        this.tasks.installClusterChart(argv),
       ],
       {
         concurrent: false,
@@ -123,9 +119,9 @@ export class ClusterCommandHandlers implements CommandHandlers {
 
     const action = this.parent.commandActionBuilder(
       [
-          this.tasks.initialize(argv, resetConfigBuilder.bind(this)),
-          this.tasks.acquireNewLease(argv),
-          this.tasks.uninstallClusterChart(argv),
+        this.tasks.initialize(argv, resetConfigBuilder.bind(this)),
+        this.tasks.acquireNewLease(argv),
+        this.tasks.uninstallClusterChart(argv),
       ],
       {
         concurrent: false,

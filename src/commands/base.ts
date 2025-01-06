@@ -175,9 +175,9 @@ export abstract class BaseCommand extends ShellRunner {
     return newConfigInstance;
   }
 
-    getLeaseManager(): LeaseManager {
-        return this.leaseManager;
-    }
+  getLeaseManager(): LeaseManager {
+    return this.leaseManager;
+  }
 
   /**
    * Get the list of unused configurations that were not accessed

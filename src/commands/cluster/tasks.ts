@@ -20,12 +20,10 @@ import type {ListrTaskWrapper} from 'listr2';
 import type {ConfigBuilder} from '../../types/aliases.js';
 import {type BaseCommand} from '../base.js';
 import {splitFlagInput} from '../../core/helpers.js';
-import * as constants from "../../core/constants.js";
-import path from "path";
-import chalk from "chalk";
-import {ListrEnquirerPromptAdapter} from "@listr2/prompt-adapter-enquirer";
-import {SoloError} from "../../core/errors.js";
-import {ListrLease} from "../../core/lease/listr_lease.js";
+import * as constants from '../../core/constants.js';
+import path from 'path';
+import chalk from 'chalk';
+import {ListrLease} from '../../core/lease/listr_lease.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -114,46 +112,48 @@ export class ClusterCommandTasks {
     }
   }
 
-    /**
-     * Prepare values arg for cluster setup command
-     *
-     * @param [chartDir] - local charts directory (default is empty)
-     * @param [prometheusStackEnabled] - a bool to denote whether to install prometheus stack
-     * @param [minioEnabled] - a bool to denote whether to install minio
-     * @param [certManagerEnabled] - a bool to denote whether to install cert manager
-     * @param [certManagerCrdsEnabled] - a bool to denote whether to install cert manager CRDs
-     */
-    private prepareValuesArg(
-        chartDir = flags.chartDirectory.definition.defaultValue as string,
-        prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
-        minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
-        certManagerEnabled = flags.deployCertManager.definition.defaultValue as boolean,
-        certManagerCrdsEnabled = flags.deployCertManagerCrds.definition.defaultValue as boolean,
-    ) {
-        let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
+  /**
+   * Prepare values arg for cluster setup command
+   *
+   * @param [chartDir] - local charts directory (default is empty)
+   * @param [prometheusStackEnabled] - a bool to denote whether to install prometheus stack
+   * @param [minioEnabled] - a bool to denote whether to install minio
+   * @param [certManagerEnabled] - a bool to denote whether to install cert manager
+   * @param [certManagerCrdsEnabled] - a bool to denote whether to install cert manager CRDs
+   */
+  private prepareValuesArg(
+    chartDir = flags.chartDirectory.definition.defaultValue as string,
+    prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
+    minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
+    certManagerEnabled = flags.deployCertManager.definition.defaultValue as boolean,
+    certManagerCrdsEnabled = flags.deployCertManagerCrds.definition.defaultValue as boolean,
+  ) {
+    let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
-        valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
-        valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
-        valuesArg += ` --set cloud.certManager.enabled=${certManagerEnabled}`;
-        valuesArg += ` --set cert-manager.installCRDs=${certManagerCrdsEnabled}`;
+    valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
+    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
+    valuesArg += ` --set cloud.certManager.enabled=${certManagerEnabled}`;
+    valuesArg += ` --set cert-manager.installCRDs=${certManagerCrdsEnabled}`;
 
-        if (certManagerEnabled && !certManagerCrdsEnabled) {
-            this.parent.logger.showUser(
-                chalk.yellowBright('> WARNING:'),
-                chalk.yellow(
-                    'cert-manager CRDs are required for cert-manager, please enable it if you have not installed it independently.',
-                ),
-            );
-        }
-
-        return valuesArg;
+    if (certManagerEnabled && !certManagerCrdsEnabled) {
+      this.parent.logger.showUser(
+        chalk.yellowBright('> WARNING:'),
+        chalk.yellow(
+          'cert-manager CRDs are required for cert-manager, please enable it if you have not installed it independently.',
+        ),
+      );
     }
 
+    return valuesArg;
+  }
 
-    /** Show list of installed chart */
-    private async showInstalledChartList(clusterSetupNamespace: string) {
-        this.parent.logger.showList('Installed Charts', await this.parent.getChartManager().getInstalledCharts(clusterSetupNamespace));
-    }
+  /** Show list of installed chart */
+  private async showInstalledChartList(clusterSetupNamespace: string) {
+    this.parent.logger.showList(
+      'Installed Charts',
+      await this.parent.getChartManager().getInstalledCharts(clusterSetupNamespace),
+    );
+  }
 
   selectContext(argv) {
     return new Task('Read local configuration settings', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
@@ -235,94 +235,100 @@ export class ClusterCommandTasks {
   }
 
   showClusterList() {
-      return new Task('List all available clusters', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-          this.parent.logger.showList('Clusters', this.parent.getK8().getClusters());
-      })
-
+    return new Task('List all available clusters', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      this.parent.logger.showList('Clusters', this.parent.getK8().getClusters());
+    });
   }
 
-    getClusterInfo() {
-        return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            try {
-                const cluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
-                this.parent.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
-                this.parent.logger.showUser('\n');
-            } catch (e: Error | any) {
-                this.parent.logger.showUserError(e);
-            }
-        });
-    }
+  getClusterInfo() {
+    return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      try {
+        const cluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
+        this.parent.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
+        this.parent.logger.showUser('\n');
+      } catch (e: Error | any) {
+        this.parent.logger.showUserError(e);
+      }
+    });
+  }
 
-    prepareChartValues(argv) {
-        return new Task('Prepare chart values', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            ctx.chartPath = await this.parent.prepareChartPath(
-                ctx.config.chartDir,
-                constants.SOLO_TESTING_CHART_URL,
-                constants.SOLO_CLUSTER_SETUP_CHART,
-            );
-            ctx.valuesArg = this.prepareValuesArg(
-                ctx.config.chartDir,
-                ctx.config.deployPrometheusStack,
-                ctx.config.deployMinio,
-                ctx.config.deployCertManager,
-                ctx.config.deployCertManagerCrds,
-            );
-        }, ctx => ctx.isChartInstalled)
-    }
+  prepareChartValues(argv) {
+    return new Task(
+      'Prepare chart values',
+      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        ctx.chartPath = await this.parent.prepareChartPath(
+          ctx.config.chartDir,
+          constants.SOLO_TESTING_CHART_URL,
+          constants.SOLO_CLUSTER_SETUP_CHART,
+        );
+        ctx.valuesArg = this.prepareValuesArg(
+          ctx.config.chartDir,
+          ctx.config.deployPrometheusStack,
+          ctx.config.deployMinio,
+          ctx.config.deployCertManager,
+          ctx.config.deployCertManagerCrds,
+        );
+      },
+      ctx => ctx.isChartInstalled,
+    );
+  }
 
-    installClusterChart(argv) {
-        const parent = this.parent;
-        return new Task(`Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`, async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
-            const version = ctx.config.soloChartVersion;
-            const valuesArg = ctx.valuesArg;
+  installClusterChart(argv) {
+    const parent = this.parent;
+    return new Task(
+      `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
+      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
+        const version = ctx.config.soloChartVersion;
+        const valuesArg = ctx.valuesArg;
 
-            try {
-                parent.logger.debug(`Installing chart chartPath = ${ctx.chartPath}, version = ${version}`);
-                await parent.getChartManager().install(
-                    clusterSetupNamespace,
-                    constants.SOLO_CLUSTER_SETUP_CHART,
-                    ctx.chartPath,
-                    version,
-                    valuesArg,
-                );
-            } catch (e: Error | any) {
-                // if error, uninstall the chart and rethrow the error
-                parent.logger.debug(
-                    `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
-                    e,
-                );
-                try {
-                    await parent.getChartManager().uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
-                } catch (ex) {
-                    // ignore error during uninstall since we are doing the best-effort uninstall here
-                }
-
-                throw e;
-            }
-
-            if (argv.dev) {
-                await this.showInstalledChartList(clusterSetupNamespace);
-            }
-        }, ctx => ctx.isChartInstalled)
-    }
-
-    async acquireNewLease(argv) {
-        const lease = await this.parent.getLeaseManager().create();
-        return new Task('Acquire new lease', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            ListrLease.newAcquireLeaseTask(lease, task);
-        })
-    }
-
-    uninstallClusterChart(argv) {
-        const parent = this.parent;
-        return new Task(`Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`, async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
+        try {
+          parent.logger.debug(`Installing chart chartPath = ${ctx.chartPath}, version = ${version}`);
+          await parent
+            .getChartManager()
+            .install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, ctx.chartPath, version, valuesArg);
+        } catch (e: Error | any) {
+          // if error, uninstall the chart and rethrow the error
+          parent.logger.debug(
+            `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
+            e,
+          );
+          try {
             await parent.getChartManager().uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
-            if (argv.dev) {
-                await this.showInstalledChartList(clusterSetupNamespace);
-            }
-        }, ctx => !ctx.isChartInstalled)
-    }
+          } catch (ex) {
+            // ignore error during uninstall since we are doing the best-effort uninstall here
+          }
 
+          throw e;
+        }
+
+        if (argv.dev) {
+          await this.showInstalledChartList(clusterSetupNamespace);
+        }
+      },
+      ctx => ctx.isChartInstalled,
+    );
+  }
+
+  async acquireNewLease(argv) {
+    const lease = await this.parent.getLeaseManager().create();
+    return new Task('Acquire new lease', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      ListrLease.newAcquireLeaseTask(lease, task);
+    });
+  }
+
+  uninstallClusterChart(argv) {
+    const parent = this.parent;
+    return new Task(
+      `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
+      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
+        await parent.getChartManager().uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
+        if (argv.dev) {
+          await this.showInstalledChartList(clusterSetupNamespace);
+        }
+      },
+      ctx => !ctx.isChartInstalled,
+    );
+  }
 }
