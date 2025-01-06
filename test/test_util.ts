@@ -231,7 +231,7 @@ export function e2eTestSuite(
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
-    describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
+    describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}]`, () => {
       before(() => {
         bootstrapResp.opts.logger.showUser(
           `------------------------- START: bootstrap (${testName}) ----------------------------`,

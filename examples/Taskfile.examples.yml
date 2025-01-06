@@ -1,7 +1,7 @@
 version: 3
 includes:
   helper:
-    taskfile: ../HelperTasks.yml
+    taskfile: ../Taskfile.helper.yml
     flatten: true
 
 tasks:
