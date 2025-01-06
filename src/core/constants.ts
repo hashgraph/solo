@@ -208,7 +208,6 @@ export const NEW_MINIO_SECRET_NAME = 'new-minio-secrets';
 
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',
-  // S3_AND_MINIO = 's3_and_minio',
   GCS_AND_MINIO = 'gcs_and_minio',
   S3_ONLY = 's3_only',
   GCS_ONLY = 'gcs_only',
