@@ -203,10 +203,10 @@ export class NetworkCommand extends BaseCommand {
         true,
       );
       if (!isCloudSecretCreated) {
-        throw new SoloError(`failed to create secret for tsc certificates for storage type '${config.storageType}'`);
+        throw new SoloError(`failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`);
       }
     } catch (e: Error | any) {
-      const errorMessage = 'failed to create storage secret ';
+      const errorMessage = 'failed to create Kubernetes storage secret ';
       this.logger.error(errorMessage, e);
       throw new SoloError(errorMessage, e);
     }
