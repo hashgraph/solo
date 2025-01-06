@@ -21,7 +21,6 @@ tasks:
       - echo "This command is meant to deploy a Solo network to a Kind cluster on your local machine, "
       - echo "ctrl-c if this is not what you want to do."
       - sleep 5
-      - task: "install:solo"
       - task: "install"
       - task: "start"
 

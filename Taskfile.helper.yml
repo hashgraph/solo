@@ -31,6 +31,8 @@ env:
   MIRROR_RELEASE_NAME: mirror
 
 tasks:
+  deps:
+    - task: "install:solo"
   init:
     cmds:
       - task: "var:check"
