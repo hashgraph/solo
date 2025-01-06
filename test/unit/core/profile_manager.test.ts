@@ -29,7 +29,6 @@ import * as version from '../../../version.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
-import {HEDERA_NODE_SIDECARS} from '../../../src/core/constants.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
