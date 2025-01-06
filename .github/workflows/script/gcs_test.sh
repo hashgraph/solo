@@ -20,12 +20,13 @@ else
 fi
 
 if [ -z "${STORAGE_TYPE}" ]; then
-  streamBucket="gcs_minio"
+  storageType="gcs_and_minio"
 else
-  streamBucket=${STORAGE_TYPE}
+  storageType=${STORAGE_TYPE}
 fi
 
 echo "Using bucket name: ${streamBucket}"
+echo "Test storage type: ${storageType}"
 
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
@@ -40,14 +41,14 @@ npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
 npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
   --storage-endpoint "https://storage.googleapis.com" \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
-  --storage-type "gcs_and_minio" --storage-bucket "${streamBucket}"
+  --storage-type "${storageType}" --storage-bucket "${streamBucket}"
 
 npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" \
   --storage-endpoint "https://storage.googleapis.com" \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
-  --storage-type "gcs_and_minio" --storage-bucket "${streamBucket}"
+  --storage-type "${storageType}" --storage-bucket "${streamBucket}"
 
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > /dev/null 2>&1 &
