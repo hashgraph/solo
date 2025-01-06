@@ -17,14 +17,14 @@
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
 import {Listr, type ListrTask} from 'listr2';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';
+import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
 import path from 'path';
-import {addDebugOptions, validatePath} from '../core/helpers.js';
 import fs from 'fs';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type KeyManager} from '../core/key_manager.js';
@@ -66,6 +66,8 @@ export interface NetworkDeployConfigClass {
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
   genesisNetworkData: GenesisNetworkDataConstructor;
+  genesisThrottlesFile: string;
+  resolvedThrottlesFile: string;
   getUnusedConfigs: () => string[];
   haproxyIps: string;
   envoyIps: string;
@@ -115,6 +117,7 @@ export class NetworkCommand extends BaseCommand {
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.genesisThrottlesFile,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -223,6 +226,7 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     genesisNetworkData: GenesisNetworkDataConstructor;
     storageType: constants.StorageType;
+    resolvedThrottlesFile: string;
     storageAccessKey: string;
     storageSecrets: string;
     storageEndpoint: string;
@@ -310,6 +314,10 @@ export class NetworkCommand extends BaseCommand {
       });
     }
 
+    if (config.resolvedThrottlesFile) {
+      valuesArg += ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
+    }
+
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
@@ -329,6 +337,7 @@ export class NetworkCommand extends BaseCommand {
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.genesisThrottlesFile,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -361,6 +370,7 @@ export class NetworkCommand extends BaseCommand {
       'stagingDir',
       'stagingKeysDir',
       'valuesArg',
+      'resolvedThrottlesFile',
     ]) as NetworkDeployConfigClass;
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -389,6 +399,11 @@ export class NetworkCommand extends BaseCommand {
       config.nodeAliases,
       this.keyManager,
       config.keysDir,
+    );
+
+    config.resolvedThrottlesFile = resolveValidJsonFilePath(
+      config.genesisThrottlesFile,
+      flags.genesisThrottlesFile.definition.defaultValue as string,
     );
 
     config.valuesArg = await this.prepareValuesArg(config);
@@ -688,6 +703,7 @@ export class NetworkCommand extends BaseCommand {
       };
       checkTimeout: boolean;
     }
+
     let networkDestroySuccess = true;
     const tasks = new Listr<Context>(
       [
