@@ -22,6 +22,7 @@ import * as ContextFlags from './flags.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
 import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
+import {SoloError} from "../../core/errors.js";
 
 export class ClusterCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand;
@@ -110,7 +111,12 @@ export class ClusterCommandHandlers implements CommandHandlers {
       null,
     );
 
-    await action(argv, this);
+    try {
+        await action(argv, this);
+    } catch (e: Error | any) {
+        throw new SoloError('Error on cluster setup', e);
+    }
+
     return true;
   }
 
@@ -131,7 +137,11 @@ export class ClusterCommandHandlers implements CommandHandlers {
       null,
     );
 
-    await action(argv, this);
+    try {
+        await action(argv, this);
+    } catch (e: Error | any) {
+        throw new SoloError('Error on cluster reset', e);
+    }
     return true;
   }
 }

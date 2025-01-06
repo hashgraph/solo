@@ -310,10 +310,10 @@ export class ClusterCommandTasks {
     );
   }
 
-  async acquireNewLease(argv) {
-    const lease = await this.parent.getLeaseManager().create();
+  acquireNewLease(argv) {
     return new Task('Acquire new lease', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      ListrLease.newAcquireLeaseTask(lease, task);
+      const lease = await this.parent.getLeaseManager().create();
+      return ListrLease.newAcquireLeaseTask(lease, task);
     });
   }
 

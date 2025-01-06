@@ -111,7 +111,7 @@ describe('ClusterCommand', () => {
 
   it('function showInstalledChartList should return right true', async () => {
     // @ts-ignore
-    await expect(clusterCmd.showInstalledChartList()).to.eventually.be.undefined;
+    await expect(clusterCmd.handlers.tasks.showInstalledChartList()).to.eventually.be.undefined;
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   // helm list would return an empty list if given invalid namespace
