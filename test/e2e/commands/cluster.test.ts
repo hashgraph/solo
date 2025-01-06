@@ -67,7 +67,7 @@ describe('ClusterCommand', () => {
     await k8.deleteNamespace(namespace);
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE;
     configManager.update(argv);
-    await clusterCmd.setup(argv); // restore solo-cluster-setup for other e2e tests to leverage
+    await clusterCmd.handlers.setup(argv); // restore solo-cluster-setup for other e2e tests to leverage
     do {
       await sleep(Duration.ofSeconds(5));
     } while (
@@ -85,28 +85,28 @@ describe('ClusterCommand', () => {
 
   it('should cleanup existing deployment', async () => {
     if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
-      expect(await clusterCmd.reset(argv)).to.be.true;
+      expect(await clusterCmd.handlers.reset(argv)).to.be.true;
     }
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID';
     configManager.update(argv);
-    await expect(clusterCmd.setup(argv)).to.be.rejectedWith('Error on cluster setup');
+    await expect(clusterCmd.handlers.setup(argv)).to.be.rejectedWith('Error on cluster setup');
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster setup should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace;
     configManager.update(argv);
-    expect(await clusterCmd.setup(argv)).to.be.true;
+    expect(await clusterCmd.handlers.setup(argv)).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
 
-  it('function getClusterInfo should return true', () => {
-    expect(clusterCmd.getClusterInfo()).to.be.ok;
+  it('solo cluster info should work', () => {
+    expect(clusterCmd.handlers.info(argv)).to.be.ok;
   }).timeout(Duration.ofMinutes(1).toMillis());
 
-  it('function showClusterList should return right true', async () => {
-    expect(clusterCmd.showClusterList()).to.be.ok;
+  it('solo cluster list', async () => {
+    expect(clusterCmd.handlers.list(argv)).to.be.ok;
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('function showInstalledChartList should return right true', async () => {
@@ -120,7 +120,7 @@ describe('ClusterCommand', () => {
     configManager.update(argv);
 
     try {
-      await expect(clusterCmd.reset(argv)).to.be.rejectedWith('Error on cluster reset');
+      await expect(clusterCmd.handlers.reset(argv)).to.be.rejectedWith('Error on cluster reset');
     } catch (e) {
       clusterCmd.logger.showUserError(e);
       expect.fail();
@@ -130,6 +130,6 @@ describe('ClusterCommand', () => {
   it('solo cluster reset should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace;
     configManager.update(argv);
-    expect(await clusterCmd.reset(argv)).to.be.true;
+    expect(await clusterCmd.handlers.reset(argv)).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
 });

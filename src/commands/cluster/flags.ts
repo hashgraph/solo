@@ -15,27 +15,23 @@
  *
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
+import {Flags as flags} from '../flags.js';
 
-export const CONNECT_CONFIGS_NAME = 'connectConfig';
-
-export const connectConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, [
-    'currentDeploymentName',
-  ]) as ContextConnectConfigClass;
-
-  // set config in the context for later tasks to use
-  ctx.config = config;
-
-  return ctx.config;
+export const DEFAULT_FLAGS = {
+  requiredFlags: [],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [],
 };
 
-export interface ContextConnectConfigClass {
-  app: string;
-  cacheDir: string;
-  devMode: boolean;
-  namespace: string;
-  nodeAlias: NodeAlias;
-  context: string;
-  clusterName: string;
-}
+export const USE_FLAGS = {
+  requiredFlags: [],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [
+    flags.devMode,
+    flags.quiet,
+    flags.clusterName,
+    flags.context,
+    flags.namespace,
+    flags.userEmailAddress,
+  ],
+};

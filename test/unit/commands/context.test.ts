@@ -18,7 +18,7 @@ import sinon from 'sinon';
 import {describe, it, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
-import {ContextCommandTasks} from '../../../src/commands/context/tasks.js';
+import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
@@ -42,16 +42,16 @@ import fs from 'fs';
 import {stringify} from 'yaml';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
 import {type ListrTaskWrapper} from 'listr2';
-import {ContextCommand} from '../../../src/commands/context/index.js';
+import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {type CommandFlag} from '../../../src/types/flag_types.js';
 
-describe('ContextCommandTasks unit tests', () => {
-  const filePath = `${getTestCacheDir('ContextCommandTasks')}/localConfig.yaml`;
+describe('ClusterCommandTasks unit tests', () => {
+  const filePath = `${getTestCacheDir('ClusterCommandTasks')}/localConfig.yaml`;
   const sandbox = sinon.createSandbox();
   let namespacePromptStub: sinon.SinonStub;
   let clusterNamePromptStub: sinon.SinonStub;
   let contextPromptStub: sinon.SinonStub;
-  let tasks: ContextCommandTasks;
+  let tasks: ClusterCommandTasks;
   let command: BaseCommand;
   let loggerStub: sinon.SinonStubbedInstance<SoloLogger>;
   let localConfig: LocalConfig;
@@ -114,8 +114,8 @@ describe('ContextCommandTasks unit tests', () => {
 
   describe('updateLocalConfig', () => {
     async function runUpdateLocalConfigTask(opts) {
-      command = new ContextCommand(opts);
-      tasks = new ContextCommandTasks(command);
+      command = new ClusterCommand(opts);
+      tasks = new ClusterCommandTasks(command);
       const taskObj = tasks.updateLocalConfig({});
       await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
       return command;
@@ -252,8 +252,8 @@ describe('ContextCommandTasks unit tests', () => {
 
   describe('selectContext', () => {
     async function runSelectContextTask(opts) {
-      command = new ContextCommand(opts);
-      tasks = new ContextCommandTasks(command);
+      command = new ClusterCommand(opts);
+      tasks = new ClusterCommandTasks(command);
       const taskObj = tasks.selectContext({});
       await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
       return command;

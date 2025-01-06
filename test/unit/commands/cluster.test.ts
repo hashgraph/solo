@@ -18,7 +18,7 @@ import sinon from 'sinon';
 import {describe, it, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
-import {ClusterCommand} from '../../../src/commands/cluster.js';
+import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
@@ -81,7 +81,7 @@ describe('ClusterCommand unit tests', () => {
 
     it('Install function is called with expected parameters', async () => {
       const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.setup(argv);
+      await clusterCommand.handlers.setup(argv);
 
       expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
@@ -96,7 +96,7 @@ describe('ClusterCommand unit tests', () => {
       argv[flags.force.name] = true;
 
       const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.setup(argv);
+      await clusterCommand.handlers.setup(argv);
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),

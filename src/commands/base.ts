@@ -98,6 +98,10 @@ export abstract class BaseCommand extends ShellRunner {
     return this.configManager;
   }
 
+  getChartManager(): ChartManager {
+    return this.chartManager;
+  }
+
   /**
    * Dynamically builds a class with properties from the provided list of flags
    * and extra properties, will keep track of which properties are used.  Call
@@ -170,6 +174,10 @@ export abstract class BaseCommand extends ShellRunner {
 
     return newConfigInstance;
   }
+
+    getLeaseManager(): LeaseManager {
+        return this.leaseManager;
+    }
 
   /**
    * Get the list of unused configurations that were not accessed
