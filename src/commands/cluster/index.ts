@@ -21,7 +21,7 @@ import {BaseCommand} from './../base.js';
 import {type Opts} from '../../types/command_types.js';
 import {ClusterCommandTasks} from './tasks.js';
 import {ClusterCommandHandlers} from './handlers.js';
-import {DEFAULT_FLAGS} from "./flags.js";
+import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from "./flags.js";
 
 /**
  * Defines the core functionalities of 'node' command
@@ -82,7 +82,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'setup',
               },
-              DEFAULT_FLAGS,
+              SETUP_FLAGS,
             ),
           )
           .command(
@@ -93,7 +93,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'reset',
               },
-              DEFAULT_FLAGS,
+              RESET_FLAGS,
             ),
           )
           .demandCommand(1, 'Select a context command');

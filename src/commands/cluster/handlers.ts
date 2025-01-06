@@ -21,7 +21,7 @@ import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
 import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {connectConfigBuilder} from './configs.js';
+import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 
 export class ClusterCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand;
@@ -102,7 +102,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
 
     const action = this.parent.commandActionBuilder(
       [
-          this.tasks.setupInitialize(argv),
+          this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
           this.tasks.prepareChartValues(argv),
           this.tasks.installClusterChart(argv)
       ],
@@ -123,7 +123,8 @@ export class ClusterCommandHandlers implements CommandHandlers {
 
     const action = this.parent.commandActionBuilder(
       [
-          this.tasks.resetInitialize(argv),
+          this.tasks.initialize(argv, resetConfigBuilder.bind(this)),
+          this.tasks.acquireNewLease(argv),
           this.tasks.uninstallClusterChart(argv),
       ],
       {

@@ -253,42 +253,6 @@ export class ClusterCommandTasks {
         });
     }
 
-
-    setupInitialize(argv) {
-        return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            const parent = this.parent;
-            const configManager = parent.getConfigManager();
-            configManager.update(argv);
-            flags.disablePrompts([flags.chartDirectory]);
-
-            await configManager.executePrompt(task, [
-                flags.chartDirectory,
-                flags.clusterSetupNamespace,
-                flags.deployCertManager,
-                flags.deployCertManagerCrds,
-                flags.deployMinio,
-                flags.deployPrometheusStack,
-            ]);
-
-            ctx.config = {
-                chartDir: configManager.getFlag<string>(flags.chartDirectory) as string,
-                clusterSetupNamespace: configManager.getFlag<string>(flags.clusterSetupNamespace) as string,
-                deployCertManager: configManager.getFlag<boolean>(flags.deployCertManager) as boolean,
-                deployCertManagerCrds: configManager.getFlag<boolean>(flags.deployCertManagerCrds) as boolean,
-                deployMinio: configManager.getFlag<boolean>(flags.deployMinio) as boolean,
-                deployPrometheusStack: configManager.getFlag<boolean>(flags.deployPrometheusStack) as boolean,
-                soloChartVersion: configManager.getFlag<string>(flags.soloChartVersion) as string,
-            };
-
-            parent.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
-
-            ctx.isChartInstalled = await parent.getChartManager().isChartInstalled(
-                ctx.config.clusterSetupNamespace,
-                constants.SOLO_CLUSTER_SETUP_CHART,
-            );
-        });
-    }
-
     prepareChartValues(argv) {
         return new Task('Prepare chart values', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
             ctx.chartPath = await this.parent.prepareChartPath(
@@ -343,38 +307,11 @@ export class ClusterCommandTasks {
         }, ctx => ctx.isChartInstalled)
     }
 
-    async resetInitialize(argv) {
-        const parent = this.parent;
-        const lease = await parent.getLeaseManager().create();
-        return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-            if (!argv[flags.force.name]) {
-                const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-                    type: 'toggle',
-                    default: false,
-                    message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
-                });
-
-                if (!confirm) {
-                    process.exit(0);
-                }
-            }
-
-            parent.getConfigManager().update(argv);
-            ctx.config = {
-                clusterName: parent.getConfigManager().getFlag<string>(flags.clusterName) as string,
-                clusterSetupNamespace: parent.getConfigManager().getFlag<string>(flags.clusterSetupNamespace) as string,
-            };
-
-            ctx.isChartInstalled = await parent.getChartManager().isChartInstalled(
-                ctx.config.clusterSetupNamespace,
-                constants.SOLO_CLUSTER_SETUP_CHART,
-            );
-            if (!ctx.isChartInstalled) {
-                throw new SoloError('No chart found for the cluster');
-            }
-
-            return ListrLease.newAcquireLeaseTask(lease, task);
-        });
+    async acquireNewLease(argv) {
+        const lease = await this.parent.getLeaseManager().create();
+        return new Task('Acquire new lease', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+            ListrLease.newAcquireLeaseTask(lease, task);
+        })
     }
 
     uninstallClusterChart(argv) {
