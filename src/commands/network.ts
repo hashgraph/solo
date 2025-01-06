@@ -41,7 +41,6 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
-import {NEW_MINIO_SECRET_NAME} from '../core/constants.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -159,7 +158,7 @@ export class NetworkCommand extends BaseCommand {
       const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
       minioData['config.env'] = Base64.encode(envString);
       const isMinioSecretCreated = await this.k8.createSecret(
-        constants.NEW_MINIO_SECRET_NAME,
+        constants.MINIO_SECRET_NAME,
         namespace,
         'Opaque',
         minioData,
@@ -196,7 +195,7 @@ export class NetworkCommand extends BaseCommand {
       }
 
       const isCloudSecretCreated = await this.k8.createSecret(
-        constants.CLOUD_STORAGE_SECRET_NAME,
+        constants.UPLOADER_SECRET_NAME,
         namespace,
         'Opaque',
         cloudData,
@@ -270,16 +269,16 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ' --set cloud.minio.enabled=false';
     }
 
+    if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+      valuesArg += ' --set cloud.generateNewSecrets=true';
+    }
+
     if (config.storageBucket) {
       valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
     }
 
-    // if any cloud storage is enabled, need to generate new minio secrets
-    if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      valuesArg += ' --set minio-server.tenant.configuration.name=' + constants.NEW_MINIO_SECRET_NAME;
-      if (config.storageBucket) {
-        valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
-      }
+    if (config.storageBucket) {
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
     }
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;

@@ -203,8 +203,8 @@ export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TI
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml';
 export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
 
-export const CLOUD_STORAGE_SECRET_NAME = 'cloud-storage-secrets';
-export const NEW_MINIO_SECRET_NAME = 'new-minio-secrets';
+export const UPLOADER_SECRET_NAME = 'uploader-mirror-secrets';
+export const MINIO_SECRET_NAME = 'minio-secrets';
 
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',
