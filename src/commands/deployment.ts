@@ -27,11 +27,13 @@ import type {Namespace} from '../core/config/remote/types.js';
 import {type ContextClusterStructure} from '../types/config_types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
+import {promptForContext, selectContextForFirstCluster, splitFlagInput} from '../core/helpers.js';
 
 export class DeploymentCommand extends BaseCommand {
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
     return [
       flags.quiet,
+      flags.context,
       flags.namespace,
       flags.userEmailAddress,
       flags.deploymentClusters,
@@ -106,6 +108,77 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         RemoteConfigTasks.createRemoteConfig.bind(this)(),
+        {
+          title: 'Select provided context',
+          task: async (ctx, task) => {
+            self.logger.info('Read local configuration settings...');
+            const isQuiet = self.configManager.getFlag(flags.quiet);
+            const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
+            let clusters = splitFlagInput(self.configManager.getFlag(flags.clusterName));
+            const contexts = splitFlagInput(self.configManager.getFlag(flags.context));
+            const localConfig = self.getLocalConfig();
+
+            let selectedContext;
+
+            // If one or more contexts are provided, use the first one
+            if (contexts.length) {
+              selectedContext = contexts[0];
+            }
+
+            // If one or more clusters are provided, use the first one to determine the context
+            // from the mapping in the LocalConfig
+            else if (clusters.length) {
+              selectedContext = await selectContextForFirstCluster(task, clusters, localConfig, isQuiet, self.k8);
+            }
+
+            // If a deployment name is provided, get the clusters associated with the deployment from the LocalConfig
+            // and select the context from the mapping, corresponding to the first deployment cluster
+            else if (deploymentName) {
+              const deployment = localConfig.deployments[deploymentName];
+
+              if (deployment && deployment.clusters.length) {
+                selectedContext = await selectContextForFirstCluster(
+                  task,
+                  deployment.clusters,
+                  localConfig,
+                  isQuiet,
+                  self.k8,
+                );
+              }
+
+              // The provided deployment does not exist in the LocalConfig
+              else {
+                // Add the deployment to the LocalConfig with the currently selected cluster and context in KubeConfig
+                if (isQuiet) {
+                  selectedContext = self.k8.getKubeConfig().getCurrentContext();
+                  const selectedCluster = self.k8.getKubeConfig().getCurrentCluster().name;
+                  localConfig.deployments[deploymentName] = {
+                    clusters: [selectedCluster],
+                  };
+
+                  if (!localConfig.clusterContextMapping[selectedCluster]) {
+                    localConfig.clusterContextMapping[selectedCluster] = selectedContext;
+                  }
+                }
+
+                // Prompt user for clusters and contexts
+                else {
+                  clusters = splitFlagInput(await flags.clusterName.prompt(task, clusters));
+
+                  for (const cluster of clusters) {
+                    if (!localConfig.clusterContextMapping[cluster]) {
+                      localConfig.clusterContextMapping[cluster] = await promptForContext(task, cluster, self.k8);
+                    }
+                  }
+
+                  selectedContext = localConfig.clusterContextMapping[clusters[0]];
+                }
+              }
+            }
+
+            self.k8.getKubeConfig().setCurrentContext(selectedContext);
+          },
+        },
       ],
       {
         concurrent: false,
@@ -115,7 +188,7 @@ export class DeploymentCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
     } finally {
       await lease.release();

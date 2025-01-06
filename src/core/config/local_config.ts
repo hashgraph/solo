@@ -38,34 +38,21 @@ import {patchInject} from '../container_helper.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
-  @IsEmail(
-    {},
-    {
-      message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL,
-    },
-  )
+  @IsEmail({}, {message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL})
   userEmailAddress: EmailAddress;
 
   // The string is the name of the deployment, will be used as the namespace,
   // so it needs to be available in all targeted clusters
-  @IsDeployments({
-    message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT,
-  })
+  @IsDeployments({message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT})
   @IsNotEmpty()
-  @IsObject({
-    message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT,
-  })
+  @IsObject({message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT})
   public deployments: Deployments;
 
-  @IsString({
-    message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST,
-  })
+  @IsString({message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST})
   @IsNotEmpty()
   currentDeploymentName: string;
 
-  @IsClusterContextMapping({
-    message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
-  })
+  @IsClusterContextMapping({message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT})
   @IsNotEmpty()
   public clusterContextMapping: ClusterContextMapping = {};
 
@@ -173,7 +160,7 @@ export class LocalConfig implements LocalConfigData {
         const contexts = self.configManager.getFlag<string>(flags.context);
         const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
-        let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
+        let deploymentClusters = self.configManager.getFlag<string>(flags.deploymentClusters);
 
         if (!userEmailAddress) {
           if (isQuiet) throw new SoloError(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL);
