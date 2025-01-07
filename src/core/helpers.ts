@@ -54,14 +54,6 @@ export function splitFlagInput(input: string, separator = ',') {
     .filter(Boolean);
 }
 
-/**
- * @param arr - The array to be cloned
- * @returns a new array with the same elements as the input array
- */
-export function cloneArray<T>(arr: T[]): T[] {
-  return JSON.parse(JSON.stringify(arr));
-}
-
 /** load package.json */
 export function loadPackageJSON(): any {
   try {

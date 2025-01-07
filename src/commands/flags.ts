@@ -22,7 +22,6 @@ import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
-import * as helpers from '../core/helpers.js';
 import validator from 'validator';
 
 export class Flags {
@@ -279,7 +278,7 @@ export class Flags {
           const input = await task.prompt(ListrEnquirerPromptAdapter).run({
             type: 'select',
             message: 'Select profile for solo network deployment',
-            choices: helpers.cloneArray(choices),
+            choices: Flags.cloneArray(choices),
           });
 
           if (!input) {
@@ -1732,4 +1731,12 @@ export class Flags {
     requiredFlagsWithDisabledPrompt: [Flags.namespace, Flags.cacheDir, Flags.releaseTag],
     optionalFlags: [Flags.devMode, Flags.quiet],
   };
+
+  /**
+   * @param arr - The array to be cloned
+   * @returns a new array with the same elements as the input array
+   */
+  private static cloneArray<T>(arr: T[]): T[] {
+    return JSON.parse(JSON.stringify(arr));
+  }
 }
