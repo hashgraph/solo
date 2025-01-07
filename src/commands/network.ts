@@ -277,12 +277,8 @@ export class NetworkCommand extends BaseCommand {
 
     if (config.storageBucket) {
       valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
-    }
-
-    if (config.storageBucket) {
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
     }
-
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
       profileName,
