@@ -390,15 +390,20 @@ export class AccountManager {
 
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
-      const serviceType = service.metadata.labels['solo.hedera.com/type'];
       let serviceBuilder = new NetworkNodeServicesBuilder(
         service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
       );
 
       if (serviceBuilderMap.has(serviceBuilder.key())) {
         serviceBuilder = serviceBuilderMap.get(serviceBuilder.key()) as NetworkNodeServicesBuilder;
+      } else {
+        serviceBuilder = new NetworkNodeServicesBuilder(
+          service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
+        );
+        serviceBuilder.withNamespace(namespace);
       }
 
+      const serviceType = service.metadata.labels['solo.hedera.com/type'];
       switch (serviceType) {
         // solo.hedera.com/type: envoy-proxy-svc
         case 'envoy-proxy-svc':
@@ -413,7 +418,6 @@ export class AccountManager {
         // solo.hedera.com/type: haproxy-svc
         case 'haproxy-svc':
           serviceBuilder
-            .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
             .withHaProxyAppSelector(service.spec!.selector!.app)
             .withHaProxyName(service.metadata!.name as string)
             .withHaProxyClusterIp(service.spec!.clusterIP as string)
@@ -427,6 +431,8 @@ export class AccountManager {
         // solo.hedera.com/type: network-node-svc
         case 'network-node-svc':
           serviceBuilder
+            .withNodeId(service.metadata!.labels!['solo.hedera.com/node-id'])
+            .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
             .withNodeServiceName(service.metadata!.name as string)
             .withNodeServiceClusterIp(service.spec!.clusterIP as string)
             .withNodeServiceLoadBalancerIp(

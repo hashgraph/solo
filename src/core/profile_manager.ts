@@ -28,11 +28,9 @@ import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import {AccountId} from '@hashgraph/sdk';
 import type {SemVer} from 'semver';
 import {SoloLogger} from './logging.js';
 import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/aliases.js';
-import type {GenesisNetworkDataConstructor} from './genesis_network_models/genesis_network_data_constructor.js';
 import type {Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
@@ -194,12 +192,7 @@ export class ProfileManager {
     }
   }
 
-  resourcesForConsensusPod(
-    profile: AnyObject,
-    nodeAliases: NodeAliases,
-    yamlRoot: AnyObject,
-    genesisNetworkData?: GenesisNetworkDataConstructor,
-  ): AnyObject {
+  resourcesForConsensusPod(profile: AnyObject, nodeAliases: NodeAliases, yamlRoot: AnyObject): AnyObject {
     if (!profile) throw new MissingArgumentError('profile is required');
 
     const accountMap = getNodeAccountMap(nodeAliases);
@@ -207,6 +200,7 @@ export class ProfileManager {
     // set consensus pod level resources
     for (let nodeIndex = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, nodeIndex, yamlRoot);
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot);
     }
 
@@ -226,7 +220,6 @@ export class ProfileManager {
       this.configManager.getFlag(flags.releaseTag),
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId),
-      genesisNetworkData,
     );
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
@@ -268,14 +261,6 @@ export class ProfileManager {
       path.join(stagingDir, 'templates', 'bootstrap.properties'),
       yamlRoot,
     );
-
-    if (genesisNetworkData) {
-      const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');
-
-      fs.writeFileSync(genesisNetworkJson, genesisNetworkData.toJSON());
-
-      this._setFileContentsAsValue('hedera.configMaps.genesisNetworkJson', genesisNetworkJson, yamlRoot);
-    }
 
     if (this.configManager.getFlag(flags.applicationEnv)) {
       this._setFileContentsAsValue(
@@ -342,7 +327,7 @@ export class ProfileManager {
    * @param genesisNetworkData - reference to the constructor
    * @returns return the full path to the values file
    */
-  public async prepareValuesForSoloChart(profileName: string, genesisNetworkData?: GenesisNetworkDataConstructor) {
+  public async prepareValuesForSoloChart(profileName: string) {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName);
 
@@ -351,7 +336,7 @@ export class ProfileManager {
 
     // generate the YAML
     const yamlRoot = {};
-    this.resourcesForConsensusPod(profile, nodeAliases, yamlRoot, genesisNetworkData);
+    this.resourcesForConsensusPod(profile, nodeAliases, yamlRoot);
     this.resourcesForHaProxyPod(profile, yamlRoot);
     this.resourcesForEnvoyProxyPod(profile, yamlRoot);
     this.resourcesForMinioTenantPod(profile, yamlRoot);
@@ -477,7 +462,7 @@ export class ProfileManager {
    * @param namespace - namespace where the network is deployed
    * @param nodeAccountMap - the map of node aliases to account IDs
    * @param destPath - path to the destination directory to write the config.txt file
-   * @param releaseTag - release tag e.g. v0.42.0
+   * @param releaseTagOverride - release tag override
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
    * @param genesisNetworkData
@@ -490,7 +475,6 @@ export class ProfileManager {
     releaseTagOverride: string,
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
-    genesisNetworkData?: GenesisNetworkDataConstructor,
   ) {
     let releaseTag = releaseTagOverride;
     if (!nodeAccountMap || nodeAccountMap.size === 0) {
@@ -508,7 +492,7 @@ export class ProfileManager {
     const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
     const nodeStakeAmount = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
 
-    // @ts-ignore
+    // @ts-expect-error - TS2353: Object literal may only specify known properties, and includePrerelease does not exist in type Options
     const releaseVersion = semver.parse(releaseTag, {includePrerelease: true}) as SemVer;
 
     try {
@@ -521,23 +505,6 @@ export class ProfileManager {
         const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeAlias);
         const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
         const account = nodeAccountMap.get(nodeAlias);
-
-        if (genesisNetworkData) {
-          // TODO: Use the "nodeSeq"
-
-          const nodeDataWrapper = genesisNetworkData.nodes[nodeAlias];
-
-          nodeDataWrapper.weight = nodeStakeAmount;
-          nodeDataWrapper.accountId = AccountId.fromString(account);
-
-          //? Add gossip endpoints
-          nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
-
-          const haProxyFqdn = Templates.renderFullyQualifiedHaProxyName(nodeAlias, namespace);
-
-          //? Add service endpoints
-          nodeDataWrapper.addServiceEndpoint(haProxyFqdn, constants.GRPC_PORT);
-        }
 
         configLines.push(
           `address, ${nodeSeq}, ${nodeSeq}, ${nodeAlias}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`,

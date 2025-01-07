@@ -173,7 +173,7 @@ export class Templates {
     for (let i = nodeAlias.length - 1; i > 0; i--) {
       // @ts-ignore
       if (isNaN(nodeAlias[i])) {
-        return parseInt(nodeAlias.substring(i + 1, nodeAlias.length));
+        return parseInt(nodeAlias.substring(i + 1, nodeAlias.length)) - 1;
       }
     }
 
