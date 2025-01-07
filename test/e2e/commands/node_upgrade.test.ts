@@ -40,9 +40,6 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.namespace.name] = namespace;
 
-argv[flags.localBuildPath.name] =
-  'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data,node3=../hedera-services/hedera-node/data';
-
 const upgradeArgv = getDefaultArgv();
 upgradeArgv[flags.upgradeZipFile.name] = 'upgrade.zip';
 
@@ -58,7 +55,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
-      // await k8.deleteNamespace(namespace);
+      await k8.deleteNamespace(namespace);
     });
 
     it('should succeed with init command', async () => {
@@ -96,26 +93,17 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
     }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('should restart all nodes on the network successfully', async () => {
-      // for each pod, run shell command to copy files under data/upgrade/current directories to root of HEDERA_HAPI_PATH
-      // const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-      // for (const pod of pods) {
-      //   const podName = pod.metadata.name as PodName;
-      //   await k8.execContainer(
-      //     podName,
-      //     ROOT_CONTAINER,
-      //     `cp -r ${HEDERA_HAPI_PATH}/data/upgrade/current/* ${HEDERA_HAPI_PATH}`,
-      //   );
-      // }
       await nodeCmd.handlers.upgradeExecute(argv);
 
-      // const tmpDir = getTmpDir();
-      // const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-      // const podName = pods[0].metadata.name as PodName;
-      // await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/VERSION.txt`, tmpDir);
-      //
-      // // read the VERSION.txt file from the pod
-      // const version = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');
-      // expect(version).to.equal(TEST_VERSION_STRING);
+      // read the VERSION.txt file from the pod data/upgrade/current directory
+      const tmpDir = getTmpDir();
+      const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+      const podName = pods[0].metadata.name as PodName;
+      await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
+
+      // read the VERSION.txt file from the pod
+      const version = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');
+      expect(version).to.equal(TEST_VERSION_STRING);
     }).timeout(Duration.ofMinutes(5).toMillis());
   });
 });
