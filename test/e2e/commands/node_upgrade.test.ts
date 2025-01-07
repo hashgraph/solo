@@ -70,6 +70,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       // create file VERSION.txt at tmp directory
       const tmpDir = getTmpDir();
       fs.writeFileSync(`${tmpDir}/version.txt`, TEST_VERSION_STRING);
+
       // create upgrade.zip file from tmp directory using zippy.ts
       const zipper = new Zippy(nodeCmd.logger);
       await zipper.zip(tmpDir, upgradeArgv[flags.upgradeZipFile.name]);
