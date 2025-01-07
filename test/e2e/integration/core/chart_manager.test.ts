@@ -21,10 +21,10 @@ import * as constants from '../../../../src/core/constants.js';
 import {Helm} from '../../../../src/core/helm.js';
 import {ChartManager} from '../../../../src/core/chart_manager.js';
 import {testLogger} from '../../../test_util.js';
+import {container} from 'tsyringe-neo';
 
 describe('ChartManager', () => {
-  const helm = new Helm(testLogger);
-  const chartManager = new ChartManager(helm, testLogger);
+  const chartManager = container.resolve(ChartManager);
 
   it('should be able to list installed charts', async () => {
     const ns = constants.SOLO_SETUP_NAMESPACE;

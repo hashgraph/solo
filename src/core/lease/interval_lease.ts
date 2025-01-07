@@ -23,7 +23,6 @@ import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import type {Lease, LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
-import chalk from 'chalk';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -144,14 +143,16 @@ export class IntervalLease implements Lease {
   async acquire(): Promise<void> {
     const lease = await this.retrieveLease();
 
-    if (!lease || IntervalLease.checkExpiration(lease) || this.heldBySameProcess(lease)) {
+    if (!lease || this.heldBySameProcess(lease)) {
       return this.createOrRenewLease(lease);
+    } else if (IntervalLease.checkExpiration(lease)) {
+      return this.transferLease(lease);
     }
 
     const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
 
     if (this.heldBySameMachineIdentity(lease) && !otherHolder.isProcessAlive()) {
-      return await this.transferLease(lease);
+      return this.transferLease(lease);
     }
 
     throw new LeaseAcquisitionError(
@@ -220,7 +221,6 @@ export class IntervalLease implements Lease {
    * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
    */
   async release(): Promise<void> {
-    this.client.logger.showUser(`${chalk.gray('releasing lease')}`);
     const lease = await this.retrieveLease();
 
     if (this.scheduleId) {
@@ -329,10 +329,8 @@ export class IntervalLease implements Lease {
           this.leaseHolder.toJson(),
           this.durationSeconds,
         );
-      } else if (this.leaseHolder.equals(LeaseHolder.fromJson(lease.spec.holderIdentity))) {
-        await this.client.renewNamespaceLease(this.leaseName, this.namespace, lease);
       } else {
-        await this.client.transferNamespaceLease(lease, this.leaseHolder.toJson());
+        await this.client.renewNamespaceLease(this.leaseName, this.namespace, lease);
       }
 
       if (!this.scheduleId) {

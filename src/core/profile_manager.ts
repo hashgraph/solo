@@ -25,15 +25,18 @@ import {readFile, writeFile} from 'fs/promises';
 import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {type ConfigManager} from './config_manager.js';
+import {ConfigManager} from './config_manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
 import {AccountId} from '@hashgraph/sdk';
 import type {SemVer} from 'semver';
-import type {SoloLogger} from './logging.js';
+import {SoloLogger} from './logging.js';
 import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/aliases.js';
 import type {GenesisNetworkDataConstructor} from './genesis_network_models/genesis_network_data_constructor.js';
 import type {Optional} from '../types/index.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
+import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 
 const consensusSidecars = [
   'recordStreamUploader',
@@ -43,6 +46,7 @@ const consensusSidecars = [
   'otelCollector',
 ];
 
+@injectable()
 export class ProfileManager {
   private readonly logger: SoloLogger;
   private readonly configManager: ConfigManager;
@@ -51,17 +55,16 @@ export class ProfileManager {
   private profiles: Map<string, AnyObject>;
   private profileFile: Optional<string>;
 
-  constructor(logger: SoloLogger, configManager: ConfigManager, cacheDir: DirPath = constants.SOLO_VALUES_DIR) {
-    if (!logger) throw new MissingArgumentError('An instance of core/SoloLogger is required');
-    if (!configManager) throw new MissingArgumentError('An instance of core/ConfigManager is required');
-
-    this.logger = logger;
-    this.configManager = configManager;
+  constructor(
+    @inject(SoloLogger) logger?: SoloLogger,
+    @inject(ConfigManager) configManager?: ConfigManager,
+    @inject('cacheDir') cacheDir?: DirPath,
+  ) {
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.cacheDir = path.resolve(patchInject(cacheDir, 'cacheDir', this.constructor.name));
 
     this.profiles = new Map();
-
-    cacheDir = path.resolve(cacheDir);
-    this.cacheDir = cacheDir;
   }
 
   /**
@@ -484,16 +487,17 @@ export class ProfileManager {
     namespace: string,
     nodeAccountMap: Map<NodeAlias, string>,
     destPath: string,
-    releaseTag: string,
+    releaseTagOverride: string,
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
     genesisNetworkData?: GenesisNetworkDataConstructor,
   ) {
+    let releaseTag = releaseTagOverride;
     if (!nodeAccountMap || nodeAccountMap.size === 0) {
       throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required');
     }
 
-    if (!releaseTag) throw new MissingArgumentError('release tag is required');
+    if (!releaseTag) releaseTag = HEDERA_PLATFORM_VERSION;
 
     if (!fs.existsSync(destPath)) {
       throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath);

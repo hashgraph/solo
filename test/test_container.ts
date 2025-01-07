@@ -14,14 +14,11 @@
  * limitations under the License.
  *
  */
+import path from 'path';
+import {Container} from '../src/core/container_init.js';
 
-/**
- * This file should only contain versions for dependencies
- */
+const cacheDirectory = path.join('test', 'data', 'tmp');
 
-export const HELM_VERSION = 'v3.14.2';
-export const SOLO_CHART_VERSION = '0.39.0';
-export const HEDERA_PLATFORM_VERSION = 'v0.58.1';
-export const MIRROR_NODE_VERSION = '0.118.1';
-export const HEDERA_EXPLORER_VERSION = '0.2.1';
-export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.59.0';
+export function resetTestContainer(cacheDir: string = cacheDirectory) {
+  Container.getInstance().reset(cacheDir, 'debug', true);
+}

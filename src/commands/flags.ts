@@ -447,9 +447,9 @@ export class Flags {
       return await Flags.promptText(
         task,
         input,
-        'v0.42.5',
+        version.HEDERA_PLATFORM_VERSION,
         'Enter release version: ',
-        'release tag cannot be empty',
+        undefined,
         Flags.releaseTag.name,
       );
     },
@@ -909,6 +909,17 @@ export class Flags {
     definition: {
       describe: 'bootstrap.properties file for node',
       defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly genesisThrottlesFile: CommandFlag = {
+    constName: 'genesisThrottlesFile',
+    name: 'genesis-throttles-file',
+    definition: {
+      describe: 'throttles.json file used during network genesis',
+      defaultValue: '',
       type: 'string',
     },
     prompt: undefined,
@@ -1657,6 +1668,7 @@ export class Flags {
     Flags.generateEcdsaKey,
     Flags.generateGossipKeys,
     Flags.generateTlsKeys,
+    Flags.genesisThrottlesFile,
     Flags.gossipEndpoints,
     Flags.gossipPrivateKey,
     Flags.gossipPublicKey,

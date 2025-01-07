@@ -99,11 +99,11 @@ jobs:
         run: |
           set -xeo pipefail
           npm install
+          echo "VERSION=${{ inputs.version }}"
+          [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           npm run build
           npm install -g @hashgraph/solo
           npm link
-          echo "VERSION=${{ inputs.version }}"
-          [[ -n "${{ inputs.version }}" ]] && npm version ${{ inputs.version }} -f --no-git-tag-version
           which solo
           node -p -e "Boolean(process.stdout.isTTY)"
           chmod 755 ./.github/workflows/script/update_md.sh
@@ -146,7 +146,7 @@ jobs:
         if : ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() && inputs.commit-changes }}
         uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
         with:
-          commit_message: "auto update docs/content/User/StepByStepGuide.md [skip ci]"
+          commit_message: "chore: auto update docs/content/User/StepByStepGuide.md"
           commit_options: '--no-verify --signoff'
           add_options: '-u'
           file_pattern: 'docs/content/User/StepByStepGuide.md'

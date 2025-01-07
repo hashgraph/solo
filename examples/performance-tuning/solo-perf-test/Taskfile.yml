@@ -1,13 +1,13 @@
 version: 3
 includes:
   main:
-    taskfile: ../../ExamplesTasks.yml
+    taskfile: ../../Taskfile.examples.yml
     flatten: true
 env:
   SOLO_NETWORK_SIZE: 7
   SOLO_NAMESPACE: solo-perf-test
-  SOLO_CHART_VERSION: 0.36.3
-  CONSENSUS_NODE_VERSION: v0.58.0
+  # SOLO_CHART_VERSION: 0.39.0
+  # CONSENSUS_NODE_VERSION: v0.58.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
   SETTINGS_FLAG: "--settings-txt {{.USER_WORKING_DIR}}/settings.txt"
   SOLO_HOME: "/Users/user/.solo-perf-test"

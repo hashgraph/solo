@@ -16,11 +16,14 @@
  */
 import {spawn} from 'child_process';
 import chalk from 'chalk';
-import {type SoloLogger} from './logging.js';
+import {SoloLogger} from './logging.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from './container_helper.js';
 
+@injectable()
 export class ShellRunner {
-  constructor(public logger: SoloLogger) {
-    if (!logger) throw new Error('An instance of core/SoloLogger is required');
+  constructor(@inject(SoloLogger) public logger?: SoloLogger) {
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
   }
 
   /** Returns a promise that invokes the shell command */

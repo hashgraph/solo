@@ -19,12 +19,23 @@ import {describe, it} from 'mocha';
 
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
+import {container} from 'tsyringe-neo';
+import {SoloLogger} from '../../../src/core/logging.js';
 import {testLogger} from '../../test_util.js';
 
 describe('ConfigManager', () => {
   describe('update values using argv', () => {
+    beforeEach(() => {
+      container.clearInstances();
+      container.register('logLevel', {useValue: 'debug'});
+      container.register('devMode', {useValue: true});
+      container.register(SoloLogger, {useValue: new SoloLogger()});
+      container.registerInstance(SoloLogger, testLogger);
+      container.register(ConfigManager, {useClass: ConfigManager});
+    });
+
     it('should update string flag value', () => {
-      const cm = new ConfigManager(testLogger);
+      const cm = container.resolve(ConfigManager);
       const argv = {};
       argv[flags.releaseTag.name] = 'v0.42.5';
 
@@ -40,7 +51,7 @@ describe('ConfigManager', () => {
     });
 
     it('should update number flag value', () => {
-      const cm = new ConfigManager(testLogger);
+      const cm = container.resolve(ConfigManager);
       const argv = {};
       argv[flags.replicaCount.name] = 1;
 
@@ -56,7 +67,7 @@ describe('ConfigManager', () => {
     });
 
     it('should update boolean flag value', () => {
-      const cm = new ConfigManager(testLogger);
+      const cm = container.resolve(ConfigManager);
 
       // boolean values should work
       const argv = {};
@@ -87,7 +98,7 @@ describe('ConfigManager', () => {
     it('should take user input as the first preference', () => {
       // Given: config has value, argv has a different value
       // Expected:  argv should retain the value
-      const cm = new ConfigManager(testLogger);
+      const cm = container.resolve(ConfigManager);
       cm.setFlag(flags.devMode, false);
       expect(cm.getFlag(flags.devMode)).not.to.be.ok;
 
@@ -102,7 +113,7 @@ describe('ConfigManager', () => {
     it('should take default as the last preference', () => {
       // Given: neither config nor argv has the flag value set
       // Expected:  argv should inherit the default flag value
-      const cm = new ConfigManager(testLogger);
+      const cm = container.resolve(ConfigManager);
       expect(cm.hasFlag(flags.devMode)).not.to.be.ok; // shouldn't have set
 
       const argv = {}; // devMode flag is not set in argv and cached config doesn't have it either

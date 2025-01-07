@@ -47,6 +47,7 @@ import {
 import crypto from 'crypto';
 import type {PodName} from '../../../../src/types/aliases.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {container} from 'tsyringe-neo';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -80,8 +81,8 @@ async function createPod(
 
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true);
-  const configManager = new ConfigManager(testLogger);
-  const k8 = new K8(configManager, testLogger);
+  const configManager = container.resolve(ConfigManager);
+  const k8 = container.resolve(K8);
   const testNamespace = 'k8-e2e';
   const argv = [];
   const podName = `test-pod-${uuid4()}` as PodName;

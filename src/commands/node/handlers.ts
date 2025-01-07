@@ -700,7 +700,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, keysConfigBuilder.bind(this), null),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.generateGossipKeys(),
         this.tasks.generateGrpcTlsKeys(),
         this.tasks.finalize(),

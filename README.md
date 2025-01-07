@@ -8,7 +8,7 @@
 [![codecov](https://codecov.io/gh/hashgraph/solo/graph/badge.svg?token=hBkQdB1XO5)](https://codecov.io/gh/hashgraph/solo)
 
 > \[!WARNING]
-> SPECIAL NOTICE: Introducing v1.0.0 comes with BREAKING CHANGES.  We have removed caching of the flags in the solo config file.  All commands will need required flags or user will need to answer the prompts.  See more details in our release notes: [release/tag/v1.0.0](https://github.com/hashgraph/solo/releases/tag/v1.0.0)
+> SPECIAL NOTICE: Introducing v0.32.0 comes with BREAKING CHANGES.  We have removed caching of the flags in the solo config file.  All commands will need required flags or user will need to answer the prompts.  See more details in our release notes: [release/tag/v0.32.0](https://github.com/hashgraph/solo/releases/tag/v0.32.0)
 
 An opinionated CLI tool to deploy and manage standalone test networks.
 
@@ -19,12 +19,13 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 | 0.29.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0    | v0.53.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 |
 | 0.30.0       | >= 20.14.0 (lts/hydrogen) | >= v1.29.1 | v0.30.0    | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 |
 | 0.31.4       | >= 20.18.0 (lts/iron)     | >= v1.29.1 | v0.31.4    | v0.54.0+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 |
+| 0.32.0       | >= 20.18.0 (lts/iron)     | >= v1.29.1 | v0.38.2    | v0.58.1+ | >= v1.27.3 | >= v1.27.3 | v3.14.2 | >= v0.27.4 | Memory >= 8GB, CPU >= 4 |
 
 ### Hardware Requirements
 
 To run a three-node network, you will need to set up Docker Desktop with at least 8GB of memory and 4 CPUs.
 
-![alt text](/docs/content/User/DockerDesktop.png)
+![alt text](images/DockerDesktop.png)
 
 ## Setup
 
@@ -45,7 +46,7 @@ nvm use lts/hydrogen
 
 ## Documentation
 
-[Getting Started](docs/content/User/GetStarted.md)
+[Getting Started](https://hashgraph.github.io/solo/)
 
 ## Support
 

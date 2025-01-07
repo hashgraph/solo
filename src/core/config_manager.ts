@@ -14,7 +14,8 @@
  * limitations under the License.
  *
  */
-import {SoloError, MissingArgumentError, IllegalArgumentError} from './errors.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {SoloError, MissingArgumentError} from './errors.js';
 import {SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
@@ -22,6 +23,7 @@ import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
+import {patchInject} from './container_helper.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -29,12 +31,12 @@ import {type ListrTaskWrapper} from 'listr2';
  * For example, 'namespace' is usually remains the same across commands once it is entered, and therefore user
  * doesn't need to enter it repeatedly. However, user should still be able to specify the flag explicitly for any command.
  */
+@injectable()
 export class ConfigManager {
   config!: Record<string, any>;
 
-  constructor(private readonly logger: SoloLogger) {
-    if (!logger || !(logger instanceof SoloLogger))
-      throw new MissingArgumentError('An instance of core/SoloLogger is required');
+  constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
 
     this.reset();
   }

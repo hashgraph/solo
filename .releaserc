@@ -5,11 +5,14 @@
       "@semantic-release/release-notes-generator",
       {
         "preset": "conventionalcommits"
-      }
+      },
     ],
     "@semantic-release/npm",
     "@semantic-release/git",
     "@semantic-release/github"
+  ],
+  "releaseRules": [
+    { "breaking": "true", "release": "minor"}
   ],
   "verifyRelease": [
     [

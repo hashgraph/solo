@@ -22,6 +22,8 @@ import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js'
 import * as version from '../../../../version.js';
 import type {PodName} from '../../../../src/types/aliases.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {type K8} from '../../../../src/core/k8.js';
+import {type AccountManager} from '../../../../src/core/account_manager.js';
 
 const namespace = 'account-mngr-e2e';
 const argv = getDefaultArgv();
@@ -36,8 +38,13 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
 e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('AccountManager', async () => {
-    const k8 = bootstrapResp.opts.k8;
-    const accountManager = bootstrapResp.opts.accountManager;
+    let k8: K8;
+    let accountManager: AccountManager;
+
+    before(() => {
+      k8 = bootstrapResp.opts.k8;
+      accountManager = bootstrapResp.opts.accountManager;
+    });
 
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());

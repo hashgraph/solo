@@ -10,7 +10,7 @@
 * make sure that your current kubeconfig context is pointing to the cluster that you want to deploy to
 * run `task` which will do the rest and deploy the network and take care of many of the pre-requisites
 
-NOTES: 
+NOTES:
 
 * Some of these examples are for running against large clusters with a lot of resources available.
 * the `env` environment variables if set in your shell will take precedence over what is in the Taskfile.yml. e.g. `export HEDERA_SERVICES_ROOT=<path-to-hedera-services-root>`
@@ -18,7 +18,7 @@ NOTES:
 ## Customizing the examples
 
 * take a look at the Taskfile.yml sitting in the subdirectory for the deployment you want to run
-* make sure your cluster can handle the number in SOLO_NETWORK_SIZE, if not, then you will have to update that and make it match the number of nodes in the `init-containers-values.yaml`: `hedera.nodes[]` 
+* make sure your cluster can handle the number in SOLO\_NETWORK\_SIZE, if not, then you will have to update that and make it match the number of nodes in the `init-containers-values.yaml`: `hedera.nodes[]`
 * take a look at the `init-containers-values.yaml` file and make sure the values are correct for your deployment with special attention to:
   * resources
   * nodeSelector

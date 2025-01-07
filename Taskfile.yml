@@ -1,13 +1,13 @@
 version: 3
 includes:
   helper:
-    taskfile: ./HelperTasks.yml
+    taskfile: ./Taskfile.helper.yml
     flatten: true
 env:
   SOLO_NETWORK_SIZE: 2
   SOLO_NAMESPACE: solo-e2e
-  SOLO_CHART_VERSION: 0.36.3
-  CONSENSUS_NODE_VERSION: v0.58.0
+  # SOLO_CHART_VERSION: 0.39.0
+  # CONSENSUS_NODE_VERSION: v0.58.0
 vars:
   use_port_forwards: "true"
 

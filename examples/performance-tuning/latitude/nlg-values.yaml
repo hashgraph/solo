@@ -1,0 +1,36 @@
+replicas: 1
+
+resources:
+  limits:
+    cpu: 32
+    memory: 32Gi
+  requests:
+    cpu: 8
+    memory: 30Gi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+loadGenerator:
+  java:
+    maxMemory: '30g'
+  test:
+    className: com.hedera.benchmark.NftTransferLoadTest
+    args:
+      - -c
+      - "32"
+      - -a
+      - "1000"
+      - -T
+      - "10"
+      - -n
+      - "100"
+      - -S
+      - "hot"
+      - -p
+      - "50"
+      - -t
+      - "1m"
+  properties:
+     - 'x.y.z.1\:50211=0.0.3'
