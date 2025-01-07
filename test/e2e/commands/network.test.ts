@@ -67,7 +67,7 @@ describe('NetworkCommand', () => {
 
   before(async () => {
     await initCmd.init(argv);
-    await clusterCmd.setup(argv);
+    await clusterCmd.handlers.setup(argv);
     fs.mkdirSync(applicationEnvParentDirectory, {recursive: true});
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
   });

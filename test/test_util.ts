@@ -23,7 +23,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import {Flags as flags} from '../src/commands/flags.js';
-import {ClusterCommand} from '../src/commands/cluster.js';
+import {ClusterCommand} from '../src/commands/cluster/index.js';
 import {InitCommand} from '../src/commands/init.js';
 import {NetworkCommand} from '../src/commands/network.js';
 import {NodeCommand} from '../src/commands/node/index.js';
@@ -261,7 +261,7 @@ export function e2eTestSuite(
         if (
           !(await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
         ) {
-          await clusterCmd.setup(argv);
+          await clusterCmd.handlers.setup(argv);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
