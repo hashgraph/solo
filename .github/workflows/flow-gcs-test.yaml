@@ -60,7 +60,7 @@ jobs:
         id: jobs
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          job_name: "gcs-storage-test"
+          job_name: "gcs-storage-test (${{ matrix.storageType }})"
 
       - name: Create GCS bucket
         # create a new bucket and use job runner id as prefix
