@@ -33,6 +33,7 @@ env:
 tasks:
   init:
     cmds:
+      - task: "install:solo"
       - task: "var:check"
       - task: "run:build"
 
