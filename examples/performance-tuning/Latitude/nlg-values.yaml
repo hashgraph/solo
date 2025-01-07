@@ -2,11 +2,11 @@ replicas: 1
 
 resources:
   limits:
-    cpu: 32
+    cpu: 20
     memory: 32Gi
   requests:
     cpu: 20
-    memory: 30Gi
+    memory: 32Gi
 
 nodeSelector: {}
 tolerations: []

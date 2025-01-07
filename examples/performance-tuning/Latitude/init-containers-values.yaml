@@ -16,7 +16,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node2
       accountId: 0.0.4
@@ -26,7 +26,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node3
       accountId: 0.0.5
@@ -36,7 +36,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node4
       accountId: 0.0.6
@@ -46,7 +46,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node5
       accountId: 0.0.7
@@ -56,7 +56,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node6
       accountId: 0.0.8
@@ -66,7 +66,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node7
       accountId: 0.0.9
@@ -76,7 +76,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node8
       accountId: 0.0.10
@@ -86,7 +86,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node9
       accountId: 0.0.11
@@ -96,7 +96,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
     - name: node10
       accountId: 0.0.12
@@ -106,7 +106,7 @@ hedera:
             cpu: 18
             memory: 256Gi
           limits:
-            cpu: 24
+            cpu: 22
             memory: 256Gi
 defaults:
   haproxy:
@@ -144,7 +144,7 @@ defaults:
         cpu: 18
         memory: 256Gi
       limits:
-        cpu: 24
+        cpu: 22
         memory: 256Gi
     extraEnv:
       - name: JAVA_OPTS
