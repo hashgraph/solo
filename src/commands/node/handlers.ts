@@ -97,6 +97,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   static readonly ADD_CONTEXT_FILE = 'node-add.json';
   static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
+  static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
 
   /** ******** Task Lists **********/
 
@@ -240,6 +241,22 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
       this.tasks.finalize(),
     ];
+  }
+
+  upgradePrepareTasks(argv, lease: Lease) {
+    return [
+      this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      this.validateSingleNodeState({excludedStates: []}),
+      this.tasks.identifyExistingNodes(),
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
+    ];
+  }
+
+  upgradeSubmitTransactionsTasks(argv) {
+    return [this.tasks.sendPrepareUpgradeTransaction(), this.tasks.sendFreezeUpgradeTransaction()];
   }
 
   upgradeExecuteTasks(argv) {
@@ -403,14 +420,15 @@ export class NodeCommandHandlers implements CommandHandlers {
     return true;
   }
 
-  async upgradeExecute(argv) {
+  async updateExecute(argv) {
     const lease = await this.leaseManager.create();
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
     const action = this.parent.commandActionBuilder(
       [
-        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
+        this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease, false),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        ...this.upgradeExecuteTasks(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
+        ...this.updateExecuteTasks(argv),
       ],
       {
         concurrent: false,
@@ -424,15 +442,58 @@ export class NodeCommandHandlers implements CommandHandlers {
     return true;
   }
 
-  async updateExecute(argv) {
+  async upgradePrepare(argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
+
     const action = this.parent.commandActionBuilder(
       [
-        this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease, false),
+        ...this.upgradePrepareTasks(argv, lease),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeSaveContextParser),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in preparing node upgrade',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async upgradeSubmitTransactions(argv) {
+    const lease = await this.leaseManager.create();
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_SUBMIT_TRANSACTIONS_FLAGS);
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
-        this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
-        ...this.updateExecuteTasks(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
+        ...this.upgradeSubmitTransactionsTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in submitting transactions for node upgrade',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async upgradeExecute(argv) {
+    const lease = await this.leaseManager.create();
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
+        ...this.upgradeExecuteTasks(argv),
       ],
       {
         concurrent: false,

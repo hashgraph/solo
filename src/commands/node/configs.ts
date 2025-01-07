@@ -92,11 +92,9 @@ export const upgradeConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(UPGRADE_CONFIGS_NAME, argv.flags, [
     'allNodeAliases',
     'existingNodeAliases',
-    // 'freezeAdminPrivateKey',
     'keysDir',
     'nodeClient',
     'podNames',
-    // 'serviceMap',
     'stagingDir',
     'stagingKeysDir',
     'treasuryKey',

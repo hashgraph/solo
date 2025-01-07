@@ -14,15 +14,12 @@
  * limitations under the License.
  *
  */
-import {after, describe, it} from 'mocha';
+import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {
-  DOWNLOAD_GENERATED_FILES_CONFIGS_NAME,
-  PREPARE_UPGRADE_CONFIGS_NAME,
-} from '../../../src/commands/node/configs.js';
+import {PREPARE_UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import type {PodName} from '../../../src/types/aliases.js';
@@ -31,7 +28,7 @@ import {Zippy} from '../../../src/core/zippy.js';
 
 const namespace = 'node-upgrade';
 const argv = getDefaultArgv();
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.persistentVolumeClaims.name] = true;
@@ -40,8 +37,11 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.namespace.name] = namespace;
 
+const tempDir = 'contextDir';
+
 const upgradeArgv = getDefaultArgv();
 upgradeArgv[flags.upgradeZipFile.name] = 'upgrade.zip';
+upgradeArgv[flags.outputDir.name] = tempDir;
 
 const TEST_VERSION_STRING = '0.100.0';
 

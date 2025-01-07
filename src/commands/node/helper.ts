@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {type NodeDeleteConfigClass, type NodeUpdateConfigClass} from './configs.js';
+import {type NodeDeleteConfigClass, type NodeUpdateConfigClass, type NodeUpgradeConfigClass} from './configs.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {PrivateKey} from '@hashgraph/sdk';
 
@@ -98,6 +98,47 @@ export class NodeHelper {
     exportedCtx.allNodeAliases = config.allNodeAliases;
 
     return exportedCtx;
+  }
+
+  /**
+   * Returns an object that can be written to a file without data loss.
+   * Contains fields needed for upgrading a node through separate commands
+   * @param ctx - accumulator object
+   * @returns file writable object
+   */
+  static upgradeSaveContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}) {
+    const exportedCtx: any = {};
+
+    const config = /** @type {NodeUpgradeConfigClass} **/ ctx.config;
+    exportedCtx.adminKey = config.adminKey.toString();
+    exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
+    exportedCtx.treasuryKey = config.treasuryKey.toString();
+    exportedCtx.existingNodeAliases = config.existingNodeAliases;
+    exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
+    exportedCtx.nodeAlias = config.nodeAlias;
+    exportedCtx.allNodeAliases = config.allNodeAliases;
+
+    return exportedCtx;
+  }
+
+  /**
+   * Initializes objects in the context from a provided string
+   * Contains fields needed for updating a node through separate commands
+   * @param ctx - accumulator object
+   * @param ctxData - data in string format
+   * @returns file writable object
+   */
+  static upgradeLoadContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}, ctxData: any) {
+    const config = ctx.config;
+
+    config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
+    config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey);
+    config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
+    config.existingNodeAliases = ctxData.existingNodeAliases;
+    config.nodeAlias = ctxData.nodeAlias;
+    config.allNodeAliases = ctxData.allNodeAliases;
+    ctx.upgradeZipHash = ctxData.upgradeZipHash;
+    config.podNames = {};
   }
 
   /**

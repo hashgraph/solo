@@ -22,11 +22,10 @@ export const DEFAULT_FLAGS = {
   optionalFlags: [flags.quiet, flags.devMode],
 };
 
-const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
+const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag, flags.upgradeZipFile];
 const COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
   flags.app,
   flags.debugNodeAlias,
-  flags.upgradeZipFile,
   flags.nodeAliasesUnparsed,
   flags.soloChartVersion,
 ];
@@ -59,6 +58,18 @@ export const UPGRADE_FLAGS = {
   requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS],
   requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
   optionalFlags: COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS,
+};
+
+export const UPGRADE_PREPARE_FLAGS = {
+  requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS, flags.outputDir],
+  requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+  optionalFlags: [...COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS],
+};
+
+export const UPGRADE_SUBMIT_TRANSACTIONS_FLAGS = {
+  requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS, flags.inputDir],
+  requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+  optionalFlags: [...COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS],
 };
 
 export const UPDATE_FLAGS = {
