@@ -29,11 +29,21 @@ To run a three-node network, you will need to set up Docker Desktop with at leas
 
 ## Setup
 
-* Install [Node](https://nodejs.org/en/download). You may also use [nvm](https://github.com/nvm-sh/nvm) to manage different Node versions locally:
+* Install [Node](https://nodejs.org/en/download). You may also use [nvm](https://github.com/nvm-sh/nvm) to manage different Node versions locally, some examples:
 
 ```
-nvm install lts/hydrogen
-nvm use lts/hydrogen
+# install specific nodejs version
+nvm install <version>
+
+# install nodejs version 20.18.0
+nvm install v20.18.0
+
+# lists available node versions already installed
+nvm ls
+
+# swith to selected node version
+nvm use <version>
+
 ```
 
 * Useful tools:
