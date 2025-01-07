@@ -43,6 +43,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
+        this.tasks.setupHomeDirectory(),
         this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8()),
         this.tasks.selectContext(argv),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
