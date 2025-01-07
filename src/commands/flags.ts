@@ -1675,6 +1675,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly backupBucket: CommandFlag = {
+    constName: 'backupBucket',
+    name: 'backup-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of bucket for backing up state files',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1757,6 +1768,7 @@ export class Flags {
     Flags.storageSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
+    Flags.backupBucket,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,

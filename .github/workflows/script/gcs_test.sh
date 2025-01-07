@@ -19,6 +19,12 @@ else
   streamBucket=${BUCKET_NAME}
 fi
 
+if [ -z "${BACKUP_BUCKET_NAME}" ]; then
+  streamBackupBucket="solo-ci-backups"
+else
+  streamBackupBucket=${BACKUP_BUCKET_NAME}
+fi
+
 if [ -z "${STORAGE_TYPE}" ]; then
   storageType="gcs_and_minio"
 else
@@ -41,7 +47,8 @@ npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
 npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
   --storage-endpoint "https://storage.googleapis.com" \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
-  --storage-type "${storageType}" --storage-bucket "${streamBucket}"
+  --storage-type "${storageType}" --storage-bucket "${streamBucket}" \
+  --backup-bucket "${streamBackupBucket}"
 
 npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"
