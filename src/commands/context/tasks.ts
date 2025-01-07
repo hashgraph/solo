@@ -16,10 +16,12 @@
  */
 import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
+import {splitFlagInput} from '../../core/helpers.js';
+import {promptForContext, selectContextForFirstCluster} from './context-helpers.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {ConfigBuilder} from '../../types/aliases.js';
-import {type BaseCommand} from '../base.js';
-import {promptForContext, selectContextForFirstCluster, splitFlagInput} from '../../core/helpers.js';
+import type {BaseCommand} from '../base.js';
+import type {SoloListrTaskWrapper} from '../../types/index.js';
 
 export class ContextCommandTasks {
   private readonly parent: BaseCommand;
@@ -80,26 +82,26 @@ export class ContextCommandTasks {
     return new Task('Read local configuration settings', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       this.parent.logger.info('Read local configuration settings...');
       const configManager = this.parent.getConfigManager();
-      const isQuiet = configManager.getFlag(flags.quiet);
+      const isQuiet = configManager.getFlag<boolean>(flags.quiet);
       const deploymentName: string = configManager.getFlag(flags.namespace);
       let clusters = splitFlagInput(configManager.getFlag(flags.clusterName));
       const contexts = splitFlagInput(configManager.getFlag(flags.context));
       const localConfig = this.parent.getLocalConfig();
       const k8 = this.parent.getK8();
-      let selectedContext;
+      let selectedContext: string;
 
-      // If one or more contexts are provided use the first one
+      // If one or more contexts are provided, use the first one
       if (contexts.length) {
         selectedContext = contexts[0];
       }
 
-      // If one or more clusters are provided use the first one to determine the context
+      // If one or more clusters are provided, use the first one to determine the context
       // from the mapping in the LocalConfig
       else if (clusters.length) {
         selectedContext = await selectContextForFirstCluster(task, clusters, localConfig, isQuiet, k8);
       }
 
-      // If a deployment name is provided get the clusters associated with the deployment from the LocalConfig
+      // If a deployment name is provided, get the clusters associated with the deployment from the LocalConfig
       // and select the context from the mapping, corresponding to the first deployment cluster
       else if (deploymentName) {
         const deployment = localConfig.deployments[deploymentName];
@@ -147,7 +149,7 @@ export class ContextCommandTasks {
 
     argv.flags = [...requiredFlags, ...optionalFlags];
 
-    return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Initialize', async (ctx: any, task: SoloListrTaskWrapper<any>) => {
       if (argv[flags.devMode.name]) {
         this.parent.logger.setDevMode(true);
       }

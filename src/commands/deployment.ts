@@ -27,7 +27,8 @@ import type {Namespace} from '../core/config/remote/types.js';
 import {type ContextClusterStructure} from '../types/config_types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {promptForContext, selectContextForFirstCluster, splitFlagInput} from '../core/helpers.js';
+import {splitFlagInput} from '../core/helpers.js';
+import {promptForContext, selectContextForFirstCluster} from './context/context-helpers.js';
 
 export class DeploymentCommand extends BaseCommand {
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
@@ -112,7 +113,7 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Select provided context',
           task: async (ctx, task) => {
             self.logger.info('Read local configuration settings...');
-            const isQuiet = self.configManager.getFlag(flags.quiet);
+            const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
             const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
             let clusters = splitFlagInput(self.configManager.getFlag(flags.clusterName));
             const contexts = splitFlagInput(self.configManager.getFlag(flags.context));

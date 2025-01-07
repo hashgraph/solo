@@ -28,8 +28,6 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
-import {Flags as flags} from '../commands/flags.js';
-import type {K8} from './k8.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -376,38 +374,5 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
     }
 
     throw new SoloError(`Invalid JSON data in file: ${filePath}`);
-  }
-}
-
-export async function getSelectedContext(task, selectedCluster, localConfig, isQuiet, k8: K8) {
-  let selectedContext;
-  if (isQuiet) {
-    selectedContext = k8.getKubeConfig().getCurrentContext();
-  } else {
-    selectedContext = await promptForContext(task, selectedCluster, k8);
-    localConfig.clusterContextMapping[selectedCluster] = selectedContext;
-  }
-  return selectedContext;
-}
-
-export async function promptForContext(task, cluster, k8: K8) {
-  const kubeContexts = k8.getContexts();
-  return flags.context.prompt(
-    task,
-    kubeContexts.map(c => c.name),
-    cluster,
-  );
-}
-
-export async function selectContextForFirstCluster(task, clusters, localConfig, isQuiet, k8: K8) {
-  const selectedCluster = clusters[0];
-
-  if (localConfig.clusterContextMapping[selectedCluster]) {
-    return localConfig.clusterContextMapping[selectedCluster];
-  }
-
-  // If cluster does not exist in LocalConfig mapping prompt the user to select a context or use the current one
-  else {
-    return getSelectedContext(task, selectedCluster, localConfig, isQuiet, k8);
   }
 }
