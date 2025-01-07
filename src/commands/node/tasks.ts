@@ -870,21 +870,23 @@ export class NodeCommandTasks {
     });
   }
 
-  setupNetworkNodes(nodeAliasesProperty: string) {
+  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean = false) {
     return new Task('Setup network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await this.generateGenesisNetworkJson(
-        ctx.config.namespace,
-        ctx.config.nodeAliases,
-        ctx.config.keysDir,
-        ctx.config.stagingDir,
-      );
+      if (isGenesis) {
+        await this.generateGenesisNetworkJson(
+          ctx.config.namespace,
+          ctx.config.nodeAliases,
+          ctx.config.keysDir,
+          ctx.config.stagingDir,
+        );
+      }
 
       const subTasks = [];
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
         const podName = ctx.config.podNames[nodeAlias];
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
-          task: () => this.platformInstaller.taskSetup(podName, ctx.config.stagingDir),
+          task: () => this.platformInstaller.taskSetup(podName, ctx.config.stagingDir, isGenesis),
         });
       }
 

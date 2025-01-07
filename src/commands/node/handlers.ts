@@ -744,7 +744,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        this.tasks.setupNetworkNodes('nodeAliases'),
+        this.tasks.setupNetworkNodes('nodeAliases', true),
         this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
