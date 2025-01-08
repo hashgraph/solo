@@ -29,7 +29,7 @@ import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
-import type {SoloListrTask} from '../types/index.js';
+import type { Optional, SoloListrTask } from '../types/index.js'
 import type {Namespace} from '../core/config/remote/types.js';
 
 interface MirrorNodeDeployConfigClass {
@@ -51,6 +51,7 @@ interface MirrorNodeDeployConfigClass {
   clusterSetupNamespace: string;
   soloChartVersion: string;
   pinger: boolean;
+  customMirrorNodeDatabaseValuePath: Optional<string>;
 }
 
 interface Context {
@@ -95,6 +96,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.pinger,
       flags.clusterSetupNamespace,
       flags.soloChartVersion,
+      flags.customMirrorNodeDatabaseValuePath,
     ];
   }
 
@@ -202,6 +204,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.mirrorNodeVersion,
               flags.pinger,
               flags.soloChartVersion,
+              flags.customMirrorNodeDatabaseValuePath,
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
@@ -233,6 +236,10 @@ export class MirrorNodeCommand extends BaseCommand {
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`;
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`;
               }
+            }
+
+            if (ctx.config.customMirrorNodeDatabaseValuePath) {
+              ctx.config.valuesArg += ` --values=${ctx.config.customMirrorNodeDatabaseValuePath}`;
             }
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {

@@ -1516,6 +1516,17 @@ export class Flags {
     },
   };
 
+  static readonly customMirrorNodeDatabaseValuePath: CommandFlag = {
+    constName: 'customMirrorNodeDatabaseValuePath',
+    name: 'custom-mirror-node-database-values-path',
+    definition: {
+      describe: 'Path to custom mirror node database values',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined
+  };
+
   static readonly grpcTlsKeyPath: CommandFlag = {
     constName: 'grpcTlsKeyPath',
     name: 'grpc-tls-key',
