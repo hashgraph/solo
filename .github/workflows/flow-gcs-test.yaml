@@ -62,11 +62,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           job_name: "gcs-storage-test (${{ matrix.storageType }})"
 
-      - name: Save secret to file
-        run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT_TOKEN }}" > google_service.txt
-          cat google_service.txt
-
       - name: Create GCS bucket
         # create a new bucket and use job runner id as prefix
         run: |
@@ -110,7 +105,7 @@ jobs:
           GCS_SECRET_KEY: ${{ secrets.GCP_S3_SECRET_KEY }}
           BUCKET_NAME: ${{ env.BUCKET_NAME }}
           STORAGE_TYPE: ${{ matrix.storageType }}
-          GCP_SERVICE_ACCOUNT_FILE: google_service.txt
+          GCP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.GCP_SERVICE_ACCOUNT_TOKEN }}
         run: |
           .github/workflows/script/gcs_test.sh
 

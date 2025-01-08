@@ -31,13 +31,13 @@ else
   storageType=${STORAGE_TYPE}
 fi
 
-if [ -z "${GCP_SERVICE_ACCOUNT_FILE}" ]; then
+if [ -z "${GCP_SERVICE_ACCOUNT_TOKEN}" ]; then
   echo "GCS_SECRET_KEY is not set. Exiting..."
   exit 1
 fi
 
-# encode content of GCP_SERVICE_ACCOUNT_FILE as base64
-ENCODED_SERVICE_ACCOUNT=$(echo -n "${GCP_SERVICE_ACCOUNT_FILE}" | base64)
+# encode content of GCP_SERVICE_ACCOUNT_TOKEN as base64
+ENCODED_SERVICE_ACCOUNT=$(echo -n "${GCP_SERVICE_ACCOUNT_TOKEN}" | base64)
 
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
