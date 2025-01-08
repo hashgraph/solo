@@ -33,7 +33,7 @@ To run a three-node network, you will need to set up Docker Desktop with at leas
 
 ```
 # install specific nodejs version
-nvm install <version>
+# nvm install <version>
 
 # install nodejs version 20.18.0
 nvm install v20.18.0
