@@ -331,4 +331,10 @@ export class ClusterCommandTasks {
       ctx => !ctx.isChartInstalled,
     );
   }
+
+  setupHomeDirectory() {
+    return new Task('Setup home directory', async () => {
+      this.parent.setupHomeDirectory();
+    });
+  }
 }
