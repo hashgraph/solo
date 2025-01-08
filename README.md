@@ -25,7 +25,7 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 To run a three-node network, you will need to set up Docker Desktop with at least 8GB of memory and 4 CPUs.
 
-![alt text](/docs/content/User/DockerDesktop.png)
+![alt text](images/DockerDesktop.png)
 
 ## Setup
 
@@ -63,4 +63,4 @@ expected to uphold this code of conduct.
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)

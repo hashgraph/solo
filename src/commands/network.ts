@@ -17,14 +17,14 @@
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
 import {Listr, type ListrTask} from 'listr2';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';
+import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
 import path from 'path';
-import {addDebugOptions, validatePath} from '../core/helpers.js';
 import fs from 'fs';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type KeyManager} from '../core/key_manager.js';
@@ -39,6 +39,8 @@ import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
+import {v4 as uuidv4} from 'uuid';
+import * as Base64 from 'js-base64';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -63,11 +65,18 @@ export interface NetworkDeployConfigClass {
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
   genesisNetworkData: GenesisNetworkDataConstructor;
+  genesisThrottlesFile: string;
+  resolvedThrottlesFile: string;
   getUnusedConfigs: () => string[];
   haproxyIps: string;
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
+  storageType: constants.StorageType;
+  storageAccessKey: string;
+  storageSecrets: string;
+  storageEndpoint: string;
+  storageBucket: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -107,6 +116,7 @@ export class NetworkCommand extends BaseCommand {
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.genesisThrottlesFile,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -129,7 +139,79 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
       flags.haproxyIps,
       flags.envoyIps,
+      flags.storageType,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
     ];
+  }
+
+  async prepareStorageSecrets(config: NetworkDeployConfigClass) {
+    try {
+      const minioAccessKey = uuidv4();
+      const minioSecretKey = uuidv4();
+      const minioData = {};
+      const namespace = config.namespace;
+
+      // Generating new minio credentials
+      const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+      minioData['config.env'] = Base64.encode(envString);
+      const isMinioSecretCreated = await this.k8.createSecret(
+        constants.MINIO_SECRET_NAME,
+        namespace,
+        'Opaque',
+        minioData,
+        undefined,
+        true,
+      );
+      if (!isMinioSecretCreated) {
+        throw new SoloError('ailed to create new minio secret');
+      }
+
+      // Generating cloud storage secrets
+      const {storageAccessKey, storageSecrets, storageEndpoint} = config;
+      const cloudData = {};
+      if (
+        config.storageType === constants.StorageType.S3_ONLY ||
+        config.storageType === constants.StorageType.S3_AND_GCS
+      ) {
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
+        cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
+      }
+      if (
+        config.storageType === constants.StorageType.GCS_ONLY ||
+        config.storageType === constants.StorageType.S3_AND_GCS ||
+        config.storageType === constants.StorageType.GCS_AND_MINIO
+      ) {
+        cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+        cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
+        cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
+      }
+      if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
+      }
+
+      const isCloudSecretCreated = await this.k8.createSecret(
+        constants.UPLOADER_SECRET_NAME,
+        namespace,
+        'Opaque',
+        cloudData,
+        undefined,
+        true,
+      );
+      if (!isCloudSecretCreated) {
+        throw new SoloError(
+          `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
+        );
+      }
+    } catch (e: Error | any) {
+      const errorMessage = 'failed to create Kubernetes storage secret ';
+      this.logger.error(errorMessage, e);
+      throw new SoloError(errorMessage, e);
+    }
   }
 
   async prepareValuesArg(config: {
@@ -144,6 +226,12 @@ export class NetworkCommand extends BaseCommand {
     haproxyIpsParsed?: Record<NodeAlias, IP>;
     envoyIpsParsed?: Record<NodeAlias, IP>;
     genesisNetworkData: GenesisNetworkDataConstructor;
+    storageType: constants.StorageType;
+    resolvedThrottlesFile: string;
+    storageAccessKey: string;
+    storageSecrets: string;
+    storageEndpoint: string;
+    storageBucket: string;
   }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
@@ -160,6 +248,37 @@ export class NetworkCommand extends BaseCommand {
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);
     }
 
+    if (
+      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.GCS_AND_MINIO
+    ) {
+      valuesArg += ' --set cloud.gcs.enabled=true';
+    }
+
+    if (
+      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.S3_ONLY
+    ) {
+      valuesArg += ' --set cloud.s3.enabled=true';
+    }
+
+    if (
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.S3_ONLY ||
+      config.storageType === constants.StorageType.S3_AND_GCS
+    ) {
+      valuesArg += ' --set cloud.minio.enabled=false';
+    }
+
+    if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+      valuesArg += ' --set cloud.generateNewSecrets=false';
+    }
+
+    if (config.storageBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+    }
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
       profileName,
@@ -192,6 +311,10 @@ export class NetworkCommand extends BaseCommand {
       });
     }
 
+    if (config.resolvedThrottlesFile) {
+      valuesArg += ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
+    }
+
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
@@ -211,6 +334,7 @@ export class NetworkCommand extends BaseCommand {
       flags.applicationEnv,
       flags.applicationProperties,
       flags.bootstrapProperties,
+      flags.genesisThrottlesFile,
       flags.cacheDir,
       flags.chainId,
       flags.chartDirectory,
@@ -226,6 +350,11 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
       flags.haproxyIps,
       flags.envoyIps,
+      flags.storageType,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
@@ -238,6 +367,7 @@ export class NetworkCommand extends BaseCommand {
       'stagingDir',
       'stagingKeysDir',
       'valuesArg',
+      'resolvedThrottlesFile',
     ]) as NetworkDeployConfigClass;
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -268,6 +398,11 @@ export class NetworkCommand extends BaseCommand {
       config.keysDir,
     );
 
+    config.resolvedThrottlesFile = resolveValidJsonFilePath(
+      config.genesisThrottlesFile,
+      flags.genesisThrottlesFile.definition.defaultValue as string,
+    );
+
     config.valuesArg = await this.prepareValuesArg(config);
 
     if (!(await this.k8.hasNamespace(config.namespace))) {
@@ -282,6 +417,17 @@ export class NetworkCommand extends BaseCommand {
     // create cached keys dir if it does not exist yet
     if (!fs.existsSync(config.keysDir)) {
       fs.mkdirSync(config.keysDir);
+    }
+
+    // if storageType is set, then we need to set the storage secrets
+    if (
+      this.configManager.getFlag<string>(flags.storageType) &&
+      this.configManager.getFlag<string>(flags.storageAccessKey) &&
+      this.configManager.getFlag<string>(flags.storageSecrets) &&
+      this.configManager.getFlag<string>(flags.storageEndpoint)
+    ) {
+      this.logger.debug('Preparing storage secrets');
+      await this.prepareStorageSecrets(config);
     }
 
     this.logger.debug('Prepared config', {
@@ -510,6 +656,11 @@ export class NetworkCommand extends BaseCommand {
                   constants.PODS_RUNNING_MAX_ATTEMPTS,
                   constants.PODS_RUNNING_DELAY,
                 ),
+              // skip if only cloud storage is/are used
+              skip: ctx =>
+                ctx.config.storageType === constants.StorageType.GCS_ONLY ||
+                ctx.config.storageType === constants.StorageType.S3_ONLY ||
+                ctx.config.storageType === constants.StorageType.S3_AND_GCS,
             });
 
             // set up the subtasks
@@ -554,6 +705,7 @@ export class NetworkCommand extends BaseCommand {
       };
       checkTimeout: boolean;
     }
+
     let networkDestroySuccess = true;
     const tasks = new Listr<Context>(
       [

@@ -24,6 +24,7 @@ import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {patchInject} from './container_helper.js';
+import * as constants from '../core/constants.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -110,6 +111,14 @@ export class ConfigManager {
               this.config.flags[flag.name] = val === true || val === 'true'; // use comparison to enforce boolean value
               break;
 
+            case 'StorageType':
+              // @ts-ignore
+              if (!Object.values(constants.StorageType).includes(`${val}`)) {
+                throw new SoloError(`Invalid storage type value '${val}'`);
+              } else {
+                this.config.flags[flag.name] = val;
+              }
+              break;
             default:
               throw new SoloError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`);
           }
