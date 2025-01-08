@@ -200,7 +200,7 @@ export class ProfileManager {
     // set consensus pod level resources
     for (let nodeIndex = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot);
-      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, nodeIndex, yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, `${nodeIndex}`, yamlRoot);
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot);
     }
 

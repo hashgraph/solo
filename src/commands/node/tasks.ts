@@ -1201,6 +1201,7 @@ export class NodeCommandTasks {
         values.hedera.nodes.push({
           accountId: networkNodeServices.accountId,
           name: networkNodeServices.nodeAlias,
+          nodeId: networkNodeServices.nodeId,
         });
         maxNum =
           maxNum > AccountId.fromString(networkNodeServices.accountId).num
@@ -1408,31 +1409,32 @@ export class NodeCommandTasks {
           config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace);
         }
 
-        const index = config.existingNodeAliases.length;
         let maxNodeId = 0;
         for (const nodeAlias of config.existingNodeAliases) {
           const nodeId = config.serviceMap.get(nodeAlias).nodeId;
           maxNodeId = Math.max(nodeId, maxNodeId);
         }
+
         const nodeId = maxNodeId + 1;
+        const index = config.existingNodeAliases.length;
 
         let valuesArg = '';
         for (let i = 0; i < index; i++) {
           if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
             // for the case of updating node
             // use new account number for this node id
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"--set "hedera.nodes[${i}].node-id=${nodeId}" `;
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) {
             // for the case of deleting node
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`;
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType === NodeSubcommandType.DELETE && i === nodeId) {
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`;
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           }
         }
 
         // for the case of adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
-          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
+          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}" --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
 
           if (config.haproxyIps) {
             config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);

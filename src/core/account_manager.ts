@@ -45,7 +45,7 @@ import {K8} from './k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
-import {sleep} from './helpers.js';
+import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
@@ -388,6 +388,7 @@ export class AccountManager {
       labelSelector,
     );
 
+    let nodeId = '0';
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
       let serviceBuilder = new NetworkNodeServicesBuilder(
@@ -430,8 +431,21 @@ export class AccountManager {
           break;
         // solo.hedera.com/type: network-node-svc
         case 'network-node-svc':
+          if (
+            service.metadata!.labels!['solo.hedera.com/node-id'] !== '' &&
+            isNumeric(service.metadata!.labels!['solo.hedera.com/node-id'])
+          ) {
+            nodeId = service.metadata!.labels!['solo.hedera.com/node-id'];
+          } else {
+            nodeId = `${Templates.nodeIdFromNodeAlias(service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias)}`;
+            this.logger.warn(
+              `received an incorrect node id of ${service.metadata!.labels!['solo.hedera.com/node-id']} for ` +
+                `${service.metadata.labels['solo.hedera.com/node-name']}`,
+            );
+          }
+
           serviceBuilder
-            .withNodeId(service.metadata!.labels!['solo.hedera.com/node-id'])
+            .withNodeId(nodeId)
             .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
             .withNodeServiceName(service.metadata!.name as string)
             .withNodeServiceClusterIp(service.spec!.clusterIP as string)
