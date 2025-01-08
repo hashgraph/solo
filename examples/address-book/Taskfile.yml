@@ -1,0 +1,31 @@
+version: 3
+tasks:
+  verify:port:forwarding:
+    # silent: true
+    desc: verify that port forwarding is working
+    cmds:
+      - |
+        export PORT_FORWARDING=$(ps -ef | grep 50211 | grep -v grep)
+        if [[ "${PORT_FORWARDING}" != "" ]]; then
+          echo "found existing port forwarding for 50211"
+        else
+          echo "Port forwarding is not working"
+        fi
+
+  get:ledger:addressbook:
+    # silent: true
+    desc: retrieve the address book from the ledger
+    cmds:
+      - java -jar yahcli.jar --verbose=DEBUG -n localhost -p 2 sysfiles download address-book
+
+  update:ledger:addressbook:
+    # silent: true
+    desc: update the address book on the ledger
+    cmds:
+      - java -jar yahcli.jar --verbose=DEBUG -n localhost -p 2 sysfiles upload address-book
+
+  get:mirror:addressbook:
+    # silent: true
+    desc: retrieve the address book from the mirror node
+    cmds:
+      - echo "not implemented"
