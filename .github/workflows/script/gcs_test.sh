@@ -32,7 +32,7 @@ else
 fi
 
 if [ -z "${GCP_SERVICE_ACCOUNT_TOKEN}" ]; then
-  echo "GCS_SECRET_KEY is not set. Exiting..."
+  echo "GCP_SERVICE_ACCOUNT_TOKEN is not set. Exiting..."
   exit 1
 fi
 
