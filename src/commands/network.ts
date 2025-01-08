@@ -808,7 +808,11 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Waiting for network pods to be running',
           task: async () => {
-            await this.k8.waitForPods([constants.POD_PHASE_RUNNING], ['solo.hedera.com/type=network-node'], 1);
+            await this.k8.waitForPods(
+              [constants.POD_PHASE_RUNNING],
+              ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
+              1,
+            );
           },
         },
       ],
