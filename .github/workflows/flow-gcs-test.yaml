@@ -65,7 +65,6 @@ jobs:
       - name: Save secret to file
         run: |
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_TOKEN }}" > google_service.txt
-          cat google_service.txt
 
       - name: Create GCS bucket
         # create a new bucket and use job runner id as prefix
