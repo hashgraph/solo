@@ -1328,8 +1328,7 @@ export class NodeCommandTasks {
       self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
 
       if (config.existingNodeAliases.length > 1) {
-        await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
-        config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+        config.nodeClient = await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
       }
 
       try {

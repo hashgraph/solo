@@ -194,6 +194,7 @@ export class AccountManager {
       treasuryAccountInfo.privateKey,
       skipNodeAlias,
     );
+    return this._nodeClient;
   }
 
   /**
