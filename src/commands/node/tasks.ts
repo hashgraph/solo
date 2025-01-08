@@ -1036,6 +1036,7 @@ export class NodeCommandTasks {
       );
       await sleep(Duration.ofSeconds(60));
       const accountMap = getNodeAccountMap(config.allNodeAliases);
+      let skipNodeAlias: NodeAlias;
 
       switch (transactionType) {
         case NodeSubcommandType.ADD:
@@ -1044,18 +1045,17 @@ export class NodeCommandTasks {
           if (config.newAccountNumber) {
             // update map with current account ids
             accountMap.set(config.nodeAlias, config.newAccountNumber);
-
-            // update _nodeClient with the new service map since one of the account number has changed
-            await self.accountManager.refreshNodeClient(config.namespace);
+            skipNodeAlias = config.nodeAlias;
           }
           break;
         case NodeSubcommandType.DELETE:
           if (config.nodeAlias) {
             accountMap.delete(config.nodeAlias);
+            skipNodeAlias = config.nodeAlias;
           }
       }
 
-      config.nodeClient = await self.accountManager.loadNodeClient(config.namespace);
+      config.nodeClient = await self.accountManager.refreshNodeClient(config.namespace, skipNodeAlias);
 
       // send some write transactions to invoke the handler that will trigger the stake weight recalculate
       for (const nodeAlias of accountMap.keys()) {
