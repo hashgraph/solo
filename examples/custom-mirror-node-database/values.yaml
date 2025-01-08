@@ -1,12 +1,19 @@
 db:
-  host: "127.0.0.1"
+  host: "my-postgresql.database.svc.cluster.local"
   enabled: true
   owner:
+    username: postgres
     password: "XXXXXXXXXXXX"
-postgresql:
-  enabled: false
 stackgres:
   enabled: false
+postgresql:
+  enabled: true
+  pgpool:
+    adminPassword: "XXXXXXXXXXXX"
+#  postgresql:
+#    initdbScriptsCM: "{{ .Release.Name }}-init"
+
+fullnameOverride: "my-postgresql.database.svc.cluster.local"
 
 graphql:
   enabled: true

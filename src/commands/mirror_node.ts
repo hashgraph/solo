@@ -29,7 +29,9 @@ import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
-import type { Optional, SoloListrTask } from '../types/index.js'
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import type {Optional, SoloListrTask} from '../types/index.js';
 import type {Namespace} from '../core/config/remote/types.js';
 
 interface MirrorNodeDeployConfigClass {
@@ -204,7 +206,6 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.mirrorNodeVersion,
               flags.pinger,
               flags.soloChartVersion,
-              flags.customMirrorNodeDatabaseValuePath,
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
@@ -238,10 +239,6 @@ export class MirrorNodeCommand extends BaseCommand {
               }
             }
 
-            if (ctx.config.customMirrorNodeDatabaseValuePath) {
-              ctx.config.valuesArg += ` --values=${ctx.config.customMirrorNodeDatabaseValuePath}`;
-            }
-
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
@@ -267,6 +264,20 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Deploy mirror-node',
                   task: async ctx => {
+                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      if (!fs.existsSync(ctx.config.customMirrorNodeDatabaseValuePath)) {
+                        throw new SoloError('Path provided for custom mirror node database value is not found');
+                      }
+
+                      // Check if the file has a .yaml or .yml extension
+                      const fileExtension = path.extname(ctx.config.customMirrorNodeDatabaseValuePath);
+                      if (fileExtension !== '.yaml' && fileExtension !== '.yml') {
+                        throw new SoloError('The provided file is not a valid YAML file (.yaml or .yml)');
+                      }
+
+                      ctx.config.valuesArg += ` --values ${ctx.config.customMirrorNodeDatabaseValuePath}`;
+                    }
+
                     await self.chartManager.install(
                       ctx.config.namespace,
                       constants.MIRROR_NODE_RELEASE_NAME,

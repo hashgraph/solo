@@ -1524,7 +1524,7 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: undefined
+    prompt: undefined,
   };
 
   static readonly grpcTlsKeyPath: CommandFlag = {
@@ -1713,6 +1713,7 @@ export class Flags {
     Flags.updateAccountKeys,
     Flags.userEmailAddress,
     Flags.valuesFile,
+    Flags.customMirrorNodeDatabaseValuePath,
   ];
 
   /** Resets the definition.disablePrompt for all flags */
