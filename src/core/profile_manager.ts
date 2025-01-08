@@ -243,6 +243,7 @@ export class ProfileManager {
     }
 
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot);
+    this._setFileContentsAsValue('hedera.configMaps.saJson', 'sa.json', yamlRoot);
     this._setFileContentsAsValue(
       'hedera.configMaps.log4j2Xml',
       path.join(stagingDir, 'templates', 'log4j2.xml'),

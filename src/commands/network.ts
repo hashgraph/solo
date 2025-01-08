@@ -78,6 +78,7 @@ export interface NetworkDeployConfigClass {
   storageEndpoint: string;
   storageBucket: string;
   backupBucket: string;
+  googleCredentialPath: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -145,7 +146,8 @@ export class NetworkCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
-        flags.backupBucket,
+      flags.backupBucket,
+      flags.googleCredentialPath,
     ];
   }
 
@@ -209,20 +211,6 @@ export class NetworkCommand extends BaseCommand {
           `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
         );
       }
-
-      const isBackupSecretCreated = await this.k8.createSecret(
-        constants.BACKUP_SECRET_NAME,
-        namespace,
-        'Opaque',
-        cloudData,
-        undefined,
-        true,
-      );
-      if (!isBackupSecretCreated) {
-        throw new SoloError(
-          `failed to create Kubernetes secret for backup credentials of type '${config.storageType}'`,
-        );
-      }
     } catch (e: Error | any) {
       const errorMessage = 'failed to create Kubernetes storage secret ';
       this.logger.error(errorMessage, e);
@@ -249,6 +237,7 @@ export class NetworkCommand extends BaseCommand {
     storageEndpoint: string;
     storageBucket: string;
     backupBucket: string;
+    googleCredentialPath: string;
   }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
@@ -297,10 +286,8 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
     }
 
-    if (config.backupBucket) {
-      // valuesArg += ` --set cloud.buckets.backupBucket=${config.backupBucket}`;
-      // valuesArg += ` --set minio-server.tenant.buckets[1].name=${config.backupBucket}`;
-
+    if (config.backupBucket && config.googleCredentialPath) {
+      valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
       valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
     }
 

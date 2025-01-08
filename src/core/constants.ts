@@ -205,7 +205,6 @@ export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
 
 export const UPLOADER_SECRET_NAME = 'uploader-mirror-secrets';
 export const MINIO_SECRET_NAME = 'minio-secrets';
-export const BACKUP_SECRET_NAME = 'backup-uploader-secrets';
 
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',

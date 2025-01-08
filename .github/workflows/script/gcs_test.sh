@@ -31,6 +31,12 @@ else
   storageType=${STORAGE_TYPE}
 fi
 
+if [ -z "${GCP_SERVICE_ACCOUNT_FILE}" ]; then
+  googleServiceAccountFile="sa.json"
+else
+  googleServiceAccountFile=${GCP_SERVICE_ACCOUNT_FILE}
+fi
+
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
 
@@ -48,7 +54,8 @@ npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
   --storage-endpoint "https://storage.googleapis.com" \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
   --storage-type "${storageType}" --storage-bucket "${streamBucket}" \
-  --backup-bucket "${streamBackupBucket}"
+  --backup-bucket "${streamBackupBucket}" \
+  --google-credential-path ${googleServiceAccountFile}
 
 npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"

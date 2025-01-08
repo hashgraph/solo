@@ -1686,6 +1686,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly googleCredentialPath: CommandFlag = {
+    constName: 'googleCredentialPath',
+    name: 'google-credential-path',
+    definition: {
+      defaultValue: '',
+      describe: 'path of google service account credential file',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1769,6 +1780,7 @@ export class Flags {
     Flags.storageEndpoint,
     Flags.storageBucket,
     Flags.backupBucket,
+    Flags.googleCredentialPath,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
