@@ -1691,7 +1691,7 @@ export class Flags {
     name: 'google-credential',
     definition: {
       defaultValue: '',
-      describe: 'base64 encoded google credential file',
+      describe: 'path of google credential file in json format',
       type: 'string',
     },
     prompt: undefined,

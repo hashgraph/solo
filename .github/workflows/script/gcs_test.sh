@@ -36,8 +36,8 @@ if [ -z "${GCP_SERVICE_ACCOUNT_TOKEN}" ]; then
   exit 1
 fi
 
-# encode content of GCP_SERVICE_ACCOUNT_TOKEN as base64
-ENCODED_SERVICE_ACCOUNT=$(echo -n "${GCP_SERVICE_ACCOUNT_TOKEN}" | base64)
+# save $GCP_SERVICE_ACCOUNT_TOKEN to local file
+echo "${GCP_SERVICE_ACCOUNT_TOKEN}" > gcp_service_account.json
 
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
@@ -57,7 +57,7 @@ npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
   --storage-type "${storageType}" --storage-bucket "${streamBucket}" \
   --backup-bucket "${streamBackupBucket}" \
-  --google-credential "${ENCODED_SERVICE_ACCOUNT}"
+  --google-credential gcp_service_account.json
 
 npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"

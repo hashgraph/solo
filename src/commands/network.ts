@@ -211,6 +211,23 @@ export class NetworkCommand extends BaseCommand {
           `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
         );
       }
+      // generate backup uploader secret
+      if (config.googleCredential) {
+        const backupData = {};
+        const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
+        backupData['saJson'] = Base64.encode(googleCredential);
+        const isBackupSecretCreated = await this.k8.createSecret(
+          constants.BACKUP_SECRET_NAME,
+          namespace,
+          'Opaque',
+          backupData,
+          undefined,
+          true,
+        );
+        if (!isBackupSecretCreated) {
+          throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
+        }
+      }
     } catch (e: Error | any) {
       const errorMessage = 'failed to create Kubernetes storage secret ';
       this.logger.error(errorMessage, e);
@@ -286,11 +303,9 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
     }
 
-    if (config.backupBucket && config.googleCredential) {
+    if (config.backupBucket) {
       valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
       valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
-
-      valuesArg += ` --set hedera.configMaps.saJson=${config.googleCredential}`;
     }
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
