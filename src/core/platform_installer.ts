@@ -284,9 +284,7 @@ export class PlatformInstaller {
       [
         {
           title: 'Copy configuration files',
-          task: async () => {
-            await this.copyConfigurationFiles(stagingDir, podName, isGenesis);
-          },
+          task: async () => await self.copyConfigurationFiles(stagingDir, podName, isGenesis),
         },
         {
           title: 'Set file permissions',
