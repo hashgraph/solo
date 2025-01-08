@@ -128,46 +128,38 @@ export class MirrorNodeCommand extends BaseCommand {
   /**
    * @param config
    * @param config.tlsClusterIssuerType - must be one of - acme-staging, acme-prod, or self-signed
-   * @param config.enableHederaExplorerTls
    * @param config.namespace - used for classname ingress class name prefix
    * @param config.hederaExplorerTlsLoadBalancerIp - can be an empty string
    * @param config.hederaExplorerTlsHostName
    */
-  private prepareSoloChartSetupValuesArg(config: MirrorNodeDeployConfigClass) {
-    if (!config.enableHederaExplorerTls) return '';
-
-    const {
-      tlsClusterIssuerType,
-      enableHederaExplorerTls,
-      namespace,
-      hederaExplorerTlsLoadBalancerIp,
-      hederaExplorerTlsHostName,
-    } = config;
+  private async prepareSoloChartSetupValuesArg(config: MirrorNodeDeployConfigClass) {
+    const {tlsClusterIssuerType, namespace, hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName} = config;
 
     let valuesArg = '';
 
-    if (enableHederaExplorerTls) {
-      if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
-        throw new Error(
-          `Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`,
-        );
-      }
+    if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
+      throw new Error(
+        `Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`,
+      );
+    }
 
+    // Install ingress controller only if it's not already present
+    if (!(await this.k8.isIngressControllerInstalled())) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
+    }
 
-      if (hederaExplorerTlsLoadBalancerIp !== '') {
-        valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
-      }
+    if (hederaExplorerTlsLoadBalancerIp !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
+    }
 
-      if (tlsClusterIssuerType === 'self-signed') {
-        valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
-      } else {
-        valuesArg += ' --set acmeClusterIssuer.enabled=true';
-        valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
-      }
+    if (tlsClusterIssuerType === 'self-signed') {
+      valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
+    } else {
+      valuesArg += ' --set acmeClusterIssuer.enabled=true';
+      valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
 
     return valuesArg;
@@ -314,7 +306,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       constants.SOLO_CLUSTER_SETUP_CHART,
                     );
 
-                    const soloChartSetupValuesArg = self.prepareSoloChartSetupValuesArg(config);
+                    const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
                     await self.chartManager.upgrade(
                       clusterSetupNamespace,
                       constants.SOLO_CLUSTER_SETUP_CHART,

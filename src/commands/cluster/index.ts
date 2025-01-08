@@ -32,7 +32,7 @@ export class ClusterCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.handlers = new ClusterCommandHandlers(this, new ClusterCommandTasks(this), this.remoteConfigManager);
+    this.handlers = new ClusterCommandHandlers(this, new ClusterCommandTasks(this, this.k8), this.remoteConfigManager);
   }
 
   getCommandDefinition() {
