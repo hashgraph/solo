@@ -32,10 +32,12 @@ else
 fi
 
 if [ -z "${GCP_SERVICE_ACCOUNT_FILE}" ]; then
-  googleServiceAccountFile="sa.json"
-else
-  googleServiceAccountFile=${GCP_SERVICE_ACCOUNT_FILE}
+  echo "GCS_SECRET_KEY is not set. Exiting..."
+  exit 1
 fi
+
+# encode content of GCP_SERVICE_ACCOUNT_FILE as base64
+ENCODED_SERVICE_ACCOUNT=$(echo -n "${GCP_SERVICE_ACCOUNT_FILE}" | base64)
 
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
@@ -55,7 +57,7 @@ npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
   --storage-type "${storageType}" --storage-bucket "${streamBucket}" \
   --backup-bucket "${streamBackupBucket}" \
-  --google-credential-path ${googleServiceAccountFile}
+  --google-credential "${ENCODED_SERVICE_ACCOUNT}"
 
 npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"

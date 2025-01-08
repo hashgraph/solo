@@ -78,7 +78,7 @@ export interface NetworkDeployConfigClass {
   storageEndpoint: string;
   storageBucket: string;
   backupBucket: string;
-  googleCredentialPath: string;
+  googleCredential: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -147,7 +147,7 @@ export class NetworkCommand extends BaseCommand {
       flags.storageEndpoint,
       flags.storageBucket,
       flags.backupBucket,
-      flags.googleCredentialPath,
+      flags.googleCredential,
     ];
   }
 
@@ -237,7 +237,7 @@ export class NetworkCommand extends BaseCommand {
     storageEndpoint: string;
     storageBucket: string;
     backupBucket: string;
-    googleCredentialPath: string;
+    googleCredential: string;
   }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
@@ -286,9 +286,11 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
     }
 
-    if (config.backupBucket && config.googleCredentialPath) {
+    if (config.backupBucket && config.googleCredential) {
       valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
       valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+
+      valuesArg += ` --set hedera.configMaps.saJson=${config.googleCredential}`;
     }
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
