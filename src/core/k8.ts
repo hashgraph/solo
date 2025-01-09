@@ -33,11 +33,12 @@ import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import {SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
-import type {ExtendedNetServer, LocalContextObject} from '../types/index.js';
+import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import type {Namespace} from './config/remote/types.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -65,6 +66,7 @@ export class K8 {
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
+  private networkingApi: k8s.NetworkingV1Api;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -93,6 +95,7 @@ export class K8 {
     }
 
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+    this.networkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
     return this; // to enable chaining
@@ -104,7 +107,7 @@ export class K8 {
    * @param [filters] - an object with metadata fields and value
    * @returns a list of items that match the filters
    */
-  applyMetadataFilter(items: (object | any)[], filters = {}) {
+  applyMetadataFilter(items: (object | any)[], filters: Record<string, string> = {}) {
     if (!filters) throw new MissingArgumentError('filters are required');
 
     const matched = [];
@@ -135,7 +138,7 @@ export class K8 {
    * @param items - list of items
    * @param [filters] - an object with metadata fields and value
    */
-  filterItem(items: (object | any)[], filters = {}) {
+  filterItem(items: (object | any)[], filters: Record<string, string> = {}) {
     const filtered = this.applyMetadataFilter(items, filters);
     if (filtered.length > 1) throw new SoloError('multiple items found with filters', {filters});
     return filtered[0];
@@ -171,8 +174,7 @@ export class K8 {
     if (resp.body && resp.body.items) {
       const namespaces: string[] = [];
       resp.body.items.forEach(item => {
-        // @ts-ignore
-        namespaces.push(item.metadata.name as string);
+        namespaces.push(item.metadata!.name);
       });
 
       return namespaces;
@@ -400,7 +402,7 @@ export class K8 {
       }
 
       return items;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`unable to check path in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e);
     }
   }
@@ -427,12 +429,10 @@ export class K8 {
           for (const entry of filterMap.entries()) {
             const field = entry[0];
             const value = entry[1];
-            // @ts-ignore
             this.logger.debug(
               `Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
               {filters},
             );
-            // @ts-ignore
             if (`${value}` !== `${item[field]}`) {
               found = false;
               break;
@@ -445,7 +445,7 @@ export class K8 {
           }
         }
       }
-    } catch (e: Error | any) {
+    } catch (e) {
       const error = new SoloError(
         `unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`,
         e,
@@ -644,7 +644,7 @@ export class K8 {
 
         self.registerErrorStreamOnError(localContext, messagePrefix, inputPassthroughStream);
       });
-    } catch (e: Error | any) {
+    } catch (e) {
       const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`;
       self.logger.error(errorMessage, e);
       throw new SoloError(errorMessage, e);
@@ -778,7 +778,7 @@ export class K8 {
                     localContext,
                     `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`,
                   );
-                } catch (e: Error | any) {
+                } catch {
                   return self.exitWithError(localContext, `${messagePrefix} failed to complete download`);
                 }
               });
@@ -789,7 +789,7 @@ export class K8 {
 
         self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream);
       });
-    } catch (e: Error | any) {
+    } catch (e) {
       const errorMessage = `${messagePrefix}failed to download file: ${e.message}`;
       self.logger.error(errorMessage, e);
       throw new SoloError(errorMessage, e);
@@ -991,7 +991,7 @@ export class K8 {
         if (isPortOpen) {
           return;
         }
-      } catch (e: Error | any) {
+      } catch {
         return;
       }
       await sleep(Duration.ofMillis(timeout));
@@ -1007,7 +1007,7 @@ export class K8 {
     podCount = 1,
     maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
     delay = constants.PODS_RUNNING_DELAY,
-    podItemPredicate?: (items: k8s.V1Pod) => any,
+    podItemPredicate?: (items: k8s.V1Pod) => boolean,
   ): Promise<k8s.V1Pod[]> {
     const ns = this._getNamespace();
     const labelSelector = labels.join(',');
@@ -1017,7 +1017,7 @@ export class K8 {
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
       let attempts = 0;
 
-      const check = async (resolve: (items: k8s.V1Pod[]) => void, reject: (reason?: any) => void) => {
+      const check = async (resolve: (items: k8s.V1Pod[]) => void, reject: (reason?: Error) => void) => {
         // wait for the pod to be available with the given status and labels
         try {
           const resp = await this.kubeClient.listNamespacedPod(
@@ -1055,7 +1055,7 @@ export class K8 {
               return resolve(resp.body.items);
             }
           }
-        } catch (e: Error | any) {
+        } catch (e) {
           this.logger.info('Error occurred while waiting for pods, retrying', e);
         }
 
@@ -1084,7 +1084,7 @@ export class K8 {
   async waitForPodReady(labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500) {
     try {
       return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay);
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e);
     }
   }
@@ -1263,7 +1263,7 @@ export class K8 {
     namespace: string,
     secretType: string,
     data: Record<string, string>,
-    labels: any,
+    labels: Optional<Record<string, string>>,
     recreate: boolean,
   ) {
     if (recreate) {
@@ -1287,7 +1287,7 @@ export class K8 {
       const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret);
 
       return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(
         `failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
         e,
@@ -1297,7 +1297,7 @@ export class K8 {
 
   /**
    * Delete a secret from the namespace
-   * @param name - the name of the new secret
+   * @param name - the name of the existing secret
    * @param namespace - the namespace to store the secret
    * @returns whether the secret was deleted successfully
    */
@@ -1345,7 +1345,7 @@ export class K8 {
       const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap);
 
       return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(
         `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
         e,
@@ -1377,7 +1377,7 @@ export class K8 {
       const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap);
 
       return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(
         `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
         e,
@@ -1390,7 +1390,7 @@ export class K8 {
       const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace);
 
       return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(
         `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
         e,
@@ -1399,6 +1399,7 @@ export class K8 {
   }
 
   // --------------------------------------- LEASES --------------------------------------- //
+
   async createNamespacedLease(namespace: string, leaseName: string, holderName: string, durationSeconds = 20) {
     const lease = new k8s.V1Lease();
 
@@ -1471,6 +1472,100 @@ export class K8 {
     return body as k8s.V1Status;
   }
 
+  // --------------------------------------- Pod Identifiers --------------------------------------- //
+
+  /**
+   * Check if cert-manager is installed inside any namespace.
+   * @returns if cert-manager is found
+   */
+  public async isCertManagerInstalled(): Promise<boolean> {
+    try {
+      const pods = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, 'app=cert-manager');
+
+      return pods.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
+  /**
+   * Check if minio is installed inside the namespace.
+   * @returns if minio is found
+   */
+  public async isMinioInstalled(namespace: Namespace): Promise<boolean> {
+    try {
+      // TODO DETECT THE OPERATOR
+      const pods = await this.kubeClient.listNamespacedPod(
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'app=minio',
+      );
+
+      return pods.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
+  /**
+   * Check if the ingress controller is installed inside any namespace.
+   * @returns if ingress controller is found
+   */
+  public async isIngressControllerInstalled(): Promise<boolean> {
+    try {
+      const response = await this.networkingApi.listIngressClass();
+
+      return response.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
+  public async isRemoteConfigPresentInAnyNamespace() {
+    try {
+      const configmaps = await this.kubeClient.listConfigMapForAllNamespaces(
+        undefined,
+        undefined,
+        undefined,
+        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
+      );
+
+      return configmaps.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
+  public async isPrometheusInstalled(namespace: Namespace) {
+    try {
+      const pods = await this.kubeClient.listNamespacedPod(
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        'app.kubernetes.io/name=prometheus',
+      );
+
+      return pods.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find cert-manager:', e);
+
+      return false;
+    }
+  }
+
   /* ------------- Utilities ------------- */
 
   /**
@@ -1480,7 +1575,11 @@ export class K8 {
    *
    * @throws SoloError - if the status code is not OK
    */
-  private handleKubernetesClientError(response: http.IncomingMessage, error: Error | any, errorMessage: string): void {
+  private handleKubernetesClientError(
+    response: http.IncomingMessage,
+    error: Error | unknown,
+    errorMessage: string,
+  ): void {
     const statusCode = +response?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
 
     if (statusCode <= StatusCodes.ACCEPTED) return;
@@ -1490,7 +1589,7 @@ export class K8 {
     throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});
   }
 
-  private _getNamespace() {
+  private _getNamespace(): Namespace {
     const ns = this.configManager.getFlag<string>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
@@ -1582,7 +1681,7 @@ export class K8 {
       ]);
       await this.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`);
       await this.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir);
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
       this.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podName}`, e);
@@ -1592,7 +1691,6 @@ export class K8 {
 
   /**
    * Download state files from a pod
-   * @param k8 - an instance of core/K8
    * @param namespace - the namespace of the network
    * @param nodeAlias - the pod name
    * @returns a promise that resolves when the state files are downloaded
@@ -1618,7 +1716,7 @@ export class K8 {
       const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podName}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
       await this.execContainer(podName, ROOT_CONTAINER, zipCommand);
       await this.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}-state.zip`, targetDir);
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       this.logger.error(`failed to download state from pod ${podName}`, e);
       this.logger.showUser(`Failed to download state from pod ${podName}` + e);
     }

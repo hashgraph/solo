@@ -27,35 +27,6 @@ import chalk from 'chalk';
  * Defines the core functionalities of 'init' command
  */
 export class InitCommand extends BaseCommand {
-  /**
-   * Setup home directories
-   * @param dirs a list of directories that need to be created in sequence
-   */
-  setupHomeDirectory(
-    dirs: string[] = [
-      constants.SOLO_HOME_DIR,
-      constants.SOLO_LOGS_DIR,
-      constants.SOLO_CACHE_DIR,
-      constants.SOLO_VALUES_DIR,
-    ],
-  ) {
-    const self = this;
-
-    try {
-      dirs.forEach(dirPath => {
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, {recursive: true});
-        }
-        self.logger.debug(`OK: setup directory: ${dirPath}`);
-      });
-    } catch (e: Error | any) {
-      this.logger.error(e);
-      throw new SoloError(`failed to create directory: ${e.message}`, e);
-    }
-
-    return dirs;
-  }
-
   /** Executes the init CLI command */
   async init(argv: any) {
     const self = this;

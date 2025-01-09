@@ -31,6 +31,8 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
 import path from 'path';
+import * as constants from '../core/constants.js';
+import fs from 'fs';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -96,6 +98,10 @@ export abstract class BaseCommand extends ShellRunner {
 
   getConfigManager(): ConfigManager {
     return this.configManager;
+  }
+
+  getChartManager(): ChartManager {
+    return this.chartManager;
   }
 
   /**
@@ -171,6 +177,10 @@ export abstract class BaseCommand extends ShellRunner {
     return newConfigInstance;
   }
 
+  getLeaseManager(): LeaseManager {
+    return this.leaseManager;
+  }
+
   /**
    * Get the list of unused configurations that were not accessed
    * @returns an array of unused configurations
@@ -211,5 +221,34 @@ export abstract class BaseCommand extends ShellRunner {
         await Promise.all(promises);
       }
     };
+  }
+
+  /**
+   * Setup home directories
+   * @param dirs a list of directories that need to be created in sequence
+   */
+  setupHomeDirectory(
+    dirs: string[] = [
+      constants.SOLO_HOME_DIR,
+      constants.SOLO_LOGS_DIR,
+      constants.SOLO_CACHE_DIR,
+      constants.SOLO_VALUES_DIR,
+    ],
+  ) {
+    const self = this;
+
+    try {
+      dirs.forEach(dirPath => {
+        if (!fs.existsSync(dirPath)) {
+          fs.mkdirSync(dirPath, {recursive: true});
+        }
+        self.logger.debug(`OK: setup directory: ${dirPath}`);
+      });
+    } catch (e: Error | any) {
+      this.logger.error(e);
+      throw new SoloError(`failed to create directory: ${e.message}`, e);
+    }
+
+    return dirs;
   }
 }
