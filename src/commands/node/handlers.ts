@@ -507,6 +507,29 @@ export class NodeCommandHandlers implements CommandHandlers {
     return true;
   }
 
+  async upgrade(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+
+    const lease = await this.leaseManager.create();
+
+    const action = this.parent.commandActionBuilder(
+      [
+        ...this.upgradePrepareTasks(argv, lease),
+        ...this.upgradeSubmitTransactionsTasks(argv),
+        ...this.upgradeExecuteTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in uprade network',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
   async delete(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS);
     const lease = await this.leaseManager.create();
