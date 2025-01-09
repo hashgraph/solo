@@ -268,7 +268,6 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
       this.tasks.finalize(),
     ];
   }
@@ -425,7 +424,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'Error in executing node update',
+      'Error in executing network upgrade',
       lease,
     );
 

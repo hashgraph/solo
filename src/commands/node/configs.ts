@@ -97,7 +97,6 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
     'podNames',
     'stagingDir',
     'stagingKeysDir',
-    'treasuryKey',
   ]) as NodeUpgradeConfigClass;
 
   config.curDate = new Date();
@@ -120,11 +119,6 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
-
-  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
-  const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
-
   return config;
 };
 

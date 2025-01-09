@@ -112,7 +112,6 @@ export class NodeHelper {
     const config = /** @type {NodeUpgradeConfigClass} **/ ctx.config;
     exportedCtx.adminKey = config.adminKey.toString();
     exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
-    exportedCtx.treasuryKey = config.treasuryKey.toString();
     exportedCtx.existingNodeAliases = config.existingNodeAliases;
     exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
     exportedCtx.allNodeAliases = config.allNodeAliases;
@@ -131,7 +130,6 @@ export class NodeHelper {
     const config = ctx.config;
 
     config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
-    config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey);
     config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
     config.existingNodeAliases = ctxData.existingNodeAliases;
     config.allNodeAliases = ctxData.allNodeAliases;

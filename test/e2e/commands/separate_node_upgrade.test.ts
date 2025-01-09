@@ -70,16 +70,22 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
 
       const tempDir = 'contextDir';
 
-      argv[flags.upgradeZipFile.name] = zipFile;
-      argv[flags.outputDir.name] = tempDir;
-      argv[flags.inputDir.name] = tempDir;
-      await nodeCmd.handlers.upgrade(argv);
+      const argvPrepare = Object.assign({}, argv);
+      argvPrepare[flags.upgradeZipFile.name] = zipFile;
+      argvPrepare[flags.outputDir.name] = tempDir;
+      const argvExecute = Object.assign({}, getDefaultArgv());
+      argvExecute[flags.inputDir.name] = tempDir;
+
+      await nodeCmd.handlers.upgradePrepare(argvPrepare);
+      await nodeCmd.handlers.upgradeSubmitTransactions(argvExecute);
+      await nodeCmd.handlers.upgradeExecute(argvExecute);
 
       expect(nodeCmd.getUnusedConfigs(UPGRADE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.quiet.constName,
         flags.localBuildPath.constName,
         flags.force.constName,
+        'nodeClient',
       ]);
     }).timeout(Duration.ofMinutes(5).toMillis());
 
