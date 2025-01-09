@@ -76,6 +76,8 @@ export interface NetworkDeployConfigClass {
   storageSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
+  backupBucket: string;
+  googleCredential: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -144,6 +146,8 @@ export class NetworkCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.backupBucket,
+      flags.googleCredential,
     ];
   }
 
@@ -207,6 +211,23 @@ export class NetworkCommand extends BaseCommand {
           `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
         );
       }
+      // generate backup uploader secret
+      if (config.googleCredential) {
+        const backupData = {};
+        const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
+        backupData['saJson'] = Base64.encode(googleCredential);
+        const isBackupSecretCreated = await this.k8.createSecret(
+          constants.BACKUP_SECRET_NAME,
+          namespace,
+          'Opaque',
+          backupData,
+          undefined,
+          true,
+        );
+        if (!isBackupSecretCreated) {
+          throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
+        }
+      }
     } catch (e: Error | any) {
       const errorMessage = 'failed to create Kubernetes storage secret ';
       this.logger.error(errorMessage, e);
@@ -231,6 +252,8 @@ export class NetworkCommand extends BaseCommand {
     storageSecrets: string;
     storageEndpoint: string;
     storageBucket: string;
+    backupBucket: string;
+    googleCredential: string;
     loadBalancerEnabled: boolean;
   }) {
     let valuesArg = config.chartDirectory
@@ -279,6 +302,12 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
     }
+
+    if (config.backupBucket) {
+      valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
+      valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+    }
+
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
     if (this.profileValuesFile) {
