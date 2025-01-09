@@ -573,7 +573,7 @@ export class NodeCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
         const {upgradeZipFile} = ctx.config;
-        if (upgradeZipFile !== undefined) {
+        if (upgradeZipFile) {
           this.logger.debug(`Using upgrade zip file: ${ctx.upgradeZipFile}`);
           ctx.upgradeZipFile = upgradeZipFile;
         } else {

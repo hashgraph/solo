@@ -427,7 +427,7 @@ export class Flags {
     constName: 'upgradeZipFile',
     name: 'upgrade-zip-file',
     definition: {
-      describe: 'A zipped state file to be during network upgrade',
+      describe: 'A zipped state used for network upgrade',
       defaultValue: '',
       type: 'string',
     },

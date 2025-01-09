@@ -115,7 +115,6 @@ export class NodeHelper {
     exportedCtx.treasuryKey = config.treasuryKey.toString();
     exportedCtx.existingNodeAliases = config.existingNodeAliases;
     exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
-    exportedCtx.nodeAlias = config.nodeAlias;
     exportedCtx.allNodeAliases = config.allNodeAliases;
 
     return exportedCtx;
@@ -135,7 +134,6 @@ export class NodeHelper {
     config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey);
     config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
     config.existingNodeAliases = ctxData.existingNodeAliases;
-    config.nodeAlias = ctxData.nodeAlias;
     config.allNodeAliases = ctxData.allNodeAliases;
     ctx.upgradeZipHash = ctxData.upgradeZipHash;
     config.podNames = {};

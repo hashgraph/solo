@@ -276,7 +276,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   /** ******** Handlers **********/
 
   async prepareUpgrade(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
     const lease = await this.leaseManager.create();
 
@@ -436,7 +436,6 @@ export class NodeCommandHandlers implements CommandHandlers {
   async upgradePrepare(argv) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
-
     const action = this.parent.commandActionBuilder(
       [
         ...this.upgradePrepareTasks(argv, lease),
@@ -449,7 +448,6 @@ export class NodeCommandHandlers implements CommandHandlers {
       'Error in preparing node upgrade',
       lease,
     );
-
     await action(argv, this);
     return true;
   }
@@ -500,9 +498,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
   async upgrade(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
-
     const lease = await this.leaseManager.create();
-
     const action = this.parent.commandActionBuilder(
       [
         ...this.upgradePrepareTasks(argv, lease),
@@ -513,7 +509,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'Error in uprade network',
+      'Error in upgrade network',
       lease,
     );
 

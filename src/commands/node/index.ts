@@ -23,7 +23,7 @@ import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
 import {type Opts} from '../../types/command_types.js';
-import {UPGRADE_PREPARE_FLAGS} from './flags.js';
+import {UPGRADE_EXECUTE_FLAGS, UPGRADE_PREPARE_FLAGS} from './flags.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -402,7 +402,7 @@ export class NodeCommand extends BaseCommand {
                 commandDef: self,
                 handler: 'upgradeExecute',
               },
-              NodeFlags.UPGRADE_SUBMIT_TRANSACTIONS_FLAGS,
+              NodeFlags.UPGRADE_EXECUTE_FLAGS,
             ),
           )
 

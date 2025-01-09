@@ -449,20 +449,10 @@ export interface NodeUpgradeConfigClass {
   chartDirectory: string;
   devMode: boolean;
   debugNodeAlias: NodeAlias;
-  endpointType: string;
   soloChartVersion: string;
-  gossipEndpoints: string;
-  gossipPrivateKey: string;
-  gossipPublicKey: string;
-  grpcEndpoints: string;
   localBuildPath: string;
   namespace: string;
-  newAccountNumber: string;
-  newAdminKey: PrivateKey;
-  nodeAlias: NodeAlias;
   releaseTag: string;
-  tlsPrivateKey: string;
-  tlsPublicKey: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
   chartPath: string;
@@ -471,7 +461,6 @@ export interface NodeUpgradeConfigClass {
   keysDir: string;
   nodeClient: any;
   podNames: Record<NodeAlias, PodName>;
-  serviceMap: Map<string, NetworkNodeServices>;
   stagingDir: string;
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
