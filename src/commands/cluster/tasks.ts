@@ -24,11 +24,16 @@ import * as constants from '../../core/constants.js';
 import path from 'path';
 import chalk from 'chalk';
 import {ListrLease} from '../../core/lease/listr_lease.js';
+import {type K8} from '../../core/k8.js';
+import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
 
-  constructor(parent) {
+  constructor(
+    parent,
+    private readonly k8: K8,
+  ) {
     this.parent = parent;
   }
 
@@ -131,9 +136,9 @@ export class ClusterCommandTasks {
     let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
-    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
     valuesArg += ` --set cloud.certManager.enabled=${certManagerEnabled}`;
     valuesArg += ` --set cert-manager.installCRDs=${certManagerCrdsEnabled}`;
+    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
 
     if (certManagerEnabled && !certManagerCrdsEnabled) {
       this.parent.logger.showUser(
@@ -246,13 +251,15 @@ export class ClusterCommandTasks {
         const cluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
         this.parent.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
         this.parent.logger.showUser('\n');
-      } catch (e: Error | any) {
+      } catch (e: Error | unknown) {
         this.parent.logger.showUserError(e);
       }
     });
   }
 
   prepareChartValues(argv) {
+    const self = this;
+
     return new Task(
       'Prepare chart values',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
@@ -261,6 +268,40 @@ export class ClusterCommandTasks {
           constants.SOLO_TESTING_CHART_URL,
           constants.SOLO_CLUSTER_SETUP_CHART,
         );
+
+        // if minio is already present, don't deploy it
+        if (ctx.config.deployMinio && (await self.k8.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
+          ctx.config.deployMinio = false;
+        }
+
+        // if prometheus is found, don't deploy it
+        if (
+          ctx.config.deployPrometheusStack &&
+          !(await self.k8.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
+        ) {
+          ctx.config.deployPrometheusStack = false;
+        }
+
+        // if cert manager is installed, don't deploy it
+        if (
+          (ctx.config.deployCertManager || ctx.config.deployCertManagerCrds) &&
+          (await self.k8.isCertManagerInstalled())
+        ) {
+          ctx.config.deployCertManager = false;
+          ctx.config.deployCertManagerCrds = false;
+        }
+
+        // If all are already present or not wanted, skip installation
+        if (
+          !ctx.config.deployPrometheusStack &&
+          !ctx.config.deployMinio &&
+          !ctx.config.deployCertManager &&
+          !ctx.config.deployCertManagerCrds
+        ) {
+          ctx.isChartInstalled = true;
+          return;
+        }
+
         ctx.valuesArg = this.prepareValuesArg(
           ctx.config.chartDir,
           ctx.config.deployPrometheusStack,
@@ -287,7 +328,7 @@ export class ClusterCommandTasks {
           await parent
             .getChartManager()
             .install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, ctx.chartPath, version, valuesArg);
-        } catch (e: Error | any) {
+        } catch (e: Error | unknown) {
           // if error, uninstall the chart and rethrow the error
           parent.logger.debug(
             `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
@@ -295,7 +336,7 @@ export class ClusterCommandTasks {
           );
           try {
             await parent.getChartManager().uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
-          } catch (ex) {
+          } catch {
             // ignore error during uninstall since we are doing the best-effort uninstall here
           }
 
@@ -319,10 +360,28 @@ export class ClusterCommandTasks {
 
   uninstallClusterChart(argv) {
     const parent = this.parent;
+    const self = this;
+
     return new Task(
       `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
+
+        if (!argv.force && (await self.k8.isRemoteConfigPresentInAnyNamespace())) {
+          const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
+            type: 'toggle',
+            default: false,
+            message:
+              'There is remote config for one of the deployments' +
+              'Are you sure you would like to uninstall the cluster?',
+          });
+
+          if (!confirm) {
+            // eslint-disable-next-line n/no-process-exit
+            process.exit(0);
+          }
+        }
+
         await parent.getChartManager().uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
         if (argv.dev) {
           await this.showInstalledChartList(clusterSetupNamespace);

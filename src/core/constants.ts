@@ -35,6 +35,7 @@ export const ROOT_CONTAINER = 'root-container';
 export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config';
 export const SOLO_REMOTE_CONFIGMAP_LABELS = {'solo.hedera.com/type': 'remote-config'};
 export const SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY = 50;
+export const SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR = 'solo.hedera.com/type=remote-config';
 
 // --------------- Hedera network and node related constants --------------------------------------------------------------------
 export const HEDERA_CHAIN_ID = process.env.SOLO_CHAIN_ID || '298';
