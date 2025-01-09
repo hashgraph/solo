@@ -38,7 +38,6 @@ import {ConsensusNodeComponent} from '../core/config/remote/components/consensus
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
-import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 
@@ -47,6 +46,7 @@ export interface NetworkDeployConfigClass {
   cacheDir: string;
   chartDirectory: string;
   enablePrometheusSvcMonitor: boolean;
+  loadBalancerEnabled: boolean;
   soloChartVersion: string;
   namespace: string;
   nodeAliasesUnparsed: string;
@@ -64,7 +64,6 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
-  genesisNetworkData: GenesisNetworkDataConstructor;
   genesisThrottlesFile: string;
   resolvedThrottlesFile: string;
   getUnusedConfigs: () => string[];
@@ -125,6 +124,7 @@ export class NetworkCommand extends BaseCommand {
       flags.enablePrometheusSvcMonitor,
       flags.soloChartVersion,
       flags.debugNodeAlias,
+      flags.loadBalancerEnabled,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeAliasesUnparsed,
@@ -246,7 +246,6 @@ export class NetworkCommand extends BaseCommand {
     valuesFile?: string;
     haproxyIpsParsed?: Record<NodeAlias, IP>;
     envoyIpsParsed?: Record<NodeAlias, IP>;
-    genesisNetworkData: GenesisNetworkDataConstructor;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
     storageAccessKey: string;
@@ -255,6 +254,7 @@ export class NetworkCommand extends BaseCommand {
     storageBucket: string;
     backupBucket: string;
     googleCredential: string;
+    loadBalancerEnabled: boolean;
   }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
@@ -309,15 +309,11 @@ export class NetworkCommand extends BaseCommand {
     }
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
-      profileName,
-      config.genesisNetworkData,
-    );
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile);
     }
 
-    // do not deploy mirror node until after we have the updated address book
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
@@ -344,6 +340,11 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
     }
 
+    if (config.loadBalancerEnabled) {
+      valuesArg += ' --set "defaults.haproxy.serviceType=LoadBalancer"';
+      valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
+    }
+
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
@@ -368,6 +369,7 @@ export class NetworkCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.debugNodeAlias,
+      flags.loadBalancerEnabled,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -420,12 +422,6 @@ export class NetworkCommand extends BaseCommand {
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
     config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
-
-    config.genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
-      config.nodeAliases,
-      this.keyManager,
-      config.keysDir,
-    );
 
     config.resolvedThrottlesFile = resolveValidJsonFilePath(
       config.genesisThrottlesFile,
@@ -841,7 +837,11 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Waiting for network pods to be running',
           task: async () => {
-            await this.k8.waitForPods([constants.POD_PHASE_RUNNING], ['solo.hedera.com/type=network-node'], 1);
+            await this.k8.waitForPods(
+              [constants.POD_PHASE_RUNNING],
+              ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
+              1,
+            );
           },
         },
       ],

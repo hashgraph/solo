@@ -337,11 +337,16 @@ export function e2eTestSuite(
   });
 }
 
-export function balanceQueryShouldSucceed(accountManager: AccountManager, cmd: BaseCommand, namespace: string) {
+export function balanceQueryShouldSucceed(
+  accountManager: AccountManager,
+  cmd: BaseCommand,
+  namespace: string,
+  skipNodeAlias?: NodeAlias,
+) {
   it('Balance query should succeed', async () => {
     try {
       expect(accountManager._nodeClient).to.be.null;
-      await accountManager.loadNodeClient(namespace);
+      await accountManager.refreshNodeClient(namespace, skipNodeAlias);
       expect(accountManager._nodeClient).not.to.be.null;
 
       const balance = await new AccountBalanceQuery()
@@ -357,10 +362,15 @@ export function balanceQueryShouldSucceed(accountManager: AccountManager, cmd: B
   }).timeout(Duration.ofMinutes(2).toMillis());
 }
 
-export function accountCreationShouldSucceed(accountManager: AccountManager, nodeCmd: BaseCommand, namespace: string) {
+export function accountCreationShouldSucceed(
+  accountManager: AccountManager,
+  nodeCmd: BaseCommand,
+  namespace: string,
+  skipNodeAlias?: NodeAlias,
+) {
   it('Account creation should succeed', async () => {
     try {
-      await accountManager.loadNodeClient(namespace);
+      await accountManager.refreshNodeClient(namespace, skipNodeAlias);
       expect(accountManager._nodeClient).not.to.be.null;
       const privateKey = PrivateKey.generate();
       const amount = 100;
