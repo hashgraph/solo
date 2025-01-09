@@ -24,13 +24,14 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getEnvValue} from '../core/helpers.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
-import {type CommandBuilder, type PodName} from '../types/aliases.js';
+import { type AnyObject, type CommandBuilder, type PodName } from '../types/aliases.js'
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as yaml from 'yaml';
 import type {Optional, SoloListrTask} from '../types/index.js';
 import type {Namespace} from '../core/config/remote/types.js';
 
@@ -375,6 +376,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       constants.PODS_READY_MAX_ATTEMPTS,
                       constants.PODS_READY_DELAY,
                     ),
+                  skip: ctx => ctx.config.customMirrorNodeDatabaseValuePath,
                 },
                 {
                   title: 'Check REST API',
@@ -442,8 +444,8 @@ export class MirrorNodeCommand extends BaseCommand {
               [
                 {
                   title: 'Insert data in public.file_data',
-                  task: async () => {
-                    const namespace = self.configManager.getFlag<string>(flags.namespace) as string;
+                  task: async ctx => {
+                    let namespace = self.configManager.getFlag<Namespace>(flags.namespace) as Namespace;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -458,16 +460,27 @@ export class MirrorNodeCommand extends BaseCommand {
                     }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
-                    const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
+                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      const data = fs.readFileSync(ctx.config.customMirrorNodeDatabaseValuePath).toString();
+                      const mirrorNodeValues = yaml.parse(data) as Record<string, AnyObject>;
+                      if (mirrorNodeValues.db.host.split('.')?.[1]) {
+                        namespace = mirrorNodeValues.db.host.split('.')[1];
+                      }
+                    }
+
+                    const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres'], namespace);
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
+
                     const postgresPodName = pods[0].metadata.name as PodName;
+
                     const postgresContainerName = 'postgresql';
                     const mirrorEnvVars = await self.k8.execContainer(
                       postgresPodName,
                       postgresContainerName,
                       '/bin/bash -c printenv',
+                      namespace,
                     );
                     const mirrorEnvVarsArray = mirrorEnvVars.split('\n');
                     const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(
@@ -483,11 +496,25 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
+                    let connectionString: string;
+
+                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      const HEDERA_MIRROR_IMPORTER_DB_HOST = getEnvValue(
+                        mirrorEnvVarsArray,
+                        'HEDERA_MIRROR_IMPORTER_DB_HOST',
+                      );
+
+                      connectionString = `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@${HEDERA_MIRROR_IMPORTER_DB_HOST}:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`;
+                    } else {
+                      connectionString = `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`;
+                    }
+
                     await self.k8.execContainer(postgresPodName, postgresContainerName, [
                       'psql',
-                      `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
+                      connectionString,
                       '-c',
                       sqlQuery,
+                      namespace,
                     ]);
                   },
                 },

@@ -1,29 +1,27 @@
 db:
-  host: "my-postgresql.database.svc.cluster.local"
+  host: "my-postgresql.mirror-db.svc.cluster.local"
   enabled: true
   owner:
     username: postgres
     password: "XXXXXXXXXXXX"
+
 stackgres:
   enabled: false
+
 postgresql:
+  enabled: false
+
+#fullnameOverride: ""
+
+importer:
   enabled: true
-  pgpool:
-    adminPassword: "XXXXXXXXXXXX"
-#  postgresql:
-#    initdbScriptsCM: "{{ .Release.Name }}-init"
-
-fullnameOverride: "my-postgresql.database.svc.cluster.local"
-
+  db:
+    password: "XXXXXXXXXXXX"
 graphql:
   enabled: true
   db:
     password: "XXXXXXXXXXXX"
 grpc:
-  enabled: true
-  db:
-    password: "XXXXXXXXXXXX"
-importer:
   enabled: true
   db:
     password: "XXXXXXXXXXXX"
@@ -42,4 +40,4 @@ web3:
 rosetta:
   enabled: false
   db:
-    password: "" # for disabled components, the password can be omitted
+    password: "XXXXXXXXXXXX" # for disabled components, the password can be omitted
