@@ -1686,6 +1686,28 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly backupBucket: CommandFlag = {
+    constName: 'backupBucket',
+    name: 'backup-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of bucket for backing up state files',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly googleCredential: CommandFlag = {
+    constName: 'googleCredential',
+    name: 'google-credential',
+    definition: {
+      defaultValue: '',
+      describe: 'path of google credential file in json format',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly loadBalancerEnabled: CommandFlag = {
     constName: 'loadBalancerEnabled',
     name: 'load-balancer',
@@ -1780,6 +1802,8 @@ export class Flags {
     Flags.storageSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
+    Flags.backupBucket,
+    Flags.googleCredential,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
