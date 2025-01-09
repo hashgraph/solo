@@ -1696,7 +1696,11 @@ export class K8 {
    * @returns a promise that resolves when the state files are downloaded
    */
   async getNodeStatesFromPod(namespace: string, nodeAlias: string) {
-    const pods = await this.getPodsByLabel([`solo.hedera.com/node-name=${nodeAlias}`]);
+    const pods = await this.getPodsByLabel([
+      `solo.hedera.com/node-name=${nodeAlias}`,
+      'solo.hedera.com/type=network-node',
+    ]);
+
     // get length of pods
     const promises = [];
     for (const pod of pods) {

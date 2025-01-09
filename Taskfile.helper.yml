@@ -14,15 +14,13 @@ vars:
   solo_keys_dir: "{{ .solo_cache_dir }}/keys"
   solo_bin_dir: "{{ .solo_user_dir }}/bin"
   run_build_file:
-    sh: (echo "/tmp/run-build-$(date +%Y%m%d%H%M%S)")
+    sh: (echo "/tmp/${USER}-run-build-$(date +%Y%m%d%H%M%S)")
   var_check_file:
-    sh: (echo "/tmp/var-check-$(date +%Y%m%d%H%M%S)")
+    sh: (echo "/tmp/${USER}-var-check-$(date +%Y%m%d%H%M%S)")
   minio_flag_file:
-    sh: (echo "/tmp/minio-flag-$(date +%Y%m%d%H%M%S)")
-  solo_chart_file:
-    sh: (echo "/tmp/solo-chart-$(date +%Y%m%d%H%M%S)")
-  solo_consensus_file:
-    sh: (echo "/tmp/solo-consensus-$(date +%Y%m%d%H%M%S)")
+    sh: (echo "/tmp/${USER}-minio-flag-$(date +%Y%m%d%H%M%S)")
+  solo_install_file:
+    sh: (echo "/tmp/${USER}-solo-install-$(date +%Y%m%d%H%M%S)")
 
 env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
@@ -75,6 +73,8 @@ tasks:
       - echo "LOG4J2_FLAG=${LOG4J2_FLAG}"
       - echo "APPLICATION_PROPERTIES_FLAG=${APPLICATION_PROPERTIES_FLAG}"
       - echo "LOCAL_BUILD_FLAG=${LOCAL_BUILD_FLAG}"
+      - echo "DEBUG_NODE_ALIAS=${DEBUG_NODE_ALIAS}"
+      - echo "SOLO_CHARTS_DIR_FLAG=${SOLO_CHARTS_DIR_FLAG}"
       - touch {{ .var_check_file }}
 
   readme:
@@ -92,10 +92,18 @@ tasks:
       - echo "Use command 'task default-with-relay' to deploy the network with a relay node."
 
   install:solo:
+    silent: true
     internal: true
+    status:
+      - test -f {{ .solo_install_file }}
     cmds:
-      - cd ..
+      - |
+        if [[ "$(ls -1 package.json)" == "" ]]; then
+          cd ..
+        fi
+        pwd
       - npm install
+      - touch {{ .solo_install_file }}
 
   install:kubectl:darwin:
     internal: true
@@ -157,14 +165,16 @@ tasks:
       - task: "init"
     cmds:
       - |
-        unset RELEASE_FLAG
-        if [[ "${LOCAL_BUILD_FLAG}" == "" ]]; then
-          export RELEASE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
+        if [[ "${DEBUG_NODE_ALIAS}" != "" ]]; then
+          export DEBUG_NODE_FLAG="--debug-node-alias {{ .DEBUG_NODE_ALIAS }}"
+        fi
+        if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
+          export CONSENSUS_NODE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
         if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
           export SOLO_CHART_FLAG='--solo-chart-version ${SOLO_CHART_VERSION}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${RELEASE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} -q
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} -q
       - |
         if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
           export CONSENSUS_NODE_FLAG='--release-tag ${CONSENSUS_NODE_VERSION}'
@@ -183,7 +193,11 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q {{ .CLI_ARGS }}
+      - |
+        if [[ "${DEBUG_NODE_ALIAS}" != "" ]]; then
+          export DEBUG_NODE_FLAG="--debug-node-alias {{ .DEBUG_NODE_ALIAS }}"
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }}
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Node"
@@ -259,7 +273,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" -q
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${SOLO_CHARTS_DIR_FLAG} -q
 
   cluster:destroy:
     cmds:
@@ -409,8 +423,7 @@ tasks:
     silent: true
     cmds:
       - echo "Cleaning up temporary files..."
-      - rm -f /tmp/run-build-*
-      - rm -f /tmp/var-check-*
-      - rm -f /tmp/minio-flag-*
-      - rm -f /tmp/solo-chart-*
-      - rm -f /tmp/solo-consensus-*
+      - rm -f /tmp/${USER}-run-build-* || true
+      - rm -f /tmp/${USER}-var-check-* || true
+      - rm -f /tmp/${USER}-minio-flag-* || true
+      - rm -f /tmp/${USER}-solo-install-* || true
