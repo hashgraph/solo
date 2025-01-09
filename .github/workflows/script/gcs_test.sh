@@ -77,7 +77,7 @@ npm run solo-test -- node stop -i node1 -n "${SOLO_NAMESPACE}"
 # manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
 kubectl exec network-node1-0 -c backup-uploader -n solo-e2e -- /backup.sh > /dev/null 2>&1
 
-# extra logs check if it include the message type "error"
+# retrieve logs and check if it include the message type "error"
 # example : {"level":"error","msg":"Updated modification time ......}
 kubectl logs network-node1-0 -c backup-uploader -n solo-e2e > backup-uploader.log
 if grep -q \""error\"" backup-uploader.log; then
