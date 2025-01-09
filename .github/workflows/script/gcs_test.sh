@@ -36,7 +36,6 @@ if [ -z "${GCP_SERVICE_ACCOUNT_TOKEN}" ]; then
   exit 1
 fi
 
-# save $GCP_SERVICE_ACCOUNT_TOKEN to local file
 echo "${GCP_SERVICE_ACCOUNT_TOKEN}" > gcp_service_account.json
 
 echo "Using bucket name: ${streamBucket}"
