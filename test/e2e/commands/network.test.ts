@@ -105,6 +105,7 @@ describe('NetworkCommand', () => {
         flags.storageAccessKey.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
+        flags.googleCredential.constName,
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);
