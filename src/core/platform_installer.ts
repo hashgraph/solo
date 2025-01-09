@@ -278,10 +278,14 @@ export class PlatformInstaller {
   }
 
   /** Return a list of task to perform node directory setup */
-  taskSetup(podName: PodName) {
+  taskSetup(podName: PodName, stagingDir: string, isGenesis: boolean) {
     const self = this;
     return new Listr(
       [
+        {
+          title: 'Copy configuration files',
+          task: async () => await self.copyConfigurationFiles(stagingDir, podName, isGenesis),
+        },
         {
           title: 'Set file permissions',
           task: async () => await self.setPlatformDirPermissions(podName),
@@ -294,6 +298,20 @@ export class PlatformInstaller {
         },
       },
     );
+  }
+
+  /**
+   * Copy configuration files to the network consensus node pod
+   * @param stagingDir - staging directory path
+   * @param podName - network consensus node pod name
+   * @param isGenesis - true if this is `solo node setup` and we are at genesis
+   * @private
+   */
+  private async copyConfigurationFiles(stagingDir: string, podName: `network-node${number}-0`, isGenesis: boolean) {
+    if (isGenesis) {
+      const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
+      await this.copyFiles(podName, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);
+    }
   }
 
   /**

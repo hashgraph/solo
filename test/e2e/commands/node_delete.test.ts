@@ -33,10 +33,10 @@ import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 
 const namespace = 'node-delete';
-const nodeAlias = 'node1';
+const deleteNodeAlias = 'node1';
 const argv = getDefaultArgv();
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
-argv[flags.nodeAlias.name] = nodeAlias;
+argv[flags.nodeAlias.name] = deleteNodeAlias;
 argv[flags.stakeAmounts.name] = '1,1000';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
@@ -74,9 +74,9 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       await bootstrapResp.opts.accountManager.close();
     }).timeout(Duration.ofMinutes(10).toMillis());
 
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, deleteNodeAlias);
 
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, deleteNodeAlias);
 
     it('config.txt should no longer contain removed node alias name', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
@@ -86,7 +86,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
       const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
       console.log('config.txt:', configTxt);
-      expect(configTxt).not.to.contain(nodeAlias);
+      expect(configTxt).not.to.contain(deleteNodeAlias);
     }).timeout(Duration.ofMinutes(10).toMillis());
   });
 });

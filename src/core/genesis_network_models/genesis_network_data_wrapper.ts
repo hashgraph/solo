@@ -14,14 +14,21 @@
  * limitations under the License.
  *
  */
+import type {NodeId} from '../../types/aliases.js';
+import type {ServiceEndpoint} from '../../types/index.js';
 
-/**
- * This file should only contain versions for dependencies
- */
+export abstract class GenesisNetworkDataWrapper {
+  public gossipEndpoint: ServiceEndpoint[] = [];
+  public weight: number;
+  public gossipCaCertificate: string;
 
-export const HELM_VERSION = 'v3.14.2';
-export const SOLO_CHART_VERSION = '0.41.0';
-export const HEDERA_PLATFORM_VERSION = 'v0.58.1';
-export const MIRROR_NODE_VERSION = '0.118.1';
-export const HEDERA_EXPLORER_VERSION = '0.2.1';
-export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.59.0';
+  protected constructor(public readonly nodeId: NodeId) {}
+
+  /**
+   * @param domainName - a fully qualified domain name
+   * @param port
+   */
+  public addGossipEndpoint(domainName: string, port: number): void {
+    this.gossipEndpoint.push({domainName, port, ipAddressV4: ''});
+  }
+}

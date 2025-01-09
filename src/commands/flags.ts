@@ -1675,6 +1675,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly loadBalancerEnabled: CommandFlag = {
+    constName: 'loadBalancerEnabled',
+    name: 'load-balancer',
+    definition: {
+      describe: 'Enable load balancer for network node proxies',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1727,6 +1738,7 @@ export class Flags {
     Flags.hederaExplorerTlsLoadBalancerIp,
     Flags.hederaExplorerVersion,
     Flags.inputDir,
+    Flags.loadBalancerEnabled,
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,

@@ -744,7 +744,8 @@ export class NodeCommandHandlers implements CommandHandlers {
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        this.tasks.setupNetworkNodes('nodeAliases'),
+        // TODO: change to isGenesis: true once we are ready to use genesis-network.json: this.tasks.setupNetworkNodes('nodeAliases', true),
+        this.tasks.setupNetworkNodes('nodeAliases', false),
         this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
