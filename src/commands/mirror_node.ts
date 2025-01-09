@@ -51,6 +51,11 @@ interface MirrorNodeDeployConfigClass {
   clusterSetupNamespace: string;
   soloChartVersion: string;
   pinger: boolean;
+  storageType: constants.StorageType;
+  storageAccessKey: string;
+  storageSecrets: string;
+  storageEndpoint: string;
+  storageBucket: string;
 }
 
 interface Context {
@@ -95,6 +100,11 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.pinger,
       flags.clusterSetupNamespace,
       flags.soloChartVersion,
+      flags.storageType,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
     ];
   }
 
@@ -118,52 +128,44 @@ export class MirrorNodeCommand extends BaseCommand {
   /**
    * @param config
    * @param config.tlsClusterIssuerType - must be one of - acme-staging, acme-prod, or self-signed
-   * @param config.enableHederaExplorerTls
    * @param config.namespace - used for classname ingress class name prefix
    * @param config.hederaExplorerTlsLoadBalancerIp - can be an empty string
    * @param config.hederaExplorerTlsHostName
    */
-  private prepareSoloChartSetupValuesArg(config: MirrorNodeDeployConfigClass) {
-    if (!config.enableHederaExplorerTls) return '';
-
-    const {
-      tlsClusterIssuerType,
-      enableHederaExplorerTls,
-      namespace,
-      hederaExplorerTlsLoadBalancerIp,
-      hederaExplorerTlsHostName,
-    } = config;
+  private async prepareSoloChartSetupValuesArg(config: MirrorNodeDeployConfigClass) {
+    const {tlsClusterIssuerType, namespace, hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName} = config;
 
     let valuesArg = '';
 
-    if (enableHederaExplorerTls) {
-      if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
-        throw new Error(
-          `Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`,
-        );
-      }
+    if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
+      throw new Error(
+        `Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`,
+      );
+    }
 
+    // Install ingress controller only if it's not already present
+    if (!(await this.k8.isIngressControllerInstalled())) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
+    }
 
-      if (hederaExplorerTlsLoadBalancerIp !== '') {
-        valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
-      }
+    if (hederaExplorerTlsLoadBalancerIp !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
+    }
 
-      if (tlsClusterIssuerType === 'self-signed') {
-        valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
-      } else {
-        valuesArg += ' --set acmeClusterIssuer.enabled=true';
-        valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
-      }
+    if (tlsClusterIssuerType === 'self-signed') {
+      valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
+    } else {
+      valuesArg += ' --set acmeClusterIssuer.enabled=true';
+      valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
 
     return valuesArg;
   }
 
-  async prepareValuesArg(config: {valuesFile: string}) {
+  async prepareValuesArg(config: MirrorNodeDeployConfigClass) {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -176,6 +178,28 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
 
+    if (config.storageBucket) {
+      valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.bucketName=${config.storageBucket}`;
+    }
+
+    let storageType = '';
+    if (config.storageType && config.storageAccessKey && config.storageSecrets && config.storageEndpoint) {
+      if (
+        config.storageType === constants.StorageType.GCS_ONLY ||
+        config.storageType === constants.StorageType.S3_AND_GCS ||
+        config.storageType === constants.StorageType.GCS_AND_MINIO
+      ) {
+        storageType = 'gcp';
+      } else if (config.storageType === constants.StorageType.S3_ONLY) {
+        storageType = 's3';
+      } else {
+        throw new IllegalArgumentError(`Invalid cloud storage type: ${config.storageType}`);
+      }
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE=${storageType}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI=${config.storageEndpoint}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageAccessKey}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageSecrets}`;
+    }
     return valuesArg;
   }
 
@@ -217,9 +241,10 @@ export class MirrorNodeCommand extends BaseCommand {
               constants.MIRROR_NODE_CHART,
             );
 
-            ctx.config.valuesArg = await self.prepareValuesArg(ctx.config);
-
+            // predefined values first
             ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
+            // user defined values later to override predefined values
+            ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
@@ -281,7 +306,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       constants.SOLO_CLUSTER_SETUP_CHART,
                     );
 
-                    const soloChartSetupValuesArg = self.prepareSoloChartSetupValuesArg(config);
+                    const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
                     await self.chartManager.upgrade(
                       clusterSetupNamespace,
                       constants.SOLO_CLUSTER_SETUP_CHART,

@@ -45,7 +45,7 @@ import {K8} from './k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
-import {sleep} from './helpers.js';
+import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
@@ -194,6 +194,7 @@ export class AccountManager {
       treasuryAccountInfo.privateKey,
       skipNodeAlias,
     );
+    return this._nodeClient;
   }
 
   /**
@@ -388,17 +389,23 @@ export class AccountManager {
       labelSelector,
     );
 
+    let nodeId = '0';
     // retrieve the list of services and build custom objects for the attributes we need
     for (const service of serviceList.body.items) {
-      const serviceType = service.metadata.labels['solo.hedera.com/type'];
       let serviceBuilder = new NetworkNodeServicesBuilder(
         service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
       );
 
       if (serviceBuilderMap.has(serviceBuilder.key())) {
         serviceBuilder = serviceBuilderMap.get(serviceBuilder.key()) as NetworkNodeServicesBuilder;
+      } else {
+        serviceBuilder = new NetworkNodeServicesBuilder(
+          service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
+        );
+        serviceBuilder.withNamespace(namespace);
       }
 
+      const serviceType = service.metadata.labels['solo.hedera.com/type'];
       switch (serviceType) {
         // solo.hedera.com/type: envoy-proxy-svc
         case 'envoy-proxy-svc':
@@ -413,7 +420,6 @@ export class AccountManager {
         // solo.hedera.com/type: haproxy-svc
         case 'haproxy-svc':
           serviceBuilder
-            .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
             .withHaProxyAppSelector(service.spec!.selector!.app)
             .withHaProxyName(service.metadata!.name as string)
             .withHaProxyClusterIp(service.spec!.clusterIP as string)
@@ -426,7 +432,22 @@ export class AccountManager {
           break;
         // solo.hedera.com/type: network-node-svc
         case 'network-node-svc':
+          if (
+            service.metadata!.labels!['solo.hedera.com/node-id'] !== '' &&
+            isNumeric(service.metadata!.labels!['solo.hedera.com/node-id'])
+          ) {
+            nodeId = service.metadata!.labels!['solo.hedera.com/node-id'];
+          } else {
+            nodeId = `${Templates.nodeIdFromNodeAlias(service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias)}`;
+            this.logger.warn(
+              `received an incorrect node id of ${service.metadata!.labels!['solo.hedera.com/node-id']} for ` +
+                `${service.metadata.labels['solo.hedera.com/node-name']}`,
+            );
+          }
+
           serviceBuilder
+            .withNodeId(nodeId)
+            .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
             .withNodeServiceName(service.metadata!.name as string)
             .withNodeServiceClusterIp(service.spec!.clusterIP as string)
             .withNodeServiceLoadBalancerIp(
