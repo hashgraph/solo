@@ -88,7 +88,7 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
   return config;
 };
 
-export const upgradeConfigBuilder = async function (argv, ctx, task) {
+export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
   const config = this.getConfig(UPGRADE_CONFIGS_NAME, argv.flags, [
     'allNodeAliases',
     'existingNodeAliases',
@@ -114,9 +114,9 @@ export const upgradeConfigBuilder = async function (argv, ctx, task) {
     constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,
   );
-
-  // initialize Node Client with existing network nodes prior to adding the new node which isn't functioning, yet
-  ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;

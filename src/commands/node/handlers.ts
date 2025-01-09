@@ -261,24 +261,15 @@ export class NodeCommandHandlers implements CommandHandlers {
 
   upgradeExecuteTasks(argv) {
     return [
-      this.tasks.identifyExistingNodes(),
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeUpgradeFiles(),
-
-      this.tasks.prepareStagingDirectory('allNodeAliases'),
-      this.tasks.copyNodeKeysToSecrets(),
       this.tasks.getNodeLogsAndConfigs(),
-      this.tasks.killNodes(),
-      // this.tasks.checkNodePodsAreRunning(),
-      // this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      // this.tasks.setupNetworkNodes('allNodeAliases'),
-      //
-      // this.tasks.startNodes('allNodeAliases'),
-      // this.tasks.enablePortForwarding(),
-      // this.tasks.checkAllNodesAreActive('allNodeAliases'),
-      // this.tasks.checkAllNodeProxiesAreActive(),
-      // this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
-      // this.tasks.finalize(),
+      this.tasks.startNodes('allNodeAliases'),
+      this.tasks.enablePortForwarding(),
+      this.tasks.checkAllNodesAreActive('allNodeAliases'),
+      this.tasks.checkAllNodeProxiesAreActive(),
+      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
+      this.tasks.finalize(),
     ];
   }
 
@@ -490,7 +481,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
     const action = this.parent.commandActionBuilder(
       [
-        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
+        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease, false),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
         ...this.upgradeExecuteTasks(argv),

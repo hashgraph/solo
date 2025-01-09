@@ -37,11 +37,7 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ? process.env.SOLO
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.namespace.name] = namespace;
 
-const tempDir = 'contextDir';
-
-const upgradeArgv = getDefaultArgv();
-upgradeArgv[flags.upgradeZipFile.name] = 'upgrade.zip';
-upgradeArgv[flags.outputDir.name] = tempDir;
+const zipFile = 'upgrade.zip';
 
 const TEST_VERSION_STRING = '0.100.0';
 
@@ -70,9 +66,19 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
 
       // create upgrade.zip file from tmp directory using zippy.ts
       const zipper = new Zippy(nodeCmd.logger);
-      await zipper.zip(tmpDir, upgradeArgv[flags.upgradeZipFile.name]);
+      await zipper.zip(tmpDir, zipFile);
 
-      await nodeCmd.handlers.prepareUpgrade(upgradeArgv);
+      const tempDir = 'contextDir';
+      const argvPrepare = Object.assign({}, argv);
+      argvPrepare[flags.outputDir.name] = tempDir;
+
+      const argvExecute = Object.assign({}, getDefaultArgv());
+      argvExecute[flags.inputDir.name] = tempDir;
+
+      await nodeCmd.handlers.upgradePrepare(argvPrepare);
+      await nodeCmd.handlers.upgradeSubmitTransactions(argvExecute);
+      await nodeCmd.handlers.upgradeExecute(argvExecute);
+
       expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
         flags.chartDirectory.constName,
         flags.devMode.constName,
@@ -82,26 +88,14 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       ]);
     }).timeout(Duration.ofMinutes(5).toMillis());
 
-    it('should upgrade all nodes on the network successfully', async () => {
-      await nodeCmd.handlers.freezeUpgrade(upgradeArgv);
-      expect(nodeCmd.getUnusedConfigs(PREPARE_UPGRADE_CONFIGS_NAME)).to.deep.equal([
-        flags.quiet.constName,
-        flags.devMode.constName,
-      ]);
-
-      await bootstrapResp.opts.accountManager.close();
-    }).timeout(Duration.ofMinutes(5).toMillis());
-
     it('should restart all nodes on the network successfully', async () => {
-      await nodeCmd.handlers.upgradeExecute(argv);
-
-      // read the VERSION.txt file from the pod data/upgrade/current directory
+      // copy the VERSION.txt file from the pod data/upgrade/current directory
       const tmpDir = getTmpDir();
       const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
       const podName = pods[0].metadata.name as PodName;
       await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
 
-      // read the VERSION.txt file from the pod
+      // compare the VERSION.txt
       const version = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');
       expect(version).to.equal(TEST_VERSION_STRING);
     }).timeout(Duration.ofMinutes(5).toMillis());
