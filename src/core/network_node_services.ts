@@ -19,6 +19,8 @@ import type {NodeAlias, PodName} from '../types/aliases.js';
 
 export class NetworkNodeServices {
   public readonly nodeAlias: NodeAlias;
+  public readonly namespace: string;
+  public readonly nodeId: string | number;
   public readonly nodePodName?: PodName;
   public readonly haProxyName?: string;
   public readonly haProxyLoadBalancerIp?: string;
@@ -41,6 +43,8 @@ export class NetworkNodeServices {
 
   constructor(builder: NetworkNodeServicesBuilder) {
     this.nodeAlias = builder.nodeAlias;
+    this.namespace = builder.namespace;
+    this.nodeId = builder.nodeId;
     this.nodePodName = builder.nodePodName;
     this.haProxyName = builder.haProxyName;
     this.haProxyLoadBalancerIp = builder.haProxyLoadBalancerIp;
@@ -68,6 +72,8 @@ export class NetworkNodeServices {
 }
 
 export class NetworkNodeServicesBuilder {
+  public namespace?: string;
+  public nodeId?: string | number;
   public haProxyName?: string;
   public accountId?: string;
   public haProxyClusterIp!: string;
@@ -90,6 +96,16 @@ export class NetworkNodeServicesBuilder {
   public nodePodName?: PodName;
 
   constructor(public readonly nodeAlias: NodeAlias) {}
+
+  withNamespace(namespace: string) {
+    this.namespace = namespace;
+    return this;
+  }
+
+  withNodeId(nodeId: string | number) {
+    this.nodeId = nodeId;
+    return this;
+  }
 
   withAccountId(accountId: string) {
     this.accountId = accountId;

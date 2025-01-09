@@ -63,13 +63,6 @@ jobs:
           verbosity: 3
           wait: 120s
 
-      - name: Install Dependencies
-        id: npm-deps
-        run: npm ci
-
-      - name: Compile Project
-        run: npm run build
-
       - name: Run Example Task File Test
         run: |
           task default-with-relay

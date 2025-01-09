@@ -1,8 +1,8 @@
 # Using Solo with Hedera JavaScript SDK
 
 First, please follow solo repository README to install solo and Docker Desktop.
-You also need to install the Taskfile tool following the instructions here:
-https://taskfile.dev/installation/
+You also need to install the Taskfile tool following the instructions [here](https://taskfile.dev/installation/).
+
 
 Then we start with launching a local Solo network with the following commands:
 

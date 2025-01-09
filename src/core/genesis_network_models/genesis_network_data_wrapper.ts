@@ -14,18 +14,21 @@
  * limitations under the License.
  *
  */
+import type {NodeId} from '../../types/aliases.js';
+import type {ServiceEndpoint} from '../../types/index.js';
 
-import {Flags as flags} from '../flags.js';
+export abstract class GenesisNetworkDataWrapper {
+  public gossipEndpoint: ServiceEndpoint[] = [];
+  public weight: number;
+  public gossipCaCertificate: string;
 
-export const USE_FLAGS = {
-  requiredFlags: [],
-  requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [
-    flags.devMode,
-    flags.quiet,
-    flags.clusterName,
-    flags.context,
-    flags.namespace,
-    flags.userEmailAddress,
-  ],
-};
+  protected constructor(public readonly nodeId: NodeId) {}
+
+  /**
+   * @param domainName - a fully qualified domain name
+   * @param port
+   */
+  public addGossipEndpoint(domainName: string, port: number): void {
+    this.gossipEndpoint.push({domainName, port, ipAddressV4: ''});
+  }
+}

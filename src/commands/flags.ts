@@ -1619,6 +1619,73 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly storageType: CommandFlag = {
+    constName: 'storageType',
+    name: 'storage-type',
+    definition: {
+      defaultValue: constants.StorageType.MINIO_ONLY,
+      describe:
+        'storage type for saving stream files, available options are minio_only, gcs_and_minio, s3_only, gcs_only, s3_and_gcs',
+      type: 'StorageType',
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageAccessKey: CommandFlag = {
+    constName: 'storageAccessKey',
+    name: 'storage-access-key',
+    definition: {
+      defaultValue: '',
+      describe: 'storage access key',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageSecrets: CommandFlag = {
+    constName: 'storageSecrets',
+    name: 'storage-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'storage secret key',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageEndpoint: CommandFlag = {
+    constName: 'storageEndpoint',
+    name: 'storage-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'storage endpoint URL',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucket: CommandFlag = {
+    constName: 'storageBucket',
+    name: 'storage-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of storage bucket',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly loadBalancerEnabled: CommandFlag = {
+    constName: 'loadBalancerEnabled',
+    name: 'load-balancer',
+    definition: {
+      describe: 'Enable load balancer for network node proxies',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1671,6 +1738,7 @@ export class Flags {
     Flags.hederaExplorerTlsLoadBalancerIp,
     Flags.hederaExplorerVersion,
     Flags.inputDir,
+    Flags.loadBalancerEnabled,
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
@@ -1696,6 +1764,11 @@ export class Flags {
     Flags.soloChartVersion,
     Flags.stakeAmounts,
     Flags.stateFile,
+    Flags.storageType,
+    Flags.storageAccessKey,
+    Flags.storageSecrets,
+    Flags.storageEndpoint,
+    Flags.storageBucket,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,

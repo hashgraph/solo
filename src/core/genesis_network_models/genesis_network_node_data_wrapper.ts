@@ -15,24 +15,25 @@
  *
  */
 import type {AccountId, PublicKey} from '@hashgraph/sdk';
-import type {GenesisNetworkNodeStructure, ServiceEndpoint, ToObject} from '../../types/index.js';
+import type {GenesisNetworkNodeStructure, NodeAccountId, ServiceEndpoint, ToObject} from '../../types/index.js';
+import {GenesisNetworkDataWrapper} from './genesis_network_data_wrapper.js';
 
 export class GenesisNetworkNodeDataWrapper
-  implements GenesisNetworkNodeStructure, ToObject<{node: GenesisNetworkNodeStructure}>
+  extends GenesisNetworkDataWrapper
+  implements ToObject<GenesisNetworkNodeStructure>
 {
   public accountId: AccountId;
-  public gossipEndpoint: ServiceEndpoint[] = [];
   public serviceEndpoint: ServiceEndpoint[] = [];
-  public gossipCaCertificate: string;
   public grpcCertificateHash: string;
-  public weight: number;
   public readonly deleted = false;
 
   constructor(
     public readonly nodeId: number,
     public readonly adminKey: PublicKey,
     public readonly description: string,
-  ) {}
+  ) {
+    super(nodeId);
+  }
 
   /**
    * @param domainName - a fully qualified domain name
@@ -42,28 +43,18 @@ export class GenesisNetworkNodeDataWrapper
     this.serviceEndpoint.push({domainName, port, ipAddressV4: ''});
   }
 
-  /**
-   * @param domainName - a fully qualified domain name
-   * @param port
-   */
-  public addGossipEndpoint(domainName: string, port: number): void {
-    this.gossipEndpoint.push({domainName, port, ipAddressV4: ''});
-  }
-
   public toObject() {
     return {
-      node: {
-        nodeId: this.nodeId,
-        accountId: this.accountId,
-        description: this.description,
-        gossipEndpoint: this.gossipEndpoint,
-        serviceEndpoint: this.serviceEndpoint,
-        gossipCaCertificate: this.gossipCaCertificate,
-        grpcCertificateHash: this.grpcCertificateHash,
-        weight: this.weight,
-        deleted: this.deleted,
-        adminKey: this.adminKey,
-      },
+      nodeId: this.nodeId,
+      accountId: {accountNum: `${this.accountId.num}`} as unknown as NodeAccountId,
+      description: this.description,
+      gossipEndpoint: this.gossipEndpoint,
+      serviceEndpoint: this.serviceEndpoint,
+      gossipCaCertificate: this.gossipCaCertificate,
+      grpcCertificateHash: this.grpcCertificateHash,
+      weight: this.weight,
+      deleted: this.deleted,
+      adminKey: this.adminKey,
     };
   }
 }
