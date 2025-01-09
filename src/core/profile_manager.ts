@@ -36,14 +36,6 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 
-const consensusSidecars = [
-  'recordStreamUploader',
-  'eventStreamUploader',
-  'backupUploader',
-  'accountBalanceUploader',
-  'otelCollector',
-];
-
 @injectable()
 export class ProfileManager {
   private readonly logger: SoloLogger;
@@ -275,7 +267,7 @@ export class ProfileManager {
       this._setChartItems('defaults.root', profile.consensus.root, yamlRoot);
 
       // set sidecar resources
-      for (const sidecar of consensusSidecars) {
+      for (const sidecar of constants.HEDERA_NODE_SIDECARS) {
         this._setChartItems(`defaults.sidecars.${sidecar}`, profile.consensus[sidecar], yamlRoot);
       }
     }
