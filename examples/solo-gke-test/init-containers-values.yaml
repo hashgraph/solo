@@ -52,17 +52,6 @@ hedera:
           limits:
             cpu: 4
             memory: 31Gi
-    - name: node5
-      nodeId: 4
-      accountId: 0.0.7
-      root:
-        resources:
-          requests:
-            cpu: 2
-            memory: 16Gi
-          limits:
-            cpu: 4
-            memory: 31Gi
 defaults:
   sidecars:
     recordStreamUploader:
@@ -82,6 +71,14 @@ defaults:
           cpu: 150m
           memory: 200Mi
     recordStreamSidecarUploader:
+      resources:
+        requests:
+          cpu: 100m
+          memory: 100Mi
+        limits:
+          cpu: 150m
+          memory: 200Mi
+    blockstreamUploader:
       resources:
         requests:
           cpu: 100m
