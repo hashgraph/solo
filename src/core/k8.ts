@@ -195,14 +195,12 @@ export class K8 {
   /**
    * Get a podName by name
    * @param name - podName name
-   * @param namespace - optional namespace overrides the one provided via commandline
    */
-  async getPodByName(name: string, namespace?: Namespace): Promise<k8s.V1Pod> {
-    if (!namespace) namespace = this._getNamespace();
+  async getPodByName(name: string): Promise<k8s.V1Pod> {
+    const ns = this._getNamespace();
     const fieldSelector = `metadata.name=${name}`;
-
     const resp = await this.kubeClient.listNamespacedPod(
-      namespace,
+      ns,
       undefined,
       undefined,
       undefined,
@@ -221,13 +219,12 @@ export class K8 {
   /**
    * Get pods by labels
    * @param labels - list of labels
-   * @param namespace - overrides namespace provided via command line
    */
-  async getPodsByLabel(labels: string[] = [], namespace?: Namespace): Promise<k8s.V1Pod[]> {
-    if (!namespace) namespace = this._getNamespace();
+  async getPodsByLabel(labels: string[] = []) {
+    const ns = this._getNamespace();
     const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedPod(
-      namespace,
+      ns,
       undefined,
       undefined,
       undefined,
@@ -804,16 +801,15 @@ export class K8 {
    * @param podName
    * @param containerName
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
-   * @param namespace - optional namespace overrides the one provided from config manager
    * @returns console output as string
    */
-  async execContainer(podName: string, containerName: string, command: string | string[], namespace?: Namespace) {
+  async execContainer(podName: string, containerName: string, command: string | string[]) {
     const self = this;
-    if (!namespace) namespace = self._getNamespace();
+    const namespace = self._getNamespace();
     const guid = uuid4();
     const messagePrefix = `execContainer[${podName},${guid}]:`;
 
-    if (!(await self.getPodByName(podName, namespace))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
+    if (!(await self.getPodByName(podName))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
 
     if (!command) throw new MissingArgumentError('command cannot be empty');
     if (!Array.isArray(command)) {

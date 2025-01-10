@@ -1,11 +1,10 @@
 db:
   host: "my-postgresql.mirror-db.svc.cluster.local"
+  name: mirror_node
   enabled: true
   owner:
     username: postgres
     password: "XXXXXXXXXXXX"
-
-postgresPodName: 'my-postgresql-0'
 
 stackgres:
   enabled: false
