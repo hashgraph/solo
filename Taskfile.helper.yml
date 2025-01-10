@@ -192,6 +192,7 @@ tasks:
     internal: true
     deps:
       - task: "init"
+    async: true
     cmds:
       - |
         if [[ "${DEBUG_NODE_ALIAS}" != "" ]]; then
@@ -216,6 +217,7 @@ tasks:
   solo:relay:
     deps:
       - task: "init"
+    async: true
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy -n "${SOLO_NAMESPACE}" -i node1 -q
       - |
@@ -232,7 +234,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay destroy -n "${SOLO_NAMESPACE}" -i node1 -q
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay destroy -n "${SOLO_NAMESPACE}" -i node1
 
   solo:cache:remove:
     silent: true
@@ -386,6 +388,7 @@ tasks:
     desc: solo mirror-node deploy with port forward on explorer
     deps:
       - task: "init"
+    async: true
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -q
       - |
@@ -404,7 +407,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force -q || true
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force || true
 
   clean:
     desc: destroy, then remove cache directory, logs directory, config, and port forwards
