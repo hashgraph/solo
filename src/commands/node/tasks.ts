@@ -27,11 +27,8 @@ import * as constants from '../../core/constants.js';
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
-  HEDERA_HAPI_PATH,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
-  LOCAL_HOST,
-  ROOT_CONTAINER,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';

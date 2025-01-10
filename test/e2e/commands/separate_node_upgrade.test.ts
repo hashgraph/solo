@@ -51,7 +51,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
-      // await k8.deleteNamespace(namespace);
+      await k8.deleteNamespace(namespace);
     });
 
     it('should succeed with init command', async () => {

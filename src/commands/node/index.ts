@@ -23,7 +23,6 @@ import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
 import {type Opts} from '../../types/command_types.js';
-import {UPGRADE_EXECUTE_FLAGS, UPGRADE_PREPARE_FLAGS} from './flags.js';
 
 /**
  * Defines the core functionalities of 'node' command

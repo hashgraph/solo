@@ -6,7 +6,7 @@ The Solo autogen tool is used to add e2e test cases that need to be ran independ
 
 ## Usage
 
-After a new e2e test is created, update the below file first:
+After a new e2e test is created, please add it to the configuration file first:
 
 ```bash
 .github/workflows/templates/config.yaml

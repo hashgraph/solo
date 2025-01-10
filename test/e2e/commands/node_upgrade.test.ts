@@ -19,7 +19,7 @@ import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {PREPARE_UPGRADE_CONFIGS_NAME, UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
+import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import type {PodName} from '../../../src/types/aliases.js';
@@ -51,7 +51,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       this.timeout(Duration.ofMinutes(10).toMillis());
 
       await k8.getNodeLogs(namespace);
-      // await k8.deleteNamespace(namespace);
+      await k8.deleteNamespace(namespace);
     });
 
     it('should succeed with init command', async () => {

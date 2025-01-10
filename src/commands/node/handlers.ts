@@ -487,7 +487,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'Error in executing node update',
+      'Error in executing network upgrade',
       lease,
     );
 
