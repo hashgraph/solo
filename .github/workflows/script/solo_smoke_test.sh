@@ -83,11 +83,6 @@ function start_sdk_test ()
   return $result
 }
 
-echo "Restart port-forward"
-task clean:port-forward
-enable_port_forward
-
-
 echo "Change to parent directory"
 cd ../
 create_test_account
