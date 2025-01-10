@@ -19,7 +19,7 @@ import {describe, it} from 'mocha';
 import each from 'mocha-each';
 
 import * as helpers from '../../../src/core/helpers.js';
-import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {Flags} from '../../../src/commands/flags.js';
 
 describe('Helpers', () => {
   each([
@@ -35,7 +35,8 @@ describe('Helpers', () => {
     {input: [1, 2, 3], output: [1, 2, 3]},
     {input: ['a', '2', '3'], output: ['a', '2', '3']},
   ]).it('should clone array for input', ({input, output}: {input: number[]; output: number[]}) => {
-    const clonedArray = helpers.cloneArray(input);
+    // @ts-ignore
+    const clonedArray = Flags.cloneArray(input);
     expect(clonedArray).to.deep.equal(output);
     expect(clonedArray).not.to.equal(input); // ensure cloning creates a new array
   });
