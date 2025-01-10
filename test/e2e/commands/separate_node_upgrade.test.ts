@@ -28,7 +28,7 @@ import {Zippy} from '../../../src/core/zippy.js';
 
 const namespace = 'node-upgrade';
 const argv = getDefaultArgv();
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.persistentVolumeClaims.name] = true;
