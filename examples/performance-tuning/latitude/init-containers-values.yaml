@@ -119,11 +119,6 @@ hedera:
             cpu: 22
             memory: 256Gi
 defaults:
-  haproxy:
-    serviceType: NodePort
-    loadBalancerEnabled: true
-  envoyProxy:
-    loadBalancerEnabled: true
   sidecars:
     recordStreamUploader:
       resources:
