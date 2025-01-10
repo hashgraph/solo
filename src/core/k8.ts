@@ -200,6 +200,7 @@ export class K8 {
   async getPodByName(name: string, namespace?: Namespace): Promise<k8s.V1Pod> {
     if (!namespace) namespace = this._getNamespace();
     const fieldSelector = `metadata.name=${name}`;
+
     const resp = await this.kubeClient.listNamespacedPod(
       namespace,
       undefined,

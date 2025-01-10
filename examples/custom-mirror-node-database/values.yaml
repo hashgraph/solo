@@ -5,13 +5,13 @@ db:
     username: postgres
     password: "XXXXXXXXXXXX"
 
+postgresPodName: 'my-postgresql-0'
+
 stackgres:
   enabled: false
 
 postgresql:
   enabled: false
-
-#fullnameOverride: ""
 
 importer:
   enabled: true

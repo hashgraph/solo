@@ -460,22 +460,31 @@ export class MirrorNodeCommand extends BaseCommand {
                     }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
+                    let postgresPodName: PodName;
+                    let postgresContainerName: string;
+
                     if (ctx.config.customMirrorNodeDatabaseValuePath) {
                       const data = fs.readFileSync(ctx.config.customMirrorNodeDatabaseValuePath).toString();
-                      const mirrorNodeValues = yaml.parse(data) as Record<string, AnyObject>;
+                      const mirrorNodeValues = yaml.parse(data) as Record<string, any>;
+
                       if (mirrorNodeValues.db.host.split('.')?.[1]) {
                         namespace = mirrorNodeValues.db.host.split('.')[1];
                       }
+
+                      postgresPodName = mirrorNodeValues.postgresPodName as PodName;
+                      const pod = await this.k8.getPodByName(postgresPodName, namespace);
+
+                      postgresContainerName = pod.spec.containers[0].name;
+                    } else {
+                      const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres'], namespace);
+                      if (pods.length === 0) {
+                        throw new SoloError('postgres pod not found');
+                      }
+
+                      postgresPodName = pods[0].metadata.name as PodName;
+                      postgresContainerName = 'postgresql';
                     }
 
-                    const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres'], namespace);
-                    if (pods.length === 0) {
-                      throw new SoloError('postgres pod not found');
-                    }
-
-                    const postgresPodName = pods[0].metadata.name as PodName;
-
-                    const postgresContainerName = 'postgresql';
                     const mirrorEnvVars = await self.k8.execContainer(
                       postgresPodName,
                       postgresContainerName,
