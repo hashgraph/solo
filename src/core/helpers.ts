@@ -366,7 +366,7 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
   const throttleInfo = fs.statSync(resolvedFilePath);
   if (throttleInfo.size === 0 && defaultPath) {
     return resolveValidJsonFilePath(defaultPath, null);
-  } else if (!defaultPath) {
+  } else if (throttleInfo.size === 0) {
     throw new SoloError(`File is empty: ${filePath}`);
   }
 

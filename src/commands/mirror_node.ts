@@ -29,7 +29,9 @@ import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
-import type {SoloListrTask} from '../types/index.js';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import type {Optional, SoloListrTask} from '../types/index.js';
 import type {Namespace} from '../core/config/remote/types.js';
 
 interface MirrorNodeDeployConfigClass {
@@ -51,6 +53,7 @@ interface MirrorNodeDeployConfigClass {
   clusterSetupNamespace: string;
   soloChartVersion: string;
   pinger: boolean;
+  customMirrorNodeDatabaseValuePath: Optional<string>;
   storageType: constants.StorageType;
   storageAccessKey: string;
   storageSecrets: string;
@@ -100,6 +103,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.pinger,
       flags.clusterSetupNamespace,
       flags.soloChartVersion,
+      flags.customMirrorNodeDatabaseValuePath,
       flags.storageType,
       flags.storageAccessKey,
       flags.storageSecrets,
@@ -285,6 +289,20 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Deploy mirror-node',
                   task: async ctx => {
+                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      if (!fs.existsSync(ctx.config.customMirrorNodeDatabaseValuePath)) {
+                        throw new SoloError('Path provided for custom mirror node database value is not found');
+                      }
+
+                      // Check if the file has a .yaml or .yml extension
+                      const fileExtension = path.extname(ctx.config.customMirrorNodeDatabaseValuePath);
+                      if (fileExtension !== '.yaml' && fileExtension !== '.yml') {
+                        throw new SoloError('The provided file is not a valid YAML file (.yaml or .yml)');
+                      }
+
+                      ctx.config.valuesArg += ` --values ${ctx.config.customMirrorNodeDatabaseValuePath}`;
+                    }
+
                     await self.chartManager.install(
                       ctx.config.namespace,
                       constants.MIRROR_NODE_RELEASE_NAME,
@@ -357,6 +375,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       constants.PODS_READY_MAX_ATTEMPTS,
                       constants.PODS_READY_DELAY,
                     ),
+                  skip: ctx => !!ctx.config.customMirrorNodeDatabaseValuePath,
                 },
                 {
                   title: 'Check REST API',
@@ -424,7 +443,7 @@ export class MirrorNodeCommand extends BaseCommand {
               [
                 {
                   title: 'Insert data in public.file_data',
-                  task: async () => {
+                  task: async ctx => {
                     const namespace = self.configManager.getFlag<string>(flags.namespace) as string;
 
                     const feesFileIdNum = 111;
@@ -439,6 +458,11 @@ export class MirrorNodeCommand extends BaseCommand {
                       timestamp + '000001'
                     }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
+
+                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      fs.writeFileSync(path.join(constants.SOLO_CACHE_DIR, 'database-seeding-query.sql'), sqlQuery);
+                      return;
+                    }
 
                     const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
                     if (pods.length === 0) {
