@@ -1,14 +1,13 @@
 # Using Solo with Hedera JavaScript SDK
 
 First, please follow solo repository README to install solo and Docker Desktop.
-You also need to install the Taskfile tool following the instructions here:
-https://taskfile.dev/installation/
+You also need to install the Taskfile tool following the instructions [here](https://taskfile.dev/installation/).
 
 Then we start with launching a local Solo network with the following commands:
 
 ```bash
 # launch a local Solo network with mirror node and hedera explorer
-task default-with-mirror-node
+task default-with-mirror
 ```
 
 Then create a new test account with the following command:
@@ -60,7 +59,7 @@ OPERATOR_KEY="302a300506032b65700321001d8978e647aca1195c54a4d3d5dc469b95666de14e
 HEDERA_NETWORK="local-node"
 ```
 
-Make sure to assign the value of accountId to `OPERATOR\_ID` and the value of privateKey to `OPERATOR\_KEY`.
+Make sure to assign the value of accountId to `OPERATOR_ID` and the value of privateKey to `OPERATOR_KEY`.
 
 Then try the following command to run the test
 

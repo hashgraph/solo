@@ -226,7 +226,7 @@ export function renameAndCopyFile(srcFilePath: string, expectedBaseName: string,
  */
 export function addDebugOptions(valuesArg: string, debugNodeAlias: NodeAlias, index = 0) {
   if (debugNodeAlias) {
-    const nodeId = Templates.nodeIdFromNodeAlias(debugNodeAlias) - 1;
+    const nodeId = Templates.nodeIdFromNodeAlias(debugNodeAlias);
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`;
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`;
   }
@@ -341,4 +341,46 @@ export function addFlagsToArgv(
   argv.optionalFlags = flags.optionalFlags;
 
   return argv;
+}
+
+export function resolveValidJsonFilePath(filePath: string, defaultPath?: string): string {
+  if (!filePath) {
+    if (defaultPath) {
+      return resolveValidJsonFilePath(defaultPath, null);
+    }
+
+    return '';
+  }
+
+  const resolvedFilePath = fs.realpathSync(validatePath(filePath));
+
+  if (!fs.existsSync(resolvedFilePath)) {
+    if (defaultPath) {
+      return resolveValidJsonFilePath(defaultPath, null);
+    }
+
+    throw new SoloError(`File does not exist: ${filePath}`);
+  }
+
+  // If the file is empty (or size cannot be determined) then fallback on the default values
+  const throttleInfo = fs.statSync(resolvedFilePath);
+  if (throttleInfo.size === 0 && defaultPath) {
+    return resolveValidJsonFilePath(defaultPath, null);
+  } else if (!defaultPath) {
+    throw new SoloError(`File is empty: ${filePath}`);
+  }
+
+  try {
+    // Ensure the file contains valid JSON data
+    JSON.parse(fs.readFileSync(resolvedFilePath, 'utf8'));
+    return resolvedFilePath;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  } catch (e: unknown) {
+    // Fallback to the default values if an error occurs due to invalid JSON data or unable to read the file size
+    if (defaultPath) {
+      return resolveValidJsonFilePath(defaultPath, null);
+    }
+
+    throw new SoloError(`Invalid JSON data in file: ${filePath}`);
+  }
 }

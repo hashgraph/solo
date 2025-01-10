@@ -9,6 +9,7 @@ hedera:
           mountPath: /data-saved
   nodes:
     - name: node0
+      nodeId: 0
       accountId: 0.0.3
       root:
         resources:
@@ -19,6 +20,7 @@ hedera:
             cpu: 4
             memory: 31Gi
     - name: node1
+      nodeId: 1
       accountId: 0.0.4
       root:
         resources:
@@ -29,6 +31,7 @@ hedera:
             cpu: 4
             memory: 31Gi
     - name: node2
+      nodeId: 2
       accountId: 0.0.5
       root:
         resources:
@@ -39,6 +42,7 @@ hedera:
             cpu: 4
             memory: 31Gi
     - name: node3
+      nodeId: 3
       accountId: 0.0.6
       root:
         resources:
@@ -49,6 +53,7 @@ hedera:
             cpu: 4
             memory: 31Gi
     - name: node4
+      nodeId: 4
       accountId: 0.0.7
       root:
         resources:
@@ -59,6 +64,7 @@ hedera:
             cpu: 4
             memory: 31Gi
     - name: node5
+      nodeId: 5
       accountId: 0.0.8
       root:
         resources:
@@ -69,6 +75,7 @@ hedera:
             cpu: 4
             memory: 31Gi
     - name: node6
+      nodeId: 6
       accountId: 0.0.9
       root:
         resources:
@@ -79,8 +86,6 @@ hedera:
             cpu: 4
             memory: 31Gi
 defaults:
-  envoyProxy:
-    loadBalancerEnabled: true
   sidecars:
     recordStreamUploader:
       resources:

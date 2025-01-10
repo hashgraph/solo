@@ -24,8 +24,6 @@ import {type ChartManager} from '../../core/chart_manager.js';
 import {type CertificateManager} from '../../core/certificate_manager.js';
 import {Zippy} from '../../core/zippy.js';
 import * as constants from '../../core/constants.js';
-import {Templates} from '../../core/templates.js';
-import {Task} from '../../core/task.js';
 import {
   DEFAULT_NETWORK_NODE_NAME,
   FREEZE_ADMIN_ACCOUNT,
@@ -33,6 +31,8 @@ import {
   IGNORED_NODE_ACCOUNT_ID,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
+import {Templates} from '../../core/templates.js';
+import {Task} from '../../core/task.js';
 import {
   AccountBalanceQuery,
   AccountId,
@@ -42,10 +42,10 @@ import {
   FreezeTransaction,
   FreezeType,
   Long,
-  PrivateKey,
   NodeCreateTransaction,
   NodeDeleteTransaction,
   NodeUpdateTransaction,
+  PrivateKey,
   Timestamp,
 } from '@hashgraph/sdk';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
@@ -68,18 +68,17 @@ import {
   type ConfigBuilder,
   type NodeAlias,
   type NodeAliases,
-  type NodeId,
   type PodName,
   type SkipCheck,
 } from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import * as x509 from '@peculiar/x509';
 import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
+import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -305,16 +304,21 @@ export class NodeCommandTasks {
       config: {namespace},
     } = ctx;
 
+    const enableDebugger = ctx.config.debugNodeAlias && status !== NodeStatusCodes.FREEZE_COMPLETE;
+
     const subTasks = nodeAliases.map((nodeAlias, i) => {
       const reminder =
         'debugNodeAlias' in ctx.config &&
         ctx.config.debugNodeAlias === nodeAlias &&
         status !== NodeStatusCodes.FREEZE_COMPLETE
-          ? 'Please attach JVM debugger now.'
+          ? 'Please attach JVM debugger now.  Sleeping for 1 hour, hit ctrl-c once debugging is complete.'
           : '';
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`;
 
       const subTask = async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        if (enableDebugger) {
+          await sleep(Duration.ofHours(1));
+        }
         ctx.config.podNames[nodeAlias] = await this._checkNetworkNodeActiveness(
           namespace,
           nodeAlias,
@@ -511,15 +515,6 @@ export class NodeCommandTasks {
     );
   }
 
-  _loadPermCertificate(certFullPath: string) {
-    const certPem = fs.readFileSync(certFullPath).toString();
-    const decodedDers = x509.PemConverter.decode(certPem);
-    if (!decodedDers || decodedDers.length === 0) {
-      throw new SoloError('unable to load perm key: ' + certFullPath);
-    }
-    return new Uint8Array(decodedDers[0]);
-  }
-
   async _addStake(
     namespace: string,
     accountId: string,
@@ -547,7 +542,7 @@ export class NodeCommandTasks {
       // Create the transaction
       const transaction = new AccountUpdateTransaction()
         .setAccountId(accountId)
-        .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias) - 1)
+        .setStakedNodeId(Templates.nodeIdFromNodeAlias(nodeAlias))
         .freezeWith(client);
 
       // Sign the transaction with the account's private key
@@ -875,14 +870,23 @@ export class NodeCommandTasks {
     });
   }
 
-  setupNetworkNodes(nodeAliasesProperty: string) {
-    return new Task('Setup network nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean = false) {
+    return new Task('Setup network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      if (isGenesis) {
+        await this.generateGenesisNetworkJson(
+          ctx.config.namespace,
+          ctx.config.nodeAliases,
+          ctx.config.keysDir,
+          ctx.config.stagingDir,
+        );
+      }
+
       const subTasks = [];
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
         const podName = ctx.config.podNames[nodeAlias];
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
-          task: () => this.platformInstaller.taskSetup(podName),
+          task: () => this.platformInstaller.taskSetup(podName, ctx.config.stagingDir, isGenesis),
         });
       }
 
@@ -892,6 +896,33 @@ export class NodeCommandTasks {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       });
     });
+  }
+
+  /**
+   * Generate genesis network json file
+   * @private
+   * @param namespace - namespace
+   * @param nodeAliases - node aliases
+   * @param keysDir - keys directory
+   * @param stagingDir - staging directory
+   */
+  private async generateGenesisNetworkJson(
+    namespace: string,
+    nodeAliases: NodeAliases,
+    keysDir: string,
+    stagingDir: string,
+  ) {
+    const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
+
+    const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
+      nodeAliases,
+      this.keyManager,
+      keysDir,
+      networkNodeServiceMap,
+    );
+
+    const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');
+    fs.writeFileSync(genesisNetworkJson, genesisNetworkData.toJSON());
   }
 
   prepareStagingDirectory(nodeAliasesProperty: any) {
@@ -1005,6 +1036,7 @@ export class NodeCommandTasks {
       );
       await sleep(Duration.ofSeconds(60));
       const accountMap = getNodeAccountMap(config.allNodeAliases);
+      let skipNodeAlias: NodeAlias;
 
       switch (transactionType) {
         case NodeSubcommandType.ADD:
@@ -1013,18 +1045,17 @@ export class NodeCommandTasks {
           if (config.newAccountNumber) {
             // update map with current account ids
             accountMap.set(config.nodeAlias, config.newAccountNumber);
-
-            // update _nodeClient with the new service map since one of the account number has changed
-            await self.accountManager.refreshNodeClient(config.namespace);
+            skipNodeAlias = config.nodeAlias;
           }
           break;
         case NodeSubcommandType.DELETE:
           if (config.nodeAlias) {
             accountMap.delete(config.nodeAlias);
+            skipNodeAlias = config.nodeAlias;
           }
       }
 
-      config.nodeClient = await self.accountManager.loadNodeClient(config.namespace);
+      config.nodeClient = await self.accountManager.refreshNodeClient(config.namespace, skipNodeAlias);
 
       // send some write transactions to invoke the handler that will trigger the stake weight recalculate
       for (const nodeAlias of accountMap.keys()) {
@@ -1170,6 +1201,7 @@ export class NodeCommandTasks {
         values.hedera.nodes.push({
           accountId: networkNodeServices.accountId,
           name: networkNodeServices.nodeAlias,
+          nodeId: networkNodeServices.nodeId,
         });
         maxNum =
           maxNum > AccountId.fromString(networkNodeServices.accountId).num
@@ -1215,7 +1247,7 @@ export class NodeCommandTasks {
       const config = ctx.config;
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
       const signingCertFullPath = path.join(config.keysDir, signingCertFile);
-      ctx.signingCertDer = this._loadPermCertificate(signingCertFullPath);
+      ctx.signingCertDer = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
     });
   }
 
@@ -1224,7 +1256,7 @@ export class NodeCommandTasks {
       const config = ctx.config;
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias);
       const tlsCertFullPath = path.join(config.keysDir, tlsCertFile);
-      const tlsCertDer = this._loadPermCertificate(tlsCertFullPath);
+      const tlsCertDer = this.keyManager.getDerFromPemCertificate(tlsCertFullPath);
       ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
     });
   }
@@ -1292,12 +1324,11 @@ export class NodeCommandTasks {
     return new Task('Send node update transaction', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config: NodeUpdateConfigClass = ctx.config;
 
-      const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
+      const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
       self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
 
       if (config.existingNodeAliases.length > 1) {
-        await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
-        config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+        config.nodeClient = await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
       }
 
       try {
@@ -1305,7 +1336,7 @@ export class NodeCommandTasks {
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`);
-          const tlsCertDer = self._loadPermCertificate(config.tlsPublicKey);
+          const tlsCertDer = self.keyManager.getDerFromPemCertificate(config.tlsPublicKey);
           const tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
           nodeUpdateTx = nodeUpdateTx.setCertificateHash(tlsCertHash);
 
@@ -1317,7 +1348,7 @@ export class NodeCommandTasks {
 
         if (config.gossipPublicKey && config.gossipPrivateKey) {
           self.logger.info(`config.gossipPublicKey: ${config.gossipPublicKey}`);
-          const signingCertDer = self._loadPermCertificate(config.gossipPublicKey);
+          const signingCertDer = self.keyManager.getDerFromPemCertificate(config.gossipPublicKey);
           nodeUpdateTx = nodeUpdateTx.setGossipCaCertificate(signingCertDer);
 
           const publicKeyFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
@@ -1377,26 +1408,32 @@ export class NodeCommandTasks {
           config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace);
         }
 
+        let maxNodeId = 0;
+        for (const nodeAlias of config.existingNodeAliases) {
+          const nodeId = config.serviceMap.get(nodeAlias).nodeId;
+          maxNodeId = Math.max(nodeId, maxNodeId);
+        }
+
+        const nodeId = maxNodeId + 1;
         const index = config.existingNodeAliases.length;
-        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
 
         let valuesArg = '';
         for (let i = 0; i < index; i++) {
           if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
             // for the case of updating node
             // use new account number for this node id
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`;
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) {
             // for the case of deleting node
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`;
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType === NodeSubcommandType.DELETE && i === nodeId) {
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}"`;
+            valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           }
         }
 
         // for the case of adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
-          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
+          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}" --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
 
           if (config.haproxyIps) {
             config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -1407,8 +1444,7 @@ export class NodeCommandTasks {
           }
 
           const nodeAlias: NodeAlias = config.nodeAlias;
-          const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
-          const nodeIndexInValues = nodeId - 1;
+          const nodeIndexInValues = Templates.nodeIdFromNodeAlias(nodeAlias);
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
@@ -1569,7 +1605,7 @@ export class NodeCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
         const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias);
-        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
+        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
         const savedStateDir = config.lastStateZipPath.match(/\/(\d+)\.zip$/)[1];
         const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`;
         await this.k8.execContainer(newNodeFullyQualifiedPodName, constants.ROOT_CONTAINER, [
@@ -1601,7 +1637,7 @@ export class NodeCommandTasks {
         const accountMap = getNodeAccountMap(config.existingNodeAliases);
         const deleteAccountId = accountMap.get(config.nodeAlias);
         this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`);
-        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias) - 1;
+        const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
         const nodeDeleteTx = new NodeDeleteTransaction().setNodeId(nodeId).freezeWith(config.nodeClient);
 
         const signedTx = await nodeDeleteTx.sign(config.adminKey);

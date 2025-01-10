@@ -23,7 +23,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import {Flags as flags} from '../src/commands/flags.js';
-import {ClusterCommand} from '../src/commands/cluster.js';
+import {ClusterCommand} from '../src/commands/cluster/index.js';
 import {InitCommand} from '../src/commands/init.js';
 import {NetworkCommand} from '../src/commands/network.js';
 import {NodeCommand} from '../src/commands/node/index.js';
@@ -231,7 +231,7 @@ export function e2eTestSuite(
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
-    describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}}]`, () => {
+    describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}]`, () => {
       before(() => {
         bootstrapResp.opts.logger.showUser(
           `------------------------- START: bootstrap (${testName}) ----------------------------`,
@@ -261,7 +261,7 @@ export function e2eTestSuite(
         if (
           !(await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
         ) {
-          await clusterCmd.setup(argv);
+          await clusterCmd.handlers.setup(argv);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
@@ -289,6 +289,10 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
+          flags.storageAccessKey.constName,
+          flags.storageSecrets.constName,
+          flags.storageEndpoint.constName,
+          flags.googleCredential.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 
@@ -333,11 +337,16 @@ export function e2eTestSuite(
   });
 }
 
-export function balanceQueryShouldSucceed(accountManager: AccountManager, cmd: BaseCommand, namespace: string) {
+export function balanceQueryShouldSucceed(
+  accountManager: AccountManager,
+  cmd: BaseCommand,
+  namespace: string,
+  skipNodeAlias?: NodeAlias,
+) {
   it('Balance query should succeed', async () => {
     try {
       expect(accountManager._nodeClient).to.be.null;
-      await accountManager.loadNodeClient(namespace);
+      await accountManager.refreshNodeClient(namespace, skipNodeAlias);
       expect(accountManager._nodeClient).not.to.be.null;
 
       const balance = await new AccountBalanceQuery()
@@ -353,10 +362,15 @@ export function balanceQueryShouldSucceed(accountManager: AccountManager, cmd: B
   }).timeout(Duration.ofMinutes(2).toMillis());
 }
 
-export function accountCreationShouldSucceed(accountManager: AccountManager, nodeCmd: BaseCommand, namespace: string) {
+export function accountCreationShouldSucceed(
+  accountManager: AccountManager,
+  nodeCmd: BaseCommand,
+  namespace: string,
+  skipNodeAlias?: NodeAlias,
+) {
   it('Account creation should succeed', async () => {
     try {
-      await accountManager.loadNodeClient(namespace);
+      await accountManager.refreshNodeClient(namespace, skipNodeAlias);
       expect(accountManager._nodeClient).not.to.be.null;
       const privateKey = PrivateKey.generate();
       const amount = 100;

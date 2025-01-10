@@ -10,7 +10,7 @@
 * make sure that your current kubeconfig context is pointing to the cluster that you want to deploy to
 * run `task` which will do the rest and deploy the network and take care of many of the pre-requisites
 
-NOTES: 
+NOTES:
 
 * Some of these examples are for running against large clusters with a lot of resources available.
 * the `env` environment variables if set in your shell will take precedence over what is in the Taskfile.yml. e.g. `export HEDERA_SERVICES_ROOT=<path-to-hedera-services-root>`

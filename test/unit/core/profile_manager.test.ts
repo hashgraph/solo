@@ -110,13 +110,7 @@ describe('ProfileManager', () => {
         expect(valuesYaml.defaults.root.resources.limits.memory).not.to.be.null;
 
         // check all sidecars have resources
-        for (const component of [
-          'recordStreamUploader',
-          'eventStreamUploader',
-          'backupUploader',
-          'accountBalanceUploader',
-          'otelCollector',
-        ]) {
+        for (const component of constants.HEDERA_NODE_SIDECARS) {
           expect(valuesYaml.defaults.sidecars[component].resources.limits.cpu).not.to.be.null;
           expect(valuesYaml.defaults.sidecars[component].resources.limits.memory).not.to.be.null;
         }

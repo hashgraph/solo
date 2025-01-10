@@ -1,7 +1,7 @@
 version: 3
 includes:
   helper:
-    taskfile: ../HelperTasks.yml
+    taskfile: ../Taskfile.helper.yml
     flatten: true
 
 tasks:
@@ -11,7 +11,6 @@ tasks:
     cmds:
       - task: "install:kubectl:darwin"
       - task: "install:kubectl:linux"
-      - task: "install:solo"
       - task: "install"
       - task: "start"
 

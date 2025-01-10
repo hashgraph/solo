@@ -115,9 +115,9 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       await bootstrapResp.opts.accountManager.close();
     }).timeout(Duration.ofMinutes(30).toMillis());
 
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, updateNodeId);
 
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, updateNodeId);
 
     it('signing key and tls key should not match previous one', async () => {
       const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(

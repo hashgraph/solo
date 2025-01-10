@@ -25,15 +25,26 @@ An opinionated CLI tool to deploy and manage standalone test networks.
 
 To run a three-node network, you will need to set up Docker Desktop with at least 8GB of memory and 4 CPUs.
 
-![alt text](/docs/content/User/DockerDesktop.png)
+![alt text](images/DockerDesktop.png)
 
 ## Setup
 
-* Install [Node](https://nodejs.org/en/download). You may also use [nvm](https://github.com/nvm-sh/nvm) to manage different Node versions locally:
+* Install [Node](https://nodejs.org/en/download). You may also use [nvm](https://github.com/nvm-sh/nvm) to manage different Node versions locally, some examples:
 
 ```
-nvm install lts/hydrogen
-nvm use lts/hydrogen
+# install specific nodejs version
+# nvm install <version>
+
+# install nodejs version 20.18.0
+nvm install v20.18.0
+
+# lists available node versions already installed
+nvm ls
+
+# swith to selected node version
+# nvm use <version>
+nvm use v20.18.0
+
 ```
 
 * Useful tools:
@@ -63,4 +74,4 @@ expected to uphold this code of conduct.
 
 ## License
 
-[Apache License 2.0](LICENSE)
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)

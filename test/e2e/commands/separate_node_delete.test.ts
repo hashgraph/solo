@@ -86,9 +86,9 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       await bootstrapResp.opts.accountManager.close();
     }).timeout(Duration.ofMinutes(10).toMillis());
 
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, nodeAlias);
 
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, nodeAlias);
 
     it('config.txt should no longer contain removed nodeAlias', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias

@@ -1,7 +1,7 @@
 version: 3
 includes:
   main:
-    taskfile: ../ExamplesTasks.yml
+    taskfile: ../Taskfile.examples.yml
     flatten: true
 vars:
   solo_home_override_dir: "/Users/user/.solo-gke-test"
@@ -17,3 +17,5 @@ env:
   APPLICATION_PROPERTIES_FLAG: "--application-properties {{.USER_WORKING_DIR}}/application.properties"
   HEDERA_SERVICES_ROOT: "/Users/user/source/hedera-services"
   LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
+  GENESIS_THROTTLES_FLAG: "--genesis-throttles-file {{.USER_WORKING_DIR}}/throttles.json"
+  # SOLO_CHARTS_DIR_FLAG: "-d /Users/user/source/solo-charts/charts"
