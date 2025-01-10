@@ -33,6 +33,7 @@ import {Listr} from 'listr2';
 import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
+import {Task} from '../core/task.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -250,5 +251,11 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     return dirs;
+  }
+
+  setupHomeDirectoryTask() {
+    return new Task('Setup home directory', async () => {
+      this.setupHomeDirectory();
+    });
   }
 }

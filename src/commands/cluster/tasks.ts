@@ -24,12 +24,60 @@ import * as constants from '../../core/constants.js';
 import path from 'path';
 import chalk from 'chalk';
 import {ListrLease} from '../../core/lease/listr_lease.js';
+import {ErrorMessages} from '../../core/error_messages.js';
+import {SoloError} from '../../core/errors.js';
+import * as k8s from '@kubernetes/client-node';
+import {Listr} from 'listr2';
+import {type Context} from '@kubernetes/client-node';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
 
   constructor(parent) {
     this.parent = parent;
+  }
+
+  readClustersFromRemoteConfig(argv) {
+    const self = this;
+    return new Task('Read clusters from remote config', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const configManager = this.parent.getConfigManager();
+      const isQuiet = configManager.getFlag(flags.quiet);
+      const localConfig = this.parent.getLocalConfig();
+      const currentContext = this.parent.getK8().getKubeConfig().currentContext;
+      const currentCluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
+
+      const resolveClusterValidationSubTasks = new Promise(async (resolve, reject) => {
+        await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+          const namespace = remoteConfig.metadata.name;
+          resolve(Object.keys(remoteConfig.clusters));
+        });
+      }).then((remoteConfigClusters: string[]) => {
+        // Validate connections for the other clusters
+        const subTasks = [];
+        for (const cluster of remoteConfigClusters) {
+          subTasks.push({
+            title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
+            task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
+              const context =
+                localConfig.clusterContextMapping[cluster] || (await this.promptForContext(task, cluster));
+              if (!(await self.parent.getK8().testClusterConnection(context, cluster))) {
+                subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
+                throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(context, cluster)}.
+                Please select a valid context for the cluster or use kubectl to create a new context and try again`);
+              }
+            },
+          });
+        }
+
+        return task.newListr(subTasks, {
+          concurrent: false,
+          rendererOptions: {collapseSubtasks: false},
+        });
+      });
+
+      const subTasks = await resolveClusterValidationSubTasks;
+      return subTasks;
+    });
   }
 
   updateLocalConfig(argv) {
@@ -43,13 +91,22 @@ export class ClusterCommandTasks {
         const localConfig = this.parent.getLocalConfig();
         const localDeployments = localConfig.deployments;
         const remoteClusterList = [];
-        for (const cluster of Object.keys(remoteConfig.clusters)) {
-          if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
-            remoteClusterList.push(cluster);
+
+        const namespace = remoteConfig.metadata.name;
+        localConfig.currentDeploymentName = remoteConfig.metadata.name;
+
+        if (localConfig.deployments[namespace]) {
+          for (const cluster of Object.keys(remoteConfig.clusters)) {
+            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
+              remoteClusterList.push(cluster);
+            }
           }
+          ctx.config.clusters = remoteClusterList;
+          localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
+        } else {
+          localDeployments[namespace] = {clusters: Object.keys(remoteConfig.clusters)};
         }
-        ctx.config.clusters = remoteClusterList;
-        localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
+
         localConfig.setDeployments(localDeployments);
 
         const contexts = splitFlagInput(configManager.getFlag(flags.context));
@@ -165,6 +222,7 @@ export class ClusterCommandTasks {
       const contexts = splitFlagInput(configManager.getFlag(flags.context));
       const localConfig = this.parent.getLocalConfig();
       let selectedContext;
+      let selectedCluster;
 
       // If one or more contexts are provided use the first one
       if (contexts.length) {
@@ -174,6 +232,7 @@ export class ClusterCommandTasks {
       // If one or more clusters are provided use the first one to determine the context
       // from the mapping in the LocalConfig
       else if (clusters.length) {
+        selectedCluster = clusters[0];
         selectedContext = await this.selectContextForFirstCluster(task, clusters, localConfig, isQuiet);
       }
 
@@ -183,6 +242,7 @@ export class ClusterCommandTasks {
         const deployment = localConfig.deployments[deploymentName];
 
         if (deployment && deployment.clusters.length) {
+          selectedCluster = deployment.clusters[0];
           selectedContext = await this.selectContextForFirstCluster(task, deployment.clusters, localConfig, isQuiet);
         }
 
@@ -191,7 +251,7 @@ export class ClusterCommandTasks {
           // Add the deployment to the LocalConfig with the currently selected cluster and context in KubeConfig
           if (isQuiet) {
             selectedContext = this.parent.getK8().getKubeConfig().getCurrentContext();
-            const selectedCluster = this.parent.getK8().getKubeConfig().getCurrentCluster().name;
+            selectedCluster = this.parent.getK8().getKubeConfig().getCurrentCluster().name;
             localConfig.deployments[deploymentName] = {
               clusters: [selectedCluster],
             };
@@ -203,7 +263,8 @@ export class ClusterCommandTasks {
 
           // Prompt user for clusters and contexts
           else {
-            clusters = splitFlagInput(await flags.clusterName.prompt(task, clusters));
+            const promptedClusters = await flags.clusterName.prompt(task, '');
+            clusters = splitFlagInput(promptedClusters);
 
             for (const cluster of clusters) {
               if (!localConfig.clusterContextMapping[cluster]) {
@@ -211,12 +272,17 @@ export class ClusterCommandTasks {
               }
             }
 
+            selectedCluster = clusters[0];
             selectedContext = localConfig.clusterContextMapping[clusters[0]];
           }
         }
       }
 
-      this.parent.getK8().getKubeConfig().setCurrentContext(selectedContext);
+      const connectionValid = await this.parent.getK8().testClusterConnection(selectedContext, selectedCluster);
+      if (!connectionValid) {
+        throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext));
+      }
+      this.parent.getK8().setCurrentContext(selectedContext);
     });
   }
 
@@ -330,11 +396,5 @@ export class ClusterCommandTasks {
       },
       ctx => !ctx.isChartInstalled,
     );
-  }
-
-  setupHomeDirectory() {
-    return new Task('Setup home directory', async () => {
-      this.parent.setupHomeDirectory();
-    });
   }
 }

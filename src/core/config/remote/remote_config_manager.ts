@@ -24,7 +24,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {K8} from '../../k8.js';
-import type {Cluster, Namespace} from './types.js';
+import type {Cluster, Context, Namespace} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
@@ -35,6 +35,8 @@ import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
+import {sleep} from '../../helpers.js';
+import {Duration} from '../../time/duration.js';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -197,20 +199,26 @@ export class RemoteConfigManager {
    *
    * @returns a Listr task which creates the remote configuration.
    */
-  public buildCreateTask(): SoloListrTask<ListrContext> {
+  public buildCreateTask(cluster: Cluster, context: Context, namespace: Namespace): SoloListrTask<ListrContext> {
     const self = this;
 
     return {
-      title: 'Create remote config',
+      title: `Create remote config in cluster: ${cluster}`,
       task: async (_, task): Promise<void> => {
+        self.k8.setCurrentContext(context);
+
+        if (!(await self.k8.hasNamespace(namespace))) {
+          await self.k8.createNamespace(namespace);
+        }
+
         const localConfigExists = this.localConfig.configFileExists();
         if (!localConfigExists) {
           throw new SoloError("Local config doesn't exist");
         }
 
+        self.unload();
         if (await self.load()) {
           task.title = `${task.title} - ${chalk.red('Remote config already exists')}}`;
-
           throw new SoloError('Remote config already exists');
         }
 
@@ -223,6 +231,10 @@ export class RemoteConfigManager {
 
   public isLoaded(): boolean {
     return !!this.remoteConfig;
+  }
+
+  public unload() {
+    delete this.remoteConfig;
   }
 
   /**

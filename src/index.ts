@@ -108,7 +108,8 @@ export function main(argv: any) {
 
       // Set default cluster name and namespace from kubernetes context
       // these will be overwritten if user has entered the flag values explicitly
-      configManager.setFlag(flags.clusterName, cluster.name);
+      // configManager.setFlag(flags.clusterName, cluster.name);
+
       if (context.namespace) {
         configManager.setFlag(flags.namespace, context.namespace);
       }

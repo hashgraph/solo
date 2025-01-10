@@ -22,4 +22,6 @@ export const ErrorMessages = {
   LOCAL_CONFIG_INVALID_EMAIL: 'Invalid email address provided',
   LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT: 'Wrong deployments format',
   LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT: 'Wrong clusterContextMapping format',
+  INVALID_CONTEXT_FOR_CLUSTER: (context: string, cluster?: string) =>
+    `Context ${context} is not valid for cluster ${cluster || ''}`,
 };
