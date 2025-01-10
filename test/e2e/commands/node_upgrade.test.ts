@@ -28,7 +28,7 @@ import {Zippy} from '../../../src/core/zippy.js';
 
 const namespace = 'node-upgrade';
 const argv = getDefaultArgv();
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.persistentVolumeClaims.name] = true;
@@ -83,7 +83,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       ]);
     }).timeout(Duration.ofMinutes(5).toMillis());
 
-    it('should restart all nodes on the network successfully', async () => {
+    it('network nodes version file was upgraded', async () => {
       // copy the version.txt file from the pod data/upgrade/current directory
       const tmpDir = getTmpDir();
       const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
