@@ -63,7 +63,11 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, DeploymentCommand.DEPLOY_FLAGS_LIST);
+            await self.configManager.executePrompt(task, [
+              flags.contextClusterUnparsed,
+              flags.namespace,
+              flags.deploymentClusters,
+            ]);
 
             ctx.config = {
               contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),

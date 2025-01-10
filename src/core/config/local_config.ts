@@ -15,7 +15,6 @@
  *
  */
 import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
-import type {ListrTask, ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
@@ -35,6 +34,7 @@ import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
+import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -149,13 +149,17 @@ export class LocalConfig implements LocalConfigData {
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
 
-  public promptLocalConfigTask(k8: K8): ListrTask<any, any, any> {
+  public promptLocalConfigTask(k8: K8): SoloListrTask<any> {
     const self = this;
 
     return {
       title: 'Prompt local configuration',
       skip: this.skipPromptTask,
-      task: async (_: any, task: ListrTaskWrapper<any, any, any>): Promise<void> => {
+      task: async (_: any, task: SoloListrTaskWrapper<any>): Promise<void> => {
+        if (self.configFileExists) {
+          self.configManager.setFlag(flags.userEmailAddress, self.userEmailAddress);
+        }
+
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
         const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);

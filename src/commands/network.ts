@@ -38,13 +38,15 @@ import {ConsensusNodeComponent} from '../core/config/remote/components/consensus
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
-import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
+import {v4 as uuidv4} from 'uuid';
+import * as Base64 from 'js-base64';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
   cacheDir: string;
   chartDirectory: string;
   enablePrometheusSvcMonitor: boolean;
+  loadBalancerEnabled: boolean;
   soloChartVersion: string;
   namespace: string;
   nodeAliasesUnparsed: string;
@@ -62,7 +64,6 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
-  genesisNetworkData: GenesisNetworkDataConstructor;
   genesisThrottlesFile: string;
   resolvedThrottlesFile: string;
   getUnusedConfigs: () => string[];
@@ -70,6 +71,13 @@ export interface NetworkDeployConfigClass {
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
+  storageType: constants.StorageType;
+  storageAccessKey: string;
+  storageSecrets: string;
+  storageEndpoint: string;
+  storageBucket: string;
+  backupBucket: string;
+  googleCredential: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -116,6 +124,7 @@ export class NetworkCommand extends BaseCommand {
       flags.enablePrometheusSvcMonitor,
       flags.soloChartVersion,
       flags.debugNodeAlias,
+      flags.loadBalancerEnabled,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeAliasesUnparsed,
@@ -132,7 +141,98 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
       flags.haproxyIps,
       flags.envoyIps,
+      flags.storageType,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
+      flags.backupBucket,
+      flags.googleCredential,
     ];
+  }
+
+  async prepareStorageSecrets(config: NetworkDeployConfigClass) {
+    try {
+      const minioAccessKey = uuidv4();
+      const minioSecretKey = uuidv4();
+      const minioData = {};
+      const namespace = config.namespace;
+
+      // Generating new minio credentials
+      const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+      minioData['config.env'] = Base64.encode(envString);
+      const isMinioSecretCreated = await this.k8.createSecret(
+        constants.MINIO_SECRET_NAME,
+        namespace,
+        'Opaque',
+        minioData,
+        undefined,
+        true,
+      );
+      if (!isMinioSecretCreated) {
+        throw new SoloError('ailed to create new minio secret');
+      }
+
+      // Generating cloud storage secrets
+      const {storageAccessKey, storageSecrets, storageEndpoint} = config;
+      const cloudData = {};
+      if (
+        config.storageType === constants.StorageType.S3_ONLY ||
+        config.storageType === constants.StorageType.S3_AND_GCS
+      ) {
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
+        cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
+      }
+      if (
+        config.storageType === constants.StorageType.GCS_ONLY ||
+        config.storageType === constants.StorageType.S3_AND_GCS ||
+        config.storageType === constants.StorageType.GCS_AND_MINIO
+      ) {
+        cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+        cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
+        cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
+      }
+      if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
+      }
+
+      const isCloudSecretCreated = await this.k8.createSecret(
+        constants.UPLOADER_SECRET_NAME,
+        namespace,
+        'Opaque',
+        cloudData,
+        undefined,
+        true,
+      );
+      if (!isCloudSecretCreated) {
+        throw new SoloError(
+          `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
+        );
+      }
+      // generate backup uploader secret
+      if (config.googleCredential) {
+        const backupData = {};
+        const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
+        backupData['saJson'] = Base64.encode(googleCredential);
+        const isBackupSecretCreated = await this.k8.createSecret(
+          constants.BACKUP_SECRET_NAME,
+          namespace,
+          'Opaque',
+          backupData,
+          undefined,
+          true,
+        );
+        if (!isBackupSecretCreated) {
+          throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
+        }
+      }
+    } catch (e: Error | any) {
+      const errorMessage = 'failed to create Kubernetes storage secret ';
+      this.logger.error(errorMessage, e);
+      throw new SoloError(errorMessage, e);
+    }
   }
 
   async prepareValuesArg(config: {
@@ -146,8 +246,15 @@ export class NetworkCommand extends BaseCommand {
     valuesFile?: string;
     haproxyIpsParsed?: Record<NodeAlias, IP>;
     envoyIpsParsed?: Record<NodeAlias, IP>;
-    genesisNetworkData: GenesisNetworkDataConstructor;
+    storageType: constants.StorageType;
     resolvedThrottlesFile: string;
+    storageAccessKey: string;
+    storageSecrets: string;
+    storageEndpoint: string;
+    storageBucket: string;
+    backupBucket: string;
+    googleCredential: string;
+    loadBalancerEnabled: boolean;
   }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
@@ -164,16 +271,49 @@ export class NetworkCommand extends BaseCommand {
       valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);
     }
 
+    if (
+      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.GCS_AND_MINIO
+    ) {
+      valuesArg += ' --set cloud.gcs.enabled=true';
+    }
+
+    if (
+      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.S3_ONLY
+    ) {
+      valuesArg += ' --set cloud.s3.enabled=true';
+    }
+
+    if (
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.S3_ONLY ||
+      config.storageType === constants.StorageType.S3_AND_GCS
+    ) {
+      valuesArg += ' --set cloud.minio.enabled=false';
+    }
+
+    if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+      valuesArg += ' --set cloud.generateNewSecrets=false';
+    }
+
+    if (config.storageBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+    }
+
+    if (config.backupBucket) {
+      valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
+      valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+    }
+
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
-      profileName,
-      config.genesisNetworkData,
-    );
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile);
     }
 
-    // do not deploy mirror node until after we have the updated address book
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
@@ -200,6 +340,11 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
     }
 
+    if (config.loadBalancerEnabled) {
+      valuesArg += ' --set "defaults.haproxy.serviceType=LoadBalancer"';
+      valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
+    }
+
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
@@ -224,6 +369,7 @@ export class NetworkCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.debugNodeAlias,
+      flags.loadBalancerEnabled,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -235,6 +381,11 @@ export class NetworkCommand extends BaseCommand {
       flags.grpcWebTlsKeyPath,
       flags.haproxyIps,
       flags.envoyIps,
+      flags.storageType,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
@@ -272,12 +423,6 @@ export class NetworkCommand extends BaseCommand {
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
     config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
 
-    config.genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
-      config.nodeAliases,
-      this.keyManager,
-      config.keysDir,
-    );
-
     config.resolvedThrottlesFile = resolveValidJsonFilePath(
       config.genesisThrottlesFile,
       flags.genesisThrottlesFile.definition.defaultValue as string,
@@ -297,6 +442,17 @@ export class NetworkCommand extends BaseCommand {
     // create cached keys dir if it does not exist yet
     if (!fs.existsSync(config.keysDir)) {
       fs.mkdirSync(config.keysDir);
+    }
+
+    // if storageType is set, then we need to set the storage secrets
+    if (
+      this.configManager.getFlag<string>(flags.storageType) &&
+      this.configManager.getFlag<string>(flags.storageAccessKey) &&
+      this.configManager.getFlag<string>(flags.storageSecrets) &&
+      this.configManager.getFlag<string>(flags.storageEndpoint)
+    ) {
+      this.logger.debug('Preparing storage secrets');
+      await this.prepareStorageSecrets(config);
     }
 
     this.logger.debug('Prepared config', {
@@ -525,6 +681,11 @@ export class NetworkCommand extends BaseCommand {
                   constants.PODS_RUNNING_MAX_ATTEMPTS,
                   constants.PODS_RUNNING_DELAY,
                 ),
+              // skip if only cloud storage is/are used
+              skip: ctx =>
+                ctx.config.storageType === constants.StorageType.GCS_ONLY ||
+                ctx.config.storageType === constants.StorageType.S3_ONLY ||
+                ctx.config.storageType === constants.StorageType.S3_AND_GCS,
             });
 
             // set up the subtasks
@@ -676,7 +837,11 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Waiting for network pods to be running',
           task: async () => {
-            await this.k8.waitForPods([constants.POD_PHASE_RUNNING], ['solo.hedera.com/type=network-node'], 1);
+            await this.k8.waitForPods(
+              [constants.POD_PHASE_RUNNING],
+              ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
+              1,
+            );
           },
         },
       ],

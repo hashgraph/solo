@@ -67,7 +67,7 @@ describe('NetworkCommand', () => {
 
   before(async () => {
     await initCmd.init(argv);
-    await clusterCmd.setup(argv);
+    await clusterCmd.handlers.setup(argv);
     fs.mkdirSync(applicationEnvParentDirectory, {recursive: true});
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
   });
@@ -102,6 +102,10 @@ describe('NetworkCommand', () => {
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
+        flags.storageAccessKey.constName,
+        flags.storageSecrets.constName,
+        flags.storageEndpoint.constName,
+        flags.googleCredential.constName,
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);
