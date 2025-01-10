@@ -31,6 +31,7 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import * as yaml from 'yaml';
 import type {Optional, SoloListrTask} from '../types/index.js';
 import type {Namespace} from '../core/config/remote/types.js';
 
@@ -460,6 +461,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
                     if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      fs.writeFileSync(path.join(constants.SOLO_CACHE_DIR, 'database-seeding-query.sql'), sqlQuery);
                       return;
                     }
 
