@@ -59,7 +59,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       expect(status).to.be.ok;
     }).timeout(Duration.ofMinutes(8).toMillis());
 
-    it('should prepare network upgrade successfully', async () => {
+    it('should succeed with upgrade', async () => {
       // create file version.txt at tmp directory
       const tmpDir = getTmpDir();
       fs.writeFileSync(`${tmpDir}/version.txt`, TEST_VERSION_STRING);
