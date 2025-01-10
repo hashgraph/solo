@@ -121,6 +121,8 @@ hedera:
 defaults:
   haproxy:
     serviceType: NodePort
+  envoyProxy:
+    loadBalancerEnabled: true
   sidecars:
     recordStreamUploader:
       resources:
