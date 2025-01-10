@@ -39,4 +39,4 @@ web3:
 rosetta:
   enabled: false
   db:
-    password: "XXXXXXXXXXXX" # for disabled components, the password can be omitted
+    password: "XXXXXXXXXXXX"
