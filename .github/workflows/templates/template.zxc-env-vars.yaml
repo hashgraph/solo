@@ -33,6 +33,9 @@ defaults:
   run:
     shell: bash
 
+permissions:
+  contents: read
+
 jobs:
   env-vars:
     name: ${{ inputs.custom-job-label || 'Set Environment Variables' }}
@@ -41,4 +44,9 @@ jobs:
       # {AUTOGENERATE-JOB-OUTPUTS-SUB-DIRS}
       # {AUTOGENERATE-JOB-OUTPUTS-COVERAGE-REPORTS}
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+        with:
+          egress-policy: audit
+
       - run: echo "Exposing environment variables to reusable workflows"

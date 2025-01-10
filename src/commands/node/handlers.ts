@@ -30,6 +30,7 @@ import {
   statesConfigBuilder,
   stopConfigBuilder,
   updateConfigBuilder,
+  upgradeConfigBuilder,
 } from './configs.js';
 import * as constants from '../../core/constants.js';
 import {type AccountManager} from '../../core/account_manager.js';
@@ -96,6 +97,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   static readonly ADD_CONTEXT_FILE = 'node-add.json';
   static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
+  static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
 
   /** ******** Task Lists **********/
 
@@ -237,6 +239,35 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
       this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
+      this.tasks.finalize(),
+    ];
+  }
+
+  upgradePrepareTasks(argv, lease: Lease) {
+    return [
+      this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
+      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+      this.validateSingleNodeState({excludedStates: []}),
+      this.tasks.identifyExistingNodes(),
+      this.tasks.loadAdminKey(),
+      this.tasks.prepareUpgradeZip(),
+      this.tasks.checkExistingNodesStakedAmount(),
+    ];
+  }
+
+  upgradeSubmitTransactionsTasks(argv) {
+    return [this.tasks.sendPrepareUpgradeTransaction(), this.tasks.sendFreezeUpgradeTransaction()];
+  }
+
+  upgradeExecuteTasks(argv) {
+    return [
+      this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+      this.tasks.downloadNodeUpgradeFiles(),
+      this.tasks.getNodeLogsAndConfigs(),
+      this.tasks.startNodes('allNodeAliases'),
+      this.tasks.enablePortForwarding(),
+      this.tasks.checkAllNodesAreActive('allNodeAliases'),
+      this.tasks.checkAllNodeProxiesAreActive(),
       this.tasks.finalize(),
     ];
   }
@@ -393,7 +424,91 @@ export class NodeCommandHandlers implements CommandHandlers {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'Error in executing node update',
+      'Error in executing network upgrade',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async upgradePrepare(argv) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_PREPARE_FLAGS);
+    const lease = await this.leaseManager.create();
+    const action = this.parent.commandActionBuilder(
+      [
+        ...this.upgradePrepareTasks(argv, lease),
+        this.tasks.saveContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeSaveContextParser),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in preparing node upgrade',
+      lease,
+    );
+    await action(argv, this);
+    return true;
+  }
+
+  async upgradeSubmitTransactions(argv) {
+    const lease = await this.leaseManager.create();
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_SUBMIT_TRANSACTIONS_FLAGS);
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
+        ...this.upgradeSubmitTransactionsTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in submitting transactions for node upgrade',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async upgradeExecute(argv) {
+    const lease = await this.leaseManager.create();
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease, false),
+        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
+        ...this.upgradeExecuteTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in executing network upgrade',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async upgrade(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+    const lease = await this.leaseManager.create();
+    const action = this.parent.commandActionBuilder(
+      [
+        ...this.upgradePrepareTasks(argv, lease),
+        ...this.upgradeSubmitTransactionsTasks(argv),
+        ...this.upgradeExecuteTasks(argv),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error in upgrade network',
       lease,
     );
 

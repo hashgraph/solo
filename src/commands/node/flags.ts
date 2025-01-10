@@ -22,6 +22,21 @@ export const DEFAULT_FLAGS = {
   optionalFlags: [flags.quiet, flags.devMode],
 };
 
+const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
+const COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
+  flags.app,
+  flags.debugNodeAlias,
+  flags.nodeAliasesUnparsed,
+  flags.soloChartVersion,
+];
+const COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS = [
+  flags.chartDirectory,
+  flags.devMode,
+  flags.quiet,
+  flags.localBuildPath,
+  flags.force,
+];
+
 const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
 const COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
   flags.app,
@@ -38,6 +53,30 @@ const COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS = [
   flags.gossipEndpoints,
   flags.grpcEndpoints,
 ];
+
+export const UPGRADE_FLAGS = {
+  requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS, flags.upgradeZipFile],
+  requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+  optionalFlags: COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS,
+};
+
+export const UPGRADE_PREPARE_FLAGS = {
+  requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS, flags.upgradeZipFile, flags.outputDir],
+  requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+  optionalFlags: [...COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS],
+};
+
+export const UPGRADE_SUBMIT_TRANSACTIONS_FLAGS = {
+  requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS, flags.inputDir],
+  requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+  optionalFlags: [...COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS],
+};
+
+export const UPGRADE_EXECUTE_FLAGS = {
+  requiredFlags: [...COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS, flags.inputDir],
+  requiredFlagsWithDisabledPrompt: [...COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS],
+  optionalFlags: [...COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS],
+};
 
 export const UPDATE_FLAGS = {
   requiredFlags: [...COMMON_UPDATE_FLAGS_REQUIRED_FLAGS, flags.nodeAlias],

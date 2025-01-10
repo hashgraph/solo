@@ -71,6 +71,9 @@ on:
       e2e-node-upgrade-test-subdir:
         description: "E2E Node Upgrade Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_upgrade_test_subdir }}
+      e2e-node-upgrade-separate-commands-test-subdir:
+        description: "E2E Node Upgrade - Separate commands Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_node_upgrade_separate_commands_test_subdir }}
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
@@ -119,6 +122,9 @@ on:
       e2e-node-upgrade-coverage-report:
         description: "E2E Node Upgrade Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_upgrade_coverage_report }}
+      e2e-node-upgrade-separate-commands-coverage-report:
+        description: "E2E Node Upgrade - Separate commands Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_node_upgrade_separate_commands_coverage_report }}
       e2e-relay-coverage-report:
         description: "E2E Relay Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_relay_coverage_report }}
@@ -150,6 +156,7 @@ jobs:
       e2e_node_delete_test_subdir: e2e-node-delete
       e2e_node_delete_separate_commands_test_subdir: e2e-node-delete-separate-commands
       e2e_node_upgrade_test_subdir: e2e-node-upgrade
+      e2e_node_upgrade_separate_commands_test_subdir: e2e-node-upgrade-separate-commands
       e2e_relay_test_subdir: e2e-relay
       e2e_integration_coverage_report: "E2E Integration Tests Coverage Report"
       e2e_standard_coverage_report: "E2E Standard Tests Coverage Report"
@@ -166,6 +173,7 @@ jobs:
       e2e_node_delete_coverage_report: "E2E Node Delete Tests Coverage Report"
       e2e_node_delete_separate_commands_coverage_report: "E2E Node Delete - Separate commands Tests Coverage Report"
       e2e_node_upgrade_coverage_report: "E2E Node Upgrade Tests Coverage Report"
+      e2e_node_upgrade_separate_commands_coverage_report: "E2E Node Upgrade - Separate commands Tests Coverage Report"
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
     steps:
       - name: Harden Runner

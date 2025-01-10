@@ -19,7 +19,7 @@ import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
+import {PREPARE_UPGRADE_CONFIGS_NAME, UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import type {PodName} from '../../../src/types/aliases.js';
@@ -59,7 +59,7 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
       expect(status).to.be.ok;
     }).timeout(Duration.ofMinutes(8).toMillis());
 
-    it('should succeed with upgrade', async () => {
+    it('should succeed with separate upgrade command', async () => {
       // create file version.txt at tmp directory
       const tmpDir = getTmpDir();
       fs.writeFileSync(`${tmpDir}/version.txt`, TEST_VERSION_STRING);
@@ -70,16 +70,22 @@ e2eTestSuite(namespace, argv, undefined, undefined, undefined, undefined, undefi
 
       const tempDir = 'contextDir';
 
-      argv[flags.upgradeZipFile.name] = zipFile;
-      argv[flags.outputDir.name] = tempDir;
-      argv[flags.inputDir.name] = tempDir;
-      await nodeCmd.handlers.upgrade(argv);
+      const argvPrepare = Object.assign({}, argv);
+      argvPrepare[flags.upgradeZipFile.name] = zipFile;
+      argvPrepare[flags.outputDir.name] = tempDir;
+      const argvExecute = Object.assign({}, getDefaultArgv());
+      argvExecute[flags.inputDir.name] = tempDir;
+
+      await nodeCmd.handlers.upgradePrepare(argvPrepare);
+      await nodeCmd.handlers.upgradeSubmitTransactions(argvExecute);
+      await nodeCmd.handlers.upgradeExecute(argvExecute);
 
       expect(nodeCmd.getUnusedConfigs(UPGRADE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.quiet.constName,
         flags.localBuildPath.constName,
         flags.force.constName,
+        'nodeClient',
       ]);
     }).timeout(Duration.ofMinutes(5).toMillis());
 
