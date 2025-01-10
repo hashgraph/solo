@@ -1,31 +1,34 @@
 version: 3
 tasks:
-  verify:port:forwarding:
-    # silent: true
-    desc: verify that port forwarding is working
-    cmds:
-      - |
-        export PORT_FORWARDING=$(ps -ef | grep 50211 | grep -v grep)
-        if [[ "${PORT_FORWARDING}" != "" ]]; then
-          echo "found existing port forwarding for 50211"
-        else
-          echo "Port forwarding is not working"
-        fi
-
   get:ledger:addressbook:
-    # silent: true
+    silent: true
     desc: retrieve the address book from the ledger
     cmds:
-      - java -jar yahcli.jar --verbose=DEBUG -n localhost -p 2 sysfiles download address-book
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles download 102
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles download 101
+      - echo "cat file 102 = localhost/sysfiles/nodeDetails.json"
+      - echo "---------------------------------------"
+      - cat localhost/sysfiles/nodeDetails.json
+      - echo "---------------------------------------"
+      - echo "cat file 101 = localhost/sysfiles/addressBook.json"
+      - echo "---------------------------------------"
+      - cat localhost/sysfiles/addressBook.json
 
   update:ledger:addressbook:
-    # silent: true
+    silent: true
     desc: update the address book on the ledger
     cmds:
-      - java -jar yahcli.jar --verbose=DEBUG -n localhost -p 2 sysfiles upload address-book
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles upload 102
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles upload 101
 
   get:mirror:addressbook:
-    # silent: true
-    desc: retrieve the address book from the mirror node
+    silent: true
+    desc: retrieve the address book from the mirror node (file 102)
     cmds:
-      - echo "not implemented"
+      - |
+        jq --version > /dev/null 2>&1
+        if [[ $? -eq 0 ]]; then
+          curl -s http://localhost:5551/api/v1/network/nodes | jq
+        else
+          curl -s http://localhost:5551/api/v1/network/nodes
+        fi

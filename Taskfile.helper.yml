@@ -13,14 +13,16 @@ vars:
   solo_logs_dir: "{{ .solo_user_dir }}/logs"
   solo_keys_dir: "{{ .solo_cache_dir }}/keys"
   solo_bin_dir: "{{ .solo_user_dir }}/bin"
+  temp_prefix:
+    sh: (echo "/tmp/solo-${USER}-$(date +%Y%m%d%H%M%S)")
   run_build_file:
-    sh: (echo "/tmp/${USER}-run-build-$(date +%Y%m%d%H%M%S)")
+    sh: (echo "/tmp/solo-${USER}-run-build-$(date +%Y%m%d%H%M%S)")
   var_check_file:
-    sh: (echo "/tmp/${USER}-var-check-$(date +%Y%m%d%H%M%S)")
+    sh: (echo "/tmp/solo-${USER}-var-check-$(date +%Y%m%d%H%M%S)")
   minio_flag_file:
-    sh: (echo "/tmp/${USER}-minio-flag-$(date +%Y%m%d%H%M%S)")
+    sh: (echo "/tmp/solo-${USER}-minio-flag-$(date +%Y%m%d%H%M%S)")
   solo_install_file:
-    sh: (echo "/tmp/${USER}-solo-install-$(date +%Y%m%d%H%M%S)")
+    sh: (echo "/tmp/solo-${USER}-solo-install-$(date +%Y%m%d%H%M%S)")
 
 env:
   SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
@@ -200,8 +202,9 @@ tasks:
         SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }}
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
-          echo "Enable port forwarding for Hedera Node"
-          nohup kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 &
+          echo "Enable port forwarding for Hedera Network Node"
+          echo "Port forwarding for Hedera Network Node: grpc:50211"
+          nohup kubectl port-forward -n "${SOLO_NAMESPACE}" pod/network-node1-0 50211:50211  < /dev/null > {{.temp_prefix}}-50211-nohup.out 2>&1 &
           sleep 4
         fi
 
@@ -260,6 +263,13 @@ tasks:
     cmds:
       - echo "Removing solo config..."
       - rm -rf {{ .solo_user_dir }}/solo.yaml
+
+  solo:freeze:restart:
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node prepare-upgrade --namespace "${SOLO_NAMESPACE}" -q
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node freeze-upgrade --namespace "${SOLO_NAMESPACE}" -q
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node stop --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q
 
   cluster:create:
     status:
@@ -391,8 +401,11 @@ tasks:
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
-          nohup kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 &
-          nohup kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
+          echo "Port forwarding for Hedera Explorer: http://localhost:6789"
+          nohup kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 6789:80 < /dev/null > {{.temp_prefix}}-6789-nohup.out 2>&1 &
+          echo "Port forwarding for Mirror Node Network: grpc:5600, rest:5551"
+          nohup kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 < /dev/null > {{.temp_prefix}}-5600-nohup.out 2>&1 &
+          nohup kubectl port-forward svc/mirror-rest -n "${SOLO_NAMESPACE}" 5551:80 < /dev/null > {{.temp_prefix}}-5551-nohup.out 2>&1 &
           sleep 4
         fi
 
@@ -423,7 +436,4 @@ tasks:
     silent: true
     cmds:
       - echo "Cleaning up temporary files..."
-      - rm -f /tmp/${USER}-run-build-* || true
-      - rm -f /tmp/${USER}-var-check-* || true
-      - rm -f /tmp/${USER}-minio-flag-* || true
-      - rm -f /tmp/${USER}-solo-install-* || true
+      - rm -f /tmp/solo-${USER}-* || true
