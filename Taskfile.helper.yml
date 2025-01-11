@@ -358,7 +358,6 @@ tasks:
 
   solo:node:logs:
     silent: true
-    internal: true
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node logs --namespace "${SOLO_NAMESPACE}" -q --dev
 
