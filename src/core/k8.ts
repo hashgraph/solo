@@ -891,17 +891,24 @@ export class K8 {
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
   async portForward(podName: PodName, localPort: number, podPort: number) {
-    const ns = this._getNamespace();
-    const forwarder = new k8s.PortForward(this.kubeConfig, false);
-    const server = (await net.createServer(socket => {
-      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
-    })) as ExtendedNetServer;
+    try {
+      this.logger.debug(`Creating port-forwarder for ${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`);
+      const ns = this._getNamespace();
+      const forwarder = new k8s.PortForward(this.kubeConfig, false);
+      const server = (await net.createServer(socket => {
+        forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
+      })) as ExtendedNetServer;
 
-    // add info for logging
-    server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
-    server.localPort = localPort;
-    this.logger.debug(`Starting port-forwarder [${server.info}]`);
-    return server.listen(localPort, constants.LOCAL_HOST);
+      // add info for logging
+      server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
+      server.localPort = localPort;
+      this.logger.debug(`Starting port-forwarder [${server.info}]`);
+      return server.listen(localPort, constants.LOCAL_HOST);
+    } catch (e) {
+      const message = `failed to start port-forwarder [${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
+      this.logger.error(message, e);
+      throw new SoloError(message, e);
+    }
   }
 
   /**
