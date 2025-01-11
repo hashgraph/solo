@@ -356,8 +356,8 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     const config = ctx.config;
 
-                    let exploreValuesArg = await self.prepareHederaExplorerValuesArg(config);
-                    exploreValuesArg += self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+                    let exploreValuesArg = self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+                    exploreValuesArg += await self.prepareHederaExplorerValuesArg(config);
 
                     await self.chartManager.install(
                       config.namespace,
