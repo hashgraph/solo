@@ -5,6 +5,7 @@ includes:
     flatten: true
 vars:
   solo_home_override_dir: "/Users/user/.solo-gke-test"
+  use_port_forwards: "true"
 env:
   SOLO_NETWORK_SIZE: 4
   SOLO_NAMESPACE: solo-gke-test
@@ -22,4 +23,7 @@ env:
   LOAD_BALANCER_FLAG: "--load-balancer"
   ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
   TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
-  CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
+  # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
+  NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=35.226.75.168,node2=34.55.235.252,node3=34.60.139.98,node4=34.132.139.239 --pvcs"
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/hedera-explorer-values.yaml"
+  RELAY_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/relay-values.yaml"
