@@ -481,7 +481,7 @@ export class K8 {
     localContext.errorMessage = localContext.errorMessage
       ? `${localContext.errorMessage}:${errorMessage}`
       : errorMessage;
-    this.logger.error(errorMessage);
+    this.logger.warn(errorMessage);
     return localContext.reject(new SoloError(localContext.errorMessage));
   }
 
@@ -618,7 +618,6 @@ export class K8 {
             ({status}) => self.handleCallback(status, localContext, messagePrefix),
           )
           .then(conn => {
-            self.logger.info(`${messagePrefix} connection established`);
             localContext.connection = conn;
 
             self.registerConnectionOnError(localContext, messagePrefix, conn);
@@ -724,7 +723,6 @@ export class K8 {
 
         self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
 
-        self.logger.debug(`${messagePrefix} running...`);
         execInstance
           .exec(
             namespace,
@@ -744,7 +742,6 @@ export class K8 {
             },
           )
           .then(conn => {
-            self.logger.debug(`${messagePrefix} connection established`);
             localContext.connection = conn;
 
             conn.on('error', e => {
@@ -839,7 +836,6 @@ export class K8 {
 
       self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
 
-      self.logger.debug(`${messagePrefix} running...`);
       execInstance
         .exec(
           namespace,
@@ -853,7 +849,6 @@ export class K8 {
           ({status}) => self.handleCallback(status, localContext, messagePrefix),
         )
         .then(conn => {
-          self.logger.debug(`${messagePrefix} connection established`);
           localContext.connection = conn;
 
           self.registerConnectionOnError(localContext, messagePrefix, conn);
@@ -1120,7 +1115,7 @@ export class K8 {
             const condType = entry[0];
             const condStatus = entry[1];
             if (cond.type === condType && cond.status === condStatus) {
-              this.logger.debug(
+              this.logger.info(
                 `Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`,
               );
               return true;
