@@ -22,3 +22,4 @@ env:
   LOAD_BALANCER_FLAG: "--load-balancer"
   ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
   TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
+  CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
