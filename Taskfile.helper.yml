@@ -359,7 +359,7 @@ tasks:
   solo:node:logs:
     silent: true
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node logs --namespace "${SOLO_NAMESPACE}" -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node logs --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} -q --dev
 
   start:
     desc: solo node start
