@@ -155,6 +155,11 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
     }
 
+    if (!(await this.k8.isCertManagerInstalled())) {
+      valuesArg += ' --set cloud.certManager.enabled=true';
+      valuesArg += ' --set cert-manager.installCRDs=true';
+    }
+
     if (hederaExplorerTlsLoadBalancerIp !== '') {
       valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
     }
@@ -515,9 +520,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     try {
       await tasks.run();
-      self.logger.debug('mirror node depolyment has completed');
+      self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      throw new SoloError(`Error deploying node: ${e.message}`, e);
+      const message = `Error deploying node: ${e.message}`;
+      self.logger.error(message, e);
+      throw new SoloError(message, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
