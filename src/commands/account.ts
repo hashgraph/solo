@@ -559,13 +559,13 @@ export class AccountCommand extends BaseCommand {
             desc: 'Initialize system accounts with new keys',
             builder: (y: any) => flags.setCommandFlags(y, flags.namespace),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'account init' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'account init' ===");
+              self.logger.info(argv);
 
               self
                 .init(argv)
                 .then(r => {
-                  self.logger.debug("==== Finished running 'account init' ===");
+                  self.logger.info("==== Finished running 'account init' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
@@ -589,13 +589,13 @@ export class AccountCommand extends BaseCommand {
                 flags.setAlias,
               ),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'account create' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'account create' ===");
+              self.logger.info(argv);
 
               self
                 .create(argv)
                 .then(r => {
-                  self.logger.debug("==== Finished running 'account create' ===");
+                  self.logger.info("==== Finished running 'account create' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
@@ -617,13 +617,13 @@ export class AccountCommand extends BaseCommand {
                 flags.ed25519PrivateKey,
               ),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'account update' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'account update' ===");
+              self.logger.info(argv);
 
               self
                 .update(argv)
                 .then(r => {
-                  self.logger.debug("==== Finished running 'account update' ===");
+                  self.logger.info("==== Finished running 'account update' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
@@ -637,13 +637,13 @@ export class AccountCommand extends BaseCommand {
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: any) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.namespace),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'account get' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'account get' ===");
+              self.logger.info(argv);
 
               self
                 .get(argv)
                 .then(r => {
-                  self.logger.debug("==== Finished running 'account get' ===");
+                  self.logger.info("==== Finished running 'account get' ===");
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
