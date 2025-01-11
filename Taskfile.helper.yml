@@ -356,6 +356,12 @@ tasks:
         export IP_LIST_TEMPLATE_FILE={{ .TASKFILE_DIR }}/list-external-ips.gotemplate
         kubectl get svc -n "${SOLO_NAMESPACE}" -l "solo.hedera.com/type=network-node-svc" --output=go-template-file=${IP_LIST_TEMPLATE_FILE}
 
+  solo:node:logs:
+    silent: true
+    internal: true
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node logs --namespace "${SOLO_NAMESPACE}" -q --dev
+
   start:
     desc: solo node start
     deps:
