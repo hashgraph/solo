@@ -1019,7 +1019,7 @@ export class K8 {
     const ns = this._getNamespace();
     const labelSelector = labels.join(',');
 
-    this.logger.debug(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
+    this.logger.info(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
 
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
       let attempts = 0;
