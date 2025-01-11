@@ -80,6 +80,8 @@ tasks:
       - echo "LOAD_BALANCER_FLAG=${LOAD_BALANCER_FLAG}"
       - echo "ENABLE_EXPLORER_TLS_FLAG=${ENABLE_EXPLORER_TLS_FLAG}"
       - echo "CLUSTER_TLS_FLAGS=${CLUSTER_TLS_FLAGS}"
+      - echo "NETWORK_DEPLOY_EXTRA_FLAGS=${NETWORK_DEPLOY_EXTRA_FLAGS}"
+      - echo "MIRROR_NODE_DEPLOY_EXTRA_FLAGS=${MIRROR_NODE_DEPLOY_EXTRA_FLAGS}"
       - touch {{ .var_check_file }}
 
   readme:
@@ -183,7 +185,7 @@ tasks:
         if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
           export SOLO_CHART_FLAG='--solo-chart-version ${SOLO_CHART_VERSION}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${LOAD_BALANCER_FLAG} -q --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${LOAD_BALANCER_FLAG} ${NETWORK_DEPLOY_EXTRA_FLAGS} -q --dev
       - task: "solo:node:setup"
 
   solo:node:setup:
@@ -239,7 +241,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy -n "${SOLO_NAMESPACE}" -i node1 -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy -n "${SOLO_NAMESPACE}" -i node1 ${RELAY_NODE_DEPLOY_EXTRA_FLAGS} -q --dev
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera JSON RPC Relay"
@@ -419,7 +421,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} --pinger -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
