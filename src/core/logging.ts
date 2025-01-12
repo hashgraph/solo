@@ -95,6 +95,7 @@ export class SoloLogger {
 
   showUser(msg: any, ...args: any) {
     console.log(util.format(msg, ...args));
+    this.info(util.format(msg, ...args));
   }
 
   showUserError(err: Error | any) {

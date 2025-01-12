@@ -155,6 +155,11 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
     }
 
+    if (!(await this.k8.isCertManagerInstalled())) {
+      valuesArg += ' --set cloud.certManager.enabled=true';
+      valuesArg += ' --set cert-manager.installCRDs=true';
+    }
+
     if (hederaExplorerTlsLoadBalancerIp !== '') {
       valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
     }
@@ -287,6 +292,40 @@ export class MirrorNodeCommand extends BaseCommand {
                   },
                 },
                 {
+                  title: 'Upgrade solo-setup chart',
+                  task: async ctx => {
+                    const config = ctx.config;
+                    const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
+
+                    const chartPath = await this.prepareChartPath(
+                      chartDirectory,
+                      constants.SOLO_TESTING_CHART_URL,
+                      constants.SOLO_CLUSTER_SETUP_CHART,
+                    );
+
+                    const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
+
+                    if (soloChartSetupValuesArg.includes('cloud.certManager.enabled=true')) {
+                      await self.chartManager.upgrade(
+                        clusterSetupNamespace,
+                        constants.SOLO_CLUSTER_SETUP_CHART,
+                        chartPath,
+                        soloChartVersion,
+                        '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
+                      );
+                    }
+
+                    await self.chartManager.upgrade(
+                      clusterSetupNamespace,
+                      constants.SOLO_CLUSTER_SETUP_CHART,
+                      chartPath,
+                      soloChartVersion,
+                      soloChartSetupValuesArg,
+                    );
+                  },
+                  skip: ctx => !ctx.config.enableHederaExplorerTls,
+                },
+                {
                   title: 'Deploy mirror-node',
                   task: async ctx => {
                     if (ctx.config.customMirrorNodeDatabaseValuePath) {
@@ -313,35 +352,12 @@ export class MirrorNodeCommand extends BaseCommand {
                   },
                 },
                 {
-                  title: 'Upgrade solo-setup chart',
-                  task: async ctx => {
-                    const config = ctx.config;
-                    const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
-
-                    const chartPath = await this.prepareChartPath(
-                      chartDirectory,
-                      constants.SOLO_TESTING_CHART_URL,
-                      constants.SOLO_CLUSTER_SETUP_CHART,
-                    );
-
-                    const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
-                    await self.chartManager.upgrade(
-                      clusterSetupNamespace,
-                      constants.SOLO_CLUSTER_SETUP_CHART,
-                      chartPath,
-                      soloChartVersion,
-                      soloChartSetupValuesArg,
-                    );
-                  },
-                  skip: ctx => !ctx.config.enableHederaExplorerTls,
-                },
-                {
                   title: 'Deploy hedera-explorer',
                   task: async ctx => {
                     const config = ctx.config;
 
-                    let exploreValuesArg = await self.prepareHederaExplorerValuesArg(config);
-                    exploreValuesArg += self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+                    let exploreValuesArg = self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+                    exploreValuesArg += await self.prepareHederaExplorerValuesArg(config);
 
                     await self.chartManager.install(
                       config.namespace,
@@ -515,9 +531,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     try {
       await tasks.run();
-      self.logger.debug('mirror node depolyment has completed');
+      self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      throw new SoloError(`Error deploying node: ${e.message}`, e);
+      const message = `Error deploying node: ${e.message}`;
+      self.logger.error(message, e);
+      throw new SoloError(message, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -636,13 +654,13 @@ export class MirrorNodeCommand extends BaseCommand {
             desc: 'Deploy mirror-node and its components',
             builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
-              self.logger.debug("==== Running 'mirror-node deploy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'mirror-node deploy' ===");
+              self.logger.info(argv);
 
               self
                 .deploy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `mirror-node deploy`====');
+                  self.logger.info('==== Finished running `mirror-node deploy`====');
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
@@ -656,13 +674,13 @@ export class MirrorNodeCommand extends BaseCommand {
             desc: 'Destroy mirror-node components and database',
             builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.namespace),
             handler: argv => {
-              self.logger.debug("==== Running 'mirror-node destroy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'mirror-node destroy' ===");
+              self.logger.info(argv);
 
               self
                 .destroy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `mirror-node destroy`====');
+                  self.logger.info('==== Finished running `mirror-node destroy`====');
                   if (!r) process.exit(1);
                 })
                 .catch(err => {

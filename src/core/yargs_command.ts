@@ -63,11 +63,11 @@ export class YargsCommand {
       desc: description,
       builder: (y: any) => commandFlags.setCommandFlags(y, ...allFlags),
       handler: (argv: any) => {
-        commandDef.logger.debug(`==== Running '${commandNamespace} ${command}' ===`);
-        commandDef.logger.debug(argv);
+        commandDef.logger.info(`==== Running '${commandNamespace} ${command}' ===`);
+        commandDef.logger.info(argv);
         commandDef.handlers[handler](argv)
           .then((r: any) => {
-            commandDef.logger.debug(`==== Finished running '${commandNamespace} ${command}' ====`);
+            commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
             if (!r) process.exit(1);
           })
           .catch((err: Error | any) => {

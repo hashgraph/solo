@@ -1,0 +1,34 @@
+version: 3
+tasks:
+  get:ledger:addressbook:
+    silent: true
+    desc: retrieve the address book from the ledger
+    cmds:
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles download 102
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles download 101
+      - echo "cat file 102 = localhost/sysfiles/nodeDetails.json"
+      - echo "---------------------------------------"
+      - cat localhost/sysfiles/nodeDetails.json
+      - echo "---------------------------------------"
+      - echo "cat file 101 = localhost/sysfiles/addressBook.json"
+      - echo "---------------------------------------"
+      - cat localhost/sysfiles/addressBook.json
+
+  update:ledger:addressbook:
+    silent: true
+    desc: update the address book on the ledger
+    cmds:
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles upload 102
+      - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles upload 101
+
+  get:mirror:addressbook:
+    silent: true
+    desc: retrieve the address book from the mirror node (file 102)
+    cmds:
+      - |
+        jq --version > /dev/null 2>&1
+        if [[ $? -eq 0 ]]; then
+          curl -s http://localhost:5551/api/v1/network/nodes | jq
+        else
+          curl -s http://localhost:5551/api/v1/network/nodes
+        fi
