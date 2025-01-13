@@ -305,6 +305,9 @@ export class MirrorNodeCommand extends BaseCommand {
 
                     const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
 
+                    // if cert-manager isn't already installed we want to install it separate from the certificate issuers
+                    // as they will fail to be created due to the order of the installation being dependent on the cert-manager
+                    // being installed first
                     if (soloChartSetupValuesArg.includes('cloud.certManager.enabled=true')) {
                       await self.chartManager.upgrade(
                         clusterSetupNamespace,

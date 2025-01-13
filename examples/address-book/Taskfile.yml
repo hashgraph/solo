@@ -2,7 +2,7 @@ version: 3
 tasks:
   get:ledger:addressbook:
     silent: true
-    desc: retrieve the address book from the ledger
+    desc: retrieve the address book (file 101; examples/address-book/localhost/sysfiles/addressBook.json) and node details (file 102; examples/address-book/localhost/sysfiles/nodeDetails.json) from the ledger
     cmds:
       - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles download 102
       - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles download 101
@@ -16,7 +16,7 @@ tasks:
 
   update:ledger:addressbook:
     silent: true
-    desc: update the address book on the ledger
+    desc: update the address book (file 101; examples/address-book/localhost/sysfiles/addressBook.json) and node details (file 102; examples/address-book/localhost/sysfiles/nodeDetails.json) on the ledger
     cmds:
       - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles upload 102
       - java -jar yahcli.jar --verbose=WARN -n localhost -p 2 sysfiles upload 101
