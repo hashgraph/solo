@@ -27,13 +27,18 @@ import {Readable} from 'stream';
 import {Duration} from '../../../src/core/time/duration.js';
 
 describe('ShellRunner', () => {
-  let shellRunner: ShellRunner, loggerStub: SinonStub, childProcessSpy: SinonSpy, readableSpy: SinonSpy;
+  let shellRunner: ShellRunner,
+    loggerDebugStub: SinonStub,
+    loggerInfoStub: SinonStub,
+    childProcessSpy: SinonSpy,
+    readableSpy: SinonSpy;
 
   beforeEach(() => {
     shellRunner = new ShellRunner();
 
     // Spy on methods
-    loggerStub = sinon.stub(SoloLogger.prototype, 'debug');
+    loggerDebugStub = sinon.stub(SoloLogger.prototype, 'debug');
+    loggerInfoStub = sinon.stub(SoloLogger.prototype, 'info');
     childProcessSpy = sinon.spy(ChildProcess.prototype, 'on');
     readableSpy = sinon.spy(Readable.prototype, 'on');
   });
@@ -43,10 +48,11 @@ describe('ShellRunner', () => {
   it('should run command', async () => {
     await shellRunner.run('ls -l');
 
-    loggerStub.withArgs("Executing command: 'ls -l'").onFirstCall();
-    loggerStub.withArgs("Finished executing: 'ls -l'", sinon.match.any).onSecondCall();
+    loggerInfoStub.withArgs("Executing command: 'ls -l'").onFirstCall();
+    loggerDebugStub.withArgs("Finished executing: 'ls -l'", sinon.match.any).onFirstCall();
 
-    expect(loggerStub).to.have.been.calledTwice;
+    expect(loggerDebugStub).to.have.been.calledOnce;
+    expect(loggerInfoStub).to.have.been.calledOnce;
 
     expect(readableSpy).to.have.been.calledWith('data', sinon.match.any);
     expect(childProcessSpy).to.have.been.calledWith('exit', sinon.match.any);
