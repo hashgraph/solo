@@ -1,0 +1,25 @@
+# https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/charts/hedera-json-rpc-relay/values.yaml#L125
+
+ingress:
+  enabled: true
+  hosts:
+    - host: relay.explorer.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: 0
+    memory: 0
+  limits:
+    cpu: 500m
+    memory: 1000Mi
+
+service:
+  type: ClusterIP
+  port: 7546
+  annotations: {}
