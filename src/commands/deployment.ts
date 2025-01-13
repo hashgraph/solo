@@ -122,6 +122,8 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         RemoteConfigTasks.createRemoteConfig.bind(this)(),
+        this.tasks.selectContext(),
+        this.tasks.updateLocalConfig(),
       ],
       {
         concurrent: false,

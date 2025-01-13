@@ -35,6 +35,7 @@ import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
+import {AnyObject} from '../../types/aliases.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -169,7 +170,7 @@ export class LocalConfig implements LocalConfigData {
       title: 'Prompt local configuration',
       skip: this.skipPromptTask,
       task: async (_: any, task: SoloListrTaskWrapper<any>): Promise<void> => {
-        if (self.configFileExists) {
+        if (self.configFileExists()) {
           self.configManager.setFlag(flags.userEmailAddress, self.userEmailAddress);
         }
 
@@ -206,10 +207,10 @@ export class LocalConfig implements LocalConfigData {
 
         if (parsedContexts.length < parsedClusters.length) {
           if (!isQuiet) {
-            const promptedContexts = [];
+            const promptedContexts: string[] = [];
             for (const cluster of parsedClusters) {
               const kubeContexts = k8.getContexts();
-              const context = await flags.context.prompt(
+              const context: string = await flags.context.prompt(
                 task,
                 kubeContexts.map(c => c.name),
                 cluster,
