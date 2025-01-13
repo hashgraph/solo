@@ -48,7 +48,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
         this.tasks.selectContext(argv),
         RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.readClustersFromRemoteConfig(argv),
-        // this.tasks.updateLocalConfig(argv),
+        this.tasks.updateLocalConfig(argv),
       ],
       {
         concurrent: false,

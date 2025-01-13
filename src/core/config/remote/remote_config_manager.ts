@@ -35,8 +35,7 @@ import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
-import {sleep} from '../../helpers.js';
-import {Duration} from '../../time/duration.js';
+import {ErrorMessages} from "../../error_messages.js";
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -151,6 +150,36 @@ export class RemoteConfigManager {
     this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap);
 
     return true;
+  }
+
+    /**
+     * Loads the remote configuration, performs a validation and returns it
+     * @returns RemoteConfigDataWrapper
+     */
+  public async get(): Promise<RemoteConfigDataWrapper> {
+    await this.load();
+    try {
+        await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
+    }
+    catch(e) {
+        throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getKubeConfig().getCurrentCluster().name))
+    }
+    return this.remoteConfig;
+  }
+
+  public static compare(remoteConfig1: RemoteConfigDataWrapper, remoteConfig2: RemoteConfigDataWrapper) : boolean {
+      // Compare clusters
+      const clusters1 = Object.keys(remoteConfig1.clusters);
+      const clusters2 = Object.keys(remoteConfig2.clusters);
+      if (clusters1.length !== clusters2.length) return false;
+
+      for (let i in clusters1) {
+          if (clusters1[i] !== clusters2[i]) {
+              return false;
+          }
+      }
+
+      return true;
   }
 
   /* ---------- Listr Task Builders ---------- */

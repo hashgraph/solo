@@ -24,4 +24,7 @@ export const ErrorMessages = {
   LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT: 'Wrong clusterContextMapping format',
   INVALID_CONTEXT_FOR_CLUSTER: (context: string, cluster?: string) =>
     `Context ${context} is not valid for cluster ${cluster || ''}`,
+  REMOTE_CONFIGS_DO_NOT_MATCH: (cluster1: string, cluster2: string) =>
+     `The remote configurations in clusters ${cluster1} and ${cluster2} do not match. They need to be synced manually.`,
+  REMOTE_CONFIG_IS_INVALID: (cluster: string) => `The remote configuration in cluster ${cluster} is invalid and needs to be fixed manually`
 };
