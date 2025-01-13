@@ -28,8 +28,6 @@ import {type K8} from '../../core/k8.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 import type {SelectClusterContextContext} from './configs.js';
-import type {ClusterCommand} from './index.js';
-import type {DeploymentCommand} from '../deployment.js';
 import type {Namespace} from '../../core/config/remote/types.js';
 import type {LocalConfig} from '../../core/config/local_config.js';
 
@@ -37,7 +35,7 @@ export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
 
   constructor(
-    parent: ClusterCommand | DeploymentCommand,
+    parent,
     private readonly k8: K8,
   ) {
     this.parent = parent;
