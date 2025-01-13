@@ -202,7 +202,7 @@ tasks:
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Node"
-          nohup kubectl port-forward -v=9 -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > test1.log 2>&1 &
+          /bin/bash -c "nohup kubectl port-forward -v=9 -n \"${SOLO_NAMESPACE}\" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &"
           sleep 4
         fi
 
@@ -223,7 +223,7 @@ tasks:
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera JSON RPC Relay"
-          nohup kubectl port-forward -v=9 -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 > test2.log 2>&1 &
+          /bin/bash -c "nohup kubectl port-forward -v=9 -n \"${SOLO_NAMESPACE}\" svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &"
           sleep 4
         fi
 
@@ -394,8 +394,8 @@ tasks:
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
-          nohup kubectl port-forward -v=9 -n "${SOLO_NAMESPACE}" svc/hedera-explorer 8080:80 > test3.log 2>&1 &
-          nohup kubectl port-forward -v=9 svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 > test4.log 2>&1 &
+          /bin/bash -c "nohup kubectl port-forward -v=9 -n \"${SOLO_NAMESPACE}\" svc/hedera-explorer 8080:80 > /dev/null 2>&1 &"
+          /bin/bash -c "nohup kubectl port-forward -v=9 -n \"${SOLO_NAMESPACE}\" svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &"
           sleep 4
         fi
 
