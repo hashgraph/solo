@@ -14,26 +14,11 @@
  * limitations under the License.
  *
  */
-import {type NodeDeleteConfigClass, type NodeUpdateConfigClass} from './configs.js';
+
+import {type NodeDeleteConfigClass, type NodeUpdateConfigClass, type NodeUpgradeConfigClass} from './configs.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {PrivateKey} from '@hashgraph/sdk';
 
-/**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
 export class NodeHelper {
   /**
    * Returns an object that can be written to a file without data loss.
@@ -98,6 +83,43 @@ export class NodeHelper {
     exportedCtx.allNodeAliases = config.allNodeAliases;
 
     return exportedCtx;
+  }
+
+  /**
+   * Returns an object that can be written to a file without data loss.
+   * Contains fields needed for upgrading a node through separate commands
+   * @param ctx - accumulator object
+   * @returns file writable object
+   */
+  static upgradeSaveContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}) {
+    const exportedCtx: any = {};
+
+    const config = /** @type {NodeUpgradeConfigClass} **/ ctx.config;
+    exportedCtx.adminKey = config.adminKey.toString();
+    exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
+    exportedCtx.existingNodeAliases = config.existingNodeAliases;
+    exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
+    exportedCtx.allNodeAliases = config.allNodeAliases;
+
+    return exportedCtx;
+  }
+
+  /**
+   * Initializes objects in the context from a provided string
+   * Contains fields needed for updating a node through separate commands
+   * @param ctx - accumulator object
+   * @param ctxData - data in string format
+   * @returns file writable object
+   */
+  static upgradeLoadContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}, ctxData: any) {
+    const config = ctx.config;
+
+    config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
+    config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
+    config.existingNodeAliases = ctxData.existingNodeAliases;
+    config.allNodeAliases = ctxData.allNodeAliases;
+    ctx.upgradeZipHash = ctxData.upgradeZipHash;
+    config.podNames = {};
   }
 
   /**

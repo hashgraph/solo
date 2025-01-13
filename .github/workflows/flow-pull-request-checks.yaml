@@ -89,6 +89,7 @@ jobs:
           - { name: "Node Delete", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}" }
           - { name: "Node Delete - Separate commands", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}" }
           - { name: "Node Upgrade", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}" }
+          - { name: "Node Upgrade - Separate commands", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-coverage-report }}" }
           - { name: "Relay", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-relay-coverage-report }}" }
       max-parallel: 3
     with:
@@ -120,9 +121,11 @@ jobs:
       e2e-node-add-local-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}
       e2e-node-add-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
+      e2e-node-update-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-separate-commands-test-subdir }}
       e2e-node-delete-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
       e2e-node-delete-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
       e2e-node-upgrade-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
+      e2e-node-upgrade-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
@@ -135,9 +138,11 @@ jobs:
       e2e-node-add-local-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-local-coverage-report }}
       e2e-node-add-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
+      e2e-node-update-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-separate-commands-coverage-report }}
       e2e-node-delete-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
       e2e-node-delete-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}
       e2e-node-upgrade-coverage-report: ${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}
+      e2e-node-upgrade-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
@@ -165,9 +170,11 @@ jobs:
       e2e-node-add-local-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-local-test-subdir }}
       e2e-node-add-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-test-subdir }}
       e2e-node-update-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}
+      e2e-node-update-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-update-separate-commands-test-subdir }}
       e2e-node-delete-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}
       e2e-node-delete-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-test-subdir }}
       e2e-node-upgrade-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}
+      e2e-node-upgrade-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
@@ -180,9 +187,11 @@ jobs:
       e2e-node-add-local-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-local-coverage-report }}
       e2e-node-add-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-add-separate-commands-coverage-report }}
       e2e-node-update-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}
+      e2e-node-update-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-update-separate-commands-coverage-report }}
       e2e-node-delete-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}
       e2e-node-delete-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-delete-separate-commands-coverage-report }}
       e2e-node-upgrade-coverage-report: ${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}
+      e2e-node-upgrade-separate-commands-coverage-report: ${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-coverage-report }}
       e2e-relay-coverage-report: ${{ needs.env-vars.outputs.e2e-relay-coverage-report }}
     secrets:
       codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}

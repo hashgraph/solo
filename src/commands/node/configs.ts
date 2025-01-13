@@ -33,6 +33,7 @@ export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConf
 export const ADD_CONFIGS_NAME = 'addConfigs';
 export const DELETE_CONFIGS_NAME = 'deleteConfigs';
 export const UPDATE_CONFIGS_NAME = 'updateConfigs';
+export const UPGRADE_CONFIGS_NAME = 'upgradeConfigs';
 export const REFRESH_CONFIGS_NAME = 'refreshConfigs';
 export const KEYS_CONFIGS_NAME = 'keyConfigs';
 export const SETUP_CONFIGS_NAME = 'setupConfigs';
@@ -84,6 +85,40 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
   config.existingNodeAliases = [];
   await initializeSetup(config, this.k8);
 
+  return config;
+};
+
+export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
+  const config = this.getConfig(UPGRADE_CONFIGS_NAME, argv.flags, [
+    'allNodeAliases',
+    'existingNodeAliases',
+    'keysDir',
+    'nodeClient',
+    'podNames',
+    'stagingDir',
+    'stagingKeysDir',
+  ]) as NodeUpgradeConfigClass;
+
+  config.curDate = new Date();
+  config.existingNodeAliases = [];
+  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+
+  await initializeSetup(config, this.k8);
+
+  // set config in the context for later tasks to use
+  ctx.config = config;
+
+  ctx.config.chartPath = await this.prepareChartPath(
+    ctx.config.chartDirectory,
+    constants.SOLO_TESTING_CHART_URL,
+    constants.SOLO_DEPLOYMENT_CHART,
+  );
+  if (shouldLoadNodeClient) {
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+  }
+
+  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
+  config.freezeAdminPrivateKey = accountKeys.privateKey;
   return config;
 };
 
@@ -398,6 +433,33 @@ export interface NodeSetupConfigClass {
   nodeAliases: NodeAliases;
   podNames: object;
   getUnusedConfigs: () => string[];
+}
+
+export interface NodeUpgradeConfigClass {
+  nodeAliasesUnparsed: string;
+  nodeAliases: NodeAliases;
+  app: string;
+  cacheDir: string;
+  chartDirectory: string;
+  devMode: boolean;
+  debugNodeAlias: NodeAlias;
+  soloChartVersion: string;
+  localBuildPath: string;
+  namespace: string;
+  releaseTag: string;
+  adminKey: PrivateKey;
+  allNodeAliases: NodeAliases;
+  chartPath: string;
+  existingNodeAliases: NodeAliases;
+  freezeAdminPrivateKey: PrivateKey | string;
+  keysDir: string;
+  nodeClient: any;
+  podNames: Record<NodeAlias, PodName>;
+  stagingDir: string;
+  stagingKeysDir: string;
+  treasuryKey: PrivateKey;
+  getUnusedConfigs: () => string[];
+  curDate: Date;
 }
 
 export interface NodeUpdateConfigClass {
