@@ -23,15 +23,26 @@ import {Templates} from '../core/templates.js';
 import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
+import {ClusterCommandTasks} from './cluster/tasks.js';
 import type {Namespace} from '../core/config/remote/types.js';
-import {type ContextClusterStructure} from '../types/config_types.js';
-import {type CommandFlag} from '../types/flag_types.js';
-import {type CommandBuilder} from '../types/aliases.js';
+import type {ContextClusterStructure} from '../types/config_types.js';
+import type {CommandFlag} from '../types/flag_types.js';
+import type {CommandBuilder} from '../types/aliases.js';
+import type {Opts} from '../types/command_types.js';
 
 export class DeploymentCommand extends BaseCommand {
+  readonly tasks: ClusterCommandTasks;
+
+  constructor(opts: Opts) {
+    super(opts);
+
+    this.tasks = new ClusterCommandTasks(this, this.k8);
+  }
+
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
     return [
       flags.quiet,
+      flags.context,
       flags.namespace,
       flags.userEmailAddress,
       flags.deploymentClusters,
@@ -44,6 +55,7 @@ export class DeploymentCommand extends BaseCommand {
     const lease = await self.leaseManager.create();
 
     interface Config {
+      context: string;
       namespace: Namespace;
       contextClusterUnparsed: string;
       contextCluster: ContextClusterStructure;
@@ -56,7 +68,7 @@ export class DeploymentCommand extends BaseCommand {
       [
         {
           title: 'Initialize',
-          task: async (ctx, task): Promise<Listr<Context, any, any>> => {
+          task: async (ctx, task) => {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
@@ -87,7 +99,7 @@ export class DeploymentCommand extends BaseCommand {
         this.localConfig.promptLocalConfigTask(self.k8),
         {
           title: 'Validate cluster connections',
-          task: async (ctx, task): Promise<Listr<Context, any, any>> => {
+          task: async (ctx, task) => {
             const subTasks = [];
 
             for (const cluster of Object.keys(ctx.config.contextCluster)) {

@@ -206,8 +206,11 @@ describe('ClusterCommand unit tests', () => {
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
+        // @ts-ignore
         tasks = new ClusterCommandTasks(command, opts.k8);
+        // @ts-ignore
         const taskObj = tasks.updateLocalConfig({});
+        // @ts-ignore
         await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
       }
@@ -344,8 +347,12 @@ describe('ClusterCommand unit tests', () => {
     describe('selectContext', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
+        // @ts-ignore
         tasks = new ClusterCommandTasks(command, opts.k8);
+        // @ts-ignore
         const taskObj = tasks.selectContext({});
+
+        // @ts-ignore
         await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
       }
