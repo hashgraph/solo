@@ -874,13 +874,13 @@ export class NetworkCommand extends BaseCommand {
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'network deploy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'network deploy' ===");
+              self.logger.info(argv);
 
               self
                 .deploy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `network deploy`====');
+                  self.logger.info('==== Finished running `network deploy`====');
 
                   if (!r) process.exit(1);
                 })
@@ -904,13 +904,13 @@ export class NetworkCommand extends BaseCommand {
                 flags.quiet,
               ),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'network destroy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'network destroy' ===");
+              self.logger.info(argv);
 
               self
                 .destroy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `network destroy`====');
+                  self.logger.info('==== Finished running `network destroy`====');
 
                   if (!r) process.exit(1);
                 })
@@ -925,13 +925,13 @@ export class NetworkCommand extends BaseCommand {
             desc: 'Refresh solo network deployment',
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'chart upgrade' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'chart upgrade' ===");
+              self.logger.info(argv);
 
               self
                 .refresh(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `chart upgrade`====');
+                  self.logger.info('==== Finished running `chart upgrade`====');
 
                   if (!r) process.exit(1);
                 })

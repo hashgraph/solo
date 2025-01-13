@@ -481,7 +481,7 @@ export class K8 {
     localContext.errorMessage = localContext.errorMessage
       ? `${localContext.errorMessage}:${errorMessage}`
       : errorMessage;
-    this.logger.error(errorMessage);
+    this.logger.warn(errorMessage);
     return localContext.reject(new SoloError(localContext.errorMessage));
   }
 
@@ -618,7 +618,6 @@ export class K8 {
             ({status}) => self.handleCallback(status, localContext, messagePrefix),
           )
           .then(conn => {
-            self.logger.info(`${messagePrefix} connection established`);
             localContext.connection = conn;
 
             self.registerConnectionOnError(localContext, messagePrefix, conn);
@@ -724,7 +723,6 @@ export class K8 {
 
         self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
 
-        self.logger.debug(`${messagePrefix} running...`);
         execInstance
           .exec(
             namespace,
@@ -744,7 +742,6 @@ export class K8 {
             },
           )
           .then(conn => {
-            self.logger.debug(`${messagePrefix} connection established`);
             localContext.connection = conn;
 
             conn.on('error', e => {
@@ -839,7 +836,6 @@ export class K8 {
 
       self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
 
-      self.logger.debug(`${messagePrefix} running...`);
       execInstance
         .exec(
           namespace,
@@ -853,7 +849,6 @@ export class K8 {
           ({status}) => self.handleCallback(status, localContext, messagePrefix),
         )
         .then(conn => {
-          self.logger.debug(`${messagePrefix} connection established`);
           localContext.connection = conn;
 
           self.registerConnectionOnError(localContext, messagePrefix, conn);
@@ -891,17 +886,24 @@ export class K8 {
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
    */
   async portForward(podName: PodName, localPort: number, podPort: number) {
-    const ns = this._getNamespace();
-    const forwarder = new k8s.PortForward(this.kubeConfig, false);
-    const server = (await net.createServer(socket => {
-      forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
-    })) as ExtendedNetServer;
+    try {
+      this.logger.debug(`Creating port-forwarder for ${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`);
+      const ns = this._getNamespace();
+      const forwarder = new k8s.PortForward(this.kubeConfig, false);
+      const server = (await net.createServer(socket => {
+        forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
+      })) as ExtendedNetServer;
 
-    // add info for logging
-    server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
-    server.localPort = localPort;
-    this.logger.debug(`Starting port-forwarder [${server.info}]`);
-    return server.listen(localPort, constants.LOCAL_HOST);
+      // add info for logging
+      server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
+      server.localPort = localPort;
+      this.logger.debug(`Starting port-forwarder [${server.info}]`);
+      return server.listen(localPort, constants.LOCAL_HOST);
+    } catch (e) {
+      const message = `failed to start port-forwarder [${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
+      this.logger.error(message, e);
+      throw new SoloError(message, e);
+    }
   }
 
   /**
@@ -1012,7 +1014,7 @@ export class K8 {
     const ns = this._getNamespace();
     const labelSelector = labels.join(',');
 
-    this.logger.debug(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
+    this.logger.info(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
 
     return new Promise<k8s.V1Pod[]>((resolve, reject) => {
       let attempts = 0;
@@ -1113,7 +1115,7 @@ export class K8 {
             const condType = entry[0];
             const condStatus = entry[1];
             if (cond.type === condType && cond.status === condStatus) {
-              this.logger.debug(
+              this.logger.info(
                 `Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`,
               );
               return true;
