@@ -50,6 +50,17 @@ function setup_smart_contract_test ()
   cd -
 }
 
+function check_port_forward ()
+{
+  # run background task for few minutes
+  for i in {1..20}
+  do
+    echo "Check port forward"
+    ps -ef |grep port-forward
+    sleep 5
+  done &
+}
+
 function start_background_transactions ()
 {
   echo "Start background transaction"
@@ -83,17 +94,13 @@ function start_sdk_test ()
   return $result
 }
 
-echo "Restart port-forward"
-task clean:port-forward
-enable_port_forward
-
-
 echo "Change to parent directory"
 cd ../
 create_test_account
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
+check_port_forward
 start_contract_test
 start_sdk_test
 echo "Sleep a while to wait background transactions to finish"
