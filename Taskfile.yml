@@ -39,7 +39,7 @@ tasks:
     cmds:
       - task: "cluster:create"
       - task: "solo:init"
-      - task: "cluster:setup"
+      - task: "solo:cluster:setup"
       - task: "solo:keys"
       - task: "solo:network:deploy"
 
