@@ -430,7 +430,7 @@ export class RelayCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy JSON RPC relay',
             builder: (y: any) =>
-              flags.setCommandFlags(y, flags.chartDirectory, flags.namespace, flags.nodeAliasesUnparsed),
+              flags.setCommandFlags(y, flags.chartDirectory, flags.namespace, flags.quiet, flags.nodeAliasesUnparsed),
             handler: (argv: any) => {
               self.logger.info("==== Running 'relay destroy' ===", {argv});
               self.logger.debug(argv);
