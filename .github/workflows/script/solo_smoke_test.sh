@@ -89,6 +89,25 @@ function start_sdk_test ()
 echo "Change to parent directory"
 cd ../
 create_test_account
+
+cd solo
+# if first parameter equals to ACCOUNT_INIT,
+# then call solo account init before deploy mirror and relay node
+if [ -n "$1" ] && [ "$1" == "ACCOUNT_INIT" ]; then
+  echo "Call solo account init"
+  solo account init -n solo-e2e
+
+  task solo:mirror-node
+
+  solo relay deploy -n solo-e2e -i node1 --operator-key $OPERATOR_KEY --operator-id $OPERATOR_ID
+  kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &
+
+else
+  task solo:mirror-node
+  task solo:relay
+fi
+cd -
+
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions

@@ -38,6 +38,9 @@ jobs:
   example-task-file-test:
     timeout-minutes: 20
     runs-on: solo-linux-large
+    strategy:
+      matrix:
+        type: ["NO_ACCOUNT_INIT", "ACCOUNT_INIT"]
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c95a14d0e5bab51a9f56296a4eb0e416910cd350 # v2.10.3
@@ -63,9 +66,8 @@ jobs:
           verbosity: 3
           wait: 120s
 
-      - name: Run Example Task File Test
+      - name: Run Example Task File Test with type ${{ matrix.type }}
         run: |
-          task default-with-relay
-          sleep 10
-          .github/workflows/script/solo_smoke_test.sh
+          task default
+          .github/workflows/script/solo_smoke_test.sh ${{ matrix.type }}
           task clean
