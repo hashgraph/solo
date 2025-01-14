@@ -1,0 +1,44 @@
+replicas: 1
+
+resources:
+  limits:
+    memory: 32Gi
+    cpu: '32'
+  requests:
+    memory: 16Gi
+    cpu: '16'
+
+nodeSelector:
+    solo.hashgraph.io/role: "test-clients"
+tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+affinity: {}
+
+loadGenerator:
+  java:
+    maxMemory: '48g'
+  test:
+    className: com.hedera.benchmark.NftTransferLoadTest
+    args:
+      - -c
+      - "7"
+      - -a
+      - "1000"
+      - -T
+      - "10"
+      - -n
+      - "10"
+      - -S
+      - "hot"
+      - -p
+      - "50"
+      - -t
+      - "1m"
+  properties:
+     - '34.118.234.151\:50211=0.0.3'
+     - '34.118.236.218\:50211=0.0.4'
+     - '34.118.228.172\:50211=0.0.5'
+     - '34.118.228.97\:50211=0.0.6'
