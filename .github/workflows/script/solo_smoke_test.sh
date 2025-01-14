@@ -97,7 +97,7 @@ if [ "$1" == "ACCOUNT_INIT" ]; then
   echo "Call solo account init"
   npm run solo-test -- account init -n solo-e2e
 
-  solo relay deploy -n solo-e2e -i node1 --operator-key $OPERATOR_KEY --operator-id $OPERATOR_ID
+  npm run solo-test -- relay deploy -n solo-e2e -i node1 --operator-key $OPERATOR_KEY --operator-id $OPERATOR_ID
   kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &
 
 else
