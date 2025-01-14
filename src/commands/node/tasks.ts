@@ -178,7 +178,7 @@ export class NodeCommandTasks {
       let start = 0;
 
       while (start < zipBytes.length) {
-        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, constants.UPGRADE_FILE_CHUNK_SIZE));
+        const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, start + constants.UPGRADE_FILE_CHUNK_SIZE));
         let fileTransaction = null;
 
         if (start === 0) {
@@ -193,6 +193,7 @@ export class NodeCommandTasks {
         );
 
         start += constants.UPGRADE_FILE_CHUNK_SIZE;
+        this.logger.debug(`uploaded ${start} bytes of ${zipBytes.length} bytes`);
       }
 
       return zipHash;
@@ -568,7 +569,13 @@ export class NodeCommandTasks {
       'Prepare upgrade zip file for node upgrade process',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
-        ctx.upgradeZipFile = await self._prepareUpgradeZip(config.stagingDir);
+        const {upgradeZipFile} = ctx.config;
+        if (upgradeZipFile) {
+          this.logger.debug(`Using upgrade zip file: ${ctx.upgradeZipFile}`);
+          ctx.upgradeZipFile = upgradeZipFile;
+        } else {
+          ctx.upgradeZipFile = await self._prepareUpgradeZip(config.stagingDir);
+        }
         ctx.upgradeZipHash = await self._uploadUpgradeZip(ctx.upgradeZipFile, config.nodeClient);
       },
     );
@@ -727,6 +734,49 @@ export class NodeCommandTasks {
             `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`,
             `${config.stagingDir}/templates`,
           );
+        }
+      },
+    );
+  }
+
+  downloadNodeUpgradeFiles(): Task {
+    const self = this;
+    return new Task(
+      'Download upgrade files from an existing node',
+      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        const config = ctx.config;
+
+        const nodeAlias = ctx.config.nodeAliases[0];
+        const nodeFullyQualifiedPodName = Templates.renderNetworkPodName(nodeAlias);
+
+        // found all files under ${constants.HEDERA_HAPI_PATH}/data/upgrade/current/
+        const upgradeDirectories = [
+          `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`,
+          `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/apps`,
+          `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/libs`,
+        ];
+        for (const upgradeDir of upgradeDirectories) {
+          // check if directory upgradeDir exist in root container
+          if (!(await self.k8.hasDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, upgradeDir))) {
+            continue;
+          }
+          const files = await self.k8.listDir(nodeFullyQualifiedPodName, constants.ROOT_CONTAINER, upgradeDir);
+          // iterate all files and copy them to the staging directory
+          for (const file of files) {
+            if (file.name.endsWith('.mf')) {
+              continue;
+            }
+            if (file.directory) {
+              continue;
+            }
+            this.logger.debug(`Copying file: ${file.name}`);
+            await self.k8.copyFrom(
+              nodeFullyQualifiedPodName,
+              constants.ROOT_CONTAINER,
+              `${upgradeDir}/${file.name}`,
+              `${config.stagingDir}`,
+            );
+          }
         }
       },
     );

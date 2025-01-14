@@ -16,7 +16,7 @@
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
-import {Listr, type ListrTask} from 'listr2';
+import {Listr} from 'listr2';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
@@ -40,6 +40,8 @@ import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
+import type {SoloListrTask} from '../types/index.js';
+import type {Namespace} from '../core/config/remote/types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -772,10 +774,15 @@ export class NetworkCommand extends BaseCommand {
                 self.logger.error(message);
                 self.logger.showUser(chalk.red(message));
                 networkDestroySuccess = false;
+
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
                   self.k8.deleteNamespace(ctx.config.namespace);
+                } else {
+                  // If the namespace is not being deleted,
+                  // remove all components data from the remote configuration
+                  self.remoteConfigManager.deleteComponents();
                 }
-              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000);
+              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
 
               await self.destroyTask(ctx, task);
 
@@ -794,7 +801,7 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError('Error destroying network', e);
     } finally {
       await lease.release();
@@ -947,7 +954,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public addNodesAndProxies(): ListrTask<any, any, any> {
+  public addNodesAndProxies(): SoloListrTask<{config: {namespace: Namespace; nodeAliases: NodeAliases}}> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

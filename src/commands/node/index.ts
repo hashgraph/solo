@@ -360,6 +360,54 @@ export class NodeCommand extends BaseCommand {
           .command(
             new YargsCommand(
               {
+                command: 'upgrade',
+                description: 'upgrades all nodes on the network',
+                commandDef: self,
+                handler: 'upgrade',
+              },
+              NodeFlags.UPGRADE_FLAGS,
+            ),
+          )
+
+          .command(
+            new YargsCommand(
+              {
+                command: 'upgrade-prepare',
+                description: 'Prepare the deployment to upgrade network',
+                commandDef: self,
+                handler: 'upgradePrepare',
+              },
+              NodeFlags.UPGRADE_PREPARE_FLAGS,
+            ),
+          )
+
+          .command(
+            new YargsCommand(
+              {
+                command: 'upgrade-submit-transactions',
+                description: 'Submit transactions for upgrading network',
+                commandDef: self,
+                handler: 'upgradeSubmitTransactions',
+              },
+              NodeFlags.UPGRADE_SUBMIT_TRANSACTIONS_FLAGS,
+            ),
+          )
+
+          .command(
+            new YargsCommand(
+              {
+                command: 'upgrade-execute',
+                description: 'Executes the upgrading the network',
+                commandDef: self,
+                handler: 'upgradeExecute',
+              },
+              NodeFlags.UPGRADE_EXECUTE_FLAGS,
+            ),
+          )
+
+          .command(
+            new YargsCommand(
+              {
                 command: 'download-generated-files',
                 description: 'Downloads the generated files from an existing node',
                 commandDef: self,

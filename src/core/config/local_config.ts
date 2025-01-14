@@ -169,7 +169,7 @@ export class LocalConfig implements LocalConfigData {
       title: 'Prompt local configuration',
       skip: this.skipPromptTask,
       task: async (_: any, task: SoloListrTaskWrapper<any>): Promise<void> => {
-        if (self.configFileExists) {
+        if (self.configFileExists()) {
           self.configManager.setFlag(flags.userEmailAddress, self.userEmailAddress);
         }
 
