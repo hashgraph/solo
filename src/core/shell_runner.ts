@@ -30,7 +30,7 @@ export class ShellRunner {
   run(cmd: string, verbose = false) {
     const self = this;
     const callStack = new Error().stack; // capture the callstack to be included in error
-    self.logger.debug(`Executing command: '${cmd}'`);
+    self.logger.info(`Executing command: '${cmd}'`);
 
     return new Promise<string[]>((resolve, reject) => {
       const child = spawn(cmd, {

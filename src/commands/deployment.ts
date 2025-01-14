@@ -154,13 +154,13 @@ export class DeploymentCommand extends BaseCommand {
             desc: 'Creates solo deployment',
             builder: (y: any) => flags.setCommandFlags(y, ...DeploymentCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'deployment create' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'deployment create' ===");
+              self.logger.info(argv);
 
               self
                 .create(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `deployment create`====');
+                  self.logger.info('==== Finished running `deployment create`====');
 
                   if (!r) process.exit(1);
                 })
