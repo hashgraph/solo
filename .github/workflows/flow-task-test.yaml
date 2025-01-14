@@ -68,6 +68,6 @@ jobs:
 
       - name: Run Example Task File Test with type ${{ matrix.type }}
         run: |
-          task default
+          task default-with-mirror
           .github/workflows/script/solo_smoke_test.sh ${{ matrix.type }}
           task clean
