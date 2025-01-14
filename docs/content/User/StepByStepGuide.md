@@ -1,7 +1,5 @@
 ## Advanced User Guide
-
 For those who would like to have more control or need some customized setups, here are some step by step instructions of how to setup and deploy a solo network.
-
 ### Setup Kubernetes cluster
 
 #### Remote cluster
@@ -30,7 +28,6 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
-
 Example output
 
 ```
@@ -50,6 +47,7 @@ Thanks for using kind! 😊
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
+
 
 ```
  Context: kind-solo                                <0> all   <a>       Attach       <ctr… ____  __.________
@@ -77,6 +75,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+
 ### Step by Step Instructions
 
 * Initialize `solo` directories:
@@ -93,7 +92,7 @@ solo init
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 **********************************************************************************
@@ -120,7 +119,7 @@ solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 **********************************************************************************
@@ -131,22 +130,19 @@ Kubernetes Cluster	: kind-solo
 ✔ Gossip key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node1
-✔ TLS key for node: node2
 ✔ TLS key for node: node3
+✔ TLS key for node: node2
+✔ TLS key for node: node1
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
 ```
-
 PEM key files are generated in `~/.solo/keys` directory.
-
 ```
 hedera-node1.crt    hedera-node3.crt    s-private-node1.pem s-public-node1.pem  unused-gossip-pem
 hedera-node1.key    hedera-node3.key    s-private-node2.pem s-public-node2.pem  unused-tls
 hedera-node2.crt    hedera-node4.crt    s-private-node3.pem s-public-node3.pem
 hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 ```
-
 * Setup cluster with shared components
 
 ```
@@ -158,7 +154,7 @@ solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 **********************************************************************************
@@ -184,7 +180,7 @@ solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -196,11 +192,11 @@ Kubernetes Namespace	: solo
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
+✔ Copy Gossip keys
+✔ Node: node2
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
 ✔ Node: node3
-✔ Copy Gossip keys
-✔ Node: node2
 ✔ Copy Gossip keys
 ✔ Node: node1
 ✔ Copy node keys to secrets
@@ -211,14 +207,13 @@ Kubernetes Namespace	: solo
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node2
+✔ Check HAProxy for: node1
 ✔ Check Envoy Proxy for: node3
 ✔ Check HAProxy for: node2
-✔ Check HAProxy for: node1
 ✔ Check HAProxy for: node3
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
-releasing lease
 ```
 
 * Setup node with Hedera platform software.
@@ -233,7 +228,7 @@ solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -245,18 +240,20 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node2
 ✔ Check network pod: node3
 ✔ Identify network pods
-✔ Update node: node2 [ platformVersion = v0.58.0 ]
-✔ Update node: node3 [ platformVersion = v0.58.0 ]
-✔ Update node: node1 [ platformVersion = v0.58.0 ]
+✔ Update node: node2 [ platformVersion = v0.58.3 ]
+✔ Update node: node3 [ platformVersion = v0.58.3 ]
+✔ Update node: node1 [ platformVersion = v0.58.3 ]
 ✔ Fetch platform software into network nodes
+✔ Copy configuration files
+✔ Copy configuration files
+✔ Copy configuration files
+✔ Set file permissions
+✔ Node: node1
 ✔ Set file permissions
 ✔ Node: node3
 ✔ Set file permissions
 ✔ Node: node2
-✔ Set file permissions
-✔ Node: node1
 ✔ Setup network nodes
-releasing lease
 ```
 
 * Start the nodes
@@ -270,7 +267,7 @@ solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -283,12 +280,12 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node2
 ✔ Identify existing network nodes
 ✔ Start node: node1
-✔ Start node: node2
 ✔ Start node: node3
+✔ Start node: node2
 ✔ Starting nodes
-✔ Check network pod: node3  - status ACTIVE, attempt: 19/120
-✔ Check network pod: node2  - status ACTIVE, attempt: 19/120
-✔ Check network pod: node1  - status ACTIVE, attempt: 19/120
+✔ Check network pod: node2  - status ACTIVE, attempt: 18/120
+✔ Check network pod: node1  - status ACTIVE, attempt: 18/120
+✔ Check network pod: node3  - status ACTIVE, attempt: 18/120
 ✔ Check all nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -298,7 +295,6 @@ Kubernetes Namespace	: solo
 ✔ Adding stake for node: node2
 ✔ Adding stake for node: node3
 ✔ Add node stakes
-releasing lease
 ```
 
 * Deploy mirror node
@@ -312,7 +308,7 @@ solo mirror-node deploy -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -333,7 +329,6 @@ Kubernetes Namespace	: solo
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
-releasing lease
 ```
 
 * Deploy a JSON RPC relay
@@ -347,7 +342,7 @@ solo relay deploy -i node1 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.99.0
+Version			: 0.33.0
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -358,7 +353,6 @@ Kubernetes Namespace	: solo
 ✔ Prepare chart values
 ✔ Deploy JSON RPC Relay
 ✔ Check relay is ready
-releasing lease
 ```
 
 You may view the list of pods using `k9s` as below:
