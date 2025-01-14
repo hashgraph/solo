@@ -107,10 +107,21 @@ export class RelayCommand extends BaseCommand {
 
     if (operatorID) {
       valuesArg += ` --set config.OPERATOR_ID_MAIN=${operatorID}`;
+    } else {
+      this.logger.info(`Use default operator id ${constants.OPERATOR_ID}`);
     }
 
     if (operatorKey) {
       valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKey}`;
+    } else {
+      //lookup the operator key from GENESIS ACCOUNT since it could have been changed
+      try {
+        const keys = await this.accountManager.getAccountKeys(constants.OPERATOR_ID);
+        const newOperatorKey = keys[0].toString();
+        valuesArg += ` --set config.OPERATOR_KEY_MAIN=${newOperatorKey}`;
+      } catch (e: Error | any) {
+        throw new SoloError(`Error getting operator key or relay node: ${e.message}`, e);
+      }
     }
 
     if (!nodeAliases) {

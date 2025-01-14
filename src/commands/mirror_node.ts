@@ -265,7 +265,13 @@ export class MirrorNodeCommand extends BaseCommand {
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.status.podIP}`;
 
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`;
-                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`;
+                try {
+                  const keys = await this.accountManager.getAccountKeys(constants.OPERATOR_ID);
+                  const newOperatorKey = keys[0].toString();
+                  ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${newOperatorKey}`;
+                } catch (e: Error | any) {
+                  throw new SoloError(`Failed to get operator key for mirror node monitor. ${e.message}`, e);
+                }
               }
             }
 
