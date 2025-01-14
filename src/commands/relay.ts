@@ -106,23 +106,15 @@ export class RelayCommand extends BaseCommand {
       valuesArg += ` --set replicaCount=${replicaCount}`;
     }
 
-    if (operatorID === constants.OPERATOR_ID) {
-      this.logger.info(`Use default operator id ${constants.OPERATOR_ID}`);
-    } else {
-      this.logger.info(`Use operator id from command line flag ${operatorID}`);
-    }
     valuesArg += ` --set config.OPERATOR_ID_MAIN=${operatorID}`;
 
     const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${constants.OPERATOR_ID}`]);
     if (secrets.length === 0) {
-      throw new SoloError(`No secret found for operator account id ${constants.OPERATOR_ID}`);
-    }
-    const operatorKeyFromK8 = Base64.decode(secrets[0].data.privateKey);
-    valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKeyFromK8}`;
-    if (operatorKeyFromK8 === constants.OPERATOR_KEY) {
-      this.logger.info(`Use default operator key ${constants.OPERATOR_KEY}`);
+      this.logger.info(`No k8s secret found for operator account id ${constants.OPERATOR_ID}, use default one`);
+      valuesArg += ` --set config.OPERATOR_KEY_MAIN=${constants.OPERATOR_KEY}`;
     } else {
-      this.logger.info('Use operator key from k8s secret');
+      const operatorKeyFromK8 = Base64.decode(secrets[0].data.privateKey);
+      valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKeyFromK8}`;
     }
 
     if (!nodeAliases) {

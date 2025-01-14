@@ -267,17 +267,19 @@ export class MirrorNodeCommand extends BaseCommand {
                 ctx.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.nodes.0.nodeId=0';
 
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`;
+
+                // get operatorKey from k8s secret since it could have been changed
                 const secrets = await self.k8.getSecretsByLabel([
                   `solo.hedera.com/account-id=${constants.OPERATOR_ID}`,
                 ]);
                 if (secrets.length === 0) {
-                  throw new SoloError(`No secret found for operator account id ${constants.OPERATOR_ID}`);
-                }
-                try {
+                  this.logger.info(
+                    `No secret found for operator account id ${constants.OPERATOR_ID} from k8s, use default one`,
+                  );
+                  ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`;
+                } else {
                   const operatorKeyFromK8 = Base64.decode(secrets[0].data.privateKey);
                   ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${operatorKeyFromK8}`;
-                } catch (e: Error | any) {
-                  throw new SoloError(`Failed to get operator key for mirror node monitor. ${e.message}`, e);
                 }
               }
             }
