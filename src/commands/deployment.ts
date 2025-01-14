@@ -14,29 +14,22 @@
  * limitations under the License.
  *
  */
-import {Listr, type ListrTaskWrapper} from 'listr2';
+import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
-import {Templates} from '../core/templates.js';
 import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import type {Namespace} from '../core/config/remote/types.js';
-import {type ContextClusterStructure} from '../types/config_types.js';
-import {type CommandFlag} from '../types/flag_types.js';
-import {type CommandBuilder} from '../types/aliases.js';
+import type {CommandFlag} from '../types/flag_types.js';
+import type {CommandBuilder} from '../types/aliases.js';
+import type {SoloListrTask} from '../types/index.js';
 
 export class DeploymentCommand extends BaseCommand {
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
-    return [
-      flags.quiet,
-      flags.namespace,
-      flags.userEmailAddress,
-      flags.deploymentClusters,
-      flags.contextClusterUnparsed,
-    ];
+    return [flags.quiet, flags.namespace, flags.userEmailAddress, flags.deploymentClusters];
   }
 
   private async create(argv: any): Promise<boolean> {
@@ -45,8 +38,6 @@ export class DeploymentCommand extends BaseCommand {
 
     interface Config {
       namespace: Namespace;
-      contextClusterUnparsed: string;
-      contextCluster: ContextClusterStructure;
     }
     interface Context {
       config: Config;
@@ -56,22 +47,15 @@ export class DeploymentCommand extends BaseCommand {
       [
         {
           title: 'Initialize',
-          task: async (ctx, task): Promise<Listr<Context, any, any>> => {
+          task: async (ctx, task) => {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [
-              flags.contextClusterUnparsed,
-              flags.namespace,
-              flags.deploymentClusters,
-            ]);
+            await self.configManager.executePrompt(task, [flags.namespace]);
 
             ctx.config = {
-              contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),
               namespace: self.configManager.getFlag<Namespace>(flags.namespace),
             } as Config;
-
-            ctx.config.contextCluster = Templates.parseContextCluster(ctx.config.contextClusterUnparsed);
 
             const namespace = ctx.config.namespace;
 
@@ -87,20 +71,22 @@ export class DeploymentCommand extends BaseCommand {
         this.localConfig.promptLocalConfigTask(self.k8),
         {
           title: 'Validate cluster connections',
-          task: async (ctx, task): Promise<Listr<Context, any, any>> => {
-            const subTasks = [];
+          task: async (_, task) => {
+            const subTasks: SoloListrTask<Context>[] = [];
 
-            for (const cluster of Object.keys(ctx.config.contextCluster)) {
-              subTasks.push({
-                title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
-                task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
-                  if (!(await self.k8.testClusterConnection(cluster))) {
-                    task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
+            for (const deployment of Object.values(self.localConfig.deployments)) {
+              for (const cluster of deployment.clusters) {
+                subTasks.push({
+                  title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
+                  task: async (_, task) => {
+                    if (!(await self.k8.testClusterConnection(cluster))) {
+                      task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
 
-                    throw new SoloError(`Cluster connection failed for: ${cluster}`);
-                  }
-                },
-              });
+                      throw new SoloError(`Cluster connection failed for: ${cluster}`);
+                    }
+                  },
+                });
+              }
             }
 
             return task.newListr(subTasks, {
@@ -119,7 +105,7 @@ export class DeploymentCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
     } finally {
       await lease.release();

@@ -15,5 +15,3 @@
  *
  */
 import type {Cluster, Context} from '../core/config/remote/types.js';
-
-export type ContextClusterStructure = Record<Context, Cluster>;
