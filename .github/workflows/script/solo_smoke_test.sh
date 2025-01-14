@@ -95,7 +95,7 @@ cd solo
 # then call solo account init before deploy mirror and relay node
 if [ -n "$1" ] && [ "$1" == "ACCOUNT_INIT" ]; then
   echo "Call solo account init"
-  solo account init -n solo-e2e
+  npm run solo-test -- account init -n solo-e2e
 
   task solo:mirror-node
 
