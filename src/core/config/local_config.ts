@@ -35,7 +35,6 @@ import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
-import {AnyObject} from '../../types/aliases.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {

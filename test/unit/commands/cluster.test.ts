@@ -147,7 +147,8 @@ describe('ClusterCommand unit tests', () => {
     const getBaseCommandOpts = (
       sandbox: sinon.SinonSandbox,
       remoteConfig: any = {},
-      // @ts-ignore
+
+      // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
       stubbedFlags: Record<CommandFlag, any>[] = [],
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
@@ -206,12 +207,13 @@ describe('ClusterCommand unit tests', () => {
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
-        // @ts-ignore
+
         tasks = new ClusterCommandTasks(command, opts.k8);
-        // @ts-ignore
+
+        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1.
         const taskObj = tasks.updateLocalConfig({});
-        // @ts-ignore
-        await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
+
+        await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
       }
 
@@ -249,7 +251,7 @@ describe('ClusterCommand unit tests', () => {
           },
         };
         const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -267,7 +269,7 @@ describe('ClusterCommand unit tests', () => {
           },
         };
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.context, 'provided-context']]);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -289,7 +291,7 @@ describe('ClusterCommand unit tests', () => {
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [
           [flags.context, 'provided-context-2,provided-context-3,provided-context-4'],
         ]);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -310,7 +312,7 @@ describe('ClusterCommand unit tests', () => {
           },
         };
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.quiet, true]]);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -331,7 +333,7 @@ describe('ClusterCommand unit tests', () => {
         };
         const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
 
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -347,13 +349,13 @@ describe('ClusterCommand unit tests', () => {
     describe('selectContext', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
-        // @ts-ignore
+
         tasks = new ClusterCommandTasks(command, opts.k8);
-        // @ts-ignore
+
+        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1
         const taskObj = tasks.selectContext({});
 
-        // @ts-ignore
-        await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
+        await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
       }
 
@@ -387,21 +389,21 @@ describe('ClusterCommand unit tests', () => {
           [flags.context, 'provided-context-1,provided-context-2,provided-context-3'],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('provided-context-1');
       });
 
       it('should use local config mapping to connect to first provided cluster', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-2,cluster-3']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected cluster is not found in local config mapping', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-3']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
       });
 
@@ -411,21 +413,21 @@ describe('ClusterCommand unit tests', () => {
           [flags.quiet, true],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
       });
 
       it('should use context from local config mapping for the first cluster from the selected deployment', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-2']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected deployment is found in local config but the context is not', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-3']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
       });
 
@@ -435,14 +437,14 @@ describe('ClusterCommand unit tests', () => {
           [flags.quiet, true],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
       });
 
       it('should prompt for clusters and contexts if selected deployment is not found in local config', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-4']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
       });
 
@@ -452,7 +454,7 @@ describe('ClusterCommand unit tests', () => {
           [flags.quiet, true],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
       });
     });
