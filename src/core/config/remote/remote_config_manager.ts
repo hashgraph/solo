@@ -221,6 +221,13 @@ export class RemoteConfigManager {
 
   /* ---------- Utilities ---------- */
 
+  /** Empties the component data inside the remote config */
+  public async deleteComponents() {
+    await this.modify(async remoteConfig => {
+      remoteConfig.components = ComponentsDataWrapper.initializeEmpty();
+    });
+  }
+
   public isLoaded(): boolean {
     return !!this.remoteConfig;
   }
