@@ -80,8 +80,8 @@ export class ClusterCommandTasks {
       task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
         const context = localConfig.clusterContextMapping[cluster];
         self.parent.getK8().setCurrentContext(context);
-        const remoteConfigFromOtherCLuster = await self.parent.getRemoteConfigManager().get();
-        if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCLuster)) {
+        const remoteConfigFromOtherCluster = await self.parent.getRemoteConfigManager().get();
+        if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
           throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentCluster.name, cluster));
         }
       },
