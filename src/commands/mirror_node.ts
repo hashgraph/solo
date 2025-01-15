@@ -29,7 +29,9 @@ import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
-import type {SoloListrTask} from '../types/index.js';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import type {Optional, SoloListrTask} from '../types/index.js';
 import type {Namespace} from '../core/config/remote/types.js';
 
 interface MirrorNodeDeployConfigClass {
@@ -51,6 +53,7 @@ interface MirrorNodeDeployConfigClass {
   clusterSetupNamespace: string;
   soloChartVersion: string;
   pinger: boolean;
+  customMirrorNodeDatabaseValuePath: Optional<string>;
   storageType: constants.StorageType;
   storageAccessKey: string;
   storageSecrets: string;
@@ -100,6 +103,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.pinger,
       flags.clusterSetupNamespace,
       flags.soloChartVersion,
+      flags.customMirrorNodeDatabaseValuePath,
       flags.storageType,
       flags.storageAccessKey,
       flags.storageSecrets,
@@ -128,46 +132,43 @@ export class MirrorNodeCommand extends BaseCommand {
   /**
    * @param config
    * @param config.tlsClusterIssuerType - must be one of - acme-staging, acme-prod, or self-signed
-   * @param config.enableHederaExplorerTls
    * @param config.namespace - used for classname ingress class name prefix
    * @param config.hederaExplorerTlsLoadBalancerIp - can be an empty string
    * @param config.hederaExplorerTlsHostName
    */
-  private prepareSoloChartSetupValuesArg(config: MirrorNodeDeployConfigClass) {
-    if (!config.enableHederaExplorerTls) return '';
-
-    const {
-      tlsClusterIssuerType,
-      enableHederaExplorerTls,
-      namespace,
-      hederaExplorerTlsLoadBalancerIp,
-      hederaExplorerTlsHostName,
-    } = config;
+  private async prepareSoloChartSetupValuesArg(config: MirrorNodeDeployConfigClass) {
+    const {tlsClusterIssuerType, namespace, hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName} = config;
 
     let valuesArg = '';
 
-    if (enableHederaExplorerTls) {
-      if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
-        throw new Error(
-          `Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`,
-        );
-      }
+    if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
+      throw new Error(
+        `Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`,
+      );
+    }
 
+    // Install ingress controller only if it's not already present
+    if (!(await this.k8.isIngressControllerInstalled())) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
+    }
 
-      if (hederaExplorerTlsLoadBalancerIp !== '') {
-        valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
-      }
+    if (!(await this.k8.isCertManagerInstalled())) {
+      valuesArg += ' --set cloud.certManager.enabled=true';
+      valuesArg += ' --set cert-manager.installCRDs=true';
+    }
 
-      if (tlsClusterIssuerType === 'self-signed') {
-        valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
-      } else {
-        valuesArg += ' --set acmeClusterIssuer.enabled=true';
-        valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
-      }
+    if (hederaExplorerTlsLoadBalancerIp !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
+    }
+
+    if (tlsClusterIssuerType === 'self-signed') {
+      valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
+    } else {
+      valuesArg += ' --set acmeClusterIssuer.enabled=true';
+      valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
 
     return valuesArg;
@@ -291,18 +292,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   },
                 },
                 {
-                  title: 'Deploy mirror-node',
-                  task: async ctx => {
-                    await self.chartManager.install(
-                      ctx.config.namespace,
-                      constants.MIRROR_NODE_RELEASE_NAME,
-                      ctx.config.chartPath,
-                      ctx.config.mirrorNodeVersion,
-                      ctx.config.valuesArg,
-                    );
-                  },
-                },
-                {
                   title: 'Upgrade solo-setup chart',
                   task: async ctx => {
                     const config = ctx.config;
@@ -314,7 +303,21 @@ export class MirrorNodeCommand extends BaseCommand {
                       constants.SOLO_CLUSTER_SETUP_CHART,
                     );
 
-                    const soloChartSetupValuesArg = self.prepareSoloChartSetupValuesArg(config);
+                    const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
+
+                    // if cert-manager isn't already installed we want to install it separate from the certificate issuers
+                    // as they will fail to be created due to the order of the installation being dependent on the cert-manager
+                    // being installed first
+                    if (soloChartSetupValuesArg.includes('cloud.certManager.enabled=true')) {
+                      await self.chartManager.upgrade(
+                        clusterSetupNamespace,
+                        constants.SOLO_CLUSTER_SETUP_CHART,
+                        chartPath,
+                        soloChartVersion,
+                        '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
+                      );
+                    }
+
                     await self.chartManager.upgrade(
                       clusterSetupNamespace,
                       constants.SOLO_CLUSTER_SETUP_CHART,
@@ -326,12 +329,38 @@ export class MirrorNodeCommand extends BaseCommand {
                   skip: ctx => !ctx.config.enableHederaExplorerTls,
                 },
                 {
+                  title: 'Deploy mirror-node',
+                  task: async ctx => {
+                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      if (!fs.existsSync(ctx.config.customMirrorNodeDatabaseValuePath)) {
+                        throw new SoloError('Path provided for custom mirror node database value is not found');
+                      }
+
+                      // Check if the file has a .yaml or .yml extension
+                      const fileExtension = path.extname(ctx.config.customMirrorNodeDatabaseValuePath);
+                      if (fileExtension !== '.yaml' && fileExtension !== '.yml') {
+                        throw new SoloError('The provided file is not a valid YAML file (.yaml or .yml)');
+                      }
+
+                      ctx.config.valuesArg += ` --values ${ctx.config.customMirrorNodeDatabaseValuePath}`;
+                    }
+
+                    await self.chartManager.install(
+                      ctx.config.namespace,
+                      constants.MIRROR_NODE_RELEASE_NAME,
+                      ctx.config.chartPath,
+                      ctx.config.mirrorNodeVersion,
+                      ctx.config.valuesArg,
+                    );
+                  },
+                },
+                {
                   title: 'Deploy hedera-explorer',
                   task: async ctx => {
                     const config = ctx.config;
 
-                    let exploreValuesArg = await self.prepareHederaExplorerValuesArg(config);
-                    exploreValuesArg += self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+                    let exploreValuesArg = self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+                    exploreValuesArg += await self.prepareHederaExplorerValuesArg(config);
 
                     await self.chartManager.install(
                       config.namespace,
@@ -365,6 +394,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       constants.PODS_READY_MAX_ATTEMPTS,
                       constants.PODS_READY_DELAY,
                     ),
+                  skip: ctx => !!ctx.config.customMirrorNodeDatabaseValuePath,
                 },
                 {
                   title: 'Check REST API',
@@ -432,7 +462,7 @@ export class MirrorNodeCommand extends BaseCommand {
               [
                 {
                   title: 'Insert data in public.file_data',
-                  task: async () => {
+                  task: async ctx => {
                     const namespace = self.configManager.getFlag<string>(flags.namespace) as string;
 
                     const feesFileIdNum = 111;
@@ -447,6 +477,11 @@ export class MirrorNodeCommand extends BaseCommand {
                       timestamp + '000001'
                     }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
+
+                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
+                      fs.writeFileSync(path.join(constants.SOLO_CACHE_DIR, 'database-seeding-query.sql'), sqlQuery);
+                      return;
+                    }
 
                     const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
                     if (pods.length === 0) {
@@ -499,9 +534,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     try {
       await tasks.run();
-      self.logger.debug('mirror node depolyment has completed');
+      self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      throw new SoloError(`Error deploying node: ${e.message}`, e);
+      const message = `Error deploying node: ${e.message}`;
+      self.logger.error(message, e);
+      throw new SoloError(message, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -620,13 +657,13 @@ export class MirrorNodeCommand extends BaseCommand {
             desc: 'Deploy mirror-node and its components',
             builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
             handler: argv => {
-              self.logger.debug("==== Running 'mirror-node deploy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'mirror-node deploy' ===");
+              self.logger.info(argv);
 
               self
                 .deploy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `mirror-node deploy`====');
+                  self.logger.info('==== Finished running `mirror-node deploy`====');
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
@@ -638,15 +675,15 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
-            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.namespace),
+            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.namespace),
             handler: argv => {
-              self.logger.debug("==== Running 'mirror-node destroy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'mirror-node destroy' ===");
+              self.logger.info(argv);
 
               self
                 .destroy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `mirror-node destroy`====');
+                  self.logger.info('==== Finished running `mirror-node destroy`====');
                   if (!r) process.exit(1);
                 })
                 .catch(err => {

@@ -64,7 +64,11 @@ import {RemoteConfigDataWrapper} from '../../../src/core/config/remote/remote_co
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
   helm: sinon.stub(),
-  k8: sinon.stub(),
+  k8: {
+    isMinioInstalled: sinon.stub().returns(false),
+    isPrometheusInstalled: sinon.stub().returns(false),
+    isCertManagerInstalled: sinon.stub().returns(false),
+  },
   chartManager: sinon.stub(),
   configManager: sinon.stub(),
   depManager: sinon.stub(),
@@ -167,6 +171,9 @@ describe('ClusterCommand unit tests', () => {
         {cluster: 'cluster-2', user: 'user-2', name: 'context-2', namespace: 'deployment-2'},
         {cluster: 'cluster-3', user: 'user-3', name: 'context-3', namespace: 'deployment-3'},
       ]);
+      k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
+      k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
+      k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
 
       if (opts.testClusterConnectionError) {
         k8Stub.testClusterConnection.resolves(false);
@@ -221,7 +228,7 @@ describe('ClusterCommand unit tests', () => {
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
-        tasks = new ClusterCommandTasks(command);
+        tasks = new ClusterCommandTasks(command, opts.k8);
         const taskObj = tasks.updateLocalConfig({});
         await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
@@ -359,7 +366,7 @@ describe('ClusterCommand unit tests', () => {
     describe('selectContext', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
-        tasks = new ClusterCommandTasks(command);
+        tasks = new ClusterCommandTasks(command, opts.k8);
         const taskObj = tasks.selectContext({});
         await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;

@@ -59,7 +59,7 @@ jobs:
     runs-on: solo-linux-medium
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+        uses: step-security/harden-runner@c95a14d0e5bab51a9f56296a4eb0e416910cd350 # v2.10.3
         with:
           egress-policy: audit
 
@@ -144,7 +144,7 @@ jobs:
       - name: Commit docs/content/User/StepByStepGuide.md Changes
         id: commit-readme
         if : ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() && inputs.commit-changes }}
-        uses: stefanzweifel/git-auto-commit-action@8621497c8c39c72f3e2a999a26b4ca1b5058a842 # v5.0.1
+        uses: stefanzweifel/git-auto-commit-action@e348103e9026cc0eee72ae06630dbe30c8bf7a79 # v5.1.0
         with:
           commit_message: "chore: auto update docs/content/User/StepByStepGuide.md"
           commit_options: '--no-verify --signoff'

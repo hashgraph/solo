@@ -423,6 +423,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly upgradeZipFile: CommandFlag = {
+    constName: 'upgradeZipFile',
+    name: 'upgrade-zip-file',
+    definition: {
+      describe: 'A zipped file used for network upgrade',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly releaseTag: CommandFlag = {
     constName: 'releaseTag',
     name: 'release-tag',
@@ -1516,6 +1527,17 @@ export class Flags {
     },
   };
 
+  static readonly customMirrorNodeDatabaseValuePath: CommandFlag = {
+    constName: 'customMirrorNodeDatabaseValuePath',
+    name: 'custom-mirror-node-database-values-path',
+    definition: {
+      describe: 'Path to custom mirror node database values',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly grpcTlsKeyPath: CommandFlag = {
     constName: 'grpcTlsKeyPath',
     name: 'grpc-tls-key',
@@ -1675,6 +1697,39 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly backupBucket: CommandFlag = {
+    constName: 'backupBucket',
+    name: 'backup-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of bucket for backing up state files',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly googleCredential: CommandFlag = {
+    constName: 'googleCredential',
+    name: 'google-credential',
+    definition: {
+      defaultValue: '',
+      describe: 'path of google credential file in json format',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly loadBalancerEnabled: CommandFlag = {
+    constName: 'loadBalancerEnabled',
+    name: 'load-balancer',
+    definition: {
+      describe: 'Enable load balancer for network node proxies',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.amount,
@@ -1727,6 +1782,7 @@ export class Flags {
     Flags.hederaExplorerTlsLoadBalancerIp,
     Flags.hederaExplorerVersion,
     Flags.inputDir,
+    Flags.loadBalancerEnabled,
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
@@ -1757,12 +1813,16 @@ export class Flags {
     Flags.storageSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
+    Flags.backupBucket,
+    Flags.googleCredential,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
     Flags.updateAccountKeys,
+    Flags.upgradeZipFile,
     Flags.userEmailAddress,
     Flags.valuesFile,
+    Flags.customMirrorNodeDatabaseValuePath,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

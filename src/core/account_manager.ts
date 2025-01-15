@@ -45,7 +45,7 @@ import {K8} from './k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
-import {sleep} from './helpers.js';
+import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
@@ -150,6 +150,7 @@ export class AccountManager {
 
     this._nodeClient = null;
     this._portForwards = [];
+    this.logger.debug('node client and port forwards have been closed');
   }
 
   /**
@@ -157,43 +158,58 @@ export class AccountManager {
    * @param namespace - the namespace of the network
    */
   async loadNodeClient(namespace: string) {
-    this.logger.debug(
-      `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
-    );
-    if (!this._nodeClient || this._nodeClient?.isClientShutDown) {
+    try {
       this.logger.debug(
-        `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
+        `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
       );
-      await this.refreshNodeClient(namespace);
-    } else {
-      try {
-        await this._nodeClient.ping(this._nodeClient.operatorAccountId);
-      } catch {
-        this.logger.debug('node client ping failed, refreshing node client');
+      if (!this._nodeClient || this._nodeClient?.isClientShutDown) {
+        this.logger.debug(
+          `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
+        );
         await this.refreshNodeClient(namespace);
+      } else {
+        try {
+          await this._nodeClient.ping(this._nodeClient.operatorAccountId);
+        } catch {
+          this.logger.debug('node client ping failed, refreshing node client');
+          await this.refreshNodeClient(namespace);
+        }
       }
-    }
 
-    return this._nodeClient!;
+      return this._nodeClient!;
+    } catch (e) {
+      const message = `failed to load node client: ${e.message}`;
+      this.logger.error(message, e);
+      throw new SoloError(message, e);
+    }
   }
 
   /**
-   * loads and initializes the Node Client
+   * loads and initializes the Node Client, throws a SoloError if anything fails
    * @param namespace - the namespace of the network
    * @param skipNodeAlias - the node alias to skip
    */
   async refreshNodeClient(namespace: string, skipNodeAlias?: NodeAlias) {
-    await this.close();
-    const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
-    const networkNodeServicesMap = await this.getNodeServiceMap(namespace);
+    try {
+      await this.close();
+      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
+      const networkNodeServicesMap = await this.getNodeServiceMap(namespace);
 
-    this._nodeClient = await this._getNodeClient(
-      namespace,
-      networkNodeServicesMap,
-      treasuryAccountInfo.accountId,
-      treasuryAccountInfo.privateKey,
-      skipNodeAlias,
-    );
+      this._nodeClient = await this._getNodeClient(
+        namespace,
+        networkNodeServicesMap,
+        treasuryAccountInfo.accountId,
+        treasuryAccountInfo.privateKey,
+        skipNodeAlias,
+      );
+
+      this.logger.debug('node client has been refreshed');
+      return this._nodeClient;
+    } catch (e) {
+      const message = `failed to refresh node client: ${e.message}`;
+      this.logger.error(message, e);
+      throw new SoloError(message, e);
+    }
   }
 
   /**
@@ -238,6 +254,7 @@ export class AccountManager {
           localPort++;
         }
       }
+      this.logger.debug(`configuring node access for ${configureNodeAccessPromiseArray.length} nodes`);
 
       await Promise.allSettled(configureNodeAccessPromiseArray).then(results => {
         for (const result of results) {
@@ -250,10 +267,11 @@ export class AccountManager {
           }
         }
       });
+      this.logger.debug(`configured node access for ${Object.keys(nodes).length} nodes`);
 
       let formattedNetworkConnection = '';
       Object.keys(nodes).forEach(key => (formattedNetworkConnection += `${key}:${nodes[key]}, `));
-      this.logger.debug(`creating client from network configuration: [${formattedNetworkConnection}]`);
+      this.logger.info(`creating client from network configuration: [${formattedNetworkConnection}]`);
 
       // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work
       // when running locally or in a pipeline
@@ -303,38 +321,45 @@ export class AccountManager {
   }
 
   private async configureNodeAccess(networkNodeService: NetworkNodeServices, localPort: number, totalNodes: number) {
+    this.logger.debug(`configuring node access for node: ${networkNodeService.nodeAlias}`);
     const obj = {} as Record<SdkNetworkEndpoint, AccountId>;
     const port = +networkNodeService.haProxyGrpcPort;
     const accountId = AccountId.fromString(networkNodeService.accountId as string);
 
-    // if the load balancer IP is set, then we should use that and avoid the local host port forward
-    if (!this.shouldUseLocalHostPortForward(networkNodeService)) {
-      const host = networkNodeService.haProxyLoadBalancerIp as string;
-      const targetPort = port;
-      try {
-        obj[`${host}:${targetPort}`] = accountId;
-        await this.pingNetworkNode(obj, accountId);
+    try {
+      // if the load balancer IP is set, then we should use that and avoid the local host port forward
+      if (!this.shouldUseLocalHostPortForward(networkNodeService)) {
+        const host = networkNodeService.haProxyLoadBalancerIp as string;
+        const targetPort = port;
         this.logger.debug(`using load balancer IP: ${host}:${targetPort}`);
 
-        return obj;
-      } catch {
-        // if the connection fails, then we should use the local host port forward
+        try {
+          obj[`${host}:${targetPort}`] = accountId;
+          await this.pingNetworkNode(obj, accountId);
+          this.logger.debug(`successfully pinged network node: ${host}:${targetPort}`);
+
+          return obj;
+        } catch {
+          // if the connection fails, then we should use the local host port forward
+        }
       }
+      // if the load balancer IP is not set or the test connection fails, then we should use the local host port forward
+      const host = '127.0.0.1';
+      const targetPort = localPort;
+
+      if (this._portForwards.length < totalNodes) {
+        this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
+      }
+
+      this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
+      obj[`${host}:${targetPort}`] = accountId;
+
+      await this.testNodeClientConnection(obj, accountId);
+
+      return obj;
+    } catch (e) {
+      throw new SoloError(`failed to configure node access: ${e.message}`, e);
     }
-    // if the load balancer IP is not set or the test connection fails, then we should use the local host port forward
-    const host = '127.0.0.1';
-    const targetPort = localPort;
-
-    if (this._portForwards.length < totalNodes) {
-      this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
-    }
-
-    this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
-    obj[`${host}:${targetPort}`] = accountId;
-
-    await this.testNodeClientConnection(obj, accountId);
-
-    return obj;
   }
 
   /**
@@ -351,26 +376,37 @@ export class AccountManager {
     let currentRetry = 0;
     let success = false;
 
-    while (!success && currentRetry < maxRetries) {
-      try {
-        this.logger.debug(
-          `attempting to ping network node: ${Object.keys(obj)[0]}, attempt: ${currentRetry}, of ${maxRetries}`,
-        );
-        await this.pingNetworkNode(obj, accountId);
-        success = true;
-      } catch (e: Error | any) {
-        this.logger.error(`failed to ping network node: ${Object.keys(obj)[0]}, ${e.message}`);
-        currentRetry++;
-        await sleep(Duration.ofMillis(sleepInterval));
+    try {
+      while (!success && currentRetry < maxRetries) {
+        try {
+          this.logger.debug(
+            `attempting to ping network node: ${Object.keys(obj)[0]}, attempt: ${currentRetry}, of ${maxRetries}`,
+          );
+          await this.pingNetworkNode(obj, accountId);
+          success = true;
+
+          return;
+        } catch (e: Error | any) {
+          this.logger.error(`failed to ping network node: ${Object.keys(obj)[0]}, ${e.message}`);
+          currentRetry++;
+          await sleep(Duration.ofMillis(sleepInterval));
+        }
       }
+    } catch (e) {
+      const message = `failed testing node client connection for network node: ${Object.keys(obj)[0]}, after ${maxRetries} retries: ${e.message}`;
+      this.logger.error(message, e);
+      throw new SoloError(message, e);
     }
+
     if (currentRetry >= maxRetries) {
       throw new SoloError(`failed to ping network node: ${Object.keys(obj)[0]}, after ${maxRetries} retries`);
     }
+
+    return;
   }
 
   /**
-   * Gets a Map of the Hedera node services and the attributes needed
+   * Gets a Map of the Hedera node services and the attributes needed, throws a SoloError if anything fails
    * @param namespace - the namespace of the solo network deployment
    * @returns a map of the network node services
    */
@@ -379,100 +415,127 @@ export class AccountManager {
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
-    const serviceList = await this.k8.kubeClient.listNamespacedService(
-      namespace,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector,
-    );
-
-    // retrieve the list of services and build custom objects for the attributes we need
-    for (const service of serviceList.body.items) {
-      const serviceType = service.metadata.labels['solo.hedera.com/type'];
-      let serviceBuilder = new NetworkNodeServicesBuilder(
-        service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
-      );
-
-      if (serviceBuilderMap.has(serviceBuilder.key())) {
-        serviceBuilder = serviceBuilderMap.get(serviceBuilder.key()) as NetworkNodeServicesBuilder;
-      }
-
-      switch (serviceType) {
-        // solo.hedera.com/type: envoy-proxy-svc
-        case 'envoy-proxy-svc':
-          serviceBuilder
-            .withEnvoyProxyName(service.metadata!.name as string)
-            .withEnvoyProxyClusterIp(service.spec!.clusterIP as string)
-            .withEnvoyProxyLoadBalancerIp(
-              service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
-            )
-            .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port);
-          break;
-        // solo.hedera.com/type: haproxy-svc
-        case 'haproxy-svc':
-          serviceBuilder
-            .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
-            .withHaProxyAppSelector(service.spec!.selector!.app)
-            .withHaProxyName(service.metadata!.name as string)
-            .withHaProxyClusterIp(service.spec!.clusterIP as string)
-            // @ts-ignore
-            .withHaProxyLoadBalancerIp(
-              service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
-            )
-            .withHaProxyGrpcPort(service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port)
-            .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port);
-          break;
-        // solo.hedera.com/type: network-node-svc
-        case 'network-node-svc':
-          serviceBuilder
-            .withNodeServiceName(service.metadata!.name as string)
-            .withNodeServiceClusterIp(service.spec!.clusterIP as string)
-            .withNodeServiceLoadBalancerIp(
-              service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
-            )
-            .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
-            .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
-            .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
-          break;
-      }
-      serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder);
-    }
-
-    // get the pod name for the service to use with portForward if needed
-    for (const serviceBuilder of serviceBuilderMap.values()) {
-      const podList = await this.k8.kubeClient.listNamespacedPod(
+    try {
+      const serviceList = await this.k8.kubeClient.listNamespacedService(
         namespace,
         undefined,
         undefined,
         undefined,
         undefined,
-        `app=${serviceBuilder.haProxyAppSelector}`,
+        labelSelector,
       );
-      serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name as PodName);
-    }
 
-    // get the pod name of the network node
-    const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-    for (const pod of pods) {
-      // eslint-disable-next-line no-prototype-builtins
-      if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
-        // TODO Review why this fixes issue
-        continue;
+      let nodeId = '0';
+      // retrieve the list of services and build custom objects for the attributes we need
+      for (const service of serviceList.body.items) {
+        let serviceBuilder = new NetworkNodeServicesBuilder(
+          service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
+        );
+
+        if (serviceBuilderMap.has(serviceBuilder.key())) {
+          serviceBuilder = serviceBuilderMap.get(serviceBuilder.key()) as NetworkNodeServicesBuilder;
+        } else {
+          serviceBuilder = new NetworkNodeServicesBuilder(
+            service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
+          );
+          serviceBuilder.withNamespace(namespace);
+        }
+
+        const serviceType = service.metadata.labels['solo.hedera.com/type'];
+        switch (serviceType) {
+          // solo.hedera.com/type: envoy-proxy-svc
+          case 'envoy-proxy-svc':
+            serviceBuilder
+              .withEnvoyProxyName(service.metadata!.name as string)
+              .withEnvoyProxyClusterIp(service.spec!.clusterIP as string)
+              .withEnvoyProxyLoadBalancerIp(
+                service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
+              )
+              .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port);
+            break;
+          // solo.hedera.com/type: haproxy-svc
+          case 'haproxy-svc':
+            serviceBuilder
+              .withHaProxyAppSelector(service.spec!.selector!.app)
+              .withHaProxyName(service.metadata!.name as string)
+              .withHaProxyClusterIp(service.spec!.clusterIP as string)
+              // @ts-ignore
+              .withHaProxyLoadBalancerIp(
+                service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
+              )
+              .withHaProxyGrpcPort(
+                service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port,
+              )
+              .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port);
+            break;
+          // solo.hedera.com/type: network-node-svc
+          case 'network-node-svc':
+            if (
+              service.metadata!.labels!['solo.hedera.com/node-id'] !== '' &&
+              isNumeric(service.metadata!.labels!['solo.hedera.com/node-id'])
+            ) {
+              nodeId = service.metadata!.labels!['solo.hedera.com/node-id'];
+            } else {
+              nodeId = `${Templates.nodeIdFromNodeAlias(service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias)}`;
+              this.logger.warn(
+                `received an incorrect node id of ${service.metadata!.labels!['solo.hedera.com/node-id']} for ` +
+                  `${service.metadata.labels['solo.hedera.com/node-name']}`,
+              );
+            }
+
+            serviceBuilder
+              .withNodeId(nodeId)
+              .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
+              .withNodeServiceName(service.metadata!.name as string)
+              .withNodeServiceClusterIp(service.spec!.clusterIP as string)
+              .withNodeServiceLoadBalancerIp(
+                service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
+              )
+              .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
+              .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
+              .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
+            break;
+        }
+        serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder);
       }
-      const podName = pod.metadata!.name;
-      const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
-      const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
-      serviceBuilder.withNodePodName(podName as PodName);
-    }
 
-    const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
-    for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
-      serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build());
-    }
+      // get the pod name for the service to use with portForward if needed
+      for (const serviceBuilder of serviceBuilderMap.values()) {
+        const podList = await this.k8.kubeClient.listNamespacedPod(
+          namespace,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          `app=${serviceBuilder.haProxyAppSelector}`,
+        );
+        serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name as PodName);
+      }
 
-    return serviceMap;
+      // get the pod name of the network node
+      const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+      for (const pod of pods) {
+        // eslint-disable-next-line no-prototype-builtins
+        if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
+          // TODO Review why this fixes issue
+          continue;
+        }
+        const podName = pod.metadata!.name;
+        const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
+        const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
+        serviceBuilder.withNodePodName(podName as PodName);
+      }
+
+      const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
+      for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
+        serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build());
+      }
+
+      this.logger.debug('node services have been loaded');
+      return serviceMap;
+    } catch (e) {
+      throw new SoloError(`failed to get node services: ${e.message}`, e);
+    }
   }
 
   /**
@@ -851,20 +914,37 @@ export class AccountManager {
   }
 
   /**
-   * Pings the network node with a grpc call to ensure it is working
+   * Pings the network node with a grpc call to ensure it is working, throws a SoloError if the ping fails
    * @param obj - the network node object where the key is the network endpoint and the value is the account id
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
    * @private
    */
   private async pingNetworkNode(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
-    const nodeClient = Client.fromConfig({network: obj, scheduleNetworkUpdate: false});
+    let nodeClient: Client;
     try {
-      await nodeClient.ping(accountId);
-    } catch (e: Error | any) {
+      nodeClient = Client.fromConfig({network: obj, scheduleNetworkUpdate: false});
+      this.logger.debug(`pinging network node: ${Object.keys(obj)[0]}`);
+      try {
+        await nodeClient.ping(accountId);
+        this.logger.debug(`ping successful for network node: ${Object.keys(obj)[0]}`);
+      } catch (e) {
+        const message = `failed to ping network node: ${Object.keys(obj)[0]} ${e.message}`;
+        this.logger.error(message, e);
+        throw new SoloError(message, e);
+      }
+
+      return;
+    } catch (e) {
       throw new SoloError(`failed to ping network node: ${Object.keys(obj)[0]} ${e.message}`, e);
     } finally {
-      nodeClient.close();
+      if (nodeClient) {
+        try {
+          nodeClient.close();
+        } catch {
+          // continue if nodeClient.close() fails
+        }
+      }
     }
   }
 }

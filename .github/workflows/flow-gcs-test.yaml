@@ -38,7 +38,7 @@ jobs:
         storageType: ["gcs_only", "gcs_and_minio"]
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+        uses: step-security/harden-runner@c95a14d0e5bab51a9f56296a4eb0e416910cd350 # v2.10.3
         with:
           egress-policy: audit
 
@@ -68,6 +68,10 @@ jobs:
           export BUCKET_NAME=${{ steps.jobs.outputs.job_id }}-solo-streams
           gcloud storage buckets create gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
           echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
+          
+          export BACKUP_BUCKET_NAME=${{ steps.jobs.outputs.job_id }}-solo-backups
+          gcloud storage buckets create gs://${BACKUP_BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
+          echo "BACKUP_BUCKET_NAME=${BACKUP_BUCKET_NAME}" >> $GITHUB_ENV
 
       - name: Setup Node
         uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
@@ -81,7 +85,7 @@ jobs:
           version: "v3.12.3" # helm version
 
       - name: Setup Kind
-        uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+        uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
         with:
           install_only: true
           node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
@@ -99,15 +103,18 @@ jobs:
       - name: Compile Project
         run: npm run build
 
-      - name: Run GCS Test Script for type ${{ matrix.channel }}
+      - name: Run GCS Test Script for type ${{ matrix.storageType }}
         env:
           GCS_ACCESS_KEY: ${{ secrets.GCP_S3_ACCESS_KEY }}
           GCS_SECRET_KEY: ${{ secrets.GCP_S3_SECRET_KEY }}
           BUCKET_NAME: ${{ env.BUCKET_NAME }}
+          BACKUP_BUCKET_NAME: ${{ env.BACKUP_BUCKET_NAME }}
           STORAGE_TYPE: ${{ matrix.storageType }}
+          GCP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.GCP_SERVICE_ACCOUNT_TOKEN }}
         run: |
           .github/workflows/script/gcs_test.sh
 
       - name: Delete Bucket after Test
         run: |
           gcloud storage rm --recursive gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }} 
+          gcloud storage rm --recursive gs://${BACKUP_BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}

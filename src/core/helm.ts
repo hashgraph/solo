@@ -49,7 +49,7 @@ export class Helm extends ShellRunner {
    * @returns console output as an array of strings
    */
   install(...args: string[]) {
-    return this.run(this.prepareCommand('install', ...args));
+    return this.run(this.prepareCommand('install', ...args), true);
   }
 
   /**
@@ -58,7 +58,7 @@ export class Helm extends ShellRunner {
    * @returns console output as an array of strings
    */
   uninstall(...args: string[]) {
-    return this.run(this.prepareCommand('uninstall', ...args));
+    return this.run(this.prepareCommand('uninstall', ...args), true);
   }
 
   /**
@@ -67,7 +67,7 @@ export class Helm extends ShellRunner {
    * @returns console output as an array of strings
    */
   upgrade(...args: string[]) {
-    return this.run(this.prepareCommand('upgrade', ...args));
+    return this.run(this.prepareCommand('upgrade', ...args), true);
   }
 
   /**

@@ -77,6 +77,7 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
     });
 
     if (!confirm) {
+      // eslint-disable-next-line n/no-process-exit
       process.exit(0);
     }
   }

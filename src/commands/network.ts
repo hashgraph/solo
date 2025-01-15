@@ -16,7 +16,7 @@
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
-import {Listr, type ListrTask} from 'listr2';
+import {Listr} from 'listr2';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
@@ -38,15 +38,17 @@ import {ConsensusNodeComponent} from '../core/config/remote/components/consensus
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
-import {GenesisNetworkDataConstructor} from '../core/genesis_network_models/genesis_network_data_constructor.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
+import type {SoloListrTask} from '../types/index.js';
+import type {Namespace} from '../core/config/remote/types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
   cacheDir: string;
   chartDirectory: string;
   enablePrometheusSvcMonitor: boolean;
+  loadBalancerEnabled: boolean;
   soloChartVersion: string;
   namespace: string;
   nodeAliasesUnparsed: string;
@@ -64,7 +66,6 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
-  genesisNetworkData: GenesisNetworkDataConstructor;
   genesisThrottlesFile: string;
   resolvedThrottlesFile: string;
   getUnusedConfigs: () => string[];
@@ -77,6 +78,8 @@ export interface NetworkDeployConfigClass {
   storageSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
+  backupBucket: string;
+  googleCredential: string;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -123,6 +126,7 @@ export class NetworkCommand extends BaseCommand {
       flags.enablePrometheusSvcMonitor,
       flags.soloChartVersion,
       flags.debugNodeAlias,
+      flags.loadBalancerEnabled,
       flags.log4j2Xml,
       flags.namespace,
       flags.nodeAliasesUnparsed,
@@ -144,6 +148,8 @@ export class NetworkCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.backupBucket,
+      flags.googleCredential,
     ];
   }
 
@@ -207,6 +213,23 @@ export class NetworkCommand extends BaseCommand {
           `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
         );
       }
+      // generate backup uploader secret
+      if (config.googleCredential) {
+        const backupData = {};
+        const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
+        backupData['saJson'] = Base64.encode(googleCredential);
+        const isBackupSecretCreated = await this.k8.createSecret(
+          constants.BACKUP_SECRET_NAME,
+          namespace,
+          'Opaque',
+          backupData,
+          undefined,
+          true,
+        );
+        if (!isBackupSecretCreated) {
+          throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
+        }
+      }
     } catch (e: Error | any) {
       const errorMessage = 'failed to create Kubernetes storage secret ';
       this.logger.error(errorMessage, e);
@@ -225,13 +248,15 @@ export class NetworkCommand extends BaseCommand {
     valuesFile?: string;
     haproxyIpsParsed?: Record<NodeAlias, IP>;
     envoyIpsParsed?: Record<NodeAlias, IP>;
-    genesisNetworkData: GenesisNetworkDataConstructor;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
     storageAccessKey: string;
     storageSecrets: string;
     storageEndpoint: string;
     storageBucket: string;
+    backupBucket: string;
+    googleCredential: string;
+    loadBalancerEnabled: boolean;
   }) {
     let valuesArg = config.chartDirectory
       ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
@@ -279,16 +304,18 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
     }
+
+    if (config.backupBucket) {
+      valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
+      valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+    }
+
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
-      profileName,
-      config.genesisNetworkData,
-    );
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
     if (this.profileValuesFile) {
       valuesArg += this.prepareValuesFiles(this.profileValuesFile);
     }
 
-    // do not deploy mirror node until after we have the updated address book
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
@@ -315,6 +342,11 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
     }
 
+    if (config.loadBalancerEnabled) {
+      valuesArg += ' --set "defaults.haproxy.serviceType=LoadBalancer"';
+      valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
+    }
+
     if (config.valuesFile) {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
@@ -339,6 +371,7 @@ export class NetworkCommand extends BaseCommand {
       flags.chainId,
       flags.chartDirectory,
       flags.debugNodeAlias,
+      flags.loadBalancerEnabled,
       flags.log4j2Xml,
       flags.persistentVolumeClaims,
       flags.profileName,
@@ -391,12 +424,6 @@ export class NetworkCommand extends BaseCommand {
     config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
     config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
-
-    config.genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
-      config.nodeAliases,
-      this.keyManager,
-      config.keysDir,
-    );
 
     config.resolvedThrottlesFile = resolveValidJsonFilePath(
       config.genesisThrottlesFile,
@@ -747,10 +774,15 @@ export class NetworkCommand extends BaseCommand {
                 self.logger.error(message);
                 self.logger.showUser(chalk.red(message));
                 networkDestroySuccess = false;
+
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
                   self.k8.deleteNamespace(ctx.config.namespace);
+                } else {
+                  // If the namespace is not being deleted,
+                  // remove all components data from the remote configuration
+                  self.remoteConfigManager.deleteComponents();
                 }
-              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000);
+              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
 
               await self.destroyTask(ctx, task);
 
@@ -769,7 +801,7 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError('Error destroying network', e);
     } finally {
       await lease.release();
@@ -812,7 +844,11 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Waiting for network pods to be running',
           task: async () => {
-            await this.k8.waitForPods([constants.POD_PHASE_RUNNING], ['solo.hedera.com/type=network-node'], 1);
+            await this.k8.waitForPods(
+              [constants.POD_PHASE_RUNNING],
+              ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
+              1,
+            );
           },
         },
       ],
@@ -845,13 +881,13 @@ export class NetworkCommand extends BaseCommand {
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'network deploy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'network deploy' ===");
+              self.logger.info(argv);
 
               self
                 .deploy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `network deploy`====');
+                  self.logger.info('==== Finished running `network deploy`====');
 
                   if (!r) process.exit(1);
                 })
@@ -875,13 +911,13 @@ export class NetworkCommand extends BaseCommand {
                 flags.quiet,
               ),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'network destroy' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'network destroy' ===");
+              self.logger.info(argv);
 
               self
                 .destroy(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `network destroy`====');
+                  self.logger.info('==== Finished running `network destroy`====');
 
                   if (!r) process.exit(1);
                 })
@@ -896,13 +932,13 @@ export class NetworkCommand extends BaseCommand {
             desc: 'Refresh solo network deployment',
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: (argv: any) => {
-              self.logger.debug("==== Running 'chart upgrade' ===");
-              self.logger.debug(argv);
+              self.logger.info("==== Running 'chart upgrade' ===");
+              self.logger.info(argv);
 
               self
                 .refresh(argv)
                 .then(r => {
-                  self.logger.debug('==== Finished running `chart upgrade`====');
+                  self.logger.info('==== Finished running `chart upgrade`====');
 
                   if (!r) process.exit(1);
                 })
@@ -918,7 +954,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public addNodesAndProxies(): ListrTask<any, any, any> {
+  public addNodesAndProxies(): SoloListrTask<{config: {namespace: Namespace; nodeAliases: NodeAliases}}> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

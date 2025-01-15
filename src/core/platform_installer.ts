@@ -32,6 +32,7 @@ import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import {HEDERA_HGCAPP_DIR} from './constants.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -265,7 +266,7 @@ export class PlatformInstaller {
     if (!podName) throw new MissingArgumentError('podName is required');
 
     try {
-      const destPaths = [constants.HEDERA_HAPI_PATH];
+      const destPaths = [constants.HEDERA_HAPI_PATH, constants.HEDERA_HGCAPP_DIR];
 
       for (const destPath of destPaths) {
         await self.setPathPermission(podName, destPath);
@@ -278,10 +279,14 @@ export class PlatformInstaller {
   }
 
   /** Return a list of task to perform node directory setup */
-  taskSetup(podName: PodName) {
+  taskSetup(podName: PodName, stagingDir: string, isGenesis: boolean) {
     const self = this;
     return new Listr(
       [
+        {
+          title: 'Copy configuration files',
+          task: async () => await self.copyConfigurationFiles(stagingDir, podName, isGenesis),
+        },
         {
           title: 'Set file permissions',
           task: async () => await self.setPlatformDirPermissions(podName),
@@ -294,6 +299,20 @@ export class PlatformInstaller {
         },
       },
     );
+  }
+
+  /**
+   * Copy configuration files to the network consensus node pod
+   * @param stagingDir - staging directory path
+   * @param podName - network consensus node pod name
+   * @param isGenesis - true if this is `solo node setup` and we are at genesis
+   * @private
+   */
+  private async copyConfigurationFiles(stagingDir: string, podName: `network-node${number}-0`, isGenesis: boolean) {
+    if (isGenesis) {
+      const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
+      await this.copyFiles(podName, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);
+    }
   }
 
   /**
