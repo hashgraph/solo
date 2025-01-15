@@ -109,3 +109,12 @@ start_contract_test
 start_sdk_test
 echo "Sleep a while to wait background transactions to finish"
 sleep 30
+
+# get the logs of mirror-monitor
+kubectl get pods -n solo-e2e | grep mirror-monitor | awk '{print $1}' | xargs kubectl logs -n solo-e2e > mirror-monitor.log
+
+if grep -q "ERROR" mirror-monitor.log; then
+  echo "mirror-monitor.log contains ERROR"
+  exit 1
+fi
+
