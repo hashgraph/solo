@@ -31,6 +31,8 @@ import {RemoteConfigManager} from '../../core/config/remote/remote_config_manage
 import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {type K8} from '../../core/k8.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {type LocalConfig} from '../../core/config/local_config.js';
+import {Cluster} from "@kubernetes/client-node/dist/config_types.js";
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -42,7 +44,7 @@ export class ClusterCommandTasks {
     this.parent = parent;
   }
 
-  testConnectionToCluster(cluster, localConfig, parentTask) {
+  testConnectionToCluster(cluster: string, localConfig: LocalConfig, parentTask: ListrTaskWrapper<Context, any, any>) {
     const self = this;
     return {
       title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
@@ -66,7 +68,12 @@ export class ClusterCommandTasks {
     };
   }
 
-  validateRemoteConfigForCluster(cluster, currentCluster, localConfig, currentRemoteConfig) {
+  validateRemoteConfigForCluster(
+    cluster: string,
+    currentCluster: Cluster,
+    localConfig: LocalConfig,
+    currentRemoteConfig: RemoteConfigDataWrapper,
+  ) {
     const self = this;
     return {
       title: `Pull and validate remote configuration for cluster: ${chalk.cyan(cluster)}`,
@@ -88,9 +95,7 @@ export class ClusterCommandTasks {
       task: async (ctx, task) => {
         const localConfig = this.parent.getLocalConfig();
         const currentCluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
-        let currentRemoteConfig: RemoteConfigDataWrapper;
-
-        currentRemoteConfig = await this.parent.getRemoteConfigManager().get();
+        const currentRemoteConfig: RemoteConfigDataWrapper = await this.parent.getRemoteConfigManager().get();
         const subTasks = [];
         const remoteConfigClusters = Object.keys(currentRemoteConfig.clusters);
         const otherRemoteConfigClusters: string[] = remoteConfigClusters.filter(c => c !== currentCluster.name);
