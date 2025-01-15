@@ -11,14 +11,6 @@ set -eo pipefail
 
 source .github/workflows/script/helper.sh
 
-function enable_port_forward ()
-{
-  kubectl port-forward -n solo-e2e svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
-  kubectl port-forward -n solo-e2e svc/hedera-explorer 8080:80 > /dev/null 2>&1 &
-  kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &
-  kubectl port-forward -n solo-e2e svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &
-}
-
 function clone_smart_contract_repo ()
 {
   echo "Clone hedera-smart-contracts"
@@ -48,6 +40,17 @@ function setup_smart_contract_test ()
   echo "MAX_RETRY=5" >> .env
   cat .env
   cd -
+}
+
+function check_port_forward ()
+{
+  # run background task for few minutes
+  for i in {1..20}
+  do
+    echo "Check port forward"
+    ps -ef |grep port-forward
+    sleep 5
+  done &
 }
 
 function start_background_transactions ()
@@ -83,17 +86,13 @@ function start_sdk_test ()
   return $result
 }
 
-echo "Restart port-forward"
-task clean:port-forward
-enable_port_forward
-
-
 echo "Change to parent directory"
 cd ../
 create_test_account
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions
+check_port_forward
 start_contract_test
 start_sdk_test
 echo "Sleep a while to wait background transactions to finish"
