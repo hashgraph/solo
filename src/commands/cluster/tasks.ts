@@ -37,6 +37,45 @@ export class ClusterCommandTasks {
     this.parent = parent;
   }
 
+  testConnectionToCluster(cluster, localConfig, parentTask) {
+    const self = this;
+    return {
+      title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
+      task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
+        let context = localConfig.clusterContextMapping[cluster];
+        if (!context) {
+          const isQuiet = self.parent.getConfigManager().getFlag(flags.quiet);
+          if (isQuiet) {
+            context = self.parent.getK8().getKubeConfig().currentContext;
+          } else {
+            context = await self.promptForContext(parentTask, cluster);
+          }
+
+          localConfig.clusterContextMapping[cluster] = context;
+        }
+        if (!(await self.parent.getK8().testClusterConnection(context, cluster))) {
+          subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
+          throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
+        }
+      },
+    };
+  }
+
+  validateRemoteConfigForCluster(cluster, currentCluster, localConfig, currentRemoteConfig) {
+    const self = this;
+    return {
+      title: `Pull and validate remote configuration for cluster: ${chalk.cyan(cluster)}`,
+      task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
+        const context = localConfig.clusterContextMapping[cluster];
+        self.parent.getK8().setCurrentContext(context);
+        const remoteConfigFromOtherCLuster = await self.parent.getRemoteConfigManager().get();
+        if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCLuster)) {
+          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentCluster.name, cluster));
+        }
+      },
+    };
+  }
+
   readClustersFromRemoteConfig(argv) {
     const self = this;
     return {
@@ -53,43 +92,12 @@ export class ClusterCommandTasks {
 
         // Validate connections for the other clusters
         for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push({
-            title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
-            task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
-              let context = localConfig.clusterContextMapping[cluster];
-              if (!context) {
-                const isQuiet = this.parent.getConfigManager().getFlag(flags.quiet);
-                if (isQuiet) {
-                  context = this.parent.getK8().getKubeConfig().currentContext;
-                } else {
-                  context = await this.promptForContext(task, cluster);
-                }
-
-                localConfig.clusterContextMapping[cluster] = context;
-              }
-              if (!(await self.parent.getK8().testClusterConnection(context, cluster))) {
-                subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
-                throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(context, cluster)}.
-                Please select a valid context for the cluster or use kubectl to create a new context and try again`);
-              }
-            },
-          });
+          subTasks.push(self.testConnectionToCluster(cluster, localConfig, task));
         }
 
         // Pull and validate RemoteConfigs from the other clusters
         for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push({
-            title: `Pull and validate remote configuration for cluster: ${chalk.cyan(cluster)}`,
-            task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
-              const context = localConfig.clusterContextMapping[cluster];
-              self.parent.getK8().setCurrentContext(context);
-              const remoteConfigFromOtherCLuster = await this.parent.getRemoteConfigManager().get();
-              if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCLuster)) {
-                throw new SoloError(`${ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentCluster.name, cluster)}.
-                Please select a valid context for the cluster or use kubectl to create a new context and try again`);
-              }
-            },
-          });
+          subTasks.push(self.validateRemoteConfigForCluster(cluster, currentCluster, localConfig, currentRemoteConfig));
         }
 
         return task.newListr(subTasks, {
