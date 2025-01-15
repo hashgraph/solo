@@ -127,7 +127,6 @@ export class Flags {
     name: 'cluster-name',
     definition: {
       describe: 'Cluster name',
-      // defaultValue: 'solo-cluster-setup',
       alias: 'c',
       type: 'string',
     },
