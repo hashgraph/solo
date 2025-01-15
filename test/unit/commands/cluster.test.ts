@@ -490,7 +490,7 @@ describe('ClusterCommand unit tests', () => {
 
       async function runReadClustersFromRemoteConfigTask(opts) {
         command = new ClusterCommand(opts);
-        tasks = new ClusterCommandTasks(command);
+        tasks = new ClusterCommandTasks(command, k8Stub);
         const taskObj = tasks.readClustersFromRemoteConfig({});
         taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
         taskStub.newListr = sandbox.stub();
