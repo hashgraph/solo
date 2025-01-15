@@ -25,6 +25,7 @@ import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_ent
 import {Templates} from '../templates.js';
 import path from 'path';
 import type {NetworkNodeServices} from '../network_node_services.js';
+import {SoloError} from "../errors.js";
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -38,9 +39,10 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly keysDir: string,
     private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    adminKeyMap: Map<NodeAlias, string>
   ) {
     nodeAliases.forEach(nodeAlias => {
-      const adminPrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+      const adminPrivateKey = PrivateKey.fromStringED25519(adminKeyMap[nodeAlias] || constants.GENESIS_KEY);
       const adminPubKey = adminPrivateKey.publicKey;
 
       const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
@@ -74,8 +76,21 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     keyManager: KeyManager,
     keysDir: string,
     networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    adminKeys: string[]
   ): Promise<GenesisNetworkDataConstructor> {
-    const instance = new GenesisNetworkDataConstructor(nodeAliases, keyManager, keysDir, networkNodeServiceMap);
+
+    const adminKeyMap: Map<NodeAlias, string> = new Map();
+    if (adminKeys.length > 0) {
+        if (adminKeys.length !== nodeAliases.length) {
+            throw new SoloError('Provide an adminKey for every node');
+        }
+
+        adminKeys.forEach((adminKey, i) => {
+            adminKeyMap[nodeAliases[i]] = adminKey
+        })
+    }
+
+    const instance = new GenesisNetworkDataConstructor(nodeAliases, keyManager, keysDir, networkNodeServiceMap, adminKeyMap);
 
     await instance.load();
 
