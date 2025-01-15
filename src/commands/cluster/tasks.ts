@@ -32,7 +32,7 @@ import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_conf
 import {type K8} from '../../core/k8.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {type LocalConfig} from '../../core/config/local_config.js';
-import {Cluster} from "@kubernetes/client-node/dist/config_types.js";
+import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
