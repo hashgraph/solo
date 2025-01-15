@@ -216,6 +216,8 @@ export class LocalConfig implements LocalConfigData {
               );
               self.clusterContextMapping[cluster] = context;
               promptedContexts.push(context);
+
+              self.configManager.setFlag(flags.context, context);
             }
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
@@ -229,12 +231,15 @@ export class LocalConfig implements LocalConfigData {
           for (let i = 0; i < parsedClusters.length; i++) {
             const cluster = parsedClusters[i];
             self.clusterContextMapping[cluster] = parsedContexts[i];
+
+            self.configManager.setFlag(flags.context, parsedContexts[i]);
           }
         }
 
         self.userEmailAddress = userEmailAddress;
         self.deployments = deployments;
         self.currentDeploymentName = deploymentName;
+
         self.validate();
         await self.write();
       },

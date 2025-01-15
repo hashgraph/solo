@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {Listr, type ListrTaskWrapper} from 'listr2';
+import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
@@ -97,32 +97,24 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         this.localConfig.promptLocalConfigTask(self.k8),
-        {
-          title: 'Validate cluster connections',
-          task: async (ctx, task) => {
-            const subTasks = [];
-
-            for (const cluster of Object.keys(ctx.config.contextCluster)) {
-              subTasks.push({
-                title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
-                task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
-                  if (!(await self.k8.testClusterConnection(cluster))) {
-                    task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
-
-                    throw new SoloError(`Cluster connection failed for: ${cluster}`);
-                  }
-                },
-              });
-            }
-
-            return task.newListr(subTasks, {
-              concurrent: true,
-              rendererOptions: {collapseSubtasks: false},
-            });
-          },
-        },
         RemoteConfigTasks.createRemoteConfig.bind(this)(),
         this.tasks.selectContext(),
+        {
+          title: 'Validate context',
+          task: async (ctx, task) => {
+            ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
+            const availableContexts = self.k8.getContextNames();
+
+            if (availableContexts.includes(ctx.config.context)) {
+              task.title += ` - context: ${chalk.green(ctx.config.context)} is valid`;
+              return;
+            }
+
+            throw new SoloError(
+              `Context with name ${ctx.config.context} not found, available contexts include ${availableContexts.join(', ')}`,
+            );
+          },
+        },
         this.tasks.updateLocalConfig(),
       ],
       {
