@@ -106,7 +106,9 @@ export class RelayCommand extends BaseCommand {
       valuesArg += ` --set replicaCount=${replicaCount}`;
     }
 
-    valuesArg += ` --set config.OPERATOR_ID_MAIN=${operatorID}`;
+    if (operatorID) {
+      valuesArg += ` --set config.OPERATOR_ID_MAIN=${operatorID}`;
+    }
 
     const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${constants.OPERATOR_ID}`]);
     if (secrets.length === 0) {
