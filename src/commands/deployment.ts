@@ -87,12 +87,7 @@ export class DeploymentCommand extends BaseCommand {
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
           },
         },
-        {
-          title: 'Setup home directory and cache',
-          task: () => {
-            this.setupHomeDirectory();
-          },
-        },
+        this.setupHomeDirectoryTask(),
         this.localConfig.promptLocalConfigTask(self.k8),
         this.tasks.selectContext(),
         {
@@ -117,6 +112,48 @@ export class DeploymentCommand extends BaseCommand {
         },
         this.tasks.updateLocalConfig(),
         RemoteConfigTasks.createRemoteConfig.bind(this)(),
+
+        // ivos
+
+        {
+          title: 'Validate cluster connections',
+          task: async (ctx, task): Promise<Listr<Context, any, any>> => {
+            const subTasks = [];
+
+            for (const context of Object.keys(ctx.config.contextCluster)) {
+              const cluster = ctx.config.contextCluster[context];
+              subTasks.push({
+                title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
+                task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
+                  if (!(await self.k8.testClusterConnection(context, cluster))) {
+                    task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
+                    throw new SoloError(`Cluster connection failed for: ${cluster}`);
+                  }
+                },
+              });
+            }
+
+            return task.newListr(subTasks, {
+              concurrent: false,
+              rendererOptions: {collapseSubtasks: false},
+            });
+          },
+        },
+        {
+          title: 'Create remoteConfig in clusters',
+          task: async (ctx, task) => {
+            const subTasks = [];
+            for (const context of Object.keys(ctx.config.contextCluster)) {
+              const cluster = ctx.config.contextCluster[context];
+              subTasks.push(RemoteConfigTasks.createRemoteConfig.bind(this)(cluster, context, ctx.config.namespace));
+            }
+
+            return task.newListr(subTasks, {
+              concurrent: false,
+              rendererOptions: {collapseSubtasks: false},
+            });
+          },
+        },
       ],
       {
         concurrent: false,

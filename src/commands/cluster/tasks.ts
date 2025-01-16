@@ -24,13 +24,18 @@ import * as constants from '../../core/constants.js';
 import path from 'path';
 import chalk from 'chalk';
 import {ListrLease} from '../../core/lease/listr_lease.js';
-import {type K8} from '../../core/k8.js';
+import {ErrorMessages} from '../../core/error_messages.js';
+import {SoloError} from '../../core/errors.js';
+import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import type {Context} from '@kubernetes/client-node';
+import type {RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
+import type {K8} from '../../core/k8.js';
+import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 import type {SelectClusterContextContext} from './configs.js';
 import type {Namespace} from '../../core/config/remote/types.js';
 import type {LocalConfig} from '../../core/config/local_config.js';
-import {SoloError} from '../../core/errors.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -42,19 +47,96 @@ export class ClusterCommandTasks {
     this.parent = parent;
   }
 
-  updateLocalConfig(): SoloListrTask<SelectClusterContextContext> {
+  testConnectionToCluster(cluster: string, localConfig: LocalConfig, parentTask: ListrTaskWrapper<Context, any, any>) {
+    const self = this;
     return {
-      title: 'Update local configuration',
-      task: async (ctx, task) => {
-        this.parent.logger.info('Compare local and remote configuration...');
-        const configManager = this.parent.getConfigManager();
-        const isQuiet = configManager.getFlag(flags.quiet);
+      title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
+      task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
+        let context = localConfig.clusterContextMapping[cluster];
+        if (!context) {
+          const isQuiet = self.parent.getConfigManager().getFlag(flags.quiet);
+          if (isQuiet) {
+            context = self.parent.getK8().getKubeConfig().currentContext;
+          } else {
+            context = await self.promptForContext(parentTask, cluster);
+          }
 
-        await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
-          // Update current deployment with a cluster list from remoteConfig
-          const localConfig = this.parent.getLocalConfig();
-          const localDeployments = localConfig.deployments;
-          const remoteClusterList: string[] = [];
+          localConfig.clusterContextMapping[cluster] = context;
+        }
+        if (!(await self.parent.getK8().testClusterConnection(context, cluster))) {
+          subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
+          throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
+        }
+      },
+    };
+  }
+
+  validateRemoteConfigForCluster(
+    cluster: string,
+    currentCluster: Cluster,
+    localConfig: LocalConfig,
+    currentRemoteConfig: RemoteConfigDataWrapper,
+  ) {
+    const self = this;
+    return {
+      title: `Pull and validate remote configuration for cluster: ${chalk.cyan(cluster)}`,
+      task: async (_, subTask: ListrTaskWrapper<Context, any, any>) => {
+        const context = localConfig.clusterContextMapping[cluster];
+        self.parent.getK8().setCurrentContext(context);
+        const remoteConfigFromOtherCluster = await self.parent.getRemoteConfigManager().get();
+        if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
+          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentCluster.name, cluster));
+        }
+      },
+    };
+  }
+
+  readClustersFromRemoteConfig(argv) {
+    const self = this;
+    return {
+      title: 'Read clusters from remote config',
+      task: async (ctx, task) => {
+        const localConfig = this.parent.getLocalConfig();
+        const currentCluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
+        const currentRemoteConfig: RemoteConfigDataWrapper = await this.parent.getRemoteConfigManager().get();
+        const subTasks = [];
+        const remoteConfigClusters = Object.keys(currentRemoteConfig.clusters);
+        const otherRemoteConfigClusters: string[] = remoteConfigClusters.filter(c => c !== currentCluster.name);
+
+        // Validate connections for the other clusters
+        for (const cluster of otherRemoteConfigClusters) {
+          subTasks.push(self.testConnectionToCluster(cluster, localConfig, task));
+        }
+
+        // Pull and validate RemoteConfigs from the other clusters
+        for (const cluster of otherRemoteConfigClusters) {
+          subTasks.push(self.validateRemoteConfigForCluster(cluster, currentCluster, localConfig, currentRemoteConfig));
+        }
+
+        return task.newListr(subTasks, {
+          concurrent: false,
+          rendererOptions: {collapseSubtasks: false},
+        });
+      },
+    };
+  }
+
+  updateLocalConfig(): SoloListrTask<SelectClusterContextContext> {
+    return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      this.parent.logger.info('Compare local and remote configuration...');
+      const configManager = this.parent.getConfigManager();
+      const isQuiet = configManager.getFlag(flags.quiet);
+
+      await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+        // Update current deployment with cluster list from remoteConfig
+        const localConfig = this.parent.getLocalConfig();
+        const localDeployments = localConfig.deployments;
+        const remoteClusterList: string[] = [];
+
+        const namespace = remoteConfig.metadata.name;
+        localConfig.currentDeploymentName = remoteConfig.metadata.name;
+
+        if (localConfig.deployments[namespace]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
             if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
               remoteClusterList.push(cluster);
@@ -62,34 +144,39 @@ export class ClusterCommandTasks {
           }
           ctx.config.clusters = remoteClusterList;
           localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
-          localConfig.setDeployments(localDeployments);
+        } else {
+          const clusters = Object.keys(remoteConfig.clusters);
+          localDeployments[namespace] = {clusters};
+          ctx.config.clusters = clusters;
+        }
 
-          const contexts = splitFlagInput(configManager.getFlag(flags.context));
+        localConfig.setDeployments(localDeployments);
 
-          for (let i = 0; i < ctx.config.clusters.length; i++) {
-            const cluster = ctx.config.clusters[i];
-            const context = contexts[i];
+        const contexts = splitFlagInput(configManager.getFlag(flags.context));
 
-            // If a context is provided, use it to update the mapping
-            if (context) {
-              localConfig.clusterContextMapping[cluster] = context;
-            } else if (!localConfig.clusterContextMapping[cluster]) {
-              // In quiet mode, use the currently selected context to update the mapping
-              if (isQuiet) {
-                localConfig.clusterContextMapping[cluster] = this.parent.getK8().getKubeConfig().getCurrentContext();
-              }
+        for (let i = 0; i < ctx.config.clusters.length; i++) {
+          const cluster = ctx.config.clusters[i];
+          const context = contexts[i];
 
-              // Prompt the user to select a context if mapping value is missing
-              else {
-                localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
-              }
+          // If a context is provided, use it to update the mapping
+          if (context) {
+            localConfig.clusterContextMapping[cluster] = context;
+          } else if (!localConfig.clusterContextMapping[cluster]) {
+            // In quiet mode, use the currently selected context to update the mapping
+            if (isQuiet) {
+              localConfig.clusterContextMapping[cluster] = this.parent.getK8().getKubeConfig().getCurrentContext();
+            }
+
+            // Prompt the user to select a context if mapping value is missing
+            else {
+              localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
             }
           }
-          this.parent.logger.info('Update local configuration...');
-          await localConfig.write();
-        });
-      },
-    };
+        }
+        this.parent.logger.info('Update local configuration...');
+        await localConfig.write();
+      });
+    });
   }
 
   private async getSelectedContext(
@@ -183,71 +270,75 @@ export class ClusterCommandTasks {
       title: 'Read local configuration settings',
       task: async (_, task) => {
         this.parent.logger.info('Read local configuration settings...');
-        const configManager = this.parent.getConfigManager();
-        const isQuiet = configManager.getFlag<boolean>(flags.quiet);
-        const deploymentName: string = configManager.getFlag<Namespace>(flags.namespace);
-        let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
-        const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
-        const localConfig = this.parent.getLocalConfig();
-        let selectedContext: string;
+      const configManager = this.parent.getConfigManager();
+      const isQuiet = configManager.getFlag<boolean>(flags.quiet);
+      const deploymentName: string = configManager.getFlag<Namespace>(flags.namespace);
+      let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
+      const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
+      const localConfig = this.parent.getLocalConfig();
+      let selectedContext: string;
+      let selectedCluster: string;
 
-        // If one or more contexts are provided, use the first one
-        if (contexts.length) {
-          selectedContext = contexts[0];
+      // If one or more contexts are provided, use the first one
+      if (contexts.length) {
+        selectedContext = contexts[0];
+      }
+
+      // If one or more clusters are provided, use the first one to determine the context
+      // from the mapping in the LocalConfig
+      else if (clusters.length) {
+        selectedCluster = clusters[0];
+        selectedContext = await this.selectContextForFirstCluster(task, clusters, localConfig, isQuiet);
+      }
+
+      // If a deployment name is provided, get the clusters associated with the deployment from the LocalConfig
+      // and select the context from the mapping, corresponding to the first deployment cluster
+      else if (deploymentName) {
+        const deployment = localConfig.deployments[deploymentName];
+
+        if (deployment && deployment.clusters.length) {
+          selectedCluster = deployment.clusters[0];
+          selectedContext = await this.selectContextForFirstCluster(task, deployment.clusters, localConfig, isQuiet);
         }
 
-        // If one or more clusters are provided, use the first one to determine the context
-        // from the mapping in the LocalConfig
-        else if (clusters.length) {
-          selectedContext = await this.selectContextForFirstCluster(task, clusters, localConfig, isQuiet);
-        }
+        // The provided deployment does not exist in the LocalConfig
+        else {
+          // Add the deployment to the LocalConfig with the currently selected cluster and context in KubeConfig
+          if (isQuiet) {
+            selectedContext = this.parent.getK8().getKubeConfig().getCurrentContext();
+            selectedCluster = this.parent.getK8().getKubeConfig().getCurrentCluster().name;
+            localConfig.deployments[deploymentName] = {
+              clusters: [selectedCluster],
+            };
 
-        // If a deployment name is provided, get the clusters associated with the deployment from the LocalConfig
-        // and select the context from the mapping, corresponding to the first deployment cluster
-        else if (deploymentName) {
-          const deployment = localConfig.deployments[deploymentName];
-
-          if (deployment && deployment.clusters.length) {
-            selectedContext = await this.selectContextForFirstCluster(task, deployment.clusters, localConfig, isQuiet);
+            if (!localConfig.clusterContextMapping[selectedCluster]) {
+              localConfig.clusterContextMapping[selectedCluster] = selectedContext;
+            }
           }
 
-          // The provided deployment does not exist in the LocalConfig
+          // Prompt user for clusters and contexts
           else {
-            // Add the deployment to the LocalConfig with the currently selected cluster and context in KubeConfig
-            if (isQuiet) {
-              selectedContext = this.parent.getK8().getKubeConfig().getCurrentContext();
-              const selectedCluster = this.parent.getK8().getKubeConfig().getCurrentCluster().name;
-              localConfig.deployments[deploymentName] = {
-                clusters: [selectedCluster],
-              };
+            const promptedClusters = await flags.clusterName.prompt(task, '');
+            clusters = splitFlagInput(promptedClusters);
 
-              if (!localConfig.clusterContextMapping[selectedCluster]) {
-                localConfig.clusterContextMapping[selectedCluster] = selectedContext;
+            for (const cluster of clusters) {
+              if (!localConfig.clusterContextMapping[cluster]) {
+                localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
               }
             }
 
-            // Prompt user for clusters and contexts
-            else {
-              clusters = splitFlagInput(await flags.clusterName.prompt(task, clusters));
-
-              for (const cluster of clusters) {
-                if (!localConfig.clusterContextMapping[cluster]) {
-                  localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
-                }
-              }
-
-              selectedContext = localConfig.clusterContextMapping[clusters[0]];
-            }
+            selectedCluster = clusters[0];
+            selectedContext = localConfig.clusterContextMapping[clusters[0]];
           }
         }
+      }
 
-        const response = await this.parent.getK8().testClusterConnection(selectedContext);
-        if (!response.result) {
-          throw new SoloError(`Failed connection with selected context: ${selectedContext}`, response.error);
-        }
-
-        this.parent.getK8().getKubeConfig().setCurrentContext(selectedContext);
-      },
+      const connectionValid = await this.parent.getK8().testClusterConnection(selectedContext, selectedCluster);
+      if (!connectionValid) {
+        throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext));
+      }
+      this.parent.getK8().setCurrentContext(selectedContext);
+    },
     };
   }
 
@@ -415,11 +506,5 @@ export class ClusterCommandTasks {
       },
       ctx => !ctx.isChartInstalled,
     );
-  }
-
-  setupHomeDirectory() {
-    return new Task('Setup home directory', async () => {
-      this.parent.setupHomeDirectory();
-    });
   }
 }
