@@ -217,10 +217,7 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
 
-            flags.disablePrompts([
-              flags.operatorId,
-              flags.operatorKey,
-            ]);
+            flags.disablePrompts([flags.operatorId, flags.operatorKey]);
 
             await self.configManager.executePrompt(task, RelayCommand.DEPLOY_FLAGS_LIST);
 
