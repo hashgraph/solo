@@ -278,7 +278,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${operatorId}`;
 
                 if (ctx.config.operatorKey) {
-                  this.logger.info(`Using provided operator key: ${ctx.config.operatorKey}`);
+                  this.logger.info('Using provided operator key');
                   ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${ctx.config.operatorKey}`;
                 } else {
                   try {
