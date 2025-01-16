@@ -22,13 +22,13 @@ import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import type {Namespace} from '../core/config/remote/types.js';
 import type {ContextClusterStructure} from '../types/config_types.js';
 import type {CommandFlag} from '../types/flag_types.js';
 import type {CommandBuilder} from '../types/aliases.js';
 import type {Opts} from '../types/command_types.js';
+import type {SoloListrTask} from '../types/index.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -93,10 +93,6 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Validate context',
           task: async (ctx, task) => {
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
-              await self.k8.createNamespace(ctx.config.namespace);
-            }
-
             ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
             const availableContexts = self.k8.getContextNames();
 
@@ -111,20 +107,16 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         this.tasks.updateLocalConfig(),
-        RemoteConfigTasks.createRemoteConfig.bind(this)(),
-
-        // ivos
-
         {
           title: 'Validate cluster connections',
-          task: async (ctx, task): Promise<Listr<Context, any, any>> => {
-            const subTasks = [];
+          task: async (ctx, task) => {
+            const subTasks: SoloListrTask<Context>[] = [];
 
             for (const context of Object.keys(ctx.config.contextCluster)) {
               const cluster = ctx.config.contextCluster[context];
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
-                task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
+                task: async (_, task) => {
                   if (!(await self.k8.testClusterConnection(context, cluster))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
