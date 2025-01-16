@@ -16,6 +16,7 @@
  */
 import type {ListrTask} from 'listr2';
 import type {BaseCommand} from '../../../commands/base.js';
+import {type Cluster, type Context, type Namespace} from './types.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -33,7 +34,12 @@ export class RemoteConfigTasks {
   }
 
   /** Creates remote config. */
-  public static createRemoteConfig(this: BaseCommand): ListrTask<any, any, any> {
-    return this.remoteConfigManager.buildCreateTask();
+  public static createRemoteConfig(
+    this: BaseCommand,
+    cluster: Cluster,
+    context: Context,
+    namespace: Namespace,
+  ): ListrTask<any, any, any> {
+    return this.remoteConfigManager.buildCreateTask(cluster, context, namespace);
   }
 }
