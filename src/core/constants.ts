@@ -118,8 +118,8 @@ export const POD_CONDITION_READY = 'Ready';
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled';
 export const POD_CONDITION_STATUS_TRUE = 'True';
 
-export const EXPLORER_VALUES_FILE = path.join('resources', 'hedera-explorer-values.yaml');
-export const MIRROR_NODE_VALUES_FILE = path.join('resources', 'mirror-node-values.yaml');
+export const EXPLORER_VALUES_FILE = path.join(RESOURCES_DIR, 'hedera-explorer-values.yaml');
+export const MIRROR_NODE_VALUES_FILE = path.join(RESOURCES_DIR, 'mirror-node-values.yaml');
 
 export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod';
 
