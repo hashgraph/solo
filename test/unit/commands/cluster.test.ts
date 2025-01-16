@@ -161,6 +161,7 @@ describe('ClusterCommand unit tests', () => {
       k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
+      k8Stub.testClusterConnection.returns(new Promise(resolve => resolve({result: true})));
       const kubeConfigStub = sandbox.createStubInstance(KubeConfig);
       kubeConfigStub.getCurrentContext.returns('context-from-kubeConfig');
       kubeConfigStub.getCurrentCluster.returns({
