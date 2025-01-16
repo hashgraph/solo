@@ -52,7 +52,6 @@ export class DeploymentCommand extends BaseCommand {
 
   private async create(argv: any): Promise<boolean> {
     const self = this;
-    const lease = await self.leaseManager.create();
 
     interface Config {
       context: string;
@@ -85,15 +84,7 @@ export class DeploymentCommand extends BaseCommand {
 
             ctx.config.contextCluster = Templates.parseContextCluster(ctx.config.contextClusterUnparsed);
 
-            const namespace = ctx.config.namespace;
-
-            if (!(await self.k8.hasNamespace(namespace))) {
-              await self.k8.createNamespace(namespace);
-            }
-
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
-
-            return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
         {
@@ -103,16 +94,19 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         this.localConfig.promptLocalConfigTask(self.k8),
-        RemoteConfigTasks.createRemoteConfig.bind(this)(),
         this.tasks.selectContext(),
         {
           title: 'Validate context',
           task: async (ctx, task) => {
+            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
+              await self.k8.createNamespace(ctx.config.namespace);
+            }
+
             ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
             const availableContexts = self.k8.getContextNames();
 
             if (availableContexts.includes(ctx.config.context)) {
-              task.title += ` - context: ${chalk.green(ctx.config.context)} is valid`;
+              task.title += chalk.green(`- validated context ${ctx.config.context}`);
               return;
             }
 
@@ -122,6 +116,7 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         this.tasks.updateLocalConfig(),
+        RemoteConfigTasks.createRemoteConfig.bind(this)(),
       ],
       {
         concurrent: false,
@@ -131,10 +126,8 @@ export class DeploymentCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e: Error | unknown) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
-    } finally {
-      await lease.release();
     }
 
     return true;

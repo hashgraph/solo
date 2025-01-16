@@ -30,6 +30,7 @@ import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 import type {SelectClusterContextContext} from './configs.js';
 import type {Namespace} from '../../core/config/remote/types.js';
 import type {LocalConfig} from '../../core/config/local_config.js';
+import {SoloError} from '../../core/errors.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -238,6 +239,11 @@ export class ClusterCommandTasks {
               selectedContext = localConfig.clusterContextMapping[clusters[0]];
             }
           }
+        }
+
+        const response = await this.parent.getK8().testClusterConnection(selectedContext);
+        if (!response.result) {
+          throw new SoloError(`Failed connection with selected context: ${selectedContext}`, response.error);
         }
 
         this.parent.getK8().getKubeConfig().setCurrentContext(selectedContext);

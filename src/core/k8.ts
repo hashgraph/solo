@@ -1203,14 +1203,14 @@ export class K8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
-  public async testClusterConnection(context: string): Promise<boolean> {
+  public async testClusterConnection(context: string): Promise<{result: boolean; error?: Error | unknown}> {
     this.kubeConfig.setCurrentContext(context);
 
     return await this.kubeConfig
       .makeApiClient(k8s.CoreV1Api)
       .listNamespace()
-      .then(() => true)
-      .catch(() => false);
+      .then(() => ({result: true}))
+      .catch(e => ({result: false, error: e}));
   }
 
   // --------------------------------------- Secret --------------------------------------- //
