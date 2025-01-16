@@ -96,6 +96,12 @@ export class DeploymentCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
+        {
+          title: 'Setup home directory and cache',
+          task: () => {
+            this.setupHomeDirectory();
+          },
+        },
         this.localConfig.promptLocalConfigTask(self.k8),
         RemoteConfigTasks.createRemoteConfig.bind(this)(),
         this.tasks.selectContext(),
