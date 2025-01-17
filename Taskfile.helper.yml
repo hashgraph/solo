@@ -221,9 +221,8 @@ tasks:
         SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }} --dev
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
-          echo "Enable port forwarding for Hedera Network Node"
           echo "Port forwarding for Hedera Network Node: grpc:50211"
-          nohup kubectl port-forward -n "${SOLO_NAMESPACE}" pod/network-node1-0 50211:50211  < /dev/null > {{.temp_prefix}}-50211-nohup.out 2>&1 &
+          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &"
           sleep 4
         fi
 
@@ -245,7 +244,7 @@ tasks:
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera JSON RPC Relay"
-          nohup kubectl port-forward -n "${SOLO_NAMESPACE}" svc/relay-node1-hedera-json-rpc-relay 7546:7546 &
+          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &"
           sleep 4
         fi
 
@@ -426,10 +425,10 @@ tasks:
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
           echo "Port forwarding for Hedera Explorer: http://localhost:6789"
-          nohup kubectl port-forward -n "${SOLO_NAMESPACE}" svc/hedera-explorer 6789:80 < /dev/null > {{.temp_prefix}}-6789-nohup.out 2>&1 &
+          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/hedera-explorer 8080:80 > /dev/null 2>&1 &"
           echo "Port forwarding for Mirror Node Network: grpc:5600, rest:5551"
-          nohup kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 < /dev/null > {{.temp_prefix}}-5600-nohup.out 2>&1 &
-          nohup kubectl port-forward svc/mirror-rest -n "${SOLO_NAMESPACE}" 5551:80 < /dev/null > {{.temp_prefix}}-5551-nohup.out 2>&1 &
+          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &"
+          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/mirror-rest 5551:80 > /dev/null 2>&1 &"
           sleep 4
         fi
 
