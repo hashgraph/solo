@@ -20,6 +20,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type K8} from '../../../src/core/k8.js';
+import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
 
 const LOCAL_PTT = 'local-ptt-app';
 const argv = getDefaultArgv();
@@ -37,6 +38,7 @@ argv[flags.app.name] = 'PlatformTestingTool.jar';
 argv[flags.appConfig.name] =
   '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json';
 argv[flags.namespace.name] = LOCAL_PTT;
+argv[flags.releaseTag.name] = LOCAL_HEDERA_PLATFORM_VERSION;
 
 e2eTestSuite(LOCAL_PTT, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('Node for platform app should start successfully', () => {
