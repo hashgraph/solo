@@ -936,7 +936,7 @@ export class NodeCommandTasks {
         const podName = ctx.config.podNames[nodeAlias];
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
-          task: () => this.platformInstaller.taskSetup(podName, nodeAlias, ctx.config.stagingDir, isGenesis),
+          task: () => this.platformInstaller.taskSetup(podName, ctx.config.stagingDir, isGenesis),
         });
       }
 
