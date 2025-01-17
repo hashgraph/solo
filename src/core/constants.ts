@@ -28,6 +28,7 @@ export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs');
 export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache');
 export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files');
 export const DEFAULT_NAMESPACE = 'default';
+export const DEFAULT_CERT_MANAGER_NAMESPACE = 'cert-manager';
 export const HELM = 'helm';
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'));
 

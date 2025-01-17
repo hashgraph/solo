@@ -220,8 +220,18 @@ export class ExplorerCommand extends BaseCommand {
               );
             }
 
-            // sleep 20 seconds
-            await new Promise(resolve => setTimeout(resolve, 20000));
+            // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
+            await self.k8.waitForPodReady(
+              [
+                'app.kubernetes.io/component=webhook',
+                `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+              ],
+              1,
+              constants.PODS_READY_MAX_ATTEMPTS,
+              constants.PODS_READY_DELAY,
+              constants.DEFAULT_CERT_MANAGER_NAMESPACE,
+            );
+
             await self.chartManager.upgrade(
               clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
@@ -260,6 +270,21 @@ export class ExplorerCommand extends BaseCommand {
               constants.PODS_READY_DELAY,
             );
           },
+        },
+        {
+          title: 'Check haproxy ingress pod is ready',
+          task: async () => {
+            await self.k8.waitForPodReady(
+              [
+                'app.kubernetes.io/name=haproxy-ingress',
+                `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+              ],
+              1,
+              constants.PODS_READY_MAX_ATTEMPTS,
+              constants.PODS_READY_DELAY,
+            );
+          },
+          skip: ctx => !ctx.config.enableHederaExplorerTls,
         },
         this.addMirrorNodeExplorerComponents(),
       ],
