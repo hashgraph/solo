@@ -66,30 +66,19 @@ export class DeploymentCommand extends BaseCommand {
         this.localConfig.promptLocalConfigTask(self.k8),
         {
           title: 'Validate cluster connections',
-          task: async (_, task) => {
+          task: async (ctx, task) => {
             const subTasks: SoloListrTask<Context>[] = [];
 
-            for (const deployment of Object.values(self.localConfig.deployments)) {
-              for (const cluster of deployment.clusters) {
-                subTasks.push({
-                  title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
-                  task: async (_, task) => {
-                    if (!(await self.k8.testClusterConnection(cluster))) {
-                      task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
+            for (const cluster of self.localConfig.deployments[ctx.config.namespace].clusters) {
+              const context = self.localConfig.clusterContextMapping?.[cluster];
+              if (!context) continue;
 
-                      throw new SoloError(`Cluster connection failed for: ${cluster}`);
-                    }
-                  },
-                });
-              }
-
-            for (const context of Object.keys(ctx.config.contextCluster)) {
-              const cluster = ctx.config.contextCluster[context];
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
-                task: async (_: Context, task: ListrTaskWrapper<Context, any, any>) => {
+                task: async (_, task) => {
                   if (!(await self.k8.testClusterConnection(context, cluster))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
+
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
                   }
                 },
@@ -105,9 +94,12 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Create remoteConfig in clusters',
           task: async (ctx, task) => {
-            const subTasks = [];
-            for (const context of Object.keys(ctx.config.contextCluster)) {
-              const cluster = ctx.config.contextCluster[context];
+            const subTasks: SoloListrTask<Context>[] = [];
+
+            for (const cluster of self.localConfig.deployments[ctx.config.namespace].clusters) {
+              const context = self.localConfig.clusterContextMapping?.[cluster];
+              if (!context) continue;
+
               subTasks.push(RemoteConfigTasks.createRemoteConfig.bind(this)(cluster, context, ctx.config.namespace));
             }
 
