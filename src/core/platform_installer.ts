@@ -279,13 +279,23 @@ export class PlatformInstaller {
   }
 
   /** Return a list of task to perform node directory setup */
-  taskSetup(podName: PodName, stagingDir: string, isGenesis: boolean) {
+  taskSetup(podName: PodName, nodeAlias: NodeAlias, stagingDir: string, isGenesis: boolean) {
     const self = this;
     return new Listr(
       [
         {
           title: 'Copy configuration files',
           task: async () => await self.copyConfigurationFiles(stagingDir, podName, isGenesis),
+        },
+        {
+          title: 'Update with node specific values',
+          task: async () =>
+            await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [
+              'bash',
+              '-c',
+              `echo CONSENSUS_NODE_ID=${Templates.nodeIdFromNodeAlias(nodeAlias)} >> /etc/network-node/application.env;` +
+                ` echo CONSENSUS_NODE_ALIAS=${nodeAlias} >> /etc/network-node/application.env`,
+            ]),
         },
         {
           title: 'Set file permissions',

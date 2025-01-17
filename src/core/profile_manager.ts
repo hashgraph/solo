@@ -254,13 +254,11 @@ export class ProfileManager {
       yamlRoot,
     );
 
-    if (this.configManager.getFlag(flags.applicationEnv)) {
-      this._setFileContentsAsValue(
-        'hedera.configMaps.applicationEnv',
-        this.configManager.getFlag(flags.applicationEnv),
-        yamlRoot,
-      );
-    }
+    this._setFileContentsAsValue(
+      'hedera.configMaps.applicationEnv',
+      path.join(stagingDir, 'templates', 'application.env'),
+      yamlRoot,
+    );
 
     if (profile.consensus) {
       // set default for consensus pod
