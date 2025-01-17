@@ -33,6 +33,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type {Optional, SoloListrTask} from '../types/index.js';
 import type {Namespace} from '../core/config/remote/types.js';
+import * as Base64 from 'js-base64';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -53,6 +54,8 @@ interface MirrorNodeDeployConfigClass {
   clusterSetupNamespace: string;
   soloChartVersion: string;
   pinger: boolean;
+  operatorId: string;
+  operatorKey: string;
   customMirrorNodeDatabaseValuePath: Optional<string>;
   storageType: constants.StorageType;
   storageAccessKey: string;
@@ -104,6 +107,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.clusterSetupNamespace,
       flags.soloChartVersion,
       flags.customMirrorNodeDatabaseValuePath,
+      flags.operatorId,
+      flags.operatorKey,
       flags.storageType,
       flags.storageAccessKey,
       flags.storageSecrets,
@@ -234,6 +239,8 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.valuesFile,
               flags.mirrorNodeVersion,
               flags.pinger,
+              flags.operatorId,
+              flags.operatorKey,
               flags.soloChartVersion,
             ]);
 
@@ -255,6 +262,8 @@ export class MirrorNodeCommand extends BaseCommand {
             // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
+            await self.accountManager.loadNodeClient(ctx.config.namespace);
+
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
               const networkPods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
@@ -263,17 +272,35 @@ export class MirrorNodeCommand extends BaseCommand {
                 const pod = networkPods[0];
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.accountId=${startAccId}`;
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.status.podIP}`;
+                ctx.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.nodes.0.nodeId=0';
 
-                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${constants.OPERATOR_ID}`;
-                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`;
+                const operatorId = ctx.config.operatorId || constants.OPERATOR_ID;
+                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${operatorId}`;
+
+                if (ctx.config.operatorKey) {
+                  this.logger.info('Using provided operator key');
+                  ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${ctx.config.operatorKey}`;
+                } else {
+                  try {
+                    const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${operatorId}`]);
+                    if (secrets.length === 0) {
+                      this.logger.info(`No k8s secret found for operator account id ${operatorId}, use default one`);
+                      ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`;
+                    } else {
+                      this.logger.info('Using operator key from k8s secret');
+                      const operatorKeyFromK8 = Base64.decode(secrets[0].data.privateKey);
+                      ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${operatorKeyFromK8}`;
+                    }
+                  } catch (e: Error | any) {
+                    throw new SoloError(`Error getting operator key: ${e.message}`, e);
+                  }
+                }
               }
             }
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
-
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
 
             return ListrLease.newAcquireLeaseTask(lease, task);
           },

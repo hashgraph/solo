@@ -619,7 +619,7 @@ export class Flags {
     name: 'operator-id',
     definition: {
       describe: 'Operator ID',
-      defaultValue: constants.OPERATOR_ID,
+      defaultValue: undefined,
       type: 'string',
     },
     prompt: async function promptOperatorId(task: ListrTaskWrapper<any, any, any>, input: any) {
@@ -640,7 +640,7 @@ export class Flags {
     name: 'operator-key',
     definition: {
       describe: 'Operator Key',
-      defaultValue: constants.OPERATOR_KEY,
+      defaultValue: undefined,
       type: 'string',
     },
     prompt: async function promptOperatorKey(task: ListrTaskWrapper<any, any, any>, input: any) {
