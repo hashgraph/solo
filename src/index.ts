@@ -106,9 +106,8 @@ export function main(argv: any) {
         configManager.reset();
       }
 
-      // Set default cluster name and namespace from kubernetes context
-      // these will be overwritten if user has entered the flag values explicitly
-      configManager.setFlag(flags.clusterName, cluster.name);
+      const clusterName = configManager.getFlag(flags.clusterName) || cluster.name;
+
       if (context.namespace) {
         configManager.setFlag(flags.namespace, context.namespace);
       }
@@ -124,7 +123,7 @@ export function main(argv: any) {
       );
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()));
       logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(context.name));
-      logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(configManager.getFlag(flags.clusterName)));
+      logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
       if (configManager.getFlag(flags.namespace) !== undefined) {
         logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)));
       }
