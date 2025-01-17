@@ -282,6 +282,7 @@ export class ExplorerCommand extends BaseCommand {
               1,
               constants.PODS_READY_MAX_ATTEMPTS,
               constants.PODS_READY_DELAY,
+              constants.SOLO_SETUP_NAMESPACE,
             );
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls,
