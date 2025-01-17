@@ -1,12 +1,13 @@
 # Yahcli Address Book Example
 
-This is an example of how to use Yahcli to pull the ledger and mirror node address book.  And to update the ledger address book.  It updates File 101 (the ledger address book file) and File 102 (the ledger node details file).  
+This is an example of how to use Yahcli to pull the ledger and mirror node address book.  And to update the ledger address book.  It updates File 101 (the ledger address book file) and File 102 (the ledger node details file).
 
 NOTE: Mirror Node refers to File 102 as its address book.
 
 ## Usage
 
-To get the address book from the ledger, this requires a port forward to be setup on port 50211 to consensus node with node ID = 0.  
+To get the address book from the ledger, this requires a port forward to be setup on port 50211 to consensus node with node ID = 0.
+
 ```bash
 # try and detect if the port forward is already setup
 netstat -na | grep 50211
@@ -17,28 +18,35 @@ kubectl port-forward -n "${SOLO_NAMESPACE}" pod/network-node1-0 50211:50211
 ```
 
 To get the address book from the ledger, run the following command:
+
 ```bash
 cd <solo-root>/examples/address-book
 task get:ledger:addressbook
 ```
-It will output the address book in JSON format to: 
+
+It will output the address book in JSON format to:
+
 * `examples/address-book/localhost/sysfiles/addressBook.json`
 * `examples/address-book/localhost/sysfiles/nodeDetails.json`
 
 You can update the address book files with your favorite text editor.
 
 Once the files are ready, you can upload them to the ledger by running the following command:
+
 ```bash
 cd <solo-root>/examples/address-book
 task update:ledger:addressbook
 ```
 
 To get the address book from the mirror node, run the following command:
+
 ```bash
 cd <solo-root>/examples/address-book
 task get:mirror:addressbook
 ```
+
 NOTE: Mirror Node may not pick up the changes automatically, it might require running some transactions through, example:
+
 ```bash
 cd <solo-root>
 npm run solo -- account create
