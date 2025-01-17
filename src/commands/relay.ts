@@ -221,7 +221,6 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Prepare chart values',
           task: async ctx => {
@@ -350,7 +349,6 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy JSON RPC Relay',
           task: async ctx => {

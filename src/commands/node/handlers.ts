@@ -104,7 +104,6 @@ export class NodeCommandHandlers implements CommandHandlers {
   deletePrepareTaskList(argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.validateSingleNodeState({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
@@ -148,7 +147,6 @@ export class NodeCommandHandlers implements CommandHandlers {
   addPrepareTasks(argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.validateSingleNodeState({excludedStates: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
@@ -201,7 +199,6 @@ export class NodeCommandHandlers implements CommandHandlers {
   updatePrepareTasks(argv, lease: Lease) {
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.validateSingleNodeState({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
@@ -246,7 +243,6 @@ export class NodeCommandHandlers implements CommandHandlers {
   upgradePrepareTasks(argv, lease: Lease) {
     return [
       this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
-      RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
       this.validateSingleNodeState({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
@@ -282,7 +278,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.prepareUpgradeZip(),
         this.tasks.sendPrepareUpgradeTransaction(),
       ],
@@ -304,7 +299,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, prepareUpgradeConfigBuilder.bind(this), null),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.prepareUpgradeZip(),
         this.tasks.sendFreezeUpgradeTransaction(),
       ],
@@ -328,7 +322,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, downloadGeneratedFilesConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.identifyExistingNodes(),
         this.tasks.downloadNodeGeneratedFiles(),
       ],
@@ -394,7 +387,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateSubmitTransactionsTasks(argv),
       ],
@@ -416,7 +408,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease, false),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
         ...this.updateExecuteTasks(argv),
       ],
@@ -457,7 +448,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
         ...this.upgradeSubmitTransactionsTasks(argv),
       ],
@@ -479,7 +469,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease, false),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
         ...this.upgradeExecuteTasks(argv),
       ],
@@ -654,7 +643,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
         ...this.addSubmitTransactionsTasks(argv),
       ],
@@ -678,7 +666,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, addConfigBuilder.bind(this), lease, false),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.identifyExistingNodes(),
         this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
         ...this.addExecuteTasks(argv),
@@ -700,7 +687,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.tasks.getNodeLogsAndConfigs(),
       ],
       {
@@ -740,7 +726,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, refreshConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED],
         }),
@@ -794,7 +779,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, stopConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
         }),
@@ -822,7 +806,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.validateAllNodeStates({acceptedStates: [ConsensusNodeStates.SETUP]}),
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles((ctx: any) => ctx.config.stateFile.length === 0),
@@ -853,7 +836,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, setupConfigBuilder.bind(this), lease),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.INITIALIZED],
         }),

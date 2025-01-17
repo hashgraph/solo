@@ -278,7 +278,6 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Enable mirror-node',
           task: (_, parentTask) => {
@@ -597,7 +596,6 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy mirror-node',
           task: async ctx => {

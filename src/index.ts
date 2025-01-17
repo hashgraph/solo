@@ -133,6 +133,22 @@ export function main(argv: any) {
       return argv;
     };
 
+    const loadRemoteConfig = async (argv: any, yargs: any): Promise<any> => {
+        const command = argv._[0];
+        const subCommand = argv._[1];
+        const skip = command === 'init'
+            || (command === 'node' && subCommand === 'keys')
+            || (command === 'cluster' && subCommand === 'connect')
+            || (command === 'cluster' && subCommand === 'info')
+            || (command === 'cluster' && subCommand === 'list')
+            || (command === 'deployment' && subCommand === 'create')
+        if (!skip) {
+            await remoteConfigManager.loadAndValidate(argv);
+        }
+
+        return argv;
+    };
+
     return (
       yargs(hideBin(argv))
         .scriptName('')
@@ -147,7 +163,7 @@ export function main(argv: any) {
         .wrap(120)
         .demand(1, 'Select a command')
         // @ts-ignore
-        .middleware(processArguments, false) // applyBeforeValidate = false as otherwise middleware is called twice
+        .middleware([processArguments, loadRemoteConfig] , false) // applyBeforeValidate = false as otherwise middleware is called twice
         .parse()
     );
   } catch (e: Error | any) {
