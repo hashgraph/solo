@@ -134,7 +134,8 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Create remoteConfig in clusters',
           task: async (ctx, task) => {
-            const subTasks = [];
+            const subTasks: SoloListrTask<Context>[] = [];
+
             for (const context of Object.keys(ctx.config.contextCluster)) {
               const cluster = ctx.config.contextCluster[context];
               subTasks.push(RemoteConfigTasks.createRemoteConfig.bind(this)(cluster, context, ctx.config.namespace));
