@@ -36,22 +36,14 @@ import type {Namespace} from '../core/config/remote/types.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
-  deployHederaExplorer: boolean;
-  enableHederaExplorerTls: boolean;
-  hederaExplorerTlsHostName: string;
-  hederaExplorerTlsLoadBalancerIp: string | '';
-  hederaExplorerVersion: string;
   namespace: string;
   profileFile: string;
   profileName: string;
-  tlsClusterIssuerType: string;
   valuesFile: string;
   chartPath: string;
   valuesArg: string;
   mirrorNodeVersion: string;
   getUnusedConfigs: () => string[];
-  clusterSetupNamespace: string;
-  soloChartVersion: string;
   pinger: boolean;
   customMirrorNodeDatabaseValuePath: Optional<string>;
   storageType: constants.StorageType;
@@ -88,21 +80,13 @@ export class MirrorNodeCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
-      flags.deployHederaExplorer,
-      flags.enableHederaExplorerTls,
-      flags.hederaExplorerTlsHostName,
-      flags.hederaExplorerTlsLoadBalancerIp,
-      flags.hederaExplorerVersion,
       flags.namespace,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
-      flags.tlsClusterIssuerType,
       flags.valuesFile,
       flags.mirrorNodeVersion,
       flags.pinger,
-      flags.clusterSetupNamespace,
-      flags.soloChartVersion,
       flags.customMirrorNodeDatabaseValuePath,
       flags.storageType,
       flags.storageAccessKey,
@@ -110,68 +94,6 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.storageEndpoint,
       flags.storageBucket,
     ];
-  }
-
-  async prepareHederaExplorerValuesArg(config: {valuesFile: string}) {
-    let valuesArg = '';
-
-    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName);
-    if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile);
-    }
-
-    if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
-    }
-
-    valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
-    return valuesArg;
-  }
-
-  /**
-   * @param config
-   * @param config.tlsClusterIssuerType - must be one of - acme-staging, acme-prod, or self-signed
-   * @param config.namespace - used for classname ingress class name prefix
-   * @param config.hederaExplorerTlsLoadBalancerIp - can be an empty string
-   * @param config.hederaExplorerTlsHostName
-   */
-  private async prepareSoloChartSetupValuesArg(config: MirrorNodeDeployConfigClass) {
-    const {tlsClusterIssuerType, namespace, hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName} = config;
-
-    let valuesArg = '';
-
-    if (!['acme-staging', 'acme-prod', 'self-signed'].includes(tlsClusterIssuerType)) {
-      throw new Error(
-        `Invalid TLS cluster issuer type: ${tlsClusterIssuerType}, must be one of: "acme-staging", "acme-prod", or "self-signed"`,
-      );
-    }
-
-    // Install ingress controller only if it's not already present
-    if (!(await this.k8.isIngressControllerInstalled())) {
-      valuesArg += ' --set ingress.enabled=true';
-      valuesArg += ' --set haproxyIngressController.enabled=true';
-      valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
-      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
-    }
-
-    if (!(await this.k8.isCertManagerInstalled())) {
-      valuesArg += ' --set cloud.certManager.enabled=true';
-      valuesArg += ' --set cert-manager.installCRDs=true';
-    }
-
-    if (hederaExplorerTlsLoadBalancerIp !== '') {
-      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
-    }
-
-    if (tlsClusterIssuerType === 'self-signed') {
-      valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
-    } else {
-      valuesArg += ' --set acmeClusterIssuer.enabled=true';
-      valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
-    }
-
-    return valuesArg;
   }
 
   async prepareValuesArg(config: MirrorNodeDeployConfigClass) {
@@ -224,18 +146,7 @@ export class MirrorNodeCommand extends BaseCommand {
             self.configManager.update(argv);
 
             // disable the prompts that we don't want to prompt the user for
-            flags.disablePrompts([
-              flags.deployHederaExplorer,
-              flags.enableHederaExplorerTls,
-              flags.hederaExplorerTlsHostName,
-              flags.hederaExplorerTlsLoadBalancerIp,
-              flags.hederaExplorerVersion,
-              flags.tlsClusterIssuerType,
-              flags.valuesFile,
-              flags.mirrorNodeVersion,
-              flags.pinger,
-              flags.soloChartVersion,
-            ]);
+            flags.disablePrompts([flags.valuesFile, flags.mirrorNodeVersion, flags.pinger]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
 
@@ -292,43 +203,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   },
                 },
                 {
-                  title: 'Upgrade solo-setup chart',
-                  task: async ctx => {
-                    const config = ctx.config;
-                    const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
-
-                    const chartPath = await this.prepareChartPath(
-                      chartDirectory,
-                      constants.SOLO_TESTING_CHART_URL,
-                      constants.SOLO_CLUSTER_SETUP_CHART,
-                    );
-
-                    const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
-
-                    // if cert-manager isn't already installed we want to install it separate from the certificate issuers
-                    // as they will fail to be created due to the order of the installation being dependent on the cert-manager
-                    // being installed first
-                    if (soloChartSetupValuesArg.includes('cloud.certManager.enabled=true')) {
-                      await self.chartManager.upgrade(
-                        clusterSetupNamespace,
-                        constants.SOLO_CLUSTER_SETUP_CHART,
-                        chartPath,
-                        soloChartVersion,
-                        '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
-                      );
-                    }
-
-                    await self.chartManager.upgrade(
-                      clusterSetupNamespace,
-                      constants.SOLO_CLUSTER_SETUP_CHART,
-                      chartPath,
-                      soloChartVersion,
-                      soloChartSetupValuesArg,
-                    );
-                  },
-                  skip: ctx => !ctx.config.enableHederaExplorerTls,
-                },
-                {
                   title: 'Deploy mirror-node',
                   task: async ctx => {
                     if (ctx.config.customMirrorNodeDatabaseValuePath) {
@@ -353,24 +227,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.valuesArg,
                     );
                   },
-                },
-                {
-                  title: 'Deploy hedera-explorer',
-                  task: async ctx => {
-                    const config = ctx.config;
-
-                    let exploreValuesArg = self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
-                    exploreValuesArg += await self.prepareHederaExplorerValuesArg(config);
-
-                    await self.chartManager.install(
-                      config.namespace,
-                      constants.HEDERA_EXPLORER_CHART,
-                      constants.HEDERA_EXPLORER_CHART_UTL,
-                      config.hederaExplorerVersion,
-                      exploreValuesArg,
-                    );
-                  },
-                  skip: ctx => !ctx.config.deployHederaExplorer,
                 },
               ],
               {
@@ -431,17 +287,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async () =>
                     await self.k8.waitForPodReady(
                       ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
-                },
-                {
-                  title: 'Check Hedera Explorer',
-                  skip: ctx => !ctx.config.deployHederaExplorer,
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'],
                       1,
                       constants.PODS_READY_MAX_ATTEMPTS,
                       constants.PODS_READY_DELAY,
@@ -602,7 +447,6 @@ export class MirrorNodeCommand extends BaseCommand {
           title: 'Destroy mirror-node',
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME);
-            await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART);
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
@@ -697,25 +541,23 @@ export class MirrorNodeCommand extends BaseCommand {
     };
   }
 
-  /** Removes the mirror node and mirror node explorer components from remote config. */
+  /** Removes the mirror node components from remote config. */
   public removeMirrorNodeComponents(): SoloListrTask<object> {
     return {
-      title: 'Remove mirror node and mirror node explorer from remote config',
+      title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode);
-
-          remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNode);
         });
       },
     };
   }
 
-  /** Adds the mirror node and mirror node explorer components to remote config. */
+  /** Adds the mirror node components to remote config. */
   public addMirrorNodeComponents(): SoloListrTask<{config: {namespace: Namespace}}> {
     return {
-      title: 'Add mirror node and mirror node explorer to remote config',
+      title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (ctx): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
@@ -725,11 +567,6 @@ export class MirrorNodeCommand extends BaseCommand {
           const cluster = this.remoteConfigManager.currentCluster;
 
           remoteConfig.components.add('mirrorNode', new MirrorNodeComponent('mirrorNode', cluster, namespace));
-
-          remoteConfig.components.add(
-            'mirrorNodeExplorer',
-            new MirrorNodeComponent('mirrorNodeExplorer', cluster, namespace),
-          );
         });
       },
     };

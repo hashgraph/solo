@@ -183,27 +183,6 @@ export class Flags {
     },
   };
 
-  static readonly deployHederaExplorer: CommandFlag = {
-    constName: 'deployHederaExplorer',
-    name: 'hedera-explorer',
-    definition: {
-      describe: 'Deploy hedera explorer',
-      defaultValue: true,
-      alias: 'x',
-      type: 'boolean',
-    },
-    prompt: async function promptDeployHederaExplorer(task: ListrTaskWrapper<any, any, any>, input: any) {
-      return await Flags.promptToggle(
-        task,
-        input,
-        Flags.deployHederaExplorer.definition.defaultValue,
-        'Would you like to deploy Hedera Explorer? ',
-        null,
-        Flags.deployHederaExplorer.name,
-      );
-    },
-  };
-
   static readonly valuesFile: CommandFlag = {
     constName: 'valuesFile',
     name: 'values-file',
@@ -1751,7 +1730,6 @@ export class Flags {
     Flags.deleteSecrets,
     Flags.deployCertManager,
     Flags.deployCertManagerCrds,
-    Flags.deployHederaExplorer,
     Flags.deployJsonRpcRelay,
     Flags.deployMinio,
     Flags.deployPrometheusStack,
