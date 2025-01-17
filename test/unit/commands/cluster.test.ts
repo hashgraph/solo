@@ -57,6 +57,9 @@ import type {Opts} from '../../../src/types/command_types.js';
 import type {ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
+import {ErrorMessages} from '../../../src/core/error_messages.js';
+import {SoloError} from '../../../src/core/errors.js';
+import {RemoteConfigDataWrapper} from '../../../src/core/config/remote/remote_config_data_wrapper.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -142,16 +145,27 @@ describe('ClusterCommand unit tests', () => {
     let tasks: ClusterCommandTasks;
     let command: BaseCommand;
     let loggerStub: sinon.SinonStubbedInstance<SoloLogger>;
+    let k8Stub: sinon.SinonStubbedInstance<K8>;
+    let remoteConfigManagerStub: sinon.SinonStubbedInstance<RemoteConfigManager>;
     let localConfig: LocalConfig;
+    const defaultRemoteConfig = {
+      metadata: {
+        name: 'deployment',
+      },
+      clusters: {},
+    };
 
     const getBaseCommandOpts = (
       sandbox: sinon.SinonSandbox,
       remoteConfig: any = {},
       // @ts-ignore
       stubbedFlags: Record<CommandFlag, any>[] = [],
+      opts: any = {
+        testClusterConnectionError: false,
+      },
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
-      const k8Stub = sandbox.createStubInstance(K8);
+      k8Stub = sandbox.createStubInstance(K8);
       k8Stub.getContexts.returns([
         {cluster: 'cluster-1', user: 'user-1', name: 'context-1', namespace: 'deployment-1'},
         {cluster: 'cluster-2', user: 'user-2', name: 'context-2', namespace: 'deployment-2'},
@@ -160,6 +174,13 @@ describe('ClusterCommand unit tests', () => {
       k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
+
+      if (opts.testClusterConnectionError) {
+        k8Stub.testClusterConnection.resolves(false);
+      } else {
+        k8Stub.testClusterConnection.resolves(true);
+      }
+
       const kubeConfigStub = sandbox.createStubInstance(KubeConfig);
       kubeConfigStub.getCurrentContext.returns('context-from-kubeConfig');
       kubeConfigStub.getCurrentCluster.returns({
@@ -171,10 +192,11 @@ describe('ClusterCommand unit tests', () => {
         tlsServerName: 'tls-3',
       } as Cluster);
 
-      const remoteConfigManagerStub = sandbox.createStubInstance(RemoteConfigManager);
+      remoteConfigManagerStub = sandbox.createStubInstance(RemoteConfigManager);
       remoteConfigManagerStub.modify.callsFake(async callback => {
         await callback(remoteConfig);
       });
+      remoteConfigManagerStub.get.resolves(remoteConfig);
 
       k8Stub.getKubeConfig.returns(kubeConfigStub);
 
@@ -240,11 +262,11 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should update currentDeployment with clusters from remoteConfig', async () => {
-        const remoteConfig = {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
           },
-        };
+        });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
         command = await runUpdateLocalConfigTask(opts); // @ts-ignore
         localConfig = new LocalConfig(filePath);
@@ -258,11 +280,11 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should update clusterContextMapping with provided context', async () => {
-        const remoteConfig = {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
           },
-        };
+        });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.context, 'provided-context']]);
         command = await runUpdateLocalConfigTask(opts); // @ts-ignore
         localConfig = new LocalConfig(filePath);
@@ -276,13 +298,13 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should update multiple clusterContextMappings with provided contexts', async () => {
-        const remoteConfig = {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
             'cluster-3': 'deployment',
             'cluster-4': 'deployment',
           },
-        };
+        });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [
           [flags.context, 'provided-context-2,provided-context-3,provided-context-4'],
         ]);
@@ -300,12 +322,12 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should update multiple clusterContextMappings with default KubeConfig context if quiet=true', async () => {
-        const remoteConfig = {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
             'cluster-3': 'deployment',
           },
-        };
+        });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.quiet, true]]);
         command = await runUpdateLocalConfigTask(opts); // @ts-ignore
         localConfig = new LocalConfig(filePath);
@@ -320,12 +342,12 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should update multiple clusterContextMappings with prompted context no value was provided', async () => {
-        const remoteConfig = {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
             'new-cluster': 'deployment',
           },
-        };
+        });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
 
         command = await runUpdateLocalConfigTask(opts); // @ts-ignore
@@ -381,21 +403,21 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('provided-context-1');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('provided-context-1');
       });
 
       it('should use local config mapping to connect to first provided cluster', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-2,cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected cluster is not found in local config mapping', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-3');
       });
 
       it('should use default kubeConfig context if selected cluster is not found in local config mapping and quiet=true', async () => {
@@ -405,21 +427,21 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
       });
 
       it('should use context from local config mapping for the first cluster from the selected deployment', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-2']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-2');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected deployment is found in local config but the context is not', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-3');
       });
 
       it('should use default context if selected deployment is found in local config but the context is not and quiet=true', async () => {
@@ -429,14 +451,14 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
       });
 
       it('should prompt for clusters and contexts if selected deployment is not found in local config', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-4']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-3');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-3');
       });
 
       it('should use clusters and contexts from kubeConfig if selected deployment is not found in local config and quiet=true', async () => {
@@ -446,7 +468,164 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().getKubeConfig().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
+      });
+
+      it('throws error when context is invalid', async () => {
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.context, 'invalid-context']], {
+          testClusterConnectionError: true,
+        });
+
+        try {
+          await runSelectContextTask(opts);
+          expect(true).to.be.false;
+        } catch (e) {
+          expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER('invalid-context'));
+        }
+      });
+    });
+
+    describe('readClustersFromRemoteConfig', () => {
+      let taskStub;
+
+      async function runReadClustersFromRemoteConfigTask(opts) {
+        command = new ClusterCommand(opts);
+        tasks = new ClusterCommandTasks(command, k8Stub);
+        const taskObj = tasks.readClustersFromRemoteConfig({});
+        taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
+        taskStub.newListr = sandbox.stub();
+        await taskObj.task({config: {}}, taskStub);
+        return command;
+      }
+
+      async function runSubTasks(subTasks) {
+        const stubs = [];
+        for (const subTask of subTasks) {
+          const subTaskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
+          subTaskStub.newListr = sandbox.stub();
+          await subTask.task({config: {}}, subTaskStub);
+          stubs.push(subTaskStub);
+        }
+
+        return stubs;
+      }
+
+      afterEach(async () => {
+        await fs.promises.unlink(filePath);
+        sandbox.restore();
+      });
+
+      beforeEach(async () => {
+        contextPromptStub = sandbox.stub(flags.context, 'prompt').callsFake(() => {
+          return new Promise(resolve => {
+            resolve('prompted-context');
+          });
+        });
+
+        loggerStub = sandbox.createStubInstance(SoloLogger);
+        await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
+      });
+
+      it('should load RemoteConfig when there is only 1 cluster', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+
+        expect(taskStub.newListr).calledWith([]);
+      });
+
+      it('should test other clusters and pull their respective RemoteConfigs', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-2': 'deployment',
+            'cluster-3': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        await runSubTasks(subTasks);
+        expect(contextPromptStub).not.called;
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-2');
+        expect(command.getK8().testClusterConnection).calledOnce;
+        expect(command.getK8().testClusterConnection).calledWith('context-2', 'cluster-2');
+      });
+
+      it('should prompt for context when reading unknown cluster', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+            'cluster-4': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        await runSubTasks(subTasks);
+        expect(contextPromptStub).calledOnce;
+        expect(command.getK8().setCurrentContext).to.have.been.calledWith('prompted-context');
+        expect(command.getK8().testClusterConnection).calledOnce;
+        expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+      });
+
+      it('should throw error for invalid prompted context', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+            'cluster-4': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, [], {testClusterConnectionError: true});
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        try {
+          await runSubTasks(subTasks);
+          expect(true).to.be.false;
+        } catch (e) {
+          expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED('prompted-context', 'cluster-4'));
+          expect(contextPromptStub).calledOnce;
+          expect(command.getK8().testClusterConnection).calledOnce;
+          expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+        }
+      });
+
+      it('should throw error when remoteConfigs do not match', async () => {
+        const remoteConfig: any = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+            'cluster-4': 'deployment',
+          },
+        });
+        const mismatchedRemoteConfig: any = Object.assign({}, defaultRemoteConfig, {
+          clusters: {'cluster-3': 'deployment'},
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+
+        remoteConfigManagerStub.get.onCall(0).resolves(remoteConfig);
+        remoteConfigManagerStub.get.onCall(1).resolves(mismatchedRemoteConfig);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        try {
+          await runSubTasks(subTasks);
+          expect(true).to.be.false;
+        } catch (e) {
+          expect(e.message).to.eq(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH('cluster-3', 'cluster-4'));
+          expect(contextPromptStub).calledOnce;
+          expect(command.getK8().testClusterConnection).calledOnce;
+          expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+        }
       });
     });
   });

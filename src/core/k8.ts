@@ -1203,13 +1203,13 @@ export class K8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
-  public async testClusterConnection(context: string): Promise<boolean> {
+  public async testClusterConnection(context: string, cluster: string): Promise<boolean> {
     this.kubeConfig.setCurrentContext(context);
 
-    return await this.kubeConfig
-      .makeApiClient(k8s.CoreV1Api)
+    const tempKubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+    return await tempKubeClient
       .listNamespace()
-      .then(() => true)
+      .then(() => this.getKubeConfig().getCurrentCluster().name === cluster)
       .catch(() => false);
   }
 
@@ -1381,7 +1381,7 @@ export class K8 {
       return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
       throw new SoloError(
-        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        `failed to replace configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
         e,
       );
     }
@@ -1394,7 +1394,7 @@ export class K8 {
       return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
       throw new SoloError(
-        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
+        `failed to delete configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
         e,
       );
     }
@@ -1727,5 +1727,13 @@ export class K8 {
       this.logger.showUser(`Failed to download state from pod ${podName}` + e);
     }
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
+  }
+
+  setCurrentContext(context: string) {
+    this.kubeConfig.setCurrentContext(context);
+
+    // Reinitialize clients
+    this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+    this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
   }
 }
