@@ -685,10 +685,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   async logs(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
     const action = this.parent.commandActionBuilder(
-      [
-        this.tasks.initialize(argv, logsConfigBuilder.bind(this), null),
-        this.tasks.getNodeLogsAndConfigs(),
-      ],
+      [this.tasks.initialize(argv, logsConfigBuilder.bind(this), null), this.tasks.getNodeLogsAndConfigs()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,

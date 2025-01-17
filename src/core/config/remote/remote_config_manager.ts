@@ -183,44 +183,44 @@ export class RemoteConfigManager {
 
   /* ---------- Listr Task Builders ---------- */
 
-    /**
-     * Performs the loading of the remote configuration.
-     * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
-     *
-     * @param argv - arguments containing command input for historical reference.
-     */
+  /**
+   * Performs the loading of the remote configuration.
+   * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
+   *
+   * @param argv - arguments containing command input for historical reference.
+   */
   public async loadAndValidate(argv: {_: string[]}) {
-      const self = this;
-      try {
-          self.setDefaultNamespaceIfNotSet();
-          self.setDefaultContextIfNotSet();
-      } catch (e) {
-          self.logger.showUser(chalk.red(e.message));
-          return;
-      }
+    const self = this;
+    try {
+      self.setDefaultNamespaceIfNotSet();
+      self.setDefaultContextIfNotSet();
+    } catch (e) {
+      self.logger.showUser(chalk.red(e.message));
+      return;
+    }
 
-      if (!(await self.load())) {
-          self.logger.showUser(chalk.red('remote config not found'));
+    if (!(await self.load())) {
+      self.logger.showUser(chalk.red('remote config not found'));
 
-          // TODO see if this should be disabled to make it an optional feature
-          return;
-          // throw new SoloError('Failed to load remote config')
-      }
+      // TODO see if this should be disabled to make it an optional feature
+      return;
+      // throw new SoloError('Failed to load remote config')
+    }
 
-      await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
+    await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
-      const currentCommand = argv._.join(' ');
-      self.remoteConfig!.addCommandToHistory(currentCommand);
+    const currentCommand = argv._.join(' ');
+    self.remoteConfig!.addCommandToHistory(currentCommand);
 
-      await self.save();
+    await self.save();
   }
 
-    /**
-     * Builds a listr task for loading the remote configuration.
-     *
-     * @param argv - arguments containing command input for historical reference.
-     * @returns a Listr task which loads the remote configuration.
-     */
+  /**
+   * Builds a listr task for loading the remote configuration.
+   *
+   * @param argv - arguments containing command input for historical reference.
+   * @returns a Listr task which loads the remote configuration.
+   */
   public buildLoadTask(argv: {_: string[]}): SoloListrTask<EmptyContextConfig> {
     const self = this;
 
