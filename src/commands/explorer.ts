@@ -182,7 +182,6 @@ export class ExplorerCommand extends BaseCommand {
               'valuesArg',
             ]) as ExplorerDeployConfigClass;
 
-            // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
