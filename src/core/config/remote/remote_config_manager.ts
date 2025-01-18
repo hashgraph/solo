@@ -184,8 +184,39 @@ export class RemoteConfigManager {
   /* ---------- Listr Task Builders ---------- */
 
   /**
-   * Builds a task for loading the remote configuration, intended for use with Listr task management.
+   * Performs the loading of the remote configuration.
    * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
+   *
+   * @param argv - arguments containing command input for historical reference.
+   */
+  public async loadAndValidate(argv: {_: string[]}) {
+    const self = this;
+    try {
+      self.setDefaultNamespaceIfNotSet();
+      self.setDefaultContextIfNotSet();
+    } catch (e) {
+      self.logger.showUser(chalk.red(e.message));
+      return;
+    }
+
+    if (!(await self.load())) {
+      self.logger.showUser(chalk.red('remote config not found'));
+
+      // TODO see if this should be disabled to make it an optional feature
+      return;
+      // throw new SoloError('Failed to load remote config')
+    }
+
+    await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
+
+    const currentCommand = argv._.join(' ');
+    self.remoteConfig!.addCommandToHistory(currentCommand);
+
+    await self.save();
+  }
+
+  /**
+   * Builds a listr task for loading the remote configuration.
    *
    * @param argv - arguments containing command input for historical reference.
    * @returns a Listr task which loads the remote configuration.
@@ -196,27 +227,7 @@ export class RemoteConfigManager {
     return {
       title: 'Load remote config',
       task: async (_, task): Promise<void> => {
-        try {
-          self.setDefaultNamespaceIfNotSet();
-          self.setDefaultContextIfNotSet();
-        } catch {
-          return; // TODO
-        }
-
-        if (!(await self.load())) {
-          task.title = `${task.title} - ${chalk.red('remote config not found')}`;
-
-          // TODO see if this should be disabled to make it an optional feature
-          return;
-          // throw new SoloError('Failed to load remote config')
-        }
-
-        await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
-
-        const currentCommand = argv._.join(' ');
-        self.remoteConfig!.addCommandToHistory(currentCommand);
-
-        await self.save();
+        await self.loadAndValidate(argv);
       },
     };
   }
