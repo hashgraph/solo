@@ -509,7 +509,6 @@ export class NetworkCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Copy gRPC TLS Certificates',
           task: (ctx, parentTask) =>

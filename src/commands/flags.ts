@@ -863,8 +863,10 @@ export class Flags {
     constName: 'applicationEnv',
     name: 'application-env',
     definition: {
-      describe: 'application.env file for node',
-      defaultValue: '',
+      describe:
+        'the application.env file for the node provides environment variables to the solo-container' +
+        ' to be used when the hedera platform is started',
+      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.env'),
       type: 'string',
     },
     prompt: undefined,
@@ -1852,6 +1854,7 @@ export class Flags {
   static readonly nodeConfigFileFlags = new Map(
     [
       Flags.apiPermissionProperties,
+      Flags.applicationEnv,
       Flags.applicationProperties,
       Flags.bootstrapProperties,
       Flags.log4j2Xml,

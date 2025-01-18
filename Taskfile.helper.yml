@@ -196,7 +196,7 @@ tasks:
     cmds:
       - |
         if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
-          export CONSENSUS_NODE_FLAG='--release-tag ${CONSENSUS_NODE_VERSION}'
+          export CONSENSUS_NODE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
         SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases-unparsed {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q --dev
 

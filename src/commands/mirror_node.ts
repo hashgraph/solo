@@ -162,7 +162,13 @@ export class MirrorNodeCommand extends BaseCommand {
             self.configManager.update(argv);
 
             // disable the prompts that we don't want to prompt the user for
-            flags.disablePrompts([flags.valuesFile, flags.mirrorNodeVersion, flags.pinger]);
+            flags.disablePrompts([
+              flags.valuesFile,
+              flags.mirrorNodeVersion,
+              flags.pinger,
+              flags.operatorId,
+              flags.operatorKey,
+            ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
 
@@ -225,7 +231,6 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Enable mirror-node',
           task: (_, parentTask) => {
@@ -478,7 +483,6 @@ export class MirrorNodeCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy mirror-node',
           task: async ctx => {
