@@ -44,6 +44,7 @@ interface MirrorNodeDeployConfigClass {
   chartPath: string;
   valuesArg: string;
   mirrorNodeVersion: string;
+  mirrorIngress: string;
   getUnusedConfigs: () => string[];
   pinger: boolean;
   operatorId: string;
@@ -89,6 +90,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.quiet,
       flags.valuesFile,
       flags.mirrorNodeVersion,
+      flags.mirrorIngress,
       flags.pinger,
       flags.customMirrorNodeDatabaseValuePath,
       flags.operatorId,
@@ -116,6 +118,15 @@ export class MirrorNodeCommand extends BaseCommand {
 
     if (config.storageBucket) {
       valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.bucketName=${config.storageBucket}`;
+    }
+
+    if (config.mirrorIngress) {
+      // check if it is a valid path exists
+      if (!fs.existsSync(config.mirrorIngress)) {
+        throw new SoloError(`Path provided for mirror ingress ${config.mirrorIngress} is not found`);
+      } else {
+        valuesArg += ` --values ${config.mirrorIngress}`;
+      }
     }
 
     let storageType = '';
@@ -478,10 +489,10 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Delete PVCs',
           task: async ctx => {
+            // filtering postgres and redis PVCs using instance labels
+            // since they have different name or component labels
             const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
-              'app.kubernetes.io/component=postgresql',
-              'app.kubernetes.io/instance=solo-deployment',
-              'app.kubernetes.io/name=postgres',
+              `app.kubernetes.io/instance=${constants.MIRROR_NODE_RELEASE_NAME}`,
             ]);
 
             if (pvcs) {

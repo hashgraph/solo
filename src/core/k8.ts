@@ -1530,9 +1530,15 @@ export class K8 {
    * Check if the ingress controller is installed inside any namespace.
    * @returns if ingress controller is found
    */
-  public async isIngressControllerInstalled(): Promise<boolean> {
+  public async isIngressControllerInstalled(labels: string[] = []): Promise<boolean> {
     try {
-      const response = await this.networkingApi.listIngressClass();
+      const response = await this.networkingApi.listIngressClass(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labels.join(','),
+      );
 
       return response.body.items.length > 0;
     } catch (e) {

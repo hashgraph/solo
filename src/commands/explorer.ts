@@ -32,10 +32,12 @@ import {type SoloListrTask} from '../types/index.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
+  enableIngress: boolean;
   enableHederaExplorerTls: boolean;
   hederaExplorerTlsHostName: string;
-  hederaExplorerTlsLoadBalancerIp: string | '';
+  hederaExplorerLoadBalancerIp: string | '';
   hederaExplorerVersion: string;
+  mirrorStaticIP: string;
   namespace: string;
   profileFile: string;
   profileName: string;
@@ -70,10 +72,12 @@ export class ExplorerCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
+      flags.enableIngress,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
-      flags.hederaExplorerTlsLoadBalancerIp,
+      flags.hederaExplorerLoadBalancerIp,
       flags.hederaExplorerVersion,
+      flags.mirrorStaticIP,
       flags.namespace,
       flags.profileFile,
       flags.profileName,
@@ -85,7 +89,7 @@ export class ExplorerCommand extends BaseCommand {
     ];
   }
 
-  async prepareHederaExplorerValuesArg(config: {valuesFile: string}) {
+  async prepareHederaExplorerValuesArg(config: ExplorerDeployConfigClass) {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -98,6 +102,20 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
 
+    // Install ingress controller only if haproxy ingress not already present
+    if (
+      !(await this.k8.isIngressControllerInstalled([
+        'app.kubernetes.io/name=haproxy-ingress',
+        'app.kubernetes.io/instance=hedera-explorer',
+      ])) &&
+      config.enableIngress
+    ) {
+      valuesArg += ' --set ingress.enabled=true';
+      valuesArg += ' --set haproxyIngressController.enabled=true';
+      valuesArg += ` --set ingressClassName=${config.namespace}-hedera-explorer-ingress-class`;
+      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${config.hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
+    }
+
     valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
     return valuesArg;
   }
@@ -106,11 +124,11 @@ export class ExplorerCommand extends BaseCommand {
    * @param config
    * @param config.tlsClusterIssuerType - must be one of - acme-staging, acme-prod, or self-signed
    * @param config.namespace - used for classname ingress class name prefix
-   * @param config.hederaExplorerTlsLoadBalancerIp - can be an empty string
+   * @param config.hederaExplorerLoadBalancerIp - can be an empty string
    * @param config.hederaExplorerTlsHostName
    */
   private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
-    const {tlsClusterIssuerType, namespace, hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName} = config;
+    const {tlsClusterIssuerType, mirrorStaticIP, hederaExplorerLoadBalancerIp} = config;
 
     let valuesArg = '';
 
@@ -120,21 +138,15 @@ export class ExplorerCommand extends BaseCommand {
       );
     }
 
-    // Install ingress controller only if it's not already present
-    if (!(await this.k8.isIngressControllerInstalled())) {
-      valuesArg += ' --set ingress.enabled=true';
-      valuesArg += ' --set haproxyIngressController.enabled=true';
-      valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
-      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
-    }
-
     if (!(await this.k8.isCertManagerInstalled())) {
       valuesArg += ' --set cloud.certManager.enabled=true';
       valuesArg += ' --set cert-manager.installCRDs=true';
     }
 
-    if (hederaExplorerTlsLoadBalancerIp !== '') {
-      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
+    if (hederaExplorerLoadBalancerIp !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerLoadBalancerIp}`;
+    } else if (mirrorStaticIP !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${mirrorStaticIP}`;
     }
 
     if (tlsClusterIssuerType === 'self-signed') {
@@ -170,7 +182,7 @@ export class ExplorerCommand extends BaseCommand {
             flags.disablePrompts([
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsHostName,
-              flags.hederaExplorerTlsLoadBalancerIp,
+              flags.hederaExplorerLoadBalancerIp,
               flags.hederaExplorerVersion,
               flags.tlsClusterIssuerType,
               flags.valuesFile,
@@ -272,16 +284,16 @@ export class ExplorerCommand extends BaseCommand {
         },
         {
           title: 'Check haproxy ingress pod is ready',
-          task: async () => {
+          task: async (ctx) => {
             await self.k8.waitForPodReady(
               [
                 'app.kubernetes.io/name=haproxy-ingress',
-                `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+                `app.kubernetes.io/instance=hedera-explorer`,
               ],
               1,
               constants.PODS_READY_MAX_ATTEMPTS,
               constants.PODS_READY_DELAY,
-              constants.SOLO_SETUP_NAMESPACE,
+              ctx.config.namespace,
             );
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls,
