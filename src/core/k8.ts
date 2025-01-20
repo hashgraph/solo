@@ -1726,7 +1726,7 @@ export class K8 {
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }
 
-  setCurrentContext(context: string) {
+  public setCurrentContext(context: string) {
     this.kubeConfig.setCurrentContext(context);
 
     // Reinitialize clients
@@ -1734,19 +1734,19 @@ export class K8 {
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
   }
 
-  getCurrentContext(): string {
+  public getCurrentContext(): string {
       return this.kubeConfig.getCurrentContext();
   }
 
-  getCurrentContextObject(): Context {
+  public getCurrentContextObject(): Context {
       return this.kubeConfig.getContextObject(this.getCurrentContext());
   }
 
-  getCurrentCluster(): Cluster {
+  public getCurrentCluster(): Cluster {
       return this.kubeConfig.getCurrentCluster();
   }
 
-  getCurrentClusterName(): string {
+  public getCurrentClusterName(): string {
       const currentCluster = this.kubeConfig.getCurrentCluster();
       if (!currentCluster) return '';
       return currentCluster.name;
