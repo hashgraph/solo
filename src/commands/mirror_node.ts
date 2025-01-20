@@ -390,8 +390,8 @@ export class MirrorNodeCommand extends BaseCommand {
 
                     await self.chartManager.install(
                       config.namespace,
-                      constants.HEDERA_EXPLORER_CHART,
-                      constants.HEDERA_EXPLORER_CHART_UTL,
+                      constants.HEDERA_EXPLORER_RELEASE_NAME,
+                      constants.HEDERA_EXPLORER_CHART_URL,
                       config.hederaExplorerVersion,
                       exploreValuesArg,
                     );
@@ -627,7 +627,7 @@ export class MirrorNodeCommand extends BaseCommand {
           title: 'Destroy mirror-node',
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME);
-            await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART);
+            await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME);
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
