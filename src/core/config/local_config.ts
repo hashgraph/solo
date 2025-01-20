@@ -206,16 +206,18 @@ export class LocalConfig implements LocalConfigData {
 
         if (parsedContexts.length < parsedClusters.length) {
           if (!isQuiet) {
-            const promptedContexts = [];
+            const promptedContexts: string[] = [];
             for (const cluster of parsedClusters) {
               const kubeContexts = k8.getContexts();
-              const context = await flags.context.prompt(
+              const context: string = await flags.context.prompt(
                 task,
                 kubeContexts.map(c => c.name),
                 cluster,
               );
               self.clusterContextMapping[cluster] = context;
               promptedContexts.push(context);
+
+              self.configManager.setFlag(flags.context, context);
             }
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
@@ -229,12 +231,15 @@ export class LocalConfig implements LocalConfigData {
           for (let i = 0; i < parsedClusters.length; i++) {
             const cluster = parsedClusters[i];
             self.clusterContextMapping[cluster] = parsedContexts[i];
+
+            self.configManager.setFlag(flags.context, parsedContexts[i]);
           }
         }
 
         self.userEmailAddress = userEmailAddress;
         self.deployments = deployments;
         self.currentDeploymentName = deploymentName;
+
         self.validate();
         await self.write();
       },

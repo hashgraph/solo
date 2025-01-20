@@ -158,7 +158,8 @@ describe('ClusterCommand unit tests', () => {
     const getBaseCommandOpts = (
       sandbox: sinon.SinonSandbox,
       remoteConfig: any = {},
-      // @ts-ignore
+
+      // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
       stubbedFlags: Record<CommandFlag, any>[] = [],
       opts: any = {
         testClusterConnectionError: false,
@@ -228,9 +229,13 @@ describe('ClusterCommand unit tests', () => {
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
+
         tasks = new ClusterCommandTasks(command, opts.k8);
+
+        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1.
         const taskObj = tasks.updateLocalConfig({});
-        await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
+
+        await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
       }
 
@@ -268,7 +273,7 @@ describe('ClusterCommand unit tests', () => {
           },
         });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -286,7 +291,7 @@ describe('ClusterCommand unit tests', () => {
           },
         });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.context, 'provided-context']]);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -308,7 +313,7 @@ describe('ClusterCommand unit tests', () => {
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [
           [flags.context, 'provided-context-2,provided-context-3,provided-context-4'],
         ]);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -329,7 +334,7 @@ describe('ClusterCommand unit tests', () => {
           },
         });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, [[flags.quiet, true]]);
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -350,7 +355,7 @@ describe('ClusterCommand unit tests', () => {
         });
         const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
 
-        command = await runUpdateLocalConfigTask(opts); // @ts-ignore
+        command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
         expect(localConfig.currentDeploymentName).to.equal('deployment');
@@ -366,9 +371,13 @@ describe('ClusterCommand unit tests', () => {
     describe('selectContext', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
+
         tasks = new ClusterCommandTasks(command, opts.k8);
+
+        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1
         const taskObj = tasks.selectContext({});
-        await taskObj.task({config: {}}, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
+
+        await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
       }
 

@@ -21,22 +21,31 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ClusterCommandTasks} from './cluster/tasks.js';
 import type {Namespace} from '../core/config/remote/types.js';
 import type {CommandFlag} from '../types/flag_types.js';
 import type {CommandBuilder} from '../types/aliases.js';
 import type {SoloListrTask} from '../types/index.js';
+import type {Opts} from '../types/command_types.js';
 
 export class DeploymentCommand extends BaseCommand {
+  readonly tasks: ClusterCommandTasks;
+
+  constructor(opts: Opts) {
+    super(opts);
+
+    this.tasks = new ClusterCommandTasks(this, this.k8);
+  }
+
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
     return [flags.quiet, flags.namespace, flags.userEmailAddress, flags.deploymentClusters];
   }
 
   private async create(argv: any): Promise<boolean> {
     const self = this;
-    const lease = await self.leaseManager.create();
 
     interface Config {
+      context: string;
       namespace: Namespace;
     }
     interface Context {
@@ -58,12 +67,28 @@ export class DeploymentCommand extends BaseCommand {
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
-
-            return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
         this.setupHomeDirectoryTask(),
         this.localConfig.promptLocalConfigTask(self.k8),
+        this.tasks.selectContext(),
+        {
+          title: 'Validate context',
+          task: async (ctx, task) => {
+            ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
+            const availableContexts = self.k8.getContextNames();
+
+            if (availableContexts.includes(ctx.config.context)) {
+              task.title += chalk.green(`- validated context ${ctx.config.context}`);
+              return;
+            }
+
+            throw new SoloError(
+              `Context with name ${ctx.config.context} not found, available contexts include ${availableContexts.join(', ')}`,
+            );
+          },
+        },
+        this.tasks.updateLocalConfig(),
         {
           title: 'Validate cluster connections',
           task: async (ctx, task) => {
@@ -120,8 +145,6 @@ export class DeploymentCommand extends BaseCommand {
       await tasks.run();
     } catch (e: Error | unknown) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
-    } finally {
-      await lease.release();
     }
 
     return true;

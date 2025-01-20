@@ -29,11 +29,13 @@ import * as version from '../../../version.js';
 import type {NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
+import {Templates} from '../../../src/core/templates.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
 
   const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
+  let stagingDir = '';
 
   before(() => {
     resetTestContainer();
@@ -45,10 +47,18 @@ describe('ProfileManager', () => {
     configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
     cacheDir = configManager.getFlag<string>(flags.cacheDir) as string;
     configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'));
+    configManager.setFlag(flags.applicationEnv, path.join(cacheDir, 'templates', 'application.env'));
     configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'));
     configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'));
     configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates', 'log4j2.xml'));
     configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates', 'settings.txt'));
+    stagingDir = Templates.renderStagingDir(
+      configManager.getFlag(flags.cacheDir),
+      configManager.getFlag(flags.releaseTag),
+    );
+    if (!fs.existsSync(stagingDir)) {
+      fs.mkdirSync(stagingDir, {recursive: true});
+    }
   });
 
   after(() => {
@@ -130,10 +140,12 @@ describe('ProfileManager', () => {
         configManager.setFlag(flags.profileFile, testProfileFile);
 
         // profileManager.loadProfiles(true)
-        const file = path.join(tmpDir, '_setFileContentsAsValue.txt');
+        const file = path.join(tmpDir, 'application.env');
         const fileContents = '# row 1\n# row 2\n# row 3';
         fs.writeFileSync(file, fileContents);
         configManager.setFlag(flags.applicationEnv, file);
+        const destFile = path.join(stagingDir, 'templates', 'application.env');
+        fs.cpSync(file, destFile, {force: true});
         const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test');
         const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());
         expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents);
