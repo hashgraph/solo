@@ -183,12 +183,12 @@ describe('ClusterCommand unit tests', () => {
       }
 
       const kubeConfigClusterObject = {
-          name: 'cluster-3',
-          caData: 'caData',
-          caFile: 'caFile',
-          server: 'server-3',
-          skipTLSVerify: true,
-          tlsServerName: 'tls-3',
+        name: 'cluster-3',
+        caData: 'caData',
+        caFile: 'caFile',
+        server: 'server-3',
+        skipTLSVerify: true,
+        tlsServerName: 'tls-3',
       } as Cluster;
 
       const kubeConfigStub = sandbox.createStubInstance(KubeConfig);

@@ -39,7 +39,7 @@ import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
-import {Cluster} from "@kubernetes/client-node/dist/config_types.js";
+import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -1735,20 +1735,20 @@ export class K8 {
   }
 
   public getCurrentContext(): string {
-      return this.kubeConfig.getCurrentContext();
+    return this.kubeConfig.getCurrentContext();
   }
 
   public getCurrentContextObject(): Context {
-      return this.kubeConfig.getContextObject(this.getCurrentContext());
+    return this.kubeConfig.getContextObject(this.getCurrentContext());
   }
 
   public getCurrentCluster(): Cluster {
-      return this.kubeConfig.getCurrentCluster();
+    return this.kubeConfig.getCurrentCluster();
   }
 
   public getCurrentClusterName(): string {
-      const currentCluster = this.kubeConfig.getCurrentCluster();
-      if (!currentCluster) return '';
-      return currentCluster.name;
+    const currentCluster = this.kubeConfig.getCurrentCluster();
+    if (!currentCluster) return '';
+    return currentCluster.name;
   }
 }
