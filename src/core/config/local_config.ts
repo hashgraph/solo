@@ -189,7 +189,7 @@ export class LocalConfig implements LocalConfigData {
 
         if (!deploymentClusters) {
           if (isQuiet) {
-            deploymentClusters = k8.getKubeConfig().getCurrentCluster().name;
+            deploymentClusters = k8.getCurrentClusterName()
           } else {
             deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
           }
@@ -221,7 +221,7 @@ export class LocalConfig implements LocalConfigData {
             }
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
-            const context = k8.getKubeConfig().getCurrentContext();
+            const context = k8.getCurrentContext();
             for (const cluster of parsedClusters) {
               self.clusterContextMapping[cluster] = context;
             }
