@@ -37,7 +37,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly nodeAliases: NodeAliases,
     private readonly keyManager: KeyManager,
     private readonly keysDir: string,
-    private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    networkNodeServiceMap: Map<string, NetworkNodeServices>,
   ) {
     nodeAliases.forEach(nodeAlias => {
       const adminPrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);

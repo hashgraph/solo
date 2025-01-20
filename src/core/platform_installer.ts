@@ -311,8 +311,12 @@ export class PlatformInstaller {
   private async copyConfigurationFiles(stagingDir: string, podName: `network-node${number}-0`, isGenesis: boolean) {
     if (isGenesis) {
       const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
+
       await this.copyFiles(podName, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);
     }
+
+    const networkOverridesYaml = [path.join(stagingDir, 'node-overrides.yaml')];
+    await this.copyFiles(podName, networkOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`);
   }
 
   /**
