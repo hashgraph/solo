@@ -14,7 +14,9 @@ function create_test_account ()
 
   # get private key of the account
   npm run solo-test -- account get -n solo-e2e --account-id ${OPERATOR_ID} --private-key > test.log
-  export OPERATOR_KEY=$(grep "privateKey" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
+
+  # retrieve the field privateKey but not privateKeyRaw
+  export OPERATOR_KEY=$(grep "privateKey" test.log | grep -v "privateKeyRaw" | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
   export CONTRACT_TEST_KEY_ONE=0x$(grep "privateKeyRaw" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
   echo "CONTRACT_TEST_KEY_ONE=${CONTRACT_TEST_KEY_ONE}"
   rm test.log

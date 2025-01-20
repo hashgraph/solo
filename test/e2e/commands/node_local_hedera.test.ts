@@ -28,6 +28,7 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {type NodeCommand} from '../../../src/commands/node/index.js';
 import {type AccountCommand} from '../../../src/commands/account.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
+import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
 
 const LOCAL_HEDERA = 'local-hedera-app';
 const argv = getDefaultArgv();
@@ -43,6 +44,7 @@ let hederaK8: K8;
 console.log('Starting local build for Hedera app');
 argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data';
 argv[flags.namespace.name] = LOCAL_HEDERA;
+argv[flags.releaseTag.name] = LOCAL_HEDERA_PLATFORM_VERSION;
 
 e2eTestSuite(
   LOCAL_HEDERA,
