@@ -441,7 +441,7 @@ export class MirrorNodeCommand extends BaseCommand {
                   skip: ctx => !ctx.config.deployHederaExplorer,
                   task: async () =>
                     await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'],
+                      ['app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer-chart'],
                       1,
                       constants.PODS_READY_MAX_ATTEMPTS,
                       constants.PODS_READY_DELAY,
