@@ -22,7 +22,7 @@ import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
-import {type CommandBuilder, type PodName} from '../types/aliases.js';
+import {type CommandBuilder} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -263,8 +263,8 @@ export class ExplorerCommand extends BaseCommand {
 
             await self.chartManager.install(
               config.namespace,
-              constants.HEDERA_EXPLORER_CHART,
-              constants.HEDERA_EXPLORER_CHART_UTL,
+              constants.HEDERA_EXPLORER_RELEASE_NAME,
+              constants.HEDERA_EXPLORER_CHART_URL,
               config.hederaExplorerVersion,
               exploreValuesArg,
             );
@@ -283,7 +283,7 @@ export class ExplorerCommand extends BaseCommand {
         },
         {
           title: 'Check haproxy ingress pod is ready',
-          task: async (ctx) => {
+          task: async ctx => {
             await self.k8.waitForPodReady(
               [
                 'app.kubernetes.io/name=haproxy-ingress',
@@ -361,7 +361,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
               ctx.config.namespace,
-              constants.HEDERA_EXPLORER_CHART,
+              constants.HEDERA_EXPLORER_CHART_URL,
             );
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
@@ -370,7 +370,7 @@ export class ExplorerCommand extends BaseCommand {
         {
           title: 'Destroy explorer',
           task: async ctx => {
-            await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_CHART);
+            await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME);
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
