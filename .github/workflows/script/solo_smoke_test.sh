@@ -13,8 +13,10 @@ source .github/workflows/script/helper.sh
 
 function enable_port_forward ()
 {
+  local explorer_svc
+  explorer_svc="$(kubectl get svc -l app.kubernetes.io/component=hedera-explorer -n solo-e2e --output json | jq -r '.items[].metadata.name')"
   kubectl port-forward -n solo-e2e svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
-  kubectl port-forward -n solo-e2e svc/hedera-explorer 8080:80 > /dev/null 2>&1 &
+  kubectl port-forward -n solo-e2e "svc/${explorer_svc}" 8080:80 > /dev/null 2>&1 &
   kubectl port-forward -n solo-e2e svc/relay-node1-hedera-json-rpc-relay 7546:7546 > /dev/null 2>&1 &
   kubectl port-forward -n solo-e2e svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &
 }
@@ -39,7 +41,7 @@ function setup_smart_contract_test ()
   rm -f .env
 
   npm install
-  npx hardhat compile || return 1:
+  npx hardhat compile || return 1
 
   echo "Build .env file"
 
