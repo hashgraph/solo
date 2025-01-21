@@ -284,7 +284,7 @@ export class ExplorerCommand extends BaseCommand {
         },
         {
           title: 'Check haproxy ingress pod is ready',
-          task: async ctx => {
+          task: async () => {
             await self.k8.waitForPodReady(
               [
                 'app.kubernetes.io/name=haproxy-ingress',
