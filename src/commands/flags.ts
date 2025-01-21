@@ -1733,6 +1733,7 @@ export class Flags {
 
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
+    Flags.adminKey,
     Flags.amount,
     Flags.apiPermissionProperties,
     Flags.app,

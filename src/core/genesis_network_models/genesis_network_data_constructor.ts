@@ -25,7 +25,8 @@ import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_ent
 import {Templates} from '../templates.js';
 import path from 'path';
 import type {NetworkNodeServices} from '../network_node_services.js';
-import {SoloError} from "../errors.js";
+import {SoloError} from '../errors.js';
+import {Flags as flags} from '../../commands/flags.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -39,7 +40,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly keysDir: string,
     private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
-    adminKeyMap: Map<NodeAlias, string>
+    adminKeyMap: Map<NodeAlias, string>,
   ) {
     nodeAliases.forEach(nodeAlias => {
       const adminPrivateKey = PrivateKey.fromStringED25519(adminKeyMap[nodeAlias] || constants.GENESIS_KEY);
@@ -76,21 +77,28 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     keyManager: KeyManager,
     keysDir: string,
     networkNodeServiceMap: Map<string, NetworkNodeServices>,
-    adminKeys: string[]
+    adminKeys: string[],
   ): Promise<GenesisNetworkDataConstructor> {
-
     const adminKeyMap: Map<NodeAlias, string> = new Map();
-    if (adminKeys.length > 0) {
-        if (adminKeys.length !== nodeAliases.length) {
-            throw new SoloError('Provide an adminKey for every node');
-        }
 
-        adminKeys.forEach((adminKey, i) => {
-            adminKeyMap[nodeAliases[i]] = adminKey
-        })
+    // If admin keys are passed and if it is not the default value from flags then validate and build the adminKeyMap
+    if (adminKeys.length > 0 && adminKeys.length !== 1 && adminKeys[0] !== flags.adminKey.definition.defaultValue) {
+      if (adminKeys.length !== nodeAliases.length) {
+        throw new SoloError('Provide an adminKey for every node');
+      }
+
+      adminKeys.forEach((adminKey, i) => {
+        adminKeyMap[nodeAliases[i]] = adminKey;
+      });
     }
 
-    const instance = new GenesisNetworkDataConstructor(nodeAliases, keyManager, keysDir, networkNodeServiceMap, adminKeyMap);
+    const instance = new GenesisNetworkDataConstructor(
+      nodeAliases,
+      keyManager,
+      keysDir,
+      networkNodeServiceMap,
+      adminKeyMap,
+    );
 
     await instance.load();
 
