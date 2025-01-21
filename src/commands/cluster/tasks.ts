@@ -55,7 +55,7 @@ export class ClusterCommandTasks {
         if (!context) {
           const isQuiet = self.parent.getConfigManager().getFlag(flags.quiet);
           if (isQuiet) {
-            context = self.parent.getK8().getKubeConfig().currentContext;
+            context = self.parent.getK8().getCurrentContext();
           } else {
             context = await self.promptForContext(parentTask, cluster);
           }
@@ -96,11 +96,12 @@ export class ClusterCommandTasks {
       title: 'Read clusters from remote config',
       task: async (ctx, task) => {
         const localConfig = this.parent.getLocalConfig();
-        const currentCluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
+        const currentCluster = this.parent.getK8().getCurrentCluster();
+        const currentClusterName = this.parent.getK8().getCurrentClusterName();
         const currentRemoteConfig: RemoteConfigDataWrapper = await this.parent.getRemoteConfigManager().get();
         const subTasks = [];
         const remoteConfigClusters = Object.keys(currentRemoteConfig.clusters);
-        const otherRemoteConfigClusters: string[] = remoteConfigClusters.filter(c => c !== currentCluster.name);
+        const otherRemoteConfigClusters: string[] = remoteConfigClusters.filter(c => c !== currentClusterName);
 
         // Validate connections for the other clusters
         for (const cluster of otherRemoteConfigClusters) {
@@ -163,7 +164,7 @@ export class ClusterCommandTasks {
           } else if (!localConfig.clusterContextMapping[cluster]) {
             // In quiet mode, use the currently selected context to update the mapping
             if (isQuiet) {
-              localConfig.clusterContextMapping[cluster] = this.parent.getK8().getKubeConfig().getCurrentContext();
+              localConfig.clusterContextMapping[cluster] = this.parent.getK8().getCurrentContext();
             }
 
             // Prompt the user to select a context if mapping value is missing
@@ -186,7 +187,7 @@ export class ClusterCommandTasks {
   ) {
     let selectedContext;
     if (isQuiet) {
-      selectedContext = this.parent.getK8().getKubeConfig().getCurrentContext();
+      selectedContext = this.parent.getK8().getCurrentContext();
     } else {
       selectedContext = await this.promptForContext(task, selectedCluster);
       localConfig.clusterContextMapping[selectedCluster] = selectedContext;
@@ -304,8 +305,8 @@ export class ClusterCommandTasks {
           else {
             // Add the deployment to the LocalConfig with the currently selected cluster and context in KubeConfig
             if (isQuiet) {
-              selectedContext = this.parent.getK8().getKubeConfig().getCurrentContext();
-              selectedCluster = this.parent.getK8().getKubeConfig().getCurrentCluster().name;
+              selectedContext = this.parent.getK8().getCurrentContext();
+              selectedCluster = this.parent.getK8().getCurrentClusterName();
               localConfig.deployments[deploymentName] = {
                 clusters: [selectedCluster],
               };
@@ -364,7 +365,7 @@ export class ClusterCommandTasks {
   getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       try {
-        const cluster = this.parent.getK8().getKubeConfig().getCurrentCluster();
+        const cluster = this.parent.getK8().getCurrentCluster();
         this.parent.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
         this.parent.logger.showUser('\n');
       } catch (e: Error | unknown) {
