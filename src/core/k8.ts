@@ -39,6 +39,7 @@ import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
+import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
 
 interface TDirectoryData {
   directory: boolean;
@@ -76,10 +77,6 @@ export class K8 {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
 
     this.init();
-  }
-
-  getKubeConfig() {
-    return this.kubeConfig;
   }
 
   init() {
@@ -1745,11 +1742,29 @@ export class K8 {
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }
 
-  setCurrentContext(context: string) {
+  public setCurrentContext(context: string) {
     this.kubeConfig.setCurrentContext(context);
 
     // Reinitialize clients
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
+  }
+
+  public getCurrentContext(): string {
+    return this.kubeConfig.getCurrentContext();
+  }
+
+  public getCurrentContextObject(): Context {
+    return this.kubeConfig.getContextObject(this.getCurrentContext());
+  }
+
+  public getCurrentCluster(): Cluster {
+    return this.kubeConfig.getCurrentCluster();
+  }
+
+  public getCurrentClusterName(): string {
+    const currentCluster = this.kubeConfig.getCurrentCluster();
+    if (!currentCluster) return '';
+    return currentCluster.name;
   }
 }
