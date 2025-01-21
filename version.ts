@@ -21,7 +21,7 @@
 
 export const HELM_VERSION = 'v3.14.2';
 export const SOLO_CHART_VERSION = '0.42.10';
-export const HEDERA_PLATFORM_VERSION = 'v0.59.0-main.x5322bdc';
+export const HEDERA_PLATFORM_VERSION = 'v0.59.0-main.x0129e3a';
 export const LOCAL_HEDERA_PLATFORM_VERSION = 'v0.58.3';
 export const MIRROR_NODE_VERSION = '0.120.1';
 export const HEDERA_EXPLORER_VERSION = '0.2.1';
