@@ -86,7 +86,48 @@ function start_sdk_test ()
   return $result
 }
 
+function check_monitor_log()
+{
+  # get the logs of mirror-monitor
+  kubectl get pods -n solo-e2e | grep mirror-monitor | awk '{print $1}' | xargs kubectl logs -n solo-e2e > mirror-monitor.log
+
+  if grep -q "ERROR" mirror-monitor.log; then
+    echo "mirror-monitor.log contains ERROR"
+    exit 1
+  fi
+
+  # any line contains "Scenario pinger published" should contain the string "Errors: {}"
+  if grep -q "Scenario pinger published" mirror-monitor.log; then
+    if grep -q "Errors: {}" mirror-monitor.log; then
+      echo "mirror-monitor.log contains Scenario pinger published and Errors: {}"
+    else
+      echo "mirror-monitor.log contains Scenario pinger published but not Errors: {}"
+      exit 1
+    fi
+  fi
+}
+
+function check_importer_log()
+{
+  kubectl get pods -n solo-e2e | grep mirror-importer | awk '{print $1}' | xargs kubectl logs -n solo-e2e > mirror-importer.log
+  if grep -q "ERROR" mirror-importer.log; then
+    echo "mirror-importer.log contains ERROR"
+    exit 1
+  fi
+}
+
+# if first parameter equals to ACCOUNT_INIT,
+# then call solo account init before deploy mirror and relay node
+if [ "$1" == "ACCOUNT_INIT" ]; then
+  echo "Call solo account init"
+  npm run solo-test -- account init -n solo-e2e
+fi
+
+task solo:mirror-node
+task solo:relay
+
 echo "Change to parent directory"
+
 cd ../
 create_test_account
 clone_smart_contract_repo
@@ -97,3 +138,8 @@ start_contract_test
 start_sdk_test
 echo "Sleep a while to wait background transactions to finish"
 sleep 30
+
+echo "Run mirror node acceptance test"
+helm test mirror -n solo-e2e --timeout 10m
+check_monitor_log
+check_importer_log

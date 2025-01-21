@@ -29,6 +29,7 @@ import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
+import * as Base64 from 'js-base64';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -105,12 +106,26 @@ export class RelayCommand extends BaseCommand {
       valuesArg += ` --set replicaCount=${replicaCount}`;
     }
 
-    if (operatorID) {
-      valuesArg += ` --set config.OPERATOR_ID_MAIN=${operatorID}`;
-    }
+    const operatorIdUsing = operatorID || constants.OPERATOR_ID;
+    valuesArg += ` --set config.OPERATOR_ID_MAIN=${operatorIdUsing}`;
 
     if (operatorKey) {
+      // use user provided operatorKey if available
       valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKey}`;
+    } else {
+      try {
+        const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${operatorIdUsing}`]);
+        if (secrets.length === 0) {
+          this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
+          valuesArg += ` --set config.OPERATOR_KEY_MAIN=${constants.OPERATOR_KEY}`;
+        } else {
+          this.logger.info('Using operator key from k8s secret');
+          const operatorKeyFromK8 = Base64.decode(secrets[0].data.privateKey);
+          valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKeyFromK8}`;
+        }
+      } catch (e: Error | any) {
+        throw new SoloError(`Error getting operator key: ${e.message}`, e);
+      }
     }
 
     if (!nodeAliases) {
@@ -202,6 +217,8 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
 
+            flags.disablePrompts([flags.operatorId, flags.operatorKey]);
+
             await self.configManager.executePrompt(task, RelayCommand.DEPLOY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
@@ -221,7 +238,6 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Prepare chart values',
           task: async ctx => {
@@ -231,6 +247,7 @@ export class RelayCommand extends BaseCommand {
               constants.JSON_RPC_RELAY_CHART,
               constants.JSON_RPC_RELAY_CHART,
             );
+            await self.accountManager.loadNodeClient(ctx.config.namespace);
             config.valuesArg = await self.prepareValuesArg(
               config.valuesFile,
               config.nodeAliases,
@@ -298,6 +315,7 @@ export class RelayCommand extends BaseCommand {
       throw new SoloError('Error installing relays', e);
     } finally {
       await lease.release();
+      await self.accountManager.close();
     }
 
     return true;
@@ -350,7 +368,6 @@ export class RelayCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy JSON RPC Relay',
           task: async ctx => {

@@ -34,7 +34,7 @@ import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/al
 import type {Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
-import {HEDERA_PLATFORM_VERSION} from '../../version.js';
+import * as versions from '../../version.js';
 
 @injectable()
 export class ProfileManager {
@@ -254,13 +254,11 @@ export class ProfileManager {
       yamlRoot,
     );
 
-    if (this.configManager.getFlag(flags.applicationEnv)) {
-      this._setFileContentsAsValue(
-        'hedera.configMaps.applicationEnv',
-        this.configManager.getFlag(flags.applicationEnv),
-        yamlRoot,
-      );
-    }
+    this._setFileContentsAsValue(
+      'hedera.configMaps.applicationEnv',
+      path.join(stagingDir, 'templates', 'application.env'),
+      yamlRoot,
+    );
 
     if (profile.consensus) {
       // set default for consensus pod
@@ -473,7 +471,7 @@ export class ProfileManager {
       throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required');
     }
 
-    if (!releaseTag) releaseTag = HEDERA_PLATFORM_VERSION;
+    if (!releaseTag) releaseTag = versions.HEDERA_PLATFORM_VERSION;
 
     if (!fs.existsSync(destPath)) {
       throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath);
@@ -494,7 +492,32 @@ export class ProfileManager {
 
       let nodeSeq = 0;
       for (const nodeAlias of nodeAccountMap.keys()) {
-        const internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeAlias);
+        let internalIP: string;
+
+        //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
+
+        // for versions that satisfy 0.59.x
+        if (semver.satisfies(releaseVersion, '^0.59.0', {includePrerelease: true})) {
+          internalIP = '127.0.0.1';
+        }
+
+        // versions less than 0.59.0
+        else if (
+          semver.lt(
+            releaseVersion,
+            '0.59.0',
+            // @ts-expect-error TS2353: Object literal may only specify known properties
+            {includePrerelease: true},
+          )
+        ) {
+          internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeAlias);
+        }
+
+        // versions greater than 0.59.0
+        else {
+          internalIP = '127.0.0.1';
+        }
+
         const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
         const account = nodeAccountMap.get(nodeAlias);
 

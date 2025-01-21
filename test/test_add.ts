@@ -31,6 +31,7 @@ import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';
 import {Duration} from '../src/core/time/duration.js';
+import {LOCAL_HEDERA_PLATFORM_VERSION} from '../version.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -48,7 +49,8 @@ export function testNodeAdd(
   argv[flags.generateTlsKeys.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
-  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
+  argv[flags.releaseTag.name] =
+    !localBuildPath || localBuildPath === '' ? HEDERA_PLATFORM_VERSION_TAG : LOCAL_HEDERA_PLATFORM_VERSION;
   argv[flags.namespace.name] = namespace;
   argv[flags.force.name] = true;
   argv[flags.persistentVolumeClaims.name] = true;

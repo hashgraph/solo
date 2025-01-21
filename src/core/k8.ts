@@ -1209,7 +1209,7 @@ export class K8 {
     const tempKubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
     return await tempKubeClient
       .listNamespace()
-      .then(() => this.getKubeConfig().getCurrentCluster().name === cluster)
+      .then(() => true)
       .catch(() => false);
   }
 
