@@ -23,6 +23,7 @@ import {createMetadata} from './metadata.test.js';
 import {createComponentsDataWrapper} from './components_data_wrapper.test.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import * as constants from '../../../../src/core/constants.js';
+import {CommonFlagsDataWrapper} from '../../../../src/core/config/remote/common_flags_data_wrapper.js';
 
 function createRemoteConfigDataWrapper() {
   const {metadata} = createMetadata();
@@ -34,6 +35,7 @@ function createRemoteConfigDataWrapper() {
   const components = componentsDataWrapper;
   const lastExecutedCommand = 'lastExecutedCommand';
   const commandHistory = [];
+  const flags = CommonFlagsDataWrapper.initializeEmpty();
 
   const dataWrapper = new RemoteConfigDataWrapper({
     metadata,
@@ -41,6 +43,7 @@ function createRemoteConfigDataWrapper() {
     components,
     lastExecutedCommand,
     commandHistory,
+    flags,
   });
 
   return {

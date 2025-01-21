@@ -36,6 +36,7 @@ import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
+import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -117,9 +118,10 @@ export class RemoteConfigManager {
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(this.getNamespace(), new Date(), this.localConfig.userEmailAddress),
       clusters,
-      components: ComponentsDataWrapper.initializeEmpty(),
-      lastExecutedCommand: 'deployment create',
       commandHistory: ['deployment create'],
+      lastExecutedCommand: 'deployment create',
+      components: ComponentsDataWrapper.initializeEmpty(),
+      flags: CommonFlagsDataWrapper.initializeEmpty(),
     });
 
     await this.createConfigMap();
@@ -160,7 +162,7 @@ export class RemoteConfigManager {
     await this.load();
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
-    } catch (e) {
+    } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getKubeConfig().getCurrentCluster().name));
     }
     return this.remoteConfig;
@@ -226,7 +228,7 @@ export class RemoteConfigManager {
 
     return {
       title: 'Load remote config',
-      task: async (_, task): Promise<void> => {
+      task: async (): Promise<void> => {
         await self.loadAndValidate(argv);
       },
     };

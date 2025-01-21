@@ -16,6 +16,9 @@
  */
 import type {NodeAliases} from '../../../types/aliases.js';
 import type {ComponentType, ConsensusNodeStates} from './enumerations.js';
+import type {RemoteConfigMetadata, RemoteConfigMetadataStructure} from './metadata.js';
+import type {ComponentsDataWrapper} from './components_data_wrapper.js';
+import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
@@ -45,3 +48,30 @@ export interface IConsensusNodeComponent extends Component {
 }
 
 export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
+
+export interface RemoteConfigData {
+  metadata: RemoteConfigMetadata;
+  clusters: Record<Cluster, Namespace>;
+  components: ComponentsDataWrapper;
+  lastExecutedCommand: string;
+  commandHistory: string[];
+  flags: CommonFlagsDataWrapper;
+}
+
+export type RemoteConfigCommonFlagsStruct = {
+  nodeAliasesUnparsed?: string;
+  releaseTag?: string;
+  relayReleaseTag?: string;
+  hederaExplorerVersion?: string;
+  mirrorNodeVersion?: string;
+};
+
+export interface RemoteConfigDataStructure {
+  metadata: RemoteConfigMetadataStructure;
+  version: Version;
+  clusters: Record<Cluster, Namespace>;
+  components: ComponentsDataStructure;
+  commandHistory: string[];
+  lastExecutedCommand: string;
+  flags: RemoteConfigCommonFlagsStruct;
+}

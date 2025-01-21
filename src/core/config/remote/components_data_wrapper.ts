@@ -23,25 +23,14 @@ import {MirrorNodeComponent} from './components/mirror_node_component.js';
 import {EnvoyProxyComponent} from './components/envoy_proxy_component.js';
 import {ConsensusNodeComponent} from './components/consensus_node_component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror_node_explorer_component.js';
-import {
-  type Component,
-  type ComponentsDataStructure,
-  type IConsensusNodeComponent,
-  type IRelayComponent,
-  type ComponentName,
-  type Cluster,
-  type Namespace,
+import type {
+  Component,
+  ComponentsDataStructure,
+  IConsensusNodeComponent,
+  IRelayComponent,
+  ComponentName,
 } from './types.js';
 import type {ToObject, Validate} from '../../../types/index.js';
-import type {RemoteConfigMetadata} from './metadata.js';
-
-export interface RemoteConfigData {
-  metadata: RemoteConfigMetadata;
-  clusters: Record<Cluster, Namespace>;
-  components: ComponentsDataWrapper;
-  lastExecutedCommand: string;
-  commandHistory: string[];
-}
 
 /**
  * Represent the components in the remote config and handles:
