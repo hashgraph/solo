@@ -59,11 +59,13 @@ export interface RemoteConfigData {
 }
 
 export type RemoteConfigCommonFlagsStruct = {
-  nodeAliasesUnparsed?: string;
   releaseTag?: string;
+  chartDirectory?: string;
   relayReleaseTag?: string;
-  hederaExplorerVersion?: string;
+  soloChartVersion?: string;
   mirrorNodeVersion?: string;
+  nodeAliasesUnparsed?: string;
+  hederaExplorerVersion?: string;
 };
 
 export interface RemoteConfigDataStructure {

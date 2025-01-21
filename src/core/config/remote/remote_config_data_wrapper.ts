@@ -19,10 +19,11 @@ import * as yaml from 'yaml';
 import {RemoteConfigMetadata} from './metadata.js';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import * as constants from '../../constants.js';
+import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import type {Cluster, Version, Namespace, RemoteConfigDataStructure, RemoteConfigData} from './types.js';
 import type * as k8s from '@kubernetes/client-node';
 import type {ToObject, Validate} from '../../../types/index.js';
-import type {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
+import type {ConfigManager} from '../../config_manager.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';
@@ -117,7 +118,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     return true; // TODO
   }
 
-  public static fromConfigmap(configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
+  public static fromConfigmap(configManager: ConfigManager, configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
     const data = yaml.parse(configMap.data['remote-config-data']);
 
     return new RemoteConfigDataWrapper({
@@ -126,7 +127,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       clusters: data.clusters,
       commandHistory: data.commandHistory,
       lastExecutedCommand: data.lastExecutedCommand,
-      flags: data.flags,
+      flags: CommonFlagsDataWrapper.fromObject(configManager, data.flags),
     });
   }
 

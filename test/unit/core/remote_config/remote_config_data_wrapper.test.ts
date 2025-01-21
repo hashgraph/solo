@@ -25,6 +25,13 @@ import {SoloError} from '../../../../src/core/errors.js';
 import * as constants from '../../../../src/core/constants.js';
 import {CommonFlagsDataWrapper} from '../../../../src/core/config/remote/common_flags_data_wrapper.js';
 
+const configManagerMock = {
+  update: (...args: any) => true,
+  getFlag: (...args: any) => true,
+  hasFlag: (...args: any) => true,
+  setFlag: (...args: any) => true,
+};
+
 function createRemoteConfigDataWrapper() {
   const {metadata} = createMetadata();
   const {
@@ -35,7 +42,7 @@ function createRemoteConfigDataWrapper() {
   const components = componentsDataWrapper;
   const lastExecutedCommand = 'lastExecutedCommand';
   const commandHistory = [];
-  const flags = CommonFlagsDataWrapper.initializeEmpty();
+  const flags = CommonFlagsDataWrapper.initializeEmpty(configManagerMock as any, {}); // TODO MOCK
 
   const dataWrapper = new RemoteConfigDataWrapper({
     metadata,
@@ -84,8 +91,7 @@ describe('RemoteConfigDataWrapper', () => {
       lastExecutedCommand: dataWrapperObject.lastExecutedCommand,
     });
 
-    // @ts-ignore
-    RemoteConfigDataWrapper.fromConfigmap({data: {'remote-config-data': yamlData}});
+    RemoteConfigDataWrapper.fromConfigmap(configManagerMock as any, {data: {'remote-config-data': yamlData}} as any);
   });
 
   it('should fail if invalid data is passed to setters', () => {
