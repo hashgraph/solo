@@ -43,7 +43,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo
 
-Thanks for using kind! 😊
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -92,7 +92,7 @@ solo init
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 **********************************************************************************
@@ -119,7 +119,7 @@ solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 **********************************************************************************
@@ -130,9 +130,9 @@ Kubernetes Cluster	: kind-solo
 ✔ Gossip key for node: node3
 ✔ Generate gossip keys
 ✔ Backup old files
-✔ TLS key for node: node3
-✔ TLS key for node: node2
 ✔ TLS key for node: node1
+✔ TLS key for node: node2
+✔ TLS key for node: node3
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
 ```
@@ -154,7 +154,7 @@ solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 **********************************************************************************
@@ -180,7 +180,7 @@ solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -193,12 +193,12 @@ Kubernetes Namespace	: solo
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
 ✔ Copy Gossip keys
-✔ Node: node2
-✔ Copy TLS keys
+✔ Node: node1
 ✔ Copy Gossip keys
 ✔ Node: node3
 ✔ Copy Gossip keys
-✔ Node: node1
+✔ Node: node2
+✔ Copy TLS keys
 ✔ Copy node keys to secrets
 ✔ Install chart 'solo-deployment'
 ✔ Check Node: node1
@@ -207,10 +207,10 @@ Kubernetes Namespace	: solo
 ✔ Check node pods are running
 ✔ Check Envoy Proxy for: node1
 ✔ Check Envoy Proxy for: node2
-✔ Check HAProxy for: node1
 ✔ Check Envoy Proxy for: node3
-✔ Check HAProxy for: node2
 ✔ Check HAProxy for: node3
+✔ Check HAProxy for: node2
+✔ Check HAProxy for: node1
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -228,7 +228,7 @@ solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -241,8 +241,8 @@ Kubernetes Namespace	: solo
 ✔ Check network pod: node3
 ✔ Identify network pods
 ✔ Update node: node2 [ platformVersion = v0.58.3 ]
-✔ Update node: node3 [ platformVersion = v0.58.3 ]
 ✔ Update node: node1 [ platformVersion = v0.58.3 ]
+✔ Update node: node3 [ platformVersion = v0.58.3 ]
 ✔ Fetch platform software into network nodes
 ✔ Copy configuration files
 ✔ Copy configuration files
@@ -267,7 +267,7 @@ solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -275,13 +275,13 @@ Kubernetes Namespace	: solo
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
 ✔ Initialize
 ✔ Load remote config - remote config not found
-✔ Check network pod: node3
 ✔ Check network pod: node1
+✔ Check network pod: node3
 ✔ Check network pod: node2
 ✔ Identify existing network nodes
 ✔ Start node: node1
-✔ Start node: node3
 ✔ Start node: node2
+✔ Start node: node3
 ✔ Starting nodes
 ✔ Check network pod: node2  - status ACTIVE, attempt: 18/120
 ✔ Check network pod: node1  - status ACTIVE, attempt: 18/120
@@ -308,7 +308,7 @@ solo mirror-node deploy -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
@@ -342,7 +342,7 @@ solo relay deploy -i node1 -n "${SOLO_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.33.0
+Version			: 0.33.1
 Kubernetes Context	: kind-solo
 Kubernetes Cluster	: kind-solo
 Kubernetes Namespace	: solo
