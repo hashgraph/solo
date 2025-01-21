@@ -263,7 +263,7 @@ export class ExplorerCommand extends BaseCommand {
           title: 'Check explorer pod is ready',
           task: async () => {
             await self.k8.waitForPodReady(
-              ['app.kubernetes.io/component=hedera-explorer', 'app.kubernetes.io/name=hedera-explorer'],
+              [constants.SOLO_HEDERA_EXPLORER_LABEL],
               1,
               constants.PODS_READY_MAX_ATTEMPTS,
               constants.PODS_READY_DELAY,
