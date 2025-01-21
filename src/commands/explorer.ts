@@ -113,7 +113,8 @@ export class ExplorerCommand extends BaseCommand {
    * @param config - the configuration object
    */
   private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
-    const {tlsClusterIssuerType, mirrorStaticIP, hederaExplorerLoadBalancerIp} = config;
+    const {tlsClusterIssuerType, namespace, mirrorStaticIP, hederaExplorerLoadBalancerIp, hederaExplorerTlsHostName} =
+      config;
 
     let valuesArg = '';
 
@@ -133,8 +134,8 @@ export class ExplorerCommand extends BaseCommand {
     ) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
-      valuesArg += ` --set ingressClassName=${config.namespace}-hedera-explorer-ingress-class`;
-      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${config.hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
+      valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
+      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
     }
 
     if (!(await this.k8.isCertManagerInstalled())) {

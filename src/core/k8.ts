@@ -1525,6 +1525,7 @@ export class K8 {
 
   /**
    * Check if the ingress controller is installed inside any namespace.
+   * @param labels - labels to filter the ingress controller
    * @returns if ingress controller is found
    */
   public async isIngressControllerInstalled(labels: string[] = []): Promise<boolean> {
