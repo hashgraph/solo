@@ -114,7 +114,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await accountManager.loadNodeClient(namespace);
       try {
         // find hedera explorer pod
-        const pods = await k8.getPodsByLabel(['app.kubernetes.io/name=hedera-explorer']);
+        const pods = await k8.getPodsByLabel(['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod = pods[0];
 
         portForwarder = await k8.portForward(explorerPod.metadata.name as PodName, 8_080, 8_080);
