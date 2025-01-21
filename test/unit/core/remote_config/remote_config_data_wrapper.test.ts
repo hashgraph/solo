@@ -97,16 +97,31 @@ describe('RemoteConfigDataWrapper', () => {
   it('should fail if invalid data is passed to setters', () => {
     const {dataWrapper} = createRemoteConfigDataWrapper();
 
-    // @ts-ignore
-    expect(() => (dataWrapper.commandHistory = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.lastExecutedCommand = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.lastExecutedCommand = 1)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.clusters = 1)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.clusters = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.components = 1)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.components = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.metadata = null)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.metadata = {})).to.throw(SoloError); // @ts-ignore
+    // @ts-expect-error TS2322: Type string is not assignable to type string[]
+    expect(() => (dataWrapper.commandHistory = '')).to.throw(SoloError);
+
+    // @ts-expect-error TS2341 Property lastExecutedCommand is private and only accessible within class RemoteConfigDataWrapper
+    expect(() => (dataWrapper.lastExecutedCommand = '')).to.throw(SoloError);
+
+    // @ts-expect-error TS2341 Property lastExecutedCommand is private and only accessible within class RemoteConfigDataWrapper
+    expect(() => (dataWrapper.lastExecutedCommand = 1)).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type number is not assignable to type Record<string, string>
+    expect(() => (dataWrapper.clusters = 1)).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type string is not assignable to type Record<string, string>
+    expect(() => (dataWrapper.clusters = '')).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type number is not assignable to type ComponentsDataWrapper
+    expect(() => (dataWrapper.components = 1)).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type string is not assignable to type ComponentsDataWrapper
+    expect(() => (dataWrapper.components = '')).to.throw(SoloError);
+
+    expect(() => (dataWrapper.metadata = null)).to.throw(SoloError);
+
+    // @ts-expect-error 2740: Type {} is missing the following properties from type RemoteConfigMetadata
+    expect(() => (dataWrapper.metadata = {})).to.throw(SoloError);
 
     expect(() => (dataWrapper.clusters = {null: null})).to.throw(SoloError);
     expect(() => (dataWrapper.clusters = {namespace: null})).to.throw(SoloError);

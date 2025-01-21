@@ -37,7 +37,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {AnyObject} from '../../../types/aliases.js';
+import {type AnyObject} from '../../../types/aliases.js';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};

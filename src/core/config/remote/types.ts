@@ -18,7 +18,7 @@ import type {NodeAliases} from '../../../types/aliases.js';
 import type {ComponentType, ConsensusNodeStates} from './enumerations.js';
 import type {RemoteConfigMetadata, RemoteConfigMetadataStructure} from './metadata.js';
 import type {ComponentsDataWrapper} from './components_data_wrapper.js';
-import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
+import {type CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;

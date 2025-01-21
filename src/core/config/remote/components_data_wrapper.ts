@@ -155,7 +155,6 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
       case ComponentType.Relay:
         callback(this.relays);
         break;
-
       case ComponentType.HaProxy:
         callback(this.haProxies);
         break;
