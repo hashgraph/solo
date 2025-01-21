@@ -20,10 +20,11 @@ import {RemoteConfigMetadata} from './metadata.js';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import * as constants from '../../constants.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import type {Cluster, Version, Namespace, RemoteConfigDataStructure, RemoteConfigData} from './types.js';
+import type {Cluster, Version, Namespace, RemoteConfigDataStructure} from './types.js';
 import type * as k8s from '@kubernetes/client-node';
 import type {ToObject, Validate} from '../../../types/index.js';
 import type {ConfigManager} from '../../config_manager.js';
+import {type RemoteConfigData} from './remote_config_data.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';

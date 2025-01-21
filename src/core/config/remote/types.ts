@@ -16,9 +16,6 @@
  */
 import type {NodeAliases} from '../../../types/aliases.js';
 import type {ComponentType, ConsensusNodeStates} from './enumerations.js';
-import type {RemoteConfigMetadata, RemoteConfigMetadataStructure} from './metadata.js';
-import type {ComponentsDataWrapper} from './components_data_wrapper.js';
-import {type CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
@@ -49,15 +46,6 @@ export interface IConsensusNodeComponent extends Component {
 
 export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
 
-export interface RemoteConfigData {
-  metadata: RemoteConfigMetadata;
-  clusters: Record<Cluster, Namespace>;
-  components: ComponentsDataWrapper;
-  lastExecutedCommand: string;
-  commandHistory: string[];
-  flags: CommonFlagsDataWrapper;
-}
-
 export type RemoteConfigCommonFlagsStruct = {
   releaseTag?: string;
   chartDirectory?: string;
@@ -76,4 +64,11 @@ export interface RemoteConfigDataStructure {
   commandHistory: string[];
   lastExecutedCommand: string;
   flags: RemoteConfigCommonFlagsStruct;
+}
+
+export interface RemoteConfigMetadataStructure {
+  name: Namespace;
+  lastUpdatedAt: Date;
+  lastUpdateBy: EmailAddress;
+  migration?: IMigration;
 }
