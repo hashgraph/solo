@@ -30,13 +30,12 @@ export class NetworkOverridesModel {
       const namespace = networkNodeServiceMap.get(nodeAlias).namespace;
       const nodeId = +networkNodeServiceMap.get(nodeAlias).nodeId;
 
-      const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
-      const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
+      const localClusterPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
+      const localClusterHostName = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
 
-      const haProxyFqdn = Templates.renderFullyQualifiedHaProxyName(nodeAlias, namespace);
-
-      this.interfaceBindings.push({nodeId, hostname: haProxyFqdn, port: externalPort});
-      this.endpointOverrides.push({nodeId, hostname: externalIP, port: externalPort});
+      this.interfaceBindings.push({nodeId, hostname: localClusterHostName, port: localClusterPort});
+      // TODO future, add endpointOverrides for addresses external to cluster in multi-cluster support situation
+      //  this.endpointOverrides.push({nodeId, hostname: externalHostname, port: externalPort});
     });
   }
 
