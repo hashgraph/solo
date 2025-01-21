@@ -1363,17 +1363,6 @@ export class Flags {
     },
   };
 
-  static readonly mirrorIngress: CommandFlag = {
-    constName: 'mirrorIngress',
-    name: 'mirror-ingress',
-    definition: {
-      describe: 'path of value file for configuring mirror ingress gateway',
-      defaultValue: '',
-      type: 'string',
-    },
-    prompt: undefined,
-  };
-
   static readonly enableIngress: CommandFlag = {
     constName: 'enableIngress',
     name: 'enable-ingress',
@@ -1799,7 +1788,6 @@ export class Flags {
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
-    Flags.mirrorIngress,
     Flags.mirrorStaticIP,
     Flags.namespace,
     Flags.newAccountNumber,

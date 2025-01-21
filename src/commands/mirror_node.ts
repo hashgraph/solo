@@ -44,7 +44,6 @@ interface MirrorNodeDeployConfigClass {
   chartPath: string;
   valuesArg: string;
   mirrorNodeVersion: string;
-  mirrorIngress: string;
   getUnusedConfigs: () => string[];
   pinger: boolean;
   operatorId: string;
@@ -90,7 +89,6 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.quiet,
       flags.valuesFile,
       flags.mirrorNodeVersion,
-      flags.mirrorIngress,
       flags.pinger,
       flags.customMirrorNodeDatabaseValuePath,
       flags.operatorId,
@@ -118,15 +116,6 @@ export class MirrorNodeCommand extends BaseCommand {
 
     if (config.storageBucket) {
       valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.bucketName=${config.storageBucket}`;
-    }
-
-    if (config.mirrorIngress) {
-      // check if it is a valid path exists
-      if (!fs.existsSync(config.mirrorIngress)) {
-        throw new SoloError(`Path provided for mirror ingress ${config.mirrorIngress} is not found`);
-      } else {
-        valuesArg += ` --values ${config.mirrorIngress}`;
-      }
     }
 
     let storageType = '';
