@@ -105,6 +105,12 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
 
+    if (config.enableIngress) {
+      valuesArg += ' --set ingress.enabled=true';
+      valuesArg += ` --set ingress.className=${config.namespace}-hedera-explorer-ingress-class`;
+      valuesArg += ` --set ingressClassName=${config.namespace}-hedera-explorer-ingress-class`;
+    }
+
     valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
     return valuesArg;
   }
@@ -133,6 +139,7 @@ export class ExplorerCommand extends BaseCommand {
       config.enableIngress
     ) {
       valuesArg += ' --set ingress.enabled=true';
+      valuesArg += ` --set ingress.className=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
@@ -251,7 +258,7 @@ export class ExplorerCommand extends BaseCommand {
               soloChartSetupValuesArg,
             );
           },
-          skip: ctx => !ctx.config.enableHederaExplorerTls,
+          skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },
 
         {
