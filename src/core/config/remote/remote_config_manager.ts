@@ -160,7 +160,7 @@ export class RemoteConfigManager {
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
     } catch (e) {
-      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getKubeConfig().getCurrentCluster().name));
+      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getCurrentClusterName()));
     }
     return this.remoteConfig;
   }
@@ -337,7 +337,7 @@ export class RemoteConfigManager {
   private setDefaultContextIfNotSet(): void {
     if (this.configManager.hasFlag(flags.context)) return;
 
-    const context = this.k8.getKubeConfig().currentContext;
+    const context = this.k8.getCurrentContext();
 
     if (!context) {
       this.logger.error("Context is not passed and default one can't be acquired", this.localConfig);
