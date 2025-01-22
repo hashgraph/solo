@@ -81,6 +81,10 @@ export interface NetworkDeployConfigClass {
   googleCredential: string;
 }
 
+interface NetworkDeployContext {
+  config: NetworkDeployConfigClass;
+}
+
 export class NetworkCommand extends BaseCommand {
   private readonly keyManager: KeyManager;
   private readonly platformInstaller: PlatformInstaller;
@@ -495,11 +499,7 @@ export class NetworkCommand extends BaseCommand {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: NetworkDeployConfigClass;
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<NetworkDeployContext>(
       [
         {
           title: 'Initialize',
@@ -952,7 +952,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public addNodesAndProxies(): SoloListrTask<{config: {namespace: Namespace; nodeAliases: NodeAliases}}> {
+  public addNodesAndProxies(): SoloListrTask<NetworkDeployContext> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

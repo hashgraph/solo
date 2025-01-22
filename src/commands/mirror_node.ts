@@ -55,9 +55,16 @@ interface MirrorNodeDeployConfigClass {
   storageBucket: string;
 }
 
-interface Context {
+interface MirrorNodeDeployContext {
   config: MirrorNodeDeployConfigClass;
   addressBook: string;
+}
+
+interface MirrorNodeDestroyContext {
+  config: {
+    namespace: string;
+    isChartInstalled: boolean;
+  };
 }
 
 export class MirrorNodeCommand extends BaseCommand {
@@ -142,7 +149,7 @@ export class MirrorNodeCommand extends BaseCommand {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<MirrorNodeDeployContext>(
       [
         {
           title: 'Initialize',
@@ -222,7 +229,7 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Enable mirror-node',
           task: (_, parentTask) => {
-            return parentTask.newListr<Context>(
+            return parentTask.newListr<MirrorNodeDeployContext>(
               [
                 {
                   title: 'Prepare address book',
@@ -425,14 +432,7 @@ export class MirrorNodeCommand extends BaseCommand {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: {
-        namespace: string;
-        isChartInstalled: boolean;
-      };
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<MirrorNodeDestroyContext>(
       [
         {
           title: 'Initialize',
@@ -570,7 +570,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node components from remote config. */
-  public removeMirrorNodeComponents(): SoloListrTask<object> {
+  public removeMirrorNodeComponents(): SoloListrTask<MirrorNodeDestroyContext> {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -583,7 +583,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Adds the mirror node components to remote config. */
-  public addMirrorNodeComponents(): SoloListrTask<{config: {namespace: Namespace}}> {
+  public addMirrorNodeComponents(): SoloListrTask<{config: MirrorNodeDeployConfigClass; addressBook: string}> {
     return {
       title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
