@@ -47,6 +47,7 @@ import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
 import {Container} from './core/container_init.js';
+import type {Namespace} from './core/config/remote/types.js';
 
 export function main(argv: any) {
   Container.getInstance().init();
@@ -79,7 +80,7 @@ export function main(argv: any) {
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
-    const context = k8.getCurrentContextObject();
+    const contextNamespace = k8.getCurrentContextNamespace();
     const currentClusterName = k8.getCurrentClusterName();
 
     const opts: Opts = {
@@ -107,8 +108,8 @@ export function main(argv: any) {
 
       const clusterName = configManager.getFlag(flags.clusterName) || currentClusterName;
 
-      if (context.namespace) {
-        configManager.setFlag(flags.namespace, context.namespace);
+      if (contextNamespace) {
+        configManager.setFlag(flags.namespace, contextNamespace);
       }
 
       // apply precedence for flags

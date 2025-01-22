@@ -29,7 +29,6 @@ import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import type {RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import type {K8} from '../../core/k8.js';
-import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 import type {SelectClusterContextContext} from './configs.js';
 import type {Namespace} from '../../core/config/remote/types.js';

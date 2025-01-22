@@ -1738,8 +1738,8 @@ export class K8 implements TK8 {
     return this.kubeConfig.getCurrentContext();
   }
 
-  getCurrentContextObject(): Context {
-    return this.kubeConfig.getContextObject(this.getCurrentContext());
+  getCurrentContextNamespace(): Namespace {
+    return this.kubeConfig.getContextObject(this.getCurrentContext()).namespace;
   }
 
   getCurrentClusterName(): string {
