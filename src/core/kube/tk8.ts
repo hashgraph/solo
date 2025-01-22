@@ -400,8 +400,6 @@ export default interface TK8 {
    */
   getNodeLogs(namespace: string): Promise<Awaited<unknown>[]>;
 
-  getNodeLog(pod: V1Pod, namespace: string, timeString: string): Promise<void>;
-
   /**
    * Download state files from a pod
    * @param namespace - the namespace of the network

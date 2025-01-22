@@ -1659,7 +1659,7 @@ export class K8 implements TK8 {
     return await Promise.all(promises);
   }
 
-  async getNodeLog(pod: V1Pod, namespace: string, timeString: string) {
+  private async getNodeLog(pod: V1Pod, namespace: string, timeString: string) {
     const podName = pod.metadata!.name as PodName;
     this.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString);
