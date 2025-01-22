@@ -25,14 +25,6 @@ import {type Namespace} from '../config/remote/types.js';
 
 export default interface TK8 {
   /**
-   * Apply filters to metadata
-   * @param items - list of items
-   * @param [filters] - an object with metadata fields and value
-   * @returns a list of items that match the filters
-   */
-  applyMetadataFilter(items: (object | any)[], filters: Record<string, string>): any[];
-
-  /**
    * Filter a single item using metadata filter
    * @param items - list of items
    * @param [filters] - an object with metadata fields and value

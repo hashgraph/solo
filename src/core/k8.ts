@@ -97,7 +97,7 @@ export class K8 implements TK8 {
    * @param [filters] - an object with metadata fields and value
    * @returns a list of items that match the filters
    */
-  applyMetadataFilter(items: (object | any)[], filters: Record<string, string> = {}) {
+  private applyMetadataFilter(items: (object | any)[], filters: Record<string, string> = {}) {
     if (!filters) throw new MissingArgumentError('filters are required');
 
     const matched = [];
