@@ -29,7 +29,7 @@ import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
-import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
+import type {Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';

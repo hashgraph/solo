@@ -38,7 +38,14 @@ export class DeploymentCommand extends BaseCommand {
   }
 
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
-    return [flags.quiet, flags.context, flags.namespace, flags.userEmailAddress, flags.deploymentClusters];
+    return [
+      flags.quiet,
+      flags.context,
+      flags.namespace,
+      flags.clusterName,
+      flags.userEmailAddress,
+      flags.deploymentClusters,
+    ];
   }
 
   private async create(argv: any): Promise<boolean> {

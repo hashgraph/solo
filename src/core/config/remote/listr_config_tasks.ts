@@ -16,8 +16,9 @@
  */
 import type {ListrTask} from 'listr2';
 import type {BaseCommand} from '../../../commands/base.js';
-import {type Cluster, type Context, type Namespace} from './types.js';
+import type {Cluster, Context, Namespace} from './types.js';
 import type {SoloListrTask} from '../../../types/index.js';
+import type {DeploymentCommand} from '../../../commands/deployment.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -73,14 +74,18 @@ export class ListrRemoteConfig {
    *
    * @param command - the BaseCommand object on which an action will be performed
    */
-  public static createRemoteConfigInMultipleClusters(command: BaseCommand): ListrTask<any, any, any> {
+  public static createRemoteConfigInMultipleClusters(
+    command: DeploymentCommand,
+  ): SoloListrTask<{config: {namespace: Namespace}}> {
     return {
       title: 'Create remoteConfig in clusters',
       task: async (ctx, task) => {
         const subTasks: SoloListrTask<Context>[] = [];
 
-        for (const context of Object.keys(ctx.config.contextCluster)) {
-          const cluster = ctx.config.contextCluster[context];
+        for (const cluster of command.localConfig.deployments[ctx.config.namespace].clusters) {
+          const context = command.localConfig.clusterContextMapping?.[cluster];
+          if (!context) continue;
+
           subTasks.push(ListrRemoteConfig.createRemoteConfig(command, cluster, context, ctx.config.namespace));
         }
 
