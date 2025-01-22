@@ -72,7 +72,7 @@ export class ClusterCommandTasks {
 
   validateRemoteConfigForCluster(
     cluster: string,
-    currentCluster: Cluster,
+    currentClusterName: string,
     localConfig: LocalConfig,
     currentRemoteConfig: RemoteConfigDataWrapper,
   ) {
@@ -84,7 +84,7 @@ export class ClusterCommandTasks {
         self.parent.getK8().setCurrentContext(context);
         const remoteConfigFromOtherCluster = await self.parent.getRemoteConfigManager().get();
         if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
-          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentCluster.name, cluster));
+          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentClusterName, cluster));
         }
       },
     };
@@ -96,7 +96,6 @@ export class ClusterCommandTasks {
       title: 'Read clusters from remote config',
       task: async (ctx, task) => {
         const localConfig = this.parent.getLocalConfig();
-        const currentCluster = this.parent.getK8().getCurrentCluster();
         const currentClusterName = this.parent.getK8().getCurrentClusterName();
         const currentRemoteConfig: RemoteConfigDataWrapper = await this.parent.getRemoteConfigManager().get();
         const subTasks = [];
@@ -110,7 +109,9 @@ export class ClusterCommandTasks {
 
         // Pull and validate RemoteConfigs from the other clusters
         for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(self.validateRemoteConfigForCluster(cluster, currentCluster, localConfig, currentRemoteConfig));
+          subTasks.push(
+            self.validateRemoteConfigForCluster(cluster, currentClusterName, localConfig, currentRemoteConfig),
+          );
         }
 
         return task.newListr(subTasks, {
@@ -366,8 +367,8 @@ export class ClusterCommandTasks {
   getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       try {
-        const cluster = this.parent.getK8().getCurrentCluster();
-        this.parent.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
+        const clusterName = this.parent.getK8().getCurrentClusterName();
+        this.parent.logger.showUser(`Cluster Name (${clusterName})`);
         this.parent.logger.showUser('\n');
       } catch (e: Error | unknown) {
         this.parent.logger.showUserError(e);

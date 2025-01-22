@@ -18,7 +18,7 @@ import type * as k8s from '@kubernetes/client-node';
 import type {PodName, TarCreateFilter} from '../../types/aliases.js';
 import type {ExtendedNetServer, Optional} from '../../types/index.js';
 import type TDirectoryData from './t_directory_data.js';
-import {type Cluster, type Context, type V1Lease} from '@kubernetes/client-node';
+import {type Context, type V1Lease} from '@kubernetes/client-node';
 import {type Namespace} from '../config/remote/types.js';
 import {type Namespaces} from './namespaces.js';
 
@@ -407,8 +407,6 @@ export default interface TK8 {
   getCurrentContext(): string;
 
   getCurrentContextObject(): Context;
-
-  getCurrentCluster(): Cluster;
 
   getCurrentClusterName(): string;
 }

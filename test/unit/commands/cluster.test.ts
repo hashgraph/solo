@@ -202,7 +202,6 @@ describe('ClusterCommand unit tests', () => {
       remoteConfigManagerStub.get.resolves(remoteConfig);
 
       k8Stub.getCurrentClusterName.returns(kubeConfigClusterObject.name);
-      k8Stub.getCurrentCluster.returns(kubeConfigClusterObject);
       k8Stub.getCurrentContext.returns('context-from-kubeConfig');
 
       const configManager = sandbox.createStubInstance(ConfigManager);

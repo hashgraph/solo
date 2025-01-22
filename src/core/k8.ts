@@ -15,7 +15,7 @@
  *
  */
 import * as k8s from '@kubernetes/client-node';
-import {type Cluster, type Context, type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
+import {type Context, type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
@@ -1754,10 +1754,6 @@ export class K8 implements TK8 {
 
   getCurrentContextObject(): Context {
     return this.kubeConfig.getContextObject(this.getCurrentContext());
-  }
-
-  getCurrentCluster(): Cluster {
-    return this.kubeConfig.getCurrentCluster();
   }
 
   getCurrentClusterName(): string {
