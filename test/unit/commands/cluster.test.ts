@@ -182,16 +182,18 @@ describe('ClusterCommand unit tests', () => {
         k8Stub.testClusterConnection.resolves(true);
       }
 
-      const kubeConfigStub = sandbox.createStubInstance(KubeConfig);
-      kubeConfigStub.getCurrentContext.returns('context-from-kubeConfig');
-      kubeConfigStub.getCurrentCluster.returns({
+      const kubeConfigClusterObject = {
         name: 'cluster-3',
         caData: 'caData',
         caFile: 'caFile',
         server: 'server-3',
         skipTLSVerify: true,
         tlsServerName: 'tls-3',
-      } as Cluster);
+      } as Cluster;
+
+      const kubeConfigStub = sandbox.createStubInstance(KubeConfig);
+      kubeConfigStub.getCurrentContext.returns('context-from-kubeConfig');
+      kubeConfigStub.getCurrentCluster.returns(kubeConfigClusterObject);
 
       remoteConfigManagerStub = sandbox.createStubInstance(RemoteConfigManager);
       remoteConfigManagerStub.modify.callsFake(async callback => {
@@ -199,7 +201,9 @@ describe('ClusterCommand unit tests', () => {
       });
       remoteConfigManagerStub.get.resolves(remoteConfig);
 
-      k8Stub.getKubeConfig.returns(kubeConfigStub);
+      k8Stub.getCurrentClusterName.returns(kubeConfigClusterObject.name);
+      k8Stub.getCurrentCluster.returns(kubeConfigClusterObject);
+      k8Stub.getCurrentContext.returns('context-from-kubeConfig');
 
       const configManager = sandbox.createStubInstance(ConfigManager);
 
