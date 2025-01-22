@@ -467,7 +467,7 @@ export class K8 implements TK8 {
     return this.execContainer(podName, containerName, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
   }
 
-  exitWithError(localContext: LocalContextObject, errorMessage: string) {
+  private exitWithError(localContext: LocalContextObject, errorMessage: string) {
     localContext.errorMessage = localContext.errorMessage
       ? `${localContext.errorMessage}:${errorMessage}`
       : errorMessage;
@@ -475,24 +475,28 @@ export class K8 implements TK8 {
     return localContext.reject(new SoloError(localContext.errorMessage));
   }
 
-  handleCallback(status: string, localContext: LocalContextObject, messagePrefix: string) {
+  private handleCallback(status: string, localContext: LocalContextObject, messagePrefix: string) {
     if (status === 'Failure') {
       return this.exitWithError(localContext, `${messagePrefix} Failure occurred`);
     }
     this.logger.debug(`${messagePrefix} callback(status)=${status}`);
   }
 
-  registerConnectionOnError(localContext: LocalContextObject, messagePrefix: string, conn: WebSocket.WebSocket) {
+  private registerConnectionOnError(
+    localContext: LocalContextObject,
+    messagePrefix: string,
+    conn: WebSocket.WebSocket,
+  ) {
     conn.on('error', e => {
       return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
     });
   }
 
-  registerConnectionOnMessage(messagePrefix: string) {
+  private registerConnectionOnMessage(messagePrefix: string) {
     this.logger.debug(`${messagePrefix} received message`);
   }
 
-  registerErrorStreamOnData(localContext: LocalContextObject, stream: stream.PassThrough) {
+  private registerErrorStreamOnData(localContext: LocalContextObject, stream: stream.PassThrough) {
     stream.on('data', data => {
       localContext.errorMessage = localContext.errorMessage
         ? `${localContext.errorMessage}${data.toString()}`
@@ -500,7 +504,7 @@ export class K8 implements TK8 {
     });
   }
 
-  registerErrorStreamOnError(
+  private registerErrorStreamOnError(
     localContext: LocalContextObject,
     messagePrefix: string,
     stream: stream.PassThrough | fs.WriteStream,
@@ -510,7 +514,7 @@ export class K8 implements TK8 {
     });
   }
 
-  registerOutputPassthroughStreamOnData(
+  private registerOutputPassthroughStreamOnData(
     localContext: LocalContextObject,
     messagePrefix: string,
     outputPassthroughStream: stream.PassThrough,
@@ -526,7 +530,7 @@ export class K8 implements TK8 {
     });
   }
 
-  registerOutputFileStreamOnDrain(
+  private registerOutputFileStreamOnDrain(
     localContext: LocalContextObject,
     messagePrefix: string,
     outputPassthroughStream: stream.PassThrough,

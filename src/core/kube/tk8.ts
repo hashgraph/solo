@@ -15,12 +15,9 @@
  *
  */
 import type * as k8s from '@kubernetes/client-node';
-import type * as WebSocket from 'ws';
 import {type SoloLogger} from '../logging.js';
 import type {PodName, TarCreateFilter} from '../../types/aliases.js';
-import type {ExtendedNetServer, LocalContextObject, Optional} from '../../types/index.js';
-import type fs from 'fs';
-import type stream from 'node:stream';
+import type {ExtendedNetServer, Optional} from '../../types/index.js';
 import type http from 'node:http';
 import type TDirectoryData from './t_directory_data.js';
 import {type Cluster, type Context, type V1Pod, type V1Lease} from '@kubernetes/client-node';
@@ -159,36 +156,6 @@ export default interface TK8 {
   hasDir(podName: string, containerName: string, destPath: string): Promise<boolean>;
 
   mkdir(podName: PodName, containerName: string, destPath: string): Promise<string>;
-
-  exitWithError(localContext: LocalContextObject, errorMessage: string): void;
-
-  handleCallback(status: string, localContext: LocalContextObject, messagePrefix: string): any;
-
-  registerConnectionOnError(localContext: LocalContextObject, messagePrefix: string, conn: WebSocket.WebSocket): void;
-
-  registerConnectionOnMessage(messagePrefix: string): void;
-
-  registerErrorStreamOnData(localContext: LocalContextObject, stream: stream.PassThrough): void;
-
-  registerErrorStreamOnError(
-    localContext: LocalContextObject,
-    messagePrefix: string,
-    stream: stream.PassThrough | fs.WriteStream,
-  ): void;
-
-  registerOutputPassthroughStreamOnData(
-    localContext: LocalContextObject,
-    messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough,
-    outputFileStream: fs.WriteStream,
-  ): void;
-
-  registerOutputFileStreamOnDrain(
-    localContext: LocalContextObject,
-    messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough,
-    outputFileStream: fs.WriteStream,
-  ): void;
 
   /**
    * Copy a file into a container
