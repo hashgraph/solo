@@ -323,7 +323,7 @@ export class K8 implements TK8 {
     return contexts;
   }
 
-  getContexts(): Context[] {
+  private getContexts(): Context[] {
     if (!this.cachedContexts) {
       this.cachedContexts = this.kubeConfig.getContexts();
     }

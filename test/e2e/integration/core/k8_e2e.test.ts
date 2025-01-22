@@ -146,11 +146,6 @@ describe('K8', () => {
     expect(contexts).not.to.have.lengthOf(0);
   }).timeout(defaultTimeout);
 
-  it('should be able to list contexts', () => {
-    const contexts = k8.getContexts();
-    expect(contexts).not.to.have.lengthOf(0);
-  }).timeout(defaultTimeout);
-
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4();
     expect(await k8.createNamespace(name)).to.be.true;

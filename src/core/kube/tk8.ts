@@ -89,8 +89,6 @@ export default interface TK8 {
    */
   getContextNames(): string[];
 
-  getContexts(): Context[];
-
   /**
    * List files and directories in a container
    *

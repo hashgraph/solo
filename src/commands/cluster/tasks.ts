@@ -197,12 +197,8 @@ export class ClusterCommandTasks {
   }
 
   private async promptForContext(task: SoloListrTaskWrapper<SelectClusterContextContext>, cluster: string) {
-    const kubeContexts = this.parent.getK8().getContexts();
-    return flags.context.prompt(
-      task,
-      kubeContexts.map(c => c.name),
-      cluster,
-    );
+    const kubeContexts = this.parent.getK8().getContextNames();
+    return flags.context.prompt(task, kubeContexts, cluster);
   }
 
   private async selectContextForFirstCluster(
