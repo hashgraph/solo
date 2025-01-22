@@ -41,6 +41,7 @@ import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
 import type TK8 from './kube/tk8.js';
 import type TDirectoryData from './kube/t_directory_data.js';
+import {type Namespaces} from './kube/namespaces.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -89,6 +90,10 @@ export class K8 implements TK8 {
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
     return this; // to enable chaining
+  }
+
+  namespaces(): Namespaces {
+    return null;
   }
 
   /**
@@ -147,6 +152,7 @@ export class K8 implements TK8 {
 
     const resp = await this.kubeClient.createNamespace(payload);
     return resp.response.statusCode === StatusCodes.CREATED;
+    // return this.namespaces().create(name);
   }
 
   /**

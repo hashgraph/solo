@@ -20,8 +20,11 @@ import type {ExtendedNetServer, Optional} from '../../types/index.js';
 import type TDirectoryData from './t_directory_data.js';
 import {type Cluster, type Context, type V1Lease} from '@kubernetes/client-node';
 import {type Namespace} from '../config/remote/types.js';
+import {type Namespaces} from './namespaces.js';
 
 export default interface TK8 {
+  namespaces(): Namespaces;
+
   /**
    * Create a new namespace
    */
