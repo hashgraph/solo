@@ -61,10 +61,9 @@ export class K8 implements TK8 {
   private coordinationApiClient: k8s.CoordinationV1Api;
   private networkingApi: k8s.NetworkingV1Api;
 
-  // TODO remove public on logger
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
-    @inject(SoloLogger) public readonly logger?: SoloLogger,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
   ) {
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);

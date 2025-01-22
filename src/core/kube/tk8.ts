@@ -24,9 +24,6 @@ import {type Cluster, type Context, type V1Pod, type V1Lease} from '@kubernetes/
 import {type Namespace} from '../config/remote/types.js';
 
 export default interface TK8 {
-  // TODO - remove public on logger
-  readonly logger?: SoloLogger;
-
   /**
    * Apply filters to metadata
    * @param items - list of items
