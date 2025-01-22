@@ -50,7 +50,7 @@ import type TDirectoryData from './kube/t_directory_data.js';
  */
 @injectable()
 export class K8 implements TK8 {
-  private _cachedContexts: Context[];
+  private cachedContexts: Context[];
 
   static PodReadyCondition = new Map<string, string>().set(
     constants.POD_CONDITION_READY,
@@ -187,7 +187,7 @@ export class K8 implements TK8 {
    * @param name - podName name
    */
   async getPodByName(name: string): Promise<k8s.V1Pod> {
-    const ns = this._getNamespace();
+    const ns = this.getNamespace();
     const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedPod(
       ns,
@@ -211,7 +211,7 @@ export class K8 implements TK8 {
    * @param labels - list of labels
    */
   async getPodsByLabel(labels: string[] = []) {
-    const ns = this._getNamespace();
+    const ns = this.getNamespace();
     const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedPod(
       ns,
@@ -235,7 +235,7 @@ export class K8 implements TK8 {
    * @param labels - list of labels
    */
   async getSecretsByLabel(labels: string[] = []) {
-    const ns = this._getNamespace();
+    const ns = this.getNamespace();
     const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedSecret(
       ns,
@@ -270,7 +270,7 @@ export class K8 implements TK8 {
    * @param name - svc name
    */
   async getSvcByName(name: string): Promise<k8s.V1Service> {
-    const ns = this._getNamespace();
+    const ns = this.getNamespace();
     const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedService(
       ns,
@@ -331,11 +331,11 @@ export class K8 implements TK8 {
   }
 
   getContexts(): Context[] {
-    if (!this._cachedContexts) {
-      this._cachedContexts = this.kubeConfig.getContexts();
+    if (!this.cachedContexts) {
+      this.cachedContexts = this.kubeConfig.getContexts();
     }
 
-    return this._cachedContexts;
+    return this.cachedContexts;
   }
 
   /**
@@ -558,7 +558,7 @@ export class K8 implements TK8 {
     filter: TarCreateFilter | undefined = undefined,
   ) {
     const self = this;
-    const namespace = this._getNamespace();
+    const namespace = this.getNamespace();
     const guid = uuid4();
     const messagePrefix = `copyTo[${podName},${guid}]: `;
 
@@ -580,7 +580,7 @@ export class K8 implements TK8 {
       const srcDir = path.dirname(srcPath);
 
       // Create a temporary tar file for the source file
-      const tmpFile = self._tempFileFor(srcFile);
+      const tmpFile = self.tempFileFor(srcFile);
 
       await tar.c({file: tmpFile, cwd: srcDir, filter}, [srcFile]);
 
@@ -623,7 +623,7 @@ export class K8 implements TK8 {
 
               // Cleanup temp file after successful copy
               inputPassthroughStream.end(); // End the passthrough stream
-              self._deleteTempFile(tmpFile); // Cleanup temp file
+              self.deleteTempFile(tmpFile); // Cleanup temp file
               self.logger.info(`${messagePrefix} Successfully copied!`);
               return resolve(true);
             });
@@ -652,7 +652,7 @@ export class K8 implements TK8 {
    */
   async copyFrom(podName: PodName, containerName: string, srcPath: string, destDir: string) {
     const self = this;
-    const namespace = self._getNamespace();
+    const namespace = self.getNamespace();
     const guid = uuid4();
     const messagePrefix = `copyFrom[${podName},${guid}]: `;
 
@@ -691,7 +691,7 @@ export class K8 implements TK8 {
       const destPath = path.join(destDir, srcFile);
 
       // download the tar file to a temp location
-      const tmpFile = self._tempFileFor(srcFile);
+      const tmpFile = self.tempFileFor(srcFile);
 
       return new Promise((resolve, reject) => {
         localContext.reject = reject;
@@ -725,7 +725,7 @@ export class K8 implements TK8 {
             false,
             ({status}) => {
               if (status === 'Failure') {
-                self._deleteTempFile(tmpFile);
+                self.deleteTempFile(tmpFile);
                 return self.exitWithError(localContext, `${messagePrefix} Failure occurred`);
               }
               self.logger.debug(`${messagePrefix} callback(status)=${status}`);
@@ -735,7 +735,7 @@ export class K8 implements TK8 {
             localContext.connection = conn;
 
             conn.on('error', e => {
-              self._deleteTempFile(tmpFile);
+              self.deleteTempFile(tmpFile);
               return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
             });
 
@@ -753,7 +753,7 @@ export class K8 implements TK8 {
                 try {
                   fs.copyFileSync(tmpFile, destPath);
 
-                  self._deleteTempFile(tmpFile);
+                  self.deleteTempFile(tmpFile);
 
                   const stat = fs.statSync(destPath);
                   if (stat && stat.size === srcFileSize) {
@@ -792,7 +792,7 @@ export class K8 implements TK8 {
    */
   async execContainer(podName: string, containerName: string, command: string | string[]) {
     const self = this;
-    const namespace = self._getNamespace();
+    const namespace = self.getNamespace();
     const guid = uuid4();
     const messagePrefix = `execContainer[${podName},${guid}]:`;
 
@@ -809,7 +809,7 @@ export class K8 implements TK8 {
       const localContext = {} as LocalContextObject;
       localContext.reject = reject;
       const execInstance = new k8s.Exec(self.kubeConfig);
-      const tmpFile = self._tempFileFor(`${podName}-output.txt`);
+      const tmpFile = self.tempFileFor(`${podName}-output.txt`);
       const outputFileStream = fs.createWriteStream(tmpFile);
       const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
       const errPassthroughStream = new stream.PassThrough();
@@ -878,7 +878,7 @@ export class K8 implements TK8 {
   async portForward(podName: PodName, localPort: number, podPort: number) {
     try {
       this.logger.debug(`Creating port-forwarder for ${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`);
-      const ns = this._getNamespace();
+      const ns = this.getNamespace();
       const forwarder = new k8s.PortForward(this.kubeConfig, false);
       const server = (await net.createServer(socket => {
         forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
@@ -1002,7 +1002,7 @@ export class K8 implements TK8 {
     podItemPredicate?: (items: k8s.V1Pod) => boolean,
     namespace?: string,
   ): Promise<k8s.V1Pod[]> {
-    const ns = namespace || this._getNamespace();
+    const ns = namespace || this.getNamespace();
     const labelSelector = labels.join(',');
 
     this.logger.info(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
@@ -1316,7 +1316,7 @@ export class K8 implements TK8 {
    * @throws SoloError - if the response if not found or the response is not OK
    */
   async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
-    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace()).catch(e => e);
+    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this.getNamespace()).catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
 
@@ -1333,7 +1333,7 @@ export class K8 implements TK8 {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    const namespace = this._getNamespace();
+    const namespace = this.getNamespace();
 
     const configMap = new k8s.V1ConfigMap();
     configMap.data = data;
@@ -1365,7 +1365,7 @@ export class K8 implements TK8 {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    const namespace = this._getNamespace();
+    const namespace = this.getNamespace();
 
     const configMap = new k8s.V1ConfigMap();
     configMap.data = data;
@@ -1587,18 +1587,18 @@ export class K8 implements TK8 {
     throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});
   }
 
-  _getNamespace(): Namespace {
+  private getNamespace(): Namespace {
     const ns = this.configManager.getFlag<string>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }
 
-  _tempFileFor(fileName: string) {
+  private tempFileFor(fileName: string) {
     const tmpFile = `${fileName}-${uuid4()}`;
     return path.join(os.tmpdir(), tmpFile);
   }
 
-  _deleteTempFile(tmpFile: string) {
+  private deleteTempFile(tmpFile: string) {
     if (fs.existsSync(tmpFile)) {
       fs.rmSync(tmpFile);
     }

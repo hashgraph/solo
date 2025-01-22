@@ -440,12 +440,6 @@ export default interface TK8 {
    */
   handleKubernetesClientError(response: http.IncomingMessage, error: Error | unknown, errorMessage: string): void;
 
-  _getNamespace(): Namespace;
-
-  _tempFileFor(fileName: string): string;
-
-  _deleteTempFile(tmpFile: string): void;
-
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
    * Can throw a SoloError if there is an error while deleting the pod.
