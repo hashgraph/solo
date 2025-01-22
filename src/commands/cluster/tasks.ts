@@ -282,6 +282,12 @@ export class ClusterCommandTasks {
         // If one or more contexts are provided, use the first one
         if (contexts.length) {
           selectedContext = contexts[0];
+
+          if (clusters.length) {
+            selectedCluster = clusters[0];
+          } else {
+            selectedCluster = localConfig.deployments[deploymentName].clusters[0];
+          }
         }
 
         // If one or more clusters are provided, use the first one to determine the context

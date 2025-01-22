@@ -14,11 +14,12 @@
  * limitations under the License.
  *
  */
-import type {ListrTask} from 'listr2';
+import chalk from 'chalk';
 import type {BaseCommand} from '../../../commands/base.js';
 import type {Cluster, Context, Namespace} from './types.js';
 import type {SoloListrTask} from '../../../types/index.js';
 import type {DeploymentCommand} from '../../../commands/deployment.js';
+import type {AnyObject} from '../../../types/aliases.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -39,10 +40,10 @@ export class ListrRemoteConfig {
    * @param command - the BaseCommand object on which an action will be performed
    * @param argv - used to update the last executed command and command history
    */
-  public static loadRemoteConfig(command: BaseCommand, argv: any): ListrTask<any, any, any> {
+  public static loadRemoteConfig(command: BaseCommand, argv: {_: string[]} & AnyObject): SoloListrTask<any> {
     return {
       title: 'Load remote config',
-      task: async (_, task): Promise<void> => {
+      task: async (): Promise<void> => {
         await command.getRemoteConfigManager().loadAndValidate(argv);
       },
     };
@@ -60,10 +61,10 @@ export class ListrRemoteConfig {
     cluster: Cluster,
     context: Context,
     namespace: Namespace,
-  ): ListrTask<any, any, any> {
+  ): SoloListrTask<any> {
     return {
-      title: `Create remote config in cluster: ${cluster}`,
-      task: async (_, task): Promise<void> => {
+      title: `Create remote config in cluster: ${chalk.cyan(cluster)}`,
+      task: async (): Promise<void> => {
         await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace);
       },
     };
