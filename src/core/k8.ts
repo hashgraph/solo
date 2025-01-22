@@ -1200,6 +1200,7 @@ export class K8 implements TK8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
+  // TODO this can be removed once K8 is context/cluster specific when instantiating
   async testClusterConnection(context: string, cluster: string): Promise<boolean> {
     this.kubeConfig.setCurrentContext(context);
 
@@ -1726,6 +1727,7 @@ export class K8 implements TK8 {
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }
 
+  // TODO make private once we are instantiating multiple K8 instances
   setCurrentContext(context: string) {
     this.kubeConfig.setCurrentContext(context);
 
