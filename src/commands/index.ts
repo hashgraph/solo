@@ -23,6 +23,7 @@ import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
 import {DeploymentCommand} from './deployment.js';
 import {type Opts} from '../types/command_types.js';
+import {ExplorerCommand} from './explorer.js';
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
@@ -37,6 +38,7 @@ export function Initialize(opts: Opts) {
   const relayCmd = new RelayCommand(opts);
   const accountCmd = new AccountCommand(opts);
   const mirrorNodeCmd = new MirrorNodeCommand(opts);
+  const explorerCommand = new ExplorerCommand(opts);
   const deploymentCommand = new DeploymentCommand(opts);
 
   return [
@@ -47,6 +49,7 @@ export function Initialize(opts: Opts) {
     nodeCmd.getCommandDefinition(),
     relayCmd.getCommandDefinition(),
     mirrorNodeCmd.getCommandDefinition(),
+    explorerCommand.getCommandDefinition(),
     deploymentCommand.getCommandDefinition(),
   ];
 }
