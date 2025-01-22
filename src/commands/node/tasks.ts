@@ -1738,6 +1738,8 @@ export class NodeCommandTasks {
         this.logger.setDevMode(true);
       }
 
+      this.configManager.update(argv);
+
       // disable the prompts that we don't want to prompt the user for
       flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
 

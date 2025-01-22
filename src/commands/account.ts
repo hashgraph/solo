@@ -177,6 +177,7 @@ export class AccountCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
+            self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.namespace]);
 
             const config = {
@@ -329,6 +330,7 @@ export class AccountCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
+            self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.namespace]);
 
             const config = {
@@ -411,6 +413,7 @@ export class AccountCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
+            self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
 
             const config = {
@@ -493,6 +496,7 @@ export class AccountCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
+            self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
 
             const config = {

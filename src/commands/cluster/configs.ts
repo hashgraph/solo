@@ -38,6 +38,7 @@ export const connectConfigBuilder = async function (argv, ctx, task) {
 export const setupConfigBuilder = async function (argv, ctx, task) {
   const parent = this.parent;
   const configManager = parent.getConfigManager();
+  configManager.update(argv);
   flags.disablePrompts([flags.chartDirectory]);
 
   await configManager.executePrompt(task, [

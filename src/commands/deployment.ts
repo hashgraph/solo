@@ -68,6 +68,7 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
+            self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
             await self.configManager.executePrompt(task, [
@@ -137,7 +138,9 @@ export class DeploymentCommand extends BaseCommand {
 
             for (const context of Object.keys(ctx.config.contextCluster)) {
               const cluster = ctx.config.contextCluster[context];
-              subTasks.push(RemoteConfigTasks.createRemoteConfig.bind(this)(cluster, context, ctx.config.namespace));
+              subTasks.push(
+                RemoteConfigTasks.createRemoteConfig.bind(this)(cluster, context, ctx.config.namespace, argv),
+              );
             }
 
             return task.newListr(subTasks, {

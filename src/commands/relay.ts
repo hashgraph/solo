@@ -215,6 +215,8 @@ export class RelayCommand extends BaseCommand {
             // reset nodeAlias
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
 
+            self.configManager.update(argv);
+
             flags.disablePrompts([flags.operatorId, flags.operatorKey]);
 
             await self.configManager.executePrompt(task, RelayCommand.DEPLOY_FLAGS_LIST);
@@ -343,6 +345,7 @@ export class RelayCommand extends BaseCommand {
             // reset nodeAlias
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
 
+            self.configManager.update(argv);
             await self.configManager.executePrompt(task, RelayCommand.DESTROY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context

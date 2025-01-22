@@ -43,11 +43,11 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
    */
   public async handleFlags(argv: AnyObject): Promise<void> {
     for (const flag of CommonFlagsDataWrapper.COMMON_FLAGS) {
-      await this.checkFlag(flag);
+      await this.checkFlag(flag, argv);
     }
   }
 
-  private async checkFlag(flag: CommandFlag): Promise<void> {
+  private async checkFlag(flag: CommandFlag, argv: AnyObject): Promise<void> {
     const detectFlagMismatch = async () => {
       const oldValue = this.flags[flag.constName] as string;
       const newValue = this.configManager.getFlag<string>(flag);
@@ -61,7 +61,7 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
       // if its present but there is a mismatch warn user
       else if (oldValue && oldValue !== newValue) {
         const answer = await select<string>({
-          message: 'Value in remote config differs with the one you are passing, choose with which you want to keep',
+          message: 'Value in remote config differs with the one you are passing, choose which you want to use',
           choices: [
             {
               name: `[old value] ${oldValue}`,
@@ -74,8 +74,13 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
           ],
         });
 
-        // Override if user chooses new the new value, else do nothing and keep the old one
-        if (answer === newValue) this.flags[flag.constName] = newValue;
+        // Override if user chooses new the new value, else override and keep the old one
+        if (answer === newValue) {
+          this.flags[flag.constName] = newValue;
+        } else {
+          this.configManager.setFlag(flag, oldValue);
+          argv[flag.constName] = oldValue;
+        }
       }
     };
 
@@ -86,12 +91,9 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
 
     // if the value is not set and exists, override it
     else if (this.flags[flag.constName]) {
+      argv[flag.constName] = this.flags[flag.constName];
       this.configManager.setFlag(flag, this.flags[flag.constName]);
     }
-  }
-
-  private overrideFlagValue (flag: CommandFlag, argv: AnyObject): void {
-    this.configManager
   }
 
   public static async initializeEmpty(configManager: ConfigManager, argv: AnyObject): Promise<CommonFlagsDataWrapper> {
