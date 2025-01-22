@@ -15,40 +15,32 @@
  *
  */
 import * as k8s from '@kubernetes/client-node';
+import {type Cluster, type Context, type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
 import path from 'path';
 import {Flags as flags} from '../commands/flags.js';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as tar from 'tar';
 import {v4 as uuid4} from 'uuid';
-import {type V1Lease, V1ObjectMeta, V1Secret, type Context, type V1Pod} from '@kubernetes/client-node';
 import * as stream from 'node:stream';
 import type * as http from 'node:http';
 import type * as WebSocket from 'ws';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 import {sleep} from './helpers.js';
 import * as constants from './constants.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import {SoloLogger} from './logging.js';
 import {type PodName, type TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
-import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
-
-interface TDirectoryData {
-  directory: boolean;
-  owner: string;
-  group: string;
-  size: string;
-  modifiedAt: string;
-  name: string;
-}
+import type TK8 from './kube/tk8.js';
+import type TDirectoryData from './kube/t_directory_data.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -57,7 +49,7 @@ interface TDirectoryData {
  * For parallel execution, create separate instances by invoking clone()
  */
 @injectable()
-export class K8 {
+export class K8 implements TK8 {
   private _cachedContexts: Context[];
 
   static PodReadyCondition = new Map<string, string>().set(
@@ -69,6 +61,7 @@ export class K8 {
   private coordinationApiClient: k8s.CoordinationV1Api;
   private networkingApi: k8s.NetworkingV1Api;
 
+  // TODO remove public on logger
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
     @inject(SoloLogger) public readonly logger?: SoloLogger,
@@ -79,7 +72,7 @@ export class K8 {
     this.init();
   }
 
-  init() {
+  init(): TK8 {
     this.kubeConfig = new k8s.KubeConfig();
     this.kubeConfig.loadFromDefault();
 
@@ -1210,7 +1203,7 @@ export class K8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
-  public async testClusterConnection(context: string, cluster: string): Promise<boolean> {
+  async testClusterConnection(context: string, cluster: string): Promise<boolean> {
     this.kubeConfig.setCurrentContext(context);
 
     const tempKubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
@@ -1322,7 +1315,7 @@ export class K8 {
    * @returns the configmap if found
    * @throws SoloError - if the response if not found or the response is not OK
    */
-  public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
+  async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
     const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this._getNamespace()).catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
@@ -1335,7 +1328,7 @@ export class K8 {
    * @param labels - for the config metadata
    * @param data - to contain in the config
    */
-  public async createNamespacedConfigMap(
+  async createNamespacedConfigMap(
     name: string,
     labels: Record<string, string>,
     data: Record<string, string>,
@@ -1367,7 +1360,7 @@ export class K8 {
    * @param labels - for the config metadata
    * @param data - to contain in the config
    */
-  public async replaceNamespacedConfigMap(
+  async replaceNamespacedConfigMap(
     name: string,
     labels: Record<string, string>,
     data: Record<string, string>,
@@ -1394,7 +1387,7 @@ export class K8 {
     }
   }
 
-  public async deleteNamespacedConfigMap(name: string, namespace: string): Promise<boolean> {
+  async deleteNamespacedConfigMap(name: string, namespace: string): Promise<boolean> {
     try {
       const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace);
 
@@ -1487,7 +1480,7 @@ export class K8 {
    * Check if cert-manager is installed inside any namespace.
    * @returns if cert-manager is found
    */
-  public async isCertManagerInstalled(): Promise<boolean> {
+  async isCertManagerInstalled(): Promise<boolean> {
     try {
       const pods = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, 'app=cert-manager');
 
@@ -1503,7 +1496,7 @@ export class K8 {
    * Check if minio is installed inside the namespace.
    * @returns if minio is found
    */
-  public async isMinioInstalled(namespace: Namespace): Promise<boolean> {
+  async isMinioInstalled(namespace: Namespace): Promise<boolean> {
     try {
       // TODO DETECT THE OPERATOR
       const pods = await this.kubeClient.listNamespacedPod(
@@ -1527,7 +1520,7 @@ export class K8 {
    * Check if the ingress controller is installed inside any namespace.
    * @returns if ingress controller is found
    */
-  public async isIngressControllerInstalled(): Promise<boolean> {
+  async isIngressControllerInstalled(): Promise<boolean> {
     try {
       const response = await this.networkingApi.listIngressClass();
 
@@ -1539,7 +1532,7 @@ export class K8 {
     }
   }
 
-  public async isRemoteConfigPresentInAnyNamespace() {
+  async isRemoteConfigPresentInAnyNamespace() {
     try {
       const configmaps = await this.kubeClient.listConfigMapForAllNamespaces(
         undefined,
@@ -1556,7 +1549,7 @@ export class K8 {
     }
   }
 
-  public async isPrometheusInstalled(namespace: Namespace) {
+  async isPrometheusInstalled(namespace: Namespace) {
     try {
       const pods = await this.kubeClient.listNamespacedPod(
         namespace,
@@ -1584,11 +1577,7 @@ export class K8 {
    *
    * @throws SoloError - if the status code is not OK
    */
-  private handleKubernetesClientError(
-    response: http.IncomingMessage,
-    error: Error | unknown,
-    errorMessage: string,
-  ): void {
+  handleKubernetesClientError(response: http.IncomingMessage, error: Error | unknown, errorMessage: string): void {
     const statusCode = +response?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
 
     if (statusCode <= StatusCodes.ACCEPTED) return;
@@ -1598,18 +1587,18 @@ export class K8 {
     throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});
   }
 
-  private _getNamespace(): Namespace {
+  _getNamespace(): Namespace {
     const ns = this.configManager.getFlag<string>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }
 
-  private _tempFileFor(fileName: string) {
+  _tempFileFor(fileName: string) {
     const tmpFile = `${fileName}-${uuid4()}`;
     return path.join(os.tmpdir(), tmpFile);
   }
 
-  private _deleteTempFile(tmpFile: string) {
+  _deleteTempFile(tmpFile: string) {
     if (fs.existsSync(tmpFile)) {
       fs.rmSync(tmpFile);
     }
@@ -1666,7 +1655,7 @@ export class K8 {
     return await Promise.all(promises);
   }
 
-  private async getNodeLog(pod: V1Pod, namespace: string, timeString: string) {
+  async getNodeLog(pod: V1Pod, namespace: string, timeString: string) {
     const podName = pod.metadata!.name as PodName;
     this.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString);
@@ -1736,7 +1725,7 @@ export class K8 {
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }
 
-  public setCurrentContext(context: string) {
+  setCurrentContext(context: string) {
     this.kubeConfig.setCurrentContext(context);
 
     // Reinitialize clients
@@ -1744,19 +1733,19 @@ export class K8 {
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
   }
 
-  public getCurrentContext(): string {
+  getCurrentContext(): string {
     return this.kubeConfig.getCurrentContext();
   }
 
-  public getCurrentContextObject(): Context {
+  getCurrentContextObject(): Context {
     return this.kubeConfig.getContextObject(this.getCurrentContext());
   }
 
-  public getCurrentCluster(): Cluster {
+  getCurrentCluster(): Cluster {
     return this.kubeConfig.getCurrentCluster();
   }
 
-  public getCurrentClusterName(): string {
+  getCurrentClusterName(): string {
     const currentCluster = this.kubeConfig.getCurrentCluster();
     if (!currentCluster) return '';
     return currentCluster.name;
