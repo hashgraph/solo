@@ -45,7 +45,6 @@ export class InitCommand extends BaseCommand {
         {
           title: 'Setup home directory and cache',
           task: ctx => {
-            self.configManager.update(argv);
             ctx.dirs = this.setupHomeDirectory();
           },
         },

@@ -68,7 +68,6 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
-            self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
             await self.configManager.executePrompt(task, [

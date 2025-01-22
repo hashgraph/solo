@@ -32,7 +32,7 @@ const configManagerMock = {
   setFlag: (...args: any) => true,
 };
 
-function createRemoteConfigDataWrapper() {
+async function createRemoteConfigDataWrapper() {
   const {metadata} = createMetadata();
   const {
     wrapper: {componentsDataWrapper},
@@ -42,7 +42,7 @@ function createRemoteConfigDataWrapper() {
   const components = componentsDataWrapper;
   const lastExecutedCommand = 'lastExecutedCommand';
   const commandHistory = [];
-  const flags = CommonFlagsDataWrapper.initializeEmpty(configManagerMock as any, {}); // TODO MOCK
+  const flags = await CommonFlagsDataWrapper.initializeEmpty(configManagerMock as any, {}); // TODO MOCK
 
   const dataWrapper = new RemoteConfigDataWrapper({
     metadata,
@@ -59,11 +59,11 @@ function createRemoteConfigDataWrapper() {
   };
 }
 
-describe('RemoteConfigDataWrapper', () => {
+describe('RemoteConfigDataWrapper', async () => {
   it('should be able to create a instance', () => createRemoteConfigDataWrapper());
 
-  it('should be able to add new command to history with addCommandToHistory()', () => {
-    const {dataWrapper} = createRemoteConfigDataWrapper();
+  it('should be able to add new command to history with addCommandToHistory()', async () => {
+    const {dataWrapper} = await createRemoteConfigDataWrapper();
 
     const command = 'command';
 
@@ -79,8 +79,8 @@ describe('RemoteConfigDataWrapper', () => {
     });
   });
 
-  it('should successfully be able to parse yaml and create instance with fromConfigmap()', () => {
-    const {dataWrapper} = createRemoteConfigDataWrapper();
+  it('should successfully be able to parse yaml and create instance with fromConfigmap()', async () => {
+    const {dataWrapper} = await createRemoteConfigDataWrapper();
     const dataWrapperObject = dataWrapper.toObject();
 
     const yamlData = yaml.stringify({
@@ -94,8 +94,8 @@ describe('RemoteConfigDataWrapper', () => {
     RemoteConfigDataWrapper.fromConfigmap(configManagerMock as any, {data: {'remote-config-data': yamlData}} as any);
   });
 
-  it('should fail if invalid data is passed to setters', () => {
-    const {dataWrapper} = createRemoteConfigDataWrapper();
+  it('should fail if invalid data is passed to setters', async () => {
+    const {dataWrapper} = await createRemoteConfigDataWrapper();
 
     // @ts-expect-error TS2322: Type string is not assignable to type string[]
     expect(() => (dataWrapper.commandHistory = '')).to.throw(SoloError);

@@ -225,8 +225,6 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
-            self.configManager.update(argv);
-
             // disable the prompts that we don't want to prompt the user for
             flags.disablePrompts([
               flags.deployHederaExplorer,
@@ -600,7 +598,6 @@ export class MirrorNodeCommand extends BaseCommand {
               }
             }
 
-            self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.namespace]);
 
             // @ts-ignore

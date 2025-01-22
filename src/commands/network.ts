@@ -356,7 +356,6 @@ export class NetworkCommand extends BaseCommand {
   }
 
   async prepareConfig(task: any, argv: any) {
-    this.configManager.update(argv);
     this.logger.debug('Updated config with argv', {config: this.configManager.config});
 
     // disable the prompts that we don't want to prompt the user for
@@ -750,7 +749,6 @@ export class NetworkCommand extends BaseCommand {
               }
             }
 
-            self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
 
             ctx.config = {

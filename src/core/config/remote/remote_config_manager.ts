@@ -122,7 +122,7 @@ export class RemoteConfigManager {
       commandHistory: ['deployment create'],
       lastExecutedCommand: 'deployment create',
       components: ComponentsDataWrapper.initializeEmpty(),
-      flags: CommonFlagsDataWrapper.initializeEmpty(this.configManager, argv),
+      flags: await CommonFlagsDataWrapper.initializeEmpty(this.configManager, argv),
     });
 
     await this.createConfigMap();
@@ -215,7 +215,7 @@ export class RemoteConfigManager {
     const currentCommand = argv._.join(' ');
     self.remoteConfig!.addCommandToHistory(currentCommand);
 
-    self.remoteConfig.flags.handleFlags(argv);
+    await self.remoteConfig.flags.handleFlags(argv);
 
     await self.save();
   }

@@ -20,6 +20,7 @@ import type {RemoteConfigCommonFlagsStruct} from './types.js';
 import type {ConfigManager} from '../../config_manager.js';
 import type {CommandFlag} from '../../../types/flag_types.js';
 import type {AnyObject} from '../../../types/aliases.js';
+import {select} from '@inquirer/prompts';
 
 export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsStruct> {
   private static readonly COMMON_FLAGS: CommandFlag[] = [
@@ -40,34 +41,47 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
   /**
    * Updates the flags or populates them inside the remote config
    */
-  public handleFlags(argv: AnyObject): void {
-    this.configManager.update(argv);
-
-    CommonFlagsDataWrapper.COMMON_FLAGS.forEach(flag => {
-      this.updateFlag(flag);
-    });
+  public async handleFlags(argv: AnyObject): Promise<void> {
+    for (const flag of CommonFlagsDataWrapper.COMMON_FLAGS) {
+      await this.checkFlag(flag);
+    }
   }
 
-  private updateFlag(flag: CommandFlag): void {
-    const detectFlagMismatch = () => {
+  private async checkFlag(flag: CommandFlag): Promise<void> {
+    const detectFlagMismatch = async () => {
       const oldValue = this.flags[flag.constName] as string;
       const newValue = this.configManager.getFlag<string>(flag);
 
       // if the old value is not present, override it with the new one
-      if (!oldValue) {
+      if (!oldValue && newValue) {
         this.flags[flag.constName] = newValue;
+        return;
       }
 
       // if its present but there is a mismatch warn user
       else if (oldValue && oldValue !== newValue) {
-        // TODO: WARN THE USER
-        this.flags[flag.constName] = newValue;
+        const answer = await select<string>({
+          message: 'Value in remote config differs with the one you are passing, choose with which you want to keep',
+          choices: [
+            {
+              name: `[old value] ${oldValue}`,
+              value: oldValue,
+            },
+            {
+              name: `[new value] ${newValue}`,
+              value: newValue,
+            },
+          ],
+        });
+
+        // Override if user chooses new the new value, else do nothing and keep the old one
+        if (answer === newValue) this.flags[flag.constName] = newValue;
       }
     };
 
     // if the flag is set, inspect the value
     if (this.configManager.hasFlag(flag)) {
-      detectFlagMismatch();
+      await detectFlagMismatch();
     }
 
     // if the value is not set and exists, override it
@@ -76,9 +90,13 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
     }
   }
 
-  public static initializeEmpty(configManager: ConfigManager, argv: AnyObject): CommonFlagsDataWrapper {
+  private overrideFlagValue (flag: CommandFlag, argv: AnyObject): void {
+    this.configManager
+  }
+
+  public static async initializeEmpty(configManager: ConfigManager, argv: AnyObject): Promise<CommonFlagsDataWrapper> {
     const commonFlagsDataWrapper = new CommonFlagsDataWrapper(configManager, {});
-    commonFlagsDataWrapper.handleFlags(argv);
+    await commonFlagsDataWrapper.handleFlags(argv);
     return commonFlagsDataWrapper;
   }
 
