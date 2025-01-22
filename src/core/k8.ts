@@ -49,6 +49,7 @@ import {type Namespaces} from './kube/namespaces.js';
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
+// TODO rename to K8Client and move to kube folder
 @injectable()
 export class K8 implements TK8 {
   private cachedContexts: Context[];
