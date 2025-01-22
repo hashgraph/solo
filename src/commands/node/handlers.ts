@@ -41,7 +41,6 @@ import {type LeaseManager} from '../../core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError, SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
-import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
 import type {SoloLogger} from '../../core/logging.js';
 import type {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
