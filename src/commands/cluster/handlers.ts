@@ -19,7 +19,7 @@ import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
-import {RemoteConfigTasks} from '../../core/config/remote/remote_config_tasks.js';
+import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
 import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
@@ -46,7 +46,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
         this.parent.setupHomeDirectoryTask(),
         this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8()),
         this.tasks.selectContext(),
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
+        ListrRemoteConfig.loadRemoteConfig(this.parent, argv),
         this.tasks.readClustersFromRemoteConfig(argv),
         this.tasks.updateLocalConfig(),
       ],
