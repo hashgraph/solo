@@ -167,11 +167,7 @@ describe('ClusterCommand unit tests', () => {
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
       k8Stub = sandbox.createStubInstance(K8);
-      k8Stub.getContexts.returns([
-        {cluster: 'cluster-1', user: 'user-1', name: 'context-1', namespace: 'deployment-1'},
-        {cluster: 'cluster-2', user: 'user-2', name: 'context-2', namespace: 'deployment-2'},
-        {cluster: 'cluster-3', user: 'user-3', name: 'context-3', namespace: 'deployment-3'},
-      ]);
+      k8Stub.getContextNames.returns(['context-1', 'context-2', 'context-3']);
       k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
