@@ -297,20 +297,6 @@ export class K8 implements TK8 {
   }
 
   /**
-   * Get cluster IP of a service
-   * @param svcName - name of the service
-   * @returns cluster IP
-   */
-  async getClusterIP(svcName: string) {
-    const svc = await this.getSvcByName(svcName);
-    if (svc && svc.spec && svc.spec.clusterIP) {
-      return svc.spec.clusterIP;
-    }
-
-    throw new SoloError(`unable to find cluster IP for svc: ${svcName}`);
-  }
-
-  /**
    * Get a list of clusters
    * @returns a list of cluster names
    */

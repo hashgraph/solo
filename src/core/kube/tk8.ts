@@ -78,13 +78,6 @@ export default interface TK8 {
   getSvcByName(name: string): Promise<k8s.V1Service>;
 
   /**
-   * Get cluster IP of a service
-   * @param svcName - name of the service
-   * @returns cluster IP
-   */
-  getClusterIP(svcName: string): Promise<any>;
-
-  /**
    * Get a list of clusters
    * @returns a list of cluster names
    */
