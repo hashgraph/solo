@@ -408,8 +408,6 @@ export default interface TK8 {
    */
   getNodeStatesFromPod(namespace: string, nodeAlias: string): Promise<Awaited<unknown>[]>;
 
-  getNodeState(pod: V1Pod, namespace: string): Promise<void>;
-
   setCurrentContext(context: string): void;
 
   getCurrentContext(): string;

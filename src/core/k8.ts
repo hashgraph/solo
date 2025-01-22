@@ -1711,7 +1711,7 @@ export class K8 implements TK8 {
     return await Promise.all(promises);
   }
 
-  async getNodeState(pod: V1Pod, namespace: string) {
+  private async getNodeState(pod: V1Pod, namespace: string) {
     const podName = pod.metadata!.name as PodName;
     this.logger.debug(`getNodeState(${pod.metadata.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace);
