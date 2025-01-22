@@ -128,7 +128,7 @@ export class K8 implements TK8 {
    * @param items - list of items
    * @param [filters] - an object with metadata fields and value
    */
-  filterItem(items: (object | any)[], filters: Record<string, string> = {}) {
+  private filterItem(items: (object | any)[], filters: Record<string, string> = {}) {
     const filtered = this.applyMetadataFilter(items, filters);
     if (filtered.length > 1) throw new SoloError('multiple items found with filters', {filters});
     return filtered[0];

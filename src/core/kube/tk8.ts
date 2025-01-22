@@ -15,7 +15,6 @@
  *
  */
 import type * as k8s from '@kubernetes/client-node';
-import {type SoloLogger} from '../logging.js';
 import type {PodName, TarCreateFilter} from '../../types/aliases.js';
 import type {ExtendedNetServer, Optional} from '../../types/index.js';
 import type http from 'node:http';
@@ -25,15 +24,7 @@ import {type Namespace} from '../config/remote/types.js';
 
 export default interface TK8 {
   /**
-   * Filter a single item using metadata filter
-   * @param items - list of items
-   * @param [filters] - an object with metadata fields and value
-   */
-  filterItem(items: (object | any)[], filters: Record<string, string>): any;
-
-  /**
    * Create a new namespace
-   * @param name - name of the namespace
    */
   createNamespace(name: string): Promise<boolean>;
 
