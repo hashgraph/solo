@@ -1581,7 +1581,11 @@ export class K8 implements TK8 {
    *
    * @throws SoloError - if the status code is not OK
    */
-  handleKubernetesClientError(response: http.IncomingMessage, error: Error | unknown, errorMessage: string): void {
+  private handleKubernetesClientError(
+    response: http.IncomingMessage,
+    error: Error | unknown,
+    errorMessage: string,
+  ): void {
     const statusCode = +response?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
 
     if (statusCode <= StatusCodes.ACCEPTED) return;

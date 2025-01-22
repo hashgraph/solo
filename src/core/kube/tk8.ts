@@ -377,15 +377,6 @@ export default interface TK8 {
   isPrometheusInstalled(namespace: Namespace): Promise<boolean>;
 
   /**
-   * @param response - response object from the kubeclient call
-   * @param error - body of the response becomes the error if the status is not OK
-   * @param errorMessage - the error message to be passed in case it fails
-   *
-   * @throws SoloError - if the status code is not OK
-   */
-  handleKubernetesClientError(response: http.IncomingMessage, error: Error | unknown, errorMessage: string): void;
-
-  /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
    * Can throw a SoloError if there is an error while deleting the pod.
    * @param podName - the name of the pod
