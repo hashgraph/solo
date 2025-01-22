@@ -53,17 +53,18 @@ export class DeploymentCommand extends BaseCommand {
   private async create(argv: any): Promise<boolean> {
     const self = this;
 
-    interface Config {
+    interface DeploymentCreateConfig {
       context: string;
       namespace: Namespace;
       contextClusterUnparsed: string;
       contextCluster: ContextClusterStructure;
     }
-    interface Context {
-      config: Config;
+
+    interface DeploymentCreateContext {
+      config: DeploymentCreateConfig;
     }
 
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<DeploymentCreateContext>(
       [
         {
           title: 'Initialize',
@@ -80,7 +81,7 @@ export class DeploymentCommand extends BaseCommand {
             ctx.config = {
               contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),
               namespace: self.configManager.getFlag<Namespace>(flags.namespace),
-            } as Config;
+            } as DeploymentCreateConfig;
 
             ctx.config.contextCluster = Templates.parseContextCluster(ctx.config.contextClusterUnparsed);
 
@@ -110,7 +111,7 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Validate cluster connections',
           task: async (ctx, task) => {
-            const subTasks: SoloListrTask<Context>[] = [];
+            const subTasks: SoloListrTask<DeploymentCreateContext>[] = [];
 
             for (const context of Object.keys(ctx.config.contextCluster)) {
               const cluster = ctx.config.contextCluster[context];
