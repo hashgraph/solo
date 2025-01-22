@@ -34,6 +34,7 @@ import * as http from 'http';
 import type {PodName} from '../../../src/types/aliases.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {ExplorerCommand} from '../../../src/commands/explorer.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = testName;
@@ -53,10 +54,12 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 argv[flags.quiet.name] = true;
 argv[flags.pinger.name] = true;
 
+argv[flags.enableHederaExplorerTls.name] = true;
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
     const k8 = bootstrapResp.opts.k8;
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
+    const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
     const downloader = new PackageDownloader(mirrorNodeCmd.logger);
     const accountManager = bootstrapResp.opts.accountManager;
 
@@ -83,9 +86,10 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace);
 
-    it('mirror node deploy should success', async () => {
+    it('mirror node and explorer deploy should success', async () => {
       try {
         expect(await mirrorNodeCmd.deploy(argv)).to.be.true;
+        expect(await explorerCommand.deploy(argv)).to.be.true;
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
@@ -93,16 +97,16 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.chartDirectory.constName,
-        flags.hederaExplorerTlsHostName.constName,
-        flags.hederaExplorerTlsLoadBalancerIp.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
-        flags.tlsClusterIssuerType.constName,
-        flags.clusterSetupNamespace.constName,
-        flags.soloChartVersion.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
+      ]);
+      expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.profileFile.constName,
+        flags.profileName.constName,
+        flags.quiet.constName,
       ]);
     }).timeout(Duration.ofMinutes(10).toMillis());
 
@@ -207,6 +211,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     it('mirror node destroy should success', async () => {
       try {
         expect(await mirrorNodeCmd.destroy(argv)).to.be.true;
+        expect(await explorerCommand.destroy(argv)).to.be.true;
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
