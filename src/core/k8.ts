@@ -72,6 +72,7 @@ export class K8 implements TK8 {
     this.init();
   }
 
+  // TODO make private, but first we need to require a cluster to be set and address the test cases using this
   init(): TK8 {
     this.kubeConfig = new k8s.KubeConfig();
     this.kubeConfig.loadFromDefault();

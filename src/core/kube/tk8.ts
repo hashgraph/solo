@@ -27,8 +27,6 @@ export default interface TK8 {
   // TODO - remove public on logger
   readonly logger?: SoloLogger;
 
-  init(): TK8;
-
   /**
    * Apply filters to metadata
    * @param items - list of items
