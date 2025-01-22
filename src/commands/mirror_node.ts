@@ -23,7 +23,6 @@ import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getEnvValue} from '../core/helpers.js';
-import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type CommandBuilder, type PodName} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';

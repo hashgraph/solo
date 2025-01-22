@@ -21,7 +21,6 @@ import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -203,7 +202,6 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Upgrade solo-setup chart',
           task: async ctx => {
@@ -367,7 +365,6 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        RemoteConfigTasks.loadRemoteConfig.bind(this)(argv),
         {
           title: 'Destroy explorer',
           task: async ctx => {
