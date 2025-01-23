@@ -52,8 +52,6 @@ SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 
-# git clone mirror-bucket-prefix branch of solo chart
-git clone https://github.com/hashgraph/solo-charts --branch mirror-bucket-prefix
 
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
