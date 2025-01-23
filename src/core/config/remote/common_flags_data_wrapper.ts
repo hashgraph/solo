@@ -43,7 +43,7 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
    */
   public async handleFlags(argv: AnyObject): Promise<void> {
     for (const flag of CommonFlagsDataWrapper.COMMON_FLAGS) {
-      await this.checkFlag(flag, argv);
+      await this.handleFlag(flag, argv);
     }
   }
 
