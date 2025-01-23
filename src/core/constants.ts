@@ -28,6 +28,7 @@ export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs');
 export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache');
 export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files');
 export const DEFAULT_NAMESPACE = 'default';
+export const DEFAULT_CERT_MANAGER_NAMESPACE = 'cert-manager';
 export const HELM = 'helm';
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'));
 
@@ -71,10 +72,10 @@ export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay';
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts';
 export const MIRROR_NODE_CHART = 'hedera-mirror';
 export const MIRROR_NODE_RELEASE_NAME = 'mirror';
-export const HEDERA_EXPLORER_CHART_UTL = 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer';
-export const HEDERA_EXPLORER_CHART = 'hedera-explorer';
+export const HEDERA_EXPLORER_CHART_URL = 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer-chart';
+export const HEDERA_EXPLORER_RELEASE_NAME = 'hedera-explorer';
 export const SOLO_RELAY_LABEL = 'app=hedera-json-rpc-relay';
-export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/name=hedera-explorer';
+export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/component=hedera-explorer';
 
 export const SOLO_HEDERA_MIRROR_IMPORTER = [
   'app.kubernetes.io/component=importer',

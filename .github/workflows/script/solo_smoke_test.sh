@@ -31,7 +31,7 @@ function setup_smart_contract_test ()
   rm -f .env
 
   npm install
-  npx hardhat compile || return 1:
+  npx hardhat compile || return 1
 
   echo "Build .env file"
 
