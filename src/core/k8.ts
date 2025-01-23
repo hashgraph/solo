@@ -1213,22 +1213,11 @@ export class K8 {
   public async testClusterConnection(context: string, cluster: string): Promise<boolean> {
     this.kubeConfig.setCurrentContext(context);
 
-    const clusters = this.kubeConfig.getClusters();
-    const matchingCluster = clusters.find(c => c.name === cluster);
-
-    if (!matchingCluster) {
-      this.logger.error(`Cluster "${cluster}" not found in kubeconfig.`);
-      return false;
-    }
-
-    try {
-      await this.kubeConfig.makeApiClient(k8s.CoreV1Api).listNamespace();
-
-      return true;
-    } catch (e) {
-      this.logger.error('Error verifying cluster connectivity', e);
-      return false;
-    }
+    const tempKubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
+    return await tempKubeClient
+      .listNamespace()
+      .then(() => true)
+      .catch(() => false);
   }
 
   // --------------------------------------- Secret --------------------------------------- //
