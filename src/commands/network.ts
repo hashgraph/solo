@@ -952,7 +952,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public addNodesAndProxies(): SoloListrTask<{config: {namespace: Namespace; nodeAliases: NodeAliases}}> {
+  public addNodesAndProxies(): SoloListrTask<any> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

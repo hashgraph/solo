@@ -18,7 +18,6 @@ import chalk from 'chalk';
 import type {BaseCommand} from '../../../commands/base.js';
 import type {Cluster, Context, Namespace} from './types.js';
 import type {SoloListrTask} from '../../../types/index.js';
-import type {DeploymentCommand} from '../../../commands/deployment.js';
 import type {AnyObject} from '../../../types/aliases.js';
 
 /**
@@ -75,9 +74,7 @@ export class ListrRemoteConfig {
    *
    * @param command - the BaseCommand object on which an action will be performed
    */
-  public static createRemoteConfigInMultipleClusters(
-    command: DeploymentCommand,
-  ): SoloListrTask<{config: {namespace: Namespace}}> {
+  public static createRemoteConfigInMultipleClusters(command: BaseCommand): SoloListrTask<any> {
     return {
       title: 'Create remoteConfig in clusters',
       task: async (ctx, task) => {

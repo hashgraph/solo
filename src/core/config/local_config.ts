@@ -163,7 +163,7 @@ export class LocalConfig implements LocalConfigData {
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
 
-  public promptLocalConfigTask(k8: K8): SoloListrTask<AnyObject> {
+  public promptLocalConfigTask(k8: K8): SoloListrTask<any> {
     const self = this;
 
     return {
