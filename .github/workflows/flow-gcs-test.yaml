@@ -68,13 +68,10 @@ jobs:
           export BUCKET_NAME="solo-ci-test-streams"
           export PREFIX=${{ steps.jobs.outputs.job_id }}
 
-          gcloud storage folders create gs://${BUCKET_NAME}/${PREFIX} --project=${{ vars.GCP_S3_PROJECT_ID }}
-
           echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
           echo "PREFIX=${PREFIX}" >> $GITHUB_ENV          
           
-          export BACKUP_BUCKET_NAME=${{ steps.jobs.outputs.job_id }}-solo-backups
-          gcloud storage buckets create gs://${BACKUP_BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
+          export BACKUP_BUCKET_NAME="solo-ci-backups/${{ steps.jobs.outputs.job_id }}"
           echo "BACKUP_BUCKET_NAME=${BACKUP_BUCKET_NAME}" >> $GITHUB_ENV
 
       - name: Setup Node
@@ -118,7 +115,3 @@ jobs:
           GCP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.GCP_SERVICE_ACCOUNT_TOKEN }}
         run: |
           .github/workflows/script/gcs_test.sh
-
-      - name: Delete Bucket after Test
-        run: |
-          gcloud storage rm --recursive gs://${BACKUP_BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
