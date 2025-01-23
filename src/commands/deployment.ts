@@ -131,7 +131,7 @@ export class DeploymentCommand extends BaseCommand {
             });
           },
         },
-        ListrRemoteConfig.createRemoteConfigInMultipleClusters(this),
+        ListrRemoteConfig.createRemoteConfigInMultipleClusters(this, argv),
       ],
       {
         concurrent: false,

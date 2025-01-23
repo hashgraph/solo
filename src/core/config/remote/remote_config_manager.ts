@@ -277,7 +277,7 @@ export class RemoteConfigManager {
   }
 
   /// ---- - not mine ---- - - -- - --
-  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace) {
+  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace, argv: AnyObject) {
     const self = this;
     self.k8.setCurrentContext(context);
 
@@ -296,7 +296,7 @@ export class RemoteConfigManager {
       throw new SoloError('Remote config already exists');
     }
 
-    await self.create();
+    await self.create(argv);
   }
 
   /* ---------- Utilities ---------- */
