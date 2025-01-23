@@ -62,8 +62,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           job_name: "gcs-storage-test (${{ matrix.storageType }})"
 
-      - name: Create GCS bucket
-        # create a new bucket and use job runner id as prefix
+      - name: Create Bucket Name and Prefix
         run: |
           export BUCKET_NAME="solo-ci-test-streams"
           export PREFIX=${{ steps.jobs.outputs.job_id }}
@@ -116,7 +115,7 @@ jobs:
         run: |
           .github/workflows/script/gcs_test.sh
 
-      - name: Delete Bucket after Test
+      - name: Delete Test Directory after Test
         run: |
           gcloud storage rm --recursive gs://${BUCKET_NAME}/${{ steps.jobs.outputs.job_id }} --project=${{ vars.GCP_S3_PROJECT_ID }}
           gcloud storage rm --recursive gs://${BACKUP_BUCKET_NAME}/${{ steps.jobs.outputs.job_id }} --project=${{ vars.GCP_S3_PROJECT_ID }}

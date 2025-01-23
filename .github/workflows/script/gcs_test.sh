@@ -52,6 +52,9 @@ SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 
+# git clone mirror-bucket-prefix branch of solo chart
+git clone https://github.com/hashgraph/solo-charts --branch mirror-bucket-prefix
+
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 npm run solo-test -- init
@@ -63,12 +66,14 @@ npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
   --storage-type "${storageType}" --storage-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION \
   --backup-bucket "${streamBackupBucket}" \
+  --chart-dir ./solo-charts/charts \
   --google-credential gcp_service_account.json
 
 npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" \
   --storage-endpoint "https://storage.googleapis.com" \
+  --chart-dir ./solo-charts/charts \
   --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
   --storage-type "${storageType}" --storage-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION
 
