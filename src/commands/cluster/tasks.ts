@@ -341,7 +341,7 @@ export class ClusterCommandTasks {
 
         const connectionValid = await this.parent.getK8().testClusterConnection(selectedContext, selectedCluster);
         if (!connectionValid) {
-          throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext));
+          throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext, selectedCluster));
         }
         this.parent.getK8().setCurrentContext(selectedContext);
         this.parent.getConfigManager().setFlag(flags.context, selectedContext);

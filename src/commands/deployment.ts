@@ -55,6 +55,7 @@ export class DeploymentCommand extends BaseCommand {
       context: string;
       namespace: Namespace;
     }
+
     interface Context {
       config: Config;
     }

@@ -1225,8 +1225,8 @@ export class K8 {
       await this.kubeConfig.makeApiClient(k8s.CoreV1Api).listNamespace();
 
       return true;
-    } catch (error) {
-      this.logger.error('Error verifying cluster connectivity', error);
+    } catch (e) {
+      this.logger.error('Error verifying cluster connectivity', e);
       return false;
     }
   }
