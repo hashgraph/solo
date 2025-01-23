@@ -18,7 +18,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
-import {SoloError} from './errors.js';
+import {MissingArgumentError, SoloError} from './errors.js';
 import {Templates} from './templates.js';
 import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
@@ -28,6 +28,7 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
+import {Helm} from "./helm.js";
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -383,4 +384,18 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
 
     throw new SoloError(`Invalid JSON data in file: ${filePath}`);
   }
+}
+
+
+export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: string, chartReleaseName: string) {
+    if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
+    if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
+
+    if (chartDir) {
+        const chartPath = path.join(chartDir, chartReleaseName);
+        await helm.dependency('update', chartPath);
+        return chartPath;
+    }
+
+    return `${chartRepo}/${chartReleaseName}`;
 }

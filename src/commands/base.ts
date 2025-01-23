@@ -35,10 +35,6 @@ import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
 
-export interface CommandHandlers {
-  parent: BaseCommand;
-}
-
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
   protected readonly k8: K8;
@@ -71,6 +67,7 @@ export abstract class BaseCommand extends ShellRunner {
     this.remoteConfigManager = opts.remoteConfigManager;
   }
 
+  // TODO remove
   async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
@@ -204,8 +201,9 @@ export abstract class BaseCommand extends ShellRunner {
 
   abstract close(): Promise<void>;
 
+  // TODO remove this
   commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-    return async function (argv: any, commandDef: CommandHandlers) {
+    return async function (argv: any, commandDef) {
       const tasks = new Listr([...actionTasks], options);
 
       try {
@@ -246,7 +244,7 @@ export abstract class BaseCommand extends ShellRunner {
         self.logger.debug(`OK: setup directory: ${dirPath}`);
       });
     } catch (e: Error | any) {
-      this.logger.error(e);
+      self.logger.error(e);
       throw new SoloError(`failed to create directory: ${e.message}`, e);
     }
 

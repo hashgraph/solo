@@ -29,6 +29,7 @@ import type {CommandFlag} from '../types/flag_types.js';
 import type {CommandBuilder} from '../types/aliases.js';
 import type {Opts} from '../types/command_types.js';
 import type {SoloListrTask} from '../types/index.js';
+import {container} from "tsyringe-neo";
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -36,7 +37,7 @@ export class DeploymentCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.tasks = new ClusterCommandTasks(this, this.k8);
+    this.tasks = container.resolve(ClusterCommandTasks);
   }
 
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {

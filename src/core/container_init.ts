@@ -36,6 +36,10 @@ import {LocalConfig} from './config/local_config.js';
 import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import os from 'os';
 import * as version from '../../version.js';
+import {ClusterCommandHandlers} from "../commands/cluster/handlers.js";
+import {ClusterCommandTasks} from "../commands/cluster/tasks.js";
+import {NodeCommandTasks} from "../commands/node/tasks.js";
+import {NodeCommandHandlers} from "../commands/node/handlers.js";
 
 /**
  * Container class to manage the dependency injection container
@@ -110,6 +114,12 @@ export class Container {
     container.register(LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
     container.register(RemoteConfigManager, {useClass: RemoteConfigManager}, {lifecycle: Lifecycle.Singleton});
+
+    // Commands
+    container.register(ClusterCommandHandlers, {useClass: ClusterCommandHandlers}, {lifecycle: Lifecycle.Singleton});
+    container.register(ClusterCommandTasks, {useClass: ClusterCommandTasks}, {lifecycle: Lifecycle.Singleton});
+    container.register(NodeCommandHandlers, {useClass: NodeCommandHandlers}, {lifecycle: Lifecycle.Singleton});
+    container.register(NodeCommandTasks, {useClass: NodeCommandTasks}, {lifecycle: Lifecycle.Singleton});
 
     Container.isInitialized = true;
   }

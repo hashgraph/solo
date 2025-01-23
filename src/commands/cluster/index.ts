@@ -19,7 +19,6 @@ import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand} from './../base.js';
 import {type Opts} from '../../types/command_types.js';
-import {ClusterCommandTasks} from './tasks.js';
 import {ClusterCommandHandlers} from './handlers.js';
 import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
 
@@ -31,8 +30,6 @@ export class ClusterCommand extends BaseCommand {
 
   constructor(opts: Opts) {
     super(opts);
-
-    this.handlers = new ClusterCommandHandlers(this, new ClusterCommandTasks(this, this.k8), this.remoteConfigManager);
   }
 
   getCommandDefinition() {

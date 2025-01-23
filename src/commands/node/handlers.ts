@@ -46,7 +46,7 @@ import type {SoloLogger} from '../../core/logging.js';
 import type {NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
-import {type BaseCommand, type CommandHandlers} from '../base.js';
+import {type BaseCommand} from '../base.js';
 import {NodeHelper} from './helper.js';
 import type {NodeAlias, NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
@@ -55,7 +55,7 @@ import chalk from 'chalk';
 import type {ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import type {Optional} from '../../types/index.js';
 
-export class NodeCommandHandlers implements CommandHandlers {
+export class NodeCommandHandlers {
   private readonly accountManager: AccountManager;
   private readonly configManager: ConfigManager;
   private readonly platformInstaller: PlatformInstaller;
