@@ -47,7 +47,7 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
     }
   }
 
-  private async checkFlag(flag: CommandFlag, argv: AnyObject): Promise<void> {
+  private async handleFlag(flag: CommandFlag, argv: AnyObject): Promise<void> {
     const detectFlagMismatch = async () => {
       const oldValue = this.flags[flag.constName] as string;
       const newValue = this.configManager.getFlag<string>(flag);
@@ -95,7 +95,7 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
       await detectFlagMismatch();
     }
 
-    // if the value is not set and exists, override it
+    // use remote config value if no user supplied value
     else if (this.flags[flag.constName]) {
       argv[flag.constName] = this.flags[flag.constName];
       this.configManager.setFlag(flag, this.flags[flag.constName]);
