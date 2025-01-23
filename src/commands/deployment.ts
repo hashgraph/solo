@@ -21,7 +21,7 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import chalk from 'chalk';
-import {RemoteConfigTasks} from '../core/config/remote/remote_config_tasks.js';
+import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import type {Namespace} from '../core/config/remote/types.js';
 import type {ContextClusterStructure} from '../types/config_types.js';
@@ -132,22 +132,7 @@ export class DeploymentCommand extends BaseCommand {
             });
           },
         },
-        {
-          title: 'Create remoteConfig in clusters',
-          task: async (ctx, task) => {
-            const subTasks: SoloListrTask<Context>[] = [];
-
-            for (const context of Object.keys(ctx.config.contextCluster)) {
-              const cluster = ctx.config.contextCluster[context];
-              subTasks.push(RemoteConfigTasks.createRemoteConfig.bind(this)(cluster, context, ctx.config.namespace));
-            }
-
-            return task.newListr(subTasks, {
-              concurrent: false,
-              rendererOptions: {collapseSubtasks: false},
-            });
-          },
-        },
+        ListrRemoteConfig.createRemoteConfigInMultipleClusters(this),
       ],
       {
         concurrent: false,

@@ -1007,8 +1007,9 @@ export class K8 {
     maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
     delay = constants.PODS_RUNNING_DELAY,
     podItemPredicate?: (items: k8s.V1Pod) => boolean,
+    namespace?: string,
   ): Promise<k8s.V1Pod[]> {
-    const ns = this._getNamespace();
+    const ns = namespace || this._getNamespace();
     const labelSelector = labels.join(',');
 
     this.logger.info(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
@@ -1079,10 +1080,11 @@ export class K8 {
    * @param [podCount] - number of pod expected
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
+   * @param [namespace] - namespace
    */
-  async waitForPodReady(labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500) {
+  async waitForPodReady(labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500, namespace?: string) {
     try {
-      return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay);
+      return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay, namespace);
     } catch (e: Error | unknown) {
       throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e);
     }
@@ -1102,28 +1104,36 @@ export class K8 {
     podCount = 1,
     maxAttempts = 10,
     delay = 500,
+    namespace?: string,
   ) {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
 
-    return await this.waitForPods([constants.POD_PHASE_RUNNING], labels, podCount, maxAttempts, delay, pod => {
-      if (pod.status?.conditions?.length > 0) {
-        for (const cond of pod.status.conditions) {
-          for (const entry of conditionsMap.entries()) {
-            const condType = entry[0];
-            const condStatus = entry[1];
-            if (cond.type === condType && cond.status === condStatus) {
-              this.logger.info(
-                `Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`,
-              );
-              return true;
+    return await this.waitForPods(
+      [constants.POD_PHASE_RUNNING],
+      labels,
+      podCount,
+      maxAttempts,
+      delay,
+      pod => {
+        if (pod.status?.conditions?.length > 0) {
+          for (const cond of pod.status.conditions) {
+            for (const entry of conditionsMap.entries()) {
+              const condType = entry[0];
+              const condStatus = entry[1];
+              if (cond.type === condType && cond.status === condStatus) {
+                this.logger.info(
+                  `Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`,
+                );
+                return true;
+              }
             }
           }
         }
-      }
-
-      // condition not found
-      return false;
-    });
+        // condition not found
+        return false;
+      },
+      namespace,
+    );
   }
 
   /**
@@ -1507,7 +1517,7 @@ export class K8 {
 
       return pods.body.items.length > 0;
     } catch (e) {
-      this.logger.error('Failed to find cert-manager:', e);
+      this.logger.error('Failed to find minio:', e);
 
       return false;
     }
@@ -1523,7 +1533,7 @@ export class K8 {
 
       return response.body.items.length > 0;
     } catch (e) {
-      this.logger.error('Failed to find cert-manager:', e);
+      this.logger.error('Failed to find ingress controller:', e);
 
       return false;
     }
@@ -1540,7 +1550,7 @@ export class K8 {
 
       return configmaps.body.items.length > 0;
     } catch (e) {
-      this.logger.error('Failed to find cert-manager:', e);
+      this.logger.error('Failed to find remote config:', e);
 
       return false;
     }
@@ -1559,7 +1569,7 @@ export class K8 {
 
       return pods.body.items.length > 0;
     } catch (e) {
-      this.logger.error('Failed to find cert-manager:', e);
+      this.logger.error('Failed to find prometheus:', e);
 
       return false;
     }
