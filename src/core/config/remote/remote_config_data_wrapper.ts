@@ -115,10 +115,6 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
 
   //! -------- Utilities -------- //
 
-  public static compare(x: RemoteConfigDataWrapper, y: RemoteConfigDataWrapper): boolean {
-    return true; // TODO
-  }
-
   public static fromConfigmap(configManager: ConfigManager, configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
     const data = yaml.parse(configMap.data['remote-config-data']);
 
