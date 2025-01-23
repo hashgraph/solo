@@ -285,7 +285,7 @@ export class ClusterCommandTasks {
 
           if (clusters.length) {
             selectedCluster = clusters[0];
-          } else {
+          } else if (localConfig.deployments[deploymentName]) {
             selectedCluster = localConfig.deployments[deploymentName].clusters[0];
           }
         }
