@@ -42,7 +42,7 @@ async function createRemoteConfigDataWrapper() {
   const components = componentsDataWrapper;
   const lastExecutedCommand = 'lastExecutedCommand';
   const commandHistory = [];
-  const flags = await CommonFlagsDataWrapper.initialize(configManagerMock as any, {}); // TODO MOCK
+  const flags = await CommonFlagsDataWrapper.initialize(configManagerMock as any, {});
 
   const dataWrapper = new RemoteConfigDataWrapper({
     metadata,
