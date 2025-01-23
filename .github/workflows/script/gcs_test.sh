@@ -34,6 +34,8 @@ fi
 if [ -z "${GCP_SERVICE_ACCOUNT_TOKEN}" ]; then
   echo "GCP_SERVICE_ACCOUNT_TOKEN is not set. Exiting..."
   exit 1
+fi
+
 if [ -z "${PREFIX}" ]; then
   echo "PREFIX is not set"
 else
