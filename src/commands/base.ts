@@ -34,6 +34,7 @@ import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
+import {getConfig} from "../core/helpers.js";
 
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
@@ -108,71 +109,7 @@ export abstract class BaseCommand extends ShellRunner {
    * getUnusedConfigs() to get an array of unused properties.
    */
   getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
-    const configManager = this.configManager;
-
-    // build the dynamic class that will keep track of which properties are used
-    const NewConfigClass = class {
-      private usedConfigs: Map<string, number>;
-      constructor() {
-        // the map to keep track of which properties are used
-        this.usedConfigs = new Map();
-
-        // add the flags as properties to this class
-        flags?.forEach(flag => {
-          // @ts-ignore
-          this[`_${flag.constName}`] = configManager.getFlag(flag);
-          Object.defineProperty(this, flag.constName, {
-            get() {
-              this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
-              return this[`_${flag.constName}`];
-            },
-          });
-        });
-
-        // add the extra properties as properties to this class
-        extraProperties?.forEach(name => {
-          // @ts-ignore
-          this[`_${name}`] = '';
-          Object.defineProperty(this, name, {
-            get() {
-              this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
-              return this[`_${name}`];
-            },
-            set(value) {
-              this[`_${name}`] = value;
-            },
-          });
-        });
-      }
-
-      /** Get the list of unused configurations that were not accessed */
-      getUnusedConfigs() {
-        const unusedConfigs: string[] = [];
-
-        // add the flag constName to the unusedConfigs array if it was not accessed
-        flags?.forEach(flag => {
-          if (!this.usedConfigs.has(flag.constName)) {
-            unusedConfigs.push(flag.constName);
-          }
-        });
-
-        // add the extra properties to the unusedConfigs array if it was not accessed
-        extraProperties?.forEach(item => {
-          if (!this.usedConfigs.has(item)) {
-            unusedConfigs.push(item);
-          }
-        });
-        return unusedConfigs;
-      }
-    };
-
-    const newConfigInstance = new NewConfigClass();
-
-    // add the new instance to the configMaps so that it can be used to get the
-    // unused configurations using the configName from the BaseCommand
-    this._configMaps.set(configName, newConfigInstance);
-
-    return newConfigInstance;
+    return getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
   }
 
   getLeaseManager(): LeaseManager {

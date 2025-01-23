@@ -36,8 +36,7 @@ export const connectConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const setupConfigBuilder = async function (argv, ctx, task) {
-  const parent = this.parent;
-  const configManager = parent.getConfigManager();
+  const configManager = this.configManager;
   configManager.update(argv);
   flags.disablePrompts([flags.chartDirectory]);
 
@@ -60,11 +59,9 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
     soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
   } as ClusterSetupConfigClass;
 
-  parent.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
+  this.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
 
-  ctx.isChartInstalled = await parent
-    .getChartManager()
-    .isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
+  ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
 
   return ctx.config;
 };
@@ -83,16 +80,14 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
     }
   }
 
-  this.parent.getConfigManager().update(argv);
+  this.configManager.update(argv);
 
   ctx.config = {
-    clusterName: this.parent.getConfigManager().getFlag(flags.clusterName) as string,
-    clusterSetupNamespace: this.parent.getConfigManager().getFlag(flags.clusterSetupNamespace) as string,
+    clusterName: this.configManager.getFlag(flags.clusterName) as string,
+    clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
   } as ClusterResetConfigClass;
 
-  ctx.isChartInstalled = await this.parent
-    .getChartManager()
-    .isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
+  ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
   if (!ctx.isChartInstalled) {
     throw new SoloError('No chart found for the cluster');
   }

@@ -21,6 +21,7 @@ import {BaseCommand} from './../base.js';
 import {type Opts} from '../../types/command_types.js';
 import {ClusterCommandHandlers} from './handlers.js';
 import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
+import {patchInject} from "../../core/container_helper.js";
 
 /**
  * Defines the core functionalities of 'node' command
@@ -30,6 +31,9 @@ export class ClusterCommand extends BaseCommand {
 
   constructor(opts: Opts) {
     super(opts);
+
+    // TODO properly inject
+    this.handlers = patchInject(null, ClusterCommandHandlers, this.constructor.name);
   }
 
   getCommandDefinition() {

@@ -23,12 +23,12 @@ export class CommandHandler {
             try {
                 await tasks.run();
             } catch (e: Error | any) {
-                commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
+                commandDef.logger.error(`${errorString}: ${e.message}`, e);
                 throw new SoloError(`${errorString}: ${e.message}`, e);
             } finally {
                 const promises = [];
 
-                promises.push(commandDef.parent.close());
+                promises.push(commandDef.close());
 
                 if (lease) promises.push(lease.release());
                 await Promise.all(promises);

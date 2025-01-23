@@ -191,7 +191,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         {
           title: 'Upgrade solo-setup chart',
           task: async ctx => {
@@ -355,7 +355,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         {
           title: 'Destroy explorer',
           task: async ctx => {

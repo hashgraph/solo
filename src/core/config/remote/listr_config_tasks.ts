@@ -18,6 +18,7 @@ import type {ListrTask} from 'listr2';
 import type {BaseCommand} from '../../../commands/base.js';
 import {type Cluster, type Context, type Namespace} from './types.js';
 import type {SoloListrTask} from '../../../types/index.js';
+import {RemoteConfigManager} from "./remote_config_manager.js";
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -35,14 +36,14 @@ export class ListrRemoteConfig {
   /**
    * Loads the remote config from the config class and performs component validation.
    *
-   * @param command - the BaseCommand object on which an action will be performed
+   * @param remoteConfigManager
    * @param argv - used to update the last executed command and command history
    */
-  public static loadRemoteConfig(command: BaseCommand, argv: any): ListrTask<any, any, any> {
+  public static loadRemoteConfig(remoteConfigManager: RemoteConfigManager, argv: any): ListrTask<any, any, any> {
     return {
       title: 'Load remote config',
       task: async (_, task): Promise<void> => {
-        await command.getRemoteConfigManager().loadAndValidate(argv);
+        await remoteConfigManager.loadAndValidate(argv);
       },
     };
   }
