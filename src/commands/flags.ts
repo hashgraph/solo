@@ -1677,6 +1677,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly storageBucketPrefix: CommandFlag = {
+    constName: 'storageBucketPrefix',
+    name: 'storage-bucket-prefix',
+    definition: {
+      defaultValue: '',
+      describe: 'path prefix of storage bucket',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly backupBucket: CommandFlag = {
     constName: 'backupBucket',
     name: 'backup-bucket',
@@ -1792,6 +1803,7 @@ export class Flags {
     Flags.storageSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
+    Flags.storageBucketPrefix,
     Flags.backupBucket,
     Flags.googleCredential,
     Flags.tlsClusterIssuerType,

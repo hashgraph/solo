@@ -77,6 +77,7 @@ export interface NetworkDeployConfigClass {
   storageSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
+  storageBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
 }
@@ -147,6 +148,7 @@ export class NetworkCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.storageBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
     ];
@@ -253,6 +255,7 @@ export class NetworkCommand extends BaseCommand {
     storageSecrets: string;
     storageEndpoint: string;
     storageBucket: string;
+    storageBucketPrefix: string;
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
@@ -302,6 +305,10 @@ export class NetworkCommand extends BaseCommand {
     if (config.storageBucket) {
       valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+    }
+
+    if (config.storageBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.storageBucketPrefix}`;
     }
 
     if (config.backupBucket) {
@@ -387,6 +394,7 @@ export class NetworkCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.storageBucketPrefix,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
