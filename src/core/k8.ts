@@ -71,6 +71,15 @@ export class K8 implements TK8 {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
 
     this.init();
+    // const k8 : K8 (interface) = K8Factory.getK8('cluster-123');
+    // k8.pod.execInstance(....);
+    // TODO how do we want to do Pod/K8Pod? to specify the pod? team is leaning towards just providing podName as the
+    //  - first parameter versus a new instance.  Is there another good option?
+    // pod = new K8Pod(kubeConfig, kubeClient, pods, ...);
+    // private pod: Pod = new K8Pod(kubeConfig, kubeClient, pods : Pods (interface), namespaces : Namespaces (this is interface), ...);
+    // now in pod....
+    // need to list namespaces
+    // this(pod).namespaces.list();
   }
 
   // TODO make private, but first we need to require a cluster to be set and address the test cases using this
@@ -351,6 +360,12 @@ export class K8 implements TK8 {
    * @returns a promise that returns array of directory entries, custom object
    */
   async listDir(podName: PodName, containerName: string, destPath: string) {
+    // TODO ask Nathan about should podName just be the first parameter in the function versus creating an instance of K8Pod and supplying it in the constructor?
+    //  - flyweight pattern, just pass the podName: https://chatgpt.com/share/67927ea7-d614-8006-b059-4947e8ac90ca
+    // return pod(podName).listDir(containerName, destPath);
+    // below implementation moves to K8Pod class
+    // current usage would still compile.
+    // future refactor to remove this K8.listDir method and update its usage from k8.listDir to k8.pod(podName).listDir(...)
     try {
       const output = (await this.execContainer(podName, containerName, ['ls', '-la', destPath])) as string;
       if (!output) return [];

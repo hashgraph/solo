@@ -23,6 +23,8 @@ import {type Namespace} from '../config/remote/types.js';
 import {type Namespaces} from './namespaces.js';
 
 // TODO rename TK8 to K8 and K8 to K8Client
+// TODO talk about get and set implies local with no integration, versus read and update implies remote should we use
+//  - read and update or something besides get/set to avoid confusion
 export default interface TK8 {
   namespaces(): Namespaces;
 
