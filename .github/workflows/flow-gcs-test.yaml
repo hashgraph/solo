@@ -68,7 +68,6 @@ jobs:
           export BUCKET_NAME="solo-ci-test-streams"
           export PREFIX=${{ steps.jobs.outputs.job_id }}
 
-          gcloud storage buckets create gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
           gcloud storage folders create gs://${BUCKET_NAME}/${PREFIX} --project=${{ vars.GCP_S3_PROJECT_ID }}
 
           echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
@@ -122,5 +121,4 @@ jobs:
 
       - name: Delete Bucket after Test
         run: |
-          gcloud storage rm --recursive gs://${BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }} 
           gcloud storage rm --recursive gs://${BACKUP_BUCKET_NAME} --project=${{ vars.GCP_S3_PROJECT_ID }}
