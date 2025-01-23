@@ -102,7 +102,7 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
     }
   }
 
-  public static async initializeEmpty(configManager: ConfigManager, argv: AnyObject): Promise<CommonFlagsDataWrapper> {
+  public static async initialize(configManager: ConfigManager, argv: AnyObject): Promise<CommonFlagsDataWrapper> {
     const commonFlagsDataWrapper = new CommonFlagsDataWrapper(configManager, {});
     await commonFlagsDataWrapper.handleFlags(argv);
     return commonFlagsDataWrapper;

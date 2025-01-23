@@ -122,7 +122,7 @@ export class RemoteConfigManager {
       commandHistory: ['deployment create'],
       lastExecutedCommand: 'deployment create',
       components: ComponentsDataWrapper.initializeEmpty(),
-      flags: await CommonFlagsDataWrapper.initializeEmpty(this.configManager, argv),
+      flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
     await this.createConfigMap();
@@ -220,63 +220,6 @@ export class RemoteConfigManager {
     await self.save();
   }
 
-  /**
-   * Builds a listr task for loading the remote configuration.
-   *
-   * @param argv - arguments containing command input for historical reference.
-   * @returns a Listr task which loads the remote configuration.
-   */
-  public buildLoadTask(argv: {_: string[]}): SoloListrTask<EmptyContextConfig> {
-    const self = this;
-
-    return {
-      title: 'Load remote config',
-      task: async (): Promise<void> => {
-        await self.loadAndValidate(argv);
-      },
-    };
-  }
-
-  /**
-   * Builds a task for creating a new remote configuration, intended for use with Listr task management.
-   * Merges cluster mappings from the provided context into the local configuration, then creates the remote config.
-   *
-   * @returns a Listr task which creates the remote configuration.
-   */
-  public buildCreateTask(
-    cluster: Cluster,
-    context: Context,
-    namespace: Namespace,
-    argv: AnyObject,
-  ): SoloListrTask<ListrContext> {
-    const self = this;
-
-    return {
-      title: `Create remote config in cluster: ${cluster}`,
-      task: async (_, task): Promise<void> => {
-        self.k8.setCurrentContext(context);
-
-        if (!(await self.k8.hasNamespace(namespace))) {
-          await self.k8.createNamespace(namespace);
-        }
-
-        const localConfigExists = this.localConfig.configFileExists();
-        if (!localConfigExists) {
-          throw new SoloError("Local config doesn't exist");
-        }
-
-        self.unload();
-        if (await self.load()) {
-          task.title = `${task.title} - ${chalk.red('Remote config already exists')}}`;
-          throw new SoloError('Remote config already exists');
-        }
-
-        await self.create(argv);
-      },
-    };
-  }
-
-  /// ---- - not mine ---- - - -- - --
   public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace, argv: AnyObject) {
     const self = this;
     self.k8.setCurrentContext(context);
