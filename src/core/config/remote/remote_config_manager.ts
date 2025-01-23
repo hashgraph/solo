@@ -276,6 +276,29 @@ export class RemoteConfigManager {
     };
   }
 
+  /// ---- - not mine ---- - - -- - --
+  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace) {
+    const self = this;
+    self.k8.setCurrentContext(context);
+
+    if (!(await self.k8.hasNamespace(namespace))) {
+      await self.k8.createNamespace(namespace);
+    }
+
+    const localConfigExists = this.localConfig.configFileExists();
+    if (!localConfigExists) {
+      throw new SoloError("Local config doesn't exist");
+    }
+
+    self.unload();
+    if (await self.load()) {
+      self.logger.showUser(chalk.red('Remote config already exists'));
+      throw new SoloError('Remote config already exists');
+    }
+
+    await self.create();
+  }
+
   /* ---------- Utilities ---------- */
 
   /** Empties the component data inside the remote config */

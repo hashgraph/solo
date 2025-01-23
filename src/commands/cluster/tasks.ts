@@ -338,6 +338,7 @@ export class ClusterCommandTasks {
           throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext));
         }
         this.parent.getK8().setCurrentContext(selectedContext);
+        this.parent.getConfigManager().setFlag(flags.context, selectedContext);
       },
     };
   }
