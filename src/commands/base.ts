@@ -34,7 +34,7 @@ import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
-import {getConfig} from "../core/helpers.js";
+import {getConfig} from '../core/helpers.js';
 
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;

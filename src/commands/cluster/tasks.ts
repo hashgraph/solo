@@ -34,38 +34,41 @@ import type {SelectClusterContextContext} from './configs.js';
 import type {Namespace} from '../../core/config/remote/types.js';
 import {LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
-import {inject, injectable} from "tsyringe-neo";
-import {patchInject} from "../../core/container_helper.js";
-import {ConfigManager} from "../../core/config_manager.js";
-import {SoloLogger} from "../../core/logging.js";
-import {ChartManager} from "../../core/chart_manager.js";
-import {LeaseManager} from "../../core/lease/lease_manager.js";
-import {Helm} from "../../core/helm.js";
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/container_helper.js';
+import {ConfigManager} from '../../core/config_manager.js';
+import {SoloLogger} from '../../core/logging.js';
+import {ChartManager} from '../../core/chart_manager.js';
+import {LeaseManager} from '../../core/lease/lease_manager.js';
+import {Helm} from '../../core/helm.js';
 
 @injectable()
 export class ClusterCommandTasks {
-    constructor(
-        @inject(K8) private readonly k8: K8,
-        @inject(ConfigManager) private readonly configManager: ConfigManager,
-        @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
-        @inject(LocalConfig) private readonly localConfig: LocalConfig,
-        @inject(SoloLogger) private readonly logger: SoloLogger,
-        @inject(ChartManager) private readonly chartManager: ChartManager,
-        @inject(LeaseManager) private readonly leaseManager: LeaseManager,
-        @inject(Helm) private readonly helm: Helm,
-
+  constructor(
+    @inject(K8) private readonly k8: K8,
+    @inject(ConfigManager) private readonly configManager: ConfigManager,
+    @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(SoloLogger) private readonly logger: SoloLogger,
+    @inject(ChartManager) private readonly chartManager: ChartManager,
+    @inject(LeaseManager) private readonly leaseManager: LeaseManager,
+    @inject(Helm) private readonly helm: Helm,
   ) {
-        this.k8 = patchInject(k8, K8, this.constructor.name);
-        this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
-        this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
-        this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
-        this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-        this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
-        this.leaseManager = patchInject(leaseManager, LeaseManager, this.constructor.name);
-        this.helm = patchInject(helm, Helm, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, LeaseManager, this.constructor.name);
+    this.helm = patchInject(helm, Helm, this.constructor.name);
   }
 
-  public testConnectionToCluster(cluster: string, localConfig: LocalConfig, parentTask: ListrTaskWrapper<any, any, any>) {
+  public testConnectionToCluster(
+    cluster: string,
+    localConfig: LocalConfig,
+    parentTask: ListrTaskWrapper<any, any, any>,
+  ) {
     const self = this;
     return {
       title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
@@ -278,10 +281,7 @@ export class ClusterCommandTasks {
 
   /** Show list of installed chart */
   private async showInstalledChartList(clusterSetupNamespace: string) {
-    this.logger.showList(
-      'Installed Charts',
-      await this.chartManager.getInstalledCharts(clusterSetupNamespace),
-    );
+    this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
   }
 
   public selectContext(): SoloListrTask<SelectClusterContextContext> {
@@ -382,7 +382,7 @@ export class ClusterCommandTasks {
     });
   }
 
-    public getClusterInfo() {
+  public getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       try {
         const cluster = this.k8.getCurrentCluster();
@@ -394,7 +394,7 @@ export class ClusterCommandTasks {
     });
   }
 
-    public prepareChartValues(argv) {
+  public prepareChartValues(argv) {
     const self = this;
 
     return new Task(
@@ -452,7 +452,7 @@ export class ClusterCommandTasks {
     );
   }
 
-    public installClusterChart(argv) {
+  public installClusterChart(argv) {
     const self = this;
     return new Task(
       `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
@@ -463,7 +463,13 @@ export class ClusterCommandTasks {
 
         try {
           self.logger.debug(`Installing chart chartPath = ${ctx.chartPath}, version = ${version}`);
-          await self.chartManager.install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, ctx.chartPath, version, valuesArg);
+          await self.chartManager.install(
+            clusterSetupNamespace,
+            constants.SOLO_CLUSTER_SETUP_CHART,
+            ctx.chartPath,
+            version,
+            valuesArg,
+          );
         } catch (e: Error | unknown) {
           // if error, uninstall the chart and rethrow the error
           self.logger.debug(
@@ -487,14 +493,14 @@ export class ClusterCommandTasks {
     );
   }
 
-    public acquireNewLease(argv) {
+  public acquireNewLease(argv) {
     return new Task('Acquire new lease', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const lease = await this.leaseManager.create();
       return ListrLease.newAcquireLeaseTask(lease, task);
     });
   }
 
-    public uninstallClusterChart(argv) {
+  public uninstallClusterChart(argv) {
     const self = this;
 
     return new Task(

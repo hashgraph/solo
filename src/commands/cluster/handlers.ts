@@ -22,29 +22,29 @@ import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js'
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
-import {inject, injectable} from "tsyringe-neo";
-import {patchInject} from "../../core/container_helper.js";
-import {K8} from "../../core/k8.js";
-import {CommandHandler} from "../../core/command_handler.js";
-import {LocalConfig} from "../../core/config/local_config.js";
-import {ChartManager} from "../../core/chart_manager.js";
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/container_helper.js';
+import {K8} from '../../core/k8.js';
+import {CommandHandler} from '../../core/command_handler.js';
+import {LocalConfig} from '../../core/config/local_config.js';
+import {ChartManager} from '../../core/chart_manager.js';
 
 @injectable()
 export class ClusterCommandHandlers extends CommandHandler {
   constructor(
-      @inject(ClusterCommandTasks) private readonly tasks: ClusterCommandTasks,
-      @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
-      @inject(LocalConfig) private readonly localConfig: LocalConfig,
-      @inject(K8) private readonly k8: K8,
-      @inject(ChartManager) private readonly chartManager: ChartManager,
+    @inject(ClusterCommandTasks) private readonly tasks: ClusterCommandTasks,
+    @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(K8) private readonly k8: K8,
+    @inject(ChartManager) private readonly chartManager: ChartManager,
   ) {
-      super();
+    super();
 
-      this.tasks = patchInject(tasks, ClusterCommandTasks, this.constructor.name);
-      this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
-      this.k8 = patchInject(k8, K8, this.constructor.name);
-      this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
-      this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
+    this.tasks = patchInject(tasks, ClusterCommandTasks, this.constructor.name);
+    this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
+    this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
   }
 
   async connect(argv: any) {

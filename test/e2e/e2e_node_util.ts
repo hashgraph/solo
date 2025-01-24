@@ -174,7 +174,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
             expect(2);
             try {
               await expect(
-                  nodeTasks._checkNetworkNodeActiveness(
+                nodeTasks._checkNetworkNodeActiveness(
                   namespace,
                   nodeAlias,
                   {title: ''} as ListrTaskWrapper<any, any, any>,

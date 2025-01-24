@@ -50,32 +50,32 @@ import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import type {ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import type {Optional} from '../../types/index.js';
-import {inject, injectable} from "tsyringe-neo";
-import {patchInject} from "../../core/container_helper.js";
-import {CommandHandler} from "../../core/command_handler.js";
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/container_helper.js';
+import {CommandHandler} from '../../core/command_handler.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
   private _portForwards: any;
 
   constructor(
-      @inject(AccountManager) private readonly accountManager: AccountManager,
-      @inject(K8) private readonly k8: K8,
-      @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
-      @inject(LeaseManager) private readonly leaseManager: LeaseManager,
-      @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
-      @inject(NodeCommandTasks) private readonly tasks: NodeCommandTasks,
+    @inject(AccountManager) private readonly accountManager: AccountManager,
+    @inject(K8) private readonly k8: K8,
+    @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
+    @inject(LeaseManager) private readonly leaseManager: LeaseManager,
+    @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(NodeCommandTasks) private readonly tasks: NodeCommandTasks,
   ) {
-      super();
+    super();
 
-      this.accountManager = patchInject(accountManager, AccountManager, this.constructor.name);
-      this.k8 = patchInject(k8, K8, this.constructor.name);
-      this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
-      this.leaseManager = patchInject(leaseManager, LeaseManager, this.constructor.name);
-      this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
-      this.tasks = patchInject(tasks, NodeCommandTasks, this.constructor.name);
+    this.accountManager = patchInject(accountManager, AccountManager, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, LeaseManager, this.constructor.name);
+    this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
+    this.tasks = patchInject(tasks, NodeCommandTasks, this.constructor.name);
 
-      this._portForwards = [];
+    this._portForwards = [];
   }
 
   static readonly ADD_CONTEXT_FILE = 'node-add.json';

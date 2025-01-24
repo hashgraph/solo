@@ -59,7 +59,7 @@ import {
   renameAndCopyFile,
   sleep,
   splitFlagInput,
-  prepareValuesFiles
+  prepareValuesFiles,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
@@ -79,31 +79,31 @@ import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
-import {inject, injectable} from "tsyringe-neo";
-import {patchInject} from "../../core/container_helper.js";
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/container_helper.js';
 
 @injectable()
 export class NodeCommandTasks {
   constructor(
-      @inject(SoloLogger) private readonly logger: SoloLogger,
-      @inject(AccountManager) private readonly accountManager: AccountManager,
-      @inject(ConfigManager) private readonly configManager: ConfigManager,
-      @inject(K8) private readonly k8: K8,
-      @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
-      @inject(KeyManager) private readonly keyManager: KeyManager,
-      @inject(ProfileManager) private readonly profileManager: ProfileManager,
-      @inject(ChartManager) private readonly chartManager: ChartManager,
-      @inject(CertificateManager) private readonly certificateManager: CertificateManager,
+    @inject(SoloLogger) private readonly logger: SoloLogger,
+    @inject(AccountManager) private readonly accountManager: AccountManager,
+    @inject(ConfigManager) private readonly configManager: ConfigManager,
+    @inject(K8) private readonly k8: K8,
+    @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
+    @inject(KeyManager) private readonly keyManager: KeyManager,
+    @inject(ProfileManager) private readonly profileManager: ProfileManager,
+    @inject(ChartManager) private readonly chartManager: ChartManager,
+    @inject(CertificateManager) private readonly certificateManager: CertificateManager,
   ) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.accountManager = patchInject(accountManager, AccountManager, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
-      this.k8 = patchInject(k8, K8, this.constructor.name);
-      this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
-      this.keyManager = patchInject(keyManager, KeyManager, this.constructor.name);
-      this.profileManager = patchInject(profileManager, ProfileManager, this.constructor.name);
-      this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
-      this.certificateManager = patchInject(certificateManager, CertificateManager, this.constructor.name);
+    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
+    this.keyManager = patchInject(keyManager, KeyManager, this.constructor.name);
+    this.profileManager = patchInject(profileManager, ProfileManager, this.constructor.name);
+    this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
+    this.certificateManager = patchInject(certificateManager, CertificateManager, this.constructor.name);
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {

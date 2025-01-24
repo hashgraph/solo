@@ -61,7 +61,10 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
   this.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
 
-  ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
+  ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+    ctx.config.clusterSetupNamespace,
+    constants.SOLO_CLUSTER_SETUP_CHART,
+  );
 
   return ctx.config;
 };
@@ -87,7 +90,10 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
     clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
   } as ClusterResetConfigClass;
 
-  ctx.isChartInstalled = await this.chartManager.isChartInstalled(ctx.config.clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
+  ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+    ctx.config.clusterSetupNamespace,
+    constants.SOLO_CLUSTER_SETUP_CHART,
+  );
   if (!ctx.isChartInstalled) {
     throw new SoloError('No chart found for the cluster');
   }

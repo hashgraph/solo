@@ -18,7 +18,7 @@ import type {ListrTask} from 'listr2';
 import type {BaseCommand} from '../../../commands/base.js';
 import {type Cluster, type Context, type Namespace} from './types.js';
 import type {SoloListrTask} from '../../../types/index.js';
-import {RemoteConfigManager} from "./remote_config_manager.js";
+import {type RemoteConfigManager} from './remote_config_manager.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.

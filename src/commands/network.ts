@@ -22,7 +22,13 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
-import {addDebugOptions, prepareValuesFiles, resolveValidJsonFilePath, validatePath, parseNodeAliases} from '../core/helpers.js';
+import {
+  addDebugOptions,
+  prepareValuesFiles,
+  resolveValidJsonFilePath,
+  validatePath,
+  parseNodeAliases,
+} from '../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
 import {type KeyManager} from '../core/key_manager.js';

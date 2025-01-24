@@ -36,10 +36,10 @@ import {LocalConfig} from './config/local_config.js';
 import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import os from 'os';
 import * as version from '../../version.js';
-import {ClusterCommandHandlers} from "../commands/cluster/handlers.js";
-import {ClusterCommandTasks} from "../commands/cluster/tasks.js";
-import {NodeCommandTasks} from "../commands/node/tasks.js";
-import {NodeCommandHandlers} from "../commands/node/handlers.js";
+import {ClusterCommandHandlers} from '../commands/cluster/handlers.js';
+import {ClusterCommandTasks} from '../commands/cluster/tasks.js';
+import {NodeCommandTasks} from '../commands/node/tasks.js';
+import {NodeCommandHandlers} from '../commands/node/handlers.js';
 
 /**
  * Container class to manage the dependency injection container

@@ -29,7 +29,7 @@ import type {CommandFlag} from '../types/flag_types.js';
 import type {CommandBuilder} from '../types/aliases.js';
 import type {Opts} from '../types/command_types.js';
 import type {SoloListrTask} from '../types/index.js';
-import {container} from "tsyringe-neo";
+import {container} from 'tsyringe-neo';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;

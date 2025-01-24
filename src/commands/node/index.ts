@@ -22,7 +22,7 @@ import {BaseCommand} from './../base.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
 import {type Opts} from '../../types/command_types.js';
-import {patchInject} from "../../core/container_helper.js";
+import {patchInject} from '../../core/container_helper.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -54,11 +54,14 @@ export class NodeCommand extends BaseCommand {
     this.handlers = patchInject(null, NodeCommandHandlers, this.constructor.name);
   }
 
-
-close(): Promise<void> {
+  close(): Promise<void> {
     // no-op
     return Promise.resolve();
-}
+  }
+
+  getUnusedConfigs(configName: string): string[] {
+    return this.handlers.getUnusedConfigs(configName);
+  }
 
   getCommandDefinition() {
     const self = this;
