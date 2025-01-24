@@ -24,8 +24,8 @@ import * as constants from './constants.js';
 import fs from 'fs';
 import {Task} from './task.js';
 import type {CommandFlag} from '../types/flag_types.js';
-import * as helpers from './helpers.js';
 import {ConfigManager} from './config_manager.js';
+import {getConfig} from './config_builder.js';
 
 @injectable()
 export class CommandHandler {
@@ -98,7 +98,7 @@ export class CommandHandler {
 
   // Config related methods:
   getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
-    return helpers.getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
+    return getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
   }
 
   getUnusedConfigs(configName: string): string[] {

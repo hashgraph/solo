@@ -15,7 +15,6 @@
  *
  */
 
-import paths from 'path';
 import {MissingArgumentError, SoloError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
 import {type LeaseManager} from '../core/lease/lease_manager.js';
@@ -34,7 +33,7 @@ import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
-import {getConfig} from '../core/helpers.js';
+import {getConfig} from '../core/config_builder.js';
 
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
