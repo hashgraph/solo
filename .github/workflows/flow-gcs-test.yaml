@@ -70,7 +70,7 @@ jobs:
           echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
           echo "PREFIX=${PREFIX}" >> $GITHUB_ENV          
           
-          export BACKUP_BUCKET_NAME="solo-ci-backups/${{ steps.jobs.outputs.job_id }}"
+          export BACKUP_BUCKET_NAME="solo-ci-backups"
           echo "BACKUP_BUCKET_NAME=${BACKUP_BUCKET_NAME}" >> $GITHUB_ENV
 
       - name: Setup Node
@@ -109,7 +109,7 @@ jobs:
           GCS_SECRET_KEY: ${{ secrets.GCP_S3_SECRET_KEY }}
           BUCKET_NAME: ${{ env.BUCKET_NAME }}
           PREFIX: ${{ env.PREFIX }}
-          BACKUP_BUCKET_NAME: ${{ env.BACKUP_BUCKET_NAME }}
+          BACKUP_BUCKET_NAME: ${{ env.BACKUP_BUCKET_NAME }}/${{ steps.jobs.outputs.job_id }}
           STORAGE_TYPE: ${{ matrix.storageType }}
           GCP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.GCP_SERVICE_ACCOUNT_TOKEN }}
         run: |
