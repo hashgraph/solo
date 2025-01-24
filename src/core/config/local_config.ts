@@ -34,7 +34,8 @@ import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
-import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
+import type {SoloListrTask} from '../../types/index.js';
+import type {AnyObject} from '../../types/aliases.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -168,7 +169,7 @@ export class LocalConfig implements LocalConfigData {
     return {
       title: 'Prompt local configuration',
       skip: this.skipPromptTask,
-      task: async (_: any, task: SoloListrTaskWrapper<any>): Promise<void> => {
+      task: async (_, task): Promise<void> => {
         if (self.configFileExists()) {
           self.configManager.setFlag(flags.userEmailAddress, self.userEmailAddress);
         }
