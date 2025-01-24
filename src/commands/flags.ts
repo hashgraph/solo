@@ -475,7 +475,7 @@ export class Flags {
 
   static readonly nodeAliasesUnparsed: CommandFlag = {
     constName: 'nodeAliasesUnparsed',
-    name: 'node-aliases-unparsed',
+    name: 'node-aliases',
     definition: {
       describe: 'Comma separated node aliases (empty means all nodes)',
       alias: 'i',

@@ -36,6 +36,7 @@ import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
+import {type AnyObject} from '../../../types/aliases.js';
 
 interface ListrContext {
   config: {contextCluster: ContextClusterStructure};
@@ -210,9 +211,39 @@ export class RemoteConfigManager {
     await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
     const currentCommand = argv._.join(' ');
-    self.remoteConfig!.addCommandToHistory(currentCommand);
+    const commandArguments = self.stringifyArgv(argv);
+
+    self.remoteConfig!.addCommandToHistory(currentCommand + ' ' + commandArguments);
 
     await self.save();
+  }
+
+  private stringifyArgv(argv: AnyObject): string {
+    const processedFlags: string[] = [];
+
+    for (const [name, value] of Object.entries(argv)) {
+      // Remove non-flag data and boolean presence based flags that are false
+      if (name === '_' || name === '$0' || value === '' || value === false || value === undefined || value === null) {
+        continue;
+      }
+
+      // remove flags that use the default value
+      const flag = flags.allFlags.find(flag => flag.name === name);
+      if (!flag || (flag.definition.defaultValue && flag.definition.defaultValue === value)) {
+        continue;
+      }
+
+      const flagName = flag.name;
+
+      // if the flag is boolean based, render it without value, else add the value too
+      if (value === true) {
+        processedFlags.push(`--${flagName}`);
+      } else {
+        processedFlags.push(`--${flagName} ${value}`);
+      }
+    }
+
+    return processedFlags.join(' ');
   }
 
   public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace) {
