@@ -17,9 +17,9 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 import each from 'mocha-each';
+import {Flags as flags} from '../../../src/commands/flags.js';
 
 import * as helpers from '../../../src/core/helpers.js';
-import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 
 describe('Helpers', () => {
   each([
@@ -45,5 +45,23 @@ describe('Helpers', () => {
     expect(p).not.to.be.null;
     expect(p.version).not.to.be.null;
     expect(p.version).to.deep.equal(helpers.packageVersion());
+  });
+
+  it('Should parse argv to args with datamask correctly', () => {
+    const argv = {[flags.googleCredential.name]: 'VALUE'};
+    const result = helpers.stringifyArgv(argv);
+    expect(result).to.equal(`--${flags.googleCredential.name} ${flags.googleCredential.definition.dataMask}`);
+  });
+
+  it('Should parse argv to args with boolean flag correctly', () => {
+    const argv = {[flags.quiet.name]: true};
+    const result = helpers.stringifyArgv(argv);
+    expect(result).to.equal(`--${flags.quiet.name}`);
+  });
+
+  it('Should parse argv to args with flag correctly', () => {
+    const argv = {[flags.namespace.name]: 'VALUE'};
+    const result = helpers.stringifyArgv(argv);
+    expect(result).to.equal(`--${flags.namespace.name} VALUE`);
   });
 });

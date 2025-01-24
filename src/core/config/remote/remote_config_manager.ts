@@ -29,18 +29,13 @@ import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
-import {type ContextClusterStructure} from '../../../types/config_types.js';
-import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
+import type {Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
-import {type AnyObject} from '../../../types/aliases.js';
-
-interface ListrContext {
-  config: {contextCluster: ContextClusterStructure};
-}
+import {stringifyArgv} from '../../helpers.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -211,39 +206,11 @@ export class RemoteConfigManager {
     await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
     const currentCommand = argv._.join(' ');
-    const commandArguments = self.stringifyArgv(argv);
+    const commandArguments = stringifyArgv(argv);
 
     self.remoteConfig!.addCommandToHistory((currentCommand + ' ' + commandArguments).trim());
 
     await self.save();
-  }
-
-  private stringifyArgv(argv: AnyObject): string {
-    const processedFlags: string[] = [];
-
-    for (const [name, value] of Object.entries(argv)) {
-      // Remove non-flag data and boolean presence based flags that are false
-      if (name === '_' || name === '$0' || value === '' || value === false || value === undefined || value === null) {
-        continue;
-      }
-
-      // remove flags that use the default value
-      const flag = flags.allFlags.find(flag => flag.name === name);
-      if (!flag || (flag.definition.defaultValue && flag.definition.defaultValue === value)) {
-        continue;
-      }
-
-      const flagName = flag.name;
-
-      // if the flag is boolean based, render it without value, else add the value too
-      if (value === true) {
-        processedFlags.push(`--${flagName}`);
-      } else {
-        processedFlags.push(`--${flagName} ${value}`);
-      }
-    }
-
-    return processedFlags.join(' ');
   }
 
   public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace) {
