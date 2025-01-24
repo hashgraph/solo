@@ -24,6 +24,7 @@ import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
+import type {AnyObject} from '../types/aliases.js';
 
 export class Flags {
   private static async prompt(
@@ -1848,4 +1849,40 @@ export class Flags {
     requiredFlagsWithDisabledPrompt: [Flags.namespace, Flags.cacheDir, Flags.releaseTag],
     optionalFlags: [Flags.devMode, Flags.quiet],
   };
+
+  static stringifyArgv(argv: AnyObject): string {
+    const processedFlags: string[] = [];
+
+    for (const [name, value] of Object.entries(argv)) {
+      // Remove non-flag data and boolean presence based flags that are false
+      if (name === '_' || name === '$0' || value === '' || value === false || value === undefined || value === null) {
+        continue;
+      }
+
+      // remove flags that use the default value
+      const flag = Flags.allFlags.find(flag => flag.name === name);
+      if (!flag || (flag.definition.defaultValue && flag.definition.defaultValue === value)) {
+        continue;
+      }
+
+      const flagName = flag.name;
+
+      // if the flag is boolean based, render it without value
+      if (value === true) {
+        processedFlags.push(`--${flagName}`);
+      }
+
+      // if the flag's data is masked, display it without the value
+      else if (flag.definition.dataMask) {
+        processedFlags.push(`--${flagName} ${flag.definition.dataMask}`);
+      }
+
+      // else display the full flag data
+      else {
+        processedFlags.push(`--${flagName} ${value}`);
+      }
+    }
+
+    return processedFlags.join(' ');
+  }
 }

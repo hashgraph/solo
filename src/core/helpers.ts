@@ -23,12 +23,11 @@ import {Templates} from './templates.js';
 import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
-import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type CommandFlag} from '../types/flag_types.js';
-import {type SoloLogger} from './logging.js';
-import {type Duration} from './time/duration.js';
-import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
-import {Flags as flags} from '../commands/flags.js';
+import type {NodeAlias, NodeAliases} from '../types/aliases.js';
+import type {CommandFlag} from '../types/flag_types.js';
+import type {SoloLogger} from './logging.js';
+import type {Duration} from './time/duration.js';
+import type {NodeAddConfigClass} from '../commands/node/node_add_config.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -384,40 +383,4 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
 
     throw new SoloError(`Invalid JSON data in file: ${filePath}`);
   }
-}
-
-export function stringifyArgv(argv: AnyObject): string {
-  const processedFlags: string[] = [];
-
-  for (const [name, value] of Object.entries(argv)) {
-    // Remove non-flag data and boolean presence based flags that are false
-    if (name === '_' || name === '$0' || value === '' || value === false || value === undefined || value === null) {
-      continue;
-    }
-
-    // remove flags that use the default value
-    const flag = flags.allFlags.find(flag => flag.name === name);
-    if (!flag || (flag.definition.defaultValue && flag.definition.defaultValue === value)) {
-      continue;
-    }
-
-    const flagName = flag.name;
-
-    // if the flag is boolean based, render it without value
-    if (value === true) {
-      processedFlags.push(`--${flagName}`);
-    }
-
-    // if the flag's data is masked, display it without the value
-    else if (flag.definition.dataMask) {
-      processedFlags.push(`--${flagName} ${flag.definition.dataMask}`);
-    }
-
-    // else display the full flag data
-    else {
-      processedFlags.push(`--${flagName} ${value}`);
-    }
-  }
-
-  return processedFlags.join(' ');
 }

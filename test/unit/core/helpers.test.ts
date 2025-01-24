@@ -49,19 +49,19 @@ describe('Helpers', () => {
 
   it('Should parse argv to args with datamask correctly', () => {
     const argv = {[flags.googleCredential.name]: 'VALUE'};
-    const result = helpers.stringifyArgv(argv);
+    const result = flags.stringifyArgv(argv);
     expect(result).to.equal(`--${flags.googleCredential.name} ${flags.googleCredential.definition.dataMask}`);
   });
 
   it('Should parse argv to args with boolean flag correctly', () => {
     const argv = {[flags.quiet.name]: true};
-    const result = helpers.stringifyArgv(argv);
+    const result = flags.stringifyArgv(argv);
     expect(result).to.equal(`--${flags.quiet.name}`);
   });
 
   it('Should parse argv to args with flag correctly', () => {
     const argv = {[flags.namespace.name]: 'VALUE'};
-    const result = helpers.stringifyArgv(argv);
+    const result = flags.stringifyArgv(argv);
     expect(result).to.equal(`--${flags.namespace.name} VALUE`);
   });
 });

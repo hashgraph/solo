@@ -35,7 +35,6 @@ import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
-import {stringifyArgv} from '../../helpers.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -206,7 +205,7 @@ export class RemoteConfigManager {
     await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
     const currentCommand = argv._.join(' ');
-    const commandArguments = stringifyArgv(argv);
+    const commandArguments = flags.stringifyArgv(argv);
 
     self.remoteConfig!.addCommandToHistory((currentCommand + ' ' + commandArguments).trim());
 
