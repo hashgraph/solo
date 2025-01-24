@@ -213,7 +213,7 @@ export class RemoteConfigManager {
     const currentCommand = argv._.join(' ');
     const commandArguments = self.stringifyArgv(argv);
 
-    self.remoteConfig!.addCommandToHistory(currentCommand + ' ' + commandArguments);
+    self.remoteConfig!.addCommandToHistory((currentCommand + ' ' + commandArguments).trim());
 
     await self.save();
   }
