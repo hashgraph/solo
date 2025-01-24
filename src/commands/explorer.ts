@@ -29,6 +29,7 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import type {Namespace} from '../core/config/remote/types.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
+import {prepareValuesFiles} from "../core/helpers.js";
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -91,11 +92,11 @@ export class ExplorerCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName);
     if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile);
+      valuesArg += prepareValuesFiles(profileValuesFile);
     }
 
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
 
     valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
@@ -150,7 +151,7 @@ export class ExplorerCommand extends BaseCommand {
   async prepareValuesArg(config: ExplorerDeployConfigClass) {
     let valuesArg = '';
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
     return valuesArg;
   }
@@ -247,7 +248,7 @@ export class ExplorerCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            let exploreValuesArg = self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+            let exploreValuesArg = prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
             exploreValuesArg += await self.prepareHederaExplorerValuesArg(config);
 
             await self.chartManager.install(

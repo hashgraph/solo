@@ -14,14 +14,14 @@
  * limitations under the License.
  *
  */
-import {type AccountManager} from '../../core/account_manager.js';
-import {type ConfigManager} from '../../core/config_manager.js';
-import {type KeyManager} from '../../core/key_manager.js';
-import {type ProfileManager} from '../../core/profile_manager.js';
-import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8} from '../../core/k8.js';
-import {type ChartManager} from '../../core/chart_manager.js';
-import {type CertificateManager} from '../../core/certificate_manager.js';
+import {AccountManager} from '../../core/account_manager.js';
+import {ConfigManager} from '../../core/config_manager.js';
+import {KeyManager} from '../../core/key_manager.js';
+import {ProfileManager} from '../../core/profile_manager.js';
+import {PlatformInstaller} from '../../core/platform_installer.js';
+import {K8} from '../../core/k8.js';
+import {ChartManager} from '../../core/chart_manager.js';
+import {CertificateManager} from '../../core/certificate_manager.js';
 import {Zippy} from '../../core/zippy.js';
 import * as constants from '../../core/constants.js';
 import {
@@ -59,10 +59,11 @@ import {
   renameAndCopyFile,
   sleep,
   splitFlagInput,
+  prepareValuesFiles
 } from '../../core/helpers.js';
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
-import {type SoloLogger} from '../../core/logging.js';
+import {SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
 import {
   type ConfigBuilder,
@@ -76,61 +77,33 @@ import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClas
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
-import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
+import {inject, injectable} from "tsyringe-neo";
+import {patchInject} from "../../core/container_helper.js";
 
+@injectable()
 export class NodeCommandTasks {
-  private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
-  private readonly keyManager: KeyManager;
-  private readonly profileManager: ProfileManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly logger: SoloLogger;
-  private readonly k8: K8;
-  private readonly parent: BaseCommand;
-  private readonly chartManager: ChartManager;
-  private readonly certificateManager: CertificateManager;
-
-  private readonly prepareValuesFiles: any;
-
-  constructor(opts: {
-    logger: SoloLogger;
-    accountManager: AccountManager;
-    configManager: ConfigManager;
-    k8: K8;
-    platformInstaller: PlatformInstaller;
-    keyManager: KeyManager;
-    profileManager: ProfileManager;
-    chartManager: ChartManager;
-    certificateManager: CertificateManager;
-    parent: BaseCommand;
-  }) {
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.profileManager)
-      throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
-    if (!opts || !opts.certificateManager)
-      throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
-
-    this.accountManager = opts.accountManager;
-    this.configManager = opts.configManager;
-    this.logger = opts.logger;
-    this.k8 = opts.k8;
-
-    this.platformInstaller = opts.platformInstaller;
-    this.profileManager = opts.profileManager;
-    this.keyManager = opts.keyManager;
-    this.chartManager = opts.chartManager;
-    this.certificateManager = opts.certificateManager;
-    this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent);
+  constructor(
+      @inject(SoloLogger) private readonly logger: SoloLogger,
+      @inject(AccountManager) private readonly accountManager: AccountManager,
+      @inject(ConfigManager) private readonly configManager: ConfigManager,
+      @inject(K8) private readonly k8: K8,
+      @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
+      @inject(KeyManager) private readonly keyManager: KeyManager,
+      @inject(ProfileManager) private readonly profileManager: ProfileManager,
+      @inject(ChartManager) private readonly chartManager: ChartManager,
+      @inject(CertificateManager) private readonly certificateManager: CertificateManager,
+  ) {
+    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.accountManager = patchInject(accountManager, AccountManager, this.constructor.name);
+    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+      this.k8 = patchInject(k8, K8, this.constructor.name);
+      this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
+      this.keyManager = patchInject(keyManager, KeyManager, this.constructor.name);
+      this.profileManager = patchInject(profileManager, ProfileManager, this.constructor.name);
+      this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
+      this.certificateManager = patchInject(certificateManager, CertificateManager, this.constructor.name);
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {
@@ -1516,7 +1489,7 @@ export class NodeCommandTasks {
           path.join(config.stagingDir, 'templates', 'application.properties'),
         );
         if (profileValuesFile) {
-          valuesArg += self.prepareValuesFiles(profileValuesFile);
+          valuesArg += prepareValuesFiles(profileValuesFile);
         }
 
         valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);

@@ -30,6 +30,7 @@ import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 import {Helm} from "./helm.js";
 import {ConfigManager} from "./config_manager.js";
+import paths from "path";
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -470,4 +471,17 @@ export function getConfig(configManager: ConfigManager, configMaps: Map<string, 
     configMaps.set(configName, newConfigInstance);
 
     return newConfigInstance;
+}
+
+export function prepareValuesFiles(valuesFile: string) {
+    let valuesArg = '';
+    if (valuesFile) {
+        const valuesFiles = valuesFile.split(',');
+        valuesFiles.forEach(vf => {
+            const vfp = paths.resolve(vf);
+            valuesArg += ` --values ${vfp}`;
+        });
+    }
+
+    return valuesArg;
 }

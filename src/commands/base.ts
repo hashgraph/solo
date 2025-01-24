@@ -82,19 +82,6 @@ export abstract class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`;
   }
 
-  prepareValuesFiles(valuesFile: string) {
-    let valuesArg = '';
-    if (valuesFile) {
-      const valuesFiles = valuesFile.split(',');
-      valuesFiles.forEach(vf => {
-        const vfp = paths.resolve(vf);
-        valuesArg += ` --values ${vfp}`;
-      });
-    }
-
-    return valuesArg;
-  }
-
   getConfigManager(): ConfigManager {
     return this.configManager;
   }

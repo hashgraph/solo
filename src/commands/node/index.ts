@@ -19,10 +19,10 @@ import {IllegalArgumentError} from '../../core/errors.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand} from './../base.js';
-import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
 import {type Opts} from '../../types/command_types.js';
+import {patchInject} from "../../core/container_helper.js";
 
 /**
  * Defines the core functionalities of 'node' command
@@ -30,9 +30,7 @@ import {type Opts} from '../../types/command_types.js';
 export class NodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
 
-  public readonly tasks: NodeCommandTasks;
   public readonly handlers: NodeCommandHandlers;
-  public _portForwards: any;
 
   constructor(opts: Opts) {
     super(opts);
@@ -51,49 +49,16 @@ export class NodeCommand extends BaseCommand {
       throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
 
     this.accountManager = opts.accountManager;
-    this._portForwards = [];
 
-    this.tasks = new NodeCommandTasks({
-      accountManager: opts.accountManager,
-      configManager: opts.configManager,
-      logger: opts.logger,
-      platformInstaller: opts.platformInstaller,
-      profileManager: opts.profileManager,
-      k8: opts.k8,
-      keyManager: opts.keyManager,
-      chartManager: opts.chartManager,
-      certificateManager: opts.certificateManager,
-      parent: this,
-    });
-
-    this.handlers = new NodeCommandHandlers({
-      accountManager: opts.accountManager,
-      configManager: opts.configManager,
-      platformInstaller: opts.platformInstaller,
-      logger: opts.logger,
-      k8: opts.k8,
-      tasks: this.tasks,
-      parent: this,
-      leaseManager: opts.leaseManager,
-      remoteConfigManager: opts.remoteConfigManager,
-    });
+    // TODO properly inject
+    this.handlers = patchInject(null, NodeCommandHandlers, this.constructor.name);
   }
 
-  /**
-   * stops and closes the port forwards
-   * - calls the accountManager.close()
-   * - for all portForwards, calls k8.stopPortForward(srv)
-   */
-  async close() {
-    await this.accountManager.close();
-    if (this._portForwards) {
-      for (const srv of this._portForwards) {
-        await this.k8.stopPortForward(srv);
-      }
-    }
 
-    this._portForwards = [];
-  }
+close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
+}
 
   getCommandDefinition() {
     const self = this;

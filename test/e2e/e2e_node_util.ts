@@ -34,6 +34,7 @@ import type {ListrTaskWrapper} from 'listr2';
 import {ConfigManager} from '../../src/core/config_manager.js';
 import {type K8} from '../../src/core/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
+import {NodeCommandTasks} from '../../src/commands/node/tasks.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {StatusCodes} from 'http-status-codes';
 import {container} from 'tsyringe-neo';
@@ -168,11 +169,12 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         }
 
         function nodeShouldNotBeActive(nodeCmd: NodeCommand, nodeAlias: NodeAlias) {
+          const nodeTasks = container.resolve(NodeCommandTasks);
           it(`${nodeAlias} should not be ACTIVE`, async () => {
             expect(2);
             try {
               await expect(
-                nodeCmd.tasks._checkNetworkNodeActiveness(
+                  nodeTasks._checkNetworkNodeActiveness(
                   namespace,
                   nodeAlias,
                   {title: ''} as ListrTaskWrapper<any, any, any>,

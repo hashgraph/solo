@@ -7,13 +7,20 @@ import {Lease} from "./lease/lease.js";
 import * as constants from "./constants.js";
 import fs from "fs";
 import {Task} from "./task.js";
+import type {CommandFlag} from "../types/flag_types.js";
+import * as helpers from "./helpers.js";
+import {ConfigManager} from "./config_manager.js";
 
 @injectable()
 export class CommandHandler {
+    protected readonly _configMaps = new Map<string, any>();
+
     constructor(
         @inject(SoloLogger) public readonly logger?: SoloLogger,
+        @inject(ConfigManager) private readonly configManager?: ConfigManager,
     ) {
         this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+        this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
     }
 
     commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
@@ -28,7 +35,9 @@ export class CommandHandler {
             } finally {
                 const promises = [];
 
-                promises.push(commandDef.close());
+                if(commandDef.accountManager) {
+                    promises.push(commandDef.accountManager.close());
+                }
 
                 if (lease) promises.push(lease.release());
                 await Promise.all(promises);
@@ -70,5 +79,14 @@ export class CommandHandler {
         return new Task('Setup home directory', async () => {
             this.setupHomeDirectory();
         });
+    }
+
+    // Config related methods:
+    getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
+        return helpers.getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
+    }
+
+    getUnusedConfigs(configName: string): string[] {
+        return this._configMaps.get(configName).getUnusedConfigs();
     }
 }

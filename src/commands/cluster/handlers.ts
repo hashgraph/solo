@@ -27,20 +27,15 @@ import {patchInject} from "../../core/container_helper.js";
 import {K8} from "../../core/k8.js";
 import {CommandHandler} from "../../core/command_handler.js";
 import {LocalConfig} from "../../core/config/local_config.js";
-import type {CommandFlag} from "../../types/flag_types.js";
-import {ConfigManager} from "../../core/config_manager.js";
 import {ChartManager} from "../../core/chart_manager.js";
 
 @injectable()
 export class ClusterCommandHandlers extends CommandHandler {
-  protected readonly _configMaps = new Map<string, any>();
-
   constructor(
       @inject(ClusterCommandTasks) private readonly tasks: ClusterCommandTasks,
       @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
       @inject(LocalConfig) private readonly localConfig: LocalConfig,
       @inject(K8) private readonly k8: K8,
-      @inject(ConfigManager) private readonly configManager: ConfigManager,
       @inject(ChartManager) private readonly chartManager: ChartManager,
   ) {
       super();
@@ -49,7 +44,6 @@ export class ClusterCommandHandlers extends CommandHandler {
       this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
       this.k8 = patchInject(k8, K8, this.constructor.name);
       this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
-      this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
       this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
   }
 
@@ -162,18 +156,4 @@ export class ClusterCommandHandlers extends CommandHandler {
     }
     return true;
   }
-
-    close(): Promise<void> {
-        // no-op
-        return Promise.resolve();
-    }
-
-    // Config related methods:
-    getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
-        return helpers.getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
-    }
-
-    getUnusedConfigs(configName: string): string[] {
-        return this._configMaps.get(configName).getUnusedConfigs();
-    }
 }

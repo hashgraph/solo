@@ -84,7 +84,7 @@ export class RelayCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesForRpcRelayChart(profileName);
     if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile);
+      valuesArg += helpers.prepareValuesFiles(profileValuesFile);
     }
 
     valuesArg += ` --set config.MIRROR_NODE_URL=http://${constants.MIRROR_NODE_RELEASE_NAME}-rest`;
@@ -135,7 +135,7 @@ export class RelayCommand extends BaseCommand {
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`;
 
     if (valuesFile) {
-      valuesArg += this.prepareValuesFiles(valuesFile);
+      valuesArg += helpers.prepareValuesFiles(valuesFile);
     }
 
     return valuesArg;
