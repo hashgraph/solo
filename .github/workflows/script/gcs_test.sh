@@ -98,4 +98,4 @@ if grep -q \""error\"" backup-uploader.log; then
   exit 1
 fi
 
-npm run solo-test -- network destroy stop -i node1 -n "${SOLO_NAMESPACE}"
+npm run solo-test -- network destroy -n "${SOLO_NAMESPACE}"
