@@ -173,6 +173,8 @@ export const PROFILE_LOCAL = 'local';
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE];
 export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custom-spec.yaml');
 
+export const STANDARD_DATAMASK = '***';
+
 // ------ Hedera SDK Related ------
 export const NODE_CLIENT_MAX_ATTEMPTS = +process.env.NODE_CLIENT_MAX_ATTEMPTS || 600;
 export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1_000;

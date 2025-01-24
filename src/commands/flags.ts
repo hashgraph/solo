@@ -621,6 +621,7 @@ export class Flags {
       describe: 'Operator Key',
       defaultValue: undefined,
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptOperatorKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -641,6 +642,7 @@ export class Flags {
       describe: 'Show private key information',
       defaultValue: false,
       type: 'boolean',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -989,6 +991,7 @@ export class Flags {
       describe: 'path and file name of the private key for signing gossip in PEM key format to be used',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1011,6 +1014,7 @@ export class Flags {
       describe: 'path and file name of the private TLS key to be used',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1054,6 +1058,7 @@ export class Flags {
       describe: 'ED25519 private key for the Hedera account',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1085,6 +1090,7 @@ export class Flags {
       describe: 'ECDSA private key for the Hedera account',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1326,6 +1332,7 @@ export class Flags {
       describe: 'Admin key',
       defaultValue: constants.GENESIS_KEY,
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1528,6 +1535,7 @@ export class Flags {
         'with multiple nodes comma seperated)',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptGrpcTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1551,6 +1559,7 @@ export class Flags {
         'with multiple nodes comma seperated)',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1640,6 +1649,7 @@ export class Flags {
       defaultValue: '',
       describe: 'storage access key',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1651,6 +1661,7 @@ export class Flags {
       defaultValue: '',
       describe: 'storage secret key',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1662,6 +1673,7 @@ export class Flags {
       defaultValue: '',
       describe: 'storage endpoint URL',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1673,6 +1685,7 @@ export class Flags {
       defaultValue: '',
       describe: 'name of storage bucket',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1684,6 +1697,7 @@ export class Flags {
       defaultValue: '',
       describe: 'name of bucket for backing up state files',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1695,6 +1709,7 @@ export class Flags {
       defaultValue: '',
       describe: 'path of google credential file in json format',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
