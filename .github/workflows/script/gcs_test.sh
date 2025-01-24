@@ -97,3 +97,5 @@ if grep -q \""error\"" backup-uploader.log; then
   echo "Backup uploader logs contain error message"
   exit 1
 fi
+
+npm run solo-test -- network destroy stop -i node1 -n "${SOLO_NAMESPACE}"
