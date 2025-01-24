@@ -22,8 +22,7 @@ import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import type {IP, NodeAlias, NodeId, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
-import {type ContextClusterStructure} from '../types/config_types.js';
-import type {Cluster, Context, Namespace} from './config/remote/types.js';
+import type {Namespace} from './config/remote/types.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 
 export class Templates {
@@ -226,35 +225,6 @@ export class Templates {
       case GrpcProxyTlsEnums.GRPC_WEB:
         return {'envoy-proxy-secret': nodeAlias};
     }
-  }
-
-  /**
-   * Parsed and validates the unparsed value of flag clusterMappings
-   *
-   * @param unparsed - value of flag clusterMappings
-   */
-  public static parseContextCluster(unparsed: string): ContextClusterStructure {
-    const mapping = {};
-    const errorMessage =
-      'Invalid context in context-cluster, expected structure where context' +
-      ' is key = value is cluster and comma delimited if more than one, ' +
-      '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)';
-
-    unparsed.split(',').forEach(data => {
-      const [context, cluster] = data.split('=') as [Context, Cluster];
-
-      if (!context || typeof context !== 'string') {
-        throw new SoloError(errorMessage, null, {data});
-      }
-
-      if (!cluster || typeof cluster !== 'string') {
-        throw new SoloError(errorMessage, null, {data});
-      }
-
-      mapping[context] = cluster;
-    });
-
-    return mapping;
   }
 
   public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {
