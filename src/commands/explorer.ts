@@ -110,7 +110,7 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ` --set ingress.className=${config.namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set ingressClassName=${config.namespace}-hedera-explorer-ingress-class`;
     }
-
+    valuesArg += ` --set fullnameOverride=${constants.HEDERA_EXPLORER_RELEASE_NAME}`;
     valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
     return valuesArg;
   }
