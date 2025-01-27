@@ -140,7 +140,8 @@ export function main(argv: any) {
         (command === 'cluster' && subCommand === 'connect') ||
         (command === 'cluster' && subCommand === 'info') ||
         (command === 'cluster' && subCommand === 'list') ||
-        (command === 'deployment' && subCommand === 'create');
+        (command === 'deployment' && subCommand === 'create') ||
+        (command === 'deployment' && subCommand === 'list');
 
       if (!skip) {
         await remoteConfigManager.loadAndValidate(argv);
