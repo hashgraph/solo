@@ -1351,6 +1351,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly adminPublicKeys: CommandFlag = {
+    constName: 'adminPublicKeys',
+    name: 'admin-public-keys',
+    definition: {
+      describe: 'Comma separated list of DER encoded ED25519 public keys',
+      defaultValue: constants.GENESIS_KEY,
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly quiet: CommandFlag = {
     constName: 'quiet',
     name: 'quiet-mode',
@@ -1734,6 +1745,7 @@ export class Flags {
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
+    Flags.adminPublicKeys,
     Flags.amount,
     Flags.apiPermissionProperties,
     Flags.app,
