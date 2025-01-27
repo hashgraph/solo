@@ -31,4 +31,5 @@ export interface Definition {
   alias?: string;
   type?: string;
   disablePrompt?: boolean;
+  dataMask?: string;
 }
