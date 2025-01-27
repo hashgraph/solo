@@ -35,6 +35,11 @@ import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
+import {type AnyObject} from '../../../types/aliases.js';
+
+interface ListrContext {
+  config: object;
+}
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -184,7 +189,7 @@ export class RemoteConfigManager {
    *
    * @param argv - arguments containing command input for historical reference.
    */
-  public async loadAndValidate(argv: {_: string[]}) {
+  public async loadAndValidate(argv: {_: string[]} & AnyObject) {
     const self = this;
     try {
       self.setDefaultNamespaceIfNotSet();
