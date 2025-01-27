@@ -14,10 +14,11 @@
  * limitations under the License.
  *
  */
-import type {ListrTask} from 'listr2';
+import chalk from 'chalk';
 import type {BaseCommand} from '../../../commands/base.js';
-import {type Cluster, type Context, type Namespace} from './types.js';
+import type {Cluster, Context, Namespace} from './types.js';
 import type {SoloListrTask} from '../../../types/index.js';
+import type {AnyObject} from '../../../types/aliases.js';
 import {type RemoteConfigManager} from './remote_config_manager.js';
 
 /**
@@ -39,10 +40,10 @@ export class ListrRemoteConfig {
    * @param remoteConfigManager
    * @param argv - used to update the last executed command and command history
    */
-  public static loadRemoteConfig(remoteConfigManager: RemoteConfigManager, argv: any): ListrTask<any, any, any> {
+  public static loadRemoteConfig(remoteConfigManager: RemoteConfigManager, argv: {_: string[]} & AnyObject): SoloListrTask<any> {
     return {
       title: 'Load remote config',
-      task: async (_, task): Promise<void> => {
+      task: async (): Promise<void> => {
         await remoteConfigManager.loadAndValidate(argv);
       },
     };
@@ -60,10 +61,10 @@ export class ListrRemoteConfig {
     cluster: Cluster,
     context: Context,
     namespace: Namespace,
-  ): ListrTask<any, any, any> {
+  ): SoloListrTask<any> {
     return {
-      title: `Create remote config in cluster: ${cluster}`,
-      task: async (_, task): Promise<void> => {
+      title: `Create remote config in cluster: ${chalk.cyan(cluster)}`,
+      task: async (): Promise<void> => {
         await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace);
       },
     };
@@ -74,14 +75,16 @@ export class ListrRemoteConfig {
    *
    * @param command - the BaseCommand object on which an action will be performed
    */
-  public static createRemoteConfigInMultipleClusters(command: BaseCommand): ListrTask<any, any, any> {
+  public static createRemoteConfigInMultipleClusters(command: BaseCommand): SoloListrTask<any> {
     return {
       title: 'Create remoteConfig in clusters',
       task: async (ctx, task) => {
         const subTasks: SoloListrTask<Context>[] = [];
 
-        for (const context of Object.keys(ctx.config.contextCluster)) {
-          const cluster = ctx.config.contextCluster[context];
+        for (const cluster of command.localConfig.deployments[ctx.config.namespace].clusters) {
+          const context = command.localConfig.clusterContextMapping?.[cluster];
+          if (!context) continue;
+
           subTasks.push(ListrRemoteConfig.createRemoteConfig(command, cluster, context, ctx.config.namespace));
         }
 

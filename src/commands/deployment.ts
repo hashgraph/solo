@@ -19,16 +19,14 @@ import {SoloError} from '../core/errors.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
-import {Templates} from '../core/templates.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import type {Namespace} from '../core/config/remote/types.js';
-import type {ContextClusterStructure} from '../types/config_types.js';
 import type {CommandFlag} from '../types/flag_types.js';
 import type {CommandBuilder} from '../types/aliases.js';
-import type {Opts} from '../types/command_types.js';
 import type {SoloListrTask} from '../types/index.js';
+import type {Opts} from '../types/command_types.js';
 import {container} from 'tsyringe-neo';
 
 export class DeploymentCommand extends BaseCommand {
@@ -45,9 +43,9 @@ export class DeploymentCommand extends BaseCommand {
       flags.quiet,
       flags.context,
       flags.namespace,
+      flags.clusterName,
       flags.userEmailAddress,
       flags.deploymentClusters,
-      flags.contextClusterUnparsed,
     ];
   }
 
@@ -57,9 +55,8 @@ export class DeploymentCommand extends BaseCommand {
     interface Config {
       context: string;
       namespace: Namespace;
-      contextClusterUnparsed: string;
-      contextCluster: ContextClusterStructure;
     }
+
     interface Context {
       config: Config;
     }
@@ -72,18 +69,11 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [
-              flags.contextClusterUnparsed,
-              flags.namespace,
-              flags.deploymentClusters,
-            ]);
+            await self.configManager.executePrompt(task, [flags.namespace]);
 
             ctx.config = {
-              contextClusterUnparsed: self.configManager.getFlag<string>(flags.contextClusterUnparsed),
               namespace: self.configManager.getFlag<Namespace>(flags.namespace),
             } as Config;
-
-            ctx.config.contextCluster = Templates.parseContextCluster(ctx.config.contextClusterUnparsed);
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
           },
@@ -113,13 +103,16 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             const subTasks: SoloListrTask<Context>[] = [];
 
-            for (const context of Object.keys(ctx.config.contextCluster)) {
-              const cluster = ctx.config.contextCluster[context];
+            for (const cluster of self.localConfig.deployments[ctx.config.namespace].clusters) {
+              const context = self.localConfig.clusterContextMapping?.[cluster];
+              if (!context) continue;
+
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
                 task: async (_, task) => {
                   if (!(await self.k8.testClusterConnection(context, cluster))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
+
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
                   }
                 },
