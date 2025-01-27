@@ -47,7 +47,7 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly depManager: DependencyManager;
   protected readonly leaseManager: LeaseManager;
   protected readonly _configMaps = new Map<string, any>();
-  protected readonly localConfig: LocalConfig;
+  public readonly localConfig: LocalConfig;
   protected readonly remoteConfigManager: RemoteConfigManager;
 
   constructor(opts: Opts) {

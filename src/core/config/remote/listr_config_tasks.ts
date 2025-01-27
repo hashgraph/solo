@@ -14,6 +14,7 @@
  * limitations under the License.
  *
  */
+import chalk from 'chalk';
 import type {BaseCommand} from '../../../commands/base.js';
 import type {Cluster, Context, Namespace} from './types.js';
 import type {SoloListrTask} from '../../../types/index.js';
@@ -38,7 +39,7 @@ export class ListrRemoteConfig {
    * @param command - the BaseCommand object on which an action will be performed
    * @param argv - used to update the last executed command and command history
    */
-  public static loadRemoteConfig(command: BaseCommand, argv: any): SoloListrTask<any> {
+  public static loadRemoteConfig(command: BaseCommand, argv: {_: string[]} & AnyObject): SoloListrTask<any> {
     return {
       title: 'Load remote config',
       task: async (): Promise<void> => {
@@ -58,7 +59,7 @@ export class ListrRemoteConfig {
     argv: AnyObject,
   ): SoloListrTask<any> {
     return {
-      title: `Create remote config in cluster: ${cluster}`,
+      title: `Create remote config in cluster: ${chalk.cyan(cluster)}`,
       task: async (): Promise<void> => {
         await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace, argv);
       },
@@ -77,8 +78,10 @@ export class ListrRemoteConfig {
       task: async (ctx, task) => {
         const subTasks: SoloListrTask<Context>[] = [];
 
-        for (const context of Object.keys(ctx.config.contextCluster)) {
-          const cluster = ctx.config.contextCluster[context];
+        for (const cluster of command.localConfig.deployments[ctx.config.namespace].clusters) {
+          const context = command.localConfig.clusterContextMapping?.[cluster];
+          if (!context) continue;
+
           subTasks.push(ListrRemoteConfig.createRemoteConfig(command, cluster, context, ctx.config.namespace, argv));
         }
 
