@@ -248,7 +248,7 @@ Kubernetes Cluster	: kind-solo-e2e
       --debug-node-alias           Enable default jvm debug port (5005) for the given node id                   [string]
       --log4j2-xml                 log4j2.xml file for node                                                     [string]
   -n, --namespace                  Namespace                                                                    [string]
-  -i, --node-aliases-unparsed      Comma separated node aliases (empty means all nodes)                         [string]
+  -i, --node-aliases      Comma separated node aliases (empty means all nodes)                         [string]
       --pvcs                       Enable persistent volume claims to store data outside the pod, required for node add
                                                                                                                [boolean]
       --profile-file               Resource profile definition (e.g. custom-spec.yaml)                          [string]
@@ -297,7 +297,7 @@ Kubernetes Cluster	: kind-solo-e2e
       --debug-node-alias           Enable default jvm debug port (5005) for the given node id                   [string]
       --log4j2-xml                 log4j2.xml file for node                                                     [string]
   -n, --namespace                  Namespace                                                                    [string]
-  -i, --node-aliases-unparsed      Comma separated node aliases (empty means all nodes)                         [string]
+  -i, --node-aliases      Comma separated node aliases (empty means all nodes)                         [string]
       --pvcs                       Enable persistent volume claims to store data outside the pod, required for node add
                                                                                                                [boolean]
       --profile-file               Resource profile definition (e.g. custom-spec.yaml)                          [string]
@@ -399,7 +399,7 @@ solo node command is used to manage hedera network nodes, it has the following s
   -l, --ledger-id              Ledger ID (a.k.a. Chain ID)                                                      [string]
   -d, --chart-dir              Local chart directory path (e.g. ~/solo-charts/charts                            [string]
   -n, --namespace              Namespace                                                                        [string]
-  -i, --node-aliases-unparsed  Comma separated node aliases (empty means all nodes)                             [string]
+  -i, --node-aliases  Comma separated node aliases (empty means all nodes)                             [string]
       --operator-id            Operator ID                                                                      [string]
       --operator-key           Operator Key                                                                     [string]
       --profile-file           Resource profile definition (e.g. custom-spec.yaml)                              [string]
@@ -417,5 +417,5 @@ solo node command is used to manage hedera network nodes, it has the following s
 ```text
   -d, --chart-dir              Local chart directory path (e.g. ~/solo-charts/charts                            [string]
   -n, --namespace              Namespace                                                                        [string]
-  -i, --node-aliases-unparsed  Comma separated node aliases (empty means all nodes)                             [string]                                                                                  [string]
+  -i, --node-aliases  Comma separated node aliases (empty means all nodes)                             [string]                                                                                  [string]
 ```

@@ -282,6 +282,12 @@ export class ClusterCommandTasks {
         // If one or more contexts are provided, use the first one
         if (contexts.length) {
           selectedContext = contexts[0];
+
+          if (clusters.length) {
+            selectedCluster = clusters[0];
+          } else if (localConfig.deployments[deploymentName]) {
+            selectedCluster = localConfig.deployments[deploymentName].clusters[0];
+          }
         }
 
         // If one or more clusters are provided, use the first one to determine the context
@@ -335,7 +341,7 @@ export class ClusterCommandTasks {
 
         const connectionValid = await this.parent.getK8().testClusterConnection(selectedContext, selectedCluster);
         if (!connectionValid) {
-          throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext));
+          throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext, selectedCluster));
         }
         this.parent.getK8().setCurrentContext(selectedContext);
         this.parent.getConfigManager().setFlag(flags.context, selectedContext);

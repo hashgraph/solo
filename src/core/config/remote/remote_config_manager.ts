@@ -29,17 +29,14 @@ import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
 import type {DeploymentStructure} from '../local_config_data.js';
-import {type ContextClusterStructure} from '../../../types/config_types.js';
-import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
+import type {Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
-
-interface ListrContext {
-  config: {contextCluster: ContextClusterStructure};
-}
+import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
+import {type AnyObject} from '../../../types/aliases.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -105,7 +102,7 @@ export class RemoteConfigManager {
    * Gathers data from the local configuration and constructs a new ConfigMap
    * entry in the cluster with initial command history and metadata.
    */
-  private async create(): Promise<void> {
+  private async create(argv: AnyObject): Promise<void> {
     const clusters: Record<Cluster, Namespace> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
@@ -117,9 +114,10 @@ export class RemoteConfigManager {
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(this.getNamespace(), new Date(), this.localConfig.userEmailAddress),
       clusters,
-      components: ComponentsDataWrapper.initializeEmpty(),
-      lastExecutedCommand: 'deployment create',
       commandHistory: ['deployment create'],
+      lastExecutedCommand: 'deployment create',
+      components: ComponentsDataWrapper.initializeEmpty(),
+      flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
     await this.createConfigMap();
@@ -147,7 +145,7 @@ export class RemoteConfigManager {
     const configMap = await this.getConfigMap();
     if (!configMap) return false;
 
-    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap);
+    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
 
     return true;
   }
@@ -160,7 +158,7 @@ export class RemoteConfigManager {
     await this.load();
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
-    } catch (e) {
+    } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getCurrentClusterName()));
     }
     return this.remoteConfig;
@@ -189,7 +187,7 @@ export class RemoteConfigManager {
    *
    * @param argv - arguments containing command input for historical reference.
    */
-  public async loadAndValidate(argv: {_: string[]}) {
+  public async loadAndValidate(argv: {_: string[]} & AnyObject) {
     const self = this;
     try {
       self.setDefaultNamespaceIfNotSet();
@@ -209,13 +207,19 @@ export class RemoteConfigManager {
 
     await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
+    const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
+
     const currentCommand = argv._.join(' ');
-    self.remoteConfig!.addCommandToHistory(currentCommand);
+    const commandArguments = flags.stringifyArgv(argv);
+
+    self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
+
+    await self.remoteConfig.flags.handleFlags(argv);
 
     await self.save();
   }
 
-  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace) {
+  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace, argv: AnyObject) {
     const self = this;
     self.k8.setCurrentContext(context);
 
@@ -234,7 +238,7 @@ export class RemoteConfigManager {
       throw new SoloError('Remote config already exists');
     }
 
-    await self.create();
+    await self.create(argv);
   }
 
   /* ---------- Utilities ---------- */
