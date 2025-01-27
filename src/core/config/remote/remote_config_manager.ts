@@ -35,6 +35,7 @@ import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
+import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyObject} from '../../../types/aliases.js';
 
 interface ListrContext {
@@ -105,7 +106,7 @@ export class RemoteConfigManager {
    * Gathers data from the local configuration and constructs a new ConfigMap
    * entry in the cluster with initial command history and metadata.
    */
-  private async create(): Promise<void> {
+  private async create(argv: AnyObject): Promise<void> {
     const clusters: Record<Cluster, Namespace> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
@@ -117,9 +118,10 @@ export class RemoteConfigManager {
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(this.getNamespace(), new Date(), this.localConfig.userEmailAddress),
       clusters,
-      components: ComponentsDataWrapper.initializeEmpty(),
-      lastExecutedCommand: 'deployment create',
       commandHistory: ['deployment create'],
+      lastExecutedCommand: 'deployment create',
+      components: ComponentsDataWrapper.initializeEmpty(),
+      flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
     await this.createConfigMap();
@@ -147,7 +149,7 @@ export class RemoteConfigManager {
     const configMap = await this.getConfigMap();
     if (!configMap) return false;
 
-    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap);
+    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
 
     return true;
   }
@@ -160,7 +162,7 @@ export class RemoteConfigManager {
     await this.load();
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
-    } catch (e) {
+    } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getCurrentClusterName()));
     }
     return this.remoteConfig;
@@ -212,10 +214,12 @@ export class RemoteConfigManager {
     const currentCommand = argv._.join(' ');
     self.remoteConfig!.addCommandToHistory(currentCommand);
 
+    await self.remoteConfig.flags.handleFlags(argv);
+
     await self.save();
   }
 
-  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace) {
+  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace, argv: AnyObject) {
     const self = this;
     self.k8.setCurrentContext(context);
 
@@ -234,7 +238,7 @@ export class RemoteConfigManager {
       throw new SoloError('Remote config already exists');
     }
 
-    await self.create();
+    await self.create(argv);
   }
 
   /* ---------- Utilities ---------- */

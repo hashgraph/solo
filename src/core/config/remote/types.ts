@@ -45,3 +45,30 @@ export interface IConsensusNodeComponent extends Component {
 }
 
 export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
+
+export type RemoteConfigCommonFlagsStruct = {
+  releaseTag?: string;
+  chartDirectory?: string;
+  relayReleaseTag?: string;
+  soloChartVersion?: string;
+  mirrorNodeVersion?: string;
+  nodeAliasesUnparsed?: string;
+  hederaExplorerVersion?: string;
+};
+
+export interface RemoteConfigDataStructure {
+  metadata: RemoteConfigMetadataStructure;
+  version: Version;
+  clusters: Record<Cluster, Namespace>;
+  components: ComponentsDataStructure;
+  commandHistory: string[];
+  lastExecutedCommand: string;
+  flags: RemoteConfigCommonFlagsStruct;
+}
+
+export interface RemoteConfigMetadataStructure {
+  name: Namespace;
+  lastUpdatedAt: Date;
+  lastUpdateBy: EmailAddress;
+  migration?: IMigration;
+}

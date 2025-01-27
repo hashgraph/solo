@@ -513,7 +513,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node destruction has completed');
     } catch (e) {
-      throw new SoloError(`Error destrong mirror node: ${e.message}`, e);
+      throw new SoloError(`Error destroying mirror node: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
