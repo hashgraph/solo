@@ -15,12 +15,12 @@
  *
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
+import type {NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {SoloError} from '../../core/errors.js';
-import {type Namespace} from '../../core/config/remote/types.js';
+import type {Namespace} from '../../core/config/remote/types.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 

@@ -42,8 +42,8 @@ import path from 'path';
 
 import {SoloLogger} from './logging.js';
 import {K8} from './k8.js';
-import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
-import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
+import type {AccountIdWithKeyPairObject, ExtendedNetServer} from '../types/index.js';
+import type {NodeAlias, PodName, SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';

@@ -32,7 +32,6 @@ import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
-import {HEDERA_HGCAPP_DIR} from './constants.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()

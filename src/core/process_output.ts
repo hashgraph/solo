@@ -15,7 +15,7 @@
  *
  */
 import {ProcessOutput} from 'listr2';
-import {type SoloLogger} from './logging.js';
+import type {SoloLogger} from './logging.js';
 
 /** Uses the solo logger to handle process output from Listr2 */
 export class CustomProcessOutput extends ProcessOutput {

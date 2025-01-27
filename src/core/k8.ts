@@ -32,14 +32,14 @@ import {sleep} from './helpers.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import {SoloLogger} from './logging.js';
-import {type PodName, type TarCreateFilter} from '../types/aliases.js';
+import type {PodName, TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
-import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
+import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
 
 interface TDirectoryData {
   directory: boolean;

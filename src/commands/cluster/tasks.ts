@@ -18,7 +18,7 @@ import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {ConfigBuilder} from '../../types/aliases.js';
-import {type BaseCommand} from '../base.js';
+import type {BaseCommand} from '../base.js';
 import {splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
