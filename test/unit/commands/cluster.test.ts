@@ -37,7 +37,6 @@ import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
-import * as test from 'node:test';
 import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import type {BaseCommand} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
@@ -58,8 +57,6 @@ import type {ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
-import {SoloError} from '../../../src/core/errors.js';
-import {RemoteConfigDataWrapper} from '../../../src/core/config/remote/remote_config_data_wrapper.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -90,7 +87,7 @@ argv[flags.force.name] = true;
 argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE;
 
 describe('ClusterCommand unit tests', () => {
-  before(() => {
+  beforeEach(() => {
     resetTestContainer();
   });
 
@@ -211,7 +208,23 @@ describe('ClusterCommand unit tests', () => {
         configManager.getFlag.withArgs(stubbedFlags[i][0]).returns(stubbedFlags[i][1]);
       }
 
-      return {
+      container.unregister(RemoteConfigManager);
+      container.registerInstance(RemoteConfigManager, remoteConfigManagerStub);
+
+      container.unregister(K8);
+      container.registerInstance(K8, k8Stub);
+
+      const localConfig = new LocalConfig(filePath);
+      container.unregister(LocalConfig);
+      container.registerInstance(LocalConfig, localConfig);
+
+      container.unregister(ConfigManager);
+      container.registerInstance(ConfigManager, configManager);
+
+      container.unregister(SoloLogger);
+      container.registerInstance(SoloLogger, loggerStub);
+
+      const options = {
         logger: loggerStub,
         helm: sandbox.createStubInstance(Helm),
         k8: k8Stub,
@@ -228,7 +241,18 @@ describe('ClusterCommand unit tests', () => {
         certificateManager: sandbox.createStubInstance(CertificateManager),
         remoteConfigManager: remoteConfigManagerStub,
       } as Opts;
+
+      // stubDependencies([Object.values(options)]);
+
+      return options;
     };
+
+    function stubDependencies(deps: any[]) {
+      for (const dep of deps) {
+        container.unregister(dep.constructor);
+        container.registerInstance(dep.constructor, dep);
+      }
+    }
 
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
@@ -236,8 +260,7 @@ describe('ClusterCommand unit tests', () => {
 
         tasks = container.resolve(ClusterCommandTasks);
 
-        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1.
-        const taskObj = tasks.updateLocalConfig({});
+        const taskObj = tasks.updateLocalConfig();
 
         await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
