@@ -570,7 +570,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node components from remote config. */
-  public removeMirrorNodeComponents(): SoloListrTask<object> {
+  public removeMirrorNodeComponents(): SoloListrTask<any> {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -583,7 +583,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Adds the mirror node components to remote config. */
-  public addMirrorNodeComponents(): SoloListrTask<{config: {namespace: Namespace}}> {
+  public addMirrorNodeComponents(): SoloListrTask<any> {
     return {
       title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

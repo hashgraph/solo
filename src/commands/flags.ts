@@ -1576,27 +1576,6 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly contextClusterUnparsed: CommandFlag = {
-    constName: 'contextClusterUnparsed',
-    name: 'context-cluster',
-    definition: {
-      describe:
-        'Context cluster mapping where context is key = value is cluster and comma delimited if more than one, ' +
-        '(e.g.: --context-cluster kind-solo=kind-solo,kind-solo-2=kind-solo-2)',
-      type: 'string',
-    },
-    prompt: async function promptContextCluster(task: ListrTaskWrapper<any, any, any>, input: any) {
-      return await Flags.promptText(
-        task,
-        input,
-        null,
-        'Enter context cluster mapping: ',
-        'context-cluster cannot be empty',
-        Flags.contextClusterUnparsed.name,
-      );
-    },
-  };
-
   static readonly haproxyIps: CommandFlag = {
     constName: 'haproxyIps',
     name: 'haproxy-ips',
@@ -1725,7 +1704,6 @@ export class Flags {
     Flags.clusterName,
     Flags.clusterSetupNamespace,
     Flags.context,
-    Flags.contextClusterUnparsed,
     Flags.createAmount,
     Flags.debugNodeAlias,
     Flags.deletePvcs,
