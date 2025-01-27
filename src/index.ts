@@ -117,12 +117,17 @@ export function main(argv: any) {
       // update
       configManager.update(argv);
 
+      const currentCommand = argv._.join(' ') as string;
+      const commandArguments = flags.stringifyArgv(argv);
+      const commandData = (currentCommand + ' ' + commandArguments).trim();
+
       logger.showUser(
         chalk.cyan('\n******************************* Solo *********************************************'),
       );
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()));
       logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(context.name));
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
+      logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
       if (configManager.getFlag(flags.namespace) !== undefined) {
         logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)));
       }
@@ -141,6 +146,7 @@ export function main(argv: any) {
         (command === 'cluster' && subCommand === 'info') ||
         (command === 'cluster' && subCommand === 'list') ||
         (command === 'deployment' && subCommand === 'create');
+
       if (!skip) {
         await remoteConfigManager.loadAndValidate(argv);
       }

@@ -50,21 +50,18 @@ export class ListrRemoteConfig {
 
   /**
    * Create remoteConfig and save it to the provided cluster.
-   * @param command
-   * @param cluster
-   * @param context
-   * @param namespace
    */
   public static createRemoteConfig(
     command: BaseCommand,
     cluster: Cluster,
     context: Context,
     namespace: Namespace,
+    argv: AnyObject,
   ): SoloListrTask<any> {
     return {
       title: `Create remote config in cluster: ${chalk.cyan(cluster)}`,
       task: async (): Promise<void> => {
-        await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace);
+        await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace, argv);
       },
     };
   }
@@ -73,8 +70,9 @@ export class ListrRemoteConfig {
    * Create a remoteConfig object and save it to multiple clusters, read from ctx config
    *
    * @param command - the BaseCommand object on which an action will be performed
+   * @param argv
    */
-  public static createRemoteConfigInMultipleClusters(command: BaseCommand): SoloListrTask<any> {
+  public static createRemoteConfigInMultipleClusters(command: BaseCommand, argv: AnyObject): SoloListrTask<any> {
     return {
       title: 'Create remoteConfig in clusters',
       task: async (ctx, task) => {
@@ -84,7 +82,7 @@ export class ListrRemoteConfig {
           const context = command.localConfig.clusterContextMapping?.[cluster];
           if (!context) continue;
 
-          subTasks.push(ListrRemoteConfig.createRemoteConfig(command, cluster, context, ctx.config.namespace));
+          subTasks.push(ListrRemoteConfig.createRemoteConfig(command, cluster, context, ctx.config.namespace, argv));
         }
 
         return task.newListr(subTasks, {

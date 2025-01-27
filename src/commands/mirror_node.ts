@@ -53,6 +53,7 @@ interface MirrorNodeDeployConfigClass {
   storageSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
+  storageBucketPrefix: string;
 }
 
 interface Context {
@@ -97,6 +98,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.storageBucketPrefix,
     ];
   }
 
@@ -115,6 +117,10 @@ export class MirrorNodeCommand extends BaseCommand {
 
     if (config.storageBucket) {
       valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.bucketName=${config.storageBucket}`;
+    }
+    if (config.storageBucketPrefix) {
+      this.logger.info(`Setting storage bucket prefix to ${config.storageBucketPrefix}`);
+      valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.pathPrefix=${config.storageBucketPrefix}`;
     }
 
     let storageType = '';
@@ -507,7 +513,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node destruction has completed');
     } catch (e) {
-      throw new SoloError(`Error destrong mirror node: ${e.message}`, e);
+      throw new SoloError(`Error destroying mirror node: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
