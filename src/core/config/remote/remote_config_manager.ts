@@ -37,10 +37,6 @@ import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {type AnyObject} from '../../../types/aliases.js';
 
-interface ListrContext {
-  config: object;
-}
-
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
  * and saving the configuration data to and from a Kubernetes cluster.
@@ -160,7 +156,7 @@ export class RemoteConfigManager {
     await this.load();
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
-    } catch (e) {
+    } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getCurrentClusterName()));
     }
     return this.remoteConfig;
