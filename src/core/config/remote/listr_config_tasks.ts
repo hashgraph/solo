@@ -40,7 +40,10 @@ export class ListrRemoteConfig {
    * @param remoteConfigManager
    * @param argv - used to update the last executed command and command history
    */
-  public static loadRemoteConfig(remoteConfigManager: RemoteConfigManager, argv: {_: string[]} & AnyObject): SoloListrTask<any> {
+  public static loadRemoteConfig(
+    remoteConfigManager: RemoteConfigManager,
+    argv: {_: string[]} & AnyObject,
+  ): SoloListrTask<any> {
     return {
       title: 'Load remote config',
       task: async (): Promise<void> => {
