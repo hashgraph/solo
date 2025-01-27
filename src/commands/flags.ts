@@ -1828,7 +1828,14 @@ export class Flags {
     optionalFlags: [Flags.devMode, Flags.quiet],
   };
 
-  static stringifyArgv(argv: AnyObject): string {
+  /**
+   * Processes the Argv arguments and returns them strigified, all with full flag names
+   * - removes flags that match the default value
+   * - removes flags with undefined and null values
+   * - removes boolean flags that are false
+   * - masks all sensitive flags with their dataMask property
+   */
+  public static stringifyArgv(argv: AnyObject): string {
     const processedFlags: string[] = [];
 
     for (const [name, value] of Object.entries(argv)) {
