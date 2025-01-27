@@ -205,10 +205,12 @@ export class RemoteConfigManager {
 
     await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
+    const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
+
     const currentCommand = argv._.join(' ');
     const commandArguments = flags.stringifyArgv(argv);
 
-    self.remoteConfig!.addCommandToHistory((currentCommand + ' ' + commandArguments).trim());
+    self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
 
     await self.save();
   }
