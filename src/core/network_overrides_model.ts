@@ -52,11 +52,16 @@ export class NetworkOverridesModel {
    *     - { "nodeId": 5, "hostname": "10.10.10.11", "port": 1238 }
    */
   public toYAML(): string {
-    return yaml.stringify({
-      gossip: {
-        interfaceBindings: this.interfaceBindings,
-        endpointOverrides: this.endpointOverrides,
-      },
-    });
+    const gossipData: {interfaceBindings?: string[]; endpointOverrides?: string[]} = {};
+
+    if (this.interfaceBindings.length) {
+      gossipData.interfaceBindings = this.interfaceBindings.map(d => JSON.stringify(d));
+    }
+
+    if (this.endpointOverrides.length) {
+      gossipData.endpointOverrides = this.endpointOverrides.map(d => JSON.stringify(d));
+    }
+
+    return yaml.stringify({gossip: gossipData});
   }
 }
