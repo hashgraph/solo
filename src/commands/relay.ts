@@ -22,7 +22,7 @@ import {type ProfileManager} from '../core/profile_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap} from '../core/helpers.js';
+import {getNodeAccountMap, prepareChartPath} from '../core/helpers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -241,7 +241,8 @@ export class RelayCommand extends BaseCommand {
           title: 'Prepare chart values',
           task: async ctx => {
             const config = ctx.config;
-            config.chartPath = await self.prepareChartPath(
+            config.chartPath = await prepareChartPath(
+              self.helm,
               config.chartDirectory,
               constants.JSON_RPC_RELAY_CHART,
               constants.JSON_RPC_RELAY_CHART,

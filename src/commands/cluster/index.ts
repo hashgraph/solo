@@ -32,7 +32,6 @@ export class ClusterCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    // TODO properly inject
     this.handlers = patchInject(null, ClusterCommandHandlers, this.constructor.name);
   }
 

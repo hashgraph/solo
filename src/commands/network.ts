@@ -28,6 +28,7 @@ import {
   resolveValidJsonFilePath,
   validatePath,
   parseNodeAliases,
+  prepareChartPath,
 } from '../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
@@ -418,7 +419,8 @@ export class NetworkCommand extends BaseCommand {
     }
 
     // compute values
-    config.chartPath = await this.prepareChartPath(
+    config.chartPath = await prepareChartPath(
+      this.helm,
       config.chartDirectory,
       constants.SOLO_TESTING_CHART_URL,
       constants.SOLO_DEPLOYMENT_CHART,

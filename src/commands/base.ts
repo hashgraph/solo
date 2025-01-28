@@ -67,20 +67,6 @@ export abstract class BaseCommand extends ShellRunner {
     this.remoteConfigManager = opts.remoteConfigManager;
   }
 
-  // TODO remove
-  async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
-    if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
-    if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
-
-    if (chartDir) {
-      const chartPath = path.join(chartDir, chartReleaseName);
-      await this.helm.dependency('update', chartPath);
-      return chartPath;
-    }
-
-    return `${chartRepo}/${chartReleaseName}`;
-  }
-
   getConfigManager(): ConfigManager {
     return this.configManager;
   }
@@ -123,27 +109,6 @@ export abstract class BaseCommand extends ShellRunner {
   }
 
   abstract close(): Promise<void>;
-
-  // TODO remove this
-  commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-    return async function (argv: any, commandDef) {
-      const tasks = new Listr([...actionTasks], options);
-
-      try {
-        await tasks.run();
-      } catch (e: Error | any) {
-        commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
-        throw new SoloError(`${errorString}: ${e.message}`, e);
-      } finally {
-        const promises = [];
-
-        promises.push(commandDef.parent.close());
-
-        if (lease) promises.push(lease.release());
-        await Promise.all(promises);
-      }
-    };
-  }
 
   /**
    * Setup home directories

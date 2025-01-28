@@ -22,7 +22,7 @@ import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getEnvValue, prepareValuesFiles} from '../core/helpers.js';
+import {getEnvValue, prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
 import {type CommandBuilder, type PodName} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -165,7 +165,8 @@ export class MirrorNodeCommand extends BaseCommand {
               'valuesArg',
             ]) as MirrorNodeDeployConfigClass;
 
-            ctx.config.chartPath = await self.prepareChartPath(
+            ctx.config.chartPath = await prepareChartPath(
+              self.helm,
               '', // don't use chartPath which is for local solo-charts only
               constants.MIRROR_NODE_RELEASE_NAME,
               constants.MIRROR_NODE_CHART,

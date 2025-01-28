@@ -29,7 +29,7 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import type {Namespace} from '../core/config/remote/types.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
-import {prepareValuesFiles} from '../core/helpers.js';
+import {prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -199,7 +199,8 @@ export class ExplorerCommand extends BaseCommand {
             const config = ctx.config;
             const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
 
-            const chartPath = await this.prepareChartPath(
+            const chartPath = await prepareChartPath(
+              self.helm,
               chartDirectory,
               constants.SOLO_TESTING_CHART_URL,
               constants.SOLO_CLUSTER_SETUP_CHART,

@@ -50,7 +50,6 @@ export class NodeCommand extends BaseCommand {
 
     this.accountManager = opts.accountManager;
 
-    // TODO properly inject
     this.handlers = patchInject(null, NodeCommandHandlers, this.constructor.name);
   }
 

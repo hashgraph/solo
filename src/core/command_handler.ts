@@ -26,6 +26,7 @@ import {Task} from './task.js';
 import type {CommandFlag} from '../types/flag_types.js';
 import {ConfigManager} from './config_manager.js';
 import {getConfig} from './config_builder.js';
+import {type BaseCommand} from '../commands/base.js';
 
 @injectable()
 export class CommandHandler {
@@ -39,21 +40,22 @@ export class CommandHandler {
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
-  commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-    return async function (argv: any, commandDef) {
+  public commandActionBuilder(
+    actionTasks: any,
+    options: any,
+    errorString: string,
+    lease: Lease | null,
+  ): (argv: any, handlerObj: CommandHandler) => Promise<void> {
+    return async function (argv: any, handlerObj: CommandHandler): Promise<void> {
       const tasks = new Listr([...actionTasks], options);
 
       try {
         await tasks.run();
       } catch (e: Error | any) {
-        commandDef.logger.error(`${errorString}: ${e.message}`, e);
+        handlerObj.logger.error(`${errorString}: ${e.message}`, e);
         throw new SoloError(`${errorString}: ${e.message}`, e);
       } finally {
         const promises = [];
-
-        if (commandDef.accountManager) {
-          promises.push(commandDef.accountManager.close());
-        }
 
         if (lease) promises.push(lease.release());
         await Promise.all(promises);
