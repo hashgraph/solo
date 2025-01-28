@@ -123,7 +123,7 @@ export class DeploymentCommand extends BaseCommand {
             }
 
             return task.newListr(subTasks, {
-              concurrent: false,
+              concurrent: true,
               rendererOptions: {collapseSubtasks: false},
             });
           },
@@ -178,10 +178,19 @@ export class DeploymentCommand extends BaseCommand {
           task: async ctx => {
             const clusterName = ctx.config.clusterName;
 
+            const context = self.localConfig.clusterContextMapping[clusterName];
+
             self.k8.setCurrentContext(context);
 
             const namespaces = await self.k8.getNamespaces();
+            const namespacesWithRemoteConfigs: Namespace[] = [];
 
+            for (const namespace of namespaces) {
+              const isFound = await self.k8.isRemoteConfigPresentInNamespace(namespace);
+              if (isFound) namespacesWithRemoteConfigs.push(namespace);
+            }
+
+            self.logger.showList(`Deployments inside cluster: ${chalk.cyan(clusterName)}`, namespacesWithRemoteConfigs);
           },
         },
       ],
