@@ -67,14 +67,14 @@ export class CommandHandler {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  setupHomeDirectory(
+  public setupHomeDirectory(
     dirs: string[] = [
       constants.SOLO_HOME_DIR,
       constants.SOLO_LOGS_DIR,
       constants.SOLO_CACHE_DIR,
       constants.SOLO_VALUES_DIR,
     ],
-  ) {
+  ): string[] {
     const self = this;
 
     try {
@@ -92,18 +92,18 @@ export class CommandHandler {
     return dirs;
   }
 
-  setupHomeDirectoryTask() {
+  public setupHomeDirectoryTask(): Task {
     return new Task('Setup home directory', async () => {
       this.setupHomeDirectory();
     });
   }
 
   // Config related methods:
-  getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
+  public getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
     return getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
   }
 
-  getUnusedConfigs(configName: string): string[] {
+  public getUnusedConfigs(configName: string): string[] {
     return this._configMaps.get(configName).getUnusedConfigs();
   }
 }
