@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {type SkipCheck, type TaskFunction} from '../types/aliases.js';
+import type {SkipCheck, TaskFunction} from '../types/aliases.js';
 
 /**
  * Copyright (C) 2024 Hedera Hashgraph, LLC

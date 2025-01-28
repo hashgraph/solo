@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {type Lease, type LeaseRenewalService} from './lease.js';
+import type {Lease, LeaseRenewalService} from './lease.js';
 import {Duration} from '../time/duration.js';
 import {injectable} from 'tsyringe-neo';
 

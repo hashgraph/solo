@@ -14,8 +14,8 @@
  * limitations under the License.
  *
  */
-import {type BaseCommand, type CommandHandlers} from '../base.js';
-import {type ClusterCommandTasks} from './tasks.js';
+import type {BaseCommand, CommandHandlers} from '../base.js';
+import type {ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';

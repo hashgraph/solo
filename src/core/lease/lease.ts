@@ -15,8 +15,8 @@
  *
  */
 import type {K8} from '../k8.js';
-import {type LeaseHolder} from './lease_holder.js';
-import {type Duration} from '../time/duration.js';
+import type {LeaseHolder} from './lease_holder.js';
+import type {Duration} from '../time/duration.js';
 
 export interface Lease {
   readonly client: K8;

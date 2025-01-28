@@ -20,7 +20,7 @@ import * as util from 'util';
 import chalk from 'chalk';
 import path from 'path';
 import * as constants from './constants.js';
-import {inject, injectable, Lifecycle, registry, scoped, singleton} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 
 const customFormat = winston.format.combine(

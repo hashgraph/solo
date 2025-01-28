@@ -24,7 +24,7 @@ import type {Cluster, Version, Namespace, RemoteConfigDataStructure} from './typ
 import type * as k8s from '@kubernetes/client-node';
 import type {ToObject, Validate} from '../../../types/index.js';
 import type {ConfigManager} from '../../config_manager.js';
-import {type RemoteConfigData} from './remote_config_data.js';
+import type {RemoteConfigData} from './remote_config_data.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';

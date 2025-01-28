@@ -19,7 +19,7 @@ import os from 'os';
 import path from 'path';
 import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
-import {type AccountId} from '@hashgraph/sdk';
+import type {AccountId} from '@hashgraph/sdk';
 import type {IP, NodeAlias, NodeId, PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import type {Namespace} from './config/remote/types.js';

@@ -18,7 +18,6 @@ import chalk from 'chalk';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import 'dotenv/config';
-import path from 'path';
 // eslint-disable-next-line n/no-extraneous-import
 import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
@@ -44,7 +43,7 @@ import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js
 import * as helpers from './core/helpers.js';
 import {K8} from './core/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
-import {type Opts} from './types/command_types.js';
+import type {Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
 import {Container} from './core/container_init.js';
 
