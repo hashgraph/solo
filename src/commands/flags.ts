@@ -24,6 +24,7 @@ import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
+import type {AnyObject} from '../types/aliases.js';
 
 export class Flags {
   private static async prompt(
@@ -475,7 +476,7 @@ export class Flags {
 
   static readonly nodeAliasesUnparsed: CommandFlag = {
     constName: 'nodeAliasesUnparsed',
-    name: 'node-aliases-unparsed',
+    name: 'node-aliases',
     definition: {
       describe: 'Comma separated node aliases (empty means all nodes)',
       alias: 'i',
@@ -621,6 +622,7 @@ export class Flags {
       describe: 'Operator Key',
       defaultValue: undefined,
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptOperatorKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -641,6 +643,7 @@ export class Flags {
       describe: 'Show private key information',
       defaultValue: false,
       type: 'boolean',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -989,6 +992,7 @@ export class Flags {
       describe: 'path and file name of the private key for signing gossip in PEM key format to be used',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1011,6 +1015,7 @@ export class Flags {
       describe: 'path and file name of the private TLS key to be used',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1054,6 +1059,7 @@ export class Flags {
       describe: 'ED25519 private key for the Hedera account',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1085,6 +1091,7 @@ export class Flags {
       describe: 'ECDSA private key for the Hedera account',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1326,6 +1333,7 @@ export class Flags {
       describe: 'Admin key',
       defaultValue: constants.GENESIS_KEY,
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1528,6 +1536,7 @@ export class Flags {
         'with multiple nodes comma seperated)',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptGrpcTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1551,6 +1560,7 @@ export class Flags {
         'with multiple nodes comma seperated)',
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
@@ -1619,6 +1629,7 @@ export class Flags {
       defaultValue: '',
       describe: 'storage access key',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1630,6 +1641,7 @@ export class Flags {
       defaultValue: '',
       describe: 'storage secret key',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1641,6 +1653,7 @@ export class Flags {
       defaultValue: '',
       describe: 'storage endpoint URL',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1651,6 +1664,18 @@ export class Flags {
     definition: {
       defaultValue: '',
       describe: 'name of storage bucket',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucketPrefix: CommandFlag = {
+    constName: 'storageBucketPrefix',
+    name: 'storage-bucket-prefix',
+    definition: {
+      defaultValue: '',
+      describe: 'path prefix of storage bucket',
       type: 'string',
     },
     prompt: undefined,
@@ -1663,6 +1688,7 @@ export class Flags {
       defaultValue: '',
       describe: 'name of bucket for backing up state files',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1674,6 +1700,7 @@ export class Flags {
       defaultValue: '',
       describe: 'path of google credential file in json format',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -1770,6 +1797,7 @@ export class Flags {
     Flags.storageSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
+    Flags.storageBucketPrefix,
     Flags.backupBucket,
     Flags.googleCredential,
     Flags.tlsClusterIssuerType,
@@ -1811,4 +1839,47 @@ export class Flags {
     requiredFlagsWithDisabledPrompt: [Flags.namespace, Flags.cacheDir, Flags.releaseTag],
     optionalFlags: [Flags.devMode, Flags.quiet],
   };
+
+  /**
+   * Processes the Argv arguments and returns them as string, all with full flag names.
+   * - removes flags that match the default value.
+   * - removes flags with undefined and null values.
+   * - removes boolean flags that are false.
+   * - masks all sensitive flags with their dataMask property.
+   */
+  public static stringifyArgv(argv: AnyObject): string {
+    const processedFlags: string[] = [];
+
+    for (const [name, value] of Object.entries(argv)) {
+      // Remove non-flag data and boolean presence based flags that are false
+      if (name === '_' || name === '$0' || value === '' || value === false || value === undefined || value === null) {
+        continue;
+      }
+
+      // remove flags that use the default value
+      const flag = Flags.allFlags.find(flag => flag.name === name);
+      if (!flag || (flag.definition.defaultValue && flag.definition.defaultValue === value)) {
+        continue;
+      }
+
+      const flagName = flag.name;
+
+      // if the flag is boolean based, render it without value
+      if (value === true) {
+        processedFlags.push(`--${flagName}`);
+      }
+
+      // if the flag's data is masked, display it without the value
+      else if (flag.definition.dataMask) {
+        processedFlags.push(`--${flagName} ${flag.definition.dataMask}`);
+      }
+
+      // else display the full flag data
+      else {
+        processedFlags.push(`--${flagName} ${value}`);
+      }
+    }
+
+    return processedFlags.join(' ');
+  }
 }

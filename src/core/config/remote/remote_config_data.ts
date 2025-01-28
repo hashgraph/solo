@@ -14,22 +14,16 @@
  * limitations under the License.
  *
  */
-import {type ListrTaskWrapper} from 'listr2';
+import type {RemoteConfigMetadata} from './metadata.js';
+import type {ComponentsDataWrapper} from './components_data_wrapper.js';
+import type {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
+import {type Cluster, type Namespace} from './types.js';
 
-export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any, data?: any) => Promise<any>;
-
-export interface CommandFlag {
-  constName: string;
-  name: string;
-  definition: Definition;
-  prompt: PromptFunction;
-}
-
-export interface Definition {
-  describe: string;
-  defaultValue?: boolean | string | number;
-  alias?: string;
-  type?: string;
-  disablePrompt?: boolean;
-  dataMask?: string;
+export interface RemoteConfigData {
+  metadata: RemoteConfigMetadata;
+  clusters: Record<Cluster, Namespace>;
+  components: ComponentsDataWrapper;
+  lastExecutedCommand: string;
+  commandHistory: string[];
+  flags: CommonFlagsDataWrapper;
 }
