@@ -180,6 +180,24 @@ postgresql:
         effect: "NoSchedule"
   pgpool:
     replicaCount: 0
+restjava:
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
 rest:
   tolerations:
     - key: "solo.hashgraph.io/role"
