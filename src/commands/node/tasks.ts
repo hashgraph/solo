@@ -14,14 +14,14 @@
  * limitations under the License.
  *
  */
-import {type AccountManager} from '../../core/account_manager.js';
-import {type ConfigManager} from '../../core/config_manager.js';
-import {type KeyManager} from '../../core/key_manager.js';
-import {type ProfileManager} from '../../core/profile_manager.js';
-import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8} from '../../core/k8.js';
-import {type ChartManager} from '../../core/chart_manager.js';
-import {type CertificateManager} from '../../core/certificate_manager.js';
+import type {AccountManager} from '../../core/account_manager.js';
+import type {ConfigManager} from '../../core/config_manager.js';
+import type {KeyManager} from '../../core/key_manager.js';
+import type {ProfileManager} from '../../core/profile_manager.js';
+import type {PlatformInstaller} from '../../core/platform_installer.js';
+import type {K8} from '../../core/k8.js';
+import type {ChartManager} from '../../core/chart_manager.js';
+import type {CertificateManager} from '../../core/certificate_manager.js';
 import {Zippy} from '../../core/zippy.js';
 import * as constants from '../../core/constants.js';
 import {
@@ -62,22 +62,16 @@ import {
 } from '../../core/helpers.js';
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
-import {type SoloLogger} from '../../core/logging.js';
+import type {SoloLogger} from '../../core/logging.js';
 import type {Listr, ListrTaskWrapper} from 'listr2';
-import {
-  type ConfigBuilder,
-  type NodeAlias,
-  type NodeAliases,
-  type PodName,
-  type SkipCheck,
-} from '../../types/aliases.js';
+import type {ConfigBuilder, NodeAlias, NodeAliases, PodName, SkipCheck} from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
-import {type Lease} from '../../core/lease/lease.js';
+import type {Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
-import {type BaseCommand} from '../base.js';
-import {type NodeAddConfigClass} from './node_add_config.js';
+import type {BaseCommand} from '../base.js';
+import type {NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 
 export class NodeCommandTasks {

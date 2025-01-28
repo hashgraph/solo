@@ -18,7 +18,7 @@ import os from 'os';
 import {SoloError} from '../errors.js';
 import {ShellRunner} from '../shell_runner.js';
 import {HelmDependencyManager} from './helm_dependency_manager.js';
-import {type ListrTask} from 'listr2';
+import type {ListrTask} from 'listr2';
 import {container, inject, injectable} from 'tsyringe-neo';
 import * as constants from '../constants.js';
 

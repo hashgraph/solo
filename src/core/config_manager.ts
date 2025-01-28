@@ -21,8 +21,8 @@ import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
-import {type CommandFlag} from '../types/flag_types.js';
-import {type ListrTaskWrapper} from 'listr2';
+import type {CommandFlag} from '../types/flag_types.js';
+import type {ListrTaskWrapper} from 'listr2';
 import {patchInject} from './container_helper.js';
 import * as constants from '../core/constants.js';
 

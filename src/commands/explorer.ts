@@ -18,17 +18,17 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
 import {SoloError, MissingArgumentError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
-import {type ProfileManager} from '../core/profile_manager.js';
+import type {ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
-import {type CommandBuilder} from '../types/aliases.js';
-import {type Opts} from '../types/command_types.js';
+import type {CommandBuilder} from '../types/aliases.js';
+import type {Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import type {Namespace} from '../core/config/remote/types.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
-import {type SoloListrTask} from '../types/index.js';
+import type {SoloListrTask} from '../types/index.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;

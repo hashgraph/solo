@@ -15,8 +15,8 @@
  *
  */
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {type V1Lease} from '@kubernetes/client-node';
-import {type K8} from '../k8.js';
+import type {V1Lease} from '@kubernetes/client-node';
+import type {K8} from '../k8.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
 import {sleep} from '../helpers.js';
