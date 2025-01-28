@@ -242,17 +242,8 @@ describe('ClusterCommand unit tests', () => {
         remoteConfigManager: remoteConfigManagerStub,
       } as Opts;
 
-      // stubDependencies([Object.values(options)]);
-
       return options;
     };
-
-    function stubDependencies(deps: any[]) {
-      for (const dep of deps) {
-        container.unregister(dep.constructor);
-        container.registerInstance(dep.constructor, dep);
-      }
-    }
 
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
