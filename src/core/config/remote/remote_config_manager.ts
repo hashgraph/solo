@@ -38,10 +38,6 @@ import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyObject} from '../../../types/aliases.js';
 
-interface ListrContext {
-  config: object;
-}
-
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
  * and saving the configuration data to and from a Kubernetes cluster.
@@ -211,8 +207,12 @@ export class RemoteConfigManager {
 
     await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
+    const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
+
     const currentCommand = argv._.join(' ');
-    self.remoteConfig!.addCommandToHistory(currentCommand);
+    const commandArguments = flags.stringifyArgv(argv);
+
+    self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
 
     await self.remoteConfig.flags.handleFlags(argv);
 
