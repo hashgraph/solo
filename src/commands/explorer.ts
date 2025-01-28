@@ -107,7 +107,6 @@ export class ExplorerCommand extends BaseCommand {
 
     if (config.enableIngress) {
       valuesArg += ' --set ingress.enabled=true';
-      valuesArg += ` --set ingress.className=${config.namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set ingressClassName=${config.namespace}-hedera-explorer-ingress-class`;
     }
     valuesArg += ` --set fullnameOverride=${constants.HEDERA_EXPLORER_RELEASE_NAME}`;
@@ -139,7 +138,6 @@ export class ExplorerCommand extends BaseCommand {
       config.enableIngress
     ) {
       valuesArg += ' --set ingress.enabled=true';
-      valuesArg += ` --set ingress.className=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
@@ -369,7 +367,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
               ctx.config.namespace,
-              constants.HEDERA_EXPLORER_CHART_URL,
+              constants.HEDERA_EXPLORER_RELEASE_NAME
             );
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
