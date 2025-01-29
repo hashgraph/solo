@@ -958,11 +958,13 @@ export class NodeCommandTasks {
   ) {
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
 
+    const adminPublicKeys = splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys));
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
       nodeAliases,
       this.keyManager,
       keysDir,
       networkNodeServiceMap,
+      adminPublicKeys,
     );
 
     const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');

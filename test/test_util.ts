@@ -304,6 +304,7 @@ export function e2eTestSuite(
             expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.quiet.constName,
               flags.devMode.constName,
+              flags.adminPublicKeys.constName,
             ]);
           } catch (e) {
             nodeCmd.logger.showUserError(e);

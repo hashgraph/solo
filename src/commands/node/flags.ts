@@ -254,5 +254,5 @@ export const START_FLAGS = {
 export const SETUP_FLAGS = {
   requiredFlags: [flags.cacheDir, flags.namespace, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app, flags.appConfig, flags.nodeAliasesUnparsed],
-  optionalFlags: [flags.quiet, flags.devMode, flags.localBuildPath],
+  optionalFlags: [flags.quiet, flags.devMode, flags.localBuildPath, flags.adminPublicKeys],
 };

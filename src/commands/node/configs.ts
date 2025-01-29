@@ -424,6 +424,7 @@ export interface NodeDeleteConfigClass {
 export interface NodeSetupConfigClass {
   app: string;
   appConfig: string;
+  adminKey: string;
   cacheDir: string;
   devMode: boolean;
   localBuildPath: string;

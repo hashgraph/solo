@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-import {AccountId, PrivateKey} from '@hashgraph/sdk';
+import {AccountId, PrivateKey, PublicKey} from '@hashgraph/sdk';
 import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
 import * as constants from '../constants.js';
 
@@ -25,6 +25,8 @@ import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_ent
 import {Templates} from '../templates.js';
 import path from 'path';
 import type {NetworkNodeServices} from '../network_node_services.js';
+import {SoloError} from '../errors.js';
+import {Flags as flags} from '../../commands/flags.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -38,10 +40,13 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly keysDir: string,
     private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    adminPublicKeyMap: Map<NodeAlias, string>,
   ) {
     nodeAliases.forEach(nodeAlias => {
-      const adminPrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-      const adminPubKey = adminPrivateKey.publicKey;
+      const genesisPrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+      const adminPubKey = PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])
+        ? adminPublicKeyMap[nodeAlias]
+        : genesisPrivateKey.publicKey;
 
       const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
         +networkNodeServiceMap.get(nodeAlias).nodeId,
@@ -74,8 +79,30 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     keyManager: KeyManager,
     keysDir: string,
     networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    adminPublicKeys: string[],
   ): Promise<GenesisNetworkDataConstructor> {
-    const instance = new GenesisNetworkDataConstructor(nodeAliases, keyManager, keysDir, networkNodeServiceMap);
+    const adminPublicKeyMap: Map<NodeAlias, string> = new Map();
+
+    const adminPublicKeyIsDefaultValue =
+      adminPublicKeys.length === 1 && adminPublicKeys[0] === flags.adminPublicKeys.definition.defaultValue;
+    // If admin keys are passed and if it is not the default value from flags then validate and build the adminPublicKeyMap
+    if (adminPublicKeys.length > 0 && !adminPublicKeyIsDefaultValue) {
+      if (adminPublicKeys.length !== nodeAliases.length) {
+        throw new SoloError('Provide a comma separated list of DER encoded ED25519 public keys for each node');
+      }
+
+      adminPublicKeys.forEach((key, i) => {
+        adminPublicKeyMap[nodeAliases[i]] = key;
+      });
+    }
+
+    const instance = new GenesisNetworkDataConstructor(
+      nodeAliases,
+      keyManager,
+      keysDir,
+      networkNodeServiceMap,
+      adminPublicKeyMap,
+    );
 
     await instance.load();
 
