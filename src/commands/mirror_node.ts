@@ -22,7 +22,7 @@ import type {AccountManager} from '../core/account_manager.js';
 import type {ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getEnvValue} from '../core/helpers.js';
+import * as helpers from '../core/helpers.js';
 import type {CommandBuilder, PodName} from '../types/aliases.js';
 import type {Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -46,13 +46,16 @@ interface MirrorNodeDeployConfigClass {
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
-  customMirrorNodeDatabaseValuePath: Optional<string>;
+  useExternalDatabase: boolean;
   storageType: constants.StorageType;
   storageAccessKey: string;
   storageSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
   storageBucketPrefix: string;
+  externalDatabaseHost: Optional<string>;
+  externalDatabaseOwnerUsername: Optional<string>;
+  externalDatabaseOwnerPassword: Optional<string>;
 }
 
 interface Context {
@@ -89,7 +92,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.valuesFile,
       flags.mirrorNodeVersion,
       flags.pinger,
-      flags.customMirrorNodeDatabaseValuePath,
+      flags.useExternalDatabase,
       flags.operatorId,
       flags.operatorKey,
       flags.storageType,
@@ -98,6 +101,9 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.storageEndpoint,
       flags.storageBucket,
       flags.storageBucketPrefix,
+      flags.externalDatabaseHost,
+      flags.externalDatabaseOwnerUsername,
+      flags.externalDatabaseOwnerPassword,
     ];
   }
 
@@ -140,6 +146,42 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageAccessKey}`;
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageSecrets}`;
     }
+
+    // if the useExternalDatabase populate all the required values before installing the chart
+    if (config.useExternalDatabase) {
+      const {
+        externalDatabaseHost: host,
+        externalDatabaseOwnerUsername: username,
+        externalDatabaseOwnerPassword: password,
+      } = config;
+
+      config.valuesArg += helpers.populateHelmArgs({
+        // Disable default database deployment
+        'stackgres.enabled': false,
+        'postgresql.enabled': false,
+
+        // Set the host and name
+        'db.host': host,
+        'db.name': 'mirror_node',
+
+        // set the usernames
+        'db.owner.username': username,
+        'importer.db.username': username,
+        'grpc.db.username': username,
+        'rest.db.username': username,
+        'restjava.db.username': username,
+        'web3.db.username': username,
+
+        // set the passwords
+        'db.owner.password': password,
+        'importer.db.password': password,
+        'grpc.db.password': password,
+        'rest.db.password': password,
+        'restjava.db.password': password,
+        'web3.db.password': password,
+      });
+    }
+
     return valuesArg;
   }
 
@@ -164,6 +206,15 @@ export class MirrorNodeCommand extends BaseCommand {
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
+
+            // In case the useExternalDatabase is set, prompt for the rest of the required data
+            if (self.configManager.getFlag(flags.useExternalDatabase)) {
+              await self.configManager.executePrompt(task, [
+                flags.externalDatabaseHost,
+                flags.externalDatabaseOwnerUsername,
+                flags.externalDatabaseOwnerPassword,
+              ]);
+            }
 
             ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
               'chartPath',
@@ -210,7 +261,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       const operatorKeyFromK8 = Base64.decode(secrets[0].data.privateKey);
                       ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${operatorKeyFromK8}`;
                     }
-                  } catch (e: Error | any) {
+                  } catch (e) {
                     throw new SoloError(`Error getting operator key: ${e.message}`, e);
                   }
                 }
@@ -239,20 +290,6 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Deploy mirror-node',
                   task: async ctx => {
-                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
-                      if (!fs.existsSync(ctx.config.customMirrorNodeDatabaseValuePath)) {
-                        throw new SoloError('Path provided for custom mirror node database value is not found');
-                      }
-
-                      // Check if the file has a .yaml or .yml extension
-                      const fileExtension = path.extname(ctx.config.customMirrorNodeDatabaseValuePath);
-                      if (fileExtension !== '.yaml' && fileExtension !== '.yml') {
-                        throw new SoloError('The provided file is not a valid YAML file (.yaml or .yml)');
-                      }
-
-                      ctx.config.valuesArg += ` --values ${ctx.config.customMirrorNodeDatabaseValuePath}`;
-                    }
-
                     await self.chartManager.install(
                       ctx.config.namespace,
                       constants.MIRROR_NODE_RELEASE_NAME,
@@ -284,7 +321,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       constants.PODS_READY_MAX_ATTEMPTS,
                       constants.PODS_READY_DELAY,
                     ),
-                  skip: ctx => !!ctx.config.customMirrorNodeDatabaseValuePath,
+                  skip: ctx => !!ctx.config.useExternalDatabase,
                 },
                 {
                   title: 'Check REST API',
@@ -357,9 +394,26 @@ export class MirrorNodeCommand extends BaseCommand {
                     }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
-                    if (ctx.config.customMirrorNodeDatabaseValuePath) {
-                      fs.writeFileSync(path.join(constants.SOLO_CACHE_DIR, 'database-seeding-query.sql'), sqlQuery);
-                      return;
+                    // When useExternalDatabase flag is enabled, the query is not executed,
+                    // but exported to the specified path inside the cache directory,
+                    // and the user has the responsibility to execute it manually on his own
+                    if (ctx.config.useExternalDatabase) {
+                      // Build the path
+                      const databaseSeedingQueryPath = path.join(
+                        constants.SOLO_CACHE_DIR,
+                        'database-seeding-query.sql',
+                      );
+
+                      // Write the file database seeding query inside the cache
+                      fs.writeFileSync(databaseSeedingQueryPath, sqlQuery);
+
+                      // Notify the user
+                      self.logger.showUser(
+                        'Please run the following SQL script against the external database' +
+                          `to enable Mirror Node to function correctly: ${databaseSeedingQueryPath}`,
+                      );
+
+                      return; //! stop the execution
                     }
 
                     const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
@@ -374,15 +428,15 @@ export class MirrorNodeCommand extends BaseCommand {
                       '/bin/bash -c printenv',
                     );
                     const mirrorEnvVarsArray = mirrorEnvVars.split('\n');
-                    const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(
+                    const HEDERA_MIRROR_IMPORTER_DB_OWNER = helpers.getEnvValue(
                       mirrorEnvVarsArray,
                       'HEDERA_MIRROR_IMPORTER_DB_OWNER',
                     );
-                    const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = getEnvValue(
+                    const HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD = helpers.getEnvValue(
                       mirrorEnvVarsArray,
                       'HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD',
                     );
-                    const HEDERA_MIRROR_IMPORTER_DB_NAME = getEnvValue(
+                    const HEDERA_MIRROR_IMPORTER_DB_NAME = helpers.getEnvValue(
                       mirrorEnvVarsArray,
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
