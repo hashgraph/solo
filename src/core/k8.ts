@@ -1734,10 +1734,6 @@ export class K8 {
     return this.kubeConfig.getContextObject(this.getCurrentContext());
   }
 
-  public getCurrentCluster(): Cluster {
-    return this.kubeConfig.getCurrentCluster();
-  }
-
   public getCurrentClusterName(): string {
     const currentCluster = this.kubeConfig.getCurrentCluster();
     if (!currentCluster) return '';
