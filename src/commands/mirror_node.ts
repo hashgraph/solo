@@ -33,6 +33,7 @@ import * as path from 'node:path';
 import type {Optional, SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import chalk from 'chalk';
+import {type CommandFlag} from '../types/flag_types.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -42,6 +43,7 @@ interface MirrorNodeDeployConfigClass {
   valuesFile: string;
   chartPath: string;
   valuesArg: string;
+  quiet: boolean;
   mirrorNodeVersion: string;
   getUnusedConfigs: () => string[];
   pinger: boolean;
@@ -208,15 +210,6 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
 
-            // In case the useExternalDatabase is set, prompt for the rest of the required data
-            if (self.configManager.getFlag(flags.useExternalDatabase)) {
-              await self.configManager.executePrompt(task, [
-                flags.externalDatabaseHost,
-                flags.externalDatabaseOwnerUsername,
-                flags.externalDatabaseOwnerPassword,
-              ]);
-            }
-
             ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
               'chartPath',
               'valuesArg',
@@ -265,6 +258,35 @@ export class MirrorNodeCommand extends BaseCommand {
                   } catch (e) {
                     throw new SoloError(`Error getting operator key: ${e.message}`, e);
                   }
+                }
+              }
+            }
+
+            const isQuiet = ctx.config.quiet;
+
+            // In case the useExternalDatabase is set, prompt for the rest of the required data
+            if (ctx.config.useExternalDatabase && !isQuiet) {
+              await self.configManager.executePrompt(task, [
+                flags.externalDatabaseHost,
+                flags.externalDatabaseOwnerUsername,
+                flags.externalDatabaseOwnerPassword,
+              ]);
+            } else if (ctx.config.useExternalDatabase) {
+              if (
+                !ctx.config.externalDatabaseHost ||
+                !ctx.config.externalDatabaseOwnerUsername ||
+                !ctx.config.externalDatabaseOwnerPassword
+              ) {
+                const missingFlags: CommandFlag[] = [];
+                if (!ctx.config.externalDatabaseHost) missingFlags.push(flags.externalDatabaseHost);
+                if (!ctx.config.externalDatabaseOwnerUsername) missingFlags.push(flags.externalDatabaseOwnerUsername);
+                if (!ctx.config.externalDatabaseOwnerPassword) missingFlags.push(flags.externalDatabaseOwnerPassword);
+                if (missingFlags.length) {
+                  const errorMessage =
+                    'There are missing values that need to be provided when' +
+                    `${chalk.cyan(`--${flags.useExternalDatabase.name}`)} is provided: `;
+
+                  throw new SoloError(`${errorMessage} ${missingFlags.map(flag => `--${flag.name}`).join(', ')}`);
                 }
               }
             }
