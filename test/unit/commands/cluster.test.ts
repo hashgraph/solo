@@ -37,7 +37,6 @@ import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
-import * as test from 'node:test';
 import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import type {BaseCommand} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
@@ -58,8 +57,6 @@ import type {ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
-import {SoloError} from '../../../src/core/errors.js';
-import {RemoteConfigDataWrapper} from '../../../src/core/config/remote/remote_config_data_wrapper.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -167,7 +164,7 @@ describe('ClusterCommand unit tests', () => {
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
       k8Stub = sandbox.createStubInstance(K8);
-      k8Stub.getContextNames.returns(['cluster-1', 'cluster-2', 'cluster-3']);
+      k8Stub.getContextNames.returns(['context-1', 'context-2', 'context-3']);
       k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
