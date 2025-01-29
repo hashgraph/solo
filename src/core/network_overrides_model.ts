@@ -62,6 +62,6 @@ export class NetworkOverridesModel {
       gossipData.endpointOverrides = this.endpointOverrides.map(d => JSON.stringify(d));
     }
 
-    return yaml.stringify({gossip: gossipData});
+    return yaml.stringify({gossip: gossipData}).replaceAll(/'/g, '');
   }
 }
