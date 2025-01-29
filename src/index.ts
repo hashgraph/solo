@@ -80,6 +80,7 @@ export function main(argv: any) {
     // so that we don't need to prompt the user
     const contextNamespace = k8.getCurrentContextNamespace();
     const currentClusterName = k8.getCurrentClusterName();
+    const contextName = k8.getCurrentContext();
 
     const opts: Opts = {
       logger,
@@ -124,7 +125,7 @@ export function main(argv: any) {
         chalk.cyan('\n******************************* Solo *********************************************'),
       );
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()));
-      logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(context.name));
+      logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(contextName));
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
       logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
       if (configManager.getFlag(flags.namespace) !== undefined) {
