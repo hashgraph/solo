@@ -1531,33 +1531,60 @@ export class Flags {
     constName: 'externalDatabaseHost',
     name: 'external-database-host',
     definition: {
-      describe: '',
+      describe: "Used to provide the external database host if the '--use-external-database' is passed",
       defaultValue: '',
       type: 'string',
     },
-    prompt: undefined,
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseHost.definition.defaultValue,
+        'Enter host of the external database',
+        null,
+        Flags.externalDatabaseHost.name,
+      );
+    },
   };
 
   static readonly externalDatabaseOwnerUsername: CommandFlag = {
     constName: 'externalDatabaseOwnerUsername',
     name: 'external-database-owner-username',
     definition: {
-      describe: '',
+      describe: "Used to provide the external database owner's username if the '--use-external-database' is passed",
       defaultValue: '',
       type: 'string',
     },
-    prompt: undefined,
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerUsername.definition.defaultValue,
+        'Enter username of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerUsername.name,
+      );
+    },
   };
 
   static readonly externalDatabaseOwnerPassword: CommandFlag = {
     constName: 'externalDatabaseOwnerPassword',
     name: 'external-database-owner-password',
     definition: {
-      describe: '',
+      describe: "Used to provide the external database owner's password if the '--use-external-database' is passed",
       defaultValue: '',
       type: 'string',
     },
-    prompt: undefined,
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerPassword.definition.defaultValue,
+        'Enter password of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerPassword.name,
+      );
+    },
   };
 
   static readonly grpcTlsKeyPath: CommandFlag = {
