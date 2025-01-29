@@ -22,7 +22,7 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import type {Namespace} from '../core/config/remote/types.js';
+import {type DeploymentName, type Namespace} from '../core/config/remote/types.js';
 import type {CommandFlag} from '../types/flag_types.js';
 import type {CommandBuilder} from '../types/aliases.js';
 import type {SoloListrTask} from '../types/index.js';
@@ -44,6 +44,7 @@ export class DeploymentCommand extends BaseCommand {
       flags.namespace,
       flags.clusterName,
       flags.userEmailAddress,
+      flags.deployment,
       flags.deploymentClusters,
     ];
   }
@@ -54,6 +55,7 @@ export class DeploymentCommand extends BaseCommand {
     interface Config {
       context: string;
       namespace: Namespace;
+      deployment: DeploymentName;
     }
 
     interface Context {
@@ -69,9 +71,11 @@ export class DeploymentCommand extends BaseCommand {
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
             await self.configManager.executePrompt(task, [flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.deployment]);
 
             ctx.config = {
               namespace: self.configManager.getFlag<Namespace>(flags.namespace),
+              deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -102,7 +106,7 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             const subTasks: SoloListrTask<Context>[] = [];
 
-            for (const cluster of self.localConfig.deployments[ctx.config.namespace].clusters) {
+            for (const cluster of self.localConfig.deployments[ctx.config.deployment].clusters) {
               const context = self.localConfig.clusterContextMapping?.[cluster];
               if (!context) continue;
 

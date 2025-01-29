@@ -3,6 +3,7 @@ deployments:
   deployment-1:
     clusterAliases:
       - cluster-1
+    namespace: solo-1
 currentDeploymentName: deployment-1
 clusterContextMapping:
   cluster-1: context-1

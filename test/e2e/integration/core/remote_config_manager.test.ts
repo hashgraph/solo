@@ -32,11 +32,13 @@ import {type K8} from '../../../../src/core/k8.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
-const namespace = 'remote-config-manager-e2e';
+const namespace = 'remote-config-manager-e2e-namespace';
+const deploymentName = 'remote-config-manager-e2e';
 const argv = getDefaultArgv();
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
 argv[flags.namespace.name] = namespace;
+argv[flags.deployment.name] = deploymentName;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterName.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
@@ -77,8 +79,8 @@ e2eTestSuite(
         remoteConfigManager = container.resolve(RemoteConfigManager);
 
         localConfig.userEmailAddress = email;
-        localConfig.deployments = {[namespace]: {clusters: [`kind-${namespace}`]}};
-        localConfig.currentDeploymentName = namespace;
+        localConfig.deployments = {[deploymentName]: {clusters: [`kind-${deploymentName}`], namespace}};
+        localConfig.currentDeploymentName = deploymentName;
 
         if (!fs.existsSync(testCacheDir)) {
           fs.mkdirSync(testCacheDir);

@@ -472,12 +472,15 @@ export const testLocalConfigData = {
   deployments: {
     deployment: {
       clusters: ['cluster-1'],
+      namespace: 'solo-1',
     },
     'deployment-2': {
       clusters: ['cluster-2'],
+      namespace: 'solo-1',
     },
     'deployment-3': {
       clusters: ['cluster-3'],
+      namespace: 'solo-1',
     },
   },
   currentDeploymentName: 'deployment',

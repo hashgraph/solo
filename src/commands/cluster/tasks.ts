@@ -32,7 +32,7 @@ import type {K8} from '../../core/k8.js';
 import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 import type {SelectClusterContextContext} from './configs.js';
-import type {Namespace} from '../../core/config/remote/types.js';
+import type {DeploymentName, Namespace} from '../../core/config/remote/types.js';
 import type {LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 
@@ -134,9 +134,14 @@ export class ClusterCommandTasks {
         const remoteClusterList: string[] = [];
 
         const namespace = remoteConfig.metadata.name;
+        let deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);
+        if (!deploymentName) {
+          deploymentName = await flags.deployment.prompt(task, deploymentName);
+        }
+
         localConfig.currentDeploymentName = remoteConfig.metadata.name;
 
-        if (localConfig.deployments[namespace]) {
+        if (localConfig.deployments[deploymentName]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
             if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
               remoteClusterList.push(cluster);
@@ -146,7 +151,7 @@ export class ClusterCommandTasks {
           localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
         } else {
           const clusters = Object.keys(remoteConfig.clusters);
-          localDeployments[namespace] = {clusters};
+          localDeployments[deploymentName] = {clusters, namespace};
           ctx.config.clusters = clusters;
         }
 
@@ -272,9 +277,10 @@ export class ClusterCommandTasks {
         this.parent.logger.info('Read local configuration settings...');
         const configManager = this.parent.getConfigManager();
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
-        const deploymentName: string = configManager.getFlag<Namespace>(flags.namespace);
+        const deploymentName: string = configManager.getFlag<DeploymentName>(flags.deployment);
         let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
+        const namespace = configManager.getFlag<Namespace>(flags.namespace);
         const localConfig = this.parent.getLocalConfig();
         let selectedContext: string;
         let selectedCluster: string;
@@ -315,6 +321,7 @@ export class ClusterCommandTasks {
               selectedCluster = this.parent.getK8().getCurrentClusterName();
               localConfig.deployments[deploymentName] = {
                 clusters: [selectedCluster],
+                namespace,
               };
 
               if (!localConfig.clusterContextMapping[selectedCluster]) {
