@@ -40,15 +40,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
 import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
-
-interface TDirectoryData {
-  directory: boolean;
-  owner: string;
-  group: string;
-  size: string;
-  modifiedAt: string;
-  name: string;
-}
+import type TDirectoryData from './kube/t_directory_data.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
