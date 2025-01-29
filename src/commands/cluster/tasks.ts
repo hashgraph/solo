@@ -369,7 +369,7 @@ export class ClusterCommandTasks {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       try {
         const clusterName = this.parent.getK8().getCurrentClusterName();
-        this.parent.logger.showUser(`Cluster Information (${clusterName})`);
+        this.parent.logger.showUser(`Cluster Name (${clusterName})`);
         this.parent.logger.showUser('\n');
       } catch (e: Error | unknown) {
         this.parent.logger.showUserError(e);
