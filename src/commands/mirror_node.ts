@@ -32,6 +32,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type {Optional, SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
+import chalk from 'chalk';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -409,8 +410,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
                       // Notify the user
                       self.logger.showUser(
-                        'Please run the following SQL script against the external database' +
-                          `to enable Mirror Node to function correctly: ${databaseSeedingQueryPath}`,
+                        chalk.cyan(
+                          'Please run the following SQL script against the external database ' +
+                            'to enable Mirror Node to function correctly:',
+                        ),
+                        chalk.yellow(databaseSeedingQueryPath),
                       );
 
                       return; //! stop the execution
