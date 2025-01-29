@@ -50,7 +50,7 @@ import type TDirectoryData from './kube/t_directory_data.js';
  */
 @injectable()
 export class K8 {
-  private _cachedContexts: Context[];
+  private cachedContexts: Context[];
 
   static PodReadyCondition = new Map<string, string>().set(
     constants.POD_CONDITION_READY,
@@ -63,7 +63,7 @@ export class K8 {
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
-    @inject(SoloLogger) public readonly logger?: SoloLogger,
+    @inject(SoloLogger) private readonly logger?: SoloLogger,
   ) {
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
@@ -330,11 +330,11 @@ export class K8 {
   }
 
   getContexts(): Context[] {
-    if (!this._cachedContexts) {
-      this._cachedContexts = this.kubeConfig.getContexts();
+    if (!this.cachedContexts) {
+      this.cachedContexts = this.kubeConfig.getContexts();
     }
 
-    return this._cachedContexts;
+    return this.cachedContexts;
   }
 
   /**
