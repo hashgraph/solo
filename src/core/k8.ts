@@ -1730,8 +1730,8 @@ export class K8 {
     return this.kubeConfig.getCurrentContext();
   }
 
-  public getCurrentContextObject(): Context {
-    return this.kubeConfig.getContextObject(this.getCurrentContext());
+  public getCurrentContextNamespace(): Namespace {
+    return this.kubeConfig.getContextObject(this.getCurrentContext())?.namespace;
   }
 
   public getCurrentClusterName(): string {
