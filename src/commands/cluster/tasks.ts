@@ -48,7 +48,7 @@ export class ClusterCommandTasks {
 
           localConfig.clusterContextMapping[cluster] = context;
         }
-        if (!(await self.parent.getK8().testClusterConnection(context, cluster))) {
+        if (!(await self.parent.getK8().testContextConnection(context))) {
           subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
           throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
         }
@@ -322,7 +322,7 @@ export class ClusterCommandTasks {
           }
         }
 
-        const connectionValid = await this.parent.getK8().testClusterConnection(selectedContext, selectedCluster);
+        const connectionValid = await this.parent.getK8().testContextConnection(selectedContext);
         if (!connectionValid) {
           throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext, selectedCluster));
         }

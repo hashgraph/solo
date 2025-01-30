@@ -2,15 +2,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
+import {type Context, type V1Lease, V1ObjectMeta, V1Secret, type V1Pod} from '@kubernetes/client-node';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
 import path from 'path';
 import {Flags as flags} from '../commands/flags.js';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as tar from 'tar';
 import {v4 as uuid4} from 'uuid';
-import {type V1Lease, V1ObjectMeta, V1Secret, type Context, type V1Pod} from '@kubernetes/client-node';
 import * as stream from 'node:stream';
 import type * as http from 'node:http';
 import type * as WebSocket from 'ws';
@@ -26,7 +26,6 @@ import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
-import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import type TDirectoryData from './kube/t_directory_data.js';
 
 /**
@@ -233,22 +232,6 @@ export class K8 {
     );
 
     return result.body.items;
-  }
-
-  /**
-   * Get host IP of a podName
-   * @param podNameName -  name of the podName
-   * @returns podName IP
-   */
-  public async getPodIP(podNameName: string) {
-    const pod = await this.getPodByName(podNameName);
-    if (pod && pod.status && pod.status.podIP) {
-      this.logger.debug(`Found pod IP for ${podNameName}: ${pod.status.podIP}`);
-      return pod.status.podIP;
-    }
-
-    this.logger.debug(`Unable to find pod IP for ${podNameName}`);
-    throw new SoloError(`unable to find host IP of podName: ${podNameName}`);
   }
 
   /**
@@ -873,29 +856,6 @@ export class K8 {
   }
 
   /**
-   * to test the connection to a pod within the network
-   * @param host - the host of the target connection
-   * @param port - the port of the target connection
-   */
-  public testSocketConnection(host: string, port: number) {
-    const self = this;
-
-    return new Promise<boolean>((resolve, reject) => {
-      const s = new net.Socket();
-      s.on('error', e => {
-        s.destroy();
-        reject(new SoloError(`failed to connect to '${host}:${port}': ${e.message}`, e));
-      });
-
-      s.connect(port, host, () => {
-        self.logger.debug(`Connection test successful: ${host}:${port}`);
-        s.destroy();
-        resolve(true);
-      });
-    });
-  }
-
-  /**
    * Stop the port forwarder server
    *
    * @param server - an instance of server returned by portForward method
@@ -1179,7 +1139,7 @@ export class K8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
-  public async testClusterConnection(context: string, cluster: string): Promise<boolean> {
+  public async testContextConnection(context: string): Promise<boolean> {
     this.kubeConfig.setCurrentContext(context);
 
     const tempKubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);

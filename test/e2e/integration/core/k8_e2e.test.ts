@@ -164,13 +164,6 @@ describe('K8', () => {
     expect(pods).to.have.lengthOf(1);
   }).timeout(defaultTimeout);
 
-  it('should be able to detect pod IP of a pod', async () => {
-    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`]);
-    const podName = pods[0].metadata.name;
-    await expect(k8.getPodIP(podName)).to.eventually.not.be.null;
-    await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError);
-  }).timeout(defaultTimeout);
-
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`]);
     const podName = pods[0].metadata.name;
