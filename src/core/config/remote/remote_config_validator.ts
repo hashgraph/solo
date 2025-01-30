@@ -4,7 +4,7 @@
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors.js';
 
-import type {K8} from '../../k8.js';
+import type K8 from '../../kube/k8.js';
 import type {ComponentsDataWrapper} from './components_data_wrapper.js';
 import type {BaseComponent} from './components/base_component.js';
 

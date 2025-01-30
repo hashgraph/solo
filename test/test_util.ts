@@ -28,7 +28,7 @@ import {SoloLogger} from '../src/core/logging.js';
 import type {BaseCommand} from '../src/commands/base.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';
-import {K8} from '../src/core/k8.js';
+import type K8 from '../src/core/kube/k8.js';
 import {AccountManager} from '../src/core/account_manager.js';
 import {PlatformInstaller} from '../src/core/platform_installer.js';
 import {ProfileManager} from '../src/core/profile_manager.js';
@@ -134,7 +134,7 @@ export function bootstrapTestVariables(
   const helm = container.resolve(Helm);
   const chartManager = container.resolve(ChartManager);
   const keyManager = container.resolve(KeyManager);
-  const k8 = k8Arg || container.resolve(K8);
+  const k8 = k8Arg || container.resolve('K8');
   const accountManager = container.resolve(AccountManager);
   const platformInstaller = container.resolve(PlatformInstaller);
   const profileManager = container.resolve(ProfileManager);
@@ -437,7 +437,7 @@ async function addKeyHashToMap(
 
 export function getK8Instance(configManager: ConfigManager) {
   try {
-    return container.resolve(K8);
+    return container.resolve('K8');
     // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
   } catch (e) {
     if (!(e instanceof SoloError)) {
@@ -451,7 +451,7 @@ export function getK8Instance(configManager: ConfigManager) {
 
     // Create cluster
     execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, {stdio: 'inherit'});
-    return container.resolve(K8);
+    return container.resolve('K8');
   }
 }
 

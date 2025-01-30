@@ -7,7 +7,7 @@ import * as path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
-import {K8} from './k8.js';
+import type K8 from '../core/kube/k8.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
@@ -25,11 +25,11 @@ import {patchInject} from './container_helper.js';
 export class PlatformInstaller {
   constructor(
     @inject(SoloLogger) private logger?: SoloLogger,
-    @inject(K8) private k8?: K8,
+    @inject('K8') private k8?: K8,
     @inject(ConfigManager) private configManager?: ConfigManager,
   ) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 

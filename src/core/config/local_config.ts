@@ -12,7 +12,7 @@ import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js
 import {ConfigManager} from '../config_manager.js';
 import type {EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import type {K8} from '../k8.js';
+import type K8 from '../../core/kube/k8.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';

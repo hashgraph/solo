@@ -15,7 +15,7 @@ import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {type K8} from '../../../../src/core/k8.js';
+import type K8 from '../../../../src/core/kube/k8.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 

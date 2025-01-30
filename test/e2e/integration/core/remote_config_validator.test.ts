@@ -6,7 +6,8 @@ import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
-import {K8} from '../../../../src/core/k8.js';
+import type K8 from '../../../../src/core/kube/k8.js';
+import {type K8Client} from '../../../../src/core/kube/k8_client.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {V1Container, V1ExecAction, V1ObjectMeta, V1Pod, V1PodSpec, V1Probe} from '@kubernetes/client-node';
@@ -28,12 +29,12 @@ describe('RemoteConfigValidator', () => {
   const namespace = 'remote-config-validator';
 
   let configManager: ConfigManager;
-  let k8: K8;
+  let k8: K8Client;
 
   before(async () => {
     configManager = container.resolve(ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
-    k8 = container.resolve(K8);
+    k8 = container.resolve('K8') as K8Client;
     await k8.createNamespace(namespace);
   });
 

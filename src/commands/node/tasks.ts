@@ -6,7 +6,7 @@ import type {ConfigManager} from '../../core/config_manager.js';
 import type {KeyManager} from '../../core/key_manager.js';
 import type {ProfileManager} from '../../core/profile_manager.js';
 import type {PlatformInstaller} from '../../core/platform_installer.js';
-import type {K8} from '../../core/k8.js';
+import type K8 from '../../core/kube/k8.js';
 import type {ChartManager} from '../../core/chart_manager.js';
 import type {CertificateManager} from '../../core/certificate_manager.js';
 import {Zippy} from '../../core/zippy.js';

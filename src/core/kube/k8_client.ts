@@ -1552,4 +1552,17 @@ export class K8Client implements K8 {
     if (!currentCluster) return '';
     return currentCluster.name;
   }
+
+  public async listSvcs(namespace: string, labels: string[]): Promise<k8s.V1Service[]> {
+    const labelSelector = labels.join(',');
+    const serviceList = await this.kubeClient.listNamespacedService(
+      namespace,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      labelSelector,
+    );
+    return serviceList.body.items;
+  }
 }
