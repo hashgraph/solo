@@ -210,12 +210,8 @@ export class K8 implements TK8 {
     return result.body.items;
   }
 
-  /**
-   * Get secrets by labels
-   * @param labels - list of labels
-   */
-  public async getSecretsByLabel(labels: string[] = []) {
-    const ns = this.getNamespace();
+  public async getSecretsByLabel(labels: string[] = [], namespace?: string) {
+    const ns = namespace || this.getNamespace();
     const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedSecret(
       ns,
@@ -224,6 +220,11 @@ export class K8 implements TK8 {
       undefined,
       undefined,
       labelSelector,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      Duration.ofMinutes(5).toMillis(),
     );
 
     return result.body.items;
@@ -1019,24 +1020,12 @@ export class K8 implements TK8 {
    * @param [labels] - labels
    * @returns list of secret names
    */
+  // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
   public async listSecretsByNamespace(namespace: string, labels: string[] = []) {
     const secrets: string[] = [];
-    const labelSelector = labels.join(',');
-    const resp = await this.kubeClient.listNamespacedSecret(
-      namespace,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      Duration.ofMinutes(5).toMillis(),
-    );
+    const items = await this.getSecretsByLabel(labels, namespace);
 
-    for (const item of resp.body.items) {
+    for (const item of items) {
       secrets.push(item.metadata!.name as string);
     }
 
@@ -1071,23 +1060,13 @@ export class K8 implements TK8 {
    * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
    *   objects must be base64 decoded
    */
+  // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
   public async getSecret(namespace: string, labelSelector: string) {
-    const result = await this.kubeClient.listNamespacedSecret(
-      namespace,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      Duration.ofMinutes(5).toMillis(),
-    );
+    const labels = labelSelector.split(',');
+    const items = await this.getSecretsByLabel(labels, namespace);
 
-    if (result.response.statusCode === StatusCodes.OK && result.body.items && result.body.items.length > 0) {
-      const secretObject = result.body.items[0];
+    if (items.length > 0) {
+      const secretObject = items[0];
       return {
         name: secretObject.metadata!.name as string,
         labels: secretObject.metadata!.labels as Record<string, string>,
@@ -1099,16 +1078,6 @@ export class K8 implements TK8 {
     return null;
   }
 
-  /**
-   * creates a new Kubernetes secret with the provided attributes
-   * @param name - the name of the new secret
-   * @param namespace - the namespace to store the secret
-   * @param secretType - the secret type
-   * @param data - the secret, any values of a key:value pair must be base64 encoded
-   * @param labels - the label to use for future label selector queries
-   * @param recreate - if we should first run delete in the case that there the secret exists from a previous install
-   * @returns whether the secret was created successfully
-   */
   public async createSecret(
     name: string,
     namespace: string,
@@ -1146,12 +1115,6 @@ export class K8 implements TK8 {
     }
   }
 
-  /**
-   * Delete a secret from the namespace
-   * @param name - the name of the existing secret
-   * @param namespace - the namespace to store the secret
-   * @returns whether the secret was deleted successfully
-   */
   public async deleteSecret(name: string, namespace: string) {
     const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace);
     return resp.response.statusCode === StatusCodes.OK;
