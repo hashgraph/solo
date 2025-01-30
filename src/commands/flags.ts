@@ -1442,7 +1442,7 @@ export class Flags {
     name: 'deployment',
     definition: {
       describe: 'The name of the deployment. It is only intended for local usage.',
-      defaultValue: 'solo-deployment',
+      defaultValue: '',
       type: 'string',
     },
     prompt: async function promptDeployment(task: ListrTaskWrapper<any, any, any>, input: any) {

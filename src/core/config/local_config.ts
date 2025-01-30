@@ -28,7 +28,7 @@ import {MissingArgumentError, SoloError} from '../errors.js';
 import {SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
 import {ConfigManager} from '../config_manager.js';
-import type {DeploymentName, EmailAddress} from './remote/types.js';
+import type {DeploymentName, EmailAddress, Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../k8.js';
 import {splitFlagInput} from '../helpers.js';
@@ -176,7 +176,7 @@ export class LocalConfig implements LocalConfigData {
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
         const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
-        const namespace = self.configManager.getFlag<DeploymentName>(flags.namespace);
+        const namespace = self.configManager.getFlag<Namespace>(flags.namespace);
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
 

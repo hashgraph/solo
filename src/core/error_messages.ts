@@ -30,4 +30,6 @@ export const ErrorMessages = {
     `The remote configurations in clusters ${cluster1} and ${cluster2} do not match. They need to be synced manually. Please select a valid context for the cluster or use kubectl to create a new context and try again.`,
   REMOTE_CONFIG_IS_INVALID: (cluster: string) =>
     `The remote configuration in cluster ${cluster} is invalid and needs to be fixed manually`,
+  DEPLOYMENT_NAME_ALREADY_EXISTS: (deploymentName: string) =>
+    `A deployment named ${deploymentName} already exists. Please select a different name`,
 };

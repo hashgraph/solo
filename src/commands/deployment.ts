@@ -27,6 +27,8 @@ import type {CommandFlag} from '../types/flag_types.js';
 import type {CommandBuilder} from '../types/aliases.js';
 import type {SoloListrTask} from '../types/index.js';
 import type {Opts} from '../types/command_types.js';
+import {ErrorMessages} from '../core/error_messages.js';
+import {splitFlagInput} from '../core/helpers.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -56,6 +58,7 @@ export class DeploymentCommand extends BaseCommand {
       context: string;
       namespace: Namespace;
       deployment: DeploymentName;
+      deploymentClusters: string[];
     }
 
     interface Context {
@@ -70,12 +73,17 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [flags.namespace]);
-            await self.configManager.executePrompt(task, [flags.deployment]);
+            await self.configManager.executePrompt(task, [flags.namespace, flags.deployment, flags.deploymentClusters]);
+            const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
+
+            if (self.localConfig.deployments[deploymentName]) {
+              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(deploymentName));
+            }
 
             ctx.config = {
               namespace: self.configManager.getFlag<Namespace>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
+              deploymentClusters: splitFlagInput(self.configManager.getFlag<string>(flags.deploymentClusters)),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -83,6 +91,19 @@ export class DeploymentCommand extends BaseCommand {
         },
         this.setupHomeDirectoryTask(),
         this.localConfig.promptLocalConfigTask(self.k8),
+        {
+          title: 'Add new deployment to local config',
+          task: async (ctx, task) => {
+            const {deployments} = this.localConfig;
+            const {deployment, namespace, deploymentClusters} = ctx.config;
+            deployments[deployment] = {
+              namespace,
+              clusters: deploymentClusters,
+            };
+            this.localConfig.setDeployments(deployments);
+            await this.localConfig.write();
+          },
+        },
         this.tasks.selectContext(),
         {
           title: 'Validate context',
@@ -139,7 +160,7 @@ export class DeploymentCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (e: Error | unknown) {
-      throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
+      throw new SoloError('Error creating deployment', e);
     }
 
     return true;
