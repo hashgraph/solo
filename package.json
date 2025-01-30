@@ -65,7 +65,7 @@
     "ip": "^2.0.1",
     "js-base64": "^3.7.7",
     "listr2": "^8.2.5",
-    "semver": "^7.6.3",
+    "semver": "^7.7.0",
     "stream-buffers": "^3.0.3",
     "tar": "^7.4.3",
     "tsyringe-neo": "^5.1.0",
