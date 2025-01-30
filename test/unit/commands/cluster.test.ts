@@ -146,7 +146,7 @@ describe('ClusterCommand unit tests', () => {
       // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
       stubbedFlags: Record<CommandFlag, any>[] = [],
       opts: any = {
-        testClusterConnectionError: false,
+        testContextConnectionError: false,
       },
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
@@ -156,10 +156,10 @@ describe('ClusterCommand unit tests', () => {
       k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
 
-      if (opts.testClusterConnectionError) {
-        k8Stub.testClusterConnection.resolves(false);
+      if (opts.testContextConnectionError) {
+        k8Stub.testContextConnection.resolves(false);
       } else {
-        k8Stub.testClusterConnection.resolves(true);
+        k8Stub.testContextConnection.resolves(true);
       }
 
       const kubeConfigClusterObject = {
@@ -465,7 +465,7 @@ describe('ClusterCommand unit tests', () => {
 
       it('throws error when context is invalid', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.context, 'invalid-context']], {
-          testClusterConnectionError: true,
+          testContextConnectionError: true,
         });
 
         try {
@@ -545,8 +545,8 @@ describe('ClusterCommand unit tests', () => {
         await runSubTasks(subTasks);
         expect(contextPromptStub).not.called;
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-2');
-        expect(command.getK8().testClusterConnection).calledOnce;
-        expect(command.getK8().testClusterConnection).calledWith('context-2', 'cluster-2');
+        expect(command.getK8().testContextConnection).calledOnce;
+        expect(command.getK8().testContextConnection).calledWith('context-2');
       });
 
       it('should prompt for context when reading unknown cluster', async () => {
@@ -564,8 +564,8 @@ describe('ClusterCommand unit tests', () => {
         await runSubTasks(subTasks);
         expect(contextPromptStub).calledOnce;
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('prompted-context');
-        expect(command.getK8().testClusterConnection).calledOnce;
-        expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+        expect(command.getK8().testContextConnection).calledOnce;
+        expect(command.getK8().testContextConnection).calledWith('prompted-context');
       });
 
       it('should throw error for invalid prompted context', async () => {
@@ -575,7 +575,7 @@ describe('ClusterCommand unit tests', () => {
             'cluster-4': 'deployment',
           },
         });
-        const opts = getBaseCommandOpts(sandbox, remoteConfig, [], {testClusterConnectionError: true});
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, [], {testContextConnectionError: true});
         command = await runReadClustersFromRemoteConfigTask(opts);
         expect(taskStub.newListr).calledOnce;
         const subTasks = taskStub.newListr.firstCall.firstArg;
@@ -586,8 +586,8 @@ describe('ClusterCommand unit tests', () => {
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED('prompted-context', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
-          expect(command.getK8().testClusterConnection).calledOnce;
-          expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+          expect(command.getK8().testContextConnection).calledOnce;
+          expect(command.getK8().testContextConnection).calledWith('prompted-context');
         }
       });
 
@@ -615,8 +615,8 @@ describe('ClusterCommand unit tests', () => {
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH('cluster-3', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
-          expect(command.getK8().testClusterConnection).calledOnce;
-          expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+          expect(command.getK8().testContextConnection).calledOnce;
+          expect(command.getK8().testContextConnection).calledWith('prompted-context');
         }
       });
     });

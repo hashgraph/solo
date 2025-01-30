@@ -96,7 +96,7 @@ export class DeploymentCommand extends BaseCommand {
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
                 task: async (_, task) => {
-                  if (!(await self.k8.testClusterConnection(context, cluster))) {
+                  if (!(await self.k8.testContextConnection(context))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
 
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
