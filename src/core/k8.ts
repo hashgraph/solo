@@ -1269,6 +1269,8 @@ export class K8 implements TK8 {
    * Check if cert-manager is installed inside any namespace.
    * @returns if cert-manager is found
    */
+  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
+  //  - ClusterChecks ? SOLID principles, single responsibility
   public async isCertManagerInstalled(): Promise<boolean> {
     try {
       const pods = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, 'app=cert-manager');
@@ -1285,6 +1287,8 @@ export class K8 implements TK8 {
    * Check if minio is installed inside the namespace.
    * @returns if minio is found
    */
+  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
+  //  - ClusterChecks ? SOLID principles, single responsibility
   public async isMinioInstalled(namespace: Namespace): Promise<boolean> {
     try {
       // TODO DETECT THE OPERATOR
@@ -1309,6 +1313,8 @@ export class K8 implements TK8 {
    * Check if the ingress controller is installed inside any namespace.
    * @returns if ingress controller is found
    */
+  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
+  //  - ClusterChecks ? SOLID principles, single responsibility
   public async isIngressControllerInstalled(): Promise<boolean> {
     try {
       const response = await this.networkingApi.listIngressClass();
@@ -1321,6 +1327,8 @@ export class K8 implements TK8 {
     }
   }
 
+  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
+  //  - ClusterChecks ? SOLID principles, single responsibility
   public async isRemoteConfigPresentInAnyNamespace() {
     try {
       const configmaps = await this.kubeClient.listConfigMapForAllNamespaces(
@@ -1338,6 +1346,8 @@ export class K8 implements TK8 {
     }
   }
 
+  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
+  //  - ClusterChecks ? SOLID principles, single responsibility
   public async isPrometheusInstalled(namespace: Namespace) {
     try {
       const pods = await this.kubeClient.listNamespacedPod(
