@@ -989,12 +989,6 @@ export class K8 implements TK8 {
     );
   }
 
-  /**
-   * Get a list of persistent volume claim names for the given namespace
-   * @param namespace - the namespace of the persistent volume claims to return
-   * @param [labels] - labels
-   * @returns list of persistent volume claim names
-   */
   public async listPvcsByNamespace(namespace: string, labels: string[] = []) {
     const pvcs: string[] = [];
     const labelSelector = labels.join(',');
@@ -1049,12 +1043,6 @@ export class K8 implements TK8 {
     return secrets;
   }
 
-  /**
-   * Delete a persistent volume claim
-   * @param name - the name of the persistent volume claim to delete
-   * @param namespace - the namespace of the persistent volume claim to delete
-   * @returns true if the persistent volume claim was deleted
-   */
   public async deletePvc(name: string, namespace: string) {
     const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(name, namespace);
 
