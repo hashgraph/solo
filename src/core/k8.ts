@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
-import {type Context, type V1Lease, V1ObjectMeta, V1Secret, type V1Pod} from '@kubernetes/client-node';
+import {type Context, type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
 import fs from 'fs';
 import net from 'net';
 import os from 'os';
@@ -17,16 +17,18 @@ import type * as WebSocket from 'ws';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 import {sleep} from './helpers.js';
 import * as constants from './constants.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import {SoloLogger} from './logging.js';
 import type {PodName, TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
+import type TK8 from './kube/tk8.js';
 import type TDirectoryData from './kube/t_directory_data.js';
+import {type Namespaces} from './kube/namespaces.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -34,8 +36,9 @@ import type TDirectoryData from './kube/t_directory_data.js';
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
+// TODO rename to K8Client and move to kube folder
 @injectable()
-export class K8 {
+export class K8 implements TK8 {
   private cachedContexts: Context[];
 
   static PodReadyCondition = new Map<string, string>().set(
@@ -57,7 +60,8 @@ export class K8 {
     this.init();
   }
 
-  init() {
+  // TODO make private, but first we need to require a cluster to be set and address the test cases using this
+  init(): TK8 {
     this.kubeConfig = new k8s.KubeConfig();
     this.kubeConfig.loadFromDefault();
 
@@ -74,6 +78,11 @@ export class K8 {
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
     return this; // to enable chaining
+  }
+
+  // TODO in the future this will return the namespaces class instance for fluent pattern
+  public namespaces(): Namespaces {
+    return null;
   }
 
   /**
@@ -124,6 +133,7 @@ export class K8 {
    * @param name - name of the namespace
    */
   public async createNamespace(name: string) {
+    // TODO what should the name be if want to create multiple namespaces (theoretical and bad example): createMany(...)
     const payload = {
       metadata: {
         name,
@@ -132,6 +142,8 @@ export class K8 {
 
     const resp = await this.kubeClient.createNamespace(payload);
     return resp.response.statusCode === StatusCodes.CREATED;
+    // TODO future, the below line will be used, the above will move into the create method in the namespaces class
+    // return this.namespaces().create(name);
   }
 
   /**
@@ -313,6 +325,25 @@ export class K8 {
    * @returns a promise that returns array of directory entries, custom object
    */
   public async listDir(podName: PodName, containerName: string, destPath: string) {
+    // TODO future, return the following
+    // return this.pods.byName(podName).listDir(containerName, destPath);
+    // byName(podName) can use an underlying cache to avoid multiple calls to the API
+    // caching can be added later, it doesn't have to be done right away
+    // byLabel(label) can also cache/lazy initialize if desired
+    // pods are qualified by namespace, so we should really also be passing namespace
+    // string is also an object with a large prototype, same weight as a class instance
+    // PodName can be turned into a class that we can use for the parameters for more control.
+    // PodName.of(namespace, podName)
+    // TODO - make namespace first on all of the methods
+    // TODO - create ContainerName for the containerName, validate the containerName.  ContainerName.of(containerName)
+    //  - to avoid having to do (new ContainerName(containerName))
+    //  - NamespaceName.of(namespace)
+    //  - PodRef.of(namespace, podName)
+    //  - ContainerRef.of(podRef, containerName)
+    //  - ContainerRef.of(PodRef.of(namespace, podName), containerName)
+    //  - namespace is coming from user and should definitely be validate and kick back if it is invalid
+    // below implementation moves to K8Pod class, current usage would still compile.
+
     try {
       const output = (await this.execContainer(podName, containerName, ['ls', '-la', destPath])) as string;
       if (!output) return [];
@@ -1139,6 +1170,7 @@ export class K8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
+  // TODO this can be removed once K8 is context/cluster specific when instantiating
   public async testContextConnection(context: string): Promise<boolean> {
     this.kubeConfig.setCurrentContext(context);
 
@@ -1583,6 +1615,7 @@ export class K8 {
    * @param namespace - the namespace of the network
    * @returns a promise that resolves when the logs are downloaded
    */
+  // TODO move this to new class src/core/NetworkNodes.getLogs()
   public async getNodeLogs(namespace: string) {
     const pods = await this.getPodsByLabel(['solo.hedera.com/type=network-node']);
 
@@ -1665,6 +1698,7 @@ export class K8 {
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }
 
+  // TODO make private once we are instantiating multiple K8 instances
   public setCurrentContext(context: string) {
     this.kubeConfig.setCurrentContext(context);
 
