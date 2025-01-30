@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
@@ -28,7 +15,6 @@ import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import type {RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {K8} from '../../core/k8.js';
-import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 import type {SelectClusterContextContext} from './configs.js';
 import type {Namespace} from '../../core/config/remote/types.js';
@@ -84,7 +70,7 @@ export class ClusterCommandTasks {
 
           localConfig.clusterContextMapping[cluster] = context;
         }
-        if (!(await self.k8.testClusterConnection(context, cluster))) {
+        if (!(await self.k8.testContextConnection(context))) {
           subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
           throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
         }
@@ -94,7 +80,7 @@ export class ClusterCommandTasks {
 
   public validateRemoteConfigForCluster(
     cluster: string,
-    currentCluster: Cluster,
+    currentClusterName: string,
     localConfig: LocalConfig,
     currentRemoteConfig: RemoteConfigDataWrapper,
   ) {
@@ -106,7 +92,7 @@ export class ClusterCommandTasks {
         self.k8.setCurrentContext(context);
         const remoteConfigFromOtherCluster = await self.remoteConfigManager.get();
         if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
-          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentCluster.name, cluster));
+          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentClusterName, cluster));
         }
       },
     };
@@ -118,7 +104,6 @@ export class ClusterCommandTasks {
       title: 'Read clusters from remote config',
       task: async (ctx, task) => {
         const localConfig = this.localConfig;
-        const currentCluster = this.k8.getCurrentCluster();
         const currentClusterName = this.k8.getCurrentClusterName();
         const currentRemoteConfig: RemoteConfigDataWrapper = await this.remoteConfigManager.get();
         const subTasks = [];
@@ -132,7 +117,9 @@ export class ClusterCommandTasks {
 
         // Pull and validate RemoteConfigs from the other clusters
         for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(self.validateRemoteConfigForCluster(cluster, currentCluster, localConfig, currentRemoteConfig));
+          subTasks.push(
+            self.validateRemoteConfigForCluster(cluster, currentClusterName, localConfig, currentRemoteConfig),
+          );
         }
 
         return task.newListr(subTasks, {
@@ -218,12 +205,8 @@ export class ClusterCommandTasks {
   }
 
   private async promptForContext(task: SoloListrTaskWrapper<SelectClusterContextContext>, cluster: string) {
-    const kubeContexts = this.k8.getContexts();
-    return flags.context.prompt(
-      task,
-      kubeContexts.map(c => c.name),
-      cluster,
-    );
+    const kubeContexts = this.k8.getContextNames();
+    return flags.context.prompt(task, kubeContexts, cluster);
   }
 
   private async selectContextForFirstCluster(
@@ -358,7 +341,7 @@ export class ClusterCommandTasks {
           }
         }
 
-        const connectionValid = await this.k8.testClusterConnection(selectedContext, selectedCluster);
+        const connectionValid = await this.k8.testContextConnection(selectedContext);
         if (!connectionValid) {
           throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext, selectedCluster));
         }
@@ -391,8 +374,8 @@ export class ClusterCommandTasks {
   public getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       try {
-        const cluster = this.k8.getCurrentCluster();
-        this.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
+        const clusterName = this.k8.getCurrentClusterName();
+        this.logger.showUser(`Cluster Name (${clusterName})`);
         this.logger.showUser('\n');
       } catch (e: Error | unknown) {
         this.logger.showUserError(e);

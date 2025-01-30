@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import sinon from 'sinon';
 import {describe, it, beforeEach} from 'mocha';
@@ -159,24 +146,20 @@ describe('ClusterCommand unit tests', () => {
       // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
       stubbedFlags: Record<CommandFlag, any>[] = [],
       opts: any = {
-        testClusterConnectionError: false,
+        testContextConnectionError: false,
       },
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
       k8Stub = sandbox.createStubInstance(K8);
-      k8Stub.getContexts.returns([
-        {cluster: 'cluster-1', user: 'user-1', name: 'context-1', namespace: 'deployment-1'},
-        {cluster: 'cluster-2', user: 'user-2', name: 'context-2', namespace: 'deployment-2'},
-        {cluster: 'cluster-3', user: 'user-3', name: 'context-3', namespace: 'deployment-3'},
-      ]);
+      k8Stub.getContextNames.returns(['context-1', 'context-2', 'context-3']);
       k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
       k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
 
-      if (opts.testClusterConnectionError) {
-        k8Stub.testClusterConnection.resolves(false);
+      if (opts.testContextConnectionError) {
+        k8Stub.testContextConnection.resolves(false);
       } else {
-        k8Stub.testClusterConnection.resolves(true);
+        k8Stub.testContextConnection.resolves(true);
       }
 
       const kubeConfigClusterObject = {
@@ -199,7 +182,6 @@ describe('ClusterCommand unit tests', () => {
       remoteConfigManagerStub.get.resolves(remoteConfig);
 
       k8Stub.getCurrentClusterName.returns(kubeConfigClusterObject.name);
-      k8Stub.getCurrentCluster.returns(kubeConfigClusterObject);
       k8Stub.getCurrentContext.returns('context-from-kubeConfig');
 
       const configManager = sandbox.createStubInstance(ConfigManager);
@@ -500,7 +482,7 @@ describe('ClusterCommand unit tests', () => {
 
       it('throws error when context is invalid', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.context, 'invalid-context']], {
-          testClusterConnectionError: true,
+          testContextConnectionError: true,
         });
 
         try {
@@ -580,8 +562,8 @@ describe('ClusterCommand unit tests', () => {
         await runSubTasks(subTasks);
         expect(contextPromptStub).not.called;
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-2');
-        expect(command.getK8().testClusterConnection).calledOnce;
-        expect(command.getK8().testClusterConnection).calledWith('context-2', 'cluster-2');
+        expect(command.getK8().testContextConnection).calledOnce;
+        expect(command.getK8().testContextConnection).calledWith('context-2');
       });
 
       it('should prompt for context when reading unknown cluster', async () => {
@@ -599,8 +581,8 @@ describe('ClusterCommand unit tests', () => {
         await runSubTasks(subTasks);
         expect(contextPromptStub).calledOnce;
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('prompted-context');
-        expect(command.getK8().testClusterConnection).calledOnce;
-        expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+        expect(command.getK8().testContextConnection).calledOnce;
+        expect(command.getK8().testContextConnection).calledWith('prompted-context');
       });
 
       it('should throw error for invalid prompted context', async () => {
@@ -610,7 +592,7 @@ describe('ClusterCommand unit tests', () => {
             'cluster-4': 'deployment',
           },
         });
-        const opts = getBaseCommandOpts(sandbox, remoteConfig, [], {testClusterConnectionError: true});
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, [], {testContextConnectionError: true});
         command = await runReadClustersFromRemoteConfigTask(opts);
         expect(taskStub.newListr).calledOnce;
         const subTasks = taskStub.newListr.firstCall.firstArg;
@@ -621,8 +603,8 @@ describe('ClusterCommand unit tests', () => {
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED('prompted-context', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
-          expect(command.getK8().testClusterConnection).calledOnce;
-          expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+          expect(command.getK8().testContextConnection).calledOnce;
+          expect(command.getK8().testContextConnection).calledWith('prompted-context');
         }
       });
 
@@ -650,8 +632,8 @@ describe('ClusterCommand unit tests', () => {
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH('cluster-3', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
-          expect(command.getK8().testClusterConnection).calledOnce;
-          expect(command.getK8().testClusterConnection).calledWith('prompted-context', 'cluster-4');
+          expect(command.getK8().testContextConnection).calledOnce;
+          expect(command.getK8().testContextConnection).calledWith('prompted-context');
         }
       });
     });

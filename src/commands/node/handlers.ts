@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import * as helpers from '../../core/helpers.js';
@@ -41,12 +28,12 @@ import {RemoteConfigManager} from '../../core/config/remote/remote_config_manage
 import {SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {NodeCommandTasks} from './tasks.js';
-import {type Lease} from '../../core/lease/lease.js';
+import type {Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
 import type {NodeAlias, NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
-import {type Listr, type ListrTask} from 'listr2';
+import type {Listr, ListrTask} from 'listr2';
 import chalk from 'chalk';
 import type {ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import type {Optional} from '../../types/index.js';
