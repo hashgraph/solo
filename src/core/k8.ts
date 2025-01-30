@@ -128,10 +128,6 @@ export class K8 implements TK8 {
     return filtered[0];
   }
 
-  /**
-   * Create a new namespace
-   * @param name - name of the namespace
-   */
   public async createNamespace(name: string) {
     // TODO what should the name be if want to create multiple namespaces (theoretical and bad example): createMany(...)
     const payload = {
