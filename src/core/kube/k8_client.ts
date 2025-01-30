@@ -7,28 +7,28 @@ import fs from 'fs';
 import net from 'net';
 import os from 'os';
 import path from 'path';
-import {Flags as flags} from '../commands/flags.js';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
+import {Flags as flags} from '../../commands/flags.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from './../errors.js';
 import * as tar from 'tar';
 import {v4 as uuid4} from 'uuid';
 import * as stream from 'node:stream';
 import type * as http from 'node:http';
 import type * as WebSocket from 'ws';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
-import {sleep} from './helpers.js';
-import * as constants from './constants.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
-import {ConfigManager} from './config_manager.js';
-import {SoloLogger} from './logging.js';
-import type {PodName, TarCreateFilter} from '../types/aliases.js';
-import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
-import {Duration} from './time/duration.js';
+import {sleep} from './../helpers.js';
+import * as constants from './../constants.js';
+import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './../constants.js';
+import {ConfigManager} from './../config_manager.js';
+import {SoloLogger} from './../logging.js';
+import type {PodName, TarCreateFilter} from '../../types/aliases.js';
+import type {ExtendedNetServer, LocalContextObject, Optional} from '../../types/index.js';
+import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
-import type {Namespace} from './config/remote/types.js';
-import type TK8 from './kube/tk8.js';
-import type TDirectoryData from './kube/t_directory_data.js';
-import {type Namespaces} from './kube/namespaces.js';
+import {patchInject} from './../container_helper.js';
+import type {Namespace} from './../config/remote/types.js';
+import type K8 from './k8.js';
+import type TDirectoryData from './t_directory_data.js';
+import {type Namespaces} from './namespaces.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -38,7 +38,7 @@ import {type Namespaces} from './kube/namespaces.js';
  */
 // TODO rename to K8Client and move to kube folder
 @injectable()
-export class K8 implements TK8 {
+export class K8Client implements K8 {
   private cachedContexts: Context[];
 
   static PodReadyCondition = new Map<string, string>().set(
@@ -61,7 +61,7 @@ export class K8 implements TK8 {
   }
 
   // TODO make private, but first we need to require a cluster to be set and address the test cases using this
-  init(): TK8 {
+  init(): K8 {
     this.kubeConfig = new k8s.KubeConfig();
     this.kubeConfig.loadFromDefault();
 
@@ -930,7 +930,14 @@ export class K8 implements TK8 {
 
   public async waitForPodReady(labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500, namespace?: string) {
     try {
-      return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay, namespace);
+      return await this.waitForPodConditions(
+        K8Client.PodReadyCondition,
+        labels,
+        podCount,
+        maxAttempts,
+        delay,
+        namespace,
+      );
     } catch (e: Error | unknown) {
       throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e);
     }
