@@ -28,7 +28,6 @@ import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import type {BaseCommand} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import type {CommandFlag} from '../../../src/types/flag_types.js';
-import type K8 from '../../../src/core/kube/k8.js';
 import {K8Client} from '../../../src/core/kube/k8_client.js';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
