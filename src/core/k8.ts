@@ -230,10 +230,6 @@ export class K8 implements TK8 {
     return result.body.items;
   }
 
-  /**
-   * Get a svc by name
-   * @param name - svc name
-   */
   public async getSvcByName(name: string): Promise<k8s.V1Service> {
     const ns = this.getNamespace();
     const fieldSelector = `metadata.name=${name}`;
