@@ -101,14 +101,14 @@ export abstract class BaseCommand extends ShellRunner {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  setupHomeDirectory(
+  public setupHomeDirectory(
     dirs: string[] = [
       constants.SOLO_HOME_DIR,
       constants.SOLO_LOGS_DIR,
       constants.SOLO_CACHE_DIR,
       constants.SOLO_VALUES_DIR,
     ],
-  ) {
+  ): string[] {
     const self = this;
 
     try {
@@ -126,7 +126,7 @@ export abstract class BaseCommand extends ShellRunner {
     return dirs;
   }
 
-  setupHomeDirectoryTask() {
+  public setupHomeDirectoryTask(): Task {
     return new Task('Setup home directory', async () => {
       this.setupHomeDirectory();
     });
