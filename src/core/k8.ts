@@ -146,16 +146,11 @@ export class K8 implements TK8 {
     // return this.namespaces().create(name);
   }
 
-  /**
-   * Delete a namespace
-   * @param name - name of the namespace
-   */
   public async deleteNamespace(name: string) {
     const resp = await this.kubeClient.deleteNamespace(name);
     return resp.response.statusCode === StatusCodes.OK;
   }
 
-  /** Get a list of namespaces */
   public async getNamespaces() {
     const resp = await this.kubeClient.listNamespace();
     if (resp.body && resp.body.items) {
@@ -170,10 +165,6 @@ export class K8 implements TK8 {
     throw new SoloError('incorrect response received from kubernetes API. Unable to list namespaces');
   }
 
-  /**
-   * Returns true if a namespace exists with the given name
-   * @param namespace namespace name
-   */
   public async hasNamespace(namespace: string) {
     const namespaces = await this.getNamespaces();
     return namespaces.includes(namespace);
@@ -270,10 +261,6 @@ export class K8 implements TK8 {
     return this.filterItem(resp.body.items, {name});
   }
 
-  /**
-   * Get a list of clusters
-   * @returns a list of cluster names
-   */
   public getClusters() {
     const clusters: string[] = [];
     for (const cluster of this.kubeConfig.getClusters()) {
@@ -283,10 +270,6 @@ export class K8 implements TK8 {
     return clusters;
   }
 
-  /**
-   * Get a list of contexts
-   * @returns a list of context names
-   */
   public getContextNames(): string[] {
     const contexts: string[] = [];
 
@@ -305,25 +288,6 @@ export class K8 implements TK8 {
     return this.cachedContexts;
   }
 
-  /**
-   * List files and directories in a container
-   *
-   * It runs ls -la on the specified path and returns a list of object containing the entries.
-   * For example:
-   * [{
-   *    directory: false,
-   *    owner: hedera,
-   *    group: hedera,
-   *    size: 121,
-   *    modifiedAt: Jan 15 13:50
-   *    name: config.txt
-   * }]
-   *
-   * @param podName
-   * @param containerName
-   * @param destPath - path inside the container
-   * @returns a promise that returns array of directory entries, custom object
-   */
   public async listDir(podName: PodName, containerName: string, destPath: string) {
     // TODO future, return the following
     // return this.pods.byName(podName).listDir(containerName, destPath);
@@ -383,13 +347,6 @@ export class K8 implements TK8 {
     }
   }
 
-  /**
-   * Check if a filepath exists in the container
-   * @param podName
-   * @param containerName
-   * @param destPath - path inside the container
-   * @param [filters] - an object with metadata fields and value
-   */
   public async hasFile(podName: PodName, containerName: string, destPath: string, filters: object = {}) {
     const parentDir = path.dirname(destPath);
     const fileName = path.basename(destPath);
@@ -433,12 +390,6 @@ export class K8 implements TK8 {
     return false;
   }
 
-  /**
-   * Check if a directory path exists in the container
-   * @param podName
-   * @param containerName
-   * @param destPath - path inside the container
-   */
   public async hasDir(podName: string, containerName: string, destPath: string) {
     return (
       (await this.execContainer(podName, containerName, [
@@ -528,18 +479,6 @@ export class K8 implements TK8 {
     });
   }
 
-  /**
-   * Copy a file into a container
-   *
-   * It overwrites any existing file inside the container at the destination directory
-   *
-   * @param podName
-   * @param containerName
-   * @param srcPath - source file path in the local
-   * @param destDir - destination directory in the container
-   * @param [filter] - the filter to pass to tar to keep or skip files or directories
-   * @returns a Promise that performs the copy operation
-   */
   public async copyTo(
     podName: PodName,
     containerName: string,
@@ -630,16 +569,6 @@ export class K8 implements TK8 {
     }
   }
 
-  /**
-   * Copy a file from a container
-   *
-   * It overwrites any existing file at the destination directory
-   *
-   * @param podName
-   * @param containerName
-   * @param srcPath - source file path in the container
-   * @param destDir - destination directory in the local
-   */
   public async copyFrom(podName: PodName, containerName: string, srcPath: string, destDir: string) {
     const self = this;
     const namespace = self.getNamespace();
@@ -773,13 +702,6 @@ export class K8 implements TK8 {
     }
   }
 
-  /**
-   * Invoke sh command within a container and return the console output as string
-   * @param podName
-   * @param containerName
-   * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
-   * @returns console output as string
-   */
   public async execContainer(podName: string, containerName: string, command: string | string[]) {
     const self = this;
     const namespace = self.getNamespace();
@@ -859,12 +781,6 @@ export class K8 implements TK8 {
     });
   }
 
-  /**
-   * Port forward a port from a pod to localhost
-   *
-   * This simple server just forwards traffic from itself to a service running in kubernetes
-   * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
-   */
   public async portForward(podName: PodName, localPort: number, podPort: number) {
     try {
       this.logger.debug(`Creating port-forwarder for ${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`);
@@ -886,13 +802,6 @@ export class K8 implements TK8 {
     }
   }
 
-  /**
-   * Stop the port forwarder server
-   *
-   * @param server - an instance of server returned by portForward method
-   * @param [maxAttempts] - the maximum number of attempts to check if the server is stopped
-   * @param [timeout] - the delay between checks in milliseconds
-   */
   public async stopPortForward(server: ExtendedNetServer, maxAttempts = 20, timeout = 500) {
     if (!server) {
       return;
@@ -1278,11 +1187,6 @@ export class K8 implements TK8 {
 
   /* ------------- ConfigMap ------------- */
 
-  /**
-   * @param name - name of the configmap
-   * @returns the configmap if found
-   * @throws SoloError - if the response if not found or the response is not OK
-   */
   public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
     const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this.getNamespace()).catch(e => e);
 
@@ -1291,11 +1195,6 @@ export class K8 implements TK8 {
     return body as k8s.V1ConfigMap;
   }
 
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
   public async createNamespacedConfigMap(
     name: string,
     labels: Record<string, string>,
@@ -1323,11 +1222,6 @@ export class K8 implements TK8 {
     }
   }
 
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
   public async replaceNamespacedConfigMap(
     name: string,
     labels: Record<string, string>,
@@ -1576,12 +1470,6 @@ export class K8 implements TK8 {
     }
   }
 
-  /**
-   * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
-   * Can throw a SoloError if there is an error while deleting the pod.
-   * @param podName - the name of the pod
-   * @param namespace - the namespace of the pod
-   */
   public async killPod(podName: string, namespace: string) {
     try {
       const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, undefined, undefined, 1);
