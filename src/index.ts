@@ -65,8 +65,9 @@ export function main(argv: any) {
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
-    const context = k8.getCurrentContextObject();
+    const contextNamespace = k8.getCurrentContextNamespace();
     const currentClusterName = k8.getCurrentClusterName();
+    const contextName = k8.getCurrentContext();
 
     const opts: Opts = {
       logger,
@@ -93,8 +94,8 @@ export function main(argv: any) {
 
       const clusterName = configManager.getFlag(flags.clusterName) || currentClusterName;
 
-      if (context.namespace) {
-        configManager.setFlag(flags.namespace, context.namespace);
+      if (contextNamespace) {
+        configManager.setFlag(flags.namespace, contextNamespace);
       }
 
       // apply precedence for flags
@@ -111,7 +112,7 @@ export function main(argv: any) {
         chalk.cyan('\n******************************* Solo *********************************************'),
       );
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()));
-      logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(context.name));
+      logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(contextName));
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
       logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
       if (configManager.getFlag(flags.namespace) !== undefined) {

@@ -133,11 +133,6 @@ describe('K8', () => {
     expect(contexts).not.to.have.lengthOf(0);
   }).timeout(defaultTimeout);
 
-  it('should be able to list contexts', () => {
-    const contexts = k8.getContexts();
-    expect(contexts).not.to.have.lengthOf(0);
-  }).timeout(defaultTimeout);
-
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4();
     expect(await k8.createNamespace(name)).to.be.true;
@@ -174,11 +169,6 @@ describe('K8', () => {
     const podName = pods[0].metadata.name;
     await expect(k8.getPodIP(podName)).to.eventually.not.be.null;
     await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError);
-  }).timeout(defaultTimeout);
-
-  it('should be able to detect cluster IP', async () => {
-    await expect(k8.getClusterIP(serviceName)).to.eventually.not.be.null;
-    await expect(k8.getClusterIP('INVALID')).to.be.rejectedWith(SoloError);
   }).timeout(defaultTimeout);
 
   it('should be able to check if a path is directory inside a container', async () => {

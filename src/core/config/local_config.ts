@@ -190,12 +190,8 @@ export class LocalConfig implements LocalConfigData {
           if (!isQuiet) {
             const promptedContexts: string[] = [];
             for (const cluster of parsedClusters) {
-              const kubeContexts = k8.getContexts();
-              const context: string = await flags.context.prompt(
-                task,
-                kubeContexts.map(c => c.name),
-                cluster,
-              );
+              const kubeContexts = k8.getContextNames();
+              const context: string = await flags.context.prompt(task, kubeContexts, cluster);
               self.clusterContextMapping[cluster] = context;
               promptedContexts.push(context);
 
