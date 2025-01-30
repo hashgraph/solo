@@ -1,24 +1,11 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {ConfigBuilder} from '../../types/aliases.js';
-import {type BaseCommand} from '../base.js';
+import type {BaseCommand} from '../base.js';
 import {splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
@@ -282,6 +269,12 @@ export class ClusterCommandTasks {
         // If one or more contexts are provided, use the first one
         if (contexts.length) {
           selectedContext = contexts[0];
+
+          if (clusters.length) {
+            selectedCluster = clusters[0];
+          } else if (localConfig.deployments[deploymentName]) {
+            selectedCluster = localConfig.deployments[deploymentName].clusters[0];
+          }
         }
 
         // If one or more clusters are provided, use the first one to determine the context
@@ -335,7 +328,7 @@ export class ClusterCommandTasks {
 
         const connectionValid = await this.parent.getK8().testClusterConnection(selectedContext, selectedCluster);
         if (!connectionValid) {
-          throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext));
+          throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext, selectedCluster));
         }
         this.parent.getK8().setCurrentContext(selectedContext);
         this.parent.getConfigManager().setFlag(flags.context, selectedContext);

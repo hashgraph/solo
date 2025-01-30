@@ -1,24 +1,10 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import chalk from 'chalk';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import 'dotenv/config';
-import path from 'path';
 // eslint-disable-next-line n/no-extraneous-import
 import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
@@ -44,7 +30,7 @@ import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js
 import * as helpers from './core/helpers.js';
 import {K8} from './core/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
-import {type Opts} from './types/command_types.js';
+import type {Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
 import {Container} from './core/container_init.js';
 
@@ -117,12 +103,17 @@ export function main(argv: any) {
       // update
       configManager.update(argv);
 
+      const currentCommand = argv._.join(' ') as string;
+      const commandArguments = flags.stringifyArgv(argv);
+      const commandData = (currentCommand + ' ' + commandArguments).trim();
+
       logger.showUser(
         chalk.cyan('\n******************************* Solo *********************************************'),
       );
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()));
       logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(context.name));
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
+      logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
       if (configManager.getFlag(flags.namespace) !== undefined) {
         logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)));
       }
@@ -141,6 +132,7 @@ export function main(argv: any) {
         (command === 'cluster' && subCommand === 'info') ||
         (command === 'cluster' && subCommand === 'list') ||
         (command === 'deployment' && subCommand === 'create');
+
       if (!skip) {
         await remoteConfigManager.loadAndValidate(argv);
       }

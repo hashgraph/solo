@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
 import fs from 'fs';
@@ -32,14 +19,14 @@ import {sleep} from './helpers.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import {SoloLogger} from './logging.js';
-import {type PodName, type TarCreateFilter} from '../types/aliases.js';
+import type {PodName, TarCreateFilter} from '../types/aliases.js';
 import type {ExtendedNetServer, LocalContextObject, Optional} from '../types/index.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import type {Namespace} from './config/remote/types.js';
-import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
+import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
 
 interface TDirectoryData {
   directory: boolean;
