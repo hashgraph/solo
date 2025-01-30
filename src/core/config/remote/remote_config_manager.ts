@@ -24,7 +24,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {K8} from '../../k8.js';
-import type {Cluster, Context, Namespace} from './types.js';
+import type {Cluster, Context, DeploymentName, Namespace} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
@@ -106,8 +106,8 @@ export class RemoteConfigManager {
     const clusters: Record<Cluster, Namespace> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
-      ([namespace, deployment]: [Namespace, DeploymentStructure]) => {
-        deployment.clusters.forEach(cluster => (clusters[cluster] = namespace));
+      ([deploymentName, deployment]: [DeploymentName, DeploymentStructure]) => {
+        deployment.clusters.forEach(cluster => (clusters[cluster] = deployment.namespace));
       },
     );
 
@@ -305,7 +305,8 @@ export class RemoteConfigManager {
     }
 
     // TODO: Current quick fix for commands where namespace is not passed
-    const namespace = this.localConfig.currentDeploymentName.replace(/^kind-/, '');
+    const currentDeployment = this.localConfig.deployments[this.localConfig.currentDeploymentName];
+    const namespace = currentDeployment.namespace.replace(/^kind-/, '');
 
     this.configManager.setFlag(flags.namespace, namespace);
   }

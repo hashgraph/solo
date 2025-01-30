@@ -76,7 +76,7 @@ export class DeploymentCommand extends BaseCommand {
             await self.configManager.executePrompt(task, [flags.namespace, flags.deployment, flags.deploymentClusters]);
             const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
 
-            if (self.localConfig.deployments[deploymentName]) {
+            if (self.localConfig.deployments && self.localConfig.deployments[deploymentName]) {
               throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(deploymentName));
             }
 

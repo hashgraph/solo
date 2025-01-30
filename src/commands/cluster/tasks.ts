@@ -139,7 +139,13 @@ export class ClusterCommandTasks {
           deploymentName = await flags.deployment.prompt(task, deploymentName);
         }
 
-        localConfig.currentDeploymentName = remoteConfig.metadata.name;
+        const remoteNamespace = remoteConfig.metadata.name;
+        for (const deployment in localConfig.deployments) {
+          if (localConfig.deployments[deployment].namespace === remoteNamespace) {
+            localConfig.currentDeploymentName = deployment;
+            break;
+          }
+        }
 
         if (localConfig.deployments[deploymentName]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
@@ -272,9 +278,9 @@ export class ClusterCommandTasks {
 
   selectContext(): SoloListrTask<SelectClusterContextContext> {
     return {
-      title: 'Read local configuration settings',
+      title: 'Resolve context for remote cluster',
       task: async (_, task) => {
-        this.parent.logger.info('Read local configuration settings...');
+        this.parent.logger.info('Resolve context for remote cluster...');
         const configManager = this.parent.getConfigManager();
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
         const deploymentName: string = configManager.getFlag<DeploymentName>(flags.deployment);
