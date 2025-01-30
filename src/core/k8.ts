@@ -170,10 +170,6 @@ export class K8 implements TK8 {
     return namespaces.includes(namespace);
   }
 
-  /**
-   * Get a podName by name
-   * @param name - podName name
-   */
   public async getPodByName(name: string): Promise<k8s.V1Pod> {
     const ns = this.getNamespace();
     const fieldSelector = `metadata.name=${name}`;
@@ -194,10 +190,6 @@ export class K8 implements TK8 {
     return this.filterItem(resp.body.items, {name});
   }
 
-  /**
-   * Get pods by labels
-   * @param labels - list of labels
-   */
   public async getPodsByLabel(labels: string[] = []) {
     const ns = this.getNamespace();
     const labelSelector = labels.join(',');
@@ -943,14 +935,6 @@ export class K8 implements TK8 {
     });
   }
 
-  /**
-   * Check if pod is ready
-   * @param [labels] - pod labels
-   * @param [podCount] - number of pod expected
-   * @param [maxAttempts] - maximum attempts to check
-   * @param [delay] - delay between checks in milliseconds
-   * @param [namespace] - namespace
-   */
   public async waitForPodReady(labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500, namespace?: string) {
     try {
       return await this.waitForPodConditions(K8.PodReadyCondition, labels, podCount, maxAttempts, delay, namespace);
