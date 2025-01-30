@@ -337,7 +337,7 @@ export class K8 implements TK8 {
     // TODO - make namespace first on all of the methods
     // TODO - create ContainerName for the containerName, validate the containerName.  ContainerName.of(containerName)
     //  - to avoid having to do (new ContainerName(containerName))
-    //  - NamespaceName.of(namespace)
+    //  - NamespaceName.of(namespace): store as class instead of string after we have validated and put it in ConfigManager
     //  - PodRef.of(namespace, podName)
     //  - ContainerRef.of(podRef, containerName)
     //  - ContainerRef.of(PodRef.of(namespace, podName), containerName)
@@ -1058,7 +1058,7 @@ export class K8 implements TK8 {
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
    */
-  public async waitForPodConditions(
+  private async waitForPodConditions(
     conditionsMap: Map<string, string>,
     labels: string[] = [],
     podCount = 1,

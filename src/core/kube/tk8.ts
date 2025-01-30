@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import type * as k8s from '@kubernetes/client-node';
 import type {PodName, TarCreateFilter} from '../../types/aliases.js';
@@ -202,23 +189,6 @@ export default interface TK8 {
    * @param [namespace] - namespace
    */
   waitForPodReady(labels: string[], podCount, maxAttempts, delay, namespace?: string): Promise<k8s.V1Pod[]>;
-
-  /**
-   * Check pods for conditions
-   * @param conditionsMap - a map of conditions and values
-   * @param [labels] - pod labels
-   * @param [podCount] - number of pod expected
-   * @param [maxAttempts] - maximum attempts to check
-   * @param [delay] - delay between checks in milliseconds
-   */
-  waitForPodConditions(
-    conditionsMap: Map<string, string>,
-    labels: string[],
-    podCount,
-    maxAttempts,
-    delay,
-    namespace?: string,
-  ): Promise<any>;
 
   /**
    * Get a list of persistent volume claim names for the given namespace
