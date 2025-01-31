@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import paths from 'path';
 import {MissingArgumentError, SoloError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
 import type {LeaseManager} from '../core/lease/lease_manager.js';
@@ -21,10 +20,7 @@ import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
-
-export interface CommandHandlers {
-  parent: BaseCommand;
-}
+import {getConfig} from '../core/config_builder.js';
 
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
@@ -58,32 +54,6 @@ export abstract class BaseCommand extends ShellRunner {
     this.remoteConfigManager = opts.remoteConfigManager;
   }
 
-  async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
-    if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
-    if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
-
-    if (chartDir) {
-      const chartPath = path.join(chartDir, chartReleaseName);
-      await this.helm.dependency('update', chartPath);
-      return chartPath;
-    }
-
-    return `${chartRepo}/${chartReleaseName}`;
-  }
-
-  prepareValuesFiles(valuesFile: string) {
-    let valuesArg = '';
-    if (valuesFile) {
-      const valuesFiles = valuesFile.split(',');
-      valuesFiles.forEach(vf => {
-        const vfp = paths.resolve(vf);
-        valuesArg += ` --values ${vfp}`;
-      });
-    }
-
-    return valuesArg;
-  }
-
   getConfigManager(): ConfigManager {
     return this.configManager;
   }
@@ -98,71 +68,7 @@ export abstract class BaseCommand extends ShellRunner {
    * getUnusedConfigs() to get an array of unused properties.
    */
   getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
-    const configManager = this.configManager;
-
-    // build the dynamic class that will keep track of which properties are used
-    const NewConfigClass = class {
-      private usedConfigs: Map<string, number>;
-      constructor() {
-        // the map to keep track of which properties are used
-        this.usedConfigs = new Map();
-
-        // add the flags as properties to this class
-        flags?.forEach(flag => {
-          // @ts-ignore
-          this[`_${flag.constName}`] = configManager.getFlag(flag);
-          Object.defineProperty(this, flag.constName, {
-            get() {
-              this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
-              return this[`_${flag.constName}`];
-            },
-          });
-        });
-
-        // add the extra properties as properties to this class
-        extraProperties?.forEach(name => {
-          // @ts-ignore
-          this[`_${name}`] = '';
-          Object.defineProperty(this, name, {
-            get() {
-              this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
-              return this[`_${name}`];
-            },
-            set(value) {
-              this[`_${name}`] = value;
-            },
-          });
-        });
-      }
-
-      /** Get the list of unused configurations that were not accessed */
-      getUnusedConfigs() {
-        const unusedConfigs: string[] = [];
-
-        // add the flag constName to the unusedConfigs array if it was not accessed
-        flags?.forEach(flag => {
-          if (!this.usedConfigs.has(flag.constName)) {
-            unusedConfigs.push(flag.constName);
-          }
-        });
-
-        // add the extra properties to the unusedConfigs array if it was not accessed
-        extraProperties?.forEach(item => {
-          if (!this.usedConfigs.has(item)) {
-            unusedConfigs.push(item);
-          }
-        });
-        return unusedConfigs;
-      }
-    };
-
-    const newConfigInstance = new NewConfigClass();
-
-    // add the new instance to the configMaps so that it can be used to get the
-    // unused configurations using the configName from the BaseCommand
-    this._configMaps.set(configName, newConfigInstance);
-
-    return newConfigInstance;
+    return getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
   }
 
   getLeaseManager(): LeaseManager {
@@ -191,38 +97,18 @@ export abstract class BaseCommand extends ShellRunner {
 
   abstract close(): Promise<void>;
 
-  commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-    return async function (argv: any, commandDef: CommandHandlers) {
-      const tasks = new Listr([...actionTasks], options);
-
-      try {
-        await tasks.run();
-      } catch (e: Error | any) {
-        commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
-        throw new SoloError(`${errorString}: ${e.message}`, e);
-      } finally {
-        const promises = [];
-
-        promises.push(commandDef.parent.close());
-
-        if (lease) promises.push(lease.release());
-        await Promise.all(promises);
-      }
-    };
-  }
-
   /**
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  setupHomeDirectory(
+  public setupHomeDirectory(
     dirs: string[] = [
       constants.SOLO_HOME_DIR,
       constants.SOLO_LOGS_DIR,
       constants.SOLO_CACHE_DIR,
       constants.SOLO_VALUES_DIR,
     ],
-  ) {
+  ): string[] {
     const self = this;
 
     try {
@@ -233,14 +119,14 @@ export abstract class BaseCommand extends ShellRunner {
         self.logger.debug(`OK: setup directory: ${dirPath}`);
       });
     } catch (e: Error | any) {
-      this.logger.error(e);
+      self.logger.error(e);
       throw new SoloError(`failed to create directory: ${e.message}`, e);
     }
 
     return dirs;
   }
 
-  setupHomeDirectoryTask() {
+  public setupHomeDirectoryTask(): Task {
     return new Task('Setup home directory', async () => {
       this.setupHomeDirectory();
     });

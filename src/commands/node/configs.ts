@@ -95,7 +95,8 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
   // set config in the context for later tasks to use
   ctx.config = config;
 
-  ctx.config.chartPath = await this.prepareChartPath(
+  ctx.config.chartPath = await helpers.prepareChartPath(
+    this.helm,
     ctx.config.chartDirectory,
     constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,
@@ -131,7 +132,8 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   // set config in the context for later tasks to use
   ctx.config = config;
 
-  ctx.config.chartPath = await this.prepareChartPath(
+  ctx.config.chartPath = await helpers.prepareChartPath(
+    this.helm,
     ctx.config.chartDirectory,
     constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,
@@ -174,7 +176,8 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   // set config in the context for later tasks to use
   ctx.config = config;
 
-  ctx.config.chartPath = await this.prepareChartPath(
+  ctx.config.chartPath = await helpers.prepareChartPath(
+    this.helm,
     ctx.config.chartDirectory,
     constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,
@@ -222,7 +225,8 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   // set config in the context for later tasks to use
   ctx.config = config;
 
-  ctx.config.chartPath = await this.prepareChartPath(
+  ctx.config.chartPath = await helpers.prepareChartPath(
+    this.helm,
     ctx.config.chartDirectory,
     constants.SOLO_TESTING_CHART_URL,
     constants.SOLO_DEPLOYMENT_CHART,

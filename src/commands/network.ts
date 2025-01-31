@@ -9,8 +9,14 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
-import * as helpers from '../core/helpers.js';
-import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {
+  addDebugOptions,
+  prepareValuesFiles,
+  resolveValidJsonFilePath,
+  validatePath,
+  parseNodeAliases,
+  prepareChartPath,
+} from '../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
 import type {KeyManager} from '../core/key_manager.js';
@@ -306,7 +312,7 @@ export class NetworkCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
     if (this.profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(this.profileValuesFile);
+      valuesArg += prepareValuesFiles(this.profileValuesFile);
     }
 
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
@@ -341,7 +347,7 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
 
     this.logger.debug('Prepared helm chart values', {valuesArg});
@@ -397,7 +403,7 @@ export class NetworkCommand extends BaseCommand {
       'resolvedThrottlesFile',
     ]) as NetworkDeployConfigClass;
 
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
 
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -408,7 +414,8 @@ export class NetworkCommand extends BaseCommand {
     }
 
     // compute values
-    config.chartPath = await this.prepareChartPath(
+    config.chartPath = await prepareChartPath(
+      this.helm,
       config.chartDirectory,
       constants.SOLO_TESTING_CHART_URL,
       constants.SOLO_DEPLOYMENT_CHART,
