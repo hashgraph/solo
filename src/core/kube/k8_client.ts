@@ -1374,7 +1374,6 @@ export class K8Client implements K8 {
     }
   }
 
-
   /**
    * Searches specific namespace for remote config's config map
    *
@@ -1399,7 +1398,6 @@ export class K8Client implements K8 {
       return false;
     }
   }
-
 
   /* ------------- Utilities ------------- */
 
