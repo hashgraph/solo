@@ -1,5 +1,7 @@
 ## Advanced User Guide
+
 For those who would like to have more control or need some customized setups, here are some step by step instructions of how to setup and deploy a solo network.
+
 ### Setup Kubernetes cluster
 
 #### Remote cluster
@@ -28,6 +30,7 @@ Then run the following command to set the kubectl context to the new cluster:
 ```bash
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 ```
+
 Example output
 
 ```
@@ -47,7 +50,6 @@ Have a nice day! 👋
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
-
 
 ```
  Context: kind-solo                                <0> all   <a>       Attach       <ctr… ____  __.________
@@ -74,7 +76,6 @@ You may now view pods in your cluster using `k9s -A` as below:
 │                                                                                                                 │
 └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
-
 
 ### Step by Step Instructions
 
@@ -136,13 +137,16 @@ Kubernetes Cluster	: kind-solo
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
 ```
+
 PEM key files are generated in `~/.solo/keys` directory.
+
 ```
 hedera-node1.crt    hedera-node3.crt    s-private-node1.pem s-public-node1.pem  unused-gossip-pem
 hedera-node1.key    hedera-node3.key    s-private-node2.pem s-public-node2.pem  unused-tls
 hedera-node2.crt    hedera-node4.crt    s-private-node3.pem s-public-node3.pem
 hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 ```
+
 * Setup cluster with shared components
 
 ```

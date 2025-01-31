@@ -1,24 +1,11 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
-import type {ListrTaskWrapper} from 'listr2';
-import type {ConfigBuilder} from '../../types/aliases.js';
-import type {BaseCommand} from '../base.js';
+import {type ListrTaskWrapper} from 'listr2';
+import {type ConfigBuilder} from '../../types/aliases.js';
+import {type BaseCommand} from '../base.js';
 import {splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
@@ -27,13 +14,12 @@ import {ListrLease} from '../../core/lease/listr_lease.js';
 import {ErrorMessages} from '../../core/error_messages.js';
 import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import type {RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
-import type {K8} from '../../core/k8.js';
-import type {Cluster} from '@kubernetes/client-node/dist/config_types.js';
-import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
-import type {SelectClusterContextContext} from './configs.js';
-import type {Namespace} from '../../core/config/remote/types.js';
-import type {LocalConfig} from '../../core/config/local_config.js';
+import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
+import {type K8} from '../../core/kube/k8.js';
+import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
+import {type SelectClusterContextContext} from './configs.js';
+import {type Namespace} from '../../core/config/remote/types.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 
 export class ClusterCommandTasks {
@@ -62,7 +48,7 @@ export class ClusterCommandTasks {
 
           localConfig.clusterContextMapping[cluster] = context;
         }
-        if (!(await self.parent.getK8().testClusterConnection(context, cluster))) {
+        if (!(await self.parent.getK8().testContextConnection(context))) {
           subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
           throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
         }
@@ -72,7 +58,7 @@ export class ClusterCommandTasks {
 
   validateRemoteConfigForCluster(
     cluster: string,
-    currentCluster: Cluster,
+    currentClusterName: string,
     localConfig: LocalConfig,
     currentRemoteConfig: RemoteConfigDataWrapper,
   ) {
@@ -84,7 +70,7 @@ export class ClusterCommandTasks {
         self.parent.getK8().setCurrentContext(context);
         const remoteConfigFromOtherCluster = await self.parent.getRemoteConfigManager().get();
         if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
-          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentCluster.name, cluster));
+          throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentClusterName, cluster));
         }
       },
     };
@@ -96,7 +82,6 @@ export class ClusterCommandTasks {
       title: 'Read clusters from remote config',
       task: async (ctx, task) => {
         const localConfig = this.parent.getLocalConfig();
-        const currentCluster = this.parent.getK8().getCurrentCluster();
         const currentClusterName = this.parent.getK8().getCurrentClusterName();
         const currentRemoteConfig: RemoteConfigDataWrapper = await this.parent.getRemoteConfigManager().get();
         const subTasks = [];
@@ -110,7 +95,9 @@ export class ClusterCommandTasks {
 
         // Pull and validate RemoteConfigs from the other clusters
         for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(self.validateRemoteConfigForCluster(cluster, currentCluster, localConfig, currentRemoteConfig));
+          subTasks.push(
+            self.validateRemoteConfigForCluster(cluster, currentClusterName, localConfig, currentRemoteConfig),
+          );
         }
 
         return task.newListr(subTasks, {
@@ -196,12 +183,8 @@ export class ClusterCommandTasks {
   }
 
   private async promptForContext(task: SoloListrTaskWrapper<SelectClusterContextContext>, cluster: string) {
-    const kubeContexts = this.parent.getK8().getContexts();
-    return flags.context.prompt(
-      task,
-      kubeContexts.map(c => c.name),
-      cluster,
-    );
+    const kubeContexts = this.parent.getK8().getContextNames();
+    return flags.context.prompt(task, kubeContexts, cluster);
   }
 
   private async selectContextForFirstCluster(
@@ -339,7 +322,7 @@ export class ClusterCommandTasks {
           }
         }
 
-        const connectionValid = await this.parent.getK8().testClusterConnection(selectedContext, selectedCluster);
+        const connectionValid = await this.parent.getK8().testContextConnection(selectedContext);
         if (!connectionValid) {
           throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext, selectedCluster));
         }
@@ -372,8 +355,8 @@ export class ClusterCommandTasks {
   getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       try {
-        const cluster = this.parent.getK8().getCurrentCluster();
-        this.parent.logger.showJSON(`Cluster Information (${cluster.name})`, cluster);
+        const clusterName = this.parent.getK8().getCurrentClusterName();
+        this.parent.logger.showUser(`Cluster Name (${clusterName})`);
         this.parent.logger.showUser('\n');
       } catch (e: Error | unknown) {
         this.parent.logger.showUserError(e);

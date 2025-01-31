@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import * as fs from 'fs';
 import {Listr} from 'listr2';
@@ -20,14 +7,14 @@ import * as path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
-import {K8} from './k8.js';
+import {type K8} from '../core/kube/k8.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
 import chalk from 'chalk';
 
 import {SoloLogger} from './logging.js';
-import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
+import {type NodeAlias, type NodeAliases, type PodName} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -38,11 +25,11 @@ import {patchInject} from './container_helper.js';
 export class PlatformInstaller {
   constructor(
     @inject(SoloLogger) private logger?: SoloLogger,
-    @inject(K8) private k8?: K8,
+    @inject('K8') private k8?: K8,
     @inject(ConfigManager) private configManager?: ConfigManager,
   ) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 

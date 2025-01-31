@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {SoloError} from '../../errors.js';
 import * as yaml from 'yaml';
@@ -20,11 +7,11 @@ import {RemoteConfigMetadata} from './metadata.js';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import * as constants from '../../constants.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import type {Cluster, Version, Namespace, RemoteConfigDataStructure} from './types.js';
+import {type Cluster, type Version, type Namespace, type RemoteConfigDataStructure} from './types.js';
 import type * as k8s from '@kubernetes/client-node';
-import type {ToObject, Validate} from '../../../types/index.js';
-import type {ConfigManager} from '../../config_manager.js';
-import type {RemoteConfigData} from './remote_config_data.js';
+import {type ToObject, type Validate} from '../../../types/index.js';
+import {type ConfigManager} from '../../config_manager.js';
+import {type RemoteConfigData} from './remote_config_data.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';

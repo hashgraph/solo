@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
@@ -28,7 +15,6 @@ import * as constants from '../../../../src/core/constants.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {K8} from '../../../../src/core/k8.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {
   V1Container,
@@ -45,9 +31,10 @@ import {
   V1VolumeResourceRequirements,
 } from '@kubernetes/client-node';
 import crypto from 'crypto';
-import type {PodName} from '../../../../src/types/aliases.js';
+import {type PodName} from '../../../../src/types/aliases.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {type K8Client} from '../../../../src/core/kube/k8_client.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -56,7 +43,7 @@ async function createPod(
   containerName: string,
   podLabelValue: string,
   testNamespace: string,
-  k8: K8,
+  k8: K8Client,
 ): Promise<void> {
   const v1Pod = new V1Pod();
   const v1Metadata = new V1ObjectMeta();
@@ -82,7 +69,7 @@ async function createPod(
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager = container.resolve(ConfigManager);
-  const k8 = container.resolve(K8);
+  const k8 = container.resolve('K8') as K8Client;
   const testNamespace = 'k8-e2e';
   const argv = [];
   const podName = `test-pod-${uuid4()}` as PodName;
@@ -146,11 +133,6 @@ describe('K8', () => {
     expect(contexts).not.to.have.lengthOf(0);
   }).timeout(defaultTimeout);
 
-  it('should be able to list contexts', () => {
-    const contexts = k8.getContexts();
-    expect(contexts).not.to.have.lengthOf(0);
-  }).timeout(defaultTimeout);
-
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4();
     expect(await k8.createNamespace(name)).to.be.true;
@@ -169,29 +151,6 @@ describe('K8', () => {
 
     const pods = await k8.waitForPodReady(labels, 1, 100);
     expect(pods).to.have.lengthOf(1);
-  }).timeout(defaultTimeout);
-
-  it('should be able to run wait for pod conditions', async () => {
-    const labels = [`app=${podLabelValue}`];
-
-    const conditions = new Map()
-      .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE);
-    const pods = await k8.waitForPodConditions(conditions, labels, 1);
-    expect(pods).to.have.lengthOf(1);
-  }).timeout(defaultTimeout);
-
-  it('should be able to detect pod IP of a pod', async () => {
-    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`]);
-    const podName = pods[0].metadata.name;
-    await expect(k8.getPodIP(podName)).to.eventually.not.be.null;
-    await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError);
-  }).timeout(defaultTimeout);
-
-  it('should be able to detect cluster IP', async () => {
-    await expect(k8.getClusterIP(serviceName)).to.eventually.not.be.null;
-    await expect(k8.getClusterIP('INVALID')).to.be.rejectedWith(SoloError);
   }).timeout(defaultTimeout);
 
   it('should be able to check if a path is directory inside a container', async () => {

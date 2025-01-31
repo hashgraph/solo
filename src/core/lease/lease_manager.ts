@@ -1,22 +1,9 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {Flags as flags} from '../../commands/flags.js';
 import {ConfigManager} from '../config_manager.js';
-import {K8} from '../k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import {SoloLogger} from '../logging.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';
@@ -41,12 +28,12 @@ export class LeaseManager {
   constructor(
     @inject('LeaseRenewalService') private readonly _renewalService?: LeaseRenewalService,
     @inject(SoloLogger) private readonly _logger?: SoloLogger,
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
     this._renewalService = patchInject(_renewalService, 'LeaseRenewalService', this.constructor.name);
     this._logger = patchInject(_logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
