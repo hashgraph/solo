@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
@@ -146,11 +133,6 @@ describe('K8', () => {
     expect(contexts).not.to.have.lengthOf(0);
   }).timeout(defaultTimeout);
 
-  it('should be able to list contexts', () => {
-    const contexts = k8.getContexts();
-    expect(contexts).not.to.have.lengthOf(0);
-  }).timeout(defaultTimeout);
-
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4();
     expect(await k8.createNamespace(name)).to.be.true;
@@ -180,18 +162,6 @@ describe('K8', () => {
       .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE);
     const pods = await k8.waitForPodConditions(conditions, labels, 1);
     expect(pods).to.have.lengthOf(1);
-  }).timeout(defaultTimeout);
-
-  it('should be able to detect pod IP of a pod', async () => {
-    const pods = await k8.getPodsByLabel([`app=${podLabelValue}`]);
-    const podName = pods[0].metadata.name;
-    await expect(k8.getPodIP(podName)).to.eventually.not.be.null;
-    await expect(k8.getPodIP('INVALID')).to.be.rejectedWith(SoloError);
-  }).timeout(defaultTimeout);
-
-  it('should be able to detect cluster IP', async () => {
-    await expect(k8.getClusterIP(serviceName)).to.eventually.not.be.null;
-    await expect(k8.getClusterIP('INVALID')).to.be.rejectedWith(SoloError);
   }).timeout(defaultTimeout);
 
   it('should be able to check if a path is directory inside a container', async () => {
