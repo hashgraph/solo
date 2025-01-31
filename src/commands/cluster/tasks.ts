@@ -3,9 +3,9 @@
  */
 import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
-import type {ListrTaskWrapper} from 'listr2';
-import type {ConfigBuilder} from '../../types/aliases.js';
-import type {BaseCommand} from '../base.js';
+import {type ListrTaskWrapper} from 'listr2';
+import {type ConfigBuilder} from '../../types/aliases.js';
+import {type BaseCommand} from '../base.js';
 import {splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
@@ -14,12 +14,12 @@ import {ListrLease} from '../../core/lease/listr_lease.js';
 import {ErrorMessages} from '../../core/error_messages.js';
 import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import type {RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
+import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {type K8} from '../../core/kube/k8.js';
-import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
-import type {SelectClusterContextContext} from './configs.js';
-import type {Namespace} from '../../core/config/remote/types.js';
-import type {LocalConfig} from '../../core/config/local_config.js';
+import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
+import {type SelectClusterContextContext} from './configs.js';
+import {type Namespace} from '../../core/config/remote/types.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 
 export class ClusterCommandTasks {

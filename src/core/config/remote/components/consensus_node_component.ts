@@ -4,8 +4,8 @@
 import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
 import {BaseComponent} from './base_component.js';
 import {SoloError} from '../../../errors.js';
-import type {Cluster, IConsensusNodeComponent, Namespace, ComponentName} from '../types.js';
-import type {ToObject} from '../../../../types/index.js';
+import {type Cluster, type IConsensusNodeComponent, type Namespace, type ComponentName} from '../types.js';
+import {type ToObject} from '../../../../types/index.js';
 
 /**
  * Represents a consensus node component within the system.

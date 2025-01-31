@@ -13,12 +13,12 @@ import * as helpers from '../core/helpers.js';
 import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
-import type {KeyManager} from '../core/key_manager.js';
-import type {PlatformInstaller} from '../core/platform_installer.js';
-import type {ProfileManager} from '../core/profile_manager.js';
-import type {CertificateManager} from '../core/certificate_manager.js';
-import type {CommandBuilder, IP, NodeAlias, NodeAliases} from '../types/aliases.js';
-import type {Opts} from '../types/command_types.js';
+import {type KeyManager} from '../core/key_manager.js';
+import {type PlatformInstaller} from '../core/platform_installer.js';
+import {type ProfileManager} from '../core/profile_manager.js';
+import {type CertificateManager} from '../core/certificate_manager.js';
+import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
@@ -26,8 +26,8 @@ import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
-import type {SoloListrTask} from '../types/index.js';
-import type {Namespace} from '../core/config/remote/types.js';
+import {type SoloListrTask} from '../types/index.js';
+import {type Namespace} from '../core/config/remote/types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;

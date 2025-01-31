@@ -5,8 +5,8 @@ import * as constants from '../../constants.js';
 import {SoloError} from '../../errors.js';
 
 import {type K8} from '../../kube/k8.js';
-import type {ComponentsDataWrapper} from './components_data_wrapper.js';
-import type {BaseComponent} from './components/base_component.js';
+import {type ComponentsDataWrapper} from './components_data_wrapper.js';
+import {type BaseComponent} from './components/base_component.js';
 
 /**
  * Static class is used to validate that components in the remote config

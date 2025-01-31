@@ -13,7 +13,7 @@ import {ConfigManager} from '../../../src/core/config_manager.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {getTestCacheDir, getTmpDir} from '../../test_util.js';
 import * as version from '../../../version.js';
-import type {NodeAlias} from '../../../src/types/aliases.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
 import {Templates} from '../../../src/core/templates.js';

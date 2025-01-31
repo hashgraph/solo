@@ -3,7 +3,7 @@
  */
 import {ComponentType} from '../enumerations.js';
 import {BaseComponent} from './base_component.js';
-import type {Component} from '../types.js';
+import {type Component} from '../types.js';
 
 export class MirrorNodeComponent extends BaseComponent {
   public constructor(name: string, cluster: string, namespace: string) {

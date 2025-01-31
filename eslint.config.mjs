@@ -146,6 +146,15 @@ export default [
       ],
       '@typescript-eslint/no-unused-vars': 'warn', // TODO remove (83 errors)
       'n/no-process-exit': 'warn', // TODO remove (38 errors)
+      // Enforce `import {type X} from 'path';` over `import type {X} from 'path';`,
+      // but allow `import type * as <name> from 'path';`
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "ImportDeclaration[importKind='type'] ImportSpecifier",
+          message: "Use `import {type X} from 'path';` instead of `import type {X} from 'path';`.",
+        },
+      ],
     },
   },
   {

@@ -15,8 +15,8 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
 } from './test_util.js';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
-import type {NodeAlias} from '../src/types/aliases.js';
-import type {NetworkNodeServices} from '../src/core/network_node_services.js';
+import {type NodeAlias} from '../src/types/aliases.js';
+import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {Duration} from '../src/core/time/duration.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../version.js';
 

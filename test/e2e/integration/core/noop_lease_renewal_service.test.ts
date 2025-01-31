@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {Lease, LeaseRenewalService} from '../../../../src/core/lease/lease.js';
+import {type Lease, type LeaseRenewalService} from '../../../../src/core/lease/lease.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 
 export class NoopLeaseRenewalService implements LeaseRenewalService {

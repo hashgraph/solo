@@ -20,26 +20,26 @@ import {
   upgradeConfigBuilder,
 } from './configs.js';
 import * as constants from '../../core/constants.js';
-import type {AccountManager} from '../../core/account_manager.js';
-import type {ConfigManager} from '../../core/config_manager.js';
-import type {PlatformInstaller} from '../../core/platform_installer.js';
+import {type AccountManager} from '../../core/account_manager.js';
+import {type ConfigManager} from '../../core/config_manager.js';
+import {type PlatformInstaller} from '../../core/platform_installer.js';
 import {type K8} from '../../core/kube/k8.js';
-import type {LeaseManager} from '../../core/lease/lease_manager.js';
-import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {type LeaseManager} from '../../core/lease/lease_manager.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError, SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
-import type {SoloLogger} from '../../core/logging.js';
-import type {NodeCommandTasks} from './tasks.js';
-import type {Lease} from '../../core/lease/lease.js';
+import {type SoloLogger} from '../../core/logging.js';
+import {type NodeCommandTasks} from './tasks.js';
+import {type Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
-import type {BaseCommand, CommandHandlers} from '../base.js';
+import {type BaseCommand, type CommandHandlers} from '../base.js';
 import {NodeHelper} from './helper.js';
-import type {NodeAlias, NodeAliases} from '../../types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
-import type {Listr, ListrTask} from 'listr2';
+import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
-import type {ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
-import type {Optional} from '../../types/index.js';
+import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
+import {type Optional} from '../../types/index.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;

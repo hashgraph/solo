@@ -16,8 +16,8 @@ import {
 } from '../test_util.js';
 import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
-import type {NodeAlias} from '../../src/types/aliases.js';
-import type {ListrTaskWrapper} from 'listr2';
+import {type NodeAlias} from '../../src/types/aliases.js';
+import {type ListrTaskWrapper} from 'listr2';
 import {ConfigManager} from '../../src/core/config_manager.js';
 import {type K8} from '../../src/core/kube/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
