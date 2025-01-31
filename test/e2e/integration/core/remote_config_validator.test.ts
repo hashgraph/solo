@@ -1,25 +1,12 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
-import {K8} from '../../../../src/core/k8.js';
+import {type K8Client} from '../../../../src/core/kube/k8_client.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {V1Container, V1ExecAction, V1ObjectMeta, V1Pod, V1PodSpec, V1Probe} from '@kubernetes/client-node';
@@ -34,19 +21,19 @@ import {ConsensusNodeComponent} from '../../../../src/core/config/remote/compone
 import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
 import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
 
-import type {NodeAlias, NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 
 describe('RemoteConfigValidator', () => {
   const namespace = 'remote-config-validator';
 
   let configManager: ConfigManager;
-  let k8: K8;
+  let k8: K8Client;
 
   before(async () => {
     configManager = container.resolve(ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
-    k8 = container.resolve(K8);
+    k8 = container.resolve('K8') as K8Client;
     await k8.createNamespace(namespace);
   });
 

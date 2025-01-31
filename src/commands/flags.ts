@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
@@ -24,7 +11,7 @@ import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
-import type {AnyObject} from '../types/aliases.js';
+import {type AnyObject} from '../types/aliases.js';
 
 export class Flags {
   private static async prompt(
@@ -1338,6 +1325,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly adminPublicKeys: CommandFlag = {
+    constName: 'adminPublicKeys',
+    name: 'admin-public-keys',
+    definition: {
+      describe: 'Comma separated list of DER encoded ED25519 public keys and must match the order of the node aliases',
+      defaultValue: constants.GENESIS_KEY,
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly quiet: CommandFlag = {
     constName: 'quiet',
     name: 'quiet-mode',
@@ -1718,6 +1716,8 @@ export class Flags {
 
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
+    Flags.adminKey,
+    Flags.adminPublicKeys,
     Flags.amount,
     Flags.apiPermissionProperties,
     Flags.app,

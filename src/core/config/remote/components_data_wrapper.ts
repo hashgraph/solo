@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {ComponentType} from './enumerations.js';
 import {SoloError} from '../../errors.js';
@@ -23,14 +10,14 @@ import {MirrorNodeComponent} from './components/mirror_node_component.js';
 import {EnvoyProxyComponent} from './components/envoy_proxy_component.js';
 import {ConsensusNodeComponent} from './components/consensus_node_component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror_node_explorer_component.js';
-import type {
-  Component,
-  ComponentsDataStructure,
-  IConsensusNodeComponent,
-  IRelayComponent,
-  ComponentName,
+import {
+  type Component,
+  type ComponentsDataStructure,
+  type IConsensusNodeComponent,
+  type IRelayComponent,
+  type ComponentName,
 } from './types.js';
-import type {ToObject, Validate} from '../../../types/index.js';
+import {type ToObject, type Validate} from '../../../types/index.js';
 
 /**
  * Represent the components in the remote config and handles:
