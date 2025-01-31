@@ -1,7 +1,3 @@
-# Example if initialization script for the external database,
-# values must match those inside values.yaml if used
-
-cat > init1.sh << 'EOF'
 #!/bin/bash
 set -e
 
@@ -139,6 +135,3 @@ if [[ -f "${PGHBACONF}.bak" ]]; then
   mv "${PGHBACONF}.bak" "${PGHBACONF}"
   pg_ctl reload
 fi
-EOF
-chmod +x init1.sh
-./init1.sh
