@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import 'chai-as-promised';
 
@@ -38,10 +25,10 @@ import {execSync} from 'child_process';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 
 import {SoloLogger} from '../src/core/logging.js';
-import type {BaseCommand} from '../src/commands/base.js';
-import type {NodeAlias} from '../src/types/aliases.js';
-import type {NetworkNodeServices} from '../src/core/network_node_services.js';
-import {K8} from '../src/core/k8.js';
+import {type BaseCommand} from '../src/commands/base.js';
+import {type NodeAlias} from '../src/types/aliases.js';
+import {type NetworkNodeServices} from '../src/core/network_node_services.js';
+import {type K8} from '../src/core/kube/k8.js';
 import {AccountManager} from '../src/core/account_manager.js';
 import {PlatformInstaller} from '../src/core/platform_installer.js';
 import {ProfileManager} from '../src/core/profile_manager.js';
@@ -147,7 +134,7 @@ export function bootstrapTestVariables(
   const helm = container.resolve(Helm);
   const chartManager = container.resolve(ChartManager);
   const keyManager = container.resolve(KeyManager);
-  const k8 = k8Arg || container.resolve(K8);
+  const k8 = k8Arg || container.resolve('K8');
   const accountManager = container.resolve(AccountManager);
   const platformInstaller = container.resolve(PlatformInstaller);
   const profileManager = container.resolve(ProfileManager);
@@ -304,6 +291,7 @@ export function e2eTestSuite(
             expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.quiet.constName,
               flags.devMode.constName,
+              flags.adminPublicKeys.constName,
             ]);
           } catch (e) {
             nodeCmd.logger.showUserError(e);
@@ -449,7 +437,7 @@ async function addKeyHashToMap(
 
 export function getK8Instance(configManager: ConfigManager) {
   try {
-    return container.resolve(K8);
+    return container.resolve('K8');
     // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
   } catch (e) {
     if (!(e instanceof SoloError)) {
@@ -463,7 +451,7 @@ export function getK8Instance(configManager: ConfigManager) {
 
     // Create cluster
     execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, {stdio: 'inherit'});
-    return container.resolve(K8);
+    return container.resolve('K8');
   }
 }
 
