@@ -1,0 +1,52 @@
+version: 3
+includes:
+  main:
+    taskfile: ../../Taskfile.helper.yml
+    flatten: true
+vars:
+  solo_home_override_dir: "/Users/zhanmilenkov/.solo"
+  use_port_forwards: "true"
+  postgres_username: "postgres"
+  postgres_password: "XXXXXXXXXXXX"
+  postgres_host: "my-postgresql-0.database.svc.cluster.local"
+env:
+  SOLO_NETWORK_SIZE: "1"
+  SOLO_NAMESPACE: "solo-external-database-test"
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--use-external-database --external-database-host {{.postgres_host}} --external-database-owner-username {{.postgres_username}} --external-database-owner-password {{.postgres_password}}"
+tasks:
+  default:
+    silent: true
+    desc: install Solo, create a kind cluster, deploy the network, set it up, and start it
+    deps:
+      - task: "init"
+    cmds:
+      - echo "This command is meant to deploy a Solo network to a Kind cluster on your local machine, "
+      - echo "ctrl-c if this is not what you want to do."
+      - sleep 5
+
+  install:
+    desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
+    deps:
+      - task: "init"
+    cmds:
+      - task: "cluster:create"
+      - task: "solo:init"
+      - task: "solo:cluster:setup"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
+      - task: "solo:node:setup"
+      - task: "solo:node:start"
+      - task: "solo:external-database"
+      - task: "solo:mirror-node"
+      - name: "Copy database-seeding-query.sql inside the database pod"
+        cmd: kubectl cp /Users/zhanmilenkov/.solo/cache/database-seeding-query.sql my-postgresql-0:/tmp/database-seeding-query.sql -n database
+      - ls -la /tmp/database-seeding-query.sql
+      - name: "Execute the database-seeding–query.sql against the database"
+        cmd: kubectl exec -it my-postgresql-0 -n database -- env PGPASSWORD={{.postgres_password}} psql -U {{.postgres_username}} -d mirror_node -c "$(cat /tmp/database-seeding-query.sql)"
+
+  destroy:
+    desc: destroy relay, mirror-node, and network
+    deps:
+      - task: "init"
+    cmds:
+      - task: "cluster:destroy"
