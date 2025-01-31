@@ -1,24 +1,10 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import chalk from 'chalk';
 import yargs from 'yargs';
 import {hideBin} from 'yargs/helpers';
 import 'dotenv/config';
-import path from 'path';
 // eslint-disable-next-line n/no-extraneous-import
 import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
@@ -42,7 +28,7 @@ import {CertificateManager} from './core/certificate_manager.js';
 import {LocalConfig} from './core/config/local_config.js';
 import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
 import * as helpers from './core/helpers.js';
-import {K8} from './core/k8.js';
+import {type K8} from './core/kube/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
@@ -67,7 +53,7 @@ export function main(argv: any) {
     const helm = container.resolve(Helm);
     const chartManager = container.resolve(ChartManager);
     const configManager = container.resolve(ConfigManager);
-    const k8 = container.resolve(K8);
+    const k8 = container.resolve('K8') as K8;
     const accountManager = container.resolve(AccountManager);
     const platformInstaller = container.resolve(PlatformInstaller);
     const keyManager = container.resolve(KeyManager);
@@ -79,8 +65,9 @@ export function main(argv: any) {
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
-    const context = k8.getCurrentContextObject();
+    const contextNamespace = k8.getCurrentContextNamespace();
     const currentClusterName = k8.getCurrentClusterName();
+    const contextName = k8.getCurrentContext();
 
     const opts: Opts = {
       logger,
@@ -107,8 +94,8 @@ export function main(argv: any) {
 
       const clusterName = configManager.getFlag(flags.clusterName) || currentClusterName;
 
-      if (context.namespace) {
-        configManager.setFlag(flags.namespace, context.namespace);
+      if (contextNamespace) {
+        configManager.setFlag(flags.namespace, contextNamespace);
       }
 
       // apply precedence for flags
@@ -125,7 +112,7 @@ export function main(argv: any) {
         chalk.cyan('\n******************************* Solo *********************************************'),
       );
       logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()));
-      logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(context.name));
+      logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(contextName));
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
       logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
       if (configManager.getFlag(flags.namespace) !== undefined) {

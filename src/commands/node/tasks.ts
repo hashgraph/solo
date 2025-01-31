@@ -1,25 +1,12 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {type AccountManager} from '../../core/account_manager.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type KeyManager} from '../../core/key_manager.js';
 import {type ProfileManager} from '../../core/profile_manager.js';
 import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8} from '../../core/k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {type CertificateManager} from '../../core/certificate_manager.js';
 import {Zippy} from '../../core/zippy.js';
@@ -63,7 +50,7 @@ import {
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
-import type {Listr, ListrTaskWrapper} from 'listr2';
+import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {
   type ConfigBuilder,
   type NodeAlias,
@@ -72,7 +59,7 @@ import {
   type SkipCheck,
 } from '../../types/aliases.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import type {NodeDeleteConfigClass, NodeRefreshConfigClass, NodeUpdateConfigClass} from './configs.js';
+import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
@@ -964,11 +951,13 @@ export class NodeCommandTasks {
   ) {
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
 
+    const adminPublicKeys = splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys));
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
       nodeAliases,
       this.keyManager,
       keysDir,
       networkNodeServiceMap,
+      adminPublicKeys,
     );
 
     const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');

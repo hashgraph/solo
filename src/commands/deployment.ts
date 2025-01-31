@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
@@ -22,11 +9,11 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import type {Cluster, Namespace} from '../core/config/remote/types.js';
-import type {CommandFlag} from '../types/flag_types.js';
-import type {CommandBuilder} from '../types/aliases.js';
-import type {SoloListrTask} from '../types/index.js';
-import type {Opts} from '../types/command_types.js';
+import {type Namespace, type Cluster} from '../core/config/remote/types.js';
+import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandBuilder} from '../types/aliases.js';
+import {type SoloListrTask} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -113,7 +100,7 @@ export class DeploymentCommand extends BaseCommand {
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
                 task: async (_, task) => {
-                  if (!(await self.k8.testClusterConnection(context, cluster))) {
+                  if (!(await self.k8.testContextConnection(context))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
 
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
