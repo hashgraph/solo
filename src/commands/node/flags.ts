@@ -18,11 +18,11 @@ import {Flags as flags} from '../flags.js';
 
 export const DEFAULT_FLAGS = {
   requiredFlags: [],
-  requiredFlagsWithDisabledPrompt: [flags.namespace, flags.cacheDir, flags.releaseTag],
+  requiredFlagsWithDisabledPrompt: [flags.deployment, flags.cacheDir, flags.releaseTag],
   optionalFlags: [flags.quiet, flags.devMode],
 };
 
-const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
+const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.deployment, flags.releaseTag];
 const COMMON_UPGRADE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
   flags.app,
   flags.debugNodeAlias,
@@ -37,7 +37,7 @@ const COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS = [
   flags.force,
 ];
 
-const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.releaseTag];
+const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.deployment, flags.releaseTag];
 const COMMON_UPDATE_FLAGS_REQUIRED_NO_PROMPT_FLAGS = [
   flags.app,
   flags.debugNodeAlias,
@@ -118,7 +118,7 @@ export const UPDATE_EXECUTE_FLAGS = {
   optionalFlags: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS],
 };
 
-const COMMON_DELETE_REQUIRED_FLAGS = [flags.cacheDir, flags.namespace, flags.nodeAlias, flags.releaseTag];
+const COMMON_DELETE_REQUIRED_FLAGS = [flags.cacheDir, flags.deployment, flags.nodeAlias, flags.releaseTag];
 
 const COMMON_DELETE_REQUIRED_NO_PROMPT_FLAGS = [
   flags.app,
@@ -141,7 +141,7 @@ const COMMON_ADD_REQUIRED_FLAGS = [
   flags.endpointType,
   flags.generateGossipKeys,
   flags.generateTlsKeys,
-  flags.namespace,
+  flags.deployment,
   flags.releaseTag,
 ];
 
@@ -216,19 +216,19 @@ export const ADD_EXECUTE_FLAGS = {
 };
 
 export const LOGS_FLAGS = {
-  requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
+  requiredFlags: [flags.deployment, flags.nodeAliasesUnparsed],
   requiredFlagsWithDisabledPrompt: [],
   optionalFlags: [flags.quiet],
 };
 
 export const STATES_FLAGS = {
-  requiredFlags: [flags.namespace, flags.nodeAliasesUnparsed],
+  requiredFlags: [flags.deployment, flags.nodeAliasesUnparsed],
   requiredFlagsWithDisabledPrompt: [],
   optionalFlags: [flags.quiet],
 };
 
 export const REFRESH_FLAGS = {
-  requiredFlags: [flags.cacheDir, flags.namespace, flags.nodeAliasesUnparsed, flags.releaseTag],
+  requiredFlags: [flags.cacheDir, flags.deployment, flags.nodeAliasesUnparsed, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app],
   optionalFlags: [flags.localBuildPath, flags.devMode, flags.quiet],
 };
@@ -240,19 +240,19 @@ export const KEYS_FLAGS = {
 };
 
 export const STOP_FLAGS = {
-  requiredFlags: [flags.namespace],
+  requiredFlags: [flags.deployment],
   requiredFlagsWithDisabledPrompt: [flags.nodeAliasesUnparsed],
   optionalFlags: [flags.quiet],
 };
 
 export const START_FLAGS = {
-  requiredFlags: [flags.namespace, flags.releaseTag],
+  requiredFlags: [flags.deployment, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app],
   optionalFlags: [flags.quiet, flags.nodeAliasesUnparsed, flags.debugNodeAlias, flags.stateFile, flags.stakeAmounts],
 };
 
 export const SETUP_FLAGS = {
-  requiredFlags: [flags.cacheDir, flags.namespace, flags.releaseTag],
+  requiredFlags: [flags.cacheDir, flags.deployment, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app, flags.appConfig, flags.nodeAliasesUnparsed],
   optionalFlags: [flags.quiet, flags.devMode, flags.localBuildPath],
 };
