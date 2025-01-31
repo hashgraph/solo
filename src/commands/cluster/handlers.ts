@@ -1,13 +1,13 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {BaseCommand, CommandHandlers} from '../base.js';
-import type {ClusterCommandTasks} from './tasks.js';
+import {type BaseCommand, type CommandHandlers} from '../base.js';
+import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
-import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
 

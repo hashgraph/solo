@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {SoloError} from '../../errors.js';
-import type {EmailAddress, IMigration, Version} from './types.js';
+import {type EmailAddress, type IMigration, type Version} from './types.js';
 
 export class Migration implements IMigration {
   private readonly _migratedAt: Date;

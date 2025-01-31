@@ -30,7 +30,7 @@ import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js
 import * as helpers from './core/helpers.js';
 import {type K8} from './core/kube/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
-import type {Opts} from './types/command_types.js';
+import {type Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
 import {Container} from './core/container_init.js';
 

@@ -5,18 +5,23 @@ import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-valid
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import type {ClusterContextMapping, Deployments, DeploymentStructure, LocalConfigData} from './local_config_data.js';
+import {
+  type ClusterContextMapping,
+  type Deployments,
+  type DeploymentStructure,
+  type LocalConfigData,
+} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
 import {ConfigManager} from '../config_manager.js';
-import type {EmailAddress, Namespace} from './remote/types.js';
+import {type EmailAddress, type Namespace} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../../core/kube/k8.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
-import type {SoloListrTask} from '../../types/index.js';
+import {type SoloListrTask} from '../../types/index.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {

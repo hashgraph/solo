@@ -31,7 +31,7 @@ import {
   V1VolumeResourceRequirements,
 } from '@kubernetes/client-node';
 import crypto from 'crypto';
-import type {PodName} from '../../../../src/types/aliases.js';
+import {type PodName} from '../../../../src/types/aliases.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {type K8Client} from '../../../../src/core/kube/k8_client.js';

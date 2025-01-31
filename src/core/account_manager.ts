@@ -3,7 +3,7 @@
  */
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import type {Key} from '@hashgraph/sdk';
+import {type Key} from '@hashgraph/sdk';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -23,14 +23,14 @@ import {
 } from '@hashgraph/sdk';
 import {SoloError, MissingArgumentError} from './errors.js';
 import {Templates} from './templates.js';
-import type {NetworkNodeServices} from './network_node_services.js';
+import {type NetworkNodeServices} from './network_node_services.js';
 import {NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
 import {SoloLogger} from './logging.js';
 import {type K8} from './kube/k8.js';
-import type {AccountIdWithKeyPairObject, ExtendedNetServer} from '../types/index.js';
-import type {NodeAlias, PodName, SdkNetworkEndpoint} from '../types/aliases.js';
+import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
+import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';

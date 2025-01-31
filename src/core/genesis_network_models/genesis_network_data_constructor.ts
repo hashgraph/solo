@@ -5,13 +5,13 @@ import {AccountId, PrivateKey, PublicKey} from '@hashgraph/sdk';
 import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
 import * as constants from '../constants.js';
 
-import type {KeyManager} from '../key_manager.js';
-import type {ToJSON} from '../../types/index.js';
-import type {JsonString, NodeAlias, NodeAliases} from '../../types/aliases.js';
+import {type KeyManager} from '../key_manager.js';
+import {type ToJSON} from '../../types/index.js';
+import {type JsonString, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_entry_data_wrapper.js';
 import {Templates} from '../templates.js';
 import path from 'path';
-import type {NetworkNodeServices} from '../network_node_services.js';
+import {type NetworkNodeServices} from '../network_node_services.js';
 import {SoloError} from '../errors.js';
 import {Flags as flags} from '../../commands/flags.js';
 

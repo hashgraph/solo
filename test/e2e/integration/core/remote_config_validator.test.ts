@@ -21,7 +21,7 @@ import {ConsensusNodeComponent} from '../../../../src/core/config/remote/compone
 import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
 import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
 
-import type {NodeAlias, NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 
 describe('RemoteConfigValidator', () => {

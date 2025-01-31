@@ -13,7 +13,7 @@ import {MirrorNodeComponent} from '../../../../src/core/config/remote/components
 import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
-import type {NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeAliases} from '../../../../src/types/aliases.js';
 
 function testBaseComponentData(classComponent: any) {
   it('should fail if name is not provided', () => {

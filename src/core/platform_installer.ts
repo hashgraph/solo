@@ -14,7 +14,7 @@ import * as Base64 from 'js-base64';
 import chalk from 'chalk';
 
 import {SoloLogger} from './logging.js';
-import type {NodeAlias, NodeAliases, PodName} from '../types/aliases.js';
+import {type NodeAlias, type NodeAliases, type PodName} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';

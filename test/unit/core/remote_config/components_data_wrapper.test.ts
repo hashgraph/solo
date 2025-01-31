@@ -13,7 +13,7 @@ import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/co
 import {RelayComponent} from '../../../../src/core/config/remote/components/relay_component.js';
 import {ComponentType, ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {SoloError} from '../../../../src/core/errors.js';
-import type {NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeAliases} from '../../../../src/types/aliases.js';
 
 export function createComponentsDataWrapper() {
   const serviceName = 'serviceName';

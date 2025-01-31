@@ -10,8 +10,8 @@ import {GrpcProxyTlsEnums} from './enumerations.js';
 import {ConfigManager} from './config_manager.js';
 import {type K8} from './kube/k8.js';
 import {SoloLogger} from './logging.js';
-import type {ListrTaskWrapper} from 'listr2';
-import type {NodeAlias} from '../types/aliases.js';
+import {type ListrTaskWrapper} from 'listr2';
+import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 

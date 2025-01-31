@@ -1,9 +1,9 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {Listr, ListrTaskWrapper} from 'listr2';
-import type {Stats} from 'node:fs';
-import type {ReadEntry} from 'tar';
+import {type Listr, type ListrTaskWrapper} from 'listr2';
+import {type Stats} from 'node:fs';
+import {type ReadEntry} from 'tar';
 
 export type NodeAlias = `node${number}`;
 export type PodName = `network-${NodeAlias}-0`;
