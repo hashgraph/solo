@@ -22,7 +22,7 @@ import {type ProfileManager} from '../core/profile_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap} from '../core/helpers.js';
+import {getNodeAccountMap, resolveNamespaceFromDeployment} from '../core/helpers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -52,7 +52,7 @@ export class RelayCommand extends BaseCommand {
     return [
       flags.chainId,
       flags.chartDirectory,
-      flags.namespace,
+      flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.operatorId,
       flags.operatorKey,
@@ -66,7 +66,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   static get DESTROY_FLAGS_LIST() {
-    return [flags.chartDirectory, flags.namespace, flags.nodeAliasesUnparsed];
+    return [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed];
   }
 
   async prepareValuesArg(
@@ -346,11 +346,12 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
             await self.configManager.executePrompt(task, RelayCommand.DESTROY_FLAGS_LIST);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {
               chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: namespace,
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
               ),
@@ -434,7 +435,7 @@ export class RelayCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy JSON RPC relay',
             builder: (y: any) =>
-              flags.setCommandFlags(y, flags.chartDirectory, flags.namespace, flags.quiet, flags.nodeAliasesUnparsed),
+              flags.setCommandFlags(y, flags.chartDirectory, flags.deployment, flags.quiet, flags.nodeAliasesUnparsed),
             handler: (argv: any) => {
               self.logger.info("==== Running 'relay destroy' ===", {argv});
               self.logger.debug(argv);
