@@ -134,10 +134,8 @@ export class ClusterCommandTasks {
         const remoteClusterList: string[] = [];
 
         const namespace = remoteConfig.metadata.name;
-        let deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);
-        if (!deploymentName) {
-          deploymentName = await flags.deployment.prompt(task, deploymentName);
-        }
+        await this.parent.getConfigManager().executePrompt(task, [flags.deployment]);
+        const deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);
 
         const remoteNamespace = remoteConfig.metadata.name;
         for (const deployment in localConfig.deployments) {
