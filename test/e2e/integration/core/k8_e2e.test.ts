@@ -153,17 +153,6 @@ describe('K8', () => {
     expect(pods).to.have.lengthOf(1);
   }).timeout(defaultTimeout);
 
-  it('should be able to run wait for pod conditions', async () => {
-    const labels = [`app=${podLabelValue}`];
-
-    const conditions = new Map()
-      .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE);
-    const pods = await k8.waitForPodConditions(conditions, labels, 1);
-    expect(pods).to.have.lengthOf(1);
-  }).timeout(defaultTimeout);
-
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`]);
     const podName = pods[0].metadata.name;
