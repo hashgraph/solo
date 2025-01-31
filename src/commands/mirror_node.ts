@@ -22,7 +22,7 @@ import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getEnvValue} from '../core/helpers.js';
+import {getEnvValue, resolveNamespaceFromDeployment} from '../core/helpers.js';
 import {type CommandBuilder, type PodName} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -83,7 +83,7 @@ export class MirrorNodeCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
-      flags.namespace,
+      flags.deployment,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
@@ -165,12 +165,15 @@ export class MirrorNodeCommand extends BaseCommand {
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
               'chartPath',
               'valuesArg',
+              'namespace',
             ]) as MirrorNodeDeployConfigClass;
 
+            ctx.config.namespace = namespace;
             ctx.config.chartPath = await self.prepareChartPath(
               '', // don't use chartPath which is for local solo-charts only
               constants.MIRROR_NODE_RELEASE_NAME,
@@ -343,7 +346,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
-                    const namespace = self.configManager.getFlag<string>(flags.namespace) as string;
+                    const namespace = ctx.config.namespace;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -456,21 +459,21 @@ export class MirrorNodeCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            // @ts-ignore
-            ctx.config = {
-              namespace: self.configManager.getFlag<string>(flags.namespace),
-            };
-
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
-              throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
+            if (!(await self.k8.hasNamespace(namespace))) {
+              throw new SoloError(`namespace ${namespace} does not exist`);
             }
 
-            ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
-              ctx.config.namespace,
+            const isChartInstalled = await this.chartManager.isChartInstalled(
+              namespace,
               constants.MIRROR_NODE_RELEASE_NAME,
             );
+
+            ctx.config = {
+              namespace,
+              isChartInstalled,
+            };
 
             await self.accountManager.loadNodeClient(ctx.config.namespace);
 
@@ -553,7 +556,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
-            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.namespace),
+            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.deployment),
             handler: argv => {
               self.logger.info("==== Running 'mirror-node destroy' ===");
               self.logger.info(argv);
