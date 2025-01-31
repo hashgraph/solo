@@ -747,9 +747,9 @@ export class Flags {
     },
   };
 
-  static readonly hederaExplorerTlsLoadBalancerIp: CommandFlag = {
-    constName: 'hederaExplorerTlsLoadBalancerIp',
-    name: 'hedera-explorer-tls-load-balancer-ip',
+  static readonly hederaExplorerLoadBalancerIp: CommandFlag = {
+    constName: 'hederaExplorerLoadBalancerIp',
+    name: 'hedera-explorer-load-balancer-ip',
     definition: {
       describe: 'The static IP address to use for the Hedera Explorer TLS load balancer, defaults to ""',
       defaultValue: '',
@@ -1369,6 +1369,28 @@ export class Flags {
     },
   };
 
+  static readonly enableIngress: CommandFlag = {
+    constName: 'enableIngress',
+    name: 'enable-ingress',
+    definition: {
+      describe: 'enable ingress on the component/pod',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  static readonly mirrorStaticIP: CommandFlag = {
+    constName: 'mirrorStaticIP',
+    name: 'mirror-static-ip',
+    definition: {
+      describe: 'static IP address for the mirror node',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly hederaExplorerVersion: CommandFlag = {
     constName: 'hederaExplorerVersion',
     name: 'hedera-explorer-version',
@@ -1744,6 +1766,7 @@ export class Flags {
     Flags.devMode,
     Flags.ecdsaPrivateKey,
     Flags.ed25519PrivateKey,
+    Flags.enableIngress,
     Flags.enableHederaExplorerTls,
     Flags.enablePrometheusSvcMonitor,
     Flags.enableTimeout,
@@ -1763,13 +1786,14 @@ export class Flags {
     Flags.grpcWebTlsKeyPath,
     Flags.haproxyIps,
     Flags.hederaExplorerTlsHostName,
-    Flags.hederaExplorerTlsLoadBalancerIp,
+    Flags.hederaExplorerLoadBalancerIp,
     Flags.hederaExplorerVersion,
     Flags.inputDir,
     Flags.loadBalancerEnabled,
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
+    Flags.mirrorStaticIP,
     Flags.namespace,
     Flags.newAccountNumber,
     Flags.newAdminKey,

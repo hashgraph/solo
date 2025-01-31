@@ -1454,11 +1454,18 @@ export class K8 {
 
   /**
    * Check if the ingress controller is installed inside any namespace.
+   * @param labels - labels to filter the ingress controller
    * @returns if ingress controller is found
    */
-  public async isIngressControllerInstalled(): Promise<boolean> {
+  public async isIngressControllerInstalled(labels: string[] = []): Promise<boolean> {
     try {
-      const response = await this.networkingApi.listIngressClass();
+      const response = await this.networkingApi.listIngressClass(
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labels.join(','),
+      );
 
       return response.body.items.length > 0;
     } catch (e) {
@@ -1685,5 +1692,42 @@ export class K8 {
     const currentCluster = this.kubeConfig.getCurrentCluster();
     if (!currentCluster) return '';
     return currentCluster.name;
+  }
+
+  public async patchMirrorIngressClassName(namespace: Namespace, className: string) {
+    const ingressNames = [];
+    await this.networkingApi
+      .listIngressForAllNamespaces()
+      .then(response => {
+        response.body.items.forEach(ingress => {
+          const ingressName = ingress.metadata.name;
+          if (ingressName.includes(constants.MIRROR_NODE_RELEASE_NAME)) {
+            ingressNames.push(ingressName);
+          }
+        });
+      })
+      .catch(err => {
+        this.logger.error(`Error listing Ingresses: ${err}`);
+      });
+
+    const patch = [
+      {
+        op: 'add', // Use 'replace' if the field already exists
+        path: '/spec/ingressClassName',
+        value: className,
+      },
+    ];
+    for (const name of ingressNames) {
+      await this.networkingApi
+        .patchNamespacedIngress(name, namespace, patch, undefined, undefined, undefined, undefined, undefined, {
+          headers: {'Content-Type': 'application/json-patch+json'},
+        })
+        .then(response => {
+          this.logger.info(`Patched Ingress ${name} in namespace ${namespace}`);
+        })
+        .catch(err => {
+          this.logger.error(`Error patching Ingress ${name} in namespace ${namespace}: ${err}`);
+        });
+    }
   }
 }
