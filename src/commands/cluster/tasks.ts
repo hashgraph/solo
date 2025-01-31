@@ -15,7 +15,7 @@ import {ErrorMessages} from '../../core/error_messages.js';
 import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import type {RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
-import type K8 from '../../core/kube/k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 import type {SelectClusterContextContext} from './configs.js';
 import type {Namespace} from '../../core/config/remote/types.js';

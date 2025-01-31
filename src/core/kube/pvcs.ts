@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-export default interface Pvcs {
+export interface Pvcs {
   /**
    * Delete a persistent volume claim
    * @param namespace - the namespace of the persistent volume claim to delete

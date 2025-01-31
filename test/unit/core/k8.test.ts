@@ -5,7 +5,7 @@ import {expect} from 'chai';
 import {describe, it, after, before} from 'mocha';
 import jest from 'jest-mock';
 import * as constants from '../../../src/core/constants.js';
-import type K8 from '../../../src/core/kube/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import {K8Client} from '../../../src/core/kube/k8_client.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';

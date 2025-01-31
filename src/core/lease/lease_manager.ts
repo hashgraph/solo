@@ -3,7 +3,7 @@
  */
 import {Flags as flags} from '../../commands/flags.js';
 import {ConfigManager} from '../config_manager.js';
-import type K8 from '../../core/kube/k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import {SoloLogger} from '../logging.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';

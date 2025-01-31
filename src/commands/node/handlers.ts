@@ -23,7 +23,7 @@ import * as constants from '../../core/constants.js';
 import type {AccountManager} from '../../core/account_manager.js';
 import type {ConfigManager} from '../../core/config_manager.js';
 import type {PlatformInstaller} from '../../core/platform_installer.js';
-import type K8 from '../../core/kube/k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import type {LeaseManager} from '../../core/lease/lease_manager.js';
 import type {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError, SoloError} from '../../core/errors.js';

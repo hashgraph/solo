@@ -3,7 +3,7 @@
  */
 import {type Optional} from '../../types/index.js';
 
-export default interface Secrets {
+export interface Secrets {
   /**
    * creates a new Kubernetes secret with the provided attributes
    * @param namespace - the namespace to store the secret

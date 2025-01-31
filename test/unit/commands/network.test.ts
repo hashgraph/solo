@@ -23,7 +23,7 @@ import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
-import type K8 from '../../../src/core/kube/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';

@@ -28,7 +28,7 @@ import {SoloLogger} from '../src/core/logging.js';
 import type {BaseCommand} from '../src/commands/base.js';
 import type {NodeAlias} from '../src/types/aliases.js';
 import type {NetworkNodeServices} from '../src/core/network_node_services.js';
-import type K8 from '../src/core/kube/k8.js';
+import {type K8} from '../src/core/kube/k8.js';
 import {AccountManager} from '../src/core/account_manager.js';
 import {PlatformInstaller} from '../src/core/platform_installer.js';
 import {ProfileManager} from '../src/core/profile_manager.js';

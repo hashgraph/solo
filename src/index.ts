@@ -28,7 +28,7 @@ import {CertificateManager} from './core/certificate_manager.js';
 import {LocalConfig} from './core/config/local_config.js';
 import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
 import * as helpers from './core/helpers.js';
-import type K8 from './core/kube/k8.js';
+import {type K8} from './core/kube/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import type {Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';

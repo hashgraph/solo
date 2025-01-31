@@ -9,7 +9,7 @@ import {DependencyManager} from '../../../../src/core/dependency_managers/index.
 import {Helm} from '../../../../src/core/helm.js';
 import {ChartManager} from '../../../../src/core/chart_manager.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
-import type K8 from '../../../../src/core/kube/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 import {K8Client} from '../../../../src/core/kube/k8_client.js';
 import {LocalConfig} from '../../../../src/core/config/local_config.js';
 import {KeyManager} from '../../../../src/core/key_manager.js';

@@ -19,7 +19,7 @@ import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import type {NodeAlias} from '../../src/types/aliases.js';
 import type {ListrTaskWrapper} from 'listr2';
 import {ConfigManager} from '../../src/core/config_manager.js';
-import type K8 from '../../src/core/kube/k8.js';
+import {type K8} from '../../src/core/kube/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {StatusCodes} from 'http-status-codes';

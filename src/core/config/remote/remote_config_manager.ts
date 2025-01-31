@@ -10,7 +10,7 @@ import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
-import type K8 from '../../kube/k8.js';
+import {type K8} from '../../kube/k8.js';
 import type {Cluster, Context, Namespace} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';

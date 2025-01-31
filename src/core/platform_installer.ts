@@ -7,7 +7,7 @@ import * as path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
-import type K8 from '../core/kube/k8.js';
+import {type K8} from '../core/kube/k8.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';

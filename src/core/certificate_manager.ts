@@ -8,7 +8,7 @@ import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
 import {ConfigManager} from './config_manager.js';
-import type K8 from './kube/k8.js';
+import {type K8} from './kube/k8.js';
 import {SoloLogger} from './logging.js';
 import type {ListrTaskWrapper} from 'listr2';
 import type {NodeAlias} from '../types/aliases.js';

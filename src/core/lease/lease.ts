@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type K8 from '../../core/kube/k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import type {LeaseHolder} from './lease_holder.js';
 import type {Duration} from '../time/duration.js';
 

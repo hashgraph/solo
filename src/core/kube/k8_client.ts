@@ -20,14 +20,14 @@ import * as constants from './../constants.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
-import type {PodName, TarCreateFilter} from '../../types/aliases.js';
-import type {ExtendedNetServer, LocalContextObject, Optional} from '../../types/index.js';
+import {type PodName, type TarCreateFilter} from '../../types/aliases.js';
+import {type ExtendedNetServer, type LocalContextObject, type Optional} from '../../types/index.js';
 import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
-import type {Namespace} from './../config/remote/types.js';
-import type K8 from './k8.js';
-import type TDirectoryData from './t_directory_data.js';
+import {type Namespace} from './../config/remote/types.js';
+import {type K8} from './k8.js';
+import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './namespaces.js';
 
 /**

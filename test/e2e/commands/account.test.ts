@@ -23,7 +23,7 @@ import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER,
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import type K8 from '../../../src/core/kube/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type NodeCommand} from '../../../src/commands/node/index.js';

@@ -7,7 +7,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
-import type K8 from '../../../src/core/kube/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';

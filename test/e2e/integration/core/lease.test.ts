@@ -4,7 +4,7 @@
 import {it, describe, before, after} from 'mocha';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import type K8 from '../../../../src/core/kube/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';

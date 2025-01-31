@@ -3,7 +3,7 @@
  */
 import {type V1Service} from '@kubernetes/client-node';
 
-export default interface Services {
+export interface Services {
   /**
    * Get a svc by name
    * @param namespace - namespace

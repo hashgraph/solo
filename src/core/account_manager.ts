@@ -28,7 +28,7 @@ import {NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
 import {SoloLogger} from './logging.js';
-import type K8 from './kube/k8.js';
+import {type K8} from './kube/k8.js';
 import type {AccountIdWithKeyPairObject, ExtendedNetServer} from '../types/index.js';
 import type {NodeAlias, PodName, SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';

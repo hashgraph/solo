@@ -15,7 +15,6 @@ import * as constants from '../../../../src/core/constants.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import type K8 from '../../../../src/core/kube/k8.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {
   V1Container,

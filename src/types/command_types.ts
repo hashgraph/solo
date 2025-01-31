@@ -3,7 +3,7 @@
  */
 import type {SoloLogger} from '../core/logging.js';
 import type {Helm} from '../core/helm.js';
-import type K8 from '../core/kube/k8.js';
+import {type K8} from '../core/kube/k8.js';
 import type {PackageDownloader} from '../core/package_downloader.js';
 import type {PlatformInstaller} from '../core/platform_installer.js';
 import type {ChartManager} from '../core/chart_manager.js';

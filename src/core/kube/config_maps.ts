@@ -3,7 +3,7 @@
  */
 import {type V1ConfigMap} from '@kubernetes/client-node';
 
-export default interface Config_maps {
+export interface ConfigMaps {
   /**
    * Create a new config map
    * @param namespace - for the config map
