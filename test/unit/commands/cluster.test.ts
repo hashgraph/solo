@@ -125,6 +125,7 @@ describe('ClusterCommand unit tests', () => {
     const sandbox = sinon.createSandbox();
     let namespacePromptStub: sinon.SinonStub;
     let clusterNamePromptStub: sinon.SinonStub;
+    let deploymentPromptStub: sinon.SinonStub;
     let contextPromptStub: sinon.SinonStub;
     let tasks: ClusterCommandTasks;
     let command: BaseCommand;
@@ -231,6 +232,11 @@ describe('ClusterCommand unit tests', () => {
 
       beforeEach(async () => {
         namespacePromptStub = sandbox.stub(flags.namespace, 'prompt').callsFake(() => {
+          return new Promise(resolve => {
+            resolve('deployment-3');
+          });
+        });
+        deploymentPromptStub = sandbox.stub(flags.deployment, 'prompt').callsFake(() => {
           return new Promise(resolve => {
             resolve('deployment-3');
           });
@@ -423,14 +429,14 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should use context from local config mapping for the first cluster from the selected deployment', async () => {
-        const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-2']]);
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-2']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected deployment is found in local config but the context is not', async () => {
-        const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-3']]);
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-3');
@@ -438,7 +444,7 @@ describe('ClusterCommand unit tests', () => {
 
       it('should use default context if selected deployment is found in local config but the context is not and quiet=true', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [
-          [flags.namespace, 'deployment-3'],
+          [flags.deployment, 'deployment-3'],
           [flags.quiet, true],
         ]);
 
@@ -447,7 +453,7 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should prompt for clusters and contexts if selected deployment is not found in local config', async () => {
-        const opts = getBaseCommandOpts(sandbox, {}, [[flags.namespace, 'deployment-4']]);
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-4']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-3');
@@ -455,7 +461,7 @@ describe('ClusterCommand unit tests', () => {
 
       it('should use clusters and contexts from kubeConfig if selected deployment is not found in local config and quiet=true', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [
-          [flags.namespace, 'deployment-4'],
+          [flags.deployment, 'deployment-4'],
           [flags.quiet, true],
         ]);
 

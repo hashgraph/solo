@@ -20,6 +20,7 @@ export interface NodeAddConfigClass {
   grpcEndpoints: string;
   localBuildPath: string;
   namespace: string;
+  deployment: string;
   nodeAlias: NodeAlias;
   releaseTag: string;
   adminKey: PrivateKey;

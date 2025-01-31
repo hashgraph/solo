@@ -15,7 +15,7 @@ import {MissingArgumentError, SoloError} from '../errors.js';
 import {SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
 import {ConfigManager} from '../config_manager.js';
-import {type EmailAddress, type Namespace} from './remote/types.js';
+import {type EmailAddress, type Namespace, type DeploymentName} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../../core/kube/k8.js';
 import {splitFlagInput} from '../helpers.js';
@@ -117,7 +117,7 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
-  public setCurrentDeployment(deploymentName: Namespace): this {
+  public setCurrentDeployment(deploymentName: DeploymentName): this {
     this.currentDeploymentName = deploymentName;
     this.validate();
     return this;
@@ -162,7 +162,8 @@ export class LocalConfig implements LocalConfigData {
 
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
-        const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
+        const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
+        const namespace = self.configManager.getFlag<Namespace>(flags.namespace);
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
 
@@ -172,7 +173,7 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
         }
 
-        if (!deploymentName) throw new SoloError('Namespace was not specified');
+        if (!deploymentName) throw new SoloError('Deployment name was not specified');
 
         if (!deploymentClusters) {
           if (isQuiet) {
@@ -186,7 +187,10 @@ export class LocalConfig implements LocalConfigData {
         const parsedClusters = splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
-          [deploymentName]: {clusters: parsedClusters},
+          [deploymentName]: {
+            clusters: parsedClusters,
+            namespace,
+          },
         };
 
         const parsedContexts = splitFlagInput(contexts);

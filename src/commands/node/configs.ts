@@ -9,7 +9,7 @@ import {SoloError} from '../../core/errors.js';
 import * as helpers from '../../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
-import {validatePath} from '../../core/helpers.js';
+import {resolveNamespaceFromDeployment, validatePath} from '../../core/helpers.js';
 import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
@@ -51,7 +51,10 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
     'nodeClient',
     'freezeAdminPrivateKey',
+    'namespace',
   ]) as NodePrepareUpgradeConfigClass;
+
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
   await initializeSetup(config, this.k8);
   config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
@@ -67,8 +70,10 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
     'allNodeAliases',
     'existingNodeAliases',
     'serviceMap',
+    'namespace',
   ]) as NodeDownloadGeneratedFilesConfigClass;
 
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   config.existingNodeAliases = [];
   await initializeSetup(config, this.k8);
 
@@ -84,8 +89,10 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
     'podNames',
     'stagingDir',
     'stagingKeysDir',
+    'namespace',
   ]) as NodeUpgradeConfigClass;
 
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   config.curDate = new Date();
   config.existingNodeAliases = [];
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -121,8 +128,10 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
     'stagingDir',
     'stagingKeysDir',
     'treasuryKey',
+    'namespace',
   ]) as NodeUpdateConfigClass;
 
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   config.curDate = new Date();
   config.existingNodeAliases = [];
 
@@ -164,10 +173,12 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
     'stagingDir',
     'stagingKeysDir',
     'treasuryKey',
+    'namespace',
   ]) as NodeDeleteConfigClass;
 
   config.curDate = new Date();
   config.existingNodeAliases = [];
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
   await initializeSetup(config, this.k8);
 
@@ -209,11 +220,14 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
     'stagingDir',
     'stagingKeysDir',
     'treasuryKey',
+    'namespace',
   ]) as NodeAddConfigClass;
 
   ctx.adminKey = argv[flags.adminKey.name]
     ? PrivateKey.fromStringED25519(argv[flags.adminKey.name])
     : PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   config.curDate = new Date();
   config.existingNodeAliases = [];
 
@@ -244,10 +258,9 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   return config;
 };
 
-export const logsConfigBuilder = function (argv, ctx, task) {
-  /** @type {{namespace: string, nodeAliases: NodeAliases, nodeAliasesUnparsed: string}} */
+export const logsConfigBuilder = async function (argv, ctx, task) {
   const config = {
-    namespace: this.configManager.getFlag(flags.namespace),
+    namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
   };
@@ -255,10 +268,9 @@ export const logsConfigBuilder = function (argv, ctx, task) {
   return config;
 };
 
-export const statesConfigBuilder = function (argv, ctx, task) {
-  /** @type {{namespace: string, nodeAliases: NodeAliases, nodeAliasesUnparsed:string}} */
+export const statesConfigBuilder = async function (argv, ctx, task) {
   const config = {
-    namespace: this.configManager.getFlag(flags.namespace),
+    namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
   };
@@ -267,8 +279,13 @@ export const statesConfigBuilder = function (argv, ctx, task) {
 };
 
 export const refreshConfigBuilder = async function (argv, ctx, task) {
-  ctx.config = this.getConfig(REFRESH_CONFIGS_NAME, argv.flags, ['nodeAliases', 'podNames']) as NodeRefreshConfigClass;
+  ctx.config = this.getConfig(REFRESH_CONFIGS_NAME, argv.flags, [
+    'nodeAliases',
+    'podNames',
+    'namespace',
+  ]) as NodeRefreshConfigClass;
 
+  ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
 
   await initializeSetup(ctx.config, this.k8);
@@ -294,9 +311,8 @@ export const keysConfigBuilder = function (argv, ctx, task) {
 };
 
 export const stopConfigBuilder = async function (argv, ctx, task) {
-  /** @type {{namespace: string, nodeAliases: NodeAliases}} */
   ctx.config = {
-    namespace: this.configManager.getFlag(flags.namespace),
+    namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
   };
@@ -309,7 +325,8 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const startConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases']) as NodeStartConfigClass;
+  const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
   if (!(await this.k8.hasNamespace(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
@@ -321,8 +338,13 @@ export const startConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const setupConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, ['nodeAliases', 'podNames']) as NodeSetupConfigClass;
+  const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
+    'nodeAliases',
+    'podNames',
+    'namespace',
+  ]) as NodeSetupConfigClass;
 
+  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
 
   await initializeSetup(config, this.k8);
@@ -335,6 +357,7 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
 export interface NodeLogsConfigClass {
   namespace: string;
+  deployment: string;
   nodeAliases: string[];
 }
 
@@ -344,6 +367,7 @@ export interface NodeRefreshConfigClass {
   devMode: boolean;
   localBuildPath: string;
   namespace: string;
+  deployment: string;
   nodeAliasesUnparsed: string;
   releaseTag: string;
   nodeAliases: NodeAliases;
@@ -365,6 +389,7 @@ export interface NodeKeysConfigClass {
 
 export interface NodeStopConfigClass {
   namespace: string;
+  deployment: string;
   nodeAliases: NodeAliases;
   podNames: Record<PodName, NodeAlias>;
 }
@@ -374,6 +399,7 @@ export interface NodeStartConfigClass {
   cacheDir: string;
   debugNodeAlias: NodeAlias;
   namespace: string;
+  deployment: string;
   nodeAliases: NodeAliases;
   stagingDir: string;
   podNames: Record<NodeAlias, PodName>;
@@ -390,6 +416,7 @@ export interface NodeDeleteConfigClass {
   soloChartVersion: string;
   localBuildPath: string;
   namespace: string;
+  deployment: string;
   nodeAlias: NodeAlias;
   releaseTag: string;
   adminKey: PrivateKey;
@@ -416,6 +443,7 @@ export interface NodeSetupConfigClass {
   devMode: boolean;
   localBuildPath: string;
   namespace: string;
+  deployment: string;
   nodeAliasesUnparsed: string;
   releaseTag: string;
   nodeAliases: NodeAliases;
@@ -434,6 +462,7 @@ export interface NodeUpgradeConfigClass {
   soloChartVersion: string;
   localBuildPath: string;
   namespace: string;
+  deployment: string;
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
@@ -464,6 +493,7 @@ export interface NodeUpdateConfigClass {
   grpcEndpoints: string;
   localBuildPath: string;
   namespace: string;
+  deployment: string;
   newAccountNumber: string;
   newAdminKey: PrivateKey;
   nodeAlias: NodeAlias;
@@ -489,6 +519,7 @@ export interface NodeUpdateConfigClass {
 interface NodePrepareUpgradeConfigClass {
   cacheDir: string;
   namespace: string;
+  deployment: string;
   releaseTag: string;
   freezeAdminPrivateKey: string;
   nodeClient: any;
@@ -498,6 +529,7 @@ interface NodePrepareUpgradeConfigClass {
 interface NodeDownloadGeneratedFilesConfigClass {
   cacheDir: string;
   namespace: string;
+  deployment: string;
   releaseTag: string;
   freezeAdminPrivateKey: string;
   nodeClient: any;
