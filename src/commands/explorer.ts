@@ -128,6 +128,8 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
+      valuesArg +=
+        ' --set-json \'ingress.hosts[1]={"host":"mirror.solo.local","paths":[{"path":"/","pathType":"Prefix"}]}\'';
     }
 
     if (!(await this.k8.isCertManagerInstalled())) {
@@ -242,6 +244,11 @@ export class ExplorerCommand extends BaseCommand {
               soloChartVersion,
               soloChartSetupValuesArg,
             );
+
+            await this.k8.patchMirrorIngressClassName(
+              config.namespace,
+              `${config.namespace}-hedera-explorer-ingress-class`,
+            );
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },
@@ -354,7 +361,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
               ctx.config.namespace,
-              constants.HEDERA_EXPLORER_RELEASE_NAME
+              constants.HEDERA_EXPLORER_RELEASE_NAME,
             );
             return ListrLease.newAcquireLeaseTask(lease, task);
           },

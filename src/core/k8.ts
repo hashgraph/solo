@@ -1693,4 +1693,41 @@ export class K8 {
     if (!currentCluster) return '';
     return currentCluster.name;
   }
+
+  public async patchMirrorIngressClassName(namespace: Namespace, className: string) {
+    const ingressNames = [];
+    await this.networkingApi
+      .listIngressForAllNamespaces()
+      .then(response => {
+        response.body.items.forEach(ingress => {
+          const ingressName = ingress.metadata.name;
+          if (ingressName.includes(constants.MIRROR_NODE_RELEASE_NAME)) {
+            ingressNames.push(ingressName);
+          }
+        });
+      })
+      .catch(err => {
+        this.logger.error(`Error listing Ingresses: ${err}`);
+      });
+
+    const patch = [
+      {
+        op: 'add', // Use 'replace' if the field already exists
+        path: '/spec/ingressClassName',
+        value: className,
+      },
+    ];
+    for (const name of ingressNames) {
+      await this.networkingApi
+        .patchNamespacedIngress(name, namespace, patch, undefined, undefined, undefined, undefined, undefined, {
+          headers: {'Content-Type': 'application/json-patch+json'},
+        })
+        .then(response => {
+          this.logger.info(`Patched Ingress ${name} in namespace ${namespace}`);
+        })
+        .catch(err => {
+          this.logger.error(`Error patching Ingress ${name} in namespace ${namespace}: ${err}`);
+        });
+    }
+  }
 }
