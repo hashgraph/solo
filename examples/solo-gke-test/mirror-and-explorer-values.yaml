@@ -71,12 +71,21 @@ rosetta: # not needed for default use case
   enabled: false
 redis:
   enabled: true
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
 #global:
 #  namespaceOverride: "{{ tpl (.Values.global.namespaceOverride | toString) }}"
 
 # importer is a component of the hedera mirror node
 # config for subchart hedera-mirror/importer
 importer:
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
   tolerations:
     - key: "solo.hashgraph.io/role"
       operator: "Equal"
@@ -130,6 +139,13 @@ importer:
             readiness:
               exclude: redis
 grpc:
+  ingress:
+    enabled: false
+    hosts:
+      - host: mirror.solo.local
+        paths: ["/com.hedera.mirror.api.proto.ConsensusService", "/com.hedera.mirror.api.proto.NetworkService", "/grpc.reflection.v1alpha.ServerReflection"]
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
   tolerations:
     - key: "solo.hashgraph.io/role"
       operator: "Equal"
@@ -161,6 +177,8 @@ grpc:
               exclude: redis
 postgresql:
   postgresql:
+    nodeSelector:
+      solo.hashgraph.io/role: "consensus-node"
     tolerations:
       - key: "solo.hashgraph.io/role"
         operator: "Equal"
@@ -181,6 +199,10 @@ postgresql:
   pgpool:
     replicaCount: 0
 restjava:
+  ingress:
+    enabled: false
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
   tolerations:
     - key: "solo.hashgraph.io/role"
       operator: "Equal"
@@ -199,6 +221,10 @@ restjava:
       value: "network"
       effect: "NoSchedule"
 rest:
+  ingress:
+    enabled: false
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
   tolerations:
     - key: "solo.hashgraph.io/role"
       operator: "Equal"
@@ -221,6 +247,13 @@ rest:
   redis:
     enabled: true
 web3:
+  ingress:
+    enabled: true
+    hosts:
+      - host: mirror.solo.local
+        paths: ['/api/v1/contracts/call', '/api/v1/contracts/results/((0x)?[A-Fa-f0-9]{64}|\d+\.\d+\.\d+-\d+-\d+)/opcodes']
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
   tolerations:
     - key: "solo.hashgraph.io/role"
       operator: "Equal"
@@ -243,6 +276,13 @@ web3:
 # Sets up a Pinger service that periodically submits CRYPTO_TRANSFER transactions
 # Additional configuration for node addresses, operator id and key should be handled by infrastructure code or solo
 monitor:
+  ingress:
+    enabled: true
+    hosts:
+      - host: mirror.solo.local
+        paths: ["/actuator/health/cluster"]
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
   tolerations:
     - key: "solo.hashgraph.io/role"
       operator: "Equal"
