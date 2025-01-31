@@ -206,6 +206,10 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.pinger,
               flags.operatorId,
               flags.operatorKey,
+              flags.useExternalDatabase,
+              flags.externalDatabaseHost,
+              flags.externalDatabaseOwnerUsername,
+              flags.externalDatabaseOwnerPassword,
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
