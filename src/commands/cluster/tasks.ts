@@ -133,10 +133,8 @@ export class ClusterCommandTasks {
         const localDeployments = localConfig.deployments;
         const remoteClusterList: string[] = [];
 
-        const namespace = remoteConfig.metadata.name;
         await this.parent.getConfigManager().executePrompt(task, [flags.deployment]);
         const deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);
-
         const remoteNamespace = remoteConfig.metadata.name;
         for (const deployment in localConfig.deployments) {
           if (localConfig.deployments[deployment].namespace === remoteNamespace) {
@@ -155,7 +153,7 @@ export class ClusterCommandTasks {
           localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
         } else {
           const clusters = Object.keys(remoteConfig.clusters);
-          localDeployments[deploymentName] = {clusters, namespace};
+          localDeployments[deploymentName] = {clusters, namespace: remoteNamespace};
           ctx.config.clusters = clusters;
         }
 
