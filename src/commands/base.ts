@@ -9,7 +9,7 @@ import type {LeaseManager} from '../core/lease/lease_manager.js';
 import type {LocalConfig} from '../core/config/local_config.js';
 import type {RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
 import type {Helm} from '../core/helm.js';
-import type {K8} from '../core/k8.js';
+import {type K8} from '../core/kube/k8.js';
 import type {ChartManager} from '../core/chart_manager.js';
 import type {ConfigManager} from '../core/config_manager.js';
 import type {DependencyManager} from '../core/dependency_managers/index.js';

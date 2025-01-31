@@ -3,7 +3,7 @@
  */
 import {Flags as flags} from '../../commands/flags.js';
 import {ConfigManager} from '../config_manager.js';
-import {K8} from '../k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import {SoloLogger} from '../logging.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';
@@ -28,12 +28,12 @@ export class LeaseManager {
   constructor(
     @inject('LeaseRenewalService') private readonly _renewalService?: LeaseRenewalService,
     @inject(SoloLogger) private readonly _logger?: SoloLogger,
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
     this._renewalService = patchInject(_renewalService, 'LeaseRenewalService', this.constructor.name);
     this._logger = patchInject(_logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 

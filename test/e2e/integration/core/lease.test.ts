@@ -4,7 +4,7 @@
 import {it, describe, before, after} from 'mocha';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {K8} from '../../../../src/core/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
@@ -20,7 +20,7 @@ const leaseDuration = 4;
 describe('Lease', async () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager = container.resolve(ConfigManager);
-  const k8 = container.resolve(K8);
+  const k8 = container.resolve('K8') as K8;
   const testNamespace = 'lease-e2e';
   const renewalService = new NoopLeaseRenewalService();
 

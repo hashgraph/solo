@@ -23,7 +23,7 @@ import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {K8} from '../../../src/core/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
@@ -69,7 +69,7 @@ describe('NetworkCommand unit tests', () => {
       opts.k8.isCertManagerInstalled = sinon.stub();
 
       opts.k8.logger = opts.logger;
-      container.registerInstance(K8, opts.k8);
+      container.registerInstance('K8', opts.k8);
 
       opts.depManager = sinon.stub() as unknown as DependencyManager;
       container.registerInstance(DependencyManager, opts.depManager);

@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-export default interface Contexts {
+export interface Contexts {
   /**
    * List all contexts in the kubeconfig
    * @returns a list of context names

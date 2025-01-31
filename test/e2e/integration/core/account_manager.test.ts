@@ -9,7 +9,7 @@ import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js'
 import * as version from '../../../../version.js';
 import type {PodName} from '../../../../src/types/aliases.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {type K8} from '../../../../src/core/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 
 const namespace = 'account-mngr-e2e';

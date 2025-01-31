@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type ExtendedNetServer} from '../../types/index.js';
-import type TDirectoryData from './t_directory_data.js';
+import {type TDirectoryData} from './t_directory_data.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
 
 export interface Pod {

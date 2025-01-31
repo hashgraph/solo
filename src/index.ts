@@ -28,7 +28,7 @@ import {CertificateManager} from './core/certificate_manager.js';
 import {LocalConfig} from './core/config/local_config.js';
 import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
 import * as helpers from './core/helpers.js';
-import {K8} from './core/k8.js';
+import {type K8} from './core/kube/k8.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import type {Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
@@ -53,7 +53,7 @@ export function main(argv: any) {
     const helm = container.resolve(Helm);
     const chartManager = container.resolve(ChartManager);
     const configManager = container.resolve(ConfigManager);
-    const k8 = container.resolve(K8);
+    const k8 = container.resolve('K8') as K8;
     const accountManager = container.resolve(AccountManager);
     const platformInstaller = container.resolve(PlatformInstaller);
     const keyManager = container.resolve(KeyManager);

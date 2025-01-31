@@ -3,7 +3,7 @@
  */
 import {type V1Lease, type V1Status} from '@kubernetes/client-node';
 
-export default interface Leases {
+export interface Leases {
   /**
    * Create a new lease
    * @param namespace - the namespace to create the lease in

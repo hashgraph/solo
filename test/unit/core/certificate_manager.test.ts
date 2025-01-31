@@ -6,7 +6,7 @@ import {after, before, describe, it} from 'mocha';
 import jest from 'jest-mock';
 
 import {ConfigManager} from '../../../src/core/config_manager.js';
-import {K8} from '../../../src/core/k8.js';
+import {K8Client} from '../../../src/core/kube/k8_client.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors.js';
@@ -16,8 +16,8 @@ import {resetTestContainer} from '../../test_container.js';
 describe('Certificate Manager', () => {
   const argv = {};
   // @ts-ignore
-  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {});
-  const k8CreateSecret = jest.spyOn(K8.prototype, 'createSecret').mockResolvedValue(true);
+  const k8InitSpy = jest.spyOn(K8Client.prototype, 'init').mockImplementation(() => {});
+  const k8CreateSecret = jest.spyOn(K8Client.prototype, 'createSecret').mockResolvedValue(true);
   let certificateManager: CertificateManager;
 
   before(() => {

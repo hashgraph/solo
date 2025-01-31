@@ -5,7 +5,8 @@ import {expect} from 'chai';
 import {describe, it, after, before} from 'mocha';
 import jest from 'jest-mock';
 import * as constants from '../../../src/core/constants.js';
-import {K8} from '../../../src/core/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
+import {K8Client} from '../../../src/core/kube/k8_client.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -53,8 +54,8 @@ describe('K8 Unit Tests', function () {
     },
   ];
   // @ts-ignore
-  const k8InitSpy = jest.spyOn(K8.prototype, 'init').mockImplementation(() => {});
-  const k8GetPodsByLabelSpy = jest.spyOn(K8.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult);
+  const k8InitSpy = jest.spyOn(K8Client.prototype, 'init').mockImplementation(() => {});
+  const k8GetPodsByLabelSpy = jest.spyOn(K8Client.prototype, 'getPodsByLabel').mockResolvedValue(expectedResult);
   let k8: K8;
 
   before(() => {
@@ -62,7 +63,8 @@ describe('K8 Unit Tests', function () {
     argv[flags.namespace.name] = 'namespace';
     const configManager = container.resolve(ConfigManager);
     configManager.update(argv);
-    k8 = container.resolve(K8);
+    k8 = container.resolve('K8') as K8Client;
+    // @ts-ignore
     k8.kubeClient = {
       // @ts-ignore
       listNamespacedPod: jest.fn(),

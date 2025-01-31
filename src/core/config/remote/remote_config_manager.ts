@@ -10,7 +10,7 @@ import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
-import {K8} from '../../k8.js';
+import {type K8} from '../../kube/k8.js';
 import type {Cluster, Context, Namespace} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
@@ -41,12 +41,12 @@ export class RemoteConfigManager {
    * @param configManager - Manager to retrieve application flags and settings.
    */
   public constructor(
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(LocalConfig) private readonly localConfig?: LocalConfig,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);

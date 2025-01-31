@@ -9,7 +9,7 @@ import {ChartManager} from '../../../src/core/chart_manager.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {K8} from '../../../src/core/k8.js';
+import {K8Client} from '../../../src/core/kube/k8_client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
@@ -41,8 +41,8 @@ describe('BaseCommand', () => {
       remoteConfigManager = container.resolve(RemoteConfigManager);
 
       sandbox = sinon.createSandbox();
-      sandbox.stub(K8.prototype, 'init').callsFake(() => this);
-      const k8 = container.resolve(K8);
+      sandbox.stub(K8Client.prototype, 'init').callsFake(() => this);
+      const k8 = container.resolve('K8');
 
       // @ts-ignore
       baseCmd = new BaseCommand({

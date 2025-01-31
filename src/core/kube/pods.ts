@@ -3,7 +3,7 @@
  */
 import {type V1Pod} from '@kubernetes/client-node';
 
-export default interface Pods {
+export interface Pods {
   /**
    * Get a pod by name
    * @param namespace - the namespace of the pod

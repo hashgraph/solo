@@ -2,18 +2,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type * as k8s from '@kubernetes/client-node';
-import type {PodName, TarCreateFilter} from '../../types/aliases.js';
-import type {ExtendedNetServer, Optional} from '../../types/index.js';
-import type TDirectoryData from './t_directory_data.js';
+import {type PodName, type TarCreateFilter} from '../../types/aliases.js';
+import {type ExtendedNetServer, type Optional} from '../../types/index.js';
+import {type TDirectoryData} from './t_directory_data.js';
 import {type V1Lease} from '@kubernetes/client-node';
 import {type Namespace} from '../config/remote/types.js';
 import {type Namespaces} from './namespaces.js';
 
-// TODO rename TK8 to K8 and K8 to K8Client
-// TODO talk about get and set implies local with no integration, versus read and update implies remote should we use
-//  - read and update or something besides get/set to avoid confusion
-//  - Nathan: use read() instead of get(), and update() instead of set()
-export default interface TK8 {
+export interface K8 {
   namespaces(): Namespaces;
 
   /**
@@ -60,6 +56,8 @@ export default interface TK8 {
    */
   getSvcByName(name: string): Promise<k8s.V1Service>;
 
+  listSvcs(namespace: string, labels: string[]): Promise<k8s.V1Service[]>;
+
   /**
    * Get a list of clusters
    * @returns a list of cluster names
@@ -100,7 +98,7 @@ export default interface TK8 {
    * @param destPath - path inside the container
    * @param [filters] - an object with metadata fields and value
    */
-  hasFile(podName: PodName, containerName: string, destPath: string, filters: object): Promise<boolean>;
+  hasFile(podName: PodName, containerName: string, destPath: string, filters?: object): Promise<boolean>;
 
   /**
    * Check if a directory path exists in the container
@@ -129,7 +127,7 @@ export default interface TK8 {
     containerName: string,
     srcPath: string,
     destDir: string,
-    filter: TarCreateFilter | undefined,
+    filter?: TarCreateFilter | undefined,
   ): Promise<boolean>;
 
   /**
@@ -168,14 +166,14 @@ export default interface TK8 {
    * @param [maxAttempts] - the maximum number of attempts to check if the server is stopped
    * @param [timeout] - the delay between checks in milliseconds
    */
-  stopPortForward(server: ExtendedNetServer, maxAttempts, timeout): Promise<void>;
+  stopPortForward(server: ExtendedNetServer, maxAttempts?, timeout?): Promise<void>;
 
   waitForPods(
-    phases,
-    labels: string[],
-    podCount,
-    maxAttempts,
-    delay,
+    phases?,
+    labels?: string[],
+    podCount?,
+    maxAttempts?,
+    delay?,
     podItemPredicate?: (items: k8s.V1Pod) => boolean,
     namespace?: string,
   ): Promise<k8s.V1Pod[]>;
@@ -188,7 +186,7 @@ export default interface TK8 {
    * @param [delay] - delay between checks in milliseconds
    * @param [namespace] - namespace
    */
-  waitForPodReady(labels: string[], podCount, maxAttempts, delay, namespace?: string): Promise<k8s.V1Pod[]>;
+  waitForPodReady(labels: string[], podCount?, maxAttempts?, delay?, namespace?: string): Promise<k8s.V1Pod[]>;
 
   /**
    * Get a list of persistent volume claim names for the given namespace
@@ -196,7 +194,7 @@ export default interface TK8 {
    * @param [labels] - labels
    * @returns list of persistent volume claim names
    */
-  listPvcsByNamespace(namespace: string, labels: string[]): Promise<string[]>;
+  listPvcsByNamespace(namespace: string, labels?: string[]): Promise<string[]>;
 
   /**
    * Get a list of secrets for the given namespace
@@ -204,7 +202,7 @@ export default interface TK8 {
    * @param [labels] - labels
    * @returns list of secret names
    */
-  listSecretsByNamespace(namespace: string, labels: string[]): Promise<string[]>;
+  listSecretsByNamespace(namespace: string, labels?: string[]): Promise<string[]>;
 
   /**
    * Delete a persistent volume claim
@@ -299,7 +297,7 @@ export default interface TK8 {
     durationSeconds,
   ): Promise<k8s.V1Lease>;
 
-  readNamespacedLease(leaseName: string, namespace: string, timesCalled): Promise<any>;
+  readNamespacedLease(leaseName: string, namespace: string, timesCalled?): Promise<any>;
 
   renewNamespaceLease(leaseName: string, namespace: string, lease: k8s.V1Lease): Promise<k8s.V1Lease>;
 

@@ -11,7 +11,7 @@ import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER, testLogger}
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {type K8} from '../../../../src/core/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
 
