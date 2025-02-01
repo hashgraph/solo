@@ -17,6 +17,7 @@ import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
 import {Templates} from '../../../src/core/templates.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
@@ -194,7 +195,7 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node3', '0.0.5');
       const destPath = path.join(tmpDir, 'staging');
       fs.mkdirSync(destPath, {recursive: true});
-      const namespace = 'test-namespace';
+      const namespace = NamespaceName.of('test-namespace');
       profileManager.prepareConfigTxt(namespace, nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
 
       // expect that the config.txt file was created and exists
@@ -217,9 +218,9 @@ describe('ProfileManager', () => {
 
     it('should fail when no nodeAliases', () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
-      expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION)).to.throw(
-        'nodeAccountMap the map of node IDs to account IDs is required',
-      );
+      expect(() =>
+        profileManager.prepareConfigTxt(NamespaceName.of(''), nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION),
+      ).to.throw('nodeAccountMap the map of node IDs to account IDs is required');
     });
 
     it('should fail when destPath does not exist', () => {
@@ -227,7 +228,12 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node1', '0.0.3');
       const destPath = path.join(tmpDir, 'missing-directory');
       try {
-        profileManager.prepareConfigTxt('', nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
+        profileManager.prepareConfigTxt(
+          NamespaceName.of(''),
+          nodeAccountMap,
+          destPath,
+          version.HEDERA_PLATFORM_VERSION,
+        );
       } catch (e) {
         expect(e.message).to.contain('config destPath does not exist');
         expect(e.message).to.contain(destPath);

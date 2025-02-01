@@ -14,6 +14,7 @@ import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -463,7 +464,7 @@ export interface NodeUpdateConfigClass {
   gossipPublicKey: string;
   grpcEndpoints: string;
   localBuildPath: string;
-  namespace: string;
+  namespace: NamespaceName;
   newAccountNumber: string;
   newAdminKey: PrivateKey;
   nodeAlias: NodeAlias;

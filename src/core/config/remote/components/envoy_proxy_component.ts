@@ -4,9 +4,10 @@
 import {ComponentType} from '../enumerations.js';
 import {BaseComponent} from './base_component.js';
 import {type Component} from '../types.js';
+import {type NamespaceName} from '../../../kube/namespace_name.js';
 
 export class EnvoyProxyComponent extends BaseComponent {
-  public constructor(name: string, cluster: string, namespace: string) {
+  public constructor(name: string, cluster: string, namespace: NamespaceName) {
     super(ComponentType.EnvoyProxy, name, cluster, namespace);
     this.validate();
   }

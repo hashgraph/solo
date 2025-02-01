@@ -6,10 +6,11 @@ import {describe, it} from 'mocha';
 import {Migration} from '../../../../src/core/config/remote/migration.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigMetadata} from '../../../../src/core/config/remote/metadata.js';
-import {type EmailAddress, type Namespace} from '../../../../src/core/config/remote/types.js';
+import {type EmailAddress} from '../../../../src/core/config/remote/types.js';
+import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 export function createMetadata() {
-  const name: Namespace = 'namespace';
+  const name: NamespaceName = NamespaceName.of('namespace');
   const lastUpdatedAt: Date = new Date();
   const lastUpdateBy: EmailAddress = 'test@test.test';
   const migration = new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0');

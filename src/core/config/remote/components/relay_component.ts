@@ -7,6 +7,7 @@ import {BaseComponent} from './base_component.js';
 import {type IRelayComponent} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
+import {type NamespaceName} from '../../../kube/namespace_name.js';
 
 export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
   /**
@@ -18,7 +19,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
   public constructor(
     name: string,
     cluster: string,
-    namespace: string,
+    namespace: NamespaceName,
     public readonly consensusNodeAliases: NodeAliases = [],
   ) {
     super(ComponentType.Relay, name, cluster, namespace);

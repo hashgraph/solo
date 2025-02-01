@@ -4,8 +4,9 @@
 import {Migration} from './migration.js';
 import {SoloError} from '../../errors.js';
 import * as k8s from '@kubernetes/client-node';
-import {type EmailAddress, type Namespace, type RemoteConfigMetadataStructure, type Version} from './types.js';
+import {type EmailAddress, type RemoteConfigMetadataStructure, type Version} from './types.js';
 import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
+import {type NamespaceName} from '../../kube/namespace_name.js';
 
 /**
  * Represent the remote config metadata object and handles:
@@ -17,12 +18,12 @@ import {type Optional, type ToObject, type Validate} from '../../../types/index.
 export class RemoteConfigMetadata
   implements RemoteConfigMetadataStructure, Validate, ToObject<RemoteConfigMetadataStructure>
 {
-  private readonly _name: Namespace;
+  private readonly _name: NamespaceName;
   private readonly _lastUpdatedAt: Date;
   private readonly _lastUpdateBy: EmailAddress;
   private _migration?: Migration;
 
-  public constructor(name: Namespace, lastUpdatedAt: Date, lastUpdateBy: EmailAddress, migration?: Migration) {
+  public constructor(name: NamespaceName, lastUpdatedAt: Date, lastUpdateBy: EmailAddress, migration?: Migration) {
     this._name = name;
     this._lastUpdatedAt = lastUpdatedAt;
     this._lastUpdateBy = lastUpdateBy;
@@ -40,7 +41,7 @@ export class RemoteConfigMetadata
   /* -------- Getters -------- */
 
   /** Retrieves the namespace */
-  public get name(): Namespace {
+  public get name(): NamespaceName {
     return this._name;
   }
 

@@ -11,6 +11,7 @@ import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
+import {type NamespaceName} from '../kube/namespace_name.js';
 
 /**
  * Manages the acquisition and renewal of leases.
@@ -70,9 +71,9 @@ export class LeaseManager {
    * @returns the namespace to use for lease acquisition or null if no namespace is specified.
    * @throws LeaseAcquisitionError if the namespace does not exist and cannot be created.
    */
-  private async currentNamespace(): Promise<string> {
-    const deploymentNamespace = this.configManager.getFlag<string>(flags.namespace);
-    const clusterSetupNamespace = this.configManager.getFlag<string>(flags.clusterSetupNamespace);
+  private async currentNamespace(): Promise<NamespaceName> {
+    const deploymentNamespace = this.configManager.getFlag<NamespaceName>(flags.namespace);
+    const clusterSetupNamespace = this.configManager.getFlag<NamespaceName>(flags.clusterSetupNamespace);
 
     if (!deploymentNamespace && !clusterSetupNamespace) {
       return null;

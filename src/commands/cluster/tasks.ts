@@ -18,9 +18,10 @@ import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_conf
 import {type K8} from '../../core/kube/k8.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type SelectClusterContextContext} from './configs.js';
-import {type Namespace} from '../../core/config/remote/types.js';
+import {type Deployment} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -121,11 +122,11 @@ export class ClusterCommandTasks {
         const remoteClusterList: string[] = [];
 
         const namespace = remoteConfig.metadata.name;
-        localConfig.currentDeploymentName = remoteConfig.metadata.name;
+        localConfig.currentDeploymentName = remoteConfig.metadata.name.name;
 
-        if (localConfig.deployments[namespace]) {
+        if (localConfig.deployments[namespace.name]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
-            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
+            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster].name) {
               remoteClusterList.push(cluster);
             }
           }
@@ -133,7 +134,7 @@ export class ClusterCommandTasks {
           localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
         } else {
           const clusters = Object.keys(remoteConfig.clusters);
-          localDeployments[namespace] = {clusters};
+          localDeployments[namespace.name] = {clusters};
           ctx.config.clusters = clusters;
         }
 
@@ -241,7 +242,7 @@ export class ClusterCommandTasks {
   }
 
   /** Show list of installed chart */
-  private async showInstalledChartList(clusterSetupNamespace: string) {
+  private async showInstalledChartList(clusterSetupNamespace: NamespaceName) {
     this.parent.logger.showList(
       'Installed Charts',
       await this.parent.getChartManager().getInstalledCharts(clusterSetupNamespace),
@@ -255,7 +256,7 @@ export class ClusterCommandTasks {
         this.parent.logger.info('Read local configuration settings...');
         const configManager = this.parent.getConfigManager();
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
-        const deploymentName: string = configManager.getFlag<Namespace>(flags.namespace);
+        const deploymentName: string = configManager.getFlag<Deployment>(flags.namespace);
         let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
         const localConfig = this.parent.getLocalConfig();

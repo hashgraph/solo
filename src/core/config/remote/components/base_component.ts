@@ -3,8 +3,9 @@
  */
 import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors.js';
-import {type Cluster, type Component, type Namespace, type ComponentName} from '../types.js';
+import {type Cluster, type Component, type ComponentName} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
+import {type NamespaceName} from '../../../kube/namespace_name.js';
 
 /**
  * Represents the base structure and common functionality for all components within the system.
@@ -21,7 +22,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
     public readonly type: ComponentType,
     public readonly name: ComponentName,
     public readonly cluster: Cluster,
-    public readonly namespace: Namespace,
+    public readonly namespace: NamespaceName,
   ) {}
 
   /* -------- Utilities -------- */

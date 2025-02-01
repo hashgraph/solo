@@ -24,11 +24,12 @@ import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {StatusCodes} from 'http-status-codes';
 import {container} from 'tsyringe-neo';
+import {NamespaceName} from '../../src/core/kube/namespace_name.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
-  const namespace = testName;
+  const namespace = NamespaceName.of(testName);
   const argv = getDefaultArgv();
-  argv[flags.namespace.name] = namespace;
+  argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = releaseTag;
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
   argv[flags.generateGossipKeys.name] = true;
@@ -120,7 +121,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           accountCreationShouldSucceed(accountManager, nodeCmd, namespace);
         });
 
-        function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: string, nodeAlias: NodeAlias) {
+        function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: NamespaceName, nodeAlias: NodeAlias) {
           it(`${nodeAlias} should be running`, async () => {
             try {
               // @ts-ignore to access tasks which is a private property

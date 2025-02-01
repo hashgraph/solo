@@ -3,10 +3,11 @@
  */
 
 import {type NodeAlias, type PodName} from '../types/aliases.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 export class NetworkNodeServices {
   public readonly nodeAlias: NodeAlias;
-  public readonly namespace: string;
+  public readonly namespace: NamespaceName;
   public readonly nodeId: string | number;
   public readonly nodePodName?: PodName;
   public readonly haProxyName?: string;
@@ -59,7 +60,7 @@ export class NetworkNodeServices {
 }
 
 export class NetworkNodeServicesBuilder {
-  public namespace?: string;
+  public namespace?: NamespaceName;
   public nodeId?: string | number;
   public haProxyName?: string;
   public accountId?: string;
@@ -84,7 +85,7 @@ export class NetworkNodeServicesBuilder {
 
   constructor(public readonly nodeAlias: NodeAlias) {}
 
-  withNamespace(namespace: string) {
+  withNamespace(namespace: NamespaceName) {
     this.namespace = namespace;
     return this;
   }
