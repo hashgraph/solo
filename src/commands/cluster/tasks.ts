@@ -126,7 +126,7 @@ export class ClusterCommandTasks {
 
         if (localConfig.deployments[namespace.name]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
-            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster].name) {
+            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster].valueOf()) {
               remoteClusterList.push(cluster);
             }
           }

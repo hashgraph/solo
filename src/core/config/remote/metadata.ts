@@ -6,7 +6,7 @@ import {SoloError} from '../../errors.js';
 import * as k8s from '@kubernetes/client-node';
 import {type EmailAddress, type RemoteConfigMetadataStructure, type Version} from './types.js';
 import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
-import {type NamespaceName} from '../../kube/namespace_name.js';
+import {NamespaceName} from '../../kube/namespace_name.js';
 
 /**
  * Represent the remote config metadata object and handles:
@@ -77,7 +77,7 @@ export class RemoteConfigMetadata
   }
 
   public validate(): void {
-    if (!this.name || typeof this.name !== 'string') {
+    if (!this.name || !(this.name instanceof NamespaceName)) {
       throw new SoloError(`Invalid name: ${this.name}`);
     }
 

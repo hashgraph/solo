@@ -163,7 +163,7 @@ export class LocalConfig implements LocalConfigData {
 
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
-        const deploymentName: Deployment = self.configManager.getFlag<NamespaceName>(flags.namespace).name;
+        const deploymentName: Deployment = self.configManager.getFlag<NamespaceName>(flags.namespace).name as string;
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
 

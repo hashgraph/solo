@@ -100,7 +100,7 @@ describe('ClusterCommand unit tests', () => {
       const clusterCommand = new ClusterCommand(opts);
       await clusterCommand.handlers.setup(argv);
 
-      expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
+      expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_CLUSTER_SETUP_CHART,
@@ -135,7 +135,7 @@ describe('ClusterCommand unit tests', () => {
     let localConfig: LocalConfig;
     const defaultRemoteConfig = {
       metadata: {
-        name: 'deployment',
+        name: NamespaceName.of('deployment'),
       },
       clusters: {},
     };
