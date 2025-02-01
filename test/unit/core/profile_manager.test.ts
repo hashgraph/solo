@@ -218,9 +218,9 @@ describe('ProfileManager', () => {
 
     it('should fail when no nodeAliases', () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
-      expect(() =>
-        profileManager.prepareConfigTxt(NamespaceName.of(''), nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION),
-      ).to.throw('nodeAccountMap the map of node IDs to account IDs is required');
+      expect(() => profileManager.prepareConfigTxt(null, nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION)).to.throw(
+        'nodeAccountMap the map of node IDs to account IDs is required',
+      );
     });
 
     it('should fail when destPath does not exist', () => {
@@ -228,12 +228,7 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node1', '0.0.3');
       const destPath = path.join(tmpDir, 'missing-directory');
       try {
-        profileManager.prepareConfigTxt(
-          NamespaceName.of(''),
-          nodeAccountMap,
-          destPath,
-          version.HEDERA_PLATFORM_VERSION,
-        );
+        profileManager.prepareConfigTxt(null, nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
       } catch (e) {
         expect(e.message).to.contain('config destPath does not exist');
         expect(e.message).to.contain(destPath);

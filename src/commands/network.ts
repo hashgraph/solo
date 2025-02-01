@@ -27,7 +27,7 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -518,10 +518,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check if cluster setup chart is installed',
           task: async () => {
-            const isChartInstalled = await this.chartManager.isChartInstalled(
-              NamespaceName.of(''),
-              constants.SOLO_CLUSTER_SETUP_CHART,
-            );
+            const isChartInstalled = await this.chartManager.isChartInstalled(null, constants.SOLO_CLUSTER_SETUP_CHART);
             if (!isChartInstalled) {
               throw new SoloError(
                 `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed. Run 'solo cluster setup'`,

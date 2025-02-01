@@ -113,7 +113,7 @@ describe('RelayComponent', () => {
   });
 
   it('should fail if namespace is not provided', () => {
-    const namespace = NamespaceName.of('');
+    const namespace = null;
     expect(() => new RelayComponent('valid', 'valid', namespace, [])).to.throw(
       SoloError,
       `Invalid namespace: ${namespace}`,
@@ -199,7 +199,7 @@ describe('ConsensusNodeComponent', () => {
   });
 
   it('should fail if namespace is not provided', () => {
-    const namespace = NamespaceName.of('');
+    const namespace = null;
     expect(() => new ConsensusNodeComponent('valid', 'valid', namespace, ConsensusNodeStates.STARTED)).to.throw(
       SoloError,
       `Invalid namespace: ${namespace}`,
