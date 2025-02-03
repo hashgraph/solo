@@ -25,10 +25,10 @@ import {type ExtendedNetServer, type LocalContextObject, type Optional} from '..
 import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
-import {type Namespace} from './../config/remote/types.js';
 import {type K8} from './k8.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './namespaces.js';
+import {NamespaceName} from './namespace_name.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -128,11 +128,11 @@ export class K8Client implements K8 {
     return filtered[0];
   }
 
-  public async createNamespace(name: string) {
+  public async createNamespace(namespace: NamespaceName) {
     // TODO what should the name be if want to create multiple namespaces (theoretical and bad example): createMany(...)
     const payload = {
       metadata: {
-        name,
+        name: namespace.name,
       },
     };
 
@@ -142,17 +142,17 @@ export class K8Client implements K8 {
     // return this.namespaces().create(name);
   }
 
-  public async deleteNamespace(name: string) {
-    const resp = await this.kubeClient.deleteNamespace(name);
+  public async deleteNamespace(namespace: NamespaceName) {
+    const resp = await this.kubeClient.deleteNamespace(namespace.name);
     return resp.response.statusCode === StatusCodes.OK;
   }
 
   public async getNamespaces() {
     const resp = await this.kubeClient.listNamespace();
     if (resp.body && resp.body.items) {
-      const namespaces: string[] = [];
+      const namespaces: NamespaceName[] = [];
       resp.body.items.forEach(item => {
-        namespaces.push(item.metadata!.name);
+        namespaces.push(NamespaceName.of(item.metadata!.name));
       });
 
       return namespaces;
@@ -161,16 +161,16 @@ export class K8Client implements K8 {
     throw new SoloError('incorrect response received from kubernetes API. Unable to list namespaces');
   }
 
-  public async hasNamespace(namespace: string) {
+  public async hasNamespace(namespace: NamespaceName) {
     const namespaces = await this.getNamespaces();
-    return namespaces.includes(namespace);
+    return namespaces.some(namespaces => namespaces.equals(namespace));
   }
 
   public async getPodByName(name: string): Promise<k8s.V1Pod> {
     const ns = this.getNamespace();
     const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedPod(
-      ns,
+      ns.name,
       undefined,
       undefined,
       undefined,
@@ -190,7 +190,7 @@ export class K8Client implements K8 {
     const ns = this.getNamespace();
     const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedPod(
-      ns,
+      ns.name,
       undefined,
       undefined,
       undefined,
@@ -206,11 +206,11 @@ export class K8Client implements K8 {
     return result.body.items;
   }
 
-  public async getSecretsByLabel(labels: string[] = [], namespace?: string) {
+  public async getSecretsByLabel(labels: string[] = [], namespace?: NamespaceName) {
     const ns = namespace || this.getNamespace();
     const labelSelector = labels.join(',');
     const result = await this.kubeClient.listNamespacedSecret(
-      ns,
+      ns.name,
       undefined,
       undefined,
       undefined,
@@ -230,7 +230,7 @@ export class K8Client implements K8 {
     const ns = this.getNamespace();
     const fieldSelector = `metadata.name=${name}`;
     const resp = await this.kubeClient.listNamespacedService(
-      ns,
+      ns.name,
       undefined,
       undefined,
       undefined,
@@ -511,7 +511,7 @@ export class K8Client implements K8 {
 
         execInstance
           .exec(
-            namespace,
+            namespace.name,
             podName,
             containerName,
             command,
@@ -619,7 +619,7 @@ export class K8Client implements K8 {
 
         execInstance
           .exec(
-            namespace,
+            namespace.name,
             podName,
             containerName,
             command,
@@ -725,7 +725,7 @@ export class K8Client implements K8 {
 
       execInstance
         .exec(
-          namespace,
+          namespace.name,
           podName,
           containerName,
           command,
@@ -772,7 +772,7 @@ export class K8Client implements K8 {
       const ns = this.getNamespace();
       const forwarder = new k8s.PortForward(this.kubeConfig, false);
       const server = (await net.createServer(socket => {
-        forwarder.portForward(ns, podName, [podPort], socket, null, socket, 3);
+        forwarder.portForward(ns.name, podName, [podPort], socket, null, socket, 3);
       })) as ExtendedNetServer;
 
       // add info for logging
@@ -861,7 +861,7 @@ export class K8Client implements K8 {
     maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
     delay = constants.PODS_RUNNING_DELAY,
     podItemPredicate?: (items: k8s.V1Pod) => boolean,
-    namespace?: string,
+    namespace?: NamespaceName,
   ): Promise<k8s.V1Pod[]> {
     const ns = namespace || this.getNamespace();
     const labelSelector = labels.join(',');
@@ -875,7 +875,7 @@ export class K8Client implements K8 {
         // wait for the pod to be available with the given status and labels
         try {
           const resp = await this.kubeClient.listNamespacedPod(
-            ns,
+            ns.name,
             // @ts-ignore
             false,
             false,
@@ -928,7 +928,13 @@ export class K8Client implements K8 {
     });
   }
 
-  public async waitForPodReady(labels: string[] = [], podCount = 1, maxAttempts = 10, delay = 500, namespace?: string) {
+  public async waitForPodReady(
+    labels: string[] = [],
+    podCount = 1,
+    maxAttempts = 10,
+    delay = 500,
+    namespace?: NamespaceName,
+  ) {
     try {
       return await this.waitForPodConditions(
         K8Client.PodReadyCondition,
@@ -957,7 +963,7 @@ export class K8Client implements K8 {
     podCount = 1,
     maxAttempts = 10,
     delay = 500,
-    namespace?: string,
+    namespace?: NamespaceName,
   ) {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
 
@@ -989,11 +995,11 @@ export class K8Client implements K8 {
     );
   }
 
-  public async listPvcsByNamespace(namespace: string, labels: string[] = []) {
+  public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
     const pvcs: string[] = [];
     const labelSelector = labels.join(',');
     const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
-      namespace,
+      namespace.name,
       undefined,
       undefined,
       undefined,
@@ -1020,7 +1026,7 @@ export class K8Client implements K8 {
    * @returns list of secret names
    */
   // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
-  public async listSecretsByNamespace(namespace: string, labels: string[] = []) {
+  public async listSecretsByNamespace(namespace: NamespaceName, labels: string[] = []) {
     const secrets: string[] = [];
     const items = await this.getSecretsByLabel(labels, namespace);
 
@@ -1031,8 +1037,8 @@ export class K8Client implements K8 {
     return secrets;
   }
 
-  public async deletePvc(name: string, namespace: string) {
-    const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(name, namespace);
+  public async deletePvc(name: string, namespace: NamespaceName) {
+    const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(name, namespace.name);
 
     return resp.response.statusCode === StatusCodes.OK;
   }
@@ -1060,7 +1066,7 @@ export class K8Client implements K8 {
    *   objects must be base64 decoded
    */
   // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
-  public async getSecret(namespace: string, labelSelector: string) {
+  public async getSecret(namespace: NamespaceName, labelSelector: string) {
     const labels = labelSelector.split(',');
     const items = await this.getSecretsByLabel(labels, namespace);
 
@@ -1079,7 +1085,7 @@ export class K8Client implements K8 {
 
   public async createSecret(
     name: string,
-    namespace: string,
+    namespace: NamespaceName,
     secretType: string,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
@@ -1087,7 +1093,7 @@ export class K8Client implements K8 {
   ) {
     if (recreate) {
       try {
-        await this.kubeClient.deleteNamespacedSecret(name, namespace);
+        await this.kubeClient.deleteNamespacedSecret(name, namespace.name);
       } catch {
         // do nothing
       }
@@ -1103,7 +1109,7 @@ export class K8Client implements K8 {
     v1Secret.metadata.labels = labels;
 
     try {
-      const resp = await this.kubeClient.createNamespacedSecret(namespace, v1Secret);
+      const resp = await this.kubeClient.createNamespacedSecret(namespace.name, v1Secret);
 
       return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
@@ -1114,15 +1120,17 @@ export class K8Client implements K8 {
     }
   }
 
-  public async deleteSecret(name: string, namespace: string) {
-    const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace);
+  public async deleteSecret(name: string, namespace: NamespaceName) {
+    const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace.name);
     return resp.response.statusCode === StatusCodes.OK;
   }
 
   /* ------------- ConfigMap ------------- */
 
   public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
-    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, this.getNamespace()).catch(e => e);
+    const {response, body} = await this.kubeClient
+      .readNamespacedConfigMap(name, this.getNamespace().name)
+      .catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
 
@@ -1141,11 +1149,11 @@ export class K8Client implements K8 {
 
     const metadata = new k8s.V1ObjectMeta();
     metadata.name = name;
-    metadata.namespace = namespace;
+    metadata.namespace = namespace.name;
     metadata.labels = labels;
     configMap.metadata = metadata;
     try {
-      const resp = await this.kubeClient.createNamespacedConfigMap(namespace, configMap);
+      const resp = await this.kubeClient.createNamespacedConfigMap(namespace.name, configMap);
 
       return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
@@ -1168,11 +1176,11 @@ export class K8Client implements K8 {
 
     const metadata = new k8s.V1ObjectMeta();
     metadata.name = name;
-    metadata.namespace = namespace;
+    metadata.namespace = namespace.name;
     metadata.labels = labels;
     configMap.metadata = metadata;
     try {
-      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace, configMap);
+      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace.name, configMap);
 
       return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
@@ -1183,9 +1191,9 @@ export class K8Client implements K8 {
     }
   }
 
-  public async deleteNamespacedConfigMap(name: string, namespace: string): Promise<boolean> {
+  public async deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean> {
     try {
-      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace);
+      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace.name);
 
       return resp.response.statusCode === StatusCodes.CREATED;
     } catch (e) {
@@ -1198,12 +1206,17 @@ export class K8Client implements K8 {
 
   // --------------------------------------- LEASES --------------------------------------- //
 
-  public async createNamespacedLease(namespace: string, leaseName: string, holderName: string, durationSeconds = 20) {
+  public async createNamespacedLease(
+    namespace: NamespaceName,
+    leaseName: string,
+    holderName: string,
+    durationSeconds = 20,
+  ) {
     const lease = new k8s.V1Lease();
 
     const metadata = new k8s.V1ObjectMeta();
     metadata.name = leaseName;
-    metadata.namespace = namespace;
+    metadata.namespace = namespace.name;
     lease.metadata = metadata;
 
     const spec = new k8s.V1LeaseSpec();
@@ -1212,15 +1225,19 @@ export class K8Client implements K8 {
     spec.acquireTime = new k8s.V1MicroTime();
     lease.spec = spec;
 
-    const {response, body} = await this.coordinationApiClient.createNamespacedLease(namespace, lease).catch(e => e);
+    const {response, body} = await this.coordinationApiClient
+      .createNamespacedLease(namespace.name, lease)
+      .catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to create namespaced lease');
 
     return body as k8s.V1Lease;
   }
 
-  public async readNamespacedLease(leaseName: string, namespace: string, timesCalled = 0) {
-    const {response, body} = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace).catch(e => e);
+  public async readNamespacedLease(leaseName: string, namespace: NamespaceName, timesCalled = 0) {
+    const {response, body} = await this.coordinationApiClient
+      .readNamespacedLease(leaseName, namespace.name)
+      .catch(e => e);
 
     if (response?.statusCode === StatusCodes.INTERNAL_SERVER_ERROR && timesCalled < 4) {
       // could be k8s control plane has no resources available
@@ -1236,11 +1253,11 @@ export class K8Client implements K8 {
     return body as k8s.V1Lease;
   }
 
-  public async renewNamespaceLease(leaseName: string, namespace: string, lease: k8s.V1Lease) {
+  public async renewNamespaceLease(leaseName: string, namespace: NamespaceName, lease: k8s.V1Lease) {
     lease.spec.renewTime = new k8s.V1MicroTime();
 
     const {response, body} = await this.coordinationApiClient
-      .replaceNamespacedLease(leaseName, namespace, lease)
+      .replaceNamespacedLease(leaseName, namespace.name, lease)
       .catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to renew namespaced lease');
@@ -1262,8 +1279,8 @@ export class K8Client implements K8 {
     return body as k8s.V1Lease;
   }
 
-  public async deleteNamespacedLease(name: string, namespace: string) {
-    const {response, body} = await this.coordinationApiClient.deleteNamespacedLease(name, namespace).catch(e => e);
+  public async deleteNamespacedLease(name: string, namespace: NamespaceName) {
+    const {response, body} = await this.coordinationApiClient.deleteNamespacedLease(name, namespace.name).catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to delete namespaced lease');
 
@@ -1296,11 +1313,11 @@ export class K8Client implements K8 {
    */
   // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
   //  - ClusterChecks ? SOLID principles, single responsibility
-  public async isMinioInstalled(namespace: Namespace): Promise<boolean> {
+  public async isMinioInstalled(namespace: NamespaceName): Promise<boolean> {
     try {
       // TODO DETECT THE OPERATOR
       const pods = await this.kubeClient.listNamespacedPod(
-        namespace,
+        namespace.name,
         undefined,
         undefined,
         undefined,
@@ -1355,10 +1372,10 @@ export class K8Client implements K8 {
 
   // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
   //  - ClusterChecks ? SOLID principles, single responsibility
-  public async isPrometheusInstalled(namespace: Namespace) {
+  public async isPrometheusInstalled(namespace: NamespaceName) {
     try {
       const pods = await this.kubeClient.listNamespacedPod(
-        namespace,
+        namespace.name,
         undefined,
         undefined,
         undefined,
@@ -1422,8 +1439,8 @@ export class K8Client implements K8 {
     throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});
   }
 
-  private getNamespace(): Namespace {
-    const ns = this.configManager.getFlag<string>(flags.namespace);
+  private getNamespace(): NamespaceName {
+    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }
@@ -1439,9 +1456,9 @@ export class K8Client implements K8 {
     }
   }
 
-  public async killPod(podName: string, namespace: string) {
+  public async killPod(podName: string, namespace: NamespaceName) {
     try {
-      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace, undefined, undefined, 1);
+      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace.name, undefined, undefined, 1);
       if (result.response.statusCode !== StatusCodes.OK) {
         throw new SoloError(
           `Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`,
@@ -1473,14 +1490,14 @@ export class K8Client implements K8 {
    * @returns a promise that resolves when the logs are downloaded
    */
   // TODO move this to new class src/core/NetworkNodes.getLogs()
-  public async getNodeLogs(namespace: string) {
+  public async getNodeLogs(namespace: NamespaceName) {
     const pods = await this.getPodsByLabel(['solo.hedera.com/type=network-node']);
 
     const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
 
     const promises = [];
     for (const pod of pods) {
-      promises.push(this.getNodeLog(pod, namespace, timeString));
+      promises.push(this.getNodeLog(pod, namespace.name, timeString));
     }
     return await Promise.all(promises);
   }
@@ -1523,7 +1540,7 @@ export class K8Client implements K8 {
    * @param nodeAlias - the pod name
    * @returns a promise that resolves when the state files are downloaded
    */
-  public async getNodeStatesFromPod(namespace: string, nodeAlias: string) {
+  public async getNodeStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
     const pods = await this.getPodsByLabel([
       `solo.hedera.com/node-name=${nodeAlias}`,
       'solo.hedera.com/type=network-node',
@@ -1532,7 +1549,7 @@ export class K8Client implements K8 {
     // get length of pods
     const promises = [];
     for (const pod of pods) {
-      promises.push(this.getNodeState(pod, namespace));
+      promises.push(this.getNodeState(pod, namespace.name));
     }
     return await Promise.all(promises);
   }
@@ -1568,8 +1585,8 @@ export class K8Client implements K8 {
     return this.kubeConfig.getCurrentContext();
   }
 
-  public getCurrentContextNamespace(): Namespace {
-    return this.kubeConfig.getContextObject(this.getCurrentContext())?.namespace;
+  public getCurrentContextNamespace(): NamespaceName {
+    return NamespaceName.of(this.kubeConfig.getContextObject(this.getCurrentContext())?.namespace);
   }
 
   public getCurrentClusterName(): string {
@@ -1578,10 +1595,10 @@ export class K8Client implements K8 {
     return currentCluster.name;
   }
 
-  public async listSvcs(namespace: string, labels: string[]): Promise<k8s.V1Service[]> {
+  public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<k8s.V1Service[]> {
     const labelSelector = labels.join(',');
     const serviceList = await this.kubeClient.listNamespacedService(
-      namespace,
+      namespace.name,
       undefined,
       undefined,
       undefined,

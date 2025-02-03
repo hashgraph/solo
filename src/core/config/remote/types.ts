@@ -6,7 +6,8 @@ import {type ComponentType, type ConsensusNodeStates} from './enumerations.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
-export type Namespace = string;
+export type NamespaceNameAsString = string;
+export type DeploymentName = string;
 export type Cluster = string;
 export type Context = string;
 export type ComponentName = string;
@@ -20,7 +21,7 @@ export interface IMigration {
 export interface Component {
   name: ComponentName;
   cluster: Cluster;
-  namespace: Namespace;
+  namespace: NamespaceNameAsString;
 }
 
 export interface IRelayComponent extends Component {
@@ -46,7 +47,7 @@ export type RemoteConfigCommonFlagsStruct = {
 export interface RemoteConfigDataStructure {
   metadata: RemoteConfigMetadataStructure;
   version: Version;
-  clusters: Record<Cluster, Namespace>;
+  clusters: Record<Cluster, NamespaceNameAsString>;
   components: ComponentsDataStructure;
   commandHistory: string[];
   lastExecutedCommand: string;
@@ -54,7 +55,7 @@ export interface RemoteConfigDataStructure {
 }
 
 export interface RemoteConfigMetadataStructure {
-  name: Namespace;
+  name: NamespaceNameAsString;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;
   migration?: IMigration;
