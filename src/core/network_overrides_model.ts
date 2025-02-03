@@ -8,7 +8,7 @@ import {type NodeAliases} from '../types/aliases.js';
 import {type NetworkNodeServices} from './network_node_services.js';
 import {type GossipEndpoint} from '../types/index.js';
 
-export class NetworkOverridesModel {
+export class NodeOverridesModel {
   private readonly interfaceBindings: GossipEndpoint[] = [];
   private readonly endpointOverrides: GossipEndpoint[] = [];
 

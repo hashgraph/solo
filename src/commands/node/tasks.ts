@@ -66,7 +66,7 @@ import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
-import {NetworkOverridesModel} from '../../core/network_overrides_model.js';
+import {NodeOverridesModel} from '../../core/network_overrides_model.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -941,7 +941,7 @@ export class NodeCommandTasks {
   private async generateNetworksOverridesJson(namespace: string, nodeAliases: NodeAliases, stagingDir: string) {
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
 
-    const networkOverridesModel = new NetworkOverridesModel(nodeAliases, networkNodeServiceMap);
+    const networkOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
     const genesisNetworkJson = path.join(stagingDir, 'node-overrides.yaml');
     fs.writeFileSync(genesisNetworkJson, networkOverridesModel.toYAML());
