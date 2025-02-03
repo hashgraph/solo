@@ -1,9 +1,9 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {ListrTaskWrapper} from 'listr2';
+import {type ListrTaskWrapper} from 'listr2';
 import chalk from 'chalk';
-import type {Lease} from './lease.js';
+import {type Lease} from './lease.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 
 /**

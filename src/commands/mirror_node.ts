@@ -5,19 +5,19 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
-import type {AccountManager} from '../core/account_manager.js';
-import type {ProfileManager} from '../core/profile_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getEnvValue} from '../core/helpers.js';
-import type {CommandBuilder, PodName} from '../types/aliases.js';
-import type {Opts} from '../types/command_types.js';
+import {type CommandBuilder, type PodName} from '../types/aliases.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type {Optional, SoloListrTask} from '../types/index.js';
+import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 
 interface MirrorNodeDeployConfigClass {

@@ -15,7 +15,6 @@ import * as constants from '../../../../src/core/constants.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {K8} from '../../../../src/core/k8.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {
   V1Container,
@@ -32,9 +31,10 @@ import {
   V1VolumeResourceRequirements,
 } from '@kubernetes/client-node';
 import crypto from 'crypto';
-import type {PodName} from '../../../../src/types/aliases.js';
+import {type PodName} from '../../../../src/types/aliases.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {type K8Client} from '../../../../src/core/kube/k8_client.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -43,7 +43,7 @@ async function createPod(
   containerName: string,
   podLabelValue: string,
   testNamespace: string,
-  k8: K8,
+  k8: K8Client,
 ): Promise<void> {
   const v1Pod = new V1Pod();
   const v1Metadata = new V1ObjectMeta();
@@ -69,7 +69,7 @@ async function createPod(
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager = container.resolve(ConfigManager);
-  const k8 = container.resolve(K8);
+  const k8 = container.resolve('K8') as K8Client;
   const testNamespace = 'k8-e2e';
   const argv = [];
   const podName = `test-pod-${uuid4()}` as PodName;
@@ -150,17 +150,6 @@ describe('K8', () => {
     const labels = [`app=${podLabelValue}`];
 
     const pods = await k8.waitForPodReady(labels, 1, 100);
-    expect(pods).to.have.lengthOf(1);
-  }).timeout(defaultTimeout);
-
-  it('should be able to run wait for pod conditions', async () => {
-    const labels = [`app=${podLabelValue}`];
-
-    const conditions = new Map()
-      .set(constants.POD_CONDITION_INITIALIZED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_POD_SCHEDULED, constants.POD_CONDITION_STATUS_TRUE)
-      .set(constants.POD_CONDITION_READY, constants.POD_CONDITION_STATUS_TRUE);
-    const pods = await k8.waitForPodConditions(conditions, labels, 1);
     expect(pods).to.have.lengthOf(1);
   }).timeout(defaultTimeout);
 

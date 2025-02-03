@@ -3,7 +3,7 @@
  */
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import type {Key} from '@hashgraph/sdk';
+import {type Key} from '@hashgraph/sdk';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -23,14 +23,14 @@ import {
 } from '@hashgraph/sdk';
 import {SoloError, MissingArgumentError} from './errors.js';
 import {Templates} from './templates.js';
-import type {NetworkNodeServices} from './network_node_services.js';
+import {type NetworkNodeServices} from './network_node_services.js';
 import {NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
 import {SoloLogger} from './logging.js';
-import {K8} from './k8.js';
-import type {AccountIdWithKeyPairObject, ExtendedNetServer} from '../types/index.js';
-import type {NodeAlias, PodName, SdkNetworkEndpoint} from '../types/aliases.js';
+import {type K8} from './kube/k8.js';
+import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
+import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
@@ -51,10 +51,10 @@ export class AccountManager {
 
   constructor(
     @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
   ) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -403,18 +403,11 @@ export class AccountManager {
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
     try {
-      const serviceList = await this.k8.kubeClient.listNamespacedService(
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        labelSelector,
-      );
+      const serviceList = await this.k8.listSvcs(namespace, [labelSelector]);
 
       let nodeId = '0';
       // retrieve the list of services and build custom objects for the attributes we need
-      for (const service of serviceList.body.items) {
+      for (const service of serviceList) {
         let serviceBuilder = new NetworkNodeServicesBuilder(
           service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
         );
@@ -488,15 +481,8 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList = await this.k8.kubeClient.listNamespacedPod(
-          namespace,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          `app=${serviceBuilder.haProxyAppSelector}`,
-        );
-        serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name as PodName);
+        const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
+        serviceBuilder.withHaProxyPodName(podList[0].metadata.name as PodName);
       }
 
       // get the pod name of the network node

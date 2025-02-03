@@ -4,8 +4,8 @@
 import {Migration} from './migration.js';
 import {SoloError} from '../../errors.js';
 import * as k8s from '@kubernetes/client-node';
-import type {EmailAddress, Namespace, RemoteConfigMetadataStructure, Version} from './types.js';
-import type {Optional, ToObject, Validate} from '../../../types/index.js';
+import {type EmailAddress, type Namespace, type RemoteConfigMetadataStructure, type Version} from './types.js';
+import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
 
 /**
  * Represent the remote config metadata object and handles:

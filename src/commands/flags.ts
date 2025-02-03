@@ -4,14 +4,14 @@
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import path from 'path';
-import type {CommandFlag} from '../types/flag_types.js';
-import type {ListrTaskWrapper} from 'listr2';
+import {type CommandFlag} from '../types/flag_types.js';
+import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
-import type {AnyObject} from '../types/aliases.js';
+import {type AnyObject} from '../types/aliases.js';
 
 export class Flags {
   private static async prompt(

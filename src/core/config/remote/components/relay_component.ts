@@ -4,9 +4,9 @@
 import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors.js';
 import {BaseComponent} from './base_component.js';
-import type {IRelayComponent} from '../types.js';
-import type {NodeAliases} from '../../../../types/aliases.js';
-import type {ToObject} from '../../../../types/index.js';
+import {type IRelayComponent} from '../types.js';
+import {type NodeAliases} from '../../../../types/aliases.js';
+import {type ToObject} from '../../../../types/index.js';
 
 export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
   /**

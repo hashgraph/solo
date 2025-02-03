@@ -2,13 +2,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {MissingArgumentError, SoloError} from '../errors.js';
-import type {V1Lease} from '@kubernetes/client-node';
-import type {K8} from '../k8.js';
+import {type V1Lease} from '@kubernetes/client-node';
+import {type K8} from '../../core/kube/k8.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
-import type {Lease, LeaseRenewalService} from './lease.js';
+import {type Lease, type LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
 
 /**

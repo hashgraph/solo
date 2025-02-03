@@ -10,7 +10,7 @@ import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
-import type {PodName} from '../../../src/types/aliases.js';
+import {type PodName} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 
 describe('PackageInstaller', () => {

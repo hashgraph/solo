@@ -1,8 +1,13 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {AccountId, PublicKey} from '@hashgraph/sdk';
-import type {GenesisNetworkNodeStructure, NodeAccountId, ServiceEndpoint, ToObject} from '../../types/index.js';
+import {type AccountId, type PublicKey} from '@hashgraph/sdk';
+import {
+  type GenesisNetworkNodeStructure,
+  type NodeAccountId,
+  type ServiceEndpoint,
+  type ToObject,
+} from '../../types/index.js';
 import {GenesisNetworkDataWrapper} from './genesis_network_data_wrapper.js';
 
 export class GenesisNetworkNodeDataWrapper

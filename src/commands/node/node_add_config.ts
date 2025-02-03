@@ -1,9 +1,9 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {NodeAlias, NodeAliases, PodName} from '../../types/aliases.js';
-import type {NetworkNodeServices} from '../../core/network_node_services.js';
-import type {PrivateKey} from '@hashgraph/sdk';
+import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {type PrivateKey} from '@hashgraph/sdk';
 
 export interface NodeAddConfigClass {
   app: string;

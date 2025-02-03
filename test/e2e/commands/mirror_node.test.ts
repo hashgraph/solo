@@ -18,7 +18,7 @@ import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
 import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
-import type {PodName} from '../../../src/types/aliases.js';
+import {type PodName} from '../../../src/types/aliases.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
