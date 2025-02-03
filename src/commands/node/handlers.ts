@@ -40,8 +40,7 @@ import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
-import {type NamespaceName} from '../../core/kube/namespace_name.js';
-import type {NamespaceNameAsString} from '../../core/config/remote/types.js';
+import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
