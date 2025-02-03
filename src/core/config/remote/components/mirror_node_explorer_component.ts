@@ -3,11 +3,10 @@
  */
 import {ComponentType} from '../enumerations.js';
 import {BaseComponent} from './base_component.js';
-import {type Component} from '../types.js';
-import {type NamespaceName} from '../../../kube/namespace_name.js';
+import {type Component, type NamespaceNameAsString} from '../types.js';
 
 export class MirrorNodeExplorerComponent extends BaseComponent {
-  public constructor(name: string, cluster: string, namespace: NamespaceName) {
+  public constructor(name: string, cluster: string, namespace: NamespaceNameAsString) {
     super(ComponentType.MirrorNodeExplorer, name, cluster, namespace);
     this.validate();
   }

@@ -26,20 +26,20 @@ import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 describe('RemoteConfigValidator', () => {
-  const namespace = NamespaceName.of('remote-config-validator');
+  const namespace = 'remote-config-validator';
 
   let configManager: ConfigManager;
   let k8: K8Client;
 
   before(async () => {
     configManager = container.resolve(ConfigManager);
-    configManager.update({[flags.namespace.name]: namespace.name});
+    configManager.update({[flags.namespace.name]: namespace});
     k8 = container.resolve('K8') as K8Client;
-    await k8.createNamespace(namespace);
+    await k8.createNamespace(NamespaceName.of(namespace));
   });
 
   after(async () => {
-    await k8.deleteNamespace(namespace);
+    await k8.deleteNamespace(NamespaceName.of(namespace));
   });
 
   const cluster = 'cluster';
@@ -68,7 +68,7 @@ describe('RemoteConfigValidator', () => {
     const v1Pod = new V1Pod();
     const v1Metadata = new V1ObjectMeta();
     v1Metadata.name = name;
-    v1Metadata.namespace = namespace.name;
+    v1Metadata.namespace = namespace;
     v1Metadata.labels = labels;
     v1Pod.metadata = v1Metadata;
     const v1Container = new V1Container();
@@ -84,7 +84,7 @@ describe('RemoteConfigValidator', () => {
     v1Spec.containers = [v1Container];
     v1Pod.spec = v1Spec;
     try {
-      await k8.kubeClient.createNamespacedPod(namespace.name, v1Pod);
+      await k8.kubeClient.createNamespacedPod(namespace, v1Pod);
     } catch (e) {
       console.error(e);
       throw new Error('Error creating pod');

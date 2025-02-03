@@ -82,6 +82,7 @@ describe('ProfileManager', () => {
     testCases.forEach(input => {
       it(`should determine Solo chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile);
+        configManager.setFlag(flags.namespace, 'test-namespace');
 
         const resources = ['templates', 'profiles'];
         for (const dirName of resources) {
@@ -126,6 +127,7 @@ describe('ProfileManager', () => {
 
       it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async () => {
         configManager.setFlag(flags.profileFile, testProfileFile);
+        configManager.setFlag(flags.namespace, 'test-namespace');
 
         // profileManager.loadProfiles(true)
         const file = path.join(tmpDir, 'application.env');

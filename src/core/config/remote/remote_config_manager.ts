@@ -11,7 +11,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8} from '../../kube/k8.js';
-import {type Cluster, type Context, type Deployment} from './types.js';
+import {type Cluster, type Context, type Deployment, type NamespaceNameAsString} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
@@ -91,11 +91,11 @@ export class RemoteConfigManager {
    * entry in the cluster with initial command history and metadata.
    */
   private async create(argv: AnyObject): Promise<void> {
-    const clusters: Record<Cluster, NamespaceName> = {};
+    const clusters: Record<Cluster, NamespaceNameAsString> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
       ([deployment, deploymentStructure]: [Deployment, DeploymentStructure]) => {
-        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = NamespaceName.of(deployment)));
+        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = deployment));
       },
     );
 
@@ -207,12 +207,17 @@ export class RemoteConfigManager {
     await self.save();
   }
 
-  public async createAndValidate(cluster: Cluster, context: Context, namespace: NamespaceName, argv: AnyObject) {
+  public async createAndValidate(
+    cluster: Cluster,
+    context: Context,
+    namespace: NamespaceNameAsString,
+    argv: AnyObject,
+  ) {
     const self = this;
     self.k8.setCurrentContext(context);
 
-    if (!(await self.k8.hasNamespace(namespace))) {
-      await self.k8.createNamespace(namespace);
+    if (!(await self.k8.hasNamespace(NamespaceName.of(namespace)))) {
+      await self.k8.createNamespace(NamespaceName.of(namespace));
     }
 
     const localConfigExists = this.localConfig.configFileExists();
@@ -317,9 +322,9 @@ export class RemoteConfigManager {
    * Retrieves the namespace value from the configuration manager's flags.
    * @returns string - The namespace value if set.
    */
-  private getNamespace(): NamespaceName {
+  private getNamespace(): NamespaceNameAsString {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
-    return ns;
+    return ns.name;
   }
 }

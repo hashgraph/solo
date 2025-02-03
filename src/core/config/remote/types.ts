@@ -3,10 +3,10 @@
  */
 import {type NodeAliases} from '../../../types/aliases.js';
 import {type ComponentType, type ConsensusNodeStates} from './enumerations.js';
-import {type NamespaceName} from '../../kube/namespace_name.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
+export type NamespaceNameAsString = string;
 export type Deployment = string;
 export type Cluster = string;
 export type Context = string;
@@ -21,7 +21,7 @@ export interface IMigration {
 export interface Component {
   name: ComponentName;
   cluster: Cluster;
-  namespace: NamespaceName;
+  namespace: NamespaceNameAsString;
 }
 
 export interface IRelayComponent extends Component {
@@ -47,7 +47,7 @@ export type RemoteConfigCommonFlagsStruct = {
 export interface RemoteConfigDataStructure {
   metadata: RemoteConfigMetadataStructure;
   version: Version;
-  clusters: Record<Cluster, NamespaceName>;
+  clusters: Record<Cluster, NamespaceNameAsString>;
   components: ComponentsDataStructure;
   commandHistory: string[];
   lastExecutedCommand: string;
@@ -55,7 +55,7 @@ export interface RemoteConfigDataStructure {
 }
 
 export interface RemoteConfigMetadataStructure {
-  name: NamespaceName;
+  name: NamespaceNameAsString;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;
   migration?: IMigration;

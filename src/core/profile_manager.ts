@@ -526,7 +526,10 @@ export class ProfileManager {
 
       return configFilePath;
     } catch (e: Error | unknown) {
-      throw new SoloError('failed to generate config.txt', e);
+      throw new SoloError(
+        `failed to generate config.txt, ${e instanceof Error ? (e as Error).message : 'unknown error'}`,
+        e,
+      );
     }
   }
 }

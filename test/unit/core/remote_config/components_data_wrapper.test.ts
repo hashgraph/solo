@@ -14,14 +14,13 @@ import {RelayComponent} from '../../../../src/core/config/remote/components/rela
 import {ComponentType, ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import {type NodeAliases} from '../../../../src/types/aliases.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 export function createComponentsDataWrapper() {
   const serviceName = 'serviceName';
 
   const name = 'name';
   const cluster = 'cluster';
-  const namespace = NamespaceName.of('namespace');
+  const namespace = 'namespace';
   const state = ConsensusNodeStates.STARTED;
   const consensusNodeAliases = ['node1', 'node2'] as NodeAliases;
 
@@ -101,7 +100,11 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
 
     const newServiceName = 'newServiceName';
-    const {name, cluster, namespace} = {name: 'envoy', cluster: 'cluster', namespace: NamespaceName.of('newNamespace')};
+    const {name, cluster, namespace} = {
+      name: 'envoy',
+      cluster: 'cluster',
+      namespace: 'new-namespace',
+    };
     const newComponent = new EnvoyProxyComponent(name, cluster, namespace);
 
     componentsDataWrapper.add(newServiceName, newComponent);

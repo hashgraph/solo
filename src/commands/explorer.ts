@@ -449,7 +449,7 @@ export class ExplorerCommand extends BaseCommand {
           const cluster = this.remoteConfigManager.currentCluster;
           remoteConfig.components.add(
             'mirrorNodeExplorer',
-            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace),
+            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name),
           );
         });
       },

@@ -122,9 +122,9 @@ export class ClusterCommandTasks {
         const remoteClusterList: string[] = [];
 
         const namespace = remoteConfig.metadata.name;
-        localConfig.currentDeploymentName = remoteConfig.metadata.name.name;
+        localConfig.currentDeploymentName = remoteConfig.metadata.name;
 
-        if (localConfig.deployments[namespace.name]) {
+        if (localConfig.deployments[namespace]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
             if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster].valueOf()) {
               remoteClusterList.push(cluster);
@@ -134,7 +134,7 @@ export class ClusterCommandTasks {
           localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
         } else {
           const clusters = Object.keys(remoteConfig.clusters);
-          localDeployments[namespace.name] = {clusters};
+          localDeployments[namespace] = {clusters};
           ctx.config.clusters = clusters;
         }
 

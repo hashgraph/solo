@@ -135,7 +135,7 @@ describe('ClusterCommand unit tests', () => {
     let localConfig: LocalConfig;
     const defaultRemoteConfig = {
       metadata: {
-        name: NamespaceName.of('deployment'),
+        name: 'deployment',
       },
       clusters: {},
     };

@@ -49,7 +49,7 @@ export class ListrRemoteConfig {
     return {
       title: `Create remote config in cluster: ${chalk.cyan(cluster)}`,
       task: async (): Promise<void> => {
-        await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace, argv);
+        await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace.name, argv);
       },
     };
   }

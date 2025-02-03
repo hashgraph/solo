@@ -14,27 +14,33 @@ import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/co
 import {SoloError} from '../../../../src/core/errors.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {type NodeAliases} from '../../../../src/types/aliases.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 function testBaseComponentData(classComponent: any) {
+  const validNamespace = 'valid';
   it('should fail if name is not provided', () => {
     const name = '';
-    expect(() => new classComponent(name, 'valid', 'valid')).to.throw(SoloError, `Invalid name: ${name}`);
+    expect(() => new classComponent(name, 'valid', validNamespace)).to.throw(SoloError, `Invalid name: ${name}`);
   });
 
   it('should fail if name is string', () => {
     const name = 1; // @ts-ignore
-    expect(() => new classComponent(name, 'valid', 'valid')).to.throw(SoloError, `Invalid name: ${name}`);
+    expect(() => new classComponent(name, 'valid', validNamespace)).to.throw(SoloError, `Invalid name: ${name}`);
   });
 
   it('should fail if cluster is not provided', () => {
     const cluster = '';
-    expect(() => new classComponent('valid', cluster, 'valid')).to.throw(SoloError, `Invalid cluster: ${cluster}`);
+    expect(() => new classComponent('valid', cluster, validNamespace)).to.throw(
+      SoloError,
+      `Invalid cluster: ${cluster}`,
+    );
   });
 
   it('should fail if cluster is string', () => {
     const cluster = 1;
-    expect(() => new classComponent('valid', cluster, 'valid')).to.throw(SoloError, `Invalid cluster: ${cluster}`);
+    expect(() => new classComponent('valid', cluster, validNamespace)).to.throw(
+      SoloError,
+      `Invalid cluster: ${cluster}`,
+    );
   });
 
   it('should fail if namespace is not provided', () => {
@@ -58,7 +64,7 @@ function testBaseComponentData(classComponent: any) {
   });
 
   it('should be an instance of BaseComponent', () => {
-    const component = new classComponent('valid', 'valid', 'valid');
+    const component = new classComponent('valid', 'valid', validNamespace);
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
@@ -80,36 +86,24 @@ describe('MirrorNodeExplorerComponent', () => testBaseComponentData(MirrorNodeEx
 describe('RelayComponent', () => {
   it('should fail if name is not provided', () => {
     const name = '';
-    expect(() => new RelayComponent(name, 'valid', NamespaceName.of('valid'), [])).to.throw(
-      SoloError,
-      `Invalid name: ${name}`,
-    );
+    expect(() => new RelayComponent(name, 'valid', 'valid', [])).to.throw(SoloError, `Invalid name: ${name}`);
   });
 
   it('should fail if name is string', () => {
     const name = 1;
     // @ts-expect-error - TS2345: Argument of type number is not assignable to parameter of type string
-    expect(() => new RelayComponent(name, 'valid', NamespaceName.of('valid'), [])).to.throw(
-      SoloError,
-      `Invalid name: ${name}`,
-    );
+    expect(() => new RelayComponent(name, 'valid', 'valid', [])).to.throw(SoloError, `Invalid name: ${name}`);
   });
 
   it('should fail if cluster is not provided', () => {
     const cluster = '';
-    expect(() => new RelayComponent('valid', cluster, NamespaceName.of('valid'), [])).to.throw(
-      SoloError,
-      `Invalid cluster: ${cluster}`,
-    );
+    expect(() => new RelayComponent('valid', cluster, 'valid', [])).to.throw(SoloError, `Invalid cluster: ${cluster}`);
   });
 
   it('should fail if cluster is string', () => {
     const cluster = 1;
     // @ts-expect-error - TS2345: Argument of type number is not assignable to parameter of type string
-    expect(() => new RelayComponent('valid', cluster, NamespaceName.of('valid'), [])).to.throw(
-      SoloError,
-      `Invalid cluster: ${cluster}`,
-    );
+    expect(() => new RelayComponent('valid', cluster, 'valid', [])).to.throw(SoloError, `Invalid cluster: ${cluster}`);
   });
 
   it('should fail if namespace is not provided', () => {
@@ -131,7 +125,7 @@ describe('RelayComponent', () => {
 
   it('should fail if consensusNodeAliases is not valid', () => {
     const consensusNodeAliases = [undefined] as NodeAliases;
-    expect(() => new RelayComponent('valid', 'valid', NamespaceName.of('valid'), consensusNodeAliases)).to.throw(
+    expect(() => new RelayComponent('valid', 'valid', 'valid', consensusNodeAliases)).to.throw(
       SoloError,
       `Invalid consensus node alias: ${consensusNodeAliases[0]}, aliases ${consensusNodeAliases}`,
     );
@@ -139,18 +133,18 @@ describe('RelayComponent', () => {
 
   it('should fail if consensusNodeAliases is not valid', () => {
     const consensusNodeAliases = ['node1', 1] as NodeAliases;
-    expect(() => new RelayComponent('valid', 'valid', NamespaceName.of('valid'), consensusNodeAliases)).to.throw(
+    expect(() => new RelayComponent('valid', 'valid', 'valid', consensusNodeAliases)).to.throw(
       SoloError,
       `Invalid consensus node alias: 1, aliases ${consensusNodeAliases}`,
     );
   });
 
   it('should successfully create ', () => {
-    new RelayComponent('valid', 'valid', NamespaceName.of('valid'));
+    new RelayComponent('valid', 'valid', 'valid');
   });
 
   it('should be an instance of BaseComponent', () => {
-    const component = new RelayComponent('valid', 'valid', NamespaceName.of('valid'));
+    const component = new RelayComponent('valid', 'valid', 'valid');
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
@@ -158,21 +152,22 @@ describe('RelayComponent', () => {
     const {name, cluster, namespace, consensusNodeAliases} = {
       name: 'name',
       cluster: 'cluster',
-      namespace: NamespaceName.of('namespace'),
+      namespace: 'namespace',
       consensusNodeAliases: ['node1'] as NodeAliases,
     };
 
     const component = new RelayComponent(name, cluster, namespace, consensusNodeAliases);
-    expect(component.toObject()).to.deep.equal({name, cluster, namespace, consensusNodeAliases});
+    expect(component.toObject()).to.deep.equal({name, cluster, namespace: namespace, consensusNodeAliases});
   });
 });
 
 describe('ConsensusNodeComponent', () => {
   it('should fail if name is not provided', () => {
     const name = '';
-    expect(
-      () => new ConsensusNodeComponent(name, 'valid', NamespaceName.of('valid'), ConsensusNodeStates.STARTED),
-    ).to.throw(SoloError, `Invalid name: ${name}`);
+    expect(() => new ConsensusNodeComponent(name, 'valid', 'valid', ConsensusNodeStates.STARTED)).to.throw(
+      SoloError,
+      `Invalid name: ${name}`,
+    );
   });
 
   it('should fail if name is string', () => {
@@ -185,9 +180,10 @@ describe('ConsensusNodeComponent', () => {
 
   it('should fail if cluster is not provided', () => {
     const cluster = '';
-    expect(
-      () => new ConsensusNodeComponent('valid', cluster, NamespaceName.of('valid'), ConsensusNodeStates.STARTED),
-    ).to.throw(SoloError, `Invalid cluster: ${cluster}`);
+    expect(() => new ConsensusNodeComponent('valid', cluster, 'valid', ConsensusNodeStates.STARTED)).to.throw(
+      SoloError,
+      `Invalid cluster: ${cluster}`,
+    );
   });
 
   it('should fail if cluster is string', () => {
@@ -216,23 +212,18 @@ describe('ConsensusNodeComponent', () => {
 
   it('should fail if state is not valid', () => {
     const state = 'invalid' as ConsensusNodeStates.STARTED;
-    expect(() => new ConsensusNodeComponent('valid', 'valid', NamespaceName.of('valid'), state)).to.throw(
+    expect(() => new ConsensusNodeComponent('valid', 'valid', 'valid', state)).to.throw(
       SoloError,
       `Invalid consensus node state: ${state}`,
     );
   });
 
   it('should successfully create ', () => {
-    new ConsensusNodeComponent('valid', 'valid', NamespaceName.of('valid'), ConsensusNodeStates.STARTED);
+    new ConsensusNodeComponent('valid', 'valid', 'valid', ConsensusNodeStates.STARTED);
   });
 
   it('should be an instance of BaseComponent', () => {
-    const component = new ConsensusNodeComponent(
-      'valid',
-      'valid',
-      NamespaceName.of('valid'),
-      ConsensusNodeStates.STARTED,
-    );
+    const component = new ConsensusNodeComponent('valid', 'valid', 'valid', ConsensusNodeStates.STARTED);
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
@@ -240,7 +231,7 @@ describe('ConsensusNodeComponent', () => {
     const {name, cluster, namespace, state} = {
       name: 'name',
       cluster: 'cluster',
-      namespace: NamespaceName.of('namespace'),
+      namespace: 'namespace',
       state: ConsensusNodeStates.STARTED,
     };
 
