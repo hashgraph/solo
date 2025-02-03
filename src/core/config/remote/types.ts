@@ -6,6 +6,7 @@ import {type ComponentType, type ConsensusNodeStates} from './enumerations.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
+/// TODO - see if we can use NamespaceName and use some annotations and overrides to covert to strings
 export type NamespaceNameAsString = string;
 export type DeploymentName = string;
 export type Cluster = string;
