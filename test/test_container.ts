@@ -9,6 +9,9 @@ const cacheDirectory = path.join('test', 'data', 'tmp');
 
 export function resetTestContainer(cacheDir: string = cacheDirectory) {
   const localConfigFile = 'local-config.yaml';
+  if (!fs.existsSync(cacheDirectory)) {
+    fs.mkdirSync(cacheDirectory, {recursive: true});
+  }
   fs.copyFileSync(path.join('test', 'data', localConfigFile), path.join(cacheDirectory, localConfigFile));
   Container.getInstance().reset(cacheDir, 'debug', true);
 }
