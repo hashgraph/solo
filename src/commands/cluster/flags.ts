@@ -40,7 +40,7 @@ export const USE_FLAGS = {
     flags.quiet,
     flags.clusterName,
     flags.context,
-    flags.namespace,
+    flags.namespace, // TODO should we be using cluster setup namespace?
     flags.userEmailAddress,
   ],
 };
