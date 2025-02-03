@@ -75,6 +75,10 @@ export function getDefaultArgv() {
     argv[f.name] = f.definition.defaultValue;
   }
 
+  const cacheDir = getTestCacheDir();
+  argv.cacheDir = cacheDir;
+  argv[flags.cacheDir.name] = cacheDir;
+
   return argv;
 }
 
@@ -99,6 +103,7 @@ interface TestOpts {
 
 interface BootstrapResponse {
   namespace: string;
+  deployment: string;
   opts: TestOpts;
   manager: {
     accountManager: AccountManager;
@@ -124,6 +129,7 @@ export function bootstrapTestVariables(
   accountCmdArg: AccountCommand | null = null,
 ): BootstrapResponse {
   const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
+  const deployment: string = argv[flags.deployment.name] || 'deployment';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
   resetTestContainer(cacheDir);
   const configManager = container.resolve(ConfigManager);
@@ -170,6 +176,7 @@ export function bootstrapTestVariables(
   const accountCmd = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
   return {
     namespace,
+    deployment,
     opts,
     manager: {
       accountManager,
