@@ -22,7 +22,7 @@ interface ExplorerDeployConfigClass {
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
   hederaExplorerTlsHostName: string;
-  hederaExplorerLoadBalancerIp: string | '';
+  hederaExplorerStaticIp: string | '';
   hederaExplorerVersion: string;
   mirrorStaticIP: string;
   namespace: string;
@@ -62,7 +62,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.enableIngress,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
-      flags.hederaExplorerLoadBalancerIp,
+      flags.hederaExplorerStaticIp,
       flags.hederaExplorerVersion,
       flags.mirrorStaticIP,
       flags.namespace,
@@ -105,8 +105,7 @@ export class ExplorerCommand extends BaseCommand {
    * @param config - the configuration object
    */
   private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
-    const {tlsClusterIssuerType, namespace, mirrorStaticIP, hederaExplorerLoadBalancerIp, hederaExplorerTlsHostName} =
-      config;
+    const {tlsClusterIssuerType, namespace, mirrorStaticIP, hederaExplorerStaticIp} = config;
 
     let valuesArg = '';
 
@@ -127,9 +126,6 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
-      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
-      valuesArg +=
-        ' --set-json \'ingress.hosts[1]={"host":"mirror.solo.local","paths":[{"path":"/","pathType":"Prefix"}]}\'';
     }
 
     if (!(await this.k8.isCertManagerInstalled())) {
@@ -137,8 +133,8 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ' --set cert-manager.installCRDs=true';
     }
 
-    if (hederaExplorerLoadBalancerIp !== '') {
-      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerLoadBalancerIp}`;
+    if (hederaExplorerStaticIp !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerStaticIp}`;
     } else if (mirrorStaticIP !== '') {
       valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${mirrorStaticIP}`;
     }
@@ -146,10 +142,13 @@ export class ExplorerCommand extends BaseCommand {
     if (tlsClusterIssuerType === 'self-signed') {
       valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
     } else {
+      valuesArg += ` --set global.explorerNamespace=${namespace}`;
       valuesArg += ' --set acmeClusterIssuer.enabled=true';
       valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
-
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile);
+    }
     return valuesArg;
   }
 
@@ -176,7 +175,7 @@ export class ExplorerCommand extends BaseCommand {
             flags.disablePrompts([
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsHostName,
-              flags.hederaExplorerLoadBalancerIp,
+              flags.hederaExplorerStaticIp,
               flags.hederaExplorerVersion,
               flags.tlsClusterIssuerType,
               flags.valuesFile,

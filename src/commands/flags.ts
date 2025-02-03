@@ -747,11 +747,11 @@ export class Flags {
     },
   };
 
-  static readonly hederaExplorerLoadBalancerIp: CommandFlag = {
-    constName: 'hederaExplorerLoadBalancerIp',
-    name: 'hedera-explorer-load-balancer-ip',
+  static readonly hederaExplorerStaticIp: CommandFlag = {
+    constName: 'hederaExplorerStaticIp',
+    name: 'hedera-explorer-static-ip',
     definition: {
-      describe: 'The static IP address to use for the Hedera Explorer TLS load balancer, defaults to ""',
+      describe: 'The static IP address to use for the Hedera Explorer load balancer, defaults to ""',
       defaultValue: '',
       type: 'string',
     },
@@ -1786,7 +1786,7 @@ export class Flags {
     Flags.grpcWebTlsKeyPath,
     Flags.haproxyIps,
     Flags.hederaExplorerTlsHostName,
-    Flags.hederaExplorerLoadBalancerIp,
+    Flags.hederaExplorerStaticIp,
     Flags.hederaExplorerVersion,
     Flags.inputDir,
     Flags.loadBalancerEnabled,
