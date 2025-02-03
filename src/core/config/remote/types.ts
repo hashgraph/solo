@@ -7,6 +7,7 @@ import {type ComponentType, type ConsensusNodeStates} from './enumerations.js';
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
 export type Namespace = string;
+export type DeploymentName = string;
 export type Cluster = string;
 export type Context = string;
 export type ComponentName = string;

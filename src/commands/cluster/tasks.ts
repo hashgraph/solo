@@ -16,9 +16,10 @@ import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {type K8} from '../../core/kube/k8.js';
+import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type SelectClusterContextContext} from './configs.js';
-import {type Namespace} from '../../core/config/remote/types.js';
+import {type DeploymentName, type Namespace} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 
@@ -119,21 +120,27 @@ export class ClusterCommandTasks {
         const localConfig = this.parent.getLocalConfig();
         const localDeployments = localConfig.deployments;
         const remoteClusterList: string[] = [];
+        let deploymentName;
+        const remoteNamespace = remoteConfig.metadata.name;
+        for (const deployment in localConfig.deployments) {
+          if (localConfig.deployments[deployment].namespace === remoteNamespace) {
+            localConfig.currentDeploymentName = deployment;
+            deploymentName = deployment;
+            break;
+          }
+        }
 
-        const namespace = remoteConfig.metadata.name;
-        localConfig.currentDeploymentName = remoteConfig.metadata.name;
-
-        if (localConfig.deployments[namespace]) {
+        if (localConfig.deployments[deploymentName]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
-            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
+            if (localConfig.deployments[deploymentName].namespace === remoteConfig.clusters[cluster]) {
               remoteClusterList.push(cluster);
             }
           }
           ctx.config.clusters = remoteClusterList;
-          localDeployments[localConfig.currentDeploymentName].clusters = ctx.config.clusters;
+          localDeployments[deploymentName].clusters = ctx.config.clusters;
         } else {
           const clusters = Object.keys(remoteConfig.clusters);
-          localDeployments[namespace] = {clusters};
+          localDeployments[deploymentName] = {clusters, namespace: remoteNamespace};
           ctx.config.clusters = clusters;
         }
 
@@ -250,14 +257,15 @@ export class ClusterCommandTasks {
 
   selectContext(): SoloListrTask<SelectClusterContextContext> {
     return {
-      title: 'Read local configuration settings',
+      title: 'Resolve context for remote cluster',
       task: async (_, task) => {
-        this.parent.logger.info('Read local configuration settings...');
+        this.parent.logger.info('Resolve context for remote cluster...');
         const configManager = this.parent.getConfigManager();
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
-        const deploymentName: string = configManager.getFlag<Namespace>(flags.namespace);
+        const deploymentName: string = configManager.getFlag<DeploymentName>(flags.deployment);
         let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
+        const namespace = configManager.getFlag<Namespace>(flags.namespace);
         const localConfig = this.parent.getLocalConfig();
         let selectedContext: string;
         let selectedCluster: string;
@@ -298,6 +306,7 @@ export class ClusterCommandTasks {
               selectedCluster = this.parent.getK8().getCurrentClusterName();
               localConfig.deployments[deploymentName] = {
                 clusters: [selectedCluster],
+                namespace,
               };
 
               if (!localConfig.clusterContextMapping[selectedCluster]) {

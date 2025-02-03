@@ -14,6 +14,7 @@ import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {sleep} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
 
 export class AccountCommand extends BaseCommand {
@@ -165,11 +166,8 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
-
-            const config = {
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
-            };
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+            const config = {namespace};
 
             if (!(await this.k8.hasNamespace(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
@@ -318,12 +316,12 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             const config = {
               amount: self.configManager.getFlag<number>(flags.amount) as number,
               ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: namespace,
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
               setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean,
               generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean,
@@ -401,12 +399,13 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.accountId]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
               amount: self.configManager.getFlag<number>(flags.amount) as number,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: namespace,
               ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
             };
@@ -484,11 +483,12 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.accountId]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: namespace,
               privateKey: self.configManager.getFlag<boolean>(flags.privateKey) as boolean,
             };
 
@@ -544,7 +544,7 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'init',
             desc: 'Initialize system accounts with new keys',
-            builder: (y: any) => flags.setCommandFlags(y, flags.namespace),
+            builder: (y: any) => flags.setCommandFlags(y, flags.deployment),
             handler: (argv: any) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
@@ -570,7 +570,7 @@ export class AccountCommand extends BaseCommand {
                 flags.amount,
                 flags.createAmount,
                 flags.ecdsaPrivateKey,
-                flags.namespace,
+                flags.deployment,
                 flags.ed25519PrivateKey,
                 flags.generateEcdsaKey,
                 flags.setAlias,
@@ -599,7 +599,7 @@ export class AccountCommand extends BaseCommand {
                 y,
                 flags.accountId,
                 flags.amount,
-                flags.namespace,
+                flags.deployment,
                 flags.ecdsaPrivateKey,
                 flags.ed25519PrivateKey,
               ),
@@ -622,7 +622,7 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
-            builder: (y: any) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.namespace),
+            builder: (y: any) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.deployment),
             handler: (argv: any) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);
