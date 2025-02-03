@@ -908,7 +908,7 @@ export class NodeCommandTasks {
     });
   }
 
-  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean = false) {
+  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean) {
     return new Task('Setup network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (isGenesis) {
         await this.generateGenesisNetworkJson(
