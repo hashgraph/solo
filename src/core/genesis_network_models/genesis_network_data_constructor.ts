@@ -31,9 +31,17 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   ) {
     nodeAliases.forEach(nodeAlias => {
       const genesisPrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-      const adminPubKey = PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])
-        ? adminPublicKeyMap[nodeAlias]
-        : genesisPrivateKey.publicKey;
+
+      let adminPubKey: PublicKey;
+      try {
+        if (PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])) {
+          adminPubKey = adminPublicKeyMap[nodeAlias];
+        }
+      } catch {
+        // Ignore error
+      }
+
+      if (!adminPubKey) adminPubKey = genesisPrivateKey.publicKey;
 
       const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
         +networkNodeServiceMap.get(nodeAlias).nodeId,
