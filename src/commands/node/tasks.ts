@@ -66,6 +66,7 @@ import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -329,7 +330,7 @@ export class NodeCommandTasks {
   }
 
   async _checkNetworkNodeActiveness(
-    namespace: string,
+    namespace: NamespaceName,
     nodeAlias: NodeAlias,
     task: ListrTaskWrapper<any, any, any>,
     title: string,
@@ -504,7 +505,7 @@ export class NodeCommandTasks {
   }
 
   async _addStake(
-    namespace: string,
+    namespace: NamespaceName,
     accountId: string,
     nodeAlias: NodeAlias,
     stakeAmount: number = HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
@@ -944,7 +945,7 @@ export class NodeCommandTasks {
    * @param stagingDir - staging directory
    */
   private async generateGenesisNetworkJson(
-    namespace: string,
+    namespace: NamespaceName,
     nodeAliases: NodeAliases,
     keysDir: string,
     stagingDir: string,

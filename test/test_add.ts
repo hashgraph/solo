@@ -19,6 +19,7 @@ import {type NodeAlias} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {Duration} from '../src/core/time/duration.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../version.js';
+import {NamespaceName} from '../src/core/kube/namespace_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -28,7 +29,7 @@ export function testNodeAdd(
   timeout: number = defaultTimeout,
 ): void {
   const suffix = localBuildPath.substring(0, 5);
-  const namespace = 'node-add' + suffix;
+  const namespace = NamespaceName.of(`node-add${suffix}`);
   const argv = getDefaultArgv();
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
   argv[flags.stakeAmounts.name] = '1500,1';
@@ -38,14 +39,14 @@ export function testNodeAdd(
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
   argv[flags.releaseTag.name] =
     !localBuildPath || localBuildPath === '' ? HEDERA_PLATFORM_VERSION_TAG : LOCAL_HEDERA_PLATFORM_VERSION;
-  argv[flags.namespace.name] = namespace;
+  argv[flags.namespace.name] = namespace.name;
   argv[flags.force.name] = true;
   argv[flags.persistentVolumeClaims.name] = true;
   argv[flags.localBuildPath.name] = localBuildPath;
   argv[flags.quiet.name] = true;
 
   e2eTestSuite(
-    namespace,
+    namespace.name,
     argv,
     undefined,
     undefined,

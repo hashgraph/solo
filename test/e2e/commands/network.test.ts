@@ -13,15 +13,16 @@ import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';
-  const namespace = testName;
+  const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
   const argv = getDefaultArgv();
-  argv[flags.namespace.name] = namespace;
+  argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
   argv[flags.generateGossipKeys.name] = true;

@@ -17,6 +17,7 @@ import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
 import {Templates} from '../../../src/core/templates.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
@@ -81,6 +82,7 @@ describe('ProfileManager', () => {
     testCases.forEach(input => {
       it(`should determine Solo chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile);
+        configManager.setFlag(flags.namespace, 'test-namespace');
 
         const resources = ['templates', 'profiles'];
         for (const dirName of resources) {
@@ -125,6 +127,7 @@ describe('ProfileManager', () => {
 
       it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async () => {
         configManager.setFlag(flags.profileFile, testProfileFile);
+        configManager.setFlag(flags.namespace, 'test-namespace');
 
         // profileManager.loadProfiles(true)
         const file = path.join(tmpDir, 'application.env');
@@ -194,7 +197,7 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node3', '0.0.5');
       const destPath = path.join(tmpDir, 'staging');
       fs.mkdirSync(destPath, {recursive: true});
-      const namespace = 'test-namespace';
+      const namespace = NamespaceName.of('test-namespace');
       profileManager.prepareConfigTxt(namespace, nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
 
       // expect that the config.txt file was created and exists
@@ -217,7 +220,7 @@ describe('ProfileManager', () => {
 
     it('should fail when no nodeAliases', () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
-      expect(() => profileManager.prepareConfigTxt('', nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION)).to.throw(
+      expect(() => profileManager.prepareConfigTxt(null, nodeAccountMap, '', version.HEDERA_PLATFORM_VERSION)).to.throw(
         'nodeAccountMap the map of node IDs to account IDs is required',
       );
     });
@@ -227,7 +230,7 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node1', '0.0.3');
       const destPath = path.join(tmpDir, 'missing-directory');
       try {
-        profileManager.prepareConfigTxt('', nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
+        profileManager.prepareConfigTxt(null, nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
       } catch (e) {
         expect(e.message).to.contain('config destPath does not exist');
         expect(e.message).to.contain(destPath);

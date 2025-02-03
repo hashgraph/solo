@@ -4,7 +4,7 @@
 import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors.js';
 import {BaseComponent} from './base_component.js';
-import {type IRelayComponent} from '../types.js';
+import {type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
 
@@ -18,7 +18,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
   public constructor(
     name: string,
     cluster: string,
-    namespace: string,
+    namespace: NamespaceNameAsString,
     public readonly consensusNodeAliases: NodeAliases = [],
   ) {
     super(ComponentType.Relay, name, cluster, namespace);

@@ -22,11 +22,12 @@ import {type PodName} from '../../../src/types/aliases.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
 const testName = 'mirror-cmd-e2e';
-const namespace = testName;
+const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 
 argv[flags.nodeAliasesUnparsed.name] = 'node1'; // use a single node to reduce resource during e2e tests

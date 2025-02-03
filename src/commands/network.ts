@@ -27,7 +27,7 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {type Namespace} from '../core/config/remote/types.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -36,7 +36,7 @@ export interface NetworkDeployConfigClass {
   enablePrometheusSvcMonitor: boolean;
   loadBalancerEnabled: boolean;
   soloChartVersion: string;
-  namespace: string;
+  namespace: NamespaceName;
   nodeAliasesUnparsed: string;
   persistentVolumeClaims: string;
   profileFile: string;
@@ -518,7 +518,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check if cluster setup chart is installed',
           task: async () => {
-            const isChartInstalled = await this.chartManager.isChartInstalled('', constants.SOLO_CLUSTER_SETUP_CHART);
+            const isChartInstalled = await this.chartManager.isChartInstalled(null, constants.SOLO_CLUSTER_SETUP_CHART);
             if (!isChartInstalled) {
               throw new SoloError(
                 `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed. Run 'solo cluster setup'`,
@@ -719,7 +719,7 @@ export class NetworkCommand extends BaseCommand {
       config: {
         deletePvcs: boolean;
         deleteSecrets: boolean;
-        namespace: string;
+        namespace: NamespaceName;
         enableTimeout: boolean;
         force: boolean;
       };
@@ -750,7 +750,7 @@ export class NetworkCommand extends BaseCommand {
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
             };

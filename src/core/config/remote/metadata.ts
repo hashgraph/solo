@@ -4,7 +4,12 @@
 import {Migration} from './migration.js';
 import {SoloError} from '../../errors.js';
 import * as k8s from '@kubernetes/client-node';
-import {type EmailAddress, type Namespace, type RemoteConfigMetadataStructure, type Version} from './types.js';
+import {
+  type EmailAddress,
+  type NamespaceNameAsString,
+  type RemoteConfigMetadataStructure,
+  type Version,
+} from './types.js';
 import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
 
 /**
@@ -17,12 +22,17 @@ import {type Optional, type ToObject, type Validate} from '../../../types/index.
 export class RemoteConfigMetadata
   implements RemoteConfigMetadataStructure, Validate, ToObject<RemoteConfigMetadataStructure>
 {
-  private readonly _name: Namespace;
+  private readonly _name: NamespaceNameAsString;
   private readonly _lastUpdatedAt: Date;
   private readonly _lastUpdateBy: EmailAddress;
   private _migration?: Migration;
 
-  public constructor(name: Namespace, lastUpdatedAt: Date, lastUpdateBy: EmailAddress, migration?: Migration) {
+  public constructor(
+    name: NamespaceNameAsString,
+    lastUpdatedAt: Date,
+    lastUpdateBy: EmailAddress,
+    migration?: Migration,
+  ) {
     this._name = name;
     this._lastUpdatedAt = lastUpdatedAt;
     this._lastUpdateBy = lastUpdateBy;
@@ -40,7 +50,7 @@ export class RemoteConfigMetadata
   /* -------- Getters -------- */
 
   /** Retrieves the namespace */
-  public get name(): Namespace {
+  public get name(): NamespaceNameAsString {
     return this._name;
   }
 
@@ -76,8 +86,8 @@ export class RemoteConfigMetadata
   }
 
   public validate(): void {
-    if (!this.name || typeof this.name !== 'string') {
-      throw new SoloError(`Invalid name: ${this.name}`);
+    if (!this.name || !(typeof this.name === 'string')) {
+      throw new SoloError(`Invalid name: ${this.name}, is type string: ${typeof this.name === 'string'}`);
     }
 
     if (!(this.lastUpdatedAt instanceof Date)) {

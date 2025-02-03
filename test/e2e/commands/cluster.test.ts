@@ -12,6 +12,7 @@ import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -28,9 +29,9 @@ describe('ClusterCommand', () => {
   });
 
   const testName = 'cluster-cmd-e2e';
-  const namespace = testName;
+  const namespace = NamespaceName.of(testName);
   const argv = getDefaultArgv();
-  argv[flags.namespace.name] = namespace;
+  argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
   argv[flags.generateGossipKeys.name] = true;
@@ -52,7 +53,7 @@ describe('ClusterCommand', () => {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
     await k8.deleteNamespace(namespace);
-    argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE;
+    argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
     configManager.update(argv);
     await clusterCmd.handlers.setup(argv); // restore solo-cluster-setup for other e2e tests to leverage
     do {
@@ -83,7 +84,7 @@ describe('ClusterCommand', () => {
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster setup should work with valid args', async () => {
-    argv[flags.clusterSetupNamespace.name] = namespace;
+    argv[flags.clusterSetupNamespace.name] = namespace.name;
     configManager.update(argv);
     expect(await clusterCmd.handlers.setup(argv)).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
@@ -115,7 +116,7 @@ describe('ClusterCommand', () => {
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster reset should work with valid args', async () => {
-    argv[flags.clusterSetupNamespace.name] = namespace;
+    argv[flags.clusterSetupNamespace.name] = namespace.name;
     configManager.update(argv);
     expect(await clusterCmd.handlers.reset(argv)).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());

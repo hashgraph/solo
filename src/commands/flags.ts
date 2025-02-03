@@ -135,7 +135,7 @@ export class Flags {
     name: 'cluster-setup-namespace',
     definition: {
       describe: 'Cluster Setup Namespace',
-      defaultValue: constants.SOLO_SETUP_NAMESPACE,
+      defaultValue: constants.SOLO_SETUP_NAMESPACE.name,
       alias: 's',
       type: 'string',
     },

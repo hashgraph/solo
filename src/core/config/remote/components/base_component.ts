@@ -3,7 +3,7 @@
  */
 import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors.js';
-import {type Cluster, type Component, type Namespace, type ComponentName} from '../types.js';
+import {type Cluster, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
 
 /**
@@ -21,7 +21,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
     public readonly type: ComponentType,
     public readonly name: ComponentName,
     public readonly cluster: Cluster,
-    public readonly namespace: Namespace,
+    public readonly namespace: NamespaceNameAsString,
   ) {}
 
   /* -------- Utilities -------- */
@@ -47,7 +47,9 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
     }
 
     if (!this.namespace || typeof this.namespace !== 'string') {
-      throw new SoloError(`Invalid namespace: ${this.namespace}`);
+      throw new SoloError(
+        `Invalid namespace: ${this.namespace}, is typeof 'string': ${typeof this.namespace !== 'string'}`,
+      );
     }
 
     if (!Object.values(ComponentType).includes(this.type)) {
