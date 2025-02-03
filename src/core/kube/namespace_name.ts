@@ -6,7 +6,7 @@ import {isDns1123Label} from './kube_validation.js';
 
 /**
  * Represents a Kubernetes namespace name. A Kubernetes namespace name must
- * be a valid DNS 1123 label.
+ * be a valid RFC-1123 DNS label.
  *
  * @include DNS_1123_LABEL
  */
@@ -18,7 +18,7 @@ export class NamespaceName {
   }
 
   /**
-   * Creates a namespace. A Kubernetes namespace name must be a valid DNS 1123 label.
+   * Creates a namespace. A Kubernetes namespace name must be a valid RFC-1123 DNS label.
    *
    * @include DNS_1123_LABEL
    * @param name The name of the namespace.
@@ -29,14 +29,14 @@ export class NamespaceName {
   }
 
   /**
-   * Returns true if the namespace name is valid.  A Kubernetes namespace name must be a valid DNS 1123 label.
+   * Returns true if the namespace name is valid.  A Kubernetes namespace name must be a valid RFC-1123 DNS label.
    *
    * @include DNS_1123_LABEL
    *
    * @returns true if the namespace name is valid.
    * @throws NamespaceNameInvalidError if the namespace name is invalid.
    */
-  public isValid(): boolean {
+  private isValid(): boolean {
     return isDns1123Label(this.name);
   }
 

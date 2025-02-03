@@ -9,7 +9,7 @@ import {Converter} from 'typedoc';
  */
 const MACROS = {
   DNS_1123_LABEL:
-    'A valid DNS 1123 label consists of the following:\n' +
+    'A valid RFC-1123 DNS label consists of the following:\n' +
     '- The first character must be a-z or 0-9\n' +
     '- The middle part can contain a-z, 0-9, or -\n' +
     '- The last character must be a-z or 0-9\n' +
