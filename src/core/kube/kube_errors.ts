@@ -11,11 +11,11 @@ export class NamespaceNameInvalidError extends SoloError {
   /**
    * Instantiates a new error with a message and an optional cause.
    *
-   * @param message - the error message to be reported.
+   * @param namespaceName - the invalid namespace name.
    * @param cause - optional underlying cause of the error.
    * @param meta - optional metadata to be reported.
    */
-  public constructor(message: string, cause: Error | any = {}, meta: any = {}) {
-    super(message, cause, meta);
+  public constructor(namespaceName: string, cause: Error | any = {}, meta: any = {}) {
+    super(NamespaceNameInvalidError.NAMESPACE_NAME_INVALID(namespaceName), cause, meta);
   }
 }

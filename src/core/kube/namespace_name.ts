@@ -13,7 +13,7 @@ import {isDns1123Label} from './kube_validation.js';
 export class NamespaceName {
   private constructor(public readonly name: string) {
     if (!this.isValid()) {
-      throw new NamespaceNameInvalidError(NamespaceNameInvalidError.NAMESPACE_NAME_INVALID(name));
+      throw new NamespaceNameInvalidError(name);
     }
   }
 
