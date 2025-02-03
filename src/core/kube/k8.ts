@@ -359,4 +359,6 @@ export interface K8 {
   getCurrentClusterName(): string;
 
   patchMirrorIngressClassName(namespace: Namespace, className: string): Promise<void>;
+
+  patchConfigMap(namespace: Namespace, configMapName: string, data: Record<string, string>): Promise<void>;
 }

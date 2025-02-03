@@ -249,6 +249,14 @@ export class ExplorerCommand extends BaseCommand {
               config.namespace,
               `${config.namespace}-hedera-explorer-ingress-class`,
             );
+
+            await this.k8.patchConfigMap(
+              clusterSetupNamespace,
+              constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress',
+              {
+                'backend-protocol': 'h2',
+              },
+            );
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },
