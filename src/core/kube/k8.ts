@@ -325,6 +325,8 @@ export interface K8 {
 
   isRemoteConfigPresentInAnyNamespace(): Promise<boolean>;
 
+  isRemoteConfigPresentInNamespace(namespace: Namespace): Promise<boolean>;
+
   isPrometheusInstalled(namespace: Namespace): Promise<boolean>;
 
   /**

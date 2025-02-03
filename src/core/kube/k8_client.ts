@@ -1374,6 +1374,31 @@ export class K8Client implements K8 {
     }
   }
 
+  /**
+   * Searches specific namespace for remote config's config map
+   *
+   * @param namespace - namespace where to search
+   * @returns true if found else false
+   */
+  public async isRemoteConfigPresentInNamespace(namespace: Namespace): Promise<boolean> {
+    try {
+      const configmaps = await this.kubeClient.listNamespacedConfigMap(
+        namespace,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
+      );
+
+      return configmaps.body.items.length > 0;
+    } catch (e) {
+      this.logger.error('Failed to find remote config:', e);
+
+      return false;
+    }
+  }
+
   /* ------------- Utilities ------------- */
 
   /**
