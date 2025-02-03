@@ -1397,10 +1397,10 @@ export class K8Client implements K8 {
    * @param namespace - namespace where to search
    * @returns true if found else false
    */
-  public async isRemoteConfigPresentInNamespace(namespace: Namespace): Promise<boolean> {
+  public async isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean> {
     try {
       const configmaps = await this.kubeClient.listNamespacedConfigMap(
-        namespace,
+        namespace.name,
         undefined,
         undefined,
         undefined,

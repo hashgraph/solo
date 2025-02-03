@@ -329,7 +329,7 @@ export interface K8 {
 
   isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean>;
 
-  isPrometheusInstalled(namespace: Namespace): Promise<boolean>;
+  isPrometheusInstalled(namespace: NamespaceName): Promise<boolean>;
 
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.

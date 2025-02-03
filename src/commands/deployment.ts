@@ -9,7 +9,7 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type Cluster} from '../core/config/remote/types.js';
+import {type Cluster, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
@@ -171,11 +171,11 @@ export class DeploymentCommand extends BaseCommand {
             self.k8.setCurrentContext(context);
 
             const namespaces = await self.k8.getNamespaces();
-            const namespacesWithRemoteConfigs: Namespace[] = [];
+            const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {
               const isFound = await self.k8.isRemoteConfigPresentInNamespace(namespace);
-              if (isFound) namespacesWithRemoteConfigs.push(namespace);
+              if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
             }
 
             self.logger.showList(`Deployments inside cluster: ${chalk.cyan(clusterName)}`, namespacesWithRemoteConfigs);
