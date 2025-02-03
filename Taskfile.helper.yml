@@ -297,7 +297,7 @@ tasks:
     status:
       - kind get clusters | grep -q "${SOLO_CLUSTER_NAME}"
     cmds:
-      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}"
+      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" --config ~/Documents/kind-cluster.yaml
       - sleep 10 # wait for control plane to come up
       - kubectl config set-context kind-${SOLO_CLUSTER_NAME}
 
@@ -434,6 +434,15 @@ tasks:
           sleep 4
         fi
 
+    solo:mirror-node-only:
+      silent: true
+      desc: solo mirror-node deploy with port forward on explorer
+      deps:
+        - task: "init"
+      cmds:
+        - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
+
+
   solo:destroy-mirror-node:
     silent: true
     desc: solo mirror-node destroy
@@ -464,3 +473,21 @@ tasks:
     cmds:
       - echo "Cleaning up temporary files..."
       - rm -f /tmp/solo-${USER}-* || true
+
+  solo:external-database:
+    silent: false
+    desc: setup external database PostgreSQL with helm
+    cmds:
+      - |
+        {{.solo_bin_dir}}/helm install my-postgresql bitnami/postgresql \
+          --namespace database --create-namespace \
+          --set global.postgresql.auth.postgresPassword={{.postgres_password}} \
+          --set primary.persistence.enabled=false --set secondary.enabled=false
+      - name: "Wait for PostgreSQL pod to be ready"
+        cmd: kubectl wait --for=condition=ready pod/my-postgresql-0 -n database --timeout=60s
+      - name: "Copy init.sql inside the database pod"
+        cmd: kubectl cp ../custom-mirror-node-database/scripts/init.sh my-postgresql-0:/tmp/init.sh -n database
+      - name: "Make init.sh executable"
+        cmd: kubectl exec -it my-postgresql-0 -n database -- chmod +x /tmp/init.sh
+      - name: "Execute init.sh inside the database pod"
+        cmd: kubectl exec -it my-postgresql-0 -n database -- /bin/bash /tmp/init.sh
