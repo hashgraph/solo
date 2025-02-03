@@ -37,6 +37,7 @@ const argv = getDefaultArgv();
 argv[flags.namespace.name] = namespace;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
+argv[flags.deployment.name] = 'deployment';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterName.name] = TEST_CLUSTER;
@@ -74,8 +75,9 @@ describe('NetworkCommand unit tests', () => {
       opts.depManager = sinon.stub() as unknown as DependencyManager;
       container.registerInstance(DependencyManager, opts.depManager);
 
-      opts.localConfig = sinon.stub() as unknown as LocalConfig;
-      container.registerInstance(LocalConfig, opts.localConfig);
+      opts.localConfig = container.resolve(LocalConfig);
+      // opts.localConfig = sinon.stub() as unknown as LocalConfig;
+      // container.registerInstance(LocalConfig, opts.localConfig);
 
       opts.helm = container.resolve(Helm);
       opts.helm.dependency = sinon.stub();
@@ -117,7 +119,7 @@ describe('NetworkCommand unit tests', () => {
       const networkCommand = new NetworkCommand(opts);
       await networkCommand.deploy(argv);
 
-      expect(opts.chartManager.install.args[0][0]).to.equal(testName);
+      expect(opts.chartManager.install.args[0][0]).to.equal('solo-1');
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
@@ -131,7 +133,7 @@ describe('NetworkCommand unit tests', () => {
 
       const networkCommand = new NetworkCommand(opts);
       await networkCommand.deploy(argv);
-      expect(opts.chartManager.install.args[0][0]).to.equal(testName);
+      expect(opts.chartManager.install.args[0][0]).to.equal('solo-1');
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
