@@ -13,7 +13,8 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {resolveNamespaceFromDeployment, sleep} from '../core/helpers.js';
+import {sleep} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
 
 export class AccountCommand extends BaseCommand {

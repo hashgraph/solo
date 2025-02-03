@@ -15,12 +15,6 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
-import {type ConfigManager} from './config_manager.js';
-import {type LocalConfig} from './config/local_config.js';
-import {type DeploymentName, type Namespace} from './config/remote/types.js';
-import {Flags as flags} from '../commands/flags.js';
-import type {ListrTaskWrapper} from 'listr2';
-import {type RemoteConfigManager} from './config/remote/remote_config_manager.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -376,14 +370,4 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
 
     throw new SoloError(`Invalid JSON data in file: ${filePath}`);
   }
-}
-
-export async function resolveNamespaceFromDeployment(
-  localConfig: LocalConfig,
-  configManager: ConfigManager,
-  task: ListrTaskWrapper<any, any, any>,
-): Promise<Namespace> {
-  await configManager.executePrompt(task, [flags.deployment]);
-  const deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);
-  return localConfig.deployments[deploymentName].namespace;
 }

@@ -16,7 +16,7 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import {type Namespace} from '../core/config/remote/types.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
-import {resolveNamespaceFromDeployment} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;

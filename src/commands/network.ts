@@ -10,12 +10,8 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';
-import {
-  addDebugOptions,
-  resolveNamespaceFromDeployment,
-  resolveValidJsonFilePath,
-  validatePath,
-} from '../core/helpers.js';
+import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
 import {type KeyManager} from '../core/key_manager.js';
@@ -32,7 +28,6 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {type Namespace} from '../core/config/remote/types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
