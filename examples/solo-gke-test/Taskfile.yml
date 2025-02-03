@@ -5,7 +5,7 @@ includes:
     flatten: true
 vars:
   solo_home_override_dir: "/Users/user/.solo-gke-test"
-  use_port_forwards: "true"
+  use_port_forwards: "false"
 env:
   SOLO_NETWORK_SIZE: 4
   SOLO_NAMESPACE: solo-gke-test
@@ -22,6 +22,7 @@ env:
   SOLO_CHARTS_DIR_FLAG: "-d /Users/user/source/solo-charts/charts"
   LOAD_BALANCER_FLAG: "--load-balancer true"
   ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
+  ENABLE_EXPLORER_INGRESS: "--enable-ingress"
   TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
   # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
   NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=<ip-address>,node2=<ip-address>,node3=<ip-address>,node4=<ip-address> --pvcs"

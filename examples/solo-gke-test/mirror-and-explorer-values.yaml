@@ -1,15 +1,3 @@
-# hedera mirror node explorer
-ingress:
-  enabled: true
-  hosts:
-    - host: "explorer.solo.local"
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: ca-secret-hedera-explorer
-      hosts:
-        - '{{ index .Values.ingress.hosts 0 "host" }}'
 labels:
   solo.hedera.com/testSuiteName: ""
   solo.hedera.com/testName: ""
@@ -140,7 +128,7 @@ importer:
               exclude: redis
 grpc:
   ingress:
-    enabled: false
+    enabled: true
     hosts:
       - host: mirror.solo.local
         paths: ["/com.hedera.mirror.api.proto.ConsensusService", "/com.hedera.mirror.api.proto.NetworkService", "/grpc.reflection.v1alpha.ServerReflection"]
