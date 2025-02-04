@@ -480,6 +480,7 @@ tasks:
     cmds:
       - |
         {{.solo_bin_dir}}/helm install my-postgresql bitnami/postgresql \
+          --set image.tag=16.4.0 \
           --namespace database --create-namespace \
           --set global.postgresql.auth.postgresPassword={{.postgres_password}} \
           --set primary.persistence.enabled=false --set secondary.enabled=false
