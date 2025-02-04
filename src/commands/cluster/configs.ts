@@ -7,7 +7,7 @@ import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {SoloError} from '../../core/errors.js';
-import {type Namespace} from '../../core/config/remote/types.js';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
@@ -39,7 +39,7 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
   ctx.config = {
     chartDir: configManager.getFlag(flags.chartDirectory) as string,
-    clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as string,
+    clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
     deployCertManager: configManager.getFlag(flags.deployCertManager) as boolean,
     deployCertManagerCrds: configManager.getFlag(flags.deployCertManagerCrds) as boolean,
     deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
@@ -99,7 +99,7 @@ export interface ClusterConnectConfigClass {
 
 export interface ClusterSetupConfigClass {
   chartDir: string;
-  clusterSetupNamespace: string;
+  clusterSetupNamespace: NamespaceName;
   deployCertManager: boolean;
   deployCertManagerCrds: boolean;
   deployMinio: boolean;
@@ -115,7 +115,7 @@ export interface ClusterResetConfigClass {
 export interface SelectClusterContextContext {
   config: {
     quiet: boolean;
-    namespace: Namespace;
+    namespace: NamespaceName;
     clusterName: string;
     context: string;
     clusters: string[];

@@ -47,6 +47,7 @@ import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from './test_container.js';
+import {NamespaceName} from '../src/core/kube/namespace_name.js';
 
 export const TEST_CLUSTER = 'solo-e2e';
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
@@ -98,7 +99,7 @@ interface TestOpts {
 }
 
 interface BootstrapResponse {
-  namespace: string;
+  namespace: NamespaceName;
   opts: TestOpts;
   manager: {
     accountManager: AccountManager;
@@ -123,7 +124,7 @@ export function bootstrapTestVariables(
   nodeCmdArg: NodeCommand | null = null,
   accountCmdArg: AccountCommand | null = null,
 ): BootstrapResponse {
-  const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
+  const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
   resetTestContainer(cacheDir);
   const configManager = container.resolve(ConfigManager);
@@ -328,7 +329,7 @@ export function e2eTestSuite(
 export function balanceQueryShouldSucceed(
   accountManager: AccountManager,
   cmd: BaseCommand,
-  namespace: string,
+  namespace: NamespaceName,
   skipNodeAlias?: NodeAlias,
 ) {
   it('Balance query should succeed', async () => {
@@ -353,7 +354,7 @@ export function balanceQueryShouldSucceed(
 export function accountCreationShouldSucceed(
   accountManager: AccountManager,
   nodeCmd: BaseCommand,
-  namespace: string,
+  namespace: NamespaceName,
   skipNodeAlias?: NodeAlias,
 ) {
   it('Account creation should succeed', async () => {
@@ -388,7 +389,7 @@ export function accountCreationShouldSucceed(
 
 export async function getNodeAliasesPrivateKeysHash(
   networkNodeServicesMap: Map<NodeAlias, NetworkNodeServices>,
-  namespace: string,
+  namespace: NamespaceName,
   k8: K8,
   destDir: string,
 ) {

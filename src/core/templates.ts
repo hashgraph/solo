@@ -9,8 +9,8 @@ import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import {type IP, type NodeAlias, type NodeId, type PodName} from '../types/aliases.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
-import {type Namespace} from './config/remote/types.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -142,12 +142,12 @@ export class Templates {
     }
   }
 
-  public static renderFullyQualifiedNetworkPodName(namespace: string, nodeAlias: NodeAlias): string {
-    return `${Templates.renderNetworkPodName(nodeAlias)}.${Templates.renderNetworkHeadlessSvcName(nodeAlias)}.${namespace}.svc.cluster.local`;
+  public static renderFullyQualifiedNetworkPodName(namespace: NamespaceName, nodeAlias: NodeAlias): string {
+    return `${Templates.renderNetworkPodName(nodeAlias)}.${Templates.renderNetworkHeadlessSvcName(nodeAlias)}.${namespace.name}.svc.cluster.local`;
   }
 
-  public static renderFullyQualifiedNetworkSvcName(namespace: string, nodeAlias: NodeAlias): string {
-    return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace}.svc.cluster.local`;
+  public static renderFullyQualifiedNetworkSvcName(namespace: NamespaceName, nodeAlias: NodeAlias): string {
+    return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace.name}.svc.cluster.local`;
   }
 
   private static nodeAliasFromFullyQualifiedNetworkSvcName(svcName: string): NodeAlias {
@@ -222,7 +222,7 @@ export class Templates {
     return `haproxy-${nodeAlias}`;
   }
 
-  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: Namespace): string {
+  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: NamespaceName): string {
     return `${Templates.renderHaProxyName(nodeAlias)}-svc.${namespace}.svc.cluster.local`;
   }
 

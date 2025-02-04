@@ -19,6 +19,7 @@ import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -33,8 +34,8 @@ export class PlatformInstaller {
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
-  private _getNamespace(): string {
-    const ns = this.configManager.getFlag<string>(flags.namespace) as string;
+  private _getNamespace(): NamespaceName {
+    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }

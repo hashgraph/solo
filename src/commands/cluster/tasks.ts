@@ -18,9 +18,10 @@ import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_conf
 import {type K8} from '../../core/kube/k8.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type SelectClusterContextContext} from './configs.js';
-import {type Namespace} from '../../core/config/remote/types.js';
+import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -125,7 +126,7 @@ export class ClusterCommandTasks {
 
         if (localConfig.deployments[namespace]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
-            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
+            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster].valueOf()) {
               remoteClusterList.push(cluster);
             }
           }
@@ -241,7 +242,7 @@ export class ClusterCommandTasks {
   }
 
   /** Show list of installed chart */
-  private async showInstalledChartList(clusterSetupNamespace: string) {
+  private async showInstalledChartList(clusterSetupNamespace: NamespaceName) {
     this.parent.logger.showList(
       'Installed Charts',
       await this.parent.getChartManager().getInstalledCharts(clusterSetupNamespace),
@@ -255,7 +256,7 @@ export class ClusterCommandTasks {
         this.parent.logger.info('Read local configuration settings...');
         const configManager = this.parent.getConfigManager();
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
-        const deploymentName: string = configManager.getFlag<Namespace>(flags.namespace);
+        const deploymentName: string = configManager.getFlag<DeploymentName>(flags.namespace);
         let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
         const localConfig = this.parent.getLocalConfig();

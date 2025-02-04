@@ -21,10 +21,11 @@ import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag_types.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
-  namespace: string;
+  namespace: NamespaceName;
   profileFile: string;
   profileName: string;
   valuesFile: string;
@@ -393,7 +394,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
-                    const namespace = self.configManager.getFlag<string>(flags.namespace) as string;
+                    const namespace = self.configManager.getFlag<NamespaceName>(flags.namespace);
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -503,7 +504,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
     interface Context {
       config: {
-        namespace: string;
+        namespace: NamespaceName;
         isChartInstalled: boolean;
       };
     }
@@ -530,7 +531,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             // @ts-ignore
             ctx.config = {
-              namespace: self.configManager.getFlag<string>(flags.namespace),
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
             };
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
