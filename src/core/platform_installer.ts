@@ -98,7 +98,7 @@ export class PlatformInstaller {
       await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag]);
       return true;
     } catch (e: Error | any) {
-      const message = `failed to extract platform code in this pod '${podName}': ${e.message}`;
+      const message = `failed to extract platform code in this pod '${podName.name}': ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }
@@ -135,7 +135,7 @@ export class PlatformInstaller {
 
       return copiedFiles;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to copy files to pod '${podName}': ${e.message}`, e);
+      throw new SoloError(`failed to copy files to pod '${podName.name}': ${e.message}`, e);
     }
   }
 

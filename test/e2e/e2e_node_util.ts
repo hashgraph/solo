@@ -12,7 +12,6 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
-  testLogger,
 } from '../test_util.js';
 import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
@@ -22,9 +21,9 @@ import {ConfigManager} from '../../src/core/config_manager.js';
 import {type K8} from '../../src/core/kube/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
-import {StatusCodes} from 'http-status-codes';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/core/kube/namespace_name.js';
+import {PodName} from '../../src/core/kube/pod_name.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
@@ -184,8 +183,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           const podArray = await k8.getPodsByLabel([`app=network-${nodeAliases}`, 'solo.hedera.com/type=network-node']);
 
           if (podArray.length > 0) {
-            const podName = podArray[0].metadata.name;
-            nodeCmd.logger.info(`nodeRefreshTestSetup: podName: ${podName}`);
+            const podName = PodName.of(podArray[0].metadata.name);
+            nodeCmd.logger.info(`nodeRefreshTestSetup: podName: ${podName.name}`);
             return podName;
           }
           throw new Error(`pod for ${nodeAliases} not found`);

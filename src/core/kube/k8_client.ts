@@ -169,7 +169,7 @@ export class K8Client implements K8 {
 
   public async getPodByName(podName: PodName): Promise<k8s.V1Pod> {
     const ns = this.getNamespace();
-    const fieldSelector = `metadata.name=${podName}`;
+    const fieldSelector = `metadata.name=${podName.name}`;
     const resp = await this.kubeClient.listNamespacedPod(
       ns.name,
       undefined,
