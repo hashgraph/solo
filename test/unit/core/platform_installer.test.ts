@@ -11,7 +11,6 @@ import * as constants from '../../../src/core/constants.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
 import {PodName} from '../../../src/core/kube/pod_name.js';
-import {PodNameInvalidError} from '../../../src/core/kube/kube_errors.js';
 import {container} from 'tsyringe-neo';
 
 describe('PackageInstaller', () => {
@@ -78,7 +77,7 @@ describe('PackageInstaller', () => {
 
   describe('extractPlatform', () => {
     it('should fail for missing pod name', async () => {
-      await expect(installer.fetchPlatform(PodName.of(''), 'v0.42.5')).to.be.rejectedWith(PodNameInvalidError);
+      await expect(installer.fetchPlatform(null as PodName, 'v0.42.5')).to.be.rejectedWith(MissingArgumentError);
     });
     it('should fail for missing tag', async () => {
       await expect(installer.fetchPlatform(PodName.of('network-node1-0'), '')).to.be.rejectedWith(MissingArgumentError);
