@@ -9,7 +9,7 @@ import {NodeCommand} from './node/index.js';
 import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
 import {DeploymentCommand} from './deployment.js';
-import type {Opts} from '../types/command_types.js';
+import {type Opts} from '../types/command_types.js';
 import {ExplorerCommand} from './explorer.js';
 
 /**

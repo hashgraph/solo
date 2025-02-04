@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {NodeId} from '../../types/aliases.js';
-import type {ServiceEndpoint} from '../../types/index.js';
+import {type NodeId} from '../../types/aliases.js';
+import {type ServiceEndpoint} from '../../types/index.js';
 
 export abstract class GenesisNetworkDataWrapper {
   public gossipEndpoint: ServiceEndpoint[] = [];

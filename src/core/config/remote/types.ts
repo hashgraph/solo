@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {NodeAliases} from '../../../types/aliases.js';
-import type {ComponentType, ConsensusNodeStates} from './enumerations.js';
+import {type NodeAliases} from '../../../types/aliases.js';
+import {type ComponentType, type ConsensusNodeStates} from './enumerations.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;

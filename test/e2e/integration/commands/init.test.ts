@@ -9,7 +9,8 @@ import {DependencyManager} from '../../../../src/core/dependency_managers/index.
 import {Helm} from '../../../../src/core/helm.js';
 import {ChartManager} from '../../../../src/core/chart_manager.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
-import {K8} from '../../../../src/core/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
+import {K8Client} from '../../../../src/core/kube/k8_client.js';
 import {LocalConfig} from '../../../../src/core/config/local_config.js';
 import {KeyManager} from '../../../../src/core/key_manager.js';
 import {LeaseManager} from '../../../../src/core/lease/lease_manager.js';
@@ -41,8 +42,8 @@ describe('InitCommand', () => {
 
   before(() => {
     sandbox = sinon.createSandbox();
-    sandbox.stub(K8.prototype, 'init').callsFake(() => this);
-    k8 = container.resolve(K8);
+    sandbox.stub(K8Client.prototype, 'init').callsFake(() => this);
+    k8 = container.resolve('K8');
     localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
     remoteConfigManager = container.resolve(RemoteConfigManager);
     leaseManager = container.resolve(LeaseManager);

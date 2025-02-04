@@ -3,7 +3,7 @@
  */
 import 'sinon-chai';
 
-import type {SinonSpy} from 'sinon';
+import {type SinonSpy} from 'sinon';
 import sinon from 'sinon';
 import {expect} from 'chai';
 import {describe, it, afterEach, beforeEach} from 'mocha';

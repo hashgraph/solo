@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {NodeAlias, PodName} from '../types/aliases.js';
+import {type NodeAlias, type PodName} from '../types/aliases.js';
 
 export class NetworkNodeServices {
   public readonly nodeAlias: NodeAlias;

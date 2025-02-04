@@ -9,7 +9,7 @@ import os from 'os';
 import path from 'path';
 import {KeyManager} from '../../../src/core/key_manager.js';
 import * as constants from '../../../src/core/constants.js';
-import type {NodeAlias} from '../../../src/types/aliases.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 

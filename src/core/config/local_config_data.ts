@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {Cluster, Context, EmailAddress, Namespace} from './remote/types.js';
+import {type Cluster, type Context, type EmailAddress, type Namespace} from './remote/types.js';
 
 export interface DeploymentStructure {
   // A list of clusters on which the deployment is deployed

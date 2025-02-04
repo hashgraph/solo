@@ -16,10 +16,10 @@ import {
 } from '../test_util.js';
 import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
-import type {NodeAlias} from '../../src/types/aliases.js';
-import type {ListrTaskWrapper} from 'listr2';
+import {type NodeAlias} from '../../src/types/aliases.js';
+import {type ListrTaskWrapper} from 'listr2';
 import {ConfigManager} from '../../src/core/config_manager.js';
-import {type K8} from '../../src/core/k8.js';
+import {type K8} from '../../src/core/kube/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {StatusCodes} from 'http-status-codes';
@@ -100,9 +100,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
             const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
             if (mode === 'kill') {
-              const resp = await k8.kubeClient.deleteNamespacedPod(podName, namespace);
-              expect(resp.response.statusCode).to.equal(StatusCodes.OK);
-              await sleep(Duration.ofSeconds(20)); // sleep to wait for pod to finish terminating
+              await k8.killPod(podName, namespace);
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;
               await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs
@@ -186,7 +184,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
           if (podArray.length > 0) {
             const podName = podArray[0].metadata.name;
-            k8.logger.info(`nodeRefreshTestSetup: podName: ${podName}`);
+            nodeCmd.logger.info(`nodeRefreshTestSetup: podName: ${podName}`);
             return podName;
           }
           throw new Error(`pod for ${nodeAliases} not found`);
