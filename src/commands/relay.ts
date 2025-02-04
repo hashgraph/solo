@@ -340,7 +340,7 @@ export class RelayCommand extends BaseCommand {
             // prompt if inputs are empty and set it in the context
             ctx.config = {
               chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
-              namespace: namespace.name,
+              namespace: namespace,
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
               ),

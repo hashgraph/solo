@@ -170,8 +170,8 @@ export class AccountCommand extends BaseCommand {
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             const config = {namespace};
 
-            if (!(await this.k8.hasNamespace(config.namespace))) {
-              throw new SoloError(`namespace ${config.namespace} does not exist`);
+            if (!(await this.k8.hasNamespace(namespace))) {
+              throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
             // set config in the context for later tasks to use

@@ -67,7 +67,7 @@ e2eTestSuite(
         remoteConfigManager = container.resolve(RemoteConfigManager);
 
         localConfig.userEmailAddress = email;
-        localConfig.deployments = {[deploymentName]: {clusters: [`kind-${deploymentName}`], namespace}};
+        localConfig.deployments = {[deploymentName]: {clusters: [`kind-${deploymentName}`], namespace: namespace.name}};
         localConfig.currentDeploymentName = deploymentName;
 
         if (!fs.existsSync(testCacheDir)) {

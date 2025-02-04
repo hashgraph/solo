@@ -89,7 +89,7 @@ export class DeploymentCommand extends BaseCommand {
             const {deployments} = this.localConfig;
             const {deployment, namespace, deploymentClusters} = ctx.config;
             deployments[deployment] = {
-              namespace,
+              namespace: namespace.name,
               clusters: deploymentClusters,
             };
             this.localConfig.setDeployments(deployments);

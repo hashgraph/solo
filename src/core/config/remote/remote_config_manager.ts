@@ -11,7 +11,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8} from '../../kube/k8.js';
-import {type Cluster, type Context, type Namespace, type DeploymentName, type NamespaceNameAsString} from './types.js';
+import {type Cluster, type Context, type DeploymentName, type NamespaceNameAsString} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
@@ -95,7 +95,7 @@ export class RemoteConfigManager {
 
     Object.entries(this.localConfig.deployments).forEach(
       ([deploymentName, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
-          deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = deployment.namespace));
+        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = deploymentStructure.namespace));
       },
     );
 

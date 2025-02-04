@@ -164,6 +164,7 @@ export class LocalConfig implements LocalConfigData {
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
         const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
+        const namespace = self.configManager.getFlag<NamespaceName>(flags.namespace);
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
 
@@ -189,7 +190,7 @@ export class LocalConfig implements LocalConfigData {
         const deployments: Deployments = {
           [deploymentName]: {
             clusters: parsedClusters,
-            namespace,
+            namespace: namespace.name,
           },
         };
 

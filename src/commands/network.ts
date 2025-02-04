@@ -755,7 +755,7 @@ export class NetworkCommand extends BaseCommand {
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-              namespace: namespace.name,
+              namespace,
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
             };

@@ -334,7 +334,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
-                    const namespace = ctx.config.namespace.name;
+                    const namespace = ctx.config.namespace;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;

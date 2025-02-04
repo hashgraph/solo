@@ -266,7 +266,7 @@ export class ClusterCommandTasks {
         const deploymentName: string = configManager.getFlag<DeploymentName>(flags.deployment);
         let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
-        const namespace = configManager.getFlag<Namespace>(flags.namespace);
+        const namespace = configManager.getFlag<NamespaceName>(flags.namespace);
         const localConfig = this.parent.getLocalConfig();
         let selectedContext: string;
         let selectedCluster: string;
@@ -307,7 +307,7 @@ export class ClusterCommandTasks {
               selectedCluster = this.parent.getK8().getCurrentClusterName();
               localConfig.deployments[deploymentName] = {
                 clusters: [selectedCluster],
-                namespace,
+                namespace: namespace ? namespace.name : '',
               };
 
               if (!localConfig.clusterContextMapping[selectedCluster]) {

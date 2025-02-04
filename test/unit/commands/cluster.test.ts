@@ -458,7 +458,7 @@ describe('ClusterCommand unit tests', () => {
       it('should prompt for clusters and contexts if selected deployment is not found in local config', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-4']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-3');
       });
 
@@ -468,7 +468,7 @@ describe('ClusterCommand unit tests', () => {
           [flags.quiet, true],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8().setCurrentContext).to.have.been.calledWith('context-from-kubeConfig');
       });
 

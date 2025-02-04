@@ -358,7 +358,7 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 };
 
 export interface NodeLogsConfigClass {
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   nodeAliases: string[];
 }
@@ -368,7 +368,7 @@ export interface NodeRefreshConfigClass {
   cacheDir: string;
   devMode: boolean;
   localBuildPath: string;
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   nodeAliasesUnparsed: string;
   releaseTag: string;
@@ -390,7 +390,7 @@ export interface NodeKeysConfigClass {
 }
 
 export interface NodeStopConfigClass {
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   nodeAliases: NodeAliases;
   podNames: Record<PodName, NodeAlias>;
@@ -400,7 +400,7 @@ export interface NodeStartConfigClass {
   app: string;
   cacheDir: string;
   debugNodeAlias: NodeAlias;
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   nodeAliases: NodeAliases;
   stagingDir: string;
@@ -417,7 +417,7 @@ export interface NodeDeleteConfigClass {
   endpointType: string;
   soloChartVersion: string;
   localBuildPath: string;
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   nodeAlias: NodeAlias;
   releaseTag: string;
@@ -444,7 +444,7 @@ export interface NodeSetupConfigClass {
   cacheDir: string;
   devMode: boolean;
   localBuildPath: string;
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   nodeAliasesUnparsed: string;
   releaseTag: string;
@@ -463,7 +463,7 @@ export interface NodeUpgradeConfigClass {
   debugNodeAlias: NodeAlias;
   soloChartVersion: string;
   localBuildPath: string;
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   releaseTag: string;
   adminKey: PrivateKey;
@@ -520,7 +520,7 @@ export interface NodeUpdateConfigClass {
 
 interface NodePrepareUpgradeConfigClass {
   cacheDir: string;
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   releaseTag: string;
   freezeAdminPrivateKey: string;
@@ -530,7 +530,7 @@ interface NodePrepareUpgradeConfigClass {
 
 interface NodeDownloadGeneratedFilesConfigClass {
   cacheDir: string;
-  namespace: string;
+  namespace: NamespaceName;
   deployment: string;
   releaseTag: string;
   freezeAdminPrivateKey: string;
