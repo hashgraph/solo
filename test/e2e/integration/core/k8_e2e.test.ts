@@ -126,7 +126,8 @@ describe('K8', () => {
   it('should be able to list namespaces', async () => {
     const namespaces = await k8.getNamespaces();
     expect(namespaces).not.to.have.lengthOf(0);
-    expect(namespaces).to.contain(constants.DEFAULT_NAMESPACE);
+    const match = namespaces.filter(n => n.name === constants.DEFAULT_NAMESPACE.name);
+    expect(match).to.have.lengthOf(1);
   }).timeout(defaultTimeout);
 
   it('should be able to list context names', () => {

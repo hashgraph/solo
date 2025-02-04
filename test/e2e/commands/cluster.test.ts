@@ -13,6 +13,7 @@ import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceNameInvalidError} from '../../../src/core/kube/kube_errors.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -32,6 +33,7 @@ describe('ClusterCommand', () => {
   const namespace = NamespaceName.of(testName);
   const argv = getDefaultArgv();
   argv[flags.namespace.name] = namespace.name;
+  argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
   argv[flags.generateGossipKeys.name] = true;
@@ -65,7 +67,6 @@ describe('ClusterCommand', () => {
 
   beforeEach(() => {
     configManager.reset();
-    configManager.update(argv);
   });
 
   // give a few ticks so that connections can close
@@ -79,13 +80,11 @@ describe('ClusterCommand', () => {
 
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID';
-    configManager.update(argv);
     await expect(clusterCmd.handlers.setup(argv)).to.be.rejectedWith('Error on cluster setup');
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster setup should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace.name;
-    configManager.update(argv);
     expect(await clusterCmd.handlers.setup(argv)).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
 
@@ -105,7 +104,6 @@ describe('ClusterCommand', () => {
   // helm list would return an empty list if given invalid namespace
   it('solo cluster reset should fail with invalid cluster name', async () => {
     argv[flags.clusterSetupNamespace.name] = 'INVALID';
-    configManager.update(argv);
 
     try {
       await expect(clusterCmd.handlers.reset(argv)).to.be.rejectedWith('Error on cluster reset');
@@ -117,7 +115,6 @@ describe('ClusterCommand', () => {
 
   it('solo cluster reset should work with valid args', async () => {
     argv[flags.clusterSetupNamespace.name] = namespace.name;
-    configManager.update(argv);
     expect(await clusterCmd.handlers.reset(argv)).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
 });

@@ -39,7 +39,7 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
   ctx.config = {
     chartDir: configManager.getFlag(flags.chartDirectory) as string,
-    clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as string,
+    clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
     deployCertManager: configManager.getFlag(flags.deployCertManager) as boolean,
     deployCertManagerCrds: configManager.getFlag(flags.deployCertManagerCrds) as boolean,
     deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
@@ -99,7 +99,7 @@ export interface ClusterConnectConfigClass {
 
 export interface ClusterSetupConfigClass {
   chartDir: string;
-  clusterSetupNamespace: string;
+  clusterSetupNamespace: NamespaceName;
   deployCertManager: boolean;
   deployCertManagerCrds: boolean;
   deployMinio: boolean;
