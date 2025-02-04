@@ -704,7 +704,7 @@ export class K8Client implements K8 {
 
   public async execContainer(podRef: PodRef, containerName: string, command: string | string[]) {
     const self = this;
-    const namespace = self.getNamespace();
+    const namespace = podRef.namespaceName;
     const guid = uuid4();
     const messagePrefix = `execContainer[${podRef.podName.name},${guid}]:`;
 
@@ -1548,7 +1548,7 @@ export class K8Client implements K8 {
         `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`,
       ]);
       await this.execContainer(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podRef}.zip`, targetDir);
+      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
