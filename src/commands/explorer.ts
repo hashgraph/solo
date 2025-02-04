@@ -13,9 +13,9 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
-import {type Namespace} from '../core/config/remote/types.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -25,14 +25,14 @@ interface ExplorerDeployConfigClass {
   hederaExplorerStaticIp: string | '';
   hederaExplorerVersion: string;
   mirrorStaticIP: string;
-  namespace: string;
+  namespace: NamespaceName;
   profileFile: string;
   profileName: string;
   tlsClusterIssuerType: string;
   valuesFile: string;
   valuesArg: string;
   getUnusedConfigs: () => string[];
-  clusterSetupNamespace: string;
+  clusterSetupNamespace: NamespaceName;
   soloChartVersion: string;
 }
 
@@ -333,7 +333,7 @@ export class ExplorerCommand extends BaseCommand {
 
     interface Context {
       config: {
-        namespace: string;
+        namespace: NamespaceName;
         isChartInstalled: boolean;
       };
     }
@@ -360,7 +360,7 @@ export class ExplorerCommand extends BaseCommand {
 
             // @ts-ignore
             ctx.config = {
-              namespace: self.configManager.getFlag<string>(flags.namespace),
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
             };
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
@@ -469,7 +469,7 @@ export class ExplorerCommand extends BaseCommand {
   }
 
   /** Adds the explorer components to remote config. */
-  private addMirrorNodeExplorerComponents(): SoloListrTask<{config: {namespace: Namespace}}> {
+  private addMirrorNodeExplorerComponents(): SoloListrTask<{config: {namespace: NamespaceName}}> {
     return {
       title: 'Add explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -481,7 +481,7 @@ export class ExplorerCommand extends BaseCommand {
           const cluster = this.remoteConfigManager.currentCluster;
           remoteConfig.components.add(
             'mirrorNodeExplorer',
-            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace),
+            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name),
           );
         });
       },

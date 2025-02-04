@@ -100,7 +100,11 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
 
     const newServiceName = 'newServiceName';
-    const {name, cluster, namespace} = {name: 'envoy', cluster: 'cluster', namespace: 'newNamespace'};
+    const {name, cluster, namespace} = {
+      name: 'envoy',
+      cluster: 'cluster',
+      namespace: 'new-namespace',
+    };
     const newComponent = new EnvoyProxyComponent(name, cluster, namespace);
 
     componentsDataWrapper.add(newServiceName, newComponent);

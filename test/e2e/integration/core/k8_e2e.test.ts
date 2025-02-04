@@ -35,6 +35,7 @@ import {type PodName} from '../../../../src/types/aliases.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {type K8Client} from '../../../../src/core/kube/k8_client.js';
+import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -42,13 +43,13 @@ async function createPod(
   podName: PodName,
   containerName: string,
   podLabelValue: string,
-  testNamespace: string,
+  testNamespace: NamespaceName,
   k8: K8Client,
 ): Promise<void> {
   const v1Pod = new V1Pod();
   const v1Metadata = new V1ObjectMeta();
   v1Metadata.name = podName as PodName;
-  v1Metadata.namespace = testNamespace;
+  v1Metadata.namespace = testNamespace.name;
   v1Metadata.labels = {app: podLabelValue};
   v1Pod.metadata = v1Metadata;
   const v1Container = new V1Container();
@@ -63,14 +64,14 @@ async function createPod(
   const v1Spec = new V1PodSpec();
   v1Spec.containers = [v1Container];
   v1Pod.spec = v1Spec;
-  await k8.kubeClient.createNamespacedPod(testNamespace, v1Pod);
+  await k8.kubeClient.createNamespacedPod(testNamespace.name, v1Pod);
 }
 
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager = container.resolve(ConfigManager);
   const k8 = container.resolve('K8') as K8Client;
-  const testNamespace = 'k8-e2e';
+  const testNamespace = NamespaceName.of('k8-e2e');
   const argv = [];
   const podName = `test-pod-${uuid4()}` as PodName;
   const containerName = 'alpine';
@@ -80,7 +81,7 @@ describe('K8', () => {
   before(async function () {
     this.timeout(defaultTimeout);
     try {
-      argv[flags.namespace.name] = testNamespace;
+      argv[flags.namespace.name] = testNamespace.name;
       configManager.update(argv);
       if (!(await k8.hasNamespace(testNamespace))) {
         await k8.createNamespace(testNamespace);
@@ -89,7 +90,7 @@ describe('K8', () => {
       const v1Svc = new V1Service();
       const v1SvcMetadata = new V1ObjectMeta();
       v1SvcMetadata.name = serviceName;
-      v1SvcMetadata.namespace = testNamespace;
+      v1SvcMetadata.namespace = testNamespace.name;
       v1SvcMetadata.labels = {app: 'svc-test'};
       v1Svc.metadata = v1SvcMetadata;
       const v1SvcSpec = new V1ServiceSpec();
@@ -98,7 +99,7 @@ describe('K8', () => {
       v1SvcPort.targetPort = 80;
       v1SvcSpec.ports = [v1SvcPort];
       v1Svc.spec = v1SvcSpec;
-      await k8.kubeClient.createNamespacedService(testNamespace, v1Svc);
+      await k8.kubeClient.createNamespacedService(testNamespace.name, v1Svc);
     } catch (e) {
       console.log(`${e}, ${e.stack}`);
       throw e;
@@ -109,7 +110,7 @@ describe('K8', () => {
     this.timeout(defaultTimeout);
     try {
       await k8.killPod(podName, testNamespace);
-      argv[flags.namespace.name] = constants.SOLO_SETUP_NAMESPACE;
+      argv[flags.namespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
       configManager.update(argv);
     } catch (e) {
       console.log(e);
@@ -125,7 +126,8 @@ describe('K8', () => {
   it('should be able to list namespaces', async () => {
     const namespaces = await k8.getNamespaces();
     expect(namespaces).not.to.have.lengthOf(0);
-    expect(namespaces).to.contain(constants.DEFAULT_NAMESPACE);
+    const match = namespaces.filter(n => n.name === constants.DEFAULT_NAMESPACE.name);
+    expect(match).to.have.lengthOf(1);
   }).timeout(defaultTimeout);
 
   it('should be able to list context names', () => {
@@ -135,8 +137,8 @@ describe('K8', () => {
 
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4();
-    expect(await k8.createNamespace(name)).to.be.true;
-    expect(await k8.deleteNamespace(name)).to.be.true;
+    expect(await k8.createNamespace(NamespaceName.of(name))).to.be.true;
+    expect(await k8.deleteNamespace(NamespaceName.of(name))).to.be.true;
   }).timeout(defaultTimeout);
 
   it('should be able to run wait for pod', async () => {
@@ -244,7 +246,7 @@ describe('K8', () => {
       const v1Metadata = new V1ObjectMeta();
       v1Metadata.name = v1Pvc.name;
       v1Pvc.metadata = v1Metadata;
-      await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace, v1Pvc);
+      await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace.name, v1Pvc);
       const pvcs = await k8.listPvcsByNamespace(testNamespace);
       expect(pvcs).to.have.length.greaterThan(0);
     } catch (e) {
