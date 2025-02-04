@@ -10,7 +10,8 @@ import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
-import {type PodName} from '../../../src/types/aliases.js';
+import {PodName} from '../../../src/core/kube/pod_name.js';
+import {PodNameInvalidError} from '../../../src/core/kube/kube_errors.js';
 import {container} from 'tsyringe-neo';
 
 describe('PackageInstaller', () => {
@@ -77,10 +78,10 @@ describe('PackageInstaller', () => {
 
   describe('extractPlatform', () => {
     it('should fail for missing pod name', async () => {
-      await expect(installer.fetchPlatform('' as PodName, 'v0.42.5')).to.be.rejectedWith(MissingArgumentError);
+      await expect(installer.fetchPlatform(PodName.of(''), 'v0.42.5')).to.be.rejectedWith(PodNameInvalidError);
     });
     it('should fail for missing tag', async () => {
-      await expect(installer.fetchPlatform('network-node1-0', '')).to.be.rejectedWith(MissingArgumentError);
+      await expect(installer.fetchPlatform(PodName.of('network-node1-0'), '')).to.be.rejectedWith(MissingArgumentError);
     });
   });
 

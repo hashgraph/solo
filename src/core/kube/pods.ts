@@ -3,6 +3,7 @@
  */
 import {type V1Pod} from '@kubernetes/client-node';
 import {type NamespaceName} from './namespace_name.js';
+import {type PodName} from './pod_name.js';
 
 export interface Pods {
   /**
@@ -11,7 +12,7 @@ export interface Pods {
    * @param name - podName name
    * @returns V1Pod - pod object
    */
-  readByName(namespace: NamespaceName, name: string): Promise<V1Pod>; // TODO was getPodByName
+  readByName(namespace: NamespaceName, name: PodName): Promise<V1Pod>; // TODO was getPodByName
 
   /**
    * Get pods by labels

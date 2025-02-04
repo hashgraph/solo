@@ -10,7 +10,8 @@ import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getEnvValue} from '../core/helpers.js';
-import {type CommandBuilder, type PodName} from '../types/aliases.js';
+import {type CommandBuilder} from '../types/aliases.js';
+import {PodName} from '../core/kube/pod_name.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -354,7 +355,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
-                    const postgresPodName = pods[0].metadata.name as PodName;
+                    const postgresPodName = PodName.of(pods[0].metadata.name);
                     const postgresContainerName = 'postgresql';
                     const mirrorEnvVars = await self.k8.execContainer(
                       postgresPodName,

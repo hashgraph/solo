@@ -14,7 +14,8 @@ import * as Base64 from 'js-base64';
 import chalk from 'chalk';
 
 import {SoloLogger} from './logging.js';
-import {type NodeAlias, type NodeAliases, type PodName} from '../types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type PodName} from './kube/pod_name.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -295,7 +296,7 @@ export class PlatformInstaller {
    * @param isGenesis - true if this is `solo node setup` and we are at genesis
    * @private
    */
-  private async copyConfigurationFiles(stagingDir: string, podName: `network-node${number}-0`, isGenesis: boolean) {
+  private async copyConfigurationFiles(stagingDir: string, podName: PodName, isGenesis: boolean) {
     if (isGenesis) {
       const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
       await this.copyFiles(podName, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);

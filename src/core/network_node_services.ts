@@ -2,7 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type NodeAlias, type PodName} from '../types/aliases.js';
+import {type NodeAlias} from '../types/aliases.js';
+import {type PodName} from './kube/pod_name.js';
 import {type NamespaceName} from './kube/namespace_name.js';
 
 export class NetworkNodeServices {

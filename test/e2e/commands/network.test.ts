@@ -14,6 +14,7 @@ import {NetworkCommand} from '../../../src/commands/network.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodName} from '../../../src/core/kube/pod_name.js';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';
@@ -69,7 +70,7 @@ describe('NetworkCommand', () => {
       expect(await networkCmd.deploy(argv)).to.be.true;
 
       // check pod names should match expected values
-      await expect(k8.getPodByName('network-node1-0')).eventually.to.have.nested.property(
+      await expect(k8.getPodByName(PodName.of('network-node1-0'))).eventually.to.have.nested.property(
         'metadata.name',
         'network-node1-0',
       );

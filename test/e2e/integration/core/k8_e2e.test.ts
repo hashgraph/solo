@@ -31,7 +31,7 @@ import {
   V1VolumeResourceRequirements,
 } from '@kubernetes/client-node';
 import crypto from 'crypto';
-import {type PodName} from '../../../../src/types/aliases.js';
+import {PodName} from '../../../../src/core/kube/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {type K8Client} from '../../../../src/core/kube/k8_client.js';
@@ -48,7 +48,7 @@ async function createPod(
 ): Promise<void> {
   const v1Pod = new V1Pod();
   const v1Metadata = new V1ObjectMeta();
-  v1Metadata.name = podName as PodName;
+  v1Metadata.name = podName.name;
   v1Metadata.namespace = testNamespace.name;
   v1Metadata.labels = {app: podLabelValue};
   v1Pod.metadata = v1Metadata;
@@ -73,7 +73,7 @@ describe('K8', () => {
   const k8 = container.resolve('K8') as K8Client;
   const testNamespace = NamespaceName.of('k8-e2e');
   const argv = [];
-  const podName = `test-pod-${uuid4()}` as PodName;
+  const podName = PodName.of(`test-pod-${uuid4()}`);
   const containerName = 'alpine';
   const podLabelValue = `test-${uuid4()}`;
   const serviceName = `test-service-${uuid4()}`;
@@ -157,7 +157,7 @@ describe('K8', () => {
 
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`]);
-    const podName = pods[0].metadata.name;
+    const podName = PodName.of(pods[0].metadata.name);
     expect(await k8.hasDir(podName, containerName, '/tmp')).to.be.true;
   }).timeout(defaultTimeout);
 
@@ -228,9 +228,9 @@ describe('K8', () => {
 
   it('should be able to cat a file inside the container', async () => {
     const pods = await k8.getPodsByLabel([`app=${podLabelValue}`]);
-    const podName = pods[0].metadata.name;
+    const podName = PodName.of(pods[0].metadata.name);
     const output = await k8.execContainer(podName, containerName, ['cat', '/etc/hostname']);
-    expect(output.indexOf(podName)).to.equal(0);
+    expect(output.indexOf(podName.name)).to.equal(0);
   }).timeout(defaultTimeout);
 
   it('should be able to list persistent volume claims', async () => {
@@ -258,7 +258,7 @@ describe('K8', () => {
   }).timeout(defaultTimeout);
 
   it('should be able to kill a pod', async () => {
-    const podName = `test-pod-${uuid4()}` as PodName;
+    const podName = PodName.of(`test-pod-${uuid4()}`);
     const podLabelValue = `test-${uuid4()}`;
     await createPod(podName, containerName, podLabelValue, testNamespace, k8);
     await k8.killPod(podName, testNamespace);

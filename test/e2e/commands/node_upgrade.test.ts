@@ -9,7 +9,7 @@ import {e2eTestSuite, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} fr
 import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import {type PodName} from '../../../src/types/aliases.js';
+import {type PodName} from '../../../src/core/kube/pod_name.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';

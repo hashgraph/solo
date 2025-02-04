@@ -11,7 +11,8 @@ import path from 'path';
 import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
 import {Flags as flags} from '../flags.js';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {type NetworkNodePodNameAsString, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type PodName} from '../../core/kube/pod_name.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/namespace_name.js';
@@ -367,7 +368,7 @@ export interface NodeKeysConfigClass {
 export interface NodeStopConfigClass {
   namespace: string;
   nodeAliases: NodeAliases;
-  podNames: Record<PodName, NodeAlias>;
+  podNames: Record<NetworkNodePodNameAsString, NodeAlias>;
 }
 
 export interface NodeStartConfigClass {

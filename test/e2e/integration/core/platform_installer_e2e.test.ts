@@ -15,6 +15,7 @@ import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {PodName} from '../../../../src/core/kube/pod_name.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -46,7 +47,7 @@ e2eTestSuite(
       let k8: K8;
       let accountManager: AccountManager;
       let installer: PlatformInstaller;
-      const podName = 'network-node1-0';
+      const podName = PodName.of('network-node1-0');
       const packageVersion = 'v0.42.5';
 
       before(() => {
