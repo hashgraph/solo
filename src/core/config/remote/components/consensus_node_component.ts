@@ -4,7 +4,7 @@
 import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
 import {BaseComponent} from './base_component.js';
 import {SoloError} from '../../../errors.js';
-import {type Cluster, type IConsensusNodeComponent, type Namespace, type ComponentName} from '../types.js';
+import {type Cluster, type IConsensusNodeComponent, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject} from '../../../../types/index.js';
 
 /**
@@ -26,7 +26,7 @@ export class ConsensusNodeComponent
   public constructor(
     name: ComponentName,
     cluster: Cluster,
-    namespace: Namespace,
+    namespace: NamespaceNameAsString,
     public readonly state: ConsensusNodeStates,
   ) {
     super(ComponentType.ConsensusNode, name, cluster, namespace);

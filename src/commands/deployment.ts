@@ -9,11 +9,12 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type Namespace, type Cluster} from '../core/config/remote/types.js';
+import {type Cluster, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
 import {type Opts} from '../types/command_types.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -44,7 +45,7 @@ export class DeploymentCommand extends BaseCommand {
 
     interface Config {
       context: string;
-      namespace: Namespace;
+      namespace: NamespaceName;
     }
 
     interface Context {
@@ -62,7 +63,7 @@ export class DeploymentCommand extends BaseCommand {
             await self.configManager.executePrompt(task, [flags.namespace]);
 
             ctx.config = {
-              namespace: self.configManager.getFlag<Namespace>(flags.namespace),
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -93,7 +94,7 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             const subTasks: SoloListrTask<Context>[] = [];
 
-            for (const cluster of self.localConfig.deployments[ctx.config.namespace].clusters) {
+            for (const cluster of self.localConfig.deployments[ctx.config.namespace.name].clusters) {
               const context = self.localConfig.clusterContextMapping?.[cluster];
               if (!context) continue;
 
@@ -170,11 +171,11 @@ export class DeploymentCommand extends BaseCommand {
             self.k8.setCurrentContext(context);
 
             const namespaces = await self.k8.getNamespaces();
-            const namespacesWithRemoteConfigs: Namespace[] = [];
+            const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {
               const isFound = await self.k8.isRemoteConfigPresentInNamespace(namespace);
-              if (isFound) namespacesWithRemoteConfigs.push(namespace);
+              if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
             }
 
             self.logger.showList(`Deployments inside cluster: ${chalk.cyan(clusterName)}`, namespacesWithRemoteConfigs);

@@ -14,14 +14,15 @@ import {Duration} from '../../../../src/core/time/duration.js';
 import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
+import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
-const namespace = 'pkg-installer-e2e';
+const namespace = NamespaceName.of('pkg-installer-e2e');
 const argv = getDefaultArgv();
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterName.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
@@ -31,7 +32,7 @@ argv[flags.generateTlsKeys.name] = true;
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
 e2eTestSuite(
-  namespace,
+  namespace.name,
   argv,
   undefined,
   undefined,
