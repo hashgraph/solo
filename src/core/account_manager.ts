@@ -484,7 +484,7 @@ export class AccountManager {
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
         const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
-        serviceBuilder.withHaProxyPodName(podList[0].metadata.name as PodName);
+        serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
