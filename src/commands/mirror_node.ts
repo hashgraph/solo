@@ -21,6 +21,7 @@ import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {PodRef} from '../core/kube/pod_ref.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -357,8 +358,9 @@ export class MirrorNodeCommand extends BaseCommand {
                     }
                     const postgresPodName = PodName.of(pods[0].metadata.name);
                     const postgresContainerName = 'postgresql';
+                    const postgresPodRef = PodRef.of(namespace, postgresPodName);
                     const mirrorEnvVars = await self.k8.execContainer(
-                      postgresPodName,
+                      postgresPodRef,
                       postgresContainerName,
                       '/bin/bash -c printenv',
                     );
@@ -376,7 +378,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
-                    await self.k8.execContainer(postgresPodName, postgresContainerName, [
+                    await self.k8.execContainer(postgresPodRef, postgresContainerName, [
                       'psql',
                       `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
                       '-c',

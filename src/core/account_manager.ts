@@ -38,6 +38,7 @@ import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/namespace_name.js';
+import {PodRef} from './kube/pod_ref.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -337,7 +338,13 @@ export class AccountManager {
       const targetPort = localPort;
 
       if (this._portForwards.length < totalNodes) {
-        this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
+        this._portForwards.push(
+          await this.k8.portForward(
+            PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName),
+            localPort,
+            port,
+          ),
+        );
       }
 
       this.logger.debug(`using local host port forward: ${host}:${targetPort}`);

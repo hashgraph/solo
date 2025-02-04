@@ -24,6 +24,7 @@ import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/core/kube/namespace_name.js';
 import {PodName} from '../../src/core/kube/pod_name.js';
+import {PodRef} from '../../src/core/kube/pod_ref.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
@@ -100,7 +101,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
             const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
             if (mode === 'kill') {
-              await k8.killPod(podName, namespace);
+              await k8.killPod(PodRef.of(namespace, podName));
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;
               await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs

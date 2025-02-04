@@ -6,8 +6,10 @@ import {SoloError} from '../errors.js';
 const RFC_1123_POSTFIX = (prefix: string) => `${prefix} is invalid, must be a valid RFC-1123 DNS label.  \` +
     "A DNS 1123 label must consist of lower case alphanumeric characters, '-' " +
     "or '.', and must start and end with an alphanumeric character.`;
+
 export class NamespaceNameInvalidError extends SoloError {
   public static NAMESPACE_NAME_INVALID = (name: string) => RFC_1123_POSTFIX(`Namespace name '${name}'`);
+
   /**
    * Instantiates a new error with a message and an optional cause.
    *
@@ -32,5 +34,33 @@ export class PodNameInvalidError extends SoloError {
    */
   public constructor(podName: string, cause: Error | any = {}, meta: any = {}) {
     super(PodNameInvalidError.POD_NAME_INVALID(podName), cause, meta);
+  }
+}
+
+export class MissingNamespaceNameError extends SoloError {
+  public static MISSING_NAMESPACE_NAME = 'Namespace name is required.';
+
+  /**
+   * Instantiates a new error with a message and an optional cause.
+   *
+   * @param cause - optional underlying cause of the error.
+   * @param meta - optional metadata to be reported.
+   */
+  public constructor(cause: Error | any = {}, meta: any = {}) {
+    super(MissingNamespaceNameError.MISSING_NAMESPACE_NAME, cause, meta);
+  }
+}
+
+export class MissingPodNameError extends SoloError {
+  public static MISSING_POD_NAME = 'Pod name is required.';
+
+  /**
+   * Instantiates a new error with a message and an optional cause.
+   *
+   * @param cause - optional underlying cause of the error.
+   * @param meta - optional metadata to be reported.
+   */
+  public constructor(cause: Error | any = {}, meta: any = {}) {
+    super(MissingPodNameError.MISSING_POD_NAME, cause, meta);
   }
 }

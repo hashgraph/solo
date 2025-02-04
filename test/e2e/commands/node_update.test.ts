@@ -21,6 +21,7 @@ import {PodName} from '../../../src/core/kube/pod_name.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/pod_ref.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update');
@@ -71,12 +72,7 @@ e2eTestSuite(
 
       it('cache current version of private keys', async () => {
         existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
-        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
-          existingServiceMap,
-          namespace,
-          k8,
-          getTmpDir(),
-        );
+        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
       }).timeout(defaultTimeout);
 
       it('should succeed with init command', async () => {
@@ -118,12 +114,7 @@ e2eTestSuite(
       accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, updateNodeId);
 
       it('signing key and tls key should not match previous one', async () => {
-        const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
-          existingServiceMap,
-          namespace,
-          k8,
-          getTmpDir(),
-        );
+        const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
 
         for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
           const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias);
@@ -150,7 +141,7 @@ e2eTestSuite(
         const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
         const podName = PodName.of(pods[0].metadata.name);
         const tmpDir = getTmpDir();
-        await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
+        await k8.copyFrom(PodRef.of(namespace, podName), ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
         const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
         console.log('config.txt:', configTxt);
 

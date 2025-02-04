@@ -15,12 +15,12 @@ import chalk from 'chalk';
 
 import {SoloLogger} from './logging.js';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type PodName} from './kube/pod_name.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/namespace_name.js';
+import {type PodRef} from './kube/pod_ref.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -81,24 +81,24 @@ export class PlatformInstaller {
   }
 
   /** Fetch and extract platform code into the container */
-  async fetchPlatform(podName: PodName, tag: string) {
-    if (!podName) throw new MissingArgumentError('podName is required');
+  async fetchPlatform(podRef: PodRef, tag: string) {
+    if (!podRef) throw new MissingArgumentError('podRef is required');
     if (!tag) throw new MissingArgumentError('tag is required');
 
     try {
       const scriptName = 'extract-platform.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyFiles(podName, [sourcePath], constants.HEDERA_USER_HOME_DIR);
+      await this.copyFiles(podRef, [sourcePath], constants.HEDERA_USER_HOME_DIR);
 
       // wait a few seconds before calling the script to avoid "No such file" error
       await sleep(Duration.ofSeconds(2));
 
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
-      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, `chmod +x ${extractScript}`);
-      await this.k8.execContainer(podName, constants.ROOT_CONTAINER, [extractScript, tag]);
+      await this.k8.execContainer(podRef, constants.ROOT_CONTAINER, `chmod +x ${extractScript}`);
+      await this.k8.execContainer(podRef, constants.ROOT_CONTAINER, [extractScript, tag]);
       return true;
     } catch (e: Error | any) {
-      const message = `failed to extract platform code in this pod '${podName.name}': ${e.message}`;
+      const message = `failed to extract platform code in this pod '${podRef.podName.name}': ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }
@@ -106,13 +106,13 @@ export class PlatformInstaller {
 
   /**
    * Copy a list of files to a directory in the container
-   * @param podName
+   * @param podRef - pod reference
    * @param srcFiles - list of source files
    * @param destDir - destination directory
    * @param [container] - name of the container
    * @returns a list of pathso of the copied files insider the container
    */
-  async copyFiles(podName: PodName, srcFiles: string[], destDir: string, container = constants.ROOT_CONTAINER) {
+  async copyFiles(podRef: PodRef, srcFiles: string[], destDir: string, container = constants.ROOT_CONTAINER) {
     try {
       const copiedFiles: string[] = [];
 
@@ -122,12 +122,12 @@ export class PlatformInstaller {
           throw new SoloError(`file does not exist: ${srcPath}`);
         }
 
-        if (!(await this.k8.hasDir(podName, container, destDir))) {
-          await this.k8.mkdir(podName, container, destDir);
+        if (!(await this.k8.hasDir(podRef, container, destDir))) {
+          await this.k8.mkdir(podRef, container, destDir);
         }
 
-        this.logger.debug(`Copying file into ${podName}: ${srcPath} -> ${destDir}`);
-        await this.k8.copyTo(podName, container, srcPath, destDir);
+        this.logger.debug(`Copying file into ${podRef.podName.name}: ${srcPath} -> ${destDir}`);
+        await this.k8.copyTo(podRef, container, srcPath, destDir);
 
         const fileName = path.basename(srcPath);
         copiedFiles.push(path.join(destDir, fileName));
@@ -135,7 +135,7 @@ export class PlatformInstaller {
 
       return copiedFiles;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to copy files to pod '${podName.name}': ${e.message}`, e);
+      throw new SoloError(`failed to copy files to pod '${podRef.podName.name}': ${e.message}`, e);
     }
   }
 
@@ -225,22 +225,22 @@ export class PlatformInstaller {
   }
 
   async setPathPermission(
-    podName: PodName,
+    podRef: PodRef,
     destPath: string,
     mode = '0755',
     recursive = true,
     container = constants.ROOT_CONTAINER,
   ) {
-    if (!podName) throw new MissingArgumentError('podName is required');
+    if (!podRef) throw new MissingArgumentError('podRef is required');
     if (!destPath) throw new MissingArgumentError('destPath is required');
 
     const recursiveFlag = recursive ? '-R' : '';
-    await this.k8.execContainer(podName, container, [
+    await this.k8.execContainer(podRef, container, [
       'bash',
       '-c',
       `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`,
     ]);
-    await this.k8.execContainer(podName, container, [
+    await this.k8.execContainer(podRef, container, [
       'bash',
       '-c',
       `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`,
@@ -249,35 +249,35 @@ export class PlatformInstaller {
     return true;
   }
 
-  async setPlatformDirPermissions(podName: PodName) {
+  async setPlatformDirPermissions(podRef: PodRef) {
     const self = this;
-    if (!podName) throw new MissingArgumentError('podName is required');
+    if (!podRef) throw new MissingArgumentError('podRef is required');
 
     try {
       const destPaths = [constants.HEDERA_HAPI_PATH, constants.HEDERA_HGCAPP_DIR];
 
       for (const destPath of destPaths) {
-        await self.setPathPermission(podName, destPath);
+        await self.setPathPermission(podRef, destPath);
       }
 
       return true;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to set permission in '${podName}'`, e);
+      throw new SoloError(`failed to set permission in '${podRef.podName.name}'`, e);
     }
   }
 
   /** Return a list of task to perform node directory setup */
-  taskSetup(podName: PodName, stagingDir: string, isGenesis: boolean) {
+  taskSetup(podRef: PodRef, stagingDir: string, isGenesis: boolean) {
     const self = this;
     return new Listr(
       [
         {
           title: 'Copy configuration files',
-          task: async () => await self.copyConfigurationFiles(stagingDir, podName, isGenesis),
+          task: async () => await self.copyConfigurationFiles(stagingDir, podRef, isGenesis),
         },
         {
           title: 'Set file permissions',
-          task: async () => await self.setPlatformDirPermissions(podName),
+          task: async () => await self.setPlatformDirPermissions(podRef),
         },
       ],
       {
@@ -292,14 +292,14 @@ export class PlatformInstaller {
   /**
    * Copy configuration files to the network consensus node pod
    * @param stagingDir - staging directory path
-   * @param podName - network consensus node pod name
+   * @param podRef - pod reference
    * @param isGenesis - true if this is `solo node setup` and we are at genesis
    * @private
    */
-  private async copyConfigurationFiles(stagingDir: string, podName: PodName, isGenesis: boolean) {
+  private async copyConfigurationFiles(stagingDir: string, podRef: PodRef, isGenesis: boolean) {
     if (isGenesis) {
       const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
-      await this.copyFiles(podName, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);
+      await this.copyFiles(podRef, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);
     }
   }
 

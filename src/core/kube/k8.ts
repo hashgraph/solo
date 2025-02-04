@@ -3,7 +3,7 @@
  */
 import type * as k8s from '@kubernetes/client-node';
 import {type TarCreateFilter} from '../../types/aliases.js';
-import {type PodName} from './pod_name.js';
+import {type PodRef} from './pod_ref.js';
 import {type ExtendedNetServer, type Optional} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type V1Lease} from '@kubernetes/client-node';
@@ -46,10 +46,10 @@ export interface K8 {
   hasNamespace(namespace: NamespaceName): Promise<any>;
 
   /**
-   * Get a podName by name
-   * @param name - podName name
+   * Get a pod by PodRef
+   * @param podRef - the pod reference
    */
-  getPodByName(name: PodName): Promise<k8s.V1Pod>;
+  getPodByName(podRef: PodRef): Promise<k8s.V1Pod>;
 
   /**
    * Get pods by labels
@@ -98,46 +98,46 @@ export interface K8 {
    *    name: config.txt
    * }]
    *
-   * @param podName
-   * @param containerName
+   * @param podRef - the pod reference
+   * @param containerName - the container name
    * @param destPath - path inside the container
    * @returns a promise that returns array of directory entries, custom object
    */
-  listDir(podName: PodName, containerName: string, destPath: string): Promise<any[] | TDirectoryData[]>;
+  listDir(podRef: PodRef, containerName: string, destPath: string): Promise<any[] | TDirectoryData[]>;
 
   /**
    * Check if a filepath exists in the container
-   * @param podName
-   * @param containerName
+   * @param podRef - the pod reference
+   * @param containerName - the container name
    * @param destPath - path inside the container
    * @param [filters] - an object with metadata fields and value
    */
-  hasFile(podName: PodName, containerName: string, destPath: string, filters?: object): Promise<boolean>;
+  hasFile(podRef: PodRef, containerName: string, destPath: string, filters?: object): Promise<boolean>;
 
   /**
    * Check if a directory path exists in the container
-   * @param podName
-   * @param containerName
+   * @param podRef - the pod reference
+   * @param containerName - the container name
    * @param destPath - path inside the container
    */
-  hasDir(podName: PodName, containerName: string, destPath: string): Promise<boolean>;
+  hasDir(podRef: PodRef, containerName: string, destPath: string): Promise<boolean>;
 
-  mkdir(podName: PodName, containerName: string, destPath: string): Promise<string>;
+  mkdir(podRef: PodRef, containerName: string, destPath: string): Promise<string>;
 
   /**
    * Copy a file into a container
    *
    * It overwrites any existing file inside the container at the destination directory
    *
-   * @param podName
-   * @param containerName
+   * @param podRef - the pod reference
+   * @param containerName - the container name
    * @param srcPath - source file path in the local
    * @param destDir - destination directory in the container
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
   copyTo(
-    podName: PodName,
+    podRef: PodRef,
     containerName: string,
     srcPath: string,
     destDir: string,
@@ -149,29 +149,32 @@ export interface K8 {
    *
    * It overwrites any existing file at the destination directory
    *
-   * @param podName
-   * @param containerName
+   * @param podRef - the pod reference
+   * @param containerName - the container name
    * @param srcPath - source file path in the container
    * @param destDir - destination directory in the local
    */
-  copyFrom(podName: PodName, containerName: string, srcPath: string, destDir: string): Promise<unknown>;
+  copyFrom(podRef: PodRef, containerName: string, srcPath: string, destDir: string): Promise<unknown>;
 
   /**
    * Invoke sh command within a container and return the console output as string
-   * @param podName
-   * @param containerName
+   * @param podRef - the pod reference
+   * @param containerName - the container name
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  execContainer(podName: PodName, containerName: string, command: string | string[]): Promise<string>;
+  execContainer(podRef: PodRef, containerName: string, command: string | string[]): Promise<string>;
 
   /**
    * Port forward a port from a pod to localhost
    *
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
+   * @param podRef - the pod reference
+   * @param localPort - the local port to forward to
+   * @param podPort - the pod port to forward from
    */
-  portForward(podName: PodName, localPort: number, podPort: number): Promise<ExtendedNetServer>;
+  portForward(podRef: PodRef, localPort: number, podPort: number): Promise<ExtendedNetServer>;
 
   /**
    * Stop the port forwarder server
@@ -346,10 +349,9 @@ export interface K8 {
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
    * Can throw a SoloError if there is an error while deleting the pod.
-   * @param podName - the name of the pod
-   * @param namespace - the namespace of the pod
+   * @param podRef - the pod reference
    */
-  killPod(podName: PodName, namespace: NamespaceName): Promise<void>;
+  killPod(podRef: PodRef): Promise<void>;
 
   /**
    * Download logs files from all network pods and save to local solo log directory
