@@ -4,7 +4,6 @@ includes:
     taskfile: ../../Taskfile.helper.yml
     flatten: true
 vars:
-  solo_home_override_dir: "/Users/{{.HOME}}/.solo"
   use_port_forwards: "true"
   postgres_username: "postgres"
   postgres_password: "XXXXXXXXXXXX"

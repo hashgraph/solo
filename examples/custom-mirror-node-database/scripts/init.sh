@@ -73,62 +73,45 @@ psql -d "user=postgres connect_timeout=3" \
   --set "web3Username=${HEDERA_MIRROR_WEB3_DB_USERNAME}" \
   --set "tempSchema=${HEDERA_MIRROR_IMPORTER_DB_TEMPSCHEMA}" <<__SQL__
 
--- Create database & owner
 create user :ownerUsername with login password :'ownerPassword';
 create database :dbName with owner :ownerUsername;
 
--- Create roles
+create extension if not exists btree_gist;
+create extension if not exists pg_trgm;
+create extension if not exists pg_stat_statements;
+
 create role readonly;
 create role readwrite in role readonly;
 create role temporary_admin in role readwrite;
 
--- Create users
-create user :graphQLUsername with login password :'graphQLPassword' in role readonly;
-create user :grpcUsername with login password :'grpcPassword' in role readonly;
-create user :importerUsername with login password :'importerPassword' in role readwrite admin :ownerUsername;
-create user :restJavaUsername with login password :'restJavaPassword' in role readonly;
-create user :rosettaUsername with login password :'rosettaPassword' in role readonly;
-create user :web3Username with login password :'web3Password' in role readonly;
-alter user :ownerUsername with createrole;
+grant temporary_admin to postgres;
 
--- Grant temp schema admin privileges
-grant temporary_admin to :ownerUsername;
-grant temporary_admin to :importerUsername;
+create schema if not exists temporary authorization temporary_admin;
+grant usage on schema temporary to public;
+revoke create on schema temporary from public;
 
--- Add extensions
-\connect :dbName
-create extension if not exists btree_gist;
-create extension if not exists pg_stat_statements;
-create extension if not exists pg_trgm;
+grant usage on schema public to public;
+revoke create on schema public from public;
 
--- Create schema
-\connect :dbName :ownerUsername
-create schema if not exists :dbSchema authorization :ownerUsername;
-grant usage on schema :dbSchema to public;
-revoke create on schema :dbSchema from public;
+-- grant temporary_admin to mirror_node;
 
--- Create temp table schema
-create schema if not exists :tempSchema authorization temporary_admin;
-grant usage on schema :tempSchema to public;
-revoke create on schema :tempSchema from public;
+grant usage on schema temporary to public;
+revoke create on schema temporary from public;
 
--- Grant readonly privileges
-grant connect on database :dbName to readonly;
-grant select on all tables in schema :dbSchema, :tempSchema to readonly;
-grant select on all sequences in schema :dbSchema, :tempSchema to readonly;
-grant usage on schema :dbSchema, :tempSchema to readonly;
-alter default privileges in schema :dbSchema, :tempSchema grant select on tables to readonly;
-alter default privileges in schema :dbSchema, :tempSchema grant select on sequences to readonly;
+grant connect on database mirror_node to readonly;
+grant select on all tables in schema public, temporary to readonly;
+grant select on all sequences in schema public, temporary to readonly;
+grant usage on schema public, temporary to readonly;
+alter default privileges in schema public, temporary grant select on tables to readonly;
+alter default privileges in schema public, temporary grant select on sequences to readonly;
 
--- Grant readwrite privileges
-grant insert, update, delete on all tables in schema :dbSchema to readwrite;
-grant usage on all sequences in schema :dbSchema to readwrite;
-alter default privileges in schema :dbSchema grant insert, update, delete on tables to readwrite;
-alter default privileges in schema :dbSchema grant usage on sequences to readwrite;
+grant insert, update, delete on all tables in schema public to readwrite;
+grant usage on all sequences in schema public to readwrite;
+alter default privileges in schema public grant insert, update, delete on tables to readwrite;
+alter default privileges in schema public grant usage on sequences to readwrite;
 
--- Alter search path
-\connect postgres postgres
-alter database :dbName set search_path = :dbSchema, public, :tempSchema;
+alter database mirror_node set search_path = public, temporary;
+
 __SQL__
 
 if [[ -f "${PGHBACONF}.bak" ]]; then

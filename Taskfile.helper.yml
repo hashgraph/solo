@@ -434,13 +434,13 @@ tasks:
           sleep 4
         fi
 
-    solo:mirror-node-only:
-      silent: true
-      desc: solo mirror-node deploy with port forward on explorer
-      deps:
-        - task: "init"
-      cmds:
-        - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
+  solo:mirror-node-only:
+    silent: true
+    desc: solo mirror-node deploy with port forward on explorer
+    deps:
+      - task: "init"
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
 
 
   solo:destroy-mirror-node:
