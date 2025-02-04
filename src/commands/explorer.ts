@@ -249,6 +249,7 @@ export class ExplorerCommand extends BaseCommand {
               `${config.namespace}-hedera-explorer-ingress-class`,
             );
 
+            // to support GRPC over HTTP/2
             await this.k8.patchConfigMap(
               clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress',
