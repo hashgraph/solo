@@ -404,6 +404,7 @@ export async function getNodeAliasesPrivateKeysHash(
       fs.mkdirSync(uniqueNodeDestDir, {recursive: true});
     }
     await addKeyHashToMap(
+      networkNodeServices.namespace,
       k8,
       nodeAlias,
       dataKeysDir,
@@ -411,13 +412,22 @@ export async function getNodeAliasesPrivateKeysHash(
       keyHashMap,
       Templates.renderGossipPemPrivateKeyFile(nodeAlias),
     );
-    await addKeyHashToMap(k8, nodeAlias, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key');
+    await addKeyHashToMap(
+      networkNodeServices.namespace,
+      k8,
+      nodeAlias,
+      tlsKeysDir,
+      uniqueNodeDestDir,
+      keyHashMap,
+      'hedera.key',
+    );
     nodeKeyHashMap.set(nodeAlias, keyHashMap);
   }
   return nodeKeyHashMap;
 }
 
 async function addKeyHashToMap(
+  namespace: NamespaceName,
   k8: K8,
   nodeAlias: NodeAlias,
   keyDir: string,
@@ -426,7 +436,7 @@ async function addKeyHashToMap(
   privateKeyFileName: string,
 ) {
   await k8.copyFrom(
-    PodRef.of(k8.getCurrentContextNamespace(), Templates.renderNetworkPodName(nodeAlias)),
+    PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)),
     ROOT_CONTAINER,
     path.join(keyDir, privateKeyFileName),
     uniqueNodeDestDir,

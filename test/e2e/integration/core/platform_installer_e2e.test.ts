@@ -77,18 +77,21 @@ e2eTestSuite(
         it('should fail with invalid pod', async () => {
           try {
             // @ts-ignore
-            await installer.fetchPlatform('', packageVersion);
+            await installer.fetchPlatform(null, packageVersion);
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
-            expect(e.message).to.include('podName is required');
+            expect(e.message).to.include('podRef is required');
           }
 
           try {
             // @ts-ignore
-            await installer.fetchPlatform('INVALID', packageVersion);
+            await installer.fetchPlatform(
+              PodRef.of(NamespaceName.of('valid-namespace'), PodName.of('INVALID_POD')),
+              packageVersion,
+            );
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
-            expect(e.message).to.include('failed to extract platform code in this pod');
+            expect(e.message).to.include('must be a valid RFC-1123 DNS label');
           }
         }).timeout(defaultTimeout);
 
