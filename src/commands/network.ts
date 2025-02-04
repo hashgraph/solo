@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
@@ -39,8 +26,8 @@ import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
-import type {SoloListrTask} from '../types/index.js';
-import type {Namespace} from '../core/config/remote/types.js';
+import {type SoloListrTask} from '../types/index.js';
+import {type Namespace} from '../core/config/remote/types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -77,6 +64,7 @@ export interface NetworkDeployConfigClass {
   storageSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
+  storageBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
 }
@@ -147,6 +135,7 @@ export class NetworkCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.storageBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
     ];
@@ -253,6 +242,7 @@ export class NetworkCommand extends BaseCommand {
     storageSecrets: string;
     storageEndpoint: string;
     storageBucket: string;
+    storageBucketPrefix: string;
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
@@ -302,6 +292,10 @@ export class NetworkCommand extends BaseCommand {
     if (config.storageBucket) {
       valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
       valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+    }
+
+    if (config.storageBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.storageBucketPrefix}`;
     }
 
     if (config.backupBucket) {
@@ -387,6 +381,7 @@ export class NetworkCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.storageBucketPrefix,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
@@ -952,7 +947,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public addNodesAndProxies(): SoloListrTask<{config: {namespace: Namespace; nodeAliases: NodeAliases}}> {
+  public addNodesAndProxies(): SoloListrTask<any> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

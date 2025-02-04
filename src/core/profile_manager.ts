@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import fs from 'fs';
 import path from 'path';
@@ -28,10 +15,10 @@ import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import type {SemVer} from 'semver';
+import {type SemVer} from 'semver';
 import {SoloLogger} from './logging.js';
-import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/aliases.js';
-import type {Optional} from '../types/index.js';
+import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
+import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import * as versions from '../../version.js';

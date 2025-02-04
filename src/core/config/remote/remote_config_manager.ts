@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import * as constants from '../../constants.js';
 import {MissingArgumentError, SoloError} from '../../errors.js';
@@ -23,23 +10,20 @@ import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
-import {K8} from '../../k8.js';
-import type {Cluster, Context, Namespace} from './types.js';
+import {type K8} from '../../kube/k8.js';
+import {type Cluster, type Context, type Namespace} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
-import type {DeploymentStructure} from '../local_config_data.js';
-import {type ContextClusterStructure} from '../../../types/config_types.js';
-import {type EmptyContextConfig, type Optional, type SoloListrTask} from '../../../types/index.js';
+import {type DeploymentStructure} from '../local_config_data.js';
+import {type Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
-
-interface ListrContext {
-  config: {contextCluster: ContextClusterStructure};
-}
+import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
+import {type AnyObject} from '../../../types/aliases.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -57,12 +41,12 @@ export class RemoteConfigManager {
    * @param configManager - Manager to retrieve application flags and settings.
    */
   public constructor(
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(LocalConfig) private readonly localConfig?: LocalConfig,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
@@ -105,7 +89,7 @@ export class RemoteConfigManager {
    * Gathers data from the local configuration and constructs a new ConfigMap
    * entry in the cluster with initial command history and metadata.
    */
-  private async create(): Promise<void> {
+  private async create(argv: AnyObject): Promise<void> {
     const clusters: Record<Cluster, Namespace> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
@@ -117,9 +101,10 @@ export class RemoteConfigManager {
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(this.getNamespace(), new Date(), this.localConfig.userEmailAddress),
       clusters,
-      components: ComponentsDataWrapper.initializeEmpty(),
-      lastExecutedCommand: 'deployment create',
       commandHistory: ['deployment create'],
+      lastExecutedCommand: 'deployment create',
+      components: ComponentsDataWrapper.initializeEmpty(),
+      flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
     await this.createConfigMap();
@@ -147,7 +132,7 @@ export class RemoteConfigManager {
     const configMap = await this.getConfigMap();
     if (!configMap) return false;
 
-    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(configMap);
+    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
 
     return true;
   }
@@ -160,7 +145,7 @@ export class RemoteConfigManager {
     await this.load();
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
-    } catch (e) {
+    } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getCurrentClusterName()));
     }
     return this.remoteConfig;
@@ -189,7 +174,7 @@ export class RemoteConfigManager {
    *
    * @param argv - arguments containing command input for historical reference.
    */
-  public async loadAndValidate(argv: {_: string[]}) {
+  public async loadAndValidate(argv: {_: string[]} & AnyObject) {
     const self = this;
     try {
       self.setDefaultNamespaceIfNotSet();
@@ -209,13 +194,19 @@ export class RemoteConfigManager {
 
     await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
 
+    const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
+
     const currentCommand = argv._.join(' ');
-    self.remoteConfig!.addCommandToHistory(currentCommand);
+    const commandArguments = flags.stringifyArgv(argv);
+
+    self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
+
+    await self.remoteConfig.flags.handleFlags(argv);
 
     await self.save();
   }
 
-  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace) {
+  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace, argv: AnyObject) {
     const self = this;
     self.k8.setCurrentContext(context);
 
@@ -234,7 +225,7 @@ export class RemoteConfigManager {
       throw new SoloError('Remote config already exists');
     }
 
-    await self.create();
+    await self.create(argv);
   }
 
   /* ---------- Utilities ---------- */

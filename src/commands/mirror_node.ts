@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
@@ -30,8 +17,7 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type {Optional, SoloListrTask} from '../types/index.js';
-import type {Namespace} from '../core/config/remote/types.js';
+import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 
 interface MirrorNodeDeployConfigClass {
@@ -53,6 +39,7 @@ interface MirrorNodeDeployConfigClass {
   storageSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
+  storageBucketPrefix: string;
 }
 
 interface Context {
@@ -97,6 +84,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.storageSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
+      flags.storageBucketPrefix,
     ];
   }
 
@@ -115,6 +103,10 @@ export class MirrorNodeCommand extends BaseCommand {
 
     if (config.storageBucket) {
       valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.bucketName=${config.storageBucket}`;
+    }
+    if (config.storageBucketPrefix) {
+      this.logger.info(`Setting storage bucket prefix to ${config.storageBucketPrefix}`);
+      valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.pathPrefix=${config.storageBucketPrefix}`;
     }
 
     let storageType = '';
@@ -507,7 +499,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node destruction has completed');
     } catch (e) {
-      throw new SoloError(`Error destrong mirror node: ${e.message}`, e);
+      throw new SoloError(`Error destroying mirror node: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -570,7 +562,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node components from remote config. */
-  public removeMirrorNodeComponents(): SoloListrTask<object> {
+  public removeMirrorNodeComponents(): SoloListrTask<any> {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -583,7 +575,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Adds the mirror node components to remote config. */
-  public addMirrorNodeComponents(): SoloListrTask<{config: {namespace: Namespace}}> {
+  public addMirrorNodeComponents(): SoloListrTask<any> {
     return {
       title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

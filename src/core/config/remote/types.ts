@@ -1,21 +1,8 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
-import type {NodeAliases} from '../../../types/aliases.js';
-import type {ComponentType, ConsensusNodeStates} from './enumerations.js';
+import {type NodeAliases} from '../../../types/aliases.js';
+import {type ComponentType, type ConsensusNodeStates} from './enumerations.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
@@ -45,3 +32,30 @@ export interface IConsensusNodeComponent extends Component {
 }
 
 export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
+
+export type RemoteConfigCommonFlagsStruct = {
+  releaseTag?: string;
+  chartDirectory?: string;
+  relayReleaseTag?: string;
+  soloChartVersion?: string;
+  mirrorNodeVersion?: string;
+  nodeAliasesUnparsed?: string;
+  hederaExplorerVersion?: string;
+};
+
+export interface RemoteConfigDataStructure {
+  metadata: RemoteConfigMetadataStructure;
+  version: Version;
+  clusters: Record<Cluster, Namespace>;
+  components: ComponentsDataStructure;
+  commandHistory: string[];
+  lastExecutedCommand: string;
+  flags: RemoteConfigCommonFlagsStruct;
+}
+
+export interface RemoteConfigMetadataStructure {
+  name: Namespace;
+  lastUpdatedAt: Date;
+  lastUpdateBy: EmailAddress;
+  migration?: IMigration;
+}

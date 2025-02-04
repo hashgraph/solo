@@ -1,18 +1,5 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
@@ -23,8 +10,16 @@ import {createMetadata} from './metadata.test.js';
 import {createComponentsDataWrapper} from './components_data_wrapper.test.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import * as constants from '../../../../src/core/constants.js';
+import {CommonFlagsDataWrapper} from '../../../../src/core/config/remote/common_flags_data_wrapper.js';
 
-function createRemoteConfigDataWrapper() {
+const configManagerMock = {
+  update: (...args: any) => true,
+  getFlag: (...args: any) => true,
+  hasFlag: (...args: any) => true,
+  setFlag: (...args: any) => true,
+};
+
+async function createRemoteConfigDataWrapper() {
   const {metadata} = createMetadata();
   const {
     wrapper: {componentsDataWrapper},
@@ -34,6 +29,7 @@ function createRemoteConfigDataWrapper() {
   const components = componentsDataWrapper;
   const lastExecutedCommand = 'lastExecutedCommand';
   const commandHistory = [];
+  const flags = await CommonFlagsDataWrapper.initialize(configManagerMock as any, {});
 
   const dataWrapper = new RemoteConfigDataWrapper({
     metadata,
@@ -41,6 +37,7 @@ function createRemoteConfigDataWrapper() {
     components,
     lastExecutedCommand,
     commandHistory,
+    flags,
   });
 
   return {
@@ -49,11 +46,11 @@ function createRemoteConfigDataWrapper() {
   };
 }
 
-describe('RemoteConfigDataWrapper', () => {
+describe('RemoteConfigDataWrapper', async () => {
   it('should be able to create a instance', () => createRemoteConfigDataWrapper());
 
-  it('should be able to add new command to history with addCommandToHistory()', () => {
-    const {dataWrapper} = createRemoteConfigDataWrapper();
+  it('should be able to add new command to history with addCommandToHistory()', async () => {
+    const {dataWrapper} = await createRemoteConfigDataWrapper();
 
     const command = 'command';
 
@@ -69,8 +66,8 @@ describe('RemoteConfigDataWrapper', () => {
     });
   });
 
-  it('should successfully be able to parse yaml and create instance with fromConfigmap()', () => {
-    const {dataWrapper} = createRemoteConfigDataWrapper();
+  it('should successfully be able to parse yaml and create instance with fromConfigmap()', async () => {
+    const {dataWrapper} = await createRemoteConfigDataWrapper();
     const dataWrapperObject = dataWrapper.toObject();
 
     const yamlData = yaml.stringify({
@@ -81,23 +78,37 @@ describe('RemoteConfigDataWrapper', () => {
       lastExecutedCommand: dataWrapperObject.lastExecutedCommand,
     });
 
-    // @ts-ignore
-    RemoteConfigDataWrapper.fromConfigmap({data: {'remote-config-data': yamlData}});
+    RemoteConfigDataWrapper.fromConfigmap(configManagerMock as any, {data: {'remote-config-data': yamlData}} as any);
   });
 
-  it('should fail if invalid data is passed to setters', () => {
-    const {dataWrapper} = createRemoteConfigDataWrapper();
+  it('should fail if invalid data is passed to setters', async () => {
+    const {dataWrapper} = await createRemoteConfigDataWrapper();
 
-    // @ts-ignore
-    expect(() => (dataWrapper.commandHistory = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.lastExecutedCommand = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.lastExecutedCommand = 1)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.clusters = 1)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.clusters = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.components = 1)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.components = '')).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.metadata = null)).to.throw(SoloError); // @ts-ignore
-    expect(() => (dataWrapper.metadata = {})).to.throw(SoloError); // @ts-ignore
+    // @ts-expect-error TS2322: Type string is not assignable to type string[]
+    expect(() => (dataWrapper.commandHistory = '')).to.throw(SoloError);
+
+    // @ts-expect-error TS2341 Property lastExecutedCommand is private and only accessible within class RemoteConfigDataWrapper
+    expect(() => (dataWrapper.lastExecutedCommand = '')).to.throw(SoloError);
+
+    // @ts-expect-error TS2341 Property lastExecutedCommand is private and only accessible within class RemoteConfigDataWrapper
+    expect(() => (dataWrapper.lastExecutedCommand = 1)).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type number is not assignable to type Record<string, string>
+    expect(() => (dataWrapper.clusters = 1)).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type string is not assignable to type Record<string, string>
+    expect(() => (dataWrapper.clusters = '')).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type number is not assignable to type ComponentsDataWrapper
+    expect(() => (dataWrapper.components = 1)).to.throw(SoloError);
+
+    // @ts-expect-error TS2322 Type string is not assignable to type ComponentsDataWrapper
+    expect(() => (dataWrapper.components = '')).to.throw(SoloError);
+
+    expect(() => (dataWrapper.metadata = null)).to.throw(SoloError);
+
+    // @ts-expect-error 2740: Type {} is missing the following properties from type RemoteConfigMetadata
+    expect(() => (dataWrapper.metadata = {})).to.throw(SoloError);
 
     expect(() => (dataWrapper.clusters = {null: null})).to.throw(SoloError);
     expect(() => (dataWrapper.clusters = {namespace: null})).to.throw(SoloError);

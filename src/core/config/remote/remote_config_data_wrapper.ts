@@ -1,36 +1,17 @@
 /**
- * Copyright (C) 2024 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the ""License"");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an ""AS IS"" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
+ * SPDX-License-Identifier: Apache-2.0
  */
 import {SoloError} from '../../errors.js';
 import * as yaml from 'yaml';
-import {RemoteConfigMetadata, type RemoteConfigMetadataStructure} from './metadata.js';
-import {ComponentsDataWrapper, type RemoteConfigData} from './components_data_wrapper.js';
+import {RemoteConfigMetadata} from './metadata.js';
+import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import * as constants from '../../constants.js';
-import {type Cluster, type Version, type Namespace, type ComponentsDataStructure} from './types.js';
+import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
+import {type Cluster, type Version, type Namespace, type RemoteConfigDataStructure} from './types.js';
 import type * as k8s from '@kubernetes/client-node';
-import type {ToObject, Validate} from '../../../types/index.js';
-
-export interface RemoteConfigDataStructure {
-  metadata: RemoteConfigMetadataStructure;
-  version: Version;
-  clusters: Record<Cluster, Namespace>;
-  components: ComponentsDataStructure;
-  commandHistory: string[];
-  lastExecutedCommand: string;
-}
+import {type ToObject, type Validate} from '../../../types/index.js';
+import {type ConfigManager} from '../../config_manager.js';
+import {type RemoteConfigData} from './remote_config_data.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';
@@ -39,6 +20,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
   private _components: ComponentsDataWrapper;
   private _commandHistory: string[];
   private _lastExecutedCommand: string;
+  private readonly _flags: CommonFlagsDataWrapper;
 
   public constructor(data: RemoteConfigData) {
     this._metadata = data.metadata;
@@ -46,6 +28,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     this._components = data.components;
     this._commandHistory = data.commandHistory;
     this._lastExecutedCommand = data.lastExecutedCommand ?? '';
+    this._flags = data.flags;
     this.validate();
   }
 
@@ -113,15 +96,14 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     this.validate();
   }
 
-  //! -------- Utilities -------- //
-
-  public static compare(x: RemoteConfigDataWrapper, y: RemoteConfigDataWrapper): boolean {
-    // TODO
-    return true;
+  public get flags() {
+    return this._flags;
   }
 
-  public static fromConfigmap(configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
-    const data = yaml.parse(configMap.data['remote-config-data']) as any;
+  //! -------- Utilities -------- //
+
+  public static fromConfigmap(configManager: ConfigManager, configMap: k8s.V1ConfigMap): RemoteConfigDataWrapper {
+    const data = yaml.parse(configMap.data['remote-config-data']);
 
     return new RemoteConfigDataWrapper({
       metadata: RemoteConfigMetadata.fromObject(data.metadata),
@@ -129,6 +111,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       clusters: data.clusters,
       commandHistory: data.commandHistory,
       lastExecutedCommand: data.lastExecutedCommand,
+      flags: CommonFlagsDataWrapper.fromObject(configManager, data.flags),
     });
   }
 
@@ -170,6 +153,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       components: this.components.toObject(),
       commandHistory: this.commandHistory,
       lastExecutedCommand: this.lastExecutedCommand,
+      flags: this.flags.toObject(),
     };
   }
 }
