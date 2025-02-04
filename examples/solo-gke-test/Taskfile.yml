@@ -27,4 +27,5 @@ env:
   # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
   NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=<ip-address>,node2=<ip-address>,node3=<ip-address>,node4=<ip-address> --pvcs"
   MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/mirror-and-explorer-values.yaml"
+  EXPLORER_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/explorer-values.yaml"
   RELAY_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/relay-values.yaml"
