@@ -19,9 +19,10 @@ import {type K8} from '../../core/kube/k8.js';
 import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type SelectClusterContextContext} from './configs.js';
-import {type DeploymentName, type Namespace} from '../../core/config/remote/types.js';
+import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -132,7 +133,7 @@ export class ClusterCommandTasks {
 
         if (localConfig.deployments[deploymentName]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
-            if (localConfig.deployments[deploymentName].namespace === remoteConfig.clusters[cluster]) {
+            if (localConfig.deployments[deploymentName].namespace === remoteConfig.clusters[cluster].valueOf()) {
               remoteClusterList.push(cluster);
             }
           }
@@ -248,7 +249,7 @@ export class ClusterCommandTasks {
   }
 
   /** Show list of installed chart */
-  private async showInstalledChartList(clusterSetupNamespace: string) {
+  private async showInstalledChartList(clusterSetupNamespace: NamespaceName) {
     this.parent.logger.showList(
       'Installed Charts',
       await this.parent.getChartManager().getInstalledCharts(clusterSetupNamespace),

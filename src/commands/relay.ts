@@ -17,6 +17,7 @@ import {ListrLease} from '../core/lease/listr_lease.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -65,7 +66,7 @@ export class RelayCommand extends BaseCommand {
     replicaCount: number,
     operatorID: string,
     operatorKey: string,
-    namespace: string,
+    namespace: NamespaceName,
   ) {
     let valuesArg = '';
 
@@ -133,7 +134,7 @@ export class RelayCommand extends BaseCommand {
    * created a json string to represent the map between the node keys and their ids
    * output example '{"node-1": "0.0.3", "node-2": "0.004"}'
    */
-  async prepareNetworkJsonString(nodeAliases: NodeAliases = [], namespace: string) {
+  async prepareNetworkJsonString(nodeAliases: NodeAliases = [], namespace: NamespaceName) {
     if (!nodeAliases) {
       throw new MissingArgumentError('Node IDs must be specified');
     }
@@ -173,7 +174,7 @@ export class RelayCommand extends BaseCommand {
     interface RelayDeployConfigClass {
       chainId: string;
       chartDirectory: string;
-      namespace: string;
+      namespace: NamespaceName;
       nodeAliasesUnparsed: string;
       operatorId: string;
       operatorKey: string;
@@ -314,7 +315,7 @@ export class RelayCommand extends BaseCommand {
 
     interface RelayDestroyConfigClass {
       chartDirectory: string;
-      namespace: string;
+      namespace: NamespaceName;
       nodeAliases: NodeAliases;
       releaseName: string;
       isChartInstalled: boolean;
@@ -339,7 +340,7 @@ export class RelayCommand extends BaseCommand {
             // prompt if inputs are empty and set it in the context
             ctx.config = {
               chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
-              namespace: namespace,
+              namespace: namespace.name,
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
               ),

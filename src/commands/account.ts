@@ -16,6 +16,7 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {sleep} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -43,7 +44,7 @@ export class AccountCommand extends BaseCommand {
     await this.accountManager.close();
   }
 
-  async buildAccountInfo(accountInfo: AccountInfo, namespace: string, shouldRetrievePrivateKey: boolean) {
+  async buildAccountInfo(accountInfo: AccountInfo, namespace: NamespaceName, shouldRetrievePrivateKey: boolean) {
     if (!accountInfo || !(accountInfo instanceof AccountInfo))
       throw new IllegalArgumentError('An instance of AccountInfo is required');
 
@@ -80,7 +81,7 @@ export class AccountCommand extends BaseCommand {
       generateEcdsaKey: boolean;
       ecdsaPrivateKey?: string;
       ed25519PrivateKey?: string;
-      namespace: string;
+      namespace: NamespaceName;
       setAlias: boolean;
       amount: number;
     };
@@ -149,7 +150,7 @@ export class AccountCommand extends BaseCommand {
 
     interface Context {
       config: {
-        namespace: string;
+        namespace: NamespaceName;
       };
       updateSecrets: boolean;
       accountsBatchedSet: number[][];
@@ -302,7 +303,7 @@ export class AccountCommand extends BaseCommand {
         amount: number;
         ecdsaPrivateKey: string;
         ed25519PrivateKey: string;
-        namespace: string;
+        namespace: NamespaceName;
         setAlias: boolean;
         generateEcdsaKey: boolean;
         createAmount: number;
@@ -386,7 +387,7 @@ export class AccountCommand extends BaseCommand {
       config: {
         accountId: string;
         amount: number;
-        namespace: string;
+        namespace: NamespaceName;
         ecdsaPrivateKey: string;
         ed25519PrivateKey: string;
       };
@@ -471,7 +472,7 @@ export class AccountCommand extends BaseCommand {
     interface Context {
       config: {
         accountId: string;
-        namespace: string;
+        namespace: NamespaceName;
         privateKey: boolean;
       };
     }

@@ -20,10 +20,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
-  namespace: string;
+  namespace: NamespaceName;
   profileFile: string;
   profileName: string;
   valuesFile: string;
@@ -333,7 +334,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
-                    const namespace = ctx.config.namespace;
+                    const namespace = ctx.config.namespace.name;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -423,7 +424,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
     interface Context {
       config: {
-        namespace: string;
+        namespace: NamespaceName;
         isChartInstalled: boolean;
       };
     }

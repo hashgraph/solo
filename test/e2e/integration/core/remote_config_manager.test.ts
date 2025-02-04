@@ -16,15 +16,16 @@ import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {type K8} from '../../../../src/core/kube/k8.js';
+import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
-const namespace = 'remote-config-manager-e2e-namespace';
+const namespace = NamespaceName.of('remote-config-manager-e2e');
 const deploymentName = 'remote-config-manager-e2e';
 const argv = getDefaultArgv();
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.deployment.name] = deploymentName;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterName.name] = TEST_CLUSTER;
@@ -35,7 +36,7 @@ argv[flags.generateTlsKeys.name] = true;
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
 e2eTestSuite(
-  namespace,
+  namespace.name,
   argv,
   undefined,
   undefined,

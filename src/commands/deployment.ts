@@ -9,13 +9,14 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type DeploymentName, type Namespace, type Cluster} from '../core/config/remote/types.js';
+import {type DeploymentName, type NamespaceNameAsString, type Cluster} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
 import {type Opts} from '../types/command_types.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -47,7 +48,7 @@ export class DeploymentCommand extends BaseCommand {
 
     interface Config {
       context: string;
-      namespace: Namespace;
+      namespace: NamespaceName;
       deployment: DeploymentName;
       deploymentClusters: string[];
     }
@@ -72,7 +73,7 @@ export class DeploymentCommand extends BaseCommand {
             }
 
             ctx.config = {
-              namespace: self.configManager.getFlag<Namespace>(flags.namespace),
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
               deploymentClusters: splitFlagInput(self.configManager.getFlag<string>(flags.deploymentClusters)),
             } as Config;
@@ -195,11 +196,11 @@ export class DeploymentCommand extends BaseCommand {
             self.k8.setCurrentContext(context);
 
             const namespaces = await self.k8.getNamespaces();
-            const namespacesWithRemoteConfigs: Namespace[] = [];
+            const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {
               const isFound = await self.k8.isRemoteConfigPresentInNamespace(namespace);
-              if (isFound) namespacesWithRemoteConfigs.push(namespace);
+              if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
             }
 
             self.logger.showList(`Deployments inside cluster: ${chalk.cyan(clusterName)}`, namespacesWithRemoteConfigs);
