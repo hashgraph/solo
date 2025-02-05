@@ -56,7 +56,7 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
     'namespace',
   ]) as NodePrepareUpgradeConfigClass;
 
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
   await initializeSetup(config, this.k8);
   config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
@@ -75,7 +75,7 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
     'namespace',
   ]) as NodeDownloadGeneratedFilesConfigClass;
 
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.existingNodeAliases = [];
   await initializeSetup(config, this.k8);
 
@@ -94,7 +94,7 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
     'namespace',
   ]) as NodeUpgradeConfigClass;
 
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.curDate = new Date();
   config.existingNodeAliases = [];
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -133,7 +133,7 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
     'namespace',
   ]) as NodeUpdateConfigClass;
 
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.curDate = new Date();
   config.existingNodeAliases = [];
 
@@ -180,7 +180,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
 
   config.curDate = new Date();
   config.existingNodeAliases = [];
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
   await initializeSetup(config, this.k8);
 
@@ -229,7 +229,7 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
     ? PrivateKey.fromStringED25519(argv[flags.adminKey.name])
     : PrivateKey.fromStringED25519(constants.GENESIS_KEY);
 
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.curDate = new Date();
   config.existingNodeAliases = [];
 
@@ -262,7 +262,7 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
 
 export const logsConfigBuilder = async function (argv, ctx, task) {
   const config = {
-    namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
   };
@@ -272,7 +272,7 @@ export const logsConfigBuilder = async function (argv, ctx, task) {
 
 export const statesConfigBuilder = async function (argv, ctx, task) {
   const config = {
-    namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
   };
@@ -287,7 +287,7 @@ export const refreshConfigBuilder = async function (argv, ctx, task) {
     'namespace',
   ]) as NodeRefreshConfigClass;
 
-  ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  ctx.config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
 
   await initializeSetup(ctx.config, this.k8);
@@ -314,7 +314,7 @@ export const keysConfigBuilder = function (argv, ctx, task) {
 
 export const stopConfigBuilder = async function (argv, ctx, task) {
   ctx.config = {
-    namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
   };
@@ -328,7 +328,7 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
 
 export const startConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
   if (!(await this.k8.hasNamespace(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
@@ -346,7 +346,7 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
     'namespace',
   ]) as NodeSetupConfigClass;
 
-  config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
 
   await initializeSetup(config, this.k8);

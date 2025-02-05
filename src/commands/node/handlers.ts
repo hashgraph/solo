@@ -41,6 +41,7 @@ import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
 import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -863,7 +864,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    */
   public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
-      config: {namespace: NamespaceNameAsString; nodeAliases: NodeAliases};
+      config: {namespace: NamespaceName; nodeAliases: NodeAliases};
     }
 
     return {
@@ -877,7 +878,10 @@ export class NodeCommandHandlers implements CommandHandlers {
           const cluster = this.remoteConfigManager.currentCluster;
 
           for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.edit(nodeAlias, new ConsensusNodeComponent(nodeAlias, cluster, namespace, state));
+            remoteConfig.components.edit(
+              nodeAlias,
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, state),
+            );
           }
         });
       },

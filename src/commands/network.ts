@@ -966,17 +966,17 @@ export class NetworkCommand extends BaseCommand {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.add(
               nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED),
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, ConsensusNodeStates.INITIALIZED),
             );
 
             remoteConfig.components.add(
               `envoy-proxy-${nodeAlias}`,
-              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace),
+              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace.name),
             );
 
             remoteConfig.components.add(
               `haproxy-${nodeAlias}`,
-              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace),
+              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace.name),
             );
           }
         });

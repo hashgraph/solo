@@ -299,7 +299,7 @@ export class RemoteConfigManager {
 
     // TODO: Current quick fix for commands where namespace is not passed
     const currentDeployment = this.localConfig.deployments[this.localConfig.currentDeploymentName];
-    const namespace = currentDeployment.namespace.replace(/^kind-/, '');
+    const namespace = currentDeployment.namespace;
 
     this.configManager.setFlag(flags.namespace, namespace);
   }
