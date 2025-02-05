@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type V1ConfigMap} from '@kubernetes/client-node';
+import {type NamespaceName} from './namespace_name.js';
 
 export interface ConfigMaps {
   /**
@@ -12,7 +13,7 @@ export interface ConfigMaps {
    * @param data - to contain in the config
    */
   create(
-    namespace: string,
+    namespace: NamespaceName,
     name: string,
     labels: Record<string, string>,
     data: Record<string, string>,
@@ -23,14 +24,14 @@ export interface ConfigMaps {
    * @param namespace - for the config map
    * @param name - for the config name
    */
-  delete(namespace: string, name: string): Promise<boolean>; // TODO was deleteNamespacedConfigMap
+  delete(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was deleteNamespacedConfigMap
 
   /**
    * Read a config map
    * @param namespace - for the config map
    * @param name - for the config name
    */
-  read(namespace: string, name: string): Promise<V1ConfigMap>; // TODO was getNamespacedConfigMap
+  read(namespace: NamespaceName, name: string): Promise<V1ConfigMap>; // TODO was getNamespacedConfigMap
 
   /**
    * Replace an existing config map with a new one
@@ -40,7 +41,7 @@ export interface ConfigMaps {
    * @param data - to contain in the config
    */
   replace(
-    namespace: string,
+    namespace: NamespaceName,
     name: string,
     labels: Record<string, string>,
     data: Record<string, string>,

@@ -12,10 +12,12 @@ import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {type NetworkNodePodNameAsString, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type PodName} from '../../core/kube/pod_name.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {type PodRef} from '../../core/kube/pod_ref.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -88,7 +90,7 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
     'existingNodeAliases',
     'keysDir',
     'nodeClient',
-    'podNames',
+    'podRefs',
     'stagingDir',
     'stagingKeysDir',
     'namespace',
@@ -125,7 +127,7 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
     'freezeAdminPrivateKey',
     'keysDir',
     'nodeClient',
-    'podNames',
+    'podRefs',
     'serviceMap',
     'stagingDir',
     'stagingKeysDir',
@@ -170,7 +172,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
     'freezeAdminPrivateKey',
     'keysDir',
     'nodeClient',
-    'podNames',
+    'podRefs',
     'serviceMap',
     'stagingDir',
     'stagingKeysDir',
@@ -217,7 +219,7 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
     'keysDir',
     'lastStateZipPath',
     'nodeClient',
-    'podNames',
+    'podRefs',
     'serviceMap',
     'stagingDir',
     'stagingKeysDir',
@@ -285,7 +287,7 @@ export const statesConfigBuilder = async function (argv, ctx, task) {
 export const refreshConfigBuilder = async function (argv, ctx, task) {
   ctx.config = this.getConfig(REFRESH_CONFIGS_NAME, argv.flags, [
     'nodeAliases',
-    'podNames',
+    'podRefs',
     'namespace',
   ]) as NodeRefreshConfigClass;
 
@@ -345,7 +347,7 @@ export const startConfigBuilder = async function (argv, ctx, task) {
 export const setupConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
     'nodeAliases',
-    'podNames',
+    'podRefs',
     'namespace',
   ]) as NodeSetupConfigClass;
 
@@ -376,7 +378,7 @@ export interface NodeRefreshConfigClass {
   nodeAliasesUnparsed: string;
   releaseTag: string;
   nodeAliases: NodeAliases;
-  podNames: Record<NodeAlias, PodName>;
+  podRefs: Record<NodeAlias, PodRef>;
   getUnusedConfigs: () => string[];
 }
 
@@ -392,12 +394,6 @@ export interface NodeKeysConfigClass {
   getUnusedConfigs: () => string[];
 }
 
-export interface NodeStopConfigClass {
-  namespace: NamespaceName;
-  deployment: string;
-  nodeAliases: NodeAliases;
-  podNames: Record<PodName, NodeAlias>;
-}
 
 export interface NodeStartConfigClass {
   app: string;
@@ -407,7 +403,7 @@ export interface NodeStartConfigClass {
   deployment: string;
   nodeAliases: NodeAliases;
   stagingDir: string;
-  podNames: Record<NodeAlias, PodName>;
+  podRefs: Record<NodeAlias, PodRef>;
   nodeAliasesUnparsed: string;
 }
 
@@ -431,7 +427,7 @@ export interface NodeDeleteConfigClass {
   freezeAdminPrivateKey: string;
   keysDir: string;
   nodeClient: any;
-  podNames: Record<NodeAlias, PodName>;
+  podRefs: Record<NodeAlias, PodRef>;
   serviceMap: Map<string, NetworkNodeServices>;
   stagingDir: string;
   stagingKeysDir: string;
@@ -452,7 +448,7 @@ export interface NodeSetupConfigClass {
   nodeAliasesUnparsed: string;
   releaseTag: string;
   nodeAliases: NodeAliases;
-  podNames: object;
+  podRefs: Record<NodeAlias, PodRef>;
   getUnusedConfigs: () => string[];
 }
 
@@ -476,7 +472,7 @@ export interface NodeUpgradeConfigClass {
   freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;
   nodeClient: any;
-  podNames: Record<NodeAlias, PodName>;
+  podRefs: Record<NodeAlias, PodRef>;
   stagingDir: string;
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
@@ -512,7 +508,7 @@ export interface NodeUpdateConfigClass {
   freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;
   nodeClient: any;
-  podNames: Record<NodeAlias, PodName>;
+  podRefs: Record<NodeAlias, PodRef>;
   serviceMap: Map<string, NetworkNodeServices>;
   stagingDir: string;
   stagingKeysDir: string;

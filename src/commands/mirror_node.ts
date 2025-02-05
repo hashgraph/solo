@@ -11,7 +11,8 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getEnvValue} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type CommandBuilder, type PodName} from '../types/aliases.js';
+import {type CommandBuilder} from '../types/aliases.js';
+import {PodName} from '../core/kube/pod_name.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -21,6 +22,7 @@ import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {PodRef} from '../core/kube/pod_ref.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -358,10 +360,11 @@ export class MirrorNodeCommand extends BaseCommand {
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
-                    const postgresPodName = pods[0].metadata.name as PodName;
+                    const postgresPodName = PodName.of(pods[0].metadata.name);
                     const postgresContainerName = 'postgresql';
+                    const postgresPodRef = PodRef.of(namespace, postgresPodName);
                     const mirrorEnvVars = await self.k8.execContainer(
-                      postgresPodName,
+                      postgresPodRef,
                       postgresContainerName,
                       '/bin/bash -c printenv',
                     );
@@ -379,7 +382,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
-                    await self.k8.execContainer(postgresPodName, postgresContainerName, [
+                    await self.k8.execContainer(postgresPodRef, postgresContainerName, [
                       'psql',
                       `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
                       '-c',

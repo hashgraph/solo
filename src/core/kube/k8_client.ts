@@ -20,7 +20,8 @@ import * as constants from './../constants.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
-import {type PodName, type TarCreateFilter} from '../../types/aliases.js';
+import {type TarCreateFilter} from '../../types/aliases.js';
+import {PodName} from './pod_name.js';
 import {type ExtendedNetServer, type LocalContextObject, type Optional} from '../../types/index.js';
 import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -29,6 +30,9 @@ import {type K8} from './k8.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './namespaces.js';
 import {NamespaceName} from './namespace_name.js';
+import K8ClientClusters from './k8_client/k8_client_clusters.js';
+import {type Clusters} from './clusters.js';
+import {PodRef} from './pod_ref.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -45,10 +49,13 @@ export class K8Client implements K8 {
     constants.POD_CONDITION_READY,
     constants.POD_CONDITION_STATUS_TRUE,
   );
+
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
   private networkingApi: k8s.NetworkingV1Api;
+
+  private k8Clusters: K8ClientClusters;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -77,12 +84,22 @@ export class K8Client implements K8 {
     this.networkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
+    this.k8Clusters = new K8ClientClusters(this.kubeConfig);
+
     return this; // to enable chaining
   }
 
   // TODO in the future this will return the namespaces class instance for fluent pattern
   public namespaces(): Namespaces {
     return null;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
+   * returns an object instance providing cluster operations
+   */
+  public clusters(): Clusters {
+    return this.k8Clusters;
   }
 
   /**
@@ -166,9 +183,9 @@ export class K8Client implements K8 {
     return namespaces.some(namespaces => namespaces.equals(namespace));
   }
 
-  public async getPodByName(name: string): Promise<k8s.V1Pod> {
-    const ns = this.getNamespace();
-    const fieldSelector = `metadata.name=${name}`;
+  public async getPodByName(podRef: PodRef): Promise<k8s.V1Pod> {
+    const ns = podRef.namespaceName;
+    const fieldSelector = `metadata.name=${podRef.podName.name}`;
     const resp = await this.kubeClient.listNamespacedPod(
       ns.name,
       undefined,
@@ -183,7 +200,7 @@ export class K8Client implements K8 {
       Duration.ofMinutes(5).toMillis(),
     );
 
-    return this.filterItem(resp.body.items, {name});
+    return this.filterItem(resp.body.items, {name: podRef.podName.name});
   }
 
   public async getPodsByLabel(labels: string[] = []) {
@@ -246,13 +263,8 @@ export class K8Client implements K8 {
     return this.filterItem(resp.body.items, {name});
   }
 
-  public getClusters() {
-    const clusters: string[] = [];
-    for (const cluster of this.kubeConfig.getClusters()) {
-      clusters.push(cluster.name);
-    }
-
-    return clusters;
+  public getClusters(): string[] {
+    return this.clusters().list();
   }
 
   public getContextNames(): string[] {
@@ -273,7 +285,7 @@ export class K8Client implements K8 {
     return this.cachedContexts;
   }
 
-  public async listDir(podName: PodName, containerName: string, destPath: string) {
+  public async listDir(podRef: PodRef, containerName: string, destPath: string) {
     // TODO future, return the following
     // return this.pods.byName(podName).listDir(containerName, destPath);
     // byName(podName) can use an underlying cache to avoid multiple calls to the API
@@ -294,7 +306,7 @@ export class K8Client implements K8 {
     // below implementation moves to K8Pod class, current usage would still compile.
 
     try {
-      const output = (await this.execContainer(podName, containerName, ['ls', '-la', destPath])) as string;
+      const output = (await this.execContainer(podRef, containerName, ['ls', '-la', destPath])) as string;
       if (!output) return [];
 
       // parse the output and return the entries
@@ -328,17 +340,20 @@ export class K8Client implements K8 {
 
       return items;
     } catch (e) {
-      throw new SoloError(`unable to check path in '${podName}':${containerName}' - ${destPath}: ${e.message}`, e);
+      throw new SoloError(
+        `unable to check path in '${podRef.podName.name}':${containerName}' - ${destPath}: ${e.message}`,
+        e,
+      );
     }
   }
 
-  public async hasFile(podName: PodName, containerName: string, destPath: string, filters: object = {}) {
+  public async hasFile(podRef: PodRef, containerName: string, destPath: string, filters: object = {}) {
     const parentDir = path.dirname(destPath);
     const fileName = path.basename(destPath);
     const filterMap = new Map(Object.entries(filters));
 
     try {
-      const entries = await this.listDir(podName, containerName, parentDir);
+      const entries = await this.listDir(podRef, containerName, parentDir);
 
       for (const item of entries) {
         if (item.name === fileName && !item.directory) {
@@ -348,7 +363,7 @@ export class K8Client implements K8 {
             const field = entry[0];
             const value = entry[1];
             this.logger.debug(
-              `Checking file ${podName}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
+              `Checking file ${podRef.podName.name}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
               {filters},
             );
             if (`${value}` !== `${item[field]}`) {
@@ -358,14 +373,14 @@ export class K8Client implements K8 {
           }
 
           if (found) {
-            this.logger.debug(`File check succeeded ${podName}:${containerName} ${destPath}`, {filters});
+            this.logger.debug(`File check succeeded ${podRef.podName.name}:${containerName} ${destPath}`, {filters});
             return true;
           }
         }
       }
     } catch (e) {
       const error = new SoloError(
-        `unable to check file in '${podName}':${containerName}' - ${destPath}: ${e.message}`,
+        `unable to check file in '${podRef.podName.name}':${containerName}' - ${destPath}: ${e.message}`,
         e,
       );
       this.logger.error(error.message, error);
@@ -375,9 +390,9 @@ export class K8Client implements K8 {
     return false;
   }
 
-  public async hasDir(podName: string, containerName: string, destPath: string) {
+  public async hasDir(podRef: PodRef, containerName: string, destPath: string) {
     return (
-      (await this.execContainer(podName, containerName, [
+      (await this.execContainer(podRef, containerName, [
         'bash',
         '-c',
         '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"',
@@ -385,8 +400,8 @@ export class K8Client implements K8 {
     );
   }
 
-  public mkdir(podName: PodName, containerName: string, destPath: string) {
-    return this.execContainer(podName, containerName, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
+  public mkdir(podRef: PodRef, containerName: string, destPath: string) {
+    return this.execContainer(podRef, containerName, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
   }
 
   private exitWithError(localContext: LocalContextObject, errorMessage: string) {
@@ -465,22 +480,22 @@ export class K8Client implements K8 {
   }
 
   public async copyTo(
-    podName: PodName,
+    podRef: PodRef,
     containerName: string,
     srcPath: string,
     destDir: string,
     filter: TarCreateFilter | undefined = undefined,
   ) {
     const self = this;
-    const namespace = this.getNamespace();
+    const namespace = podRef.namespaceName;
     const guid = uuid4();
-    const messagePrefix = `copyTo[${podName},${guid}]: `;
+    const messagePrefix = `copyTo[${podRef.podName.name},${guid}]: `;
 
-    if (!(await self.getPodByName(podName))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
+    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
-    if (!(await this.hasDir(podName, containerName, destDir))) {
+    if (!(await this.hasDir(podRef, containerName, destDir))) {
       throw new SoloError(`invalid destination path: ${destDir}`);
     }
 
@@ -512,7 +527,7 @@ export class K8Client implements K8 {
         execInstance
           .exec(
             namespace.name,
-            podName,
+            podRef.podName.name,
             containerName,
             command,
             null,
@@ -554,18 +569,18 @@ export class K8Client implements K8 {
     }
   }
 
-  public async copyFrom(podName: PodName, containerName: string, srcPath: string, destDir: string) {
+  public async copyFrom(podRef: PodRef, containerName: string, srcPath: string, destDir: string) {
     const self = this;
-    const namespace = self.getNamespace();
+    const namespace = podRef.namespaceName;
     const guid = uuid4();
-    const messagePrefix = `copyFrom[${podName},${guid}]: `;
+    const messagePrefix = `copyFrom[${podRef.podName.name},${guid}]: `;
 
-    if (!(await self.getPodByName(podName))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
+    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
     // get stat for source file in the container
-    let entries = await self.listDir(podName, containerName, srcPath);
+    let entries = await self.listDir(podRef, containerName, srcPath);
     if (entries.length !== 1) {
       throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`);
     }
@@ -575,7 +590,7 @@ export class K8Client implements K8 {
         path.dirname(srcPath),
         entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4),
       );
-      entries = await self.listDir(podName, containerName, redirectSrcPath);
+      entries = await self.listDir(podRef, containerName, redirectSrcPath);
       if (entries.length !== 1) {
         throw new SoloError(`${messagePrefix}invalid source path: ${redirectSrcPath}`);
       }
@@ -620,7 +635,7 @@ export class K8Client implements K8 {
         execInstance
           .exec(
             namespace.name,
-            podName,
+            podRef.podName.name,
             containerName,
             command,
             outputFileStream,
@@ -687,13 +702,13 @@ export class K8Client implements K8 {
     }
   }
 
-  public async execContainer(podName: string, containerName: string, command: string | string[]) {
+  public async execContainer(podRef: PodRef, containerName: string, command: string | string[]) {
     const self = this;
-    const namespace = self.getNamespace();
+    const namespace = podRef.namespaceName;
     const guid = uuid4();
-    const messagePrefix = `execContainer[${podName},${guid}]:`;
+    const messagePrefix = `execContainer[${podRef.podName.name},${guid}]:`;
 
-    if (!(await self.getPodByName(podName))) throw new IllegalArgumentError(`Invalid pod ${podName}`);
+    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
 
     if (!command) throw new MissingArgumentError('command cannot be empty');
     if (!Array.isArray(command)) {
@@ -706,7 +721,7 @@ export class K8Client implements K8 {
       const localContext = {} as LocalContextObject;
       localContext.reject = reject;
       const execInstance = new k8s.Exec(self.kubeConfig);
-      const tmpFile = self.tempFileFor(`${podName}-output.txt`);
+      const tmpFile = self.tempFileFor(`${podRef.podName.name}-output.txt`);
       const outputFileStream = fs.createWriteStream(tmpFile);
       const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
       const errPassthroughStream = new stream.PassThrough();
@@ -726,7 +741,7 @@ export class K8Client implements K8 {
       execInstance
         .exec(
           namespace.name,
-          podName,
+          podRef.podName.name,
           containerName,
           command,
           outputFileStream,
@@ -766,22 +781,24 @@ export class K8Client implements K8 {
     });
   }
 
-  public async portForward(podName: PodName, localPort: number, podPort: number) {
+  public async portForward(podRef: PodRef, localPort: number, podPort: number) {
     try {
-      this.logger.debug(`Creating port-forwarder for ${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`);
-      const ns = this.getNamespace();
+      this.logger.debug(
+        `Creating port-forwarder for ${podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`,
+      );
+      const ns = podRef.namespaceName;
       const forwarder = new k8s.PortForward(this.kubeConfig, false);
       const server = (await net.createServer(socket => {
-        forwarder.portForward(ns.name, podName, [podPort], socket, null, socket, 3);
+        forwarder.portForward(ns.name, podRef.podName.name, [podPort], socket, null, socket, 3);
       })) as ExtendedNetServer;
 
       // add info for logging
-      server.info = `${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
+      server.info = `${podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
       server.localPort = localPort;
       this.logger.debug(`Starting port-forwarder [${server.info}]`);
       return server.listen(localPort, constants.LOCAL_HOST);
     } catch (e) {
-      const message = `failed to start port-forwarder [${podName}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
+      const message = `failed to start port-forwarder [${podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }
@@ -1456,17 +1473,23 @@ export class K8Client implements K8 {
     }
   }
 
-  public async killPod(podName: string, namespace: NamespaceName) {
+  public async killPod(podRef: PodRef) {
     try {
-      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace.name, undefined, undefined, 1);
+      const result = await this.kubeClient.deleteNamespacedPod(
+        podRef.podName.name,
+        podRef.namespaceName.name,
+        undefined,
+        undefined,
+        1,
+      );
       if (result.response.statusCode !== StatusCodes.OK) {
         throw new SoloError(
-          `Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`,
+          `Failed to delete pod ${podRef.podName.name} in namespace ${podRef.namespaceName.name}: statusCode: ${result.response.statusCode}`,
         );
       }
       let podExists = true;
       while (podExists) {
-        const pod = await this.getPodByName(podName);
+        const pod = await this.getPodByName(podRef);
         if (!pod?.metadata?.deletionTimestamp) {
           podExists = false;
         } else {
@@ -1474,7 +1497,7 @@ export class K8Client implements K8 {
         }
       }
     } catch (e) {
-      const errorMessage = `Failed to delete pod ${podName} in namespace ${namespace}: ${e.message}`;
+      const errorMessage = `Failed to delete pod ${podRef.podName.name} in namespace ${podRef.namespaceName.name}: ${e.message}`;
       if (e.body?.code === StatusCodes.NOT_FOUND || e.response?.body?.code === StatusCodes.NOT_FOUND) {
         this.logger.info(`Pod not found: ${errorMessage}`, e);
         return;
@@ -1497,39 +1520,39 @@ export class K8Client implements K8 {
 
     const promises = [];
     for (const pod of pods) {
-      promises.push(this.getNodeLog(pod, namespace.name, timeString));
+      promises.push(this.getNodeLog(pod, namespace, timeString));
     }
     return await Promise.all(promises);
   }
 
-  private async getNodeLog(pod: V1Pod, namespace: string, timeString: string) {
-    const podName = pod.metadata!.name as PodName;
+  private async getNodeLog(pod: V1Pod, namespace: NamespaceName, timeString: string) {
+    const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
     this.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
-    const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString);
+    const targetDir = path.join(SOLO_LOGS_DIR, namespace.name, timeString);
     try {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
       }
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyTo(podName, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`);
+      await this.copyTo(podRef, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`);
       await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
-      await this.execContainer(podName, ROOT_CONTAINER, [
+      await this.execContainer(podRef, ROOT_CONTAINER, [
         'bash',
         '-c',
         `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
       ]);
-      await this.execContainer(podName, ROOT_CONTAINER, [
+      await this.execContainer(podRef, ROOT_CONTAINER, [
         'bash',
         '-c',
         `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`,
       ]);
-      await this.execContainer(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podName}.zip`, targetDir);
+      await this.execContainer(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`);
+      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
-      this.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podName}`, e);
+      this.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podRef}`, e);
     }
     this.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`);
   }
@@ -1549,25 +1572,25 @@ export class K8Client implements K8 {
     // get length of pods
     const promises = [];
     for (const pod of pods) {
-      promises.push(this.getNodeState(pod, namespace.name));
+      promises.push(this.getNodeState(pod, namespace));
     }
     return await Promise.all(promises);
   }
 
-  public async getNodeState(pod: V1Pod, namespace: string) {
-    const podName = pod.metadata!.name as PodName;
+  public async getNodeState(pod: V1Pod, namespace: NamespaceName) {
+    const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
     this.logger.debug(`getNodeState(${pod.metadata.name}): begin...`);
-    const targetDir = path.join(SOLO_LOGS_DIR, namespace);
+    const targetDir = path.join(SOLO_LOGS_DIR, namespace.name);
     try {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
       }
-      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podName}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
-      await this.execContainer(podName, ROOT_CONTAINER, zipCommand);
-      await this.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podName}-state.zip`, targetDir);
+      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
+      await this.execContainer(podRef, ROOT_CONTAINER, zipCommand);
+      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
     } catch (e: Error | unknown) {
-      this.logger.error(`failed to download state from pod ${podName}`, e);
-      this.logger.showUser(`Failed to download state from pod ${podName}` + e);
+      this.logger.error(`failed to download state from pod ${podRef.podName.name}`, e);
+      this.logger.showUser(`Failed to download state from pod ${podRef.podName.name}` + e);
     }
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }
@@ -1590,9 +1613,7 @@ export class K8Client implements K8 {
   }
 
   public getCurrentClusterName(): string {
-    const currentCluster = this.kubeConfig.getCurrentCluster();
-    if (!currentCluster) return '';
-    return currentCluster.name;
+    return this.clusters().readCurrent();
   }
 
   public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<k8s.V1Service[]> {

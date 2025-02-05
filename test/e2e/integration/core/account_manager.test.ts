@@ -7,11 +7,12 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js';
 import * as version from '../../../../version.js';
-import {type PodName} from '../../../../src/types/aliases.js';
+import {PodName} from '../../../../src/core/kube/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../../src/core/kube/pod_ref.js';
 
 const namespace = NamespaceName.of('account-mngr-e2e');
 const argv = getDefaultArgv();
@@ -56,7 +57,8 @@ e2eTestSuite(
         await accountManager.close();
         const localHost = '127.0.0.1';
 
-        const podName = 'minio-console' as PodName; // use a svc that is less likely to be used by other tests
+        const podName = PodName.of('minio-console'); // use a svc that is less likely to be used by other tests
+        const podRef: PodRef = PodRef.of(namespace, podName);
         const podPort = 9_090;
         const localPort = 19_090;
 
@@ -68,7 +70,7 @@ e2eTestSuite(
 
         // ports should be opened
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
-        accountManager._portForwards.push(await k8.portForward(podName, localPort, podPort));
+        accountManager._portForwards.push(await k8.portForward(podRef, localPort, podPort));
 
         // ports should be closed
         await accountManager.close();
