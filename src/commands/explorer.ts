@@ -136,7 +136,7 @@ export class ExplorerCommand extends BaseCommand {
     if (hederaExplorerStaticIp !== '') {
       valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerStaticIp}`;
     } else if (mirrorStaticIP !== '') {
-      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${mirrorStaticIP}`;
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${mirrorStaticIp}`;
     }
 
     if (tlsClusterIssuerType === 'self-signed') {
