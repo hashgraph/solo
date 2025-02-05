@@ -32,7 +32,6 @@ import {type Namespaces} from './namespaces.js';
 import {NamespaceName} from './namespace_name.js';
 import K8ClientClusters from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
-import {PodRef} from './pod_ref.js';
 import {type ConfigMaps} from './config_maps.js';
 import K8ClientConfigMaps from './k8_client/k8_client_config_maps.js';
 import {PodRef} from './pod_ref.js';

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {isDns1123Label} from './kube_validation.js';
-import {PodNameInvalidError} from './kube_errors.js';
+import {PodNameInvalidError} from './errors/namespace_name_invalid_error.js';
 
 /**
  * Represents a Kubernetes pod name. A Kubernetes pod name must be a valid RFC-1123 DNS label.
