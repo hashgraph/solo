@@ -16,6 +16,7 @@ import {
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
+  NODE_OVERRIDE_FILE,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
@@ -947,7 +948,7 @@ export class NodeCommandTasks {
 
     const networkOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
-    const genesisNetworkJson = path.join(stagingDir, 'node-overrides.yaml');
+    const genesisNetworkJson = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
     fs.writeFileSync(genesisNetworkJson, networkOverridesModel.toYAML());
   }
 
