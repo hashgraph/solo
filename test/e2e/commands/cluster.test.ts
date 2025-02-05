@@ -13,7 +13,8 @@ import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
-import {NamespaceNameInvalidError} from '../../../src/core/kube/kube_errors.js';
+
+import {NamespaceNameInvalidError} from '../../../src/core/kube/errors/namespace_name_invalid_error.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests

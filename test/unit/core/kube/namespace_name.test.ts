@@ -3,7 +3,8 @@
  */
 import {expect} from 'chai';
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
-import {NamespaceNameInvalidError} from '../../../../src/core/kube/kube_errors.js';
+
+import {NamespaceNameInvalidError} from '../../../../src/core/kube/errors/namespace_name_invalid_error.js';
 
 describe('Namespace Name', () => {
   it('should throw an error if namespace is not valid', () => {

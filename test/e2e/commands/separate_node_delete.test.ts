@@ -21,6 +21,7 @@ import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
+import {ContainerRef} from '../../../src/core/kube/container_ref.js';
 
 const namespace = NamespaceName.of('node-delete-separate');
 const nodeAlias = 'node1' as NodeAlias;
@@ -95,8 +96,9 @@ e2eTestSuite(
         const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
         const podName = PodName.of(pods[0].metadata.name);
         const podRef = PodRef.of(namespace, podName);
+        const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
         const tmpDir = getTmpDir();
-        await k8.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
+        await k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
         const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
         console.log('config.txt:', configTxt);
         expect(configTxt).not.to.contain(nodeAlias);

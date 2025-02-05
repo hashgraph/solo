@@ -5,30 +5,31 @@ import {type ExtendedNetServer} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
 import {type ContainerName} from './container_name.js';
+import {type ContainerRef} from './container_ref.js';
 
 export interface Pod {
   /**
    * Copy a file from a container
    *
    * It overwrites any existing file at the destination directory
-   * @param containerName - the name of the container
+   * @param containerRef - the reference to the container
    * @param srcPath - the path to the file to copy
    * @param destDir - the destination directory
    */
-  copyFrom(containerName: ContainerName, srcPath: string, destDir: string): Promise<unknown>;
+  copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string): Promise<unknown>;
 
   /**
    * Copy a file into a container
    *
    * It overwrites any existing file inside the container at the destination directory
-   * @param containerName - the name of the container
+   * @param containerRef - the reference to the container
    * @param srcPath - the path of the local file to copy
    * @param destDir - the remote destination directory
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
   copyTo(
-    containerName: ContainerName,
+    containerRef: ContainerRef,
     srcPath: string,
     destDir: string,
     filter: TarCreateFilter | undefined,
@@ -36,26 +37,26 @@ export interface Pod {
 
   /**
    * Invoke sh command within a container and return the console output as string
-   * @param containerName - the name of the container
+   * @param containerRef - the reference to the container
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  execContainer(containerName: ContainerName, command: string | string[]): Promise<string>;
+  execContainer(containerRef: ContainerRef, command: string | string[]): Promise<string>;
 
   /**
    * Check if a directory exists in the specified container
-   * @param containerName - the name of the container
+   * @param containerRef - the reference to the container
    * @param destPath - the path to the directory inside the container
    */
-  hasDir(containerName: ContainerName, destPath: string): Promise<boolean>;
+  hasDir(containerRef: ContainerRef, destPath: string): Promise<boolean>;
 
   /**
    * Check if a file exists in the specified container
-   * @param containerName - the name of the container
+   * @param containerRef - the reference to the container
    * @param destPath - the remote path to the file
    * @param [filters] - optional filters to apply to the tar stream
    */
-  hasFile(containerName: ContainerName, destPath: string, filters: object): Promise<boolean>;
+  hasFile(containerRef: ContainerRef, destPath: string, filters: object): Promise<boolean>;
 
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
@@ -76,18 +77,18 @@ export interface Pod {
    *    modifiedAt: Jan 15 13:50
    *    name: config.txt
    * }]
-   * @param containerName - the name of the container
+   * @param containerRef - the reference to the container
    * @param destPath - the remote path to the directory
    * @returns a promise that returns array of directory entries, custom object
    */
-  listDir(containerName: ContainerName, destPath: string): Promise<any[] | TDirectoryData[]>;
+  listDir(containerRef: ContainerRef, destPath: string): Promise<any[] | TDirectoryData[]>;
 
   /**
    * Make a directory in the specified container
-   * @param containerName - the name of the container
+   * @param containerRef - the reference to the container
    * @param destPath - the remote path to the directory
    */
-  mkdir(containerName: ContainerName, destPath: string): Promise<string>;
+  mkdir(containerRef: ContainerRef, destPath: string): Promise<string>;
 
   /**
    * Port forward a port from a pod to localhost

@@ -26,7 +26,7 @@ export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config';
 export const SOLO_REMOTE_CONFIGMAP_LABELS = {'solo.hedera.com/type': 'remote-config'};
 export const SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY = 50;
 export const SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR = 'solo.hedera.com/type=remote-config';
-
+export const NODE_COPY_CONCURRENT = Number(process.env.NODE_COPY_CONCURRENT) || 4;
 // --------------- Hedera network and node related constants --------------------------------------------------------------------
 export const HEDERA_CHAIN_ID = process.env.SOLO_CHAIN_ID || '298';
 export const HEDERA_HGCAPP_DIR = '/opt/hgcapp';
