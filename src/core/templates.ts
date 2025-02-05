@@ -7,14 +7,15 @@ import path from 'path';
 import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
-import {type IP, type NodeAlias, type NodeId, type PodName} from '../types/aliases.js';
+import {type IP, type NodeAlias, type NodeId} from '../types/aliases.js';
+import {PodName} from './kube/pod_name.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
-import {type Namespace} from './config/remote/types.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
-    return `network-${nodeAlias}-0`;
+    return PodName.of(`network-${nodeAlias}-0`);
   }
 
   private static renderNetworkSvcName(nodeAlias: NodeAlias): string {
@@ -52,8 +53,8 @@ export class Templates {
   }
 
   private static extractNodeAliasFromPodName(podName: PodName): NodeAlias {
-    const parts = podName.split('-');
-    if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName}`, 3, parts.length);
+    const parts = podName.name.split('-');
+    if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName.name}`, 3, parts.length);
     return parts[1].trim() as NodeAlias;
   }
 
@@ -142,12 +143,12 @@ export class Templates {
     }
   }
 
-  public static renderFullyQualifiedNetworkPodName(namespace: string, nodeAlias: NodeAlias): string {
-    return `${Templates.renderNetworkPodName(nodeAlias)}.${Templates.renderNetworkHeadlessSvcName(nodeAlias)}.${namespace}.svc.cluster.local`;
+  public static renderFullyQualifiedNetworkPodName(namespace: NamespaceName, nodeAlias: NodeAlias): string {
+    return `${Templates.renderNetworkPodName(nodeAlias)}.${Templates.renderNetworkHeadlessSvcName(nodeAlias)}.${namespace.name}.svc.cluster.local`;
   }
 
-  public static renderFullyQualifiedNetworkSvcName(namespace: string, nodeAlias: NodeAlias): string {
-    return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace}.svc.cluster.local`;
+  public static renderFullyQualifiedNetworkSvcName(namespace: NamespaceName, nodeAlias: NodeAlias): string {
+    return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace.name}.svc.cluster.local`;
   }
 
   private static nodeAliasFromFullyQualifiedNetworkSvcName(svcName: string): NodeAlias {
@@ -222,7 +223,7 @@ export class Templates {
     return `haproxy-${nodeAlias}`;
   }
 
-  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: Namespace): string {
+  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: NamespaceName): string {
     return `${Templates.renderHaProxyName(nodeAlias)}-svc.${namespace}.svc.cluster.local`;
   }
 
