@@ -29,6 +29,8 @@ import {type K8} from './k8.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './namespaces.js';
 import {NamespaceName} from './namespace_name.js';
+import K8ClientClusters from './k8_client/k8_client_clusters.js';
+import {type Clusters} from './clusters.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -45,10 +47,13 @@ export class K8Client implements K8 {
     constants.POD_CONDITION_READY,
     constants.POD_CONDITION_STATUS_TRUE,
   );
+
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
   private networkingApi: k8s.NetworkingV1Api;
+
+  private k8Clusters: K8ClientClusters;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -77,12 +82,22 @@ export class K8Client implements K8 {
     this.networkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
+    this.k8Clusters = new K8ClientClusters(this.kubeConfig);
+
     return this; // to enable chaining
   }
 
   // TODO in the future this will return the namespaces class instance for fluent pattern
   public namespaces(): Namespaces {
     return null;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
+   * returns an object instance providing cluster operations
+   */
+  public clusters(): Clusters {
+    return this.k8Clusters;
   }
 
   /**
@@ -246,13 +261,8 @@ export class K8Client implements K8 {
     return this.filterItem(resp.body.items, {name});
   }
 
-  public getClusters() {
-    const clusters: string[] = [];
-    for (const cluster of this.kubeConfig.getClusters()) {
-      clusters.push(cluster.name);
-    }
-
-    return clusters;
+  public getClusters(): string[] {
+    return this.clusters().list();
   }
 
   public getContextNames(): string[] {
@@ -1590,9 +1600,7 @@ export class K8Client implements K8 {
   }
 
   public getCurrentClusterName(): string {
-    const currentCluster = this.kubeConfig.getCurrentCluster();
-    if (!currentCluster) return '';
-    return currentCluster.name;
+    return this.clusters().readCurrent();
   }
 
   public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<k8s.V1Service[]> {

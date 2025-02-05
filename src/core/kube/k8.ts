@@ -8,9 +8,20 @@ import {type TDirectoryData} from './t_directory_data.js';
 import {type V1Lease} from '@kubernetes/client-node';
 import {type Namespaces} from './namespaces.js';
 import {type NamespaceName} from './namespace_name.js';
+import {type Clusters} from './clusters.js';
 
 export interface K8 {
+  /**
+   * Fluent accessor for reading and manipulating namespaces.
+   * @returns an object instance providing namespace operations
+   */
   namespaces(): Namespaces;
+
+  /**
+   * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
+   * returns an object instance providing cluster operations
+   */
+  clusters(): Clusters;
 
   /**
    * Create a new namespace
