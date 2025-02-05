@@ -30,13 +30,15 @@ import path from 'path';
 import {SoloLogger} from './logging.js';
 import {type K8} from './kube/k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
-import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {PodName} from './kube/pod_name.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/namespace_name.js';
+import {PodRef} from './kube/pod_ref.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -336,7 +338,13 @@ export class AccountManager {
       const targetPort = localPort;
 
       if (this._portForwards.length < totalNodes) {
-        this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
+        this._portForwards.push(
+          await this.k8.portForward(
+            PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName),
+            localPort,
+            port,
+          ),
+        );
       }
 
       this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
@@ -483,7 +491,7 @@ export class AccountManager {
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
         const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
-        serviceBuilder.withHaProxyPodName(podList[0].metadata.name as PodName);
+        serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
@@ -494,10 +502,10 @@ export class AccountManager {
           // TODO Review why this fixes issue
           continue;
         }
-        const podName = pod.metadata!.name;
+        const podName = PodName.of(pod.metadata!.name);
         const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
         const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
-        serviceBuilder.withNodePodName(podName as PodName);
+        serviceBuilder.withNodePodName(podName);
       }
 
       const serviceMap = new Map<NodeAlias, NetworkNodeServices>();

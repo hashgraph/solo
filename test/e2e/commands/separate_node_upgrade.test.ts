@@ -9,10 +9,11 @@ import {e2eTestSuite, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} fr
 import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import {type PodName} from '../../../src/types/aliases.js';
+import {PodName} from '../../../src/core/kube/pod_name.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/pod_ref.js';
 
 const namespace = NamespaceName.of('node-upgrade');
 const argv = getDefaultArgv();
@@ -91,8 +92,9 @@ e2eTestSuite(
         // copy the version.txt file from the pod data/upgrade/current directory
         const tmpDir = getTmpDir();
         const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-        const podName = pods[0].metadata.name as PodName;
-        await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
+        const podName = PodName.of(pods[0].metadata.name);
+        const podRef = PodRef.of(namespace, podName);
+        await k8.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
 
         // compare the version.txt
         const version = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');
