@@ -306,19 +306,19 @@ export class K8Client implements K8 {
   }
 
   public async listDir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().byRef(containerRef).listDir(destPath);
+    return this.containers().readByRef(containerRef).listDir(destPath);
   }
 
   public async hasFile(containerRef: ContainerRef, destPath: string, filters: object = {}) {
-    return this.containers().byRef(containerRef).hasFile(destPath, filters);
+    return this.containers().readByRef(containerRef).hasFile(destPath, filters);
   }
 
   public async hasDir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().byRef(containerRef).hasDir(destPath);
+    return this.containers().readByRef(containerRef).hasDir(destPath);
   }
 
   public mkdir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().byRef(containerRef).mkdir(destPath);
+    return this.containers().readByRef(containerRef).mkdir(destPath);
   }
 
   public async copyTo(
@@ -327,15 +327,15 @@ export class K8Client implements K8 {
     destDir: string,
     filter: TarCreateFilter | undefined = undefined,
   ) {
-    return this.containers().byRef(containerRef).copyTo(srcPath, destDir, filter);
+    return this.containers().readByRef(containerRef).copyTo(srcPath, destDir, filter);
   }
 
   public async copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string) {
-    return this.containers().byRef(containerRef).copyFrom(srcPath, destDir);
+    return this.containers().readByRef(containerRef).copyFrom(srcPath, destDir);
   }
 
   public async execContainer(containerRef: ContainerRef, command: string | string[]) {
-    return this.containers().byRef(containerRef).execContainer(command);
+    return this.containers().readByRef(containerRef).execContainer(command);
   }
 
   public async portForward(podRef: PodRef, localPort: number, podPort: number) {

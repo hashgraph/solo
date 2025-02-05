@@ -13,7 +13,7 @@ import {type KubeConfig} from '@kubernetes/client-node';
 export class K8ClientContainers implements Containers {
   constructor(private readonly kubeConfig: KubeConfig) {}
 
-  byRef(containerRef: ContainerRef): Container {
+  readByRef(containerRef: ContainerRef): Container {
     return new K8ClientContainer(this.kubeConfig, containerRef);
   }
 }
