@@ -65,7 +65,7 @@ const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
 
 argv[flags.namespace.name] = namespace.name;
-argv[flags.deployment.name] = 'solo-1';
+argv[flags.deployment.name] = 'solo-e2e';
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
@@ -77,7 +77,7 @@ argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
 
 describe('ClusterCommand unit tests', () => {
   before(() => {
-    resetTestContainer();
+    resetTestContainer(namespace.name);
   });
 
   describe('Chart Install Function is called correctly', () => {
@@ -137,7 +137,7 @@ describe('ClusterCommand unit tests', () => {
     let localConfig: LocalConfig;
     const defaultRemoteConfig = {
       metadata: {
-        name: 'solo-1',
+        name: 'solo-e2e',
       },
       clusters: {},
     };
@@ -260,7 +260,7 @@ describe('ClusterCommand unit tests', () => {
       it('should update currentDeployment with clusters from remoteConfig', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
-            'cluster-2': 'solo-1',
+            'cluster-2': 'solo-e2e',
           },
         });
 

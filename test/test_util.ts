@@ -76,10 +76,16 @@ export function getDefaultArgv() {
     argv[f.name] = f.definition.defaultValue;
   }
 
+  const currentDeployment = testLocalConfigData.currentDeploymentName;
+  const currentDeploymentNamespace = NamespaceName.of(testLocalConfigData.deployments[currentDeployment].namespace);
+
   const cacheDir = getTestCacheDir();
   argv.cacheDir = cacheDir;
   argv[flags.cacheDir.name] = cacheDir;
-
+  argv.deployment = currentDeployment;
+  argv[flags.deployment.name] = currentDeployment;
+  // argv.namespace = currentDeploymentNamespace;
+  // argv[flags.namespace.name] = currentDeploymentNamespace;
   return argv;
 }
 
@@ -132,7 +138,7 @@ export function bootstrapTestVariables(
   const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
   const deployment: string = argv[flags.deployment.name] || 'deployment';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-  resetTestContainer(cacheDir);
+  resetTestContainer(namespace.name, cacheDir);
   const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 
@@ -278,6 +284,7 @@ export function e2eTestSuite(
           flags.bootstrapProperties.constName,
           flags.chainId.constName,
           flags.log4j2Xml.constName,
+          flags.deployment.constName,
           flags.profileFile.constName,
           flags.profileName.constName,
           flags.quiet.constName,
@@ -468,7 +475,7 @@ export const testLocalConfigData = {
   deployments: {
     deployment: {
       clusters: ['cluster-1'],
-      namespace: 'solo-1',
+      namespace: 'solo-e2e',
     },
     'deployment-2': {
       clusters: ['cluster-2'],
