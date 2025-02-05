@@ -394,7 +394,6 @@ export interface NodeKeysConfigClass {
   getUnusedConfigs: () => string[];
 }
 
-
 export interface NodeStartConfigClass {
   app: string;
   cacheDir: string;

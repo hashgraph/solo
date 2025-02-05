@@ -38,6 +38,7 @@ export interface NetworkDeployConfigClass {
   loadBalancerEnabled: boolean;
   soloChartVersion: string;
   namespace: NamespaceName;
+  deployment: string;
   nodeAliasesUnparsed: string;
   persistentVolumeClaims: string;
   profileFile: string;
