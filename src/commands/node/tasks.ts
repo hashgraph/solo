@@ -16,7 +16,6 @@ import {
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
-  NODE_OVERRIDE_FILE,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
