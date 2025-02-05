@@ -3,7 +3,7 @@
  */
 import {type PodRef} from './pod_ref.js';
 import {type ContainerName} from './container_name.js';
-import {MissingContainerNameError, MissingPodRefError} from './kube_errors.js';
+import {MissingContainerNameError, MissingPodRefError} from './errors/namespace_name_invalid_error.js';
 
 /**
  * Represents a Kubernetes pod reference which includes the namespace name and pod name.
