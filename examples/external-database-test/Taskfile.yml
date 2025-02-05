@@ -6,7 +6,7 @@ includes:
 vars:
   use_port_forwards: "true"
   postgres_username: "postgres"
-  postgres_password: "XXXXXXXXXXXX"
+  postgres_password: "XXXXXXXXX"
   postgres_host: "my-postgresql.database.svc.cluster.local"
 env:
   SOLO_NETWORK_SIZE: "1"

@@ -15,6 +15,8 @@ revoke create on schema temporary from public;
 grant usage on schema public to public;
 revoke create on schema public from public;
 
+-- grant temporary_admin to mirror_node;
+
 grant usage on schema temporary to public;
 revoke create on schema temporary from public;
 

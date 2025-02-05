@@ -1572,6 +1572,7 @@ export class Flags {
       describe: "Use to provide the external database owner's password if the '--use-external-database' is passed",
       defaultValue: '',
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
