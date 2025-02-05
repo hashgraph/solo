@@ -7,6 +7,7 @@ import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
 import path, {dirname, normalize} from 'path';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/namespace_name.js';
+import {ContainerName} from './kube/container_name.js';
 
 export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -20,7 +21,7 @@ export const DEFAULT_CERT_MANAGER_NAMESPACE = NamespaceName.of('cert-manager');
 export const HELM = 'helm';
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'));
 
-export const ROOT_CONTAINER = 'root-container';
+export const ROOT_CONTAINER = ContainerName.of('root-container');
 export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config';
 export const SOLO_REMOTE_CONFIGMAP_LABELS = {'solo.hedera.com/type': 'remote-config'};
 export const SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY = 50;
