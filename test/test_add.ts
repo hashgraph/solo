@@ -76,12 +76,7 @@ export function testNodeAdd(
 
         it('cache current version of private keys', async () => {
           existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
-          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
-            existingServiceMap,
-            namespace,
-            k8,
-            getTmpDir(),
-          );
+          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
         }).timeout(defaultTimeout);
 
         it('should succeed with init command', async () => {
@@ -106,7 +101,6 @@ export function testNodeAdd(
         it('existing nodes private keys should not have changed', async () => {
           const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
             existingServiceMap,
-            namespace,
             k8,
             getTmpDir(),
           );

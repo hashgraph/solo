@@ -39,6 +39,7 @@ jobs:
     timeout-minutes: 30
     runs-on: solo-linux-large
     strategy:
+      fail-fast: false
       matrix:
         type: ["NO_ACCOUNT_INIT", "ACCOUNT_INIT"]
     steps:
