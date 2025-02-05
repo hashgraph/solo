@@ -24,7 +24,7 @@ interface ExplorerDeployConfigClass {
   hederaExplorerTlsHostName: string;
   hederaExplorerStaticIp: string | '';
   hederaExplorerVersion: string;
-  mirrorStaticIP: string;
+  mirrorStaticIp: string;
   namespace: NamespaceName;
   profileFile: string;
   profileName: string;
