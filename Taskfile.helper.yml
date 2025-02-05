@@ -297,7 +297,7 @@ tasks:
     status:
       - kind get clusters | grep -q "${SOLO_CLUSTER_NAME}"
     cmds:
-      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}"
+      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" --config ~/Documents/kind-cluster.yaml
       - sleep 10 # wait for control plane to come up
       - kubectl config set-context kind-${SOLO_CLUSTER_NAME}
 
@@ -491,4 +491,4 @@ tasks:
       - name: "Make init.sh executable"
         cmd: kubectl exec -it my-postgresql-0 -n database -- chmod +x /tmp/init.sh
       - name: "Execute init.sh inside the database pod"
-        cmd: kubectl exec -it my-postgresql-0 -n database -- /bin/bash /tmp/init.sh
+        cmd: kubectl exec -it my-postgresql-0 -n database -- /bin/bash /tmp/init.sh "{{.postgres_username}}" "{{.postgres_password}}"

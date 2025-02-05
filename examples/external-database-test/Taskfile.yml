@@ -7,7 +7,7 @@ vars:
   use_port_forwards: "true"
   postgres_username: "postgres"
   postgres_password: "XXXXXXXXXXXX"
-  postgres_host: "my-postgresql-0.database.svc.cluster.local"
+  postgres_host: "my-postgresql.database.svc.cluster.local"
 env:
   SOLO_NETWORK_SIZE: "1"
   SOLO_NAMESPACE: "external-database-test"
@@ -40,7 +40,7 @@ tasks:
       - name: "Copy database-seeding-query.sql inside the database pod"
         cmd: kubectl cp {{.HOME}}/.solo/cache/database-seeding-query.sql my-postgresql-0:/tmp/database-seeding-query.sql -n database
       - name: "Execute the database-seeding–query.sql against the database"
-        cmd: kubectl exec -it my-postgresql-0 -n database -- env PGPASSWORD={{.postgres_password}} psql -U {{.postgres_username}} -d mirror_node -f /tmp/database-seeding-query.sql
+        cmd: kubectl exec -it my-postgresql-0 -n database -- env PGPASSWORD={{.postgres_password}} psql -U {{.postgres_username}} -f /tmp/database-seeding-query.sql
   destroy:
     desc: destroy relay, mirror-node, and network
     deps:

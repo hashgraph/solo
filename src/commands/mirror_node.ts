@@ -146,7 +146,7 @@ export class MirrorNodeCommand extends BaseCommand {
         externalDatabaseOwnerPassword: password,
       } = config;
 
-      config.valuesArg += helpers.populateHelmArgs({
+      valuesArg += helpers.populateHelmArgs({
         // Disable default database deployment
         'stackgres.enabled': false,
         'postgresql.enabled': false,
