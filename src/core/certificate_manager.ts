@@ -14,6 +14,7 @@ import {type ListrTaskWrapper} from 'listr2';
 import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
@@ -196,7 +197,7 @@ export class CertificateManager {
   }
 
   private getNamespace() {
-    const ns = this.configManager.getFlag<string>(flags.namespace) as string;
+    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }

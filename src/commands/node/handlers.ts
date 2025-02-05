@@ -40,6 +40,7 @@ import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
+import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -861,7 +862,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    */
   public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
-      config: {namespace: string; nodeAliases: NodeAliases};
+      config: {namespace: NamespaceNameAsString; nodeAliases: NodeAliases};
     }
 
     return {

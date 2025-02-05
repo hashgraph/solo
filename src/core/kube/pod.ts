@@ -4,6 +4,7 @@
 import {type ExtendedNetServer} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
+import {type ContainerName} from './container_name.js';
 
 export interface Pod {
   /**
@@ -14,7 +15,7 @@ export interface Pod {
    * @param srcPath - the path to the file to copy
    * @param destDir - the destination directory
    */
-  copyFrom(containerName: string, srcPath: string, destDir: string): Promise<unknown>;
+  copyFrom(containerName: ContainerName, srcPath: string, destDir: string): Promise<unknown>;
 
   /**
    * Copy a file into a container
@@ -27,7 +28,7 @@ export interface Pod {
    * @returns a Promise that performs the copy operation
    */
   copyTo(
-    containerName: string,
+    containerName: ContainerName,
     srcPath: string,
     destDir: string,
     filter: TarCreateFilter | undefined,
@@ -39,14 +40,14 @@ export interface Pod {
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  execContainer(containerName: string, command: string | string[]): Promise<string>;
+  execContainer(containerName: ContainerName, command: string | string[]): Promise<string>;
 
   /**
    * Check if a directory exists in the specified container
    * @param containerName - the name of the container
    * @param destPath - the path to the directory inside the container
    */
-  hasDir(containerName: string, destPath: string): Promise<boolean>;
+  hasDir(containerName: ContainerName, destPath: string): Promise<boolean>;
 
   /**
    * Check if a file exists in the specified container
@@ -54,7 +55,7 @@ export interface Pod {
    * @param destPath - the remote path to the file
    * @param [filters] - optional filters to apply to the tar stream
    */
-  hasFile(containerName: string, destPath: string, filters: object): Promise<boolean>;
+  hasFile(containerName: ContainerName, destPath: string, filters: object): Promise<boolean>;
 
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
@@ -79,14 +80,14 @@ export interface Pod {
    * @param destPath - the remote path to the directory
    * @returns a promise that returns array of directory entries, custom object
    */
-  listDir(containerName: string, destPath: string): Promise<any[] | TDirectoryData[]>;
+  listDir(containerName: ContainerName, destPath: string): Promise<any[] | TDirectoryData[]>;
 
   /**
    * Make a directory in the specified container
    * @param containerName - the name of the container
    * @param destPath - the remote path to the directory
    */
-  mkdir(containerName: string, destPath: string): Promise<string>;
+  mkdir(containerName: ContainerName, destPath: string): Promise<string>;
 
   /**
    * Port forward a port from a pod to localhost
