@@ -175,6 +175,7 @@ export class RelayCommand extends BaseCommand {
       chainId: string;
       chartDirectory: string;
       namespace: NamespaceName;
+      deployment: string;
       nodeAliasesUnparsed: string;
       operatorId: string;
       operatorKey: string;
@@ -214,6 +215,7 @@ export class RelayCommand extends BaseCommand {
               'nodeAliases',
             ]) as RelayDeployConfigClass;
 
+            ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
             ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(
@@ -316,6 +318,7 @@ export class RelayCommand extends BaseCommand {
     interface RelayDestroyConfigClass {
       chartDirectory: string;
       namespace: NamespaceName;
+      deployment: string;
       nodeAliases: NodeAliases;
       releaseName: string;
       isChartInstalled: boolean;
