@@ -105,7 +105,7 @@ export class ExplorerCommand extends BaseCommand {
    * @param config - the configuration object
    */
   private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
-    const {tlsClusterIssuerType, namespace, mirrorStaticIP, hederaExplorerStaticIp} = config;
+    const {tlsClusterIssuerType, namespace, mirrorStaticIp, hederaExplorerStaticIp} = config;
 
     let valuesArg = '';
 
