@@ -22,7 +22,7 @@ import {type AccountManager} from '../account_manager.js';
 export class GenesisNetworkDataConstructor implements ToJSON {
   public readonly nodes: Record<NodeAlias, GenesisNetworkNodeDataWrapper> = {};
   public readonly rosters: Record<NodeAlias, GenesisNetworkRosterEntryDataWrapper> = {};
-
+  private readonly initializationPromise: Promise<void>;
   private constructor(
     private readonly nodeAliases: NodeAliases,
     private readonly keyManager: KeyManager,
@@ -31,51 +31,55 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
     adminPublicKeyMap: Map<NodeAlias, string>,
   ) {
-    nodeAliases.forEach(async nodeAlias => {
-      let adminPubKey: PublicKey;
-      const accountId = AccountId.fromString(networkNodeServiceMap.get(nodeAlias).accountId);
-      const namespace = networkNodeServiceMap.get(nodeAlias).namespace;
+    this.initializationPromise = (async () => {
+      nodeAliases.forEach(nodeAlias => {
+        let adminPubKey: PublicKey;
+        const accountId = AccountId.fromString(networkNodeServiceMap.get(nodeAlias).accountId);
+        const namespace = networkNodeServiceMap.get(nodeAlias).namespace;
 
-      if (adminPublicKeyMap.has(nodeAlias)) {
-        try {
-          if (PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])) {
-            adminPubKey = adminPublicKeyMap[nodeAlias];
+        if (adminPublicKeyMap.has(nodeAlias)) {
+          try {
+            if (PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])) {
+              adminPubKey = adminPublicKeyMap[nodeAlias];
+            }
+          } catch {
+            // Ignore error
           }
-        } catch {
-          // Ignore error
         }
-      }
 
-      // not found existing one, generate a new key, and save to k8 secret
-      if (!adminPubKey) {
-        const newKey = PrivateKey.generate();
-        adminPubKey = newKey.publicKey;
-        await this.accountManager.updateAccountKeys(namespace, accountId, newKey, true);
-      }
+        // not found existing one, generate a new key, and save to k8 secret
+        if (!adminPubKey) {
+          const newKey = PrivateKey.generate();
+          adminPubKey = newKey.publicKey;
+          this.accountManager.updateAccountKeys(namespace, accountId, newKey, true);
+        }
 
-      const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
-        +networkNodeServiceMap.get(nodeAlias).nodeId,
-        adminPubKey,
-        nodeAlias,
-      );
-      this.nodes[nodeAlias] = nodeDataWrapper;
-      nodeDataWrapper.accountId = accountId;
+        const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
+          +networkNodeServiceMap.get(nodeAlias).nodeId,
+          adminPubKey,
+          nodeAlias,
+        );
+        this.nodes[nodeAlias] = nodeDataWrapper;
+        nodeDataWrapper.accountId = accountId;
 
-      const rosterDataWrapper = new GenesisNetworkRosterEntryDataWrapper(+networkNodeServiceMap.get(nodeAlias).nodeId);
-      this.rosters[nodeAlias] = rosterDataWrapper;
-      rosterDataWrapper.weight = this.nodes[nodeAlias].weight = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
+        const rosterDataWrapper = new GenesisNetworkRosterEntryDataWrapper(
+          +networkNodeServiceMap.get(nodeAlias).nodeId,
+        );
+        this.rosters[nodeAlias] = rosterDataWrapper;
+        rosterDataWrapper.weight = this.nodes[nodeAlias].weight = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
 
-      const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
-      const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
-      // Add gossip endpoints
-      nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
-      rosterDataWrapper.addGossipEndpoint(externalIP, externalPort);
+        const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
+        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
+        // Add gossip endpoints
+        nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
+        rosterDataWrapper.addGossipEndpoint(externalIP, externalPort);
 
-      const haProxyFqdn = Templates.renderFullyQualifiedHaProxyName(nodeAlias, namespace);
+        const haProxyFqdn = Templates.renderFullyQualifiedHaProxyName(nodeAlias, namespace);
 
-      // Add service endpoints
-      nodeDataWrapper.addServiceEndpoint(haProxyFqdn, constants.GRPC_PORT);
-    });
+        // Add service endpoints
+        nodeDataWrapper.addServiceEndpoint(haProxyFqdn, constants.GRPC_PORT);
+      });
+    })();
   }
 
   public static async initialize(
@@ -119,6 +123,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
    * Loads the gossipCaCertificate and grpcCertificateHash
    */
   private async load() {
+    await this.initializationPromise;
     await Promise.all(
       this.nodeAliases.map(async nodeAlias => {
         const signingCertFile = Templates.renderGossipPemPublicKeyFile(nodeAlias);
