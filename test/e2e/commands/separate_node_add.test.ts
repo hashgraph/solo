@@ -76,12 +76,7 @@ e2eTestSuite(
       it('cache current version of private keys', async () => {
         // @ts-ignore
         existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace);
-        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
-          existingServiceMap,
-          namespace,
-          k8,
-          getTmpDir(),
-        );
+        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
       }).timeout(defaultTimeout);
 
       it('should succeed with init command', async () => {
@@ -112,12 +107,7 @@ e2eTestSuite(
       accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
 
       it('existing nodes private keys should not have changed', async () => {
-        const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
-          existingServiceMap,
-          namespace,
-          k8,
-          getTmpDir(),
-        );
+        const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
 
         for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
           const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias);

@@ -16,6 +16,7 @@ import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 import {PodName} from '../../../../src/core/kube/pod_name.js';
+import {PodRef} from '../../../../src/core/kube/pod_ref.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -48,6 +49,7 @@ e2eTestSuite(
       let accountManager: AccountManager;
       let installer: PlatformInstaller;
       const podName = PodName.of('network-node1-0');
+      const podRef = PodRef.of(namespace, podName);
       const packageVersion = 'v0.42.5';
 
       before(() => {
@@ -75,24 +77,27 @@ e2eTestSuite(
         it('should fail with invalid pod', async () => {
           try {
             // @ts-ignore
-            await installer.fetchPlatform('', packageVersion);
+            await installer.fetchPlatform(null, packageVersion);
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
-            expect(e.message).to.include('podName is required');
+            expect(e.message).to.include('podRef is required');
           }
 
           try {
             // @ts-ignore
-            await installer.fetchPlatform('INVALID', packageVersion);
+            await installer.fetchPlatform(
+              PodRef.of(NamespaceName.of('valid-namespace'), PodName.of('INVALID_POD')),
+              packageVersion,
+            );
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
-            expect(e.message).to.include('failed to extract platform code in this pod');
+            expect(e.message).to.include('must be a valid RFC-1123 DNS label');
           }
         }).timeout(defaultTimeout);
 
         it('should fail with invalid tag', async () => {
           try {
-            await installer.fetchPlatform(podName, 'INVALID');
+            await installer.fetchPlatform(podRef, 'INVALID');
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
             expect(e.message).to.include('curl: (22) The requested URL returned error: 404');
@@ -100,9 +105,9 @@ e2eTestSuite(
         }).timeout(defaultTimeout);
 
         it('should succeed with valid tag and pod', async () => {
-          expect(await installer.fetchPlatform(podName, packageVersion)).to.be.true;
+          expect(await installer.fetchPlatform(podRef, packageVersion)).to.be.true;
           const outputs = await k8.execContainer(
-            podName,
+            podRef,
             constants.ROOT_CONTAINER,
             `ls -la ${constants.HEDERA_HAPI_PATH}`,
           );

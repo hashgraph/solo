@@ -13,6 +13,7 @@ import {PodName} from '../../../src/core/kube/pod_name.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/pod_ref.js';
 
 const namespace = NamespaceName.of('node-upgrade');
 const argv = getDefaultArgv();
@@ -86,7 +87,12 @@ e2eTestSuite(
         const tmpDir = getTmpDir();
         const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
         const podName = PodName.of(pods[0].metadata.name);
-        await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
+        await k8.copyFrom(
+          PodRef.of(namespace, podName),
+          ROOT_CONTAINER,
+          `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`,
+          tmpDir,
+        );
 
         // compare the version.txt
         const version = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');

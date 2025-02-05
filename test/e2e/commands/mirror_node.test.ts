@@ -23,6 +23,7 @@ import {PackageDownloader} from '../../../src/core/package_downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/pod_ref.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -105,7 +106,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         const pods = await k8.getPodsByLabel(['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod = pods[0];
 
-        portForwarder = await k8.portForward(PodName.of(explorerPod.metadata.name), 8_080, 8_080);
+        portForwarder = await k8.portForward(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)), 8_080, 8_080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running
