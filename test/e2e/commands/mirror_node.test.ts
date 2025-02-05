@@ -88,7 +88,6 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.chartDirectory.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
-        flags.quiet.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
         flags.externalDatabaseHost.constName,
