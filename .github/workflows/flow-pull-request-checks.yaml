@@ -97,6 +97,7 @@ jobs:
       npm-test-script: ${{ matrix.e2e-test-type.npm-test-script }}
       coverage-subdirectory: ${{ matrix.e2e-test-type.coverage-subdirectory }}
       coverage-report-name: ${{ matrix.e2e-test-type.coverage-report-name }}
+      cluster-name: ${{ matrix.e2e-test-type.cluster-name }}
 
   codecov:
     name: CodeCov
