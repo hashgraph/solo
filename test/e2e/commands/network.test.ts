@@ -85,6 +85,7 @@ describe('NetworkCommand', () => {
         flags.bootstrapProperties.constName,
         flags.chainId.constName,
         flags.log4j2Xml.constName,
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
