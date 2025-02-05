@@ -22,10 +22,10 @@ export class ResourceOperationError extends SoloError {
     name: string,
     cause?: Error,
   ) {
-    super(`failed to ${operation} ${resourceType} ${name} in namespace ${namespace}: ${cause?.message}`, cause, {
+    super(`failed to ${operation} ${resourceType} '${name}' in namespace '${namespace}'`, cause, {
       operation: operation,
       resourceType: resourceType,
-      namespace: namespace,
+      namespace: namespace?.name,
       name: name,
     });
   }
