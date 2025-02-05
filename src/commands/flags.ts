@@ -1380,8 +1380,8 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly mirrorStaticIP: CommandFlag = {
-    constName: 'mirrorStaticIP',
+  static readonly mirrorStaticIp: CommandFlag = {
+    constName: 'mirrorStaticIp',
     name: 'mirror-static-ip',
     definition: {
       describe: 'static IP address for the mirror node',
