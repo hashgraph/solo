@@ -1793,7 +1793,7 @@ export class Flags {
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
-    Flags.mirrorStaticIP,
+    Flags.mirrorStaticIp,
     Flags.namespace,
     Flags.newAccountNumber,
     Flags.newAdminKey,
