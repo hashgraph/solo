@@ -105,6 +105,11 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           await accountManager.close();
         });
 
+        it('Genesis key should have been updated', async () => {
+          const keys = await accountManager.getAccountKeys(constants.TREASURY_ACCOUNT_ID);
+          expect(keys[0].toString()).not.to.equal(genesisKey.toString());
+        });
+
         for (const [start, end] of testSystemAccounts) {
           for (let i = start; i <= end; i++) {
             it(`account ${i} should not have genesis key`, async () => {

@@ -8,7 +8,7 @@ import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
-import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
+import {AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -240,6 +240,20 @@ export class AccountCommand extends BaseCommand {
                         collapseSubtasks: false,
                       },
                     });
+                  },
+                },
+                {
+                  title: 'Update node admin key',
+                  task: async ctx => {
+                    const newPrivateKey = PrivateKey.generateED25519();
+                    const genesisAccountId = AccountId.fromString(constants.FREEZE_ADMIN_ACCOUNT);
+                    // update genesis account key
+                    await self.accountManager.updateAccountKeys(
+                      ctx.config.namespace,
+                      genesisAccountId,
+                      newPrivateKey,
+                      true,
+                    );
                   },
                 },
                 {
