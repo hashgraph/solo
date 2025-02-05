@@ -6,11 +6,14 @@ import {type NamespaceName} from './namespace_name.js';
 
 export interface ConfigMaps {
   /**
-   * Create a new config map
+   * Create a new config map. If the config map already exists, it will not be replaced.
+   *
    * @param namespace - for the config map
    * @param name - for the config name
    * @param labels - for the config metadata
    * @param data - to contain in the config
+   * @throws {ResourceCreateError} if the config map could not be created.
+   * @throws {KubeApiError} if the API call fails for an unexpected reason.
    */
   create(
     namespace: NamespaceName,
@@ -20,11 +23,22 @@ export interface ConfigMaps {
   ): Promise<boolean>; // TODO was createNamespacedConfigMap
 
   /**
-   * Delete a config map
+   * Create or replace a config map. If the config map already exists, it will be replaced.
+   *
    * @param namespace - for the config map
    * @param name - for the config name
+   * @param labels - for the config metadata
+   * @param data - to contain in the config
+   * @throws {ResourceCreateError} if the config map could not be created.
+   * @throws {ResourceReplaceError} if the config map could not be replaced.
+   * @throws {KubeApiError} if the API call fails for an unexpected reason.
    */
-  delete(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was deleteNamespacedConfigMap
+  createOrReplace(
+    namespace: NamespaceName,
+    name: string,
+    labels: Record<string, string>,
+    data: Record<string, string>,
+  ): Promise<boolean>;
 
   /**
    * Read a config map
@@ -46,4 +60,18 @@ export interface ConfigMaps {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean>; // TODO was replaceNamespacedConfigMap
+
+  /**
+   * Delete a config map
+   * @param namespace - for the config map
+   * @param name - for the config name
+   */
+  delete(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was deleteNamespacedConfigMap
+
+  /**
+   * Check if a config map exists
+   * @param namespace - for the config map
+   * @param name - for the config name
+   */
+  exists(namespace: NamespaceName, name: string): Promise<boolean>;
 }

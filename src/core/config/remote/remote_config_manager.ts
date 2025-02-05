@@ -25,6 +25,7 @@ import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {NamespaceName} from '../../kube/namespace_name.js';
+import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -261,7 +262,7 @@ export class RemoteConfigManager {
     try {
       return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (error: any) {
-      if (error.meta?.statusCode !== StatusCodes.NOT_FOUND) {
+      if (!(error instanceof ResourceNotFoundError)) {
         throw new SoloError('Failed to read remote config from cluster', error);
       }
 
