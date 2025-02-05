@@ -51,13 +51,8 @@ import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type Listr, type ListrTaskWrapper} from 'listr2';
-import {
-  type ConfigBuilder,
-  type NodeAlias,
-  type NodeAliases,
-  type PodName,
-  type SkipCheck,
-} from '../../types/aliases.js';
+import {type ConfigBuilder, type NodeAlias, type NodeAliases, type SkipCheck} from '../../types/aliases.js';
+import {PodName} from '../../core/kube/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
@@ -1026,8 +1021,8 @@ export class NodeCommandTasks {
     return new Task(
       'Enable port forwarding for JVM debugger',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-        const podName = `network-${ctx.config.debugNodeAlias}-0` as PodName;
-        this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName}`);
+        const podName = PodName.of(`network-${ctx.config.debugNodeAlias}-0`);
+        this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podName.name}`);
         await this.k8.portForward(podName, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT);
       },
       (ctx: any) => !ctx.config.debugNodeAlias,

@@ -2,7 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type * as k8s from '@kubernetes/client-node';
-import {type PodName, type TarCreateFilter} from '../../types/aliases.js';
+import {type TarCreateFilter} from '../../types/aliases.js';
+import {type PodName} from './pod_name.js';
 import {type ExtendedNetServer, type Optional} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type V1Lease} from '@kubernetes/client-node';
@@ -48,7 +49,7 @@ export interface K8 {
    * Get a podName by name
    * @param name - podName name
    */
-  getPodByName(name: string): Promise<k8s.V1Pod>;
+  getPodByName(name: PodName): Promise<k8s.V1Pod>;
 
   /**
    * Get pods by labels
@@ -119,7 +120,7 @@ export interface K8 {
    * @param containerName
    * @param destPath - path inside the container
    */
-  hasDir(podName: string, containerName: string, destPath: string): Promise<boolean>;
+  hasDir(podName: PodName, containerName: string, destPath: string): Promise<boolean>;
 
   mkdir(podName: PodName, containerName: string, destPath: string): Promise<string>;
 
@@ -162,7 +163,7 @@ export interface K8 {
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  execContainer(podName: string, containerName: string, command: string | string[]): Promise<string>;
+  execContainer(podName: PodName, containerName: string, command: string | string[]): Promise<string>;
 
   /**
    * Port forward a port from a pod to localhost
@@ -348,7 +349,7 @@ export interface K8 {
    * @param podName - the name of the pod
    * @param namespace - the namespace of the pod
    */
-  killPod(podName: string, namespace: NamespaceName): Promise<void>;
+  killPod(podName: PodName, namespace: NamespaceName): Promise<void>;
 
   /**
    * Download logs files from all network pods and save to local solo log directory

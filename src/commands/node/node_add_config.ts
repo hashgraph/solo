@@ -1,7 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NodeAlias, type NodeAliases, type PodName} from '../../types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type PodName} from '../../core/kube/pod_name.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type PrivateKey} from '@hashgraph/sdk';
 

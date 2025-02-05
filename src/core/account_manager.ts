@@ -30,7 +30,8 @@ import path from 'path';
 import {SoloLogger} from './logging.js';
 import {type K8} from './kube/k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
-import {type NodeAlias, type PodName, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {PodName} from './kube/pod_name.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
@@ -483,7 +484,7 @@ export class AccountManager {
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
         const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
-        serviceBuilder.withHaProxyPodName(podList[0].metadata.name as PodName);
+        serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
@@ -494,10 +495,10 @@ export class AccountManager {
           // TODO Review why this fixes issue
           continue;
         }
-        const podName = pod.metadata!.name;
+        const podName = PodName.of(pod.metadata!.name);
         const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
         const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
-        serviceBuilder.withNodePodName(podName as PodName);
+        serviceBuilder.withNodePodName(podName);
       }
 
       const serviceMap = new Map<NodeAlias, NetworkNodeServices>();

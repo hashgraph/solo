@@ -7,7 +7,7 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js';
 import * as version from '../../../../version.js';
-import {type PodName} from '../../../../src/types/aliases.js';
+import {PodName} from '../../../../src/core/kube/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
@@ -55,7 +55,7 @@ e2eTestSuite(
         await accountManager.close();
         const localHost = '127.0.0.1';
 
-        const podName = 'minio-console' as PodName; // use a svc that is less likely to be used by other tests
+        const podName = PodName.of('minio-console'); // use a svc that is less likely to be used by other tests
         const podPort = 9_090;
         const localPort = 19_090;
 

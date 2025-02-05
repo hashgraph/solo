@@ -20,7 +20,8 @@ import * as constants from './../constants.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
-import {type PodName, type TarCreateFilter} from '../../types/aliases.js';
+import {type TarCreateFilter} from '../../types/aliases.js';
+import {PodName} from './pod_name.js';
 import {type ExtendedNetServer, type LocalContextObject, type Optional} from '../../types/index.js';
 import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -181,9 +182,9 @@ export class K8Client implements K8 {
     return namespaces.some(namespaces => namespaces.equals(namespace));
   }
 
-  public async getPodByName(name: string): Promise<k8s.V1Pod> {
+  public async getPodByName(podName: PodName): Promise<k8s.V1Pod> {
     const ns = this.getNamespace();
-    const fieldSelector = `metadata.name=${name}`;
+    const fieldSelector = `metadata.name=${podName.name}`;
     const resp = await this.kubeClient.listNamespacedPod(
       ns.name,
       undefined,
@@ -198,7 +199,7 @@ export class K8Client implements K8 {
       Duration.ofMinutes(5).toMillis(),
     );
 
-    return this.filterItem(resp.body.items, {name});
+    return this.filterItem(resp.body.items, {name: podName.name});
   }
 
   public async getPodsByLabel(labels: string[] = []) {
@@ -385,7 +386,7 @@ export class K8Client implements K8 {
     return false;
   }
 
-  public async hasDir(podName: string, containerName: string, destPath: string) {
+  public async hasDir(podName: PodName, containerName: string, destPath: string) {
     return (
       (await this.execContainer(podName, containerName, [
         'bash',
@@ -522,7 +523,7 @@ export class K8Client implements K8 {
         execInstance
           .exec(
             namespace.name,
-            podName,
+            podName.name,
             containerName,
             command,
             null,
@@ -630,7 +631,7 @@ export class K8Client implements K8 {
         execInstance
           .exec(
             namespace.name,
-            podName,
+            podName.name,
             containerName,
             command,
             outputFileStream,
@@ -697,7 +698,7 @@ export class K8Client implements K8 {
     }
   }
 
-  public async execContainer(podName: string, containerName: string, command: string | string[]) {
+  public async execContainer(podName: PodName, containerName: string, command: string | string[]) {
     const self = this;
     const namespace = self.getNamespace();
     const guid = uuid4();
@@ -736,7 +737,7 @@ export class K8Client implements K8 {
       execInstance
         .exec(
           namespace.name,
-          podName,
+          podName.name,
           containerName,
           command,
           outputFileStream,
@@ -782,7 +783,7 @@ export class K8Client implements K8 {
       const ns = this.getNamespace();
       const forwarder = new k8s.PortForward(this.kubeConfig, false);
       const server = (await net.createServer(socket => {
-        forwarder.portForward(ns.name, podName, [podPort], socket, null, socket, 3);
+        forwarder.portForward(ns.name, podName.name, [podPort], socket, null, socket, 3);
       })) as ExtendedNetServer;
 
       // add info for logging
@@ -1466,9 +1467,9 @@ export class K8Client implements K8 {
     }
   }
 
-  public async killPod(podName: string, namespace: NamespaceName) {
+  public async killPod(podName: PodName, namespace: NamespaceName) {
     try {
-      const result = await this.kubeClient.deleteNamespacedPod(podName, namespace.name, undefined, undefined, 1);
+      const result = await this.kubeClient.deleteNamespacedPod(podName.name, namespace.name, undefined, undefined, 1);
       if (result.response.statusCode !== StatusCodes.OK) {
         throw new SoloError(
           `Failed to delete pod ${podName} in namespace ${namespace}: statusCode: ${result.response.statusCode}`,
@@ -1513,7 +1514,7 @@ export class K8Client implements K8 {
   }
 
   private async getNodeLog(pod: V1Pod, namespace: string, timeString: string) {
-    const podName = pod.metadata!.name as PodName;
+    const podName = PodName.of(pod.metadata!.name);
     this.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace, timeString);
     try {
@@ -1565,7 +1566,7 @@ export class K8Client implements K8 {
   }
 
   public async getNodeState(pod: V1Pod, namespace: string) {
-    const podName = pod.metadata!.name as PodName;
+    const podName = PodName.of(pod.metadata!.name);
     this.logger.debug(`getNodeState(${pod.metadata.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace);
     try {
