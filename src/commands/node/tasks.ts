@@ -16,6 +16,7 @@ import {
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
+  NODE_COPY_CONCURRENT,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
@@ -254,7 +255,7 @@ export class NodeCommandTasks {
     }
     // set up the sub-tasks
     return task.newListr(subTasks, {
-      concurrent: true,
+      concurrent: constants.NODE_COPY_CONCURRENT,
       rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
     });
   }
