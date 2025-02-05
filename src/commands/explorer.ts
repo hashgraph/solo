@@ -64,7 +64,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerStaticIp,
       flags.hederaExplorerVersion,
-      flags.mirrorStaticIP,
+      flags.mirrorStaticIp,
       flags.namespace,
       flags.profileFile,
       flags.profileName,
