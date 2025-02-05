@@ -22,6 +22,7 @@ import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
 import {PodRef} from '../core/kube/pod_ref.js';
+import {ContainerName} from '../core/kube/container_name.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -357,7 +358,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       throw new SoloError('postgres pod not found');
                     }
                     const postgresPodName = PodName.of(pods[0].metadata.name);
-                    const postgresContainerName = 'postgresql';
+                    const postgresContainerName = ContainerName.of('postgresql');
                     const postgresPodRef = PodRef.of(namespace, postgresPodName);
                     const mirrorEnvVars = await self.k8.execContainer(
                       postgresPodRef,

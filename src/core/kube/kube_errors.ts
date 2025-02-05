@@ -64,3 +64,18 @@ export class MissingPodNameError extends SoloError {
     super(MissingPodNameError.MISSING_POD_NAME, cause, meta);
   }
 }
+
+export class ContainerNameInvalidError extends SoloError {
+  public static CONTAINER_NAME_INVALID = (name: string) => RFC_1123_POSTFIX(`Container name '${name}'`);
+
+  /**
+   * Instantiates a new error with a message and an optional cause.
+   *
+   * @param containerName - the invalid container name.
+   * @param cause - optional underlying cause of the error.
+   * @param meta - optional metadata to be reported.
+   */
+  public constructor(containerName: string, cause: Error | any = {}, meta: any = {}) {
+    super(ContainerNameInvalidError.CONTAINER_NAME_INVALID(containerName), cause, meta);
+  }
+}

@@ -103,7 +103,7 @@ export interface K8 {
    * @param destPath - path inside the container
    * @returns a promise that returns array of directory entries, custom object
    */
-  listDir(podRef: PodRef, containerName: string, destPath: string): Promise<any[] | TDirectoryData[]>;
+  listDir(podRef: PodRef, containerName: ContainerName, destPath: string): Promise<any[] | TDirectoryData[]>;
 
   /**
    * Check if a filepath exists in the container
@@ -112,7 +112,7 @@ export interface K8 {
    * @param destPath - path inside the container
    * @param [filters] - an object with metadata fields and value
    */
-  hasFile(podRef: PodRef, containerName: string, destPath: string, filters?: object): Promise<boolean>;
+  hasFile(podRef: PodRef, containerName: ContainerName, destPath: string, filters?: object): Promise<boolean>;
 
   /**
    * Check if a directory path exists in the container
@@ -120,9 +120,9 @@ export interface K8 {
    * @param containerName - the container name
    * @param destPath - path inside the container
    */
-  hasDir(podRef: PodRef, containerName: string, destPath: string): Promise<boolean>;
+  hasDir(podRef: PodRef, containerName: ContainerName, destPath: string): Promise<boolean>;
 
-  mkdir(podRef: PodRef, containerName: string, destPath: string): Promise<string>;
+  mkdir(podRef: PodRef, containerName: ContainerName, destPath: string): Promise<string>;
 
   /**
    * Copy a file into a container
@@ -138,7 +138,7 @@ export interface K8 {
    */
   copyTo(
     podRef: PodRef,
-    containerName: string,
+    containerName: ContainerName,
     srcPath: string,
     destDir: string,
     filter?: TarCreateFilter | undefined,
@@ -154,7 +154,7 @@ export interface K8 {
    * @param srcPath - source file path in the container
    * @param destDir - destination directory in the local
    */
-  copyFrom(podRef: PodRef, containerName: string, srcPath: string, destDir: string): Promise<unknown>;
+  copyFrom(podRef: PodRef, containerName: ContainerName, srcPath: string, destDir: string): Promise<unknown>;
 
   /**
    * Invoke sh command within a container and return the console output as string
@@ -163,7 +163,7 @@ export interface K8 {
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  execContainer(podRef: PodRef, containerName: string, command: string | string[]): Promise<string>;
+  execContainer(podRef: PodRef, containerName: ContainerName, command: string | string[]): Promise<string>;
 
   /**
    * Port forward a port from a pod to localhost

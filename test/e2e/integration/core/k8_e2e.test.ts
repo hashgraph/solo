@@ -37,10 +37,16 @@ import {container} from 'tsyringe-neo';
 import {type K8Client} from '../../../../src/core/kube/k8_client.js';
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/pod_ref.js';
+import {ContainerName} from '../../../../src/core/kube/container_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
-async function createPod(podRef: PodRef, containerName: string, podLabelValue: string, k8: K8Client): Promise<void> {
+async function createPod(
+  podRef: PodRef,
+  containerName: ContainerName,
+  podLabelValue: string,
+  k8: K8Client,
+): Promise<void> {
   const v1Pod = new V1Pod();
   const v1Metadata = new V1ObjectMeta();
   v1Metadata.name = podRef.podName.name;
@@ -48,7 +54,7 @@ async function createPod(podRef: PodRef, containerName: string, podLabelValue: s
   v1Metadata.labels = {app: podLabelValue};
   v1Pod.metadata = v1Metadata;
   const v1Container = new V1Container();
-  v1Container.name = containerName;
+  v1Container.name = containerName.name;
   v1Container.image = 'alpine:latest';
   v1Container.command = ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200'];
   const v1Probe = new V1Probe();
@@ -70,7 +76,7 @@ describe('K8', () => {
   const argv = [];
   const podName = PodName.of(`test-pod-${uuid4()}`);
   const podRef = PodRef.of(testNamespace, podName);
-  const containerName = 'alpine';
+  const containerName = ContainerName.of('alpine');
   const podLabelValue = `test-${uuid4()}`;
   const serviceName = `test-service-${uuid4()}`;
 

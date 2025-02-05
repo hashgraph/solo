@@ -33,6 +33,7 @@ import {NamespaceName} from './namespace_name.js';
 import K8ClientClusters from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {PodRef} from './pod_ref.js';
+import {type ContainerName} from './container_name.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -285,7 +286,7 @@ export class K8Client implements K8 {
     return this.cachedContexts;
   }
 
-  public async listDir(podRef: PodRef, containerName: string, destPath: string) {
+  public async listDir(podRef: PodRef, containerName: ContainerName, destPath: string) {
     // TODO future, return the following
     // return this.pods.byName(podName).listDir(containerName, destPath);
     // byName(podName) can use an underlying cache to avoid multiple calls to the API
@@ -341,13 +342,13 @@ export class K8Client implements K8 {
       return items;
     } catch (e) {
       throw new SoloError(
-        `unable to check path in '${podRef.podName.name}':${containerName}' - ${destPath}: ${e.message}`,
+        `unable to check path in '${podRef.podName.name}':${containerName.name}' - ${destPath}: ${e.message}`,
         e,
       );
     }
   }
 
-  public async hasFile(podRef: PodRef, containerName: string, destPath: string, filters: object = {}) {
+  public async hasFile(podRef: PodRef, containerName: ContainerName, destPath: string, filters: object = {}) {
     const parentDir = path.dirname(destPath);
     const fileName = path.basename(destPath);
     const filterMap = new Map(Object.entries(filters));
@@ -363,7 +364,7 @@ export class K8Client implements K8 {
             const field = entry[0];
             const value = entry[1];
             this.logger.debug(
-              `Checking file ${podRef.podName.name}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
+              `Checking file ${podRef.podName.name}:${containerName.name} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
               {filters},
             );
             if (`${value}` !== `${item[field]}`) {
@@ -373,14 +374,16 @@ export class K8Client implements K8 {
           }
 
           if (found) {
-            this.logger.debug(`File check succeeded ${podRef.podName.name}:${containerName} ${destPath}`, {filters});
+            this.logger.debug(`File check succeeded ${podRef.podName.name}:${containerName.name} ${destPath}`, {
+              filters,
+            });
             return true;
           }
         }
       }
     } catch (e) {
       const error = new SoloError(
-        `unable to check file in '${podRef.podName.name}':${containerName}' - ${destPath}: ${e.message}`,
+        `unable to check file in '${podRef.podName.name}':${containerName.name}' - ${destPath}: ${e.message}`,
         e,
       );
       this.logger.error(error.message, error);
@@ -390,7 +393,7 @@ export class K8Client implements K8 {
     return false;
   }
 
-  public async hasDir(podRef: PodRef, containerName: string, destPath: string) {
+  public async hasDir(podRef: PodRef, containerName: ContainerName, destPath: string) {
     return (
       (await this.execContainer(podRef, containerName, [
         'bash',
@@ -400,7 +403,7 @@ export class K8Client implements K8 {
     );
   }
 
-  public mkdir(podRef: PodRef, containerName: string, destPath: string) {
+  public mkdir(podRef: PodRef, containerName: ContainerName, destPath: string) {
     return this.execContainer(podRef, containerName, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
   }
 
@@ -481,7 +484,7 @@ export class K8Client implements K8 {
 
   public async copyTo(
     podRef: PodRef,
-    containerName: string,
+    containerName: ContainerName,
     srcPath: string,
     destDir: string,
     filter: TarCreateFilter | undefined = undefined,
@@ -528,7 +531,7 @@ export class K8Client implements K8 {
           .exec(
             namespace.name,
             podRef.podName.name,
-            containerName,
+            containerName.name,
             command,
             null,
             errPassthroughStream,
@@ -569,7 +572,7 @@ export class K8Client implements K8 {
     }
   }
 
-  public async copyFrom(podRef: PodRef, containerName: string, srcPath: string, destDir: string) {
+  public async copyFrom(podRef: PodRef, containerName: ContainerName, srcPath: string, destDir: string) {
     const self = this;
     const namespace = podRef.namespaceName;
     const guid = uuid4();
@@ -636,7 +639,7 @@ export class K8Client implements K8 {
           .exec(
             namespace.name,
             podRef.podName.name,
-            containerName,
+            containerName.name,
             command,
             outputFileStream,
             errPassthroughStream,
@@ -702,7 +705,7 @@ export class K8Client implements K8 {
     }
   }
 
-  public async execContainer(podRef: PodRef, containerName: string, command: string | string[]) {
+  public async execContainer(podRef: PodRef, containerName: ContainerName, command: string | string[]) {
     const self = this;
     const namespace = podRef.namespaceName;
     const guid = uuid4();
@@ -742,7 +745,7 @@ export class K8Client implements K8 {
         .exec(
           namespace.name,
           podRef.podName.name,
-          containerName,
+          containerName.name,
           command,
           outputFileStream,
           errPassthroughStream,
