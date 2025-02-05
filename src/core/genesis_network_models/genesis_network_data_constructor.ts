@@ -14,6 +14,7 @@ import path from 'path';
 import {type NetworkNodeServices} from '../network_node_services.js';
 import {SoloError} from '../errors.js';
 import {Flags as flags} from '../../commands/flags.js';
+import {type AccountManager} from '../account_manager.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -25,23 +26,32 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   private constructor(
     private readonly nodeAliases: NodeAliases,
     private readonly keyManager: KeyManager,
+    private readonly accountManager: AccountManager,
     private readonly keysDir: string,
     private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
     adminPublicKeyMap: Map<NodeAlias, string>,
   ) {
-    nodeAliases.forEach(nodeAlias => {
-      const genesisPrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-
+    nodeAliases.forEach(async nodeAlias => {
       let adminPubKey: PublicKey;
-      try {
-        if (PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])) {
-          adminPubKey = adminPublicKeyMap[nodeAlias];
+      const accountId = AccountId.fromString(networkNodeServiceMap.get(nodeAlias).accountId);
+      const namespace = networkNodeServiceMap.get(nodeAlias).namespace;
+
+      if (adminPublicKeyMap.has(nodeAlias)) {
+        try {
+          if (PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])) {
+            adminPubKey = adminPublicKeyMap[nodeAlias];
+          }
+        } catch {
+          // Ignore error
         }
-      } catch {
-        // Ignore error
       }
 
-      if (!adminPubKey) adminPubKey = genesisPrivateKey.publicKey;
+      // not found existing one, generate a new key, and save to k8 secret
+      if (!adminPubKey) {
+        const newKey = PrivateKey.generate();
+        adminPubKey = newKey.publicKey;
+        await this.accountManager.updateAccountKeys(namespace, accountId, newKey, true);
+      }
 
       const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
         +networkNodeServiceMap.get(nodeAlias).nodeId,
@@ -49,14 +59,13 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         nodeAlias,
       );
       this.nodes[nodeAlias] = nodeDataWrapper;
-      nodeDataWrapper.accountId = AccountId.fromString(networkNodeServiceMap.get(nodeAlias).accountId);
+      nodeDataWrapper.accountId = accountId;
 
       const rosterDataWrapper = new GenesisNetworkRosterEntryDataWrapper(+networkNodeServiceMap.get(nodeAlias).nodeId);
       this.rosters[nodeAlias] = rosterDataWrapper;
       rosterDataWrapper.weight = this.nodes[nodeAlias].weight = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
 
       const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
-      const namespace = networkNodeServiceMap.get(nodeAlias).namespace;
       const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
       // Add gossip endpoints
       nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
@@ -72,6 +81,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   public static async initialize(
     nodeAliases: NodeAliases,
     keyManager: KeyManager,
+    accountManager: AccountManager,
     keysDir: string,
     networkNodeServiceMap: Map<string, NetworkNodeServices>,
     adminPublicKeys: string[],
@@ -94,6 +104,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     const instance = new GenesisNetworkDataConstructor(
       nodeAliases,
       keyManager,
+      accountManager,
       keysDir,
       networkNodeServiceMap,
       adminPublicKeyMap,

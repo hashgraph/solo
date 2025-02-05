@@ -972,6 +972,7 @@ export class NodeCommandTasks {
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
       nodeAliases,
       this.keyManager,
+      this.accountManager,
       keysDir,
       networkNodeServiceMap,
       adminPublicKeys,
