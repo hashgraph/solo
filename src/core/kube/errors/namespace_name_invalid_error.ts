@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {SoloError} from '../errors.js';
+import {SoloError} from '../../errors.js';
 
 const RFC_1123_POSTFIX = (prefix: string) => `${prefix} is invalid, must be a valid RFC-1123 DNS label.  \` +
     "A DNS 1123 label must consist of lower case alphanumeric characters, '-' " +
@@ -77,5 +77,33 @@ export class ContainerNameInvalidError extends SoloError {
    */
   public constructor(containerName: string, cause: Error | any = {}, meta: any = {}) {
     super(ContainerNameInvalidError.CONTAINER_NAME_INVALID(containerName), cause, meta);
+  }
+}
+
+export class MissingPodRefError extends SoloError {
+  public static MISSING_POD_REF = 'Pod ref is required.';
+
+  /**
+   * Instantiates a new error with a message and an optional cause.
+   *
+   * @param cause - optional underlying cause of the error.
+   * @param meta - optional metadata to be reported.
+   */
+  public constructor(cause: Error | any = {}, meta: any = {}) {
+    super(MissingPodRefError.MISSING_POD_REF, cause, meta);
+  }
+}
+
+export class MissingContainerNameError extends SoloError {
+  public static MISSING_CONTAINER_NAME = 'Container Name is required.';
+
+  /**
+   * Instantiates a new error with a message and an optional cause.
+   *
+   * @param cause - optional underlying cause of the error.
+   * @param meta - optional metadata to be reported.
+   */
+  public constructor(cause: Error | any = {}, meta: any = {}) {
+    super(MissingContainerNameError.MISSING_CONTAINER_NAME, cause, meta);
   }
 }

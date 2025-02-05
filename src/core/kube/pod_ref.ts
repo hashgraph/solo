@@ -1,9 +1,9 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {MissingNamespaceNameError, MissingPodNameError} from './kube_errors.js';
 import {type PodName} from './pod_name.js';
 import {type NamespaceName} from './namespace_name.js';
+import {MissingNamespaceNameError, MissingPodNameError} from './errors/namespace_name_invalid_error.js';
 
 /**
  * Represents a Kubernetes pod reference which includes the namespace name and pod name.
