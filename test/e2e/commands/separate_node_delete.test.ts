@@ -15,10 +15,12 @@ import {
 import {getTmpDir} from '../../../src/core/helpers.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import fs from 'fs';
-import {type NodeAlias, type PodName} from '../../../src/types/aliases.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
+import {PodName} from '../../../src/core/kube/pod_name.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/pod_ref.js';
 
 const namespace = NamespaceName.of('node-delete-separate');
 const nodeAlias = 'node1' as NodeAlias;
@@ -91,9 +93,10 @@ e2eTestSuite(
       it('config.txt should no longer contain removed nodeAlias', async () => {
         // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
         const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-        const podName = pods[0].metadata.name as PodName;
+        const podName = PodName.of(pods[0].metadata.name);
+        const podRef = PodRef.of(namespace, podName);
         const tmpDir = getTmpDir();
-        await k8.copyFrom(podName, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
+        await k8.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
         const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
         console.log('config.txt:', configTxt);
         expect(configTxt).not.to.contain(nodeAlias);
