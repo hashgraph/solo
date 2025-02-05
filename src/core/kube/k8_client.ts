@@ -36,6 +36,7 @@ import {type ConfigMaps} from './config_maps.js';
 import K8ClientConfigMaps from './k8_client/k8_client_config_maps.js';
 import {PodRef} from './pod_ref.js';
 import {type ContainerName} from './container_name.js';
+import {ContainerRef} from './container_ref.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -298,7 +299,7 @@ export class K8Client implements K8 {
     return this.cachedContexts;
   }
 
-  public async listDir(podRef: PodRef, containerName: ContainerName, destPath: string) {
+  public async listDir(containerRef: ContainerRef, destPath: string) {
     // TODO future, return the following
     // return this.pods.byName(podName).listDir(containerName, destPath);
     // byName(podName) can use an underlying cache to avoid multiple calls to the API
@@ -319,7 +320,7 @@ export class K8Client implements K8 {
     // below implementation moves to K8Pod class, current usage would still compile.
 
     try {
-      const output = (await this.execContainer(podRef, containerName, ['ls', '-la', destPath])) as string;
+      const output = (await this.execContainer(containerRef, ['ls', '-la', destPath])) as string;
       if (!output) return [];
 
       // parse the output and return the entries
@@ -354,19 +355,19 @@ export class K8Client implements K8 {
       return items;
     } catch (e) {
       throw new SoloError(
-        `unable to check path in '${podRef.podName.name}':${containerName.name}' - ${destPath}: ${e.message}`,
+        `unable to check path in '${containerRef.podRef.podName.name}':${containerRef.containerName.name}' - ${destPath}: ${e.message}`,
         e,
       );
     }
   }
 
-  public async hasFile(podRef: PodRef, containerName: ContainerName, destPath: string, filters: object = {}) {
+  public async hasFile(containerRef: ContainerRef, destPath: string, filters: object = {}) {
     const parentDir = path.dirname(destPath);
     const fileName = path.basename(destPath);
     const filterMap = new Map(Object.entries(filters));
 
     try {
-      const entries = await this.listDir(podRef, containerName, parentDir);
+      const entries = await this.listDir(containerRef, parentDir);
 
       for (const item of entries) {
         if (item.name === fileName && !item.directory) {
@@ -376,7 +377,7 @@ export class K8Client implements K8 {
             const field = entry[0];
             const value = entry[1];
             this.logger.debug(
-              `Checking file ${podRef.podName.name}:${containerName.name} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
+              `Checking file ${containerRef.podRef.podName.name}:${containerRef.containerName.name} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
               {filters},
             );
             if (`${value}` !== `${item[field]}`) {
@@ -386,16 +387,19 @@ export class K8Client implements K8 {
           }
 
           if (found) {
-            this.logger.debug(`File check succeeded ${podRef.podName.name}:${containerName.name} ${destPath}`, {
-              filters,
-            });
+            this.logger.debug(
+              `File check succeeded ${containerRef.podRef.podName.name}:${containerRef.containerName.name} ${destPath}`,
+              {
+                filters,
+              },
+            );
             return true;
           }
         }
       }
     } catch (e) {
       const error = new SoloError(
-        `unable to check file in '${podRef.podName.name}':${containerName.name}' - ${destPath}: ${e.message}`,
+        `unable to check file in '${containerRef.podRef.podName.name}':${containerRef.containerName.name}' - ${destPath}: ${e.message}`,
         e,
       );
       this.logger.error(error.message, error);
@@ -405,9 +409,9 @@ export class K8Client implements K8 {
     return false;
   }
 
-  public async hasDir(podRef: PodRef, containerName: ContainerName, destPath: string) {
+  public async hasDir(containerRef: ContainerRef, destPath: string) {
     return (
-      (await this.execContainer(podRef, containerName, [
+      (await this.execContainer(containerRef, [
         'bash',
         '-c',
         '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"',
@@ -415,8 +419,8 @@ export class K8Client implements K8 {
     );
   }
 
-  public mkdir(podRef: PodRef, containerName: ContainerName, destPath: string) {
-    return this.execContainer(podRef, containerName, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
+  public mkdir(containerRef: ContainerRef, destPath: string) {
+    return this.execContainer(containerRef, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
   }
 
   private exitWithError(localContext: LocalContextObject, errorMessage: string) {
@@ -495,22 +499,22 @@ export class K8Client implements K8 {
   }
 
   public async copyTo(
-    podRef: PodRef,
-    containerName: ContainerName,
+    containerRef: ContainerRef,
     srcPath: string,
     destDir: string,
     filter: TarCreateFilter | undefined = undefined,
   ) {
     const self = this;
-    const namespace = podRef.namespaceName;
+    const namespace = containerRef.podRef.namespaceName;
     const guid = uuid4();
-    const messagePrefix = `copyTo[${podRef.podName.name},${guid}]: `;
+    const messagePrefix = `copyTo[${containerRef.podRef.podName.name},${guid}]: `;
 
-    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
+    if (!(await self.getPodByName(containerRef.podRef)))
+      throw new IllegalArgumentError(`Invalid pod ${containerRef.podRef.podName.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
-    if (!(await this.hasDir(podRef, containerName, destDir))) {
+    if (!(await this.hasDir(containerRef, destDir))) {
       throw new SoloError(`invalid destination path: ${destDir}`);
     }
 
@@ -542,8 +546,8 @@ export class K8Client implements K8 {
         execInstance
           .exec(
             namespace.name,
-            podRef.podName.name,
-            containerName.name,
+            containerRef.podRef.podName.name,
+            containerRef.containerName.name,
             command,
             null,
             errPassthroughStream,
@@ -584,18 +588,19 @@ export class K8Client implements K8 {
     }
   }
 
-  public async copyFrom(podRef: PodRef, containerName: ContainerName, srcPath: string, destDir: string) {
+  public async copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string) {
     const self = this;
-    const namespace = podRef.namespaceName;
+    const namespace = containerRef.podRef.namespaceName;
     const guid = uuid4();
-    const messagePrefix = `copyFrom[${podRef.podName.name},${guid}]: `;
+    const messagePrefix = `copyFrom[${containerRef.podRef.podName.name},${guid}]: `;
 
-    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
+    if (!(await self.getPodByName(containerRef.podRef)))
+      throw new IllegalArgumentError(`Invalid pod ${containerRef.podRef.podName.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
     // get stat for source file in the container
-    let entries = await self.listDir(podRef, containerName, srcPath);
+    let entries = await self.listDir(containerRef, srcPath);
     if (entries.length !== 1) {
       throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`);
     }
@@ -605,7 +610,7 @@ export class K8Client implements K8 {
         path.dirname(srcPath),
         entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4),
       );
-      entries = await self.listDir(podRef, containerName, redirectSrcPath);
+      entries = await self.listDir(containerRef, redirectSrcPath);
       if (entries.length !== 1) {
         throw new SoloError(`${messagePrefix}invalid source path: ${redirectSrcPath}`);
       }
@@ -650,8 +655,8 @@ export class K8Client implements K8 {
         execInstance
           .exec(
             namespace.name,
-            podRef.podName.name,
-            containerName.name,
+            containerRef.podRef.podName.name,
+            containerRef.containerName.name,
             command,
             outputFileStream,
             errPassthroughStream,
@@ -717,13 +722,14 @@ export class K8Client implements K8 {
     }
   }
 
-  public async execContainer(podRef: PodRef, containerName: ContainerName, command: string | string[]) {
+  public async execContainer(containerRef: ContainerRef, command: string | string[]) {
     const self = this;
-    const namespace = podRef.namespaceName;
+    const namespace = containerRef.podRef.namespaceName;
     const guid = uuid4();
-    const messagePrefix = `execContainer[${podRef.podName.name},${guid}]:`;
+    const messagePrefix = `execContainer[${containerRef.podRef.podName.name},${guid}]:`;
 
-    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
+    if (!(await self.getPodByName(containerRef.podRef)))
+      throw new IllegalArgumentError(`Invalid pod ${containerRef.podRef.podName.name}`);
 
     if (!command) throw new MissingArgumentError('command cannot be empty');
     if (!Array.isArray(command)) {
@@ -736,7 +742,7 @@ export class K8Client implements K8 {
       const localContext = {} as LocalContextObject;
       localContext.reject = reject;
       const execInstance = new k8s.Exec(self.kubeConfig);
-      const tmpFile = self.tempFileFor(`${podRef.podName.name}-output.txt`);
+      const tmpFile = self.tempFileFor(`${containerRef.podRef.podName.name}-output.txt`);
       const outputFileStream = fs.createWriteStream(tmpFile);
       const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
       const errPassthroughStream = new stream.PassThrough();
@@ -756,8 +762,8 @@ export class K8Client implements K8 {
       execInstance
         .exec(
           namespace.name,
-          podRef.podName.name,
-          containerName.name,
+          containerRef.podRef.podName.name,
+          containerRef.containerName.name,
           command,
           outputFileStream,
           errPassthroughStream,
@@ -1495,22 +1501,19 @@ export class K8Client implements K8 {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
       }
+      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyTo(podRef, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`);
+      await this.copyTo(containerRef, sourcePath, `${HEDERA_HAPI_PATH}`);
       await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
-      await this.execContainer(podRef, ROOT_CONTAINER, [
+      await this.execContainer(containerRef, [
         'bash',
         '-c',
         `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
       ]);
-      await this.execContainer(podRef, ROOT_CONTAINER, [
-        'bash',
-        '-c',
-        `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`,
-      ]);
-      await this.execContainer(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
+      await this.execContainer(containerRef, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
+      await this.execContainer(containerRef, `${HEDERA_HAPI_PATH}/${scriptName}`);
+      await this.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
@@ -1548,8 +1551,9 @@ export class K8Client implements K8 {
         fs.mkdirSync(targetDir, {recursive: true});
       }
       const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
-      await this.execContainer(podRef, ROOT_CONTAINER, zipCommand);
-      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
+      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
+      await this.execContainer(containerRef, zipCommand);
+      await this.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
     } catch (e: Error | unknown) {
       this.logger.error(`failed to download state from pod ${podRef.podName.name}`, e);
       this.logger.showUser(`Failed to download state from pod ${podRef.podName.name}` + e);

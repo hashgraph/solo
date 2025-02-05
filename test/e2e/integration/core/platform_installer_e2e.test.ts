@@ -17,6 +17,7 @@ import {type PlatformInstaller} from '../../../../src/core/platform_installer.js
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 import {PodName} from '../../../../src/core/kube/pod_name.js';
 import {PodRef} from '../../../../src/core/kube/pod_ref.js';
+import {ContainerRef} from '../../../../src/core/kube/container_ref.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -107,8 +108,7 @@ e2eTestSuite(
         it('should succeed with valid tag and pod', async () => {
           expect(await installer.fetchPlatform(podRef, packageVersion)).to.be.true;
           const outputs = await k8.execContainer(
-            podRef,
-            constants.ROOT_CONTAINER,
+            ContainerRef.of(podRef, constants.ROOT_CONTAINER),
             `ls -la ${constants.HEDERA_HAPI_PATH}`,
           );
           testLogger.showUser(outputs);

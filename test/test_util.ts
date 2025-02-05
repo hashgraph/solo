@@ -49,6 +49,7 @@ import {container} from 'tsyringe-neo';
 import {resetTestContainer} from './test_container.js';
 import {NamespaceName} from '../src/core/kube/namespace_name.js';
 import {PodRef} from '../src/core/kube/pod_ref.js';
+import {ContainerRef} from '../src/core/kube/container_ref.js';
 
 export const TEST_CLUSTER = 'solo-e2e';
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
@@ -436,8 +437,7 @@ async function addKeyHashToMap(
   privateKeyFileName: string,
 ) {
   await k8.copyFrom(
-    PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)),
-    ROOT_CONTAINER,
+    ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER),
     path.join(keyDir, privateKeyFileName),
     uniqueNodeDestDir,
   );
