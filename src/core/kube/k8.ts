@@ -10,6 +10,7 @@ import {type V1Lease} from '@kubernetes/client-node';
 import {type Namespaces} from './namespaces.js';
 import {type NamespaceName} from './namespace_name.js';
 import {type Clusters} from './clusters.js';
+import {type ContainerName} from './container_name.js';
 
 export interface K8 {
   /**
