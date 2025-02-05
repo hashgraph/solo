@@ -12,6 +12,7 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {patchInject} from './container_helper.js';
 import * as constants from '../core/constants.js';
+import {NamespaceName} from './kube/namespace_name.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -78,6 +79,15 @@ export class ConfigManager {
                   `Resolving directory path for '${flag.name}': ${val}, to: ${paths.resolve(val)}, note: ~/ is not supported`,
                 );
                 val = paths.resolve(val);
+              }
+              // if it is a namespace flag then convert it to NamespaceName
+              else if (val && (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name)) {
+                if (val instanceof NamespaceName) {
+                  this.config.flags[flag.name] = val;
+                  break;
+                }
+                this.config.flags[flag.name] = NamespaceName.of(val);
+                break;
               }
               this.config.flags[flag.name] = `${val}`; // force convert to string
               break;
@@ -150,6 +160,16 @@ export class ConfigManager {
   /** Set value for the flag */
   setFlag<T>(flag: CommandFlag, value: T) {
     if (!flag || !flag.name) throw new MissingArgumentError('flag must have a name');
+    // if it is a namespace then convert it to NamespaceName
+    if (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name) {
+      if (value instanceof NamespaceName) {
+        this.config.flags[flag.name] = value;
+        return;
+      }
+
+      this.config.flags[flag.name] = NamespaceName.of(value as string);
+      return;
+    }
     this.config.flags[flag.name] = value;
   }
 

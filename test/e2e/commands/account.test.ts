@@ -27,14 +27,15 @@ import {type K8} from '../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type NodeCommand} from '../../../src/commands/node/index.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const testName = 'account-cmd-e2e';
-const namespace = testName;
+const namespace: NamespaceName = NamespaceName.of(testName);
 const testSystemAccounts = [[3, 5]];
 const argv = getDefaultArgv();
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;

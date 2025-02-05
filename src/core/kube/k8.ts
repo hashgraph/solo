@@ -2,41 +2,63 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type * as k8s from '@kubernetes/client-node';
-import {type PodName, type TarCreateFilter} from '../../types/aliases.js';
+import {type TarCreateFilter} from '../../types/aliases.js';
+import {type PodRef} from './pod_ref.js';
 import {type ExtendedNetServer, type Optional} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type V1Lease} from '@kubernetes/client-node';
-import {type Namespace} from '../config/remote/types.js';
 import {type Namespaces} from './namespaces.js';
+import {type NamespaceName} from './namespace_name.js';
+import {type Clusters} from './clusters.js';
+import {type ConfigMaps} from './config_maps.js';
+import {type ContainerName} from './container_name.js';
+import {type ContainerRef} from './container_ref.js';
 
 export interface K8 {
+  /**
+   * Fluent accessor for reading and manipulating namespaces.
+   * @returns an object instance providing namespace operations
+   */
   namespaces(): Namespaces;
 
   /**
-   * Create a new namespace
+   * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
+   * @returns an object instance providing cluster operations
    */
-  createNamespace(name: string): Promise<boolean>;
+  clusters(): Clusters;
+
+  /**
+   * Fluent accessor for reading and manipulating config maps.
+   * @returns an object instance providing config map operations
+   */
+  configMaps(): ConfigMaps;
+
+  /**
+   * Create a new namespace
+   * @param namespace - the namespace to create
+   */
+  createNamespace(namespace: NamespaceName): Promise<boolean>;
 
   /**
    * Delete a namespace
-   * @param name - name of the namespace
+   * @param namespace - the namespace to delete
    */
-  deleteNamespace(name: string): Promise<boolean>;
+  deleteNamespace(namespace: NamespaceName): Promise<boolean>;
 
   /** Get a list of namespaces */
-  getNamespaces(): Promise<string[]>;
+  getNamespaces(): Promise<NamespaceName[]>;
 
   /**
    * Returns true if a namespace exists with the given name
    * @param namespace namespace name
    */
-  hasNamespace(namespace: string): Promise<any>;
+  hasNamespace(namespace: NamespaceName): Promise<any>;
 
   /**
-   * Get a podName by name
-   * @param name - podName name
+   * Get a pod by PodRef
+   * @param podRef - the pod reference
    */
-  getPodByName(name: string): Promise<k8s.V1Pod>;
+  getPodByName(podRef: PodRef): Promise<k8s.V1Pod>;
 
   /**
    * Get pods by labels
@@ -47,8 +69,9 @@ export interface K8 {
   /**
    * Get secrets by labels
    * @param labels - list of labels
+   * @param namespace - the namespace of the secrets to return
    */
-  getSecretsByLabel(labels: string[]): Promise<any>;
+  getSecretsByLabel(labels: string[], namespace?: NamespaceName): Promise<any>;
 
   /**
    * Get a svc by name
@@ -56,7 +79,7 @@ export interface K8 {
    */
   getSvcByName(name: string): Promise<k8s.V1Service>;
 
-  listSvcs(namespace: string, labels: string[]): Promise<k8s.V1Service[]>;
+  listSvcs(namespace: NamespaceName, labels: string[]): Promise<k8s.V1Service[]>;
 
   /**
    * Get a list of clusters
@@ -84,47 +107,42 @@ export interface K8 {
    *    name: config.txt
    * }]
    *
-   * @param podName
-   * @param containerName
+   * @param containerRef - the container reference
    * @param destPath - path inside the container
    * @returns a promise that returns array of directory entries, custom object
    */
-  listDir(podName: PodName, containerName: string, destPath: string): Promise<any[] | TDirectoryData[]>;
+  listDir(containerRef: ContainerRef, destPath: string): Promise<any[] | TDirectoryData[]>;
 
   /**
    * Check if a filepath exists in the container
-   * @param podName
-   * @param containerName
+   * @param containerRef - the container reference
    * @param destPath - path inside the container
    * @param [filters] - an object with metadata fields and value
    */
-  hasFile(podName: PodName, containerName: string, destPath: string, filters?: object): Promise<boolean>;
+  hasFile(containerRef: ContainerRef, destPath: string, filters?: object): Promise<boolean>;
 
   /**
    * Check if a directory path exists in the container
-   * @param podName
-   * @param containerName
+   * @param containerRef - the container reference
    * @param destPath - path inside the container
    */
-  hasDir(podName: string, containerName: string, destPath: string): Promise<boolean>;
+  hasDir(containerRef: ContainerRef, destPath: string): Promise<boolean>;
 
-  mkdir(podName: PodName, containerName: string, destPath: string): Promise<string>;
+  mkdir(containerRef: ContainerRef, destPath: string): Promise<string>;
 
   /**
    * Copy a file into a container
    *
    * It overwrites any existing file inside the container at the destination directory
    *
-   * @param podName
-   * @param containerName
+   * @param containerRef - the container reference
    * @param srcPath - source file path in the local
    * @param destDir - destination directory in the container
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
   copyTo(
-    podName: PodName,
-    containerName: string,
+    containerRef: ContainerRef,
     srcPath: string,
     destDir: string,
     filter?: TarCreateFilter | undefined,
@@ -135,29 +153,30 @@ export interface K8 {
    *
    * It overwrites any existing file at the destination directory
    *
-   * @param podName
-   * @param containerName
+   * @param containerRef - the container reference
    * @param srcPath - source file path in the container
    * @param destDir - destination directory in the local
    */
-  copyFrom(podName: PodName, containerName: string, srcPath: string, destDir: string): Promise<unknown>;
+  copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string): Promise<unknown>;
 
   /**
    * Invoke sh command within a container and return the console output as string
-   * @param podName
-   * @param containerName
+   * @param containerRef - the container reference
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  execContainer(podName: string, containerName: string, command: string | string[]): Promise<string>;
+  execContainer(containerRef: ContainerRef, command: string | string[]): Promise<string>;
 
   /**
    * Port forward a port from a pod to localhost
    *
    * This simple server just forwards traffic from itself to a service running in kubernetes
    * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
+   * @param podRef - the pod reference
+   * @param localPort - the local port to forward to
+   * @param podPort - the pod port to forward from
    */
-  portForward(podName: PodName, localPort: number, podPort: number): Promise<ExtendedNetServer>;
+  portForward(podRef: PodRef, localPort: number, podPort: number): Promise<ExtendedNetServer>;
 
   /**
    * Stop the port forwarder server
@@ -175,7 +194,7 @@ export interface K8 {
     maxAttempts?,
     delay?,
     podItemPredicate?: (items: k8s.V1Pod) => boolean,
-    namespace?: string,
+    namespace?: NamespaceName,
   ): Promise<k8s.V1Pod[]>;
 
   /**
@@ -186,7 +205,7 @@ export interface K8 {
    * @param [delay] - delay between checks in milliseconds
    * @param [namespace] - namespace
    */
-  waitForPodReady(labels: string[], podCount?, maxAttempts?, delay?, namespace?: string): Promise<k8s.V1Pod[]>;
+  waitForPodReady(labels: string[], podCount?, maxAttempts?, delay?, namespace?: NamespaceName): Promise<k8s.V1Pod[]>;
 
   /**
    * Get a list of persistent volume claim names for the given namespace
@@ -194,7 +213,7 @@ export interface K8 {
    * @param [labels] - labels
    * @returns list of persistent volume claim names
    */
-  listPvcsByNamespace(namespace: string, labels?: string[]): Promise<string[]>;
+  listPvcsByNamespace(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
 
   /**
    * Get a list of secrets for the given namespace
@@ -202,7 +221,7 @@ export interface K8 {
    * @param [labels] - labels
    * @returns list of secret names
    */
-  listSecretsByNamespace(namespace: string, labels?: string[]): Promise<string[]>;
+  listSecretsByNamespace(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
 
   /**
    * Delete a persistent volume claim
@@ -210,7 +229,7 @@ export interface K8 {
    * @param namespace - the namespace of the persistent volume claim to delete
    * @returns true if the persistent volume claim was deleted
    */
-  deletePvc(name: string, namespace: string): Promise<boolean>;
+  deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
 
   testContextConnection(context: string): Promise<boolean>;
 
@@ -222,7 +241,7 @@ export interface K8 {
    *   objects must be base64 decoded
    */
   getSecret(
-    namespace: string,
+    namespace: NamespaceName,
     labelSelector: string,
   ): Promise<{
     data: Record<string, string>;
@@ -244,7 +263,7 @@ export interface K8 {
    */
   createSecret(
     name: string,
-    namespace: string,
+    namespace: NamespaceName,
     secretType: string,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
@@ -257,7 +276,7 @@ export interface K8 {
    * @param namespace - the namespace to store the secret
    * @returns whether the secret was deleted successfully
    */
-  deleteSecret(name: string, namespace: string): Promise<boolean>;
+  deleteSecret(name: string, namespace: NamespaceName): Promise<boolean>;
 
   /**
    * @param name - name of the configmap
@@ -288,22 +307,22 @@ export interface K8 {
     data: Record<string, string>,
   ): Promise<boolean>;
 
-  deleteNamespacedConfigMap(name: string, namespace: string): Promise<boolean>;
+  deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean>;
 
   createNamespacedLease(
-    namespace: string,
+    namespace: NamespaceName,
     leaseName: string,
     holderName: string,
     durationSeconds,
   ): Promise<k8s.V1Lease>;
 
-  readNamespacedLease(leaseName: string, namespace: string, timesCalled?): Promise<any>;
+  readNamespacedLease(leaseName: string, namespace: NamespaceName, timesCalled?): Promise<any>;
 
-  renewNamespaceLease(leaseName: string, namespace: string, lease: k8s.V1Lease): Promise<k8s.V1Lease>;
+  renewNamespaceLease(leaseName: string, namespace: NamespaceName, lease: k8s.V1Lease): Promise<k8s.V1Lease>;
 
   transferNamespaceLease(lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease>;
 
-  deleteNamespacedLease(name: string, namespace: string): Promise<k8s.V1Status>;
+  deleteNamespacedLease(name: string, namespace: NamespaceName): Promise<k8s.V1Status>;
 
   /**
    * Check if cert-manager is installed inside any namespace.
@@ -315,7 +334,7 @@ export interface K8 {
    * Check if minio is installed inside the namespace.
    * @returns if minio is found
    */
-  isMinioInstalled(namespace: Namespace): Promise<boolean>;
+  isMinioInstalled(namespace: NamespaceName): Promise<boolean>;
 
   /**
    * Check if the ingress controller is installed inside any namespace.
@@ -325,24 +344,23 @@ export interface K8 {
 
   isRemoteConfigPresentInAnyNamespace(): Promise<boolean>;
 
-  isRemoteConfigPresentInNamespace(namespace: Namespace): Promise<boolean>;
+  isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean>;
 
-  isPrometheusInstalled(namespace: Namespace): Promise<boolean>;
+  isPrometheusInstalled(namespace: NamespaceName): Promise<boolean>;
 
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
    * Can throw a SoloError if there is an error while deleting the pod.
-   * @param podName - the name of the pod
-   * @param namespace - the namespace of the pod
+   * @param podRef - the pod reference
    */
-  killPod(podName: string, namespace: string): Promise<void>;
+  killPod(podRef: PodRef): Promise<void>;
 
   /**
    * Download logs files from all network pods and save to local solo log directory
    * @param namespace - the namespace of the network
    * @returns a promise that resolves when the logs are downloaded
    */
-  getNodeLogs(namespace: string): Promise<Awaited<unknown>[]>;
+  getNodeLogs(namespace: NamespaceName): Promise<Awaited<unknown>[]>;
 
   /**
    * Download state files from a pod
@@ -350,13 +368,13 @@ export interface K8 {
    * @param nodeAlias - the pod name
    * @returns a promise that resolves when the state files are downloaded
    */
-  getNodeStatesFromPod(namespace: string, nodeAlias: string): Promise<Awaited<unknown>[]>;
+  getNodeStatesFromPod(namespace: NamespaceName, nodeAlias: string): Promise<Awaited<unknown>[]>;
 
   setCurrentContext(context: string): void;
 
   getCurrentContext(): string;
 
-  getCurrentContextNamespace(): Namespace;
+  getCurrentContextNamespace(): NamespaceName;
 
   getCurrentClusterName(): string;
 }

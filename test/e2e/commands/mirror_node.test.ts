@@ -18,15 +18,17 @@ import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
 import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
-import {type PodName} from '../../../src/types/aliases.js';
+import {PodName} from '../../../src/core/kube/pod_name.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/pod_ref.js';
 
 const testName = 'mirror-cmd-e2e';
-const namespace = testName;
+const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 
 argv[flags.nodeAliasesUnparsed.name] = 'node1'; // use a single node to reduce resource during e2e tests
@@ -104,7 +106,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         const pods = await k8.getPodsByLabel(['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod = pods[0];
 
-        portForwarder = await k8.portForward(explorerPod.metadata.name as PodName, 8_080, 8_080);
+        portForwarder = await k8.portForward(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)), 8_080, 8_080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running

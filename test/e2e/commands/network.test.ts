@@ -13,15 +13,18 @@ import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodName} from '../../../src/core/kube/pod_name.js';
+import {PodRef} from '../../../src/core/kube/pod_ref.js';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';
-  const namespace = testName;
+  const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
   const argv = getDefaultArgv();
-  argv[flags.namespace.name] = namespace;
+  argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
   argv[flags.generateGossipKeys.name] = true;
@@ -68,10 +71,9 @@ describe('NetworkCommand', () => {
       expect(await networkCmd.deploy(argv)).to.be.true;
 
       // check pod names should match expected values
-      await expect(k8.getPodByName('network-node1-0')).eventually.to.have.nested.property(
-        'metadata.name',
-        'network-node1-0',
-      );
+      await expect(
+        k8.getPodByName(PodRef.of(namespace, PodName.of('network-node1-0'))),
+      ).eventually.to.have.nested.property('metadata.name', 'network-node1-0');
       // get list of pvc using k8 listPvcsByNamespace function and print to log
       const pvcs = await k8.listPvcsByNamespace(namespace);
       networkCmd.logger.showList('PVCs', pvcs);
