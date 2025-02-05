@@ -10,6 +10,7 @@ import {type V1Lease} from '@kubernetes/client-node';
 import {type Namespaces} from './namespaces.js';
 import {type NamespaceName} from './namespace_name.js';
 import {type Clusters} from './clusters.js';
+import {type ConfigMaps} from './config_maps.js';
 import {type ContainerName} from './container_name.js';
 
 export interface K8 {
@@ -21,9 +22,15 @@ export interface K8 {
 
   /**
    * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
-   * returns an object instance providing cluster operations
+   * @returns an object instance providing cluster operations
    */
   clusters(): Clusters;
+
+  /**
+   * Fluent accessor for reading and manipulating config maps.
+   * @returns an object instance providing config map operations
+   */
+  configMaps(): ConfigMaps;
 
   /**
    * Create a new namespace

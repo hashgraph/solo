@@ -33,6 +33,9 @@ import {NamespaceName} from './namespace_name.js';
 import K8ClientClusters from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {PodRef} from './pod_ref.js';
+import {type ConfigMaps} from './config_maps.js';
+import K8ClientConfigMaps from './k8_client/k8_client_config_maps.js';
+import {PodRef} from './pod_ref.js';
 import {type ContainerName} from './container_name.js';
 
 /**
@@ -57,6 +60,7 @@ export class K8Client implements K8 {
   private networkingApi: k8s.NetworkingV1Api;
 
   private k8Clusters: K8ClientClusters;
+  private k8ConfigMaps: K8ClientConfigMaps;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -86,6 +90,7 @@ export class K8Client implements K8 {
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
     this.k8Clusters = new K8ClientClusters(this.kubeConfig);
+    this.k8ConfigMaps = new K8ClientConfigMaps(this.kubeClient);
 
     return this; // to enable chaining
   }
@@ -97,10 +102,18 @@ export class K8Client implements K8 {
 
   /**
    * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
-   * returns an object instance providing cluster operations
+   * @returns an object instance providing cluster operations
    */
   public clusters(): Clusters {
     return this.k8Clusters;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating config maps in the kubernetes cluster.
+   * @returns an object instance providing config map operations
+   */
+  public configMaps(): ConfigMaps {
+    return this.k8ConfigMaps;
   }
 
   /**
@@ -1148,13 +1161,7 @@ export class K8Client implements K8 {
   /* ------------- ConfigMap ------------- */
 
   public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
-    const {response, body} = await this.kubeClient
-      .readNamespacedConfigMap(name, this.getNamespace().name)
-      .catch(e => e);
-
-    this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
-
-    return body as k8s.V1ConfigMap;
+    return this.configMaps().read(this.getNamespace(), name);
   }
 
   public async createNamespacedConfigMap(
@@ -1162,26 +1169,7 @@ export class K8Client implements K8 {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    const namespace = this.getNamespace();
-
-    const configMap = new k8s.V1ConfigMap();
-    configMap.data = data;
-
-    const metadata = new k8s.V1ObjectMeta();
-    metadata.name = name;
-    metadata.namespace = namespace.name;
-    metadata.labels = labels;
-    configMap.metadata = metadata;
-    try {
-      const resp = await this.kubeClient.createNamespacedConfigMap(namespace.name, configMap);
-
-      return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e) {
-      throw new SoloError(
-        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
-        e,
-      );
-    }
+    return this.configMaps().create(this.getNamespace(), name, labels, data);
   }
 
   public async replaceNamespacedConfigMap(
@@ -1189,39 +1177,11 @@ export class K8Client implements K8 {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    const namespace = this.getNamespace();
-
-    const configMap = new k8s.V1ConfigMap();
-    configMap.data = data;
-
-    const metadata = new k8s.V1ObjectMeta();
-    metadata.name = name;
-    metadata.namespace = namespace.name;
-    metadata.labels = labels;
-    configMap.metadata = metadata;
-    try {
-      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace.name, configMap);
-
-      return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e) {
-      throw new SoloError(
-        `failed to replace configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
-        e,
-      );
-    }
+    return this.configMaps().replace(this.getNamespace(), name, labels, data);
   }
 
   public async deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean> {
-    try {
-      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace.name);
-
-      return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e) {
-      throw new SoloError(
-        `failed to delete configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
-        e,
-      );
-    }
+    return this.configMaps().delete(namespace, name);
   }
 
   // --------------------------------------- LEASES --------------------------------------- //
