@@ -36,7 +36,9 @@ export class PodRef {
    * @returns true if both instances have the same namespace name and pod name.
    */
   public equals(other: PodRef): boolean {
-    return other instanceof PodRef && this.namespaceName === other.namespaceName && this.podName === other.podName;
+    return (
+      other instanceof PodRef && this.namespaceName.equals(other.namespaceName) && this.podName.equals(other.podName)
+    );
   }
 
   /**
