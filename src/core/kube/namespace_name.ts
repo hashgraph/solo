@@ -22,6 +22,7 @@ export class NamespaceName {
    *
    * @include DNS_1123_LABEL
    * @param name The name of the namespace.
+   * @returns An instance of NamespaceName.
    * @throws NamespaceNameInvalidError if the namespace name is invalid.
    */
   public static of(name: string): NamespaceName {

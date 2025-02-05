@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type Optional} from '../../types/index.js';
+import {type NamespaceName} from './namespace_name.js';
 
 export interface Secrets {
   /**
@@ -15,7 +16,7 @@ export interface Secrets {
    * @returns whether the secret was created successfully
    */
   create(
-    namespace: string,
+    namespace: NamespaceName,
     name: string,
     secretType: string,
     data: Record<string, string>,
@@ -29,7 +30,7 @@ export interface Secrets {
    * @param name - the name of the existing secret
    * @returns whether the secret was deleted successfully
    */
-  delete(namespace: string, name: string): Promise<boolean>; // TODO was deleteSecret
+  delete(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was deleteSecret
 
   /**
    * Get secrets by labels
@@ -37,7 +38,7 @@ export interface Secrets {
    * @param labels - list of labels
    * @returns the list of secrets that match the labels
    */
-  listByLabel(namespace: string, labels: string[]): Promise<any>; // TODO was getSecretsByLabel(labels: string[]): Promise<any>
+  listByLabel(namespace: NamespaceName, labels: string[]): Promise<any>; // TODO was getSecretsByLabel(labels: string[]): Promise<any>
   // TODO consolidate getSecret into listByLabel
   // TODO consolidate listSecretsByNamespace into listByLabel
 }

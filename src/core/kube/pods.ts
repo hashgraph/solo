@@ -2,6 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type V1Pod} from '@kubernetes/client-node';
+import {type NamespaceName} from './namespace_name.js';
 
 export interface Pods {
   /**
@@ -10,7 +11,7 @@ export interface Pods {
    * @param name - podName name
    * @returns V1Pod - pod object
    */
-  readByName(namespace: string, name: string): Promise<V1Pod>; // TODO was getPodByName
+  readByName(namespace: NamespaceName, name: string): Promise<V1Pod>; // TODO was getPodByName
 
   /**
    * Get pods by labels
@@ -18,7 +19,7 @@ export interface Pods {
    * @param labels - list of labels
    * @returns V1Pod[] - list of pod objects
    */
-  readManyByLabel(namespace: string, labels: string[]): Promise<V1Pod[]>; // TODO was getPodsByLabel
+  readManyByLabel(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]>; // TODO was getPodsByLabel
 
   /**
    * Check if pod's ready status is true
@@ -29,7 +30,7 @@ export interface Pods {
    * @param [delay] - delay between checks in milliseconds
    */
   waitForReadyStatus(
-    namespace: string,
+    namespace: NamespaceName,
     labels: string[],
     podCount: number,
     maxAttempts: number,
@@ -47,7 +48,7 @@ export interface Pods {
    * @param [podItemPredicate] - pod item predicate
    */
   waitForRunningPhase(
-    namespace: string,
+    namespace: NamespaceName,
     phases: string[],
     labels: string[],
     podCount: number,
