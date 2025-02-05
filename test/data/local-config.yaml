@@ -3,7 +3,7 @@ deployments:
   deployment:
     clusters:
       - cluster-1
-    namespace: solo-1
+    namespace: solo-e2e
 currentDeploymentName: deployment
 clusterContextMapping:
   cluster-1: context-1

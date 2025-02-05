@@ -21,12 +21,12 @@ import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
-
+  const namespace = NamespaceName.of('test-namespace');
   const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
   let stagingDir = '';
 
   before(() => {
-    resetTestContainer();
+    resetTestContainer(namespace.name);
     tmpDir = getTmpDir();
     configManager = container.resolve(ConfigManager);
     profileManager = new ProfileManager(undefined, undefined, tmpDir);
@@ -197,7 +197,6 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node3', '0.0.5');
       const destPath = path.join(tmpDir, 'staging');
       fs.mkdirSync(destPath, {recursive: true});
-      const namespace = NamespaceName.of('test-namespace');
       profileManager.prepareConfigTxt(namespace, nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
 
       // expect that the config.txt file was created and exists

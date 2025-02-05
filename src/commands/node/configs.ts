@@ -265,7 +265,8 @@ export const logsConfigBuilder = async function (argv, ctx, task) {
     namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
-  };
+    deployment: this.configManager.getFlag(flags.deployment),
+  } as NodeLogsConfigClass;
   ctx.config = config;
   return config;
 };
@@ -275,6 +276,7 @@ export const statesConfigBuilder = async function (argv, ctx, task) {
     namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
+    deployment: this.configManager.getFlag(flags.deployment),
   };
   ctx.config = config;
   return config;
@@ -317,6 +319,7 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
     namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
+    deployment: this.configManager.getFlag(flags.deployment),
   };
 
   if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
