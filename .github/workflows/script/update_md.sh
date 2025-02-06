@@ -23,6 +23,7 @@ export KIND_CREATE_CLUSTER_OUTPUT=$( cat create-cluster.log | tee test.log )
 
 sleep 10 # wait for control plane to come up
 kubectl config set-context kind-${SOLO_CLUSTER_NAME}
+kubectl config set-cluster kind-${SOLO_CLUSTER_NAME}
 
 solo init | tee init.log
 export SOLO_INIT_OUTPUT=$( cat init.log | tee test.log )
