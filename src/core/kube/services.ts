@@ -17,5 +17,5 @@ export interface Services {
    * @param namespace - namespace
    * @param labels - labels
    */
-  list(namespace: NamespaceName, labels: string[]): Promise<V1Service[]>; // TODO was listSvcs
+  list(namespace: NamespaceName, labels?: string[]): Promise<V1Service[]>; // TODO was listSvcs
 }
