@@ -17,7 +17,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
 import {type K8} from './k8.js';
 import {type Namespaces} from './namespaces.js';
-import {NamespaceName} from './namespace_name.js';
+import {type NamespaceName} from './namespace_name.js';
 import {K8ClientClusters} from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
@@ -38,6 +38,7 @@ import {type Pvcs} from './pvcs.js';
 import {K8ClientPvcs} from './k8_client/k8_client_pvcs.js';
 import {type Leases} from './leases.js';
 import {K8ClientLeases} from './k8_client/k8_client_leases.js';
+import {K8ClientNamespaces} from './k8_client/k8_client_namespaces.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -63,6 +64,7 @@ export class K8Client extends K8ClientBase implements K8 {
   private k8Contexts: Contexts;
   private k8Services: Services;
   private k8Pvcs: Pvcs;
+  private k8Namespaces: Namespaces;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -100,6 +102,7 @@ export class K8Client extends K8ClientBase implements K8 {
     this.k8Pods = new K8ClientPods(this.kubeClient, this.kubeConfig);
     this.k8Pvcs = new K8ClientPvcs(this.kubeClient);
     this.k8Leases = new K8ClientLeases(this.coordinationApiClient);
+    this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
 
     return this; // to enable chaining
   }
@@ -109,7 +112,7 @@ export class K8Client extends K8ClientBase implements K8 {
    * @returns an object instance providing namespace operations
    */
   public namespaces(): Namespaces {
-    return null;
+    return this.k8Namespaces;
   }
 
   /**
@@ -173,38 +176,19 @@ export class K8Client extends K8ClientBase implements K8 {
   }
 
   public async createNamespace(namespace: NamespaceName) {
-    const payload = {
-      metadata: {
-        name: namespace.name,
-      },
-    };
-
-    const resp = await this.kubeClient.createNamespace(payload);
-    return resp.response.statusCode === StatusCodes.CREATED;
+    return this.namespaces().create(namespace);
   }
 
   public async deleteNamespace(namespace: NamespaceName) {
-    const resp = await this.kubeClient.deleteNamespace(namespace.name);
-    return resp.response.statusCode === StatusCodes.OK;
+    return this.namespaces().delete(namespace);
   }
 
   public async getNamespaces() {
-    const resp = await this.kubeClient.listNamespace();
-    if (resp.body && resp.body.items) {
-      const namespaces: NamespaceName[] = [];
-      resp.body.items.forEach(item => {
-        namespaces.push(NamespaceName.of(item.metadata!.name));
-      });
-
-      return namespaces;
-    }
-
-    throw new SoloError('incorrect response received from kubernetes API. Unable to list namespaces');
+    return this.namespaces().list();
   }
 
   public async hasNamespace(namespace: NamespaceName) {
-    const namespaces = await this.getNamespaces();
-    return namespaces.some(namespaces => namespaces.equals(namespace));
+    return this.namespaces().has(namespace);
   }
 
   public async getPodByName(podRef: PodRef): Promise<k8s.V1Pod> {

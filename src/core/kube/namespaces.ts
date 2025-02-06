@@ -3,9 +3,6 @@
  */
 import {type NamespaceName} from './namespace_name.js';
 
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
 export interface Namespaces {
   /**
    * Create a new namespace
@@ -22,6 +19,7 @@ export interface Namespaces {
   /**
    * List all namespaces
    * @returns a list of namespace names
+   * @throws SoloError if the response from the kubernetes API is incorrect
    */
   list(): Promise<NamespaceName[]>; // TODO was getNamespaces
 
