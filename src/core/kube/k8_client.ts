@@ -1589,7 +1589,7 @@ export class K8Client implements K8 {
     return this.clusters().readCurrent();
   }
 
-  public async patchIngress(namespace: NamespaceName, ingressName: string, path: string, value: string) {
+  public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {
     const ingressNames = [];
     await this.networkingApi
       .listIngressForAllNamespaces()
@@ -1605,23 +1605,18 @@ export class K8Client implements K8 {
         this.logger.error(`Error listing Ingresses: ${err}`);
       });
 
-    const patch = [
-      {
-        op: 'add', // Use 'replace' if the field already exists
-        path: path,
-        value: value,
-      },
-    ];
     for (const name of ingressNames) {
       await this.networkingApi
         .patchNamespacedIngress(name, namespace.name, patch, undefined, undefined, undefined, undefined, undefined, {
-          headers: {'Content-Type': 'application/json-patch+json'},
+          headers: {'Content-Type': 'application/strategic-merge-patch+json'},
         })
         .then(response => {
-          this.logger.info(`Patched Ingress ${name} in namespace ${namespace}`);
+          this.logger.info(`Patched Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)}`);
         })
         .catch(err => {
-          this.logger.error(`Error patching Ingress ${name} in namespace ${namespace}: ${err}`);
+          this.logger.error(
+            `Error patching Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)} ${err}`,
+          );
         });
     }
   }
