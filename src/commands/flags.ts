@@ -1439,7 +1439,7 @@ export class Flags {
     constName: 'deployment',
     name: 'deployment',
     definition: {
-      describe: 'The name the user will reference locally to link to a deployment.',
+      describe: 'The name the user will reference locally to link to a deployment',
       defaultValue: '',
       type: 'string',
     },
