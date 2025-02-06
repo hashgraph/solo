@@ -107,42 +107,22 @@ export class K8Client extends K8ClientBase implements K8 {
     return this; // to enable chaining
   }
 
-  /**
-   * Fluent accessor for reading and manipulating namespaces in the kubernetes cluster.
-   * @returns an object instance providing namespace operations
-   */
   public namespaces(): Namespaces {
     return this.k8Namespaces;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
-   * @returns an object instance providing cluster operations
-   */
   public clusters(): Clusters {
     return this.k8Clusters;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating config maps in the kubernetes cluster.
-   * @returns an object instance providing config map operations
-   */
   public configMaps(): ConfigMaps {
     return this.k8ConfigMaps;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating containers.
-   * returns an object instance providing container operations
-   */
   public containers(): Containers {
     return this.k8Containers;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating contexts in the kubeconfig file.
-   * @returns an object instance providing context operations
-   */
   public contexts(): Contexts {
     return this.k8Contexts;
   }
