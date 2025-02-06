@@ -147,10 +147,6 @@ export class K8Client extends K8ClientFilter implements K8 {
     return this.k8Pods;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
-   * @returns an object instance providing lease operations
-   */
   public leases(): Leases {
     return this.k8Leases;
   }

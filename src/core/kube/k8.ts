@@ -14,6 +14,7 @@ import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {type ContainerRef} from './container_ref.js';
 import {type Contexts} from './contexts.js';
+import type {Leases} from './leases.js';
 
 export interface K8 {
   /**
@@ -45,6 +46,12 @@ export interface K8 {
    * @returns an object instance providing context operations
    */
   contexts(): Contexts;
+
+  /**
+   * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
+   * @returns an object instance providing lease operations
+   */
+  leases(): Leases;
 
   /**
    * Create a new namespace
