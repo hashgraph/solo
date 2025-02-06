@@ -62,6 +62,7 @@ import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
+import {NodeOverridesModel} from '../../core/network_overrides_model.js';
 import {type NamespaceName} from '../../core/kube/namespace_name.js';
 import {PodRef} from '../../core/kube/pod_ref.js';
 import {Container} from '../../core/container_init.js';
@@ -903,7 +904,7 @@ export class NodeCommandTasks {
     });
   }
 
-  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean = false) {
+  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean) {
     return new Task('Setup network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       if (isGenesis) {
         await this.generateGenesisNetworkJson(
@@ -913,6 +914,8 @@ export class NodeCommandTasks {
           ctx.config.stagingDir,
         );
       }
+
+      await this.generateNetworksOverridesJson(ctx.config.namespace, ctx.config.nodeAliases, ctx.config.stagingDir);
 
       const subTasks = [];
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
@@ -929,6 +932,15 @@ export class NodeCommandTasks {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       });
     });
+  }
+
+  private async generateNetworksOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
+    const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
+
+    const networkOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
+
+    const genesisNetworkJson = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
+    fs.writeFileSync(genesisNetworkJson, networkOverridesModel.toYAML());
   }
 
   /**
@@ -951,6 +963,7 @@ export class NodeCommandTasks {
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
       nodeAliases,
       this.keyManager,
+      this.accountManager,
       keysDir,
       networkNodeServiceMap,
       adminPublicKeys,
