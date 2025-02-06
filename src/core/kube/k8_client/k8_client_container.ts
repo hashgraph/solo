@@ -31,7 +31,7 @@ export class K8ClientContainer implements Container {
     this.k8 = container.resolve('K8') as K8;
   }
 
-  async copyFrom(srcPath: string, destDir: string): Promise<unknown> {
+  public async copyFrom(srcPath: string, destDir: string): Promise<unknown> {
     const self = this;
     const namespace = this.containerRef.podRef.namespaceName;
     const guid = uuid4();
@@ -165,7 +165,7 @@ export class K8ClientContainer implements Container {
     }
   }
 
-  async copyTo(srcPath: string, destDir: string, filter: TarCreateFilter | undefined): Promise<boolean> {
+  public async copyTo(srcPath: string, destDir: string, filter: TarCreateFilter | undefined): Promise<boolean> {
     const self = this;
     const namespace = this.containerRef.podRef.namespaceName;
     const guid = uuid4();
@@ -250,7 +250,7 @@ export class K8ClientContainer implements Container {
     }
   }
 
-  async execContainer(command: string | string[]): Promise<string> {
+  public async execContainer(command: string | string[]): Promise<string> {
     const self = this;
     const namespace = this.containerRef.podRef.namespaceName;
     const guid = uuid4();
@@ -330,14 +330,14 @@ export class K8ClientContainer implements Container {
     });
   }
 
-  async hasDir(destPath: string): Promise<boolean> {
+  public async hasDir(destPath: string): Promise<boolean> {
     return (
       (await this.execContainer(['bash', '-c', '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"'])) ===
       'true'
     );
   }
 
-  async hasFile(destPath: string, filters: object): Promise<boolean> {
+  public async hasFile(destPath: string, filters: object): Promise<boolean> {
     const parentDir = path.dirname(destPath);
     const fileName = path.basename(destPath);
     const filterMap = new Map(Object.entries(filters));
@@ -385,7 +385,7 @@ export class K8ClientContainer implements Container {
     return false;
   }
 
-  async listDir(destPath: string): Promise<any[] | TDirectoryData[]> {
+  public async listDir(destPath: string): Promise<any[] | TDirectoryData[]> {
     // TODO future, return the following
     // return this.pods.byName(podName).listDir(containerName, destPath);
     // byName(podName) can use an underlying cache to avoid multiple calls to the API
@@ -447,7 +447,7 @@ export class K8ClientContainer implements Container {
     }
   }
 
-  async mkdir(destPath: string): Promise<string> {
+  public async mkdir(destPath: string): Promise<string> {
     return this.execContainer(['bash', '-c', 'mkdir -p "' + destPath + '"']);
   }
 

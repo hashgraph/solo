@@ -8,7 +8,6 @@ import net from 'net';
 import path from 'path';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
-import type * as http from 'node:http';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 import {sleep} from './../helpers.js';
 import * as constants from './../constants.js';
@@ -32,6 +31,9 @@ import {PodRef} from './pod_ref.js';
 import {ContainerRef} from './container_ref.js';
 import {K8ClientContainers} from './k8_client/k8_client_containers.js';
 import {type Containers} from './containers.js';
+import {type Contexts} from './contexts.js';
+import type http from 'node:http';
+import K8ClientContexts from './k8_client/k8_client_contexts.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -42,8 +44,6 @@ import {type Containers} from './containers.js';
 // TODO rename to K8Client and move to kube folder
 @injectable()
 export class K8Client implements K8 {
-  private cachedContexts: Context[];
-
   static PodReadyCondition = new Map<string, string>().set(
     constants.POD_CONDITION_READY,
     constants.POD_CONDITION_STATUS_TRUE,
@@ -56,8 +56,8 @@ export class K8Client implements K8 {
 
   private k8Clusters: K8ClientClusters;
   private k8ConfigMaps: K8ClientConfigMaps;
-
   private k8Containers: K8ClientContainers;
+  private k8Contexts: K8ClientContexts;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -89,6 +89,7 @@ export class K8Client implements K8 {
     this.k8Clusters = new K8ClientClusters(this.kubeConfig);
     this.k8ConfigMaps = new K8ClientConfigMaps(this.kubeClient);
     this.k8Containers = new K8ClientContainers(this.kubeConfig);
+    this.k8Contexts = new K8ClientContexts(this.kubeConfig);
 
     return this; // to enable chaining
   }
@@ -120,6 +121,14 @@ export class K8Client implements K8 {
    */
   public containers(): Containers {
     return this.k8Containers;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating contexts in the kubeconfig file.
+   * @returns an object instance providing context operations
+   */
+  public contexts(): Contexts {
+    return this.k8Contexts;
   }
 
   /**
@@ -288,21 +297,7 @@ export class K8Client implements K8 {
   }
 
   public getContextNames(): string[] {
-    const contexts: string[] = [];
-
-    for (const context of this.getContexts()) {
-      contexts.push(context.name);
-    }
-
-    return contexts;
-  }
-
-  private getContexts(): Context[] {
-    if (!this.cachedContexts) {
-      this.cachedContexts = this.kubeConfig.getContexts();
-    }
-
-    return this.cachedContexts;
+    return this.contexts().list();
   }
 
   public async listDir(containerRef: ContainerRef, destPath: string) {
@@ -1096,11 +1091,11 @@ export class K8Client implements K8 {
   }
 
   public getCurrentContext(): string {
-    return this.kubeConfig.getCurrentContext();
+    return this.contexts().readCurrent();
   }
 
   public getCurrentContextNamespace(): NamespaceName {
-    return NamespaceName.of(this.kubeConfig.getContextObject(this.getCurrentContext())?.namespace);
+    return this.contexts().readCurrentNamespace();
   }
 
   public getCurrentClusterName(): string {

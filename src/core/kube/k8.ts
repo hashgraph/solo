@@ -13,6 +13,7 @@ import {type Containers} from './containers.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {type ContainerRef} from './container_ref.js';
+import {type Contexts} from './contexts.js';
 
 export interface K8 {
   /**
@@ -38,6 +39,12 @@ export interface K8 {
    * @returns an object instance providing config map operations
    */
   configMaps(): ConfigMaps;
+
+  /**
+   * Fluent accessor for reading and manipulating contexts in the kubeconfig file.
+   * @returns an object instance providing context operations
+   */
+  contexts(): Contexts;
 
   /**
    * Create a new namespace
