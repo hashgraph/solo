@@ -5,9 +5,7 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
-import {Helm} from '../../../../src/core/helm.js';
 import {ChartManager} from '../../../../src/core/chart_manager.js';
-import {testLogger} from '../../../test_util.js';
 import {container} from 'tsyringe-neo';
 
 describe('ChartManager', () => {

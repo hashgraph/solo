@@ -24,6 +24,8 @@ import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
 import {PodRef} from '../core/kube/pod_ref.js';
+import {ContainerName} from '../core/kube/container_name.js';
+import {ContainerRef} from '../core/kube/container_ref.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -442,13 +444,10 @@ export class MirrorNodeCommand extends BaseCommand {
                       throw new SoloError('postgres pod not found');
                     }
                     const postgresPodName = PodName.of(pods[0].metadata.name);
-                    const postgresContainerName = 'postgresql';
+                    const postgresContainerName = ContainerName.of('postgresql');
                     const postgresPodRef = PodRef.of(namespace, postgresPodName);
-                    const mirrorEnvVars = await self.k8.execContainer(
-                      postgresPodRef,
-                      postgresContainerName,
-                      '/bin/bash -c printenv',
-                    );
+                    const containerRef = ContainerRef.of(postgresPodRef, postgresContainerName);
+                    const mirrorEnvVars = await self.k8.execContainer(containerRef, '/bin/bash -c printenv');
                     const mirrorEnvVarsArray = mirrorEnvVars.split('\n');
                     const HEDERA_MIRROR_IMPORTER_DB_OWNER = helpers.getEnvValue(
                       mirrorEnvVarsArray,
@@ -463,7 +462,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
-                    await self.k8.execContainer(postgresPodRef, postgresContainerName, [
+                    await self.k8.execContainer(containerRef, [
                       'psql',
                       `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
                       '-c',

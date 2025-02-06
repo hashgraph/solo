@@ -21,6 +21,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/namespace_name.js';
 import {type PodRef} from './kube/pod_ref.js';
+import {ContainerRef} from './kube/container_ref.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -94,8 +95,9 @@ export class PlatformInstaller {
       await sleep(Duration.ofSeconds(2));
 
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
-      await this.k8.execContainer(podRef, constants.ROOT_CONTAINER, `chmod +x ${extractScript}`);
-      await this.k8.execContainer(podRef, constants.ROOT_CONTAINER, [extractScript, tag]);
+      const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
+      await this.k8.execContainer(containerRef, `chmod +x ${extractScript}`);
+      await this.k8.execContainer(containerRef, [extractScript, tag]);
       return true;
     } catch (e: Error | any) {
       const message = `failed to extract platform code in this pod '${podRef.podName.name}': ${e.message}`;
@@ -114,6 +116,7 @@ export class PlatformInstaller {
    */
   async copyFiles(podRef: PodRef, srcFiles: string[], destDir: string, container = constants.ROOT_CONTAINER) {
     try {
+      const containerRef = ContainerRef.of(podRef, container);
       const copiedFiles: string[] = [];
 
       // prepare the file mapping
@@ -122,12 +125,12 @@ export class PlatformInstaller {
           throw new SoloError(`file does not exist: ${srcPath}`);
         }
 
-        if (!(await this.k8.hasDir(podRef, container, destDir))) {
-          await this.k8.mkdir(podRef, container, destDir);
+        if (!(await this.k8.hasDir(containerRef, destDir))) {
+          await this.k8.mkdir(containerRef, destDir);
         }
 
         this.logger.debug(`Copying file into ${podRef.podName.name}: ${srcPath} -> ${destDir}`);
-        await this.k8.copyTo(podRef, container, srcPath, destDir);
+        await this.k8.copyTo(containerRef, srcPath, destDir);
 
         const fileName = path.basename(srcPath);
         copiedFiles.push(path.join(destDir, fileName));
@@ -233,14 +236,15 @@ export class PlatformInstaller {
   ) {
     if (!podRef) throw new MissingArgumentError('podRef is required');
     if (!destPath) throw new MissingArgumentError('destPath is required');
+    const containerRef = ContainerRef.of(podRef, container);
 
     const recursiveFlag = recursive ? '-R' : '';
-    await this.k8.execContainer(podRef, container, [
+    await this.k8.execContainer(containerRef, [
       'bash',
       '-c',
       `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`,
     ]);
-    await this.k8.execContainer(podRef, container, [
+    await this.k8.execContainer(containerRef, [
       'bash',
       '-c',
       `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`,
