@@ -15,7 +15,7 @@ vars:
   postgres_database_namespace: "database"
 env:
   SOLO_NETWORK_SIZE: "1"
-  SOLO_NAMESPACE: "external-database-test"
+  SOLO_NAMESPACE: "solo-e2e"
   MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--use-external-database --external-database-host {{.postgres_host_fqdn}} --external-database-owner-username {{.postgres_username}} --external-database-owner-password {{.postgres_password}}"
 tasks:
   default:
@@ -51,8 +51,9 @@ tasks:
           kubectl exec -it {{.postgres_container_name}} -n {{.postgres_database_namespace}} -- env PGPASSWORD={{.postgres_password}} psql -U {{.postgres_username}} \
             -f /tmp/database-seeding-query.sql \
             -d {{.postgres_mirror_node_database_name}}
+      - task: "solo:relay"
       - name: "Run smoke test"
-        cmd: (cd ../../ && ./examples/external-database-test/scripts/solo_smoke_test.sh)
+        cmd: (cd ../../ && ./.github/workflows/script/solo_smoke_test.sh)
   destroy:
     desc: destroy relay, mirror-node, and network
     deps:

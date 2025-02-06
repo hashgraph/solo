@@ -123,9 +123,6 @@ if [ "$1" == "ACCOUNT_INIT" ]; then
   npm run solo-test -- account init -n solo-e2e
 fi
 
-task solo:mirror-node
-task solo:relay
-
 echo "Change to parent directory"
 
 cd ../
