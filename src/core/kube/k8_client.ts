@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
-import {getReasonPhrase, StatusCodes} from 'http-status-codes';
+import {StatusCodes} from 'http-status-codes';
 import {sleep} from './../helpers.js';
 import * as constants from './../constants.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './../constants.js';
@@ -31,11 +31,12 @@ import {ContainerRef} from './container_ref.js';
 import {K8ClientContainers} from './k8_client/k8_client_containers.js';
 import {type Containers} from './containers.js';
 import {type Contexts} from './contexts.js';
-import type http from 'node:http';
 import {K8ClientContexts} from './k8_client/k8_client_contexts.js';
 import {K8ClientPods} from './k8_client/k8_client_pods.js';
 import {type Pods} from './pods.js';
 import {K8ClientFilter} from './k8_client/k8_client_filter.js';
+import {type Leases} from './leases.js';
+import {K8ClientLeases} from './k8_client/k8_client_leases.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -58,6 +59,7 @@ export class K8Client extends K8ClientFilter implements K8 {
   private k8Containers: Containers;
   private k8Pods: Pods;
   private k8Contexts: Contexts;
+  private k8Leases: Leases;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -92,6 +94,7 @@ export class K8Client extends K8ClientFilter implements K8 {
     this.k8Containers = new K8ClientContainers(this.kubeConfig);
     this.k8Contexts = new K8ClientContexts(this.kubeConfig);
     this.k8Pods = new K8ClientPods(this.kubeClient, this.kubeConfig);
+    this.k8Leases = new K8ClientLeases(this.coordinationApiClient);
 
     return this; // to enable chaining
   }
@@ -142,6 +145,14 @@ export class K8Client extends K8ClientFilter implements K8 {
    */
   public pods(): Pods {
     return this.k8Pods;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
+   * @returns an object instance providing lease operations
+   */
+  public leases(): Leases {
+    return this.k8Leases;
   }
 
   public async createNamespace(namespace: NamespaceName) {
@@ -464,79 +475,23 @@ export class K8Client extends K8ClientFilter implements K8 {
     holderName: string,
     durationSeconds = 20,
   ) {
-    const lease = new k8s.V1Lease();
-
-    const metadata = new k8s.V1ObjectMeta();
-    metadata.name = leaseName;
-    metadata.namespace = namespace.name;
-    lease.metadata = metadata;
-
-    const spec = new k8s.V1LeaseSpec();
-    spec.holderIdentity = holderName;
-    spec.leaseDurationSeconds = durationSeconds;
-    spec.acquireTime = new k8s.V1MicroTime();
-    lease.spec = spec;
-
-    const {response, body} = await this.coordinationApiClient
-      .createNamespacedLease(namespace.name, lease)
-      .catch(e => e);
-
-    this.handleKubernetesClientError(response, body, 'Failed to create namespaced lease');
-
-    return body as k8s.V1Lease;
+    return this.leases().create(namespace, leaseName, holderName, durationSeconds);
   }
 
   public async readNamespacedLease(leaseName: string, namespace: NamespaceName, timesCalled = 0) {
-    const {response, body} = await this.coordinationApiClient
-      .readNamespacedLease(leaseName, namespace.name)
-      .catch(e => e);
-
-    if (response?.statusCode === StatusCodes.INTERNAL_SERVER_ERROR && timesCalled < 4) {
-      // could be k8s control plane has no resources available
-      this.logger.debug(
-        `Retrying readNamespacedLease(${leaseName}, ${namespace}) in 5 seconds because of ${getReasonPhrase(StatusCodes.INTERNAL_SERVER_ERROR)}`,
-      );
-      await sleep(Duration.ofSeconds(5));
-      return await this.readNamespacedLease(leaseName, namespace, timesCalled + 1);
-    }
-
-    this.handleKubernetesClientError(response, body, 'Failed to read namespaced lease');
-
-    return body as k8s.V1Lease;
+    return this.leases().read(namespace, leaseName, timesCalled);
   }
 
   public async renewNamespaceLease(leaseName: string, namespace: NamespaceName, lease: k8s.V1Lease) {
-    lease.spec.renewTime = new k8s.V1MicroTime();
-
-    const {response, body} = await this.coordinationApiClient
-      .replaceNamespacedLease(leaseName, namespace.name, lease)
-      .catch(e => e);
-
-    this.handleKubernetesClientError(response, body, 'Failed to renew namespaced lease');
-
-    return body as k8s.V1Lease;
+    return this.leases().renew(namespace, leaseName, lease);
   }
 
   public async transferNamespaceLease(lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease> {
-    lease.spec.leaseTransitions++;
-    lease.spec.renewTime = new k8s.V1MicroTime();
-    lease.spec.holderIdentity = newHolderName;
-
-    const {response, body} = await this.coordinationApiClient
-      .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
-      .catch(e => e);
-
-    this.handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease');
-
-    return body as k8s.V1Lease;
+    return this.leases().transfer(lease, newHolderName);
   }
 
   public async deleteNamespacedLease(name: string, namespace: NamespaceName) {
-    const {response, body} = await this.coordinationApiClient.deleteNamespacedLease(name, namespace.name).catch(e => e);
-
-    this.handleKubernetesClientError(response, body, 'Failed to delete namespaced lease');
-
-    return body as k8s.V1Status;
+    return this.leases().delete(namespace, name);
   }
 
   // --------------------------------------- Pod Identifiers --------------------------------------- //
@@ -669,27 +624,6 @@ export class K8Client extends K8ClientFilter implements K8 {
   }
 
   /* ------------- Utilities ------------- */
-
-  /**
-   * @param response - response object from the kubeclient call
-   * @param error - body of the response becomes the error if the status is not OK
-   * @param errorMessage - the error message to be passed in case it fails
-   *
-   * @throws SoloError - if the status code is not OK
-   */
-  private handleKubernetesClientError(
-    response: http.IncomingMessage,
-    error: Error | unknown,
-    errorMessage: string,
-  ): void {
-    const statusCode = +response?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
-
-    if (statusCode <= StatusCodes.ACCEPTED) return;
-    errorMessage += `, statusCode: ${statusCode}`;
-    this.logger.error(errorMessage, error);
-
-    throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});
-  }
 
   private getNamespace(): NamespaceName {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
