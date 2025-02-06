@@ -159,7 +159,9 @@ export class AccountManager {
         await this.refreshNodeClient(namespace);
       } else {
         try {
-          await this._nodeClient.ping(this._nodeClient.operatorAccountId);
+          if (!constants.SKIP_NODE_PING) {
+            await this._nodeClient.ping(this._nodeClient.operatorAccountId);
+          }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
           await this.refreshNodeClient(namespace);
@@ -274,7 +276,9 @@ export class AccountManager {
       this._nodeClient.setRequestTimeout(constants.NODE_CLIENT_REQUEST_TIMEOUT as number);
 
       // ping the node client to ensure it is working
-      await this._nodeClient.ping(AccountId.fromString(operatorId));
+      if (!constants.SKIP_NODE_PING) {
+        await this._nodeClient.ping(AccountId.fromString(operatorId));
+      }
 
       // start a background pinger to keep the node client alive, Hashgraph SDK JS has a 90-second keep alive time, and
       // 5-second keep alive timeout
@@ -300,7 +304,9 @@ export class AccountManager {
       } else {
         try {
           this.logger.debug(`pinging node client at an interval of ${Duration.ofMillis(interval).seconds} seconds`);
-          await this._nodeClient.ping(AccountId.fromString(operatorId));
+          if (!constants.SKIP_NODE_PING) {
+            await this._nodeClient.ping(AccountId.fromString(operatorId));
+          }
         } catch (e: Error | any) {
           const message = `failed to ping node client while running the interval pinger: ${e.message}`;
           this.logger.error(message, e);
@@ -908,7 +914,9 @@ export class AccountManager {
       nodeClient = Client.fromConfig({network: obj, scheduleNetworkUpdate: false});
       this.logger.debug(`pinging network node: ${Object.keys(obj)[0]}`);
       try {
-        await nodeClient.ping(accountId);
+        if (!constants.SKIP_NODE_PING) {
+          await nodeClient.ping(accountId);
+        }
         this.logger.debug(`ping successful for network node: ${Object.keys(obj)[0]}`);
       } catch (e) {
         const message = `failed to ping network node: ${Object.keys(obj)[0]} ${e.message}`;

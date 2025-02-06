@@ -353,7 +353,7 @@ export interface K8 {
    * Check if the ingress controller is installed inside any namespace.
    * @returns if ingress controller is found
    */
-  isIngressControllerInstalled(): Promise<boolean>;
+  isIngressControllerInstalled(labels: string[]): Promise<boolean>;
 
   isRemoteConfigPresentInAnyNamespace(): Promise<boolean>;
 
@@ -390,4 +390,8 @@ export interface K8 {
   getCurrentContextNamespace(): NamespaceName;
 
   getCurrentClusterName(): string;
+
+  patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;
+
+  patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>): Promise<void>;
 }
