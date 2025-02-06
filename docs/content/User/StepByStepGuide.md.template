@@ -120,7 +120,19 @@ It may take a while (5~15 minutes depending on your internet speed) to download 
 If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
 
 ```
-solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --deployment "${SOLO_DEPLOYMENT}"
+```
+
+* Example output
+
+```
+$SOLO_DEPLOYMENT_CREATE_OUTPUT
+```
+
+* Create a deployment in the specified clusters, generate RemoteConfig and LocalConfig objects.
+
+```
+solo network deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output
@@ -133,7 +145,7 @@ $SOLO_NETWORK_DEPLOY_OUTPUT
   * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
 
 ```
-solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output
@@ -145,7 +157,7 @@ $SOLO_NODE_SETUP_OUTPUT
 * Start the nodes
 
 ```
-solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
+solo node start -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output
@@ -157,7 +169,7 @@ $SOLO_NODE_START_OUTPUT
 * Deploy mirror node
 
 ```
-solo mirror-node deploy -n "${SOLO_NAMESPACE}"
+solo mirror-node deploy --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output
@@ -169,7 +181,7 @@ $SOLO_MIRROR_NODE_DEPLOY_OUTPUT
 * Deploy a JSON RPC relay
 
 ```
-solo relay deploy -i node1 -n "${SOLO_NAMESPACE}"
+solo relay deploy -i node1 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output

@@ -12,7 +12,9 @@ else
 fi
 
 export SOLO_NAMESPACE=solo
+export SOLO_DEPLOYMENT=solo-deployment
 export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
+export SOLO_EMAIL=john@doe.com
 
 echo "Perform the following kind and solo commands and save output to environment variables"
 
@@ -27,6 +29,9 @@ export SOLO_NODE_KEY_PEM_OUTPUT=$( cat keys.log | tee test.log )
 
 solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee cluster-setup.log
 export SOLO_CLUSTER_SETUP_OUTPUT=$( cat cluster-setup.log | tee test.log )
+
+solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --deployment "${SOLO_DEPLOYMENT}" | tee deployment-create.log
+export SOLO_DEPLOYMENT_CREATE_OUTPUT=$( cat deployment-create.log | tee test.log )
 
 solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}" | tee network-deploy.log
 export SOLO_NETWORK_DEPLOY_OUTPUT=$( cat network-deploy.log | tee test.log )
@@ -46,8 +51,8 @@ export SOLO_RELAY_DEPLOY_OUTPUT=$( cat relay-deploy.log | tee test.log )
 echo "Generate README.md"
 
 envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
-$SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,\
-$SOLO_RELAY_DEPLOY_OUTPUT'\
+$SOLO_DEPLOYMENT_CREATE_OUTPUT,$SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,\
+$SOLO_MIRROR_NODE_DEPLOY_OUTPUT,$SOLO_RELAY_DEPLOY_OUTPUT'\
 < docs/content/User/StepByStepGuide.md.template > docs/content/User/StepByStepGuide.md
 
 echo "Remove color codes and lines showing intermediate progress"
