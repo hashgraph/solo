@@ -54,6 +54,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         expect.fail();
       }
       expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
