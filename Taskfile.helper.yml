@@ -479,16 +479,26 @@ tasks:
     desc: setup external database PostgreSQL with helm
     cmds:
       - |
-        {{.solo_bin_dir}}/helm install my-postgresql bitnami/postgresql \
+        {{.solo_bin_dir}}/helm install {{.postgres_name}} bitnami/postgresql \
           --set image.tag=16.4.0 \
-          --namespace database --create-namespace \
+          --namespace {{.postgres_database_namespace}} --create-namespace \
           --set global.postgresql.auth.postgresPassword={{.postgres_password}} \
           --set primary.persistence.enabled=false --set secondary.enabled=false
       - name: "Wait for PostgreSQL pod to be ready"
-        cmd: kubectl wait --for=condition=ready pod/my-postgresql-0 -n database --timeout=60s
+        cmd: |
+          kubectl wait --for=condition=ready pod/{{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} --timeout=60s
       - name: "Copy init.sql inside the database pod"
-        cmd: kubectl cp ../custom-mirror-node-database/scripts/init.sh my-postgresql-0:/tmp/init.sh -n database
+        cmd: |
+          kubectl cp ../custom-mirror-node-database/scripts/init.sh \
+          {{.postgres_container_name}}:/tmp/init.sh \
+          -n {{.postgres_database_namespace}}
       - name: "Make init.sh executable"
-        cmd: kubectl exec -it my-postgresql-0 -n database -- chmod +x /tmp/init.sh
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} -- chmod +x /tmp/init.sh
       - name: "Execute init.sh inside the database pod"
-        cmd: kubectl exec -it my-postgresql-0 -n database -- /bin/bash /tmp/init.sh "{{.postgres_username}}" "{{.postgres_password}}"
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} \
+          -- /bin/bash /tmp/init.sh "{{.postgres_username}}" "{{.postgres_password}}"

@@ -7,11 +7,16 @@ vars:
   use_port_forwards: "true"
   postgres_username: "postgres"
   postgres_password: "XXXXXXXXX"
-  postgres_host: "my-postgresql.database.svc.cluster.local"
+  postgres_name: "my-postgresql"
+  postgres_container_name: "{{.postgres_name}}-0"
+  postgres_host_fqdn: "{{.postgres_name}}.database.svc.cluster.local"
+  postgres_container_fdqn: "{{.postgres_container_name}}.database.svc.cluster.local"
+  postgres_mirror_node_database_name: "mirror_node"
+  postgres_database_namespace: "database"
 env:
   SOLO_NETWORK_SIZE: "1"
   SOLO_NAMESPACE: "external-database-test"
-  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--use-external-database --external-database-host {{.postgres_host}} --external-database-owner-username {{.postgres_username}} --external-database-owner-password {{.postgres_password}}"
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--use-external-database --external-database-host {{.postgres_host_fqdn}} --external-database-owner-username {{.postgres_username}} --external-database-owner-password {{.postgres_password}}"
 tasks:
   default:
     silent: true
@@ -38,9 +43,14 @@ tasks:
       - task: "solo:external-database"
       - task: "solo:mirror-node-only"
       - name: "Copy database-seeding-query.sql inside the database pod"
-        cmd: kubectl cp {{.HOME}}/.solo/cache/database-seeding-query.sql my-postgresql-0:/tmp/database-seeding-query.sql -n database
+        cmd: |
+          kubectl cp {{.HOME}}/.solo/cache/database-seeding-query.sql {{.postgres_container_name}}:/tmp/database-seeding-query.sql \
+          -n {{.postgres_database_namespace}}
       - name: "Execute the database-seeding–query.sql against the database"
-        cmd: kubectl exec -it my-postgresql-0 -n database -- env PGPASSWORD={{.postgres_password}} psql -U {{.postgres_username}} -f /tmp/database-seeding-query.sql
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} -n {{.postgres_database_namespace}} -- env PGPASSWORD={{.postgres_password}} psql -U {{.postgres_username}} \
+            -f /tmp/database-seeding-query.sql \
+            -d {{.postgres_mirror_node_database_name}}
   destroy:
     desc: destroy relay, mirror-node, and network
     deps:
