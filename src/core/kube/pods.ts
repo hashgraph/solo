@@ -33,17 +33,10 @@ export interface Pods {
    * Check if pod's ready status is true
    * @param namespace - namespace
    * @param [labels] - pod labels
-   * @param [podCount] - number of pod expected
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
    */
-  waitForReadyStatus(
-    namespace: NamespaceName,
-    labels: string[],
-    podCount: number,
-    maxAttempts: number,
-    delay: number,
-  ): Promise<V1Pod[]>; // TODO was waitForPodReady
+  waitForReadyStatus(namespace: NamespaceName, labels: string[], maxAttempts: number, delay: number): Promise<V1Pod[]>; // TODO was waitForPodReady
 
   /**
    * Check if pod's phase is running

@@ -297,7 +297,7 @@ export class K8Client extends K8ClientFilter implements K8 {
     namespace?: NamespaceName,
   ) {
     const ns = namespace || this.getNamespace();
-    return this.pods().waitForReadyStatus(ns, labels, podCount, maxAttempts, delay);
+    return this.pods().waitForReadyStatus(ns, labels, maxAttempts, delay);
   }
 
   public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
