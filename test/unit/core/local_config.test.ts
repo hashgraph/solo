@@ -66,12 +66,15 @@ describe('LocalConfig', () => {
   });
 
   it('should set deployments', async () => {
+    const namespace = 'namespace';
     const newDeployments = {
       deployment: {
         clusters: ['cluster-1', 'context-1'],
+        namespace,
       },
       'deployment-2': {
         clusters: ['cluster-3', 'context-3'],
+        namespace,
       },
     };
 

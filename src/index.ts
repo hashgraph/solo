@@ -94,7 +94,7 @@ export function main(argv: any) {
 
       const clusterName = configManager.getFlag(flags.clusterName) || currentClusterName;
 
-      if (contextNamespace) {
+      if (contextNamespace?.name) {
         configManager.setFlag(flags.namespace, contextNamespace);
       }
 

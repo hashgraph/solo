@@ -1435,6 +1435,26 @@ export class Flags {
     },
   };
 
+  static readonly deployment: CommandFlag = {
+    constName: 'deployment',
+    name: 'deployment',
+    definition: {
+      describe: 'The name the user will reference locally to link to a deployment',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptDeployment(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.deployment.definition.defaultValue,
+        'Enter the name of the deployment:',
+        null,
+        Flags.deployment.name,
+      );
+    },
+  };
+
   static readonly deploymentClusters: CommandFlag = {
     constName: 'deploymentClusters',
     name: 'deployment-clusters',
@@ -1740,6 +1760,7 @@ export class Flags {
     Flags.deployJsonRpcRelay,
     Flags.deployMinio,
     Flags.deployPrometheusStack,
+    Flags.deployment,
     Flags.deploymentClusters,
     Flags.devMode,
     Flags.ecdsaPrivateKey,

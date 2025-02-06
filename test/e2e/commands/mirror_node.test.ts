@@ -86,6 +86,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.chartDirectory.constName,
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
@@ -93,6 +94,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.storageEndpoint.constName,
       ]);
       expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
