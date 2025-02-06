@@ -45,7 +45,7 @@ export SOLO_NODE_START_OUTPUT=$( cat node-start.log | tee test.log )
 solo mirror-node deploy --deployment "${SOLO_DEPLOYMENT}" | tee mirror-node-deploy.log
 export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( cat mirror-node-deploy.log | tee test.log )
 
-solo relay deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" | tee relay-deploy.log
+solo relay deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee relay-deploy.log
 export SOLO_RELAY_DEPLOY_OUTPUT=$( cat relay-deploy.log | tee test.log )
 
 echo "Generate README.md"

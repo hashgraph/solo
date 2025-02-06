@@ -182,7 +182,7 @@ $SOLO_MIRROR_NODE_DEPLOY_OUTPUT
 * Deploy a JSON RPC relay
 
 ```
-solo relay deploy -i node1 --deployment "${SOLO_DEPLOYMENT}"
+solo relay deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output
