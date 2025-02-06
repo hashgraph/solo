@@ -1597,7 +1597,7 @@ export class K8Client implements K8 {
         response.body.items.forEach(ingress => {
           const currentIngressName = ingress.metadata.name;
           if (currentIngressName.includes(ingressName)) {
-            ingressNames.push(ingressName);
+            ingressNames.push(currentIngressName);
           }
         });
       })
