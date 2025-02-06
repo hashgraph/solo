@@ -21,17 +21,13 @@ echo "Perform the following kind and solo commands and save output to environmen
 kind create cluster -n "${SOLO_CLUSTER_NAME}" 2>&1 | tee create-cluster.log
 export KIND_CREATE_CLUSTER_OUTPUT=$( cat create-cluster.log | tee test.log )
 
-sleep 10 # wait for control plane to come up
-kubectl config set-context kind-${SOLO_CLUSTER_NAME}
-kubectl config set-cluster kind-${SOLO_CLUSTER_NAME}
-
 solo init | tee init.log
 export SOLO_INIT_OUTPUT=$( cat init.log | tee test.log )
 
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3 | tee keys.log
 export SOLO_NODE_KEY_PEM_OUTPUT=$( cat keys.log | tee test.log )
 
-solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --deployment "${SOLO_DEPLOYMENT}" | tee deployment-create.log
+solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" | tee deployment-create.log
 export SOLO_DEPLOYMENT_CREATE_OUTPUT=$( cat deployment-create.log | tee test.log )
 
 solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee cluster-setup.log
