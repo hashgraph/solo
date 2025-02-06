@@ -42,6 +42,7 @@ tasks:
       - task: "solo:init"
       - task: "solo:cluster:setup"
       - task: "solo:keys"
+      - task: "solo:deployment:create"
       - task: "solo:network:deploy"
 
   destroy:
