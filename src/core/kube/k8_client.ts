@@ -21,7 +21,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
 import {type K8} from './k8.js';
 import {type Namespaces} from './namespaces.js';
-import {NamespaceName} from './namespace_name.js';
+import {type NamespaceName} from './namespace_name.js';
 import {K8ClientClusters} from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
@@ -36,6 +36,7 @@ import {K8ClientContexts} from './k8_client/k8_client_contexts.js';
 import {K8ClientPods} from './k8_client/k8_client_pods.js';
 import {type Pods} from './pods.js';
 import {K8ClientFilter} from './k8_client/k8_client_filter.js';
+import {K8ClientNamespaces} from './k8_client/k8_client_namespaces.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -58,6 +59,7 @@ export class K8Client extends K8ClientFilter implements K8 {
   private k8Containers: Containers;
   private k8Pods: Pods;
   private k8Contexts: Contexts;
+  private k8Namespaces: Namespaces;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -92,91 +94,49 @@ export class K8Client extends K8ClientFilter implements K8 {
     this.k8Containers = new K8ClientContainers(this.kubeConfig);
     this.k8Contexts = new K8ClientContexts(this.kubeConfig);
     this.k8Pods = new K8ClientPods(this.kubeClient, this.kubeConfig);
+    this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
 
     return this; // to enable chaining
   }
 
-  /**
-   * Fluent accessor for reading and manipulating namespaces in the kubernetes cluster.
-   * @returns an object instance providing namespace operations
-   */
   public namespaces(): Namespaces {
-    return null;
+    return this.k8Namespaces;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
-   * @returns an object instance providing cluster operations
-   */
   public clusters(): Clusters {
     return this.k8Clusters;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating config maps in the kubernetes cluster.
-   * @returns an object instance providing config map operations
-   */
   public configMaps(): ConfigMaps {
     return this.k8ConfigMaps;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating containers.
-   * returns an object instance providing container operations
-   */
   public containers(): Containers {
     return this.k8Containers;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating contexts in the kubeconfig file.
-   * @returns an object instance providing context operations
-   */
   public contexts(): Contexts {
     return this.k8Contexts;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating pods in the kubernetes cluster.
-   * @returns an object instance providing pod operations
-   */
   public pods(): Pods {
     return this.k8Pods;
   }
 
   public async createNamespace(namespace: NamespaceName) {
-    const payload = {
-      metadata: {
-        name: namespace.name,
-      },
-    };
-
-    const resp = await this.kubeClient.createNamespace(payload);
-    return resp.response.statusCode === StatusCodes.CREATED;
+    return this.namespaces().create(namespace);
   }
 
   public async deleteNamespace(namespace: NamespaceName) {
-    const resp = await this.kubeClient.deleteNamespace(namespace.name);
-    return resp.response.statusCode === StatusCodes.OK;
+    return this.namespaces().delete(namespace);
   }
 
   public async getNamespaces() {
-    const resp = await this.kubeClient.listNamespace();
-    if (resp.body && resp.body.items) {
-      const namespaces: NamespaceName[] = [];
-      resp.body.items.forEach(item => {
-        namespaces.push(NamespaceName.of(item.metadata!.name));
-      });
-
-      return namespaces;
-    }
-
-    throw new SoloError('incorrect response received from kubernetes API. Unable to list namespaces');
+    return this.namespaces().list();
   }
 
   public async hasNamespace(namespace: NamespaceName) {
-    const namespaces = await this.getNamespaces();
-    return namespaces.some(namespaces => namespaces.equals(namespace));
+    return this.namespaces().has(namespace);
   }
 
   public async getPodByName(podRef: PodRef): Promise<k8s.V1Pod> {
