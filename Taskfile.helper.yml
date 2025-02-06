@@ -297,7 +297,7 @@ tasks:
     status:
       - kind get clusters | grep -q "${SOLO_CLUSTER_NAME}"
     cmds:
-      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" --config ~/Documents/kind-cluster.yaml
+      - kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}"
       - sleep 10 # wait for control plane to come up
       - kubectl config set-context kind-${SOLO_CLUSTER_NAME}
 
@@ -490,7 +490,7 @@ tasks:
           -n {{.postgres_database_namespace}} --timeout=60s
       - name: "Copy init.sql inside the database pod"
         cmd: |
-          kubectl cp ../custom-mirror-node-database/scripts/init.sh \
+          kubectl cp ../external-database-test/scripts/init.sh \
           {{.postgres_container_name}}:/tmp/init.sh \
           -n {{.postgres_database_namespace}}
       - name: "Make init.sh executable"
