@@ -33,19 +33,19 @@ export SOLO_DEPLOYMENT_CREATE_OUTPUT=$( cat deployment-create.log | tee test.log
 solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee cluster-setup.log
 export SOLO_CLUSTER_SETUP_OUTPUT=$( cat cluster-setup.log | tee test.log )
 
-solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}" | tee network-deploy.log
+solo network deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee network-deploy.log
 export SOLO_NETWORK_DEPLOY_OUTPUT=$( cat network-deploy.log | tee test.log )
 
-solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" | tee node-setup.log
+solo node setup -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee node-setup.log
 export SOLO_NODE_SETUP_OUTPUT=$( cat node-setup.log | tee test.log )
 
-solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}" | tee node-start.log
+solo node start -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee node-start.log
 export SOLO_NODE_START_OUTPUT=$( cat node-start.log | tee test.log )
 
-solo mirror-node deploy -n "${SOLO_NAMESPACE}" | tee mirror-node-deploy.log
+solo mirror-node deploy --deployment "${SOLO_DEPLOYMENT}" | tee mirror-node-deploy.log
 export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( cat mirror-node-deploy.log | tee test.log )
 
-solo relay deploy -i node1 -n "${SOLO_NAMESPACE}" | tee relay-deploy.log
+solo relay deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" | tee relay-deploy.log
 export SOLO_RELAY_DEPLOY_OUTPUT=$( cat relay-deploy.log | tee test.log )
 
 echo "Generate README.md"
