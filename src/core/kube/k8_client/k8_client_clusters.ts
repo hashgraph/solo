@@ -12,7 +12,7 @@ export default class K8ClientClusters implements Clusters {
     }
   }
 
-  list(): string[] {
+  public list(): string[] {
     const clusters: string[] = [];
     for (const cluster of this.kubeConfig.getClusters()) {
       clusters.push(cluster.name);
@@ -21,7 +21,7 @@ export default class K8ClientClusters implements Clusters {
     return clusters;
   }
 
-  readCurrent(): string {
+  public readCurrent(): string {
     const currentCluster = this.kubeConfig.getCurrentCluster();
     return !currentCluster ? '' : currentCluster.name;
   }
