@@ -36,6 +36,8 @@ import {K8ClientContexts} from './k8_client/k8_client_contexts.js';
 import {K8ClientPods} from './k8_client/k8_client_pods.js';
 import {type Pods} from './pods.js';
 import {K8ClientFilter} from './k8_client/k8_client_filter.js';
+import {type Pvcs} from './pvcs.js';
+import {K8ClientPvcs} from './k8_client/k8_client_pvcs.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -58,6 +60,7 @@ export class K8Client extends K8ClientFilter implements K8 {
   private k8Containers: Containers;
   private k8Pods: Pods;
   private k8Contexts: Contexts;
+  private k8Pvcs: Pvcs;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -92,6 +95,7 @@ export class K8Client extends K8ClientFilter implements K8 {
     this.k8Containers = new K8ClientContainers(this.kubeConfig);
     this.k8Contexts = new K8ClientContexts(this.kubeConfig);
     this.k8Pods = new K8ClientPods(this.kubeClient, this.kubeConfig);
+    this.k8Pvcs = new K8ClientPvcs(this.kubeClient);
 
     return this; // to enable chaining
   }
@@ -142,6 +146,10 @@ export class K8Client extends K8ClientFilter implements K8 {
    */
   public pods(): Pods {
     return this.k8Pods;
+  }
+
+  public pvcs(): Pvcs {
+    return this.k8Pvcs;
   }
 
   public async createNamespace(namespace: NamespaceName) {
@@ -301,27 +309,7 @@ export class K8Client extends K8ClientFilter implements K8 {
   }
 
   public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
-    const pvcs: string[] = [];
-    const labelSelector = labels.join(',');
-    const resp = await this.kubeClient.listNamespacedPersistentVolumeClaim(
-      namespace.name,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      Duration.ofMinutes(5).toMillis(),
-    );
-
-    for (const item of resp.body.items) {
-      pvcs.push(item.metadata!.name as string);
-    }
-
-    return pvcs;
+    return this.pvcs().list(namespace, labels);
   }
 
   /**
@@ -343,9 +331,7 @@ export class K8Client extends K8ClientFilter implements K8 {
   }
 
   public async deletePvc(name: string, namespace: NamespaceName) {
-    const resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(name, namespace.name);
-
-    return resp.response.statusCode === StatusCodes.OK;
+    return this.pvcs().delete(namespace, name);
   }
 
   // --------------------------------------- Utility Methods --------------------------------------- //
