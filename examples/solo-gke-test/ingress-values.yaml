@@ -5,10 +5,6 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
-    - host: "mirror.solo.local"
-      paths:
-        - path: /
-          pathType: Prefix
   tls:
     - secretName: ca-secret-hiero-explorer
       hosts:

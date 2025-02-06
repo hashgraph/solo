@@ -1589,14 +1589,14 @@ export class K8Client implements K8 {
     return this.clusters().readCurrent();
   }
 
-  public async patchMirrorIngressClassName(namespace: NamespaceName, className: string) {
+  public async patchIngress(namespace: NamespaceName, ingressName: string, path: string, className: string) {
     const ingressNames = [];
     await this.networkingApi
       .listIngressForAllNamespaces()
       .then(response => {
         response.body.items.forEach(ingress => {
           const ingressName = ingress.metadata.name;
-          if (ingressName.includes(constants.MIRROR_NODE_RELEASE_NAME)) {
+          if (ingressName.includes(ingressName)) {
             ingressNames.push(ingressName);
           }
         });
@@ -1608,7 +1608,7 @@ export class K8Client implements K8 {
     const patch = [
       {
         op: 'add', // Use 'replace' if the field already exists
-        path: '/spec/ingressClassName',
+        path: path,
         value: className,
       },
     ];

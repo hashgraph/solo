@@ -27,6 +27,6 @@ env:
   # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
 #  NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=<ip-address>,node2=<ip-address>,node3=<ip-address>,node4=<ip-address> --pvcs"
   MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/mirror-node-values.yaml"
-  EXPLORER_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/ingress-values.yaml"
+  EXPLORER_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/ingress-values.yaml --hedera-explorer-static-ip 35.226.75.168"
   RELAY_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/relay-values.yaml"
   SKIP_NODE_PING: 'true'
