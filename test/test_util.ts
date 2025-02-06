@@ -17,11 +17,9 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
+import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
-import {SoloError} from '../src/core/errors.js';
-import {execSync} from 'child_process';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 
 import {SoloLogger} from '../src/core/logging.js';
@@ -49,8 +47,9 @@ import {container} from 'tsyringe-neo';
 import {resetTestContainer} from './test_container.js';
 import {NamespaceName} from '../src/core/kube/namespace_name.js';
 import {PodRef} from '../src/core/kube/pod_ref.js';
+import {ContainerRef} from '../src/core/kube/container_ref.js';
 
-export const TEST_CLUSTER = 'solo-e2e';
+export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
@@ -446,8 +445,7 @@ async function addKeyHashToMap(
   privateKeyFileName: string,
 ) {
   await k8.copyFrom(
-    PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)),
-    ROOT_CONTAINER,
+    ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER),
     path.join(keyDir, privateKeyFileName),
     uniqueNodeDestDir,
   );

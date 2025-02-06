@@ -5,15 +5,10 @@ import * as k8s from '@kubernetes/client-node';
 import {type Context, type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
 import fs from 'fs';
 import net from 'net';
-import os from 'os';
 import path from 'path';
 import {Flags as flags} from '../../commands/flags.js';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from './../errors.js';
-import * as tar from 'tar';
-import {v4 as uuid4} from 'uuid';
-import * as stream from 'node:stream';
+import {MissingArgumentError, SoloError} from './../errors.js';
 import type * as http from 'node:http';
-import type * as WebSocket from 'ws';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 import {sleep} from './../helpers.js';
 import * as constants from './../constants.js';
@@ -22,17 +17,21 @@ import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
 import {PodName} from './pod_name.js';
-import {type ExtendedNetServer, type LocalContextObject, type Optional} from '../../types/index.js';
+import {type ExtendedNetServer, type Optional} from '../../types/index.js';
 import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
 import {type K8} from './k8.js';
-import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './namespaces.js';
 import {NamespaceName} from './namespace_name.js';
 import K8ClientClusters from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
+import {type ConfigMaps} from './config_maps.js';
+import K8ClientConfigMaps from './k8_client/k8_client_config_maps.js';
 import {PodRef} from './pod_ref.js';
+import {ContainerRef} from './container_ref.js';
+import {K8ClientContainers} from './k8_client/k8_client_containers.js';
+import {type Containers} from './containers.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -56,6 +55,9 @@ export class K8Client implements K8 {
   private networkingApi: k8s.NetworkingV1Api;
 
   private k8Clusters: K8ClientClusters;
+  private k8ConfigMaps: K8ClientConfigMaps;
+
+  private k8Containers: K8ClientContainers;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -85,6 +87,8 @@ export class K8Client implements K8 {
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
 
     this.k8Clusters = new K8ClientClusters(this.kubeConfig);
+    this.k8ConfigMaps = new K8ClientConfigMaps(this.kubeClient);
+    this.k8Containers = new K8ClientContainers(this.kubeConfig);
 
     return this; // to enable chaining
   }
@@ -96,10 +100,26 @@ export class K8Client implements K8 {
 
   /**
    * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
-   * returns an object instance providing cluster operations
+   * @returns an object instance providing cluster operations
    */
   public clusters(): Clusters {
     return this.k8Clusters;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating config maps in the kubernetes cluster.
+   * @returns an object instance providing config map operations
+   */
+  public configMaps(): ConfigMaps {
+    return this.k8ConfigMaps;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating containers.
+   * returns an object instance providing container operations
+   */
+  public containers(): Containers {
+    return this.k8Containers;
   }
 
   /**
@@ -285,500 +305,37 @@ export class K8Client implements K8 {
     return this.cachedContexts;
   }
 
-  public async listDir(podRef: PodRef, containerName: string, destPath: string) {
-    // TODO future, return the following
-    // return this.pods.byName(podName).listDir(containerName, destPath);
-    // byName(podName) can use an underlying cache to avoid multiple calls to the API
-    // caching can be added later, it doesn't have to be done right away
-    // byLabel(label) can also cache/lazy initialize if desired
-    // pods are qualified by namespace, so we should really also be passing namespace
-    // string is also an object with a large prototype, same weight as a class instance
-    // PodName can be turned into a class that we can use for the parameters for more control.
-    // PodName.of(namespace, podName)
-    // TODO - make namespace first on all of the methods
-    // TODO - create ContainerName for the containerName, validate the containerName.  ContainerName.of(containerName)
-    //  - to avoid having to do (new ContainerName(containerName))
-    //  - NamespaceName.of(namespace): store as class instead of string after we have validated and put it in ConfigManager
-    //  - PodRef.of(namespace, podName)
-    //  - ContainerRef.of(podRef, containerName)
-    //  - ContainerRef.of(PodRef.of(namespace, podName), containerName)
-    //  - namespace is coming from user and should definitely be validate and kick back if it is invalid
-    // below implementation moves to K8Pod class, current usage would still compile.
-
-    try {
-      const output = (await this.execContainer(podRef, containerName, ['ls', '-la', destPath])) as string;
-      if (!output) return [];
-
-      // parse the output and return the entries
-      const items: TDirectoryData[] = [];
-      const lines = output.split('\n');
-      for (let line of lines) {
-        line = line.replace(/\s+/g, '|');
-        const parts = line.split('|');
-        if (parts.length >= 9) {
-          let name = parts[parts.length - 1];
-          // handle unique file format (without single quotes): 'usedAddressBook_vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06_node_0.txt.debug'
-          for (let i = parts.length - 1; i > 8; i--) {
-            name = `${parts[i - 1]} ${name}`;
-          }
-
-          if (name !== '.' && name !== '..') {
-            const permission = parts[0];
-            const item: TDirectoryData = {
-              directory: permission[0] === 'd',
-              owner: parts[2],
-              group: parts[3],
-              size: parts[4],
-              modifiedAt: `${parts[5]} ${parts[6]} ${parts[7]}`,
-              name,
-            };
-
-            items.push(item);
-          }
-        }
-      }
-
-      return items;
-    } catch (e) {
-      throw new SoloError(
-        `unable to check path in '${podRef.podName.name}':${containerName}' - ${destPath}: ${e.message}`,
-        e,
-      );
-    }
+  public async listDir(containerRef: ContainerRef, destPath: string) {
+    return this.containers().readByRef(containerRef).listDir(destPath);
   }
 
-  public async hasFile(podRef: PodRef, containerName: string, destPath: string, filters: object = {}) {
-    const parentDir = path.dirname(destPath);
-    const fileName = path.basename(destPath);
-    const filterMap = new Map(Object.entries(filters));
-
-    try {
-      const entries = await this.listDir(podRef, containerName, parentDir);
-
-      for (const item of entries) {
-        if (item.name === fileName && !item.directory) {
-          let found = true;
-
-          for (const entry of filterMap.entries()) {
-            const field = entry[0];
-            const value = entry[1];
-            this.logger.debug(
-              `Checking file ${podRef.podName.name}:${containerName} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
-              {filters},
-            );
-            if (`${value}` !== `${item[field]}`) {
-              found = false;
-              break;
-            }
-          }
-
-          if (found) {
-            this.logger.debug(`File check succeeded ${podRef.podName.name}:${containerName} ${destPath}`, {filters});
-            return true;
-          }
-        }
-      }
-    } catch (e) {
-      const error = new SoloError(
-        `unable to check file in '${podRef.podName.name}':${containerName}' - ${destPath}: ${e.message}`,
-        e,
-      );
-      this.logger.error(error.message, error);
-      throw error;
-    }
-
-    return false;
+  public async hasFile(containerRef: ContainerRef, destPath: string, filters: object = {}) {
+    return this.containers().readByRef(containerRef).hasFile(destPath, filters);
   }
 
-  public async hasDir(podRef: PodRef, containerName: string, destPath: string) {
-    return (
-      (await this.execContainer(podRef, containerName, [
-        'bash',
-        '-c',
-        '[[ -d "' + destPath + '" ]] && echo -n "true" || echo -n "false"',
-      ])) === 'true'
-    );
+  public async hasDir(containerRef: ContainerRef, destPath: string) {
+    return this.containers().readByRef(containerRef).hasDir(destPath);
   }
 
-  public mkdir(podRef: PodRef, containerName: string, destPath: string) {
-    return this.execContainer(podRef, containerName, ['bash', '-c', 'mkdir -p "' + destPath + '"']);
-  }
-
-  private exitWithError(localContext: LocalContextObject, errorMessage: string) {
-    localContext.errorMessage = localContext.errorMessage
-      ? `${localContext.errorMessage}:${errorMessage}`
-      : errorMessage;
-    this.logger.warn(errorMessage);
-    return localContext.reject(new SoloError(localContext.errorMessage));
-  }
-
-  private handleCallback(status: string, localContext: LocalContextObject, messagePrefix: string) {
-    if (status === 'Failure') {
-      return this.exitWithError(localContext, `${messagePrefix} Failure occurred`);
-    }
-    this.logger.debug(`${messagePrefix} callback(status)=${status}`);
-  }
-
-  private registerConnectionOnError(
-    localContext: LocalContextObject,
-    messagePrefix: string,
-    conn: WebSocket.WebSocket,
-  ) {
-    conn.on('error', e => {
-      return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
-    });
-  }
-
-  private registerConnectionOnMessage(messagePrefix: string) {
-    this.logger.debug(`${messagePrefix} received message`);
-  }
-
-  private registerErrorStreamOnData(localContext: LocalContextObject, stream: stream.PassThrough) {
-    stream.on('data', data => {
-      localContext.errorMessage = localContext.errorMessage
-        ? `${localContext.errorMessage}${data.toString()}`
-        : data.toString();
-    });
-  }
-
-  private registerErrorStreamOnError(
-    localContext: LocalContextObject,
-    messagePrefix: string,
-    stream: stream.PassThrough | fs.WriteStream,
-  ) {
-    stream.on('error', err => {
-      return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`);
-    });
-  }
-
-  private registerOutputPassthroughStreamOnData(
-    localContext: LocalContextObject,
-    messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough,
-    outputFileStream: fs.WriteStream,
-  ) {
-    outputPassthroughStream.on('data', chunk => {
-      this.logger.debug(`${messagePrefix} received chunk size=${chunk.length}`);
-      const canWrite = outputFileStream.write(chunk); // Write chunk to file and check if buffer is full
-      if (!canWrite) {
-        this.logger.debug(`${messagePrefix} buffer is full, pausing data stream...`);
-        outputPassthroughStream.pause(); // Pause the data stream if buffer is full
-      }
-    });
-  }
-
-  private registerOutputFileStreamOnDrain(
-    localContext: LocalContextObject,
-    messagePrefix: string,
-    outputPassthroughStream: stream.PassThrough,
-    outputFileStream: fs.WriteStream,
-  ) {
-    outputFileStream.on('drain', () => {
-      outputPassthroughStream.resume();
-      this.logger.debug(`${messagePrefix} stream drained, resume write`);
-    });
+  public mkdir(containerRef: ContainerRef, destPath: string) {
+    return this.containers().readByRef(containerRef).mkdir(destPath);
   }
 
   public async copyTo(
-    podRef: PodRef,
-    containerName: string,
+    containerRef: ContainerRef,
     srcPath: string,
     destDir: string,
     filter: TarCreateFilter | undefined = undefined,
   ) {
-    const self = this;
-    const namespace = podRef.namespaceName;
-    const guid = uuid4();
-    const messagePrefix = `copyTo[${podRef.podName.name},${guid}]: `;
-
-    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
-
-    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
-
-    if (!(await this.hasDir(podRef, containerName, destDir))) {
-      throw new SoloError(`invalid destination path: ${destDir}`);
-    }
-
-    if (!fs.existsSync(srcPath)) {
-      throw new SoloError(`invalid source path: ${srcPath}`);
-    }
-
-    const localContext = {} as LocalContextObject;
-    try {
-      const srcFile = path.basename(srcPath);
-      const srcDir = path.dirname(srcPath);
-
-      // Create a temporary tar file for the source file
-      const tmpFile = self.tempFileFor(srcFile);
-
-      await tar.c({file: tmpFile, cwd: srcDir, filter}, [srcFile]);
-
-      return new Promise<boolean>((resolve, reject) => {
-        localContext.reject = reject;
-        const execInstance = new k8s.Exec(self.kubeConfig);
-        const command = ['tar', 'xf', '-', '-C', destDir];
-        const inputStream = fs.createReadStream(tmpFile);
-        const errPassthroughStream = new stream.PassThrough();
-        const inputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024}); // Handle backpressure
-
-        // Use pipe() to automatically handle backpressure
-        inputStream.pipe(inputPassthroughStream);
-
-        execInstance
-          .exec(
-            namespace.name,
-            podRef.podName.name,
-            containerName,
-            command,
-            null,
-            errPassthroughStream,
-            inputPassthroughStream,
-            false,
-            ({status}) => self.handleCallback(status, localContext, messagePrefix),
-          )
-          .then(conn => {
-            localContext.connection = conn;
-
-            self.registerConnectionOnError(localContext, messagePrefix, conn);
-
-            self.registerConnectionOnMessage(messagePrefix);
-
-            conn.on('close', (code, reason) => {
-              self.logger.debug(`${messagePrefix} connection closed`);
-              if (code !== 1000) {
-                // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`);
-              }
-
-              // Cleanup temp file after successful copy
-              inputPassthroughStream.end(); // End the passthrough stream
-              self.deleteTempFile(tmpFile); // Cleanup temp file
-              self.logger.info(`${messagePrefix} Successfully copied!`);
-              return resolve(true);
-            });
-          });
-
-        self.registerErrorStreamOnData(localContext, errPassthroughStream);
-
-        self.registerErrorStreamOnError(localContext, messagePrefix, inputPassthroughStream);
-      });
-    } catch (e) {
-      const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`;
-      self.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
-    }
+    return this.containers().readByRef(containerRef).copyTo(srcPath, destDir, filter);
   }
 
-  public async copyFrom(podRef: PodRef, containerName: string, srcPath: string, destDir: string) {
-    const self = this;
-    const namespace = podRef.namespaceName;
-    const guid = uuid4();
-    const messagePrefix = `copyFrom[${podRef.podName.name},${guid}]: `;
-
-    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
-
-    self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
-
-    // get stat for source file in the container
-    let entries = await self.listDir(podRef, containerName, srcPath);
-    if (entries.length !== 1) {
-      throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`);
-    }
-    // handle symbolic link
-    if (entries[0].name.indexOf(' -> ') > -1) {
-      const redirectSrcPath = path.join(
-        path.dirname(srcPath),
-        entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4),
-      );
-      entries = await self.listDir(podRef, containerName, redirectSrcPath);
-      if (entries.length !== 1) {
-        throw new SoloError(`${messagePrefix}invalid source path: ${redirectSrcPath}`);
-      }
-    }
-    const srcFileDesc = entries[0]; // cache for later comparison after copy
-
-    if (!fs.existsSync(destDir)) {
-      throw new SoloError(`${messagePrefix}invalid destination path: ${destDir}`);
-    }
-
-    const localContext = {} as LocalContextObject;
-    try {
-      const srcFileSize = Number.parseInt(srcFileDesc.size);
-
-      const srcFile = path.basename(entries[0].name);
-      const srcDir = path.dirname(entries[0].name);
-      const destPath = path.join(destDir, srcFile);
-
-      // download the tar file to a temp location
-      const tmpFile = self.tempFileFor(srcFile);
-
-      return new Promise((resolve, reject) => {
-        localContext.reject = reject;
-        const execInstance = new k8s.Exec(self.kubeConfig);
-        const command = ['cat', `${srcDir}/${srcFile}`];
-        const outputFileStream = fs.createWriteStream(tmpFile);
-        const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
-        const errPassthroughStream = new stream.PassThrough();
-
-        // Use pipe() to automatically handle backpressure between streams
-        outputPassthroughStream.pipe(outputFileStream);
-
-        self.registerOutputPassthroughStreamOnData(
-          localContext,
-          messagePrefix,
-          outputPassthroughStream,
-          outputFileStream,
-        );
-
-        self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
-
-        execInstance
-          .exec(
-            namespace.name,
-            podRef.podName.name,
-            containerName,
-            command,
-            outputFileStream,
-            errPassthroughStream,
-            null,
-            false,
-            ({status}) => {
-              if (status === 'Failure') {
-                self.deleteTempFile(tmpFile);
-                return self.exitWithError(localContext, `${messagePrefix} Failure occurred`);
-              }
-              self.logger.debug(`${messagePrefix} callback(status)=${status}`);
-            },
-          )
-          .then(conn => {
-            localContext.connection = conn;
-
-            conn.on('error', e => {
-              self.deleteTempFile(tmpFile);
-              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
-            });
-
-            self.registerConnectionOnMessage(messagePrefix);
-
-            conn.on('close', (code, reason) => {
-              self.logger.debug(`${messagePrefix} connection closed`);
-              if (code !== 1000) {
-                // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`);
-              }
-
-              outputFileStream.end();
-              outputFileStream.close(() => {
-                try {
-                  fs.copyFileSync(tmpFile, destPath);
-
-                  self.deleteTempFile(tmpFile);
-
-                  const stat = fs.statSync(destPath);
-                  if (stat && stat.size === srcFileSize) {
-                    self.logger.debug(`${messagePrefix} finished`);
-                    return resolve(true);
-                  }
-
-                  return self.exitWithError(
-                    localContext,
-                    `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`,
-                  );
-                } catch {
-                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`);
-                }
-              });
-            });
-          });
-
-        self.registerErrorStreamOnData(localContext, errPassthroughStream);
-
-        self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream);
-      });
-    } catch (e) {
-      const errorMessage = `${messagePrefix}failed to download file: ${e.message}`;
-      self.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
-    }
+  public async copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string) {
+    return this.containers().readByRef(containerRef).copyFrom(srcPath, destDir);
   }
 
-  public async execContainer(podRef: PodRef, containerName: string, command: string | string[]) {
-    const self = this;
-    const namespace = podRef.namespaceName;
-    const guid = uuid4();
-    const messagePrefix = `execContainer[${podRef.podName.name},${guid}]:`;
-
-    if (!(await self.getPodByName(podRef))) throw new IllegalArgumentError(`Invalid pod ${podRef.podName.name}`);
-
-    if (!command) throw new MissingArgumentError('command cannot be empty');
-    if (!Array.isArray(command)) {
-      command = command.split(' ');
-    }
-
-    self.logger.info(`${messagePrefix} begin... command=[${command.join(' ')}]`);
-
-    return new Promise<string>((resolve, reject) => {
-      const localContext = {} as LocalContextObject;
-      localContext.reject = reject;
-      const execInstance = new k8s.Exec(self.kubeConfig);
-      const tmpFile = self.tempFileFor(`${podRef.podName.name}-output.txt`);
-      const outputFileStream = fs.createWriteStream(tmpFile);
-      const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
-      const errPassthroughStream = new stream.PassThrough();
-
-      // Use pipe() to automatically handle backpressure between streams
-      outputPassthroughStream.pipe(outputFileStream);
-
-      self.registerOutputPassthroughStreamOnData(
-        localContext,
-        messagePrefix,
-        outputPassthroughStream,
-        outputFileStream,
-      );
-
-      self.registerOutputFileStreamOnDrain(localContext, messagePrefix, outputPassthroughStream, outputFileStream);
-
-      execInstance
-        .exec(
-          namespace.name,
-          podRef.podName.name,
-          containerName,
-          command,
-          outputFileStream,
-          errPassthroughStream,
-          null,
-          false,
-          ({status}) => self.handleCallback(status, localContext, messagePrefix),
-        )
-        .then(conn => {
-          localContext.connection = conn;
-
-          self.registerConnectionOnError(localContext, messagePrefix, conn);
-
-          self.registerConnectionOnMessage(messagePrefix);
-
-          conn.on('close', (code, reason) => {
-            self.logger.debug(`${messagePrefix} connection closed`);
-            if (!localContext.errorMessage) {
-              if (code !== 1000) {
-                // code 1000 is the success code
-                return self.exitWithError(localContext, `${messagePrefix} failed with code=${code}, reason=${reason}`);
-              }
-
-              outputFileStream.end();
-              outputFileStream.close(() => {
-                self.logger.debug(`${messagePrefix} finished`);
-                const outData = fs.readFileSync(tmpFile);
-                return resolve(outData.toString());
-              });
-            }
-          });
-        });
-
-      self.registerErrorStreamOnData(localContext, errPassthroughStream);
-
-      self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream);
-    });
+  public async execContainer(containerRef: ContainerRef, command: string | string[]) {
+    return this.containers().readByRef(containerRef).execContainer(command);
   }
 
   public async portForward(podRef: PodRef, localPort: number, podPort: number) {
@@ -1145,13 +702,7 @@ export class K8Client implements K8 {
   /* ------------- ConfigMap ------------- */
 
   public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
-    const {response, body} = await this.kubeClient
-      .readNamespacedConfigMap(name, this.getNamespace().name)
-      .catch(e => e);
-
-    this.handleKubernetesClientError(response, body, 'Failed to get namespaced configmap');
-
-    return body as k8s.V1ConfigMap;
+    return this.configMaps().read(this.getNamespace(), name);
   }
 
   public async createNamespacedConfigMap(
@@ -1159,26 +710,7 @@ export class K8Client implements K8 {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    const namespace = this.getNamespace();
-
-    const configMap = new k8s.V1ConfigMap();
-    configMap.data = data;
-
-    const metadata = new k8s.V1ObjectMeta();
-    metadata.name = name;
-    metadata.namespace = namespace.name;
-    metadata.labels = labels;
-    configMap.metadata = metadata;
-    try {
-      const resp = await this.kubeClient.createNamespacedConfigMap(namespace.name, configMap);
-
-      return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e) {
-      throw new SoloError(
-        `failed to create configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
-        e,
-      );
-    }
+    return this.configMaps().create(this.getNamespace(), name, labels, data);
   }
 
   public async replaceNamespacedConfigMap(
@@ -1186,39 +718,11 @@ export class K8Client implements K8 {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    const namespace = this.getNamespace();
-
-    const configMap = new k8s.V1ConfigMap();
-    configMap.data = data;
-
-    const metadata = new k8s.V1ObjectMeta();
-    metadata.name = name;
-    metadata.namespace = namespace.name;
-    metadata.labels = labels;
-    configMap.metadata = metadata;
-    try {
-      const resp = await this.kubeClient.replaceNamespacedConfigMap(name, namespace.name, configMap);
-
-      return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e) {
-      throw new SoloError(
-        `failed to replace configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
-        e,
-      );
-    }
+    return this.configMaps().replace(this.getNamespace(), name, labels, data);
   }
 
   public async deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean> {
-    try {
-      const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace.name);
-
-      return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e) {
-      throw new SoloError(
-        `failed to delete configmap ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
-        e,
-      );
-    }
+    return this.configMaps().delete(namespace, name);
   }
 
   // --------------------------------------- LEASES --------------------------------------- //
@@ -1462,17 +966,6 @@ export class K8Client implements K8 {
     return ns;
   }
 
-  private tempFileFor(fileName: string) {
-    const tmpFile = `${fileName}-${uuid4()}`;
-    return path.join(os.tmpdir(), tmpFile);
-  }
-
-  private deleteTempFile(tmpFile: string) {
-    if (fs.existsSync(tmpFile)) {
-      fs.rmSync(tmpFile);
-    }
-  }
-
   public async killPod(podRef: PodRef) {
     try {
       const result = await this.kubeClient.deleteNamespacedPod(
@@ -1533,22 +1026,19 @@ export class K8Client implements K8 {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
       }
+      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyTo(podRef, ROOT_CONTAINER, sourcePath, `${HEDERA_HAPI_PATH}`);
+      await this.copyTo(containerRef, sourcePath, `${HEDERA_HAPI_PATH}`);
       await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
-      await this.execContainer(podRef, ROOT_CONTAINER, [
+      await this.execContainer(containerRef, [
         'bash',
         '-c',
         `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
       ]);
-      await this.execContainer(podRef, ROOT_CONTAINER, [
-        'bash',
-        '-c',
-        `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`,
-      ]);
-      await this.execContainer(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
+      await this.execContainer(containerRef, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
+      await this.execContainer(containerRef, `${HEDERA_HAPI_PATH}/${scriptName}`);
+      await this.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
@@ -1586,8 +1076,9 @@ export class K8Client implements K8 {
         fs.mkdirSync(targetDir, {recursive: true});
       }
       const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
-      await this.execContainer(podRef, ROOT_CONTAINER, zipCommand);
-      await this.copyFrom(podRef, ROOT_CONTAINER, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
+      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
+      await this.execContainer(containerRef, zipCommand);
+      await this.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
     } catch (e: Error | unknown) {
       this.logger.error(`failed to download state from pod ${podRef.podName.name}`, e);
       this.logger.showUser(`Failed to download state from pod ${podRef.podName.name}` + e);

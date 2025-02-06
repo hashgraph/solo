@@ -9,7 +9,10 @@ import {type TDirectoryData} from './t_directory_data.js';
 import {type V1Lease} from '@kubernetes/client-node';
 import {type Namespaces} from './namespaces.js';
 import {type NamespaceName} from './namespace_name.js';
+import {type Containers} from './containers.js';
 import {type Clusters} from './clusters.js';
+import {type ConfigMaps} from './config_maps.js';
+import {type ContainerRef} from './container_ref.js';
 
 export interface K8 {
   /**
@@ -19,10 +22,22 @@ export interface K8 {
   namespaces(): Namespaces;
 
   /**
+   * Fluent accessor for reading and manipulating containers.
+   * returns an object instance providing container operations
+   */
+  containers(): Containers;
+
+  /**
    * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
-   * returns an object instance providing cluster operations
+   * @returns an object instance providing cluster operations
    */
   clusters(): Clusters;
+
+  /**
+   * Fluent accessor for reading and manipulating config maps.
+   * @returns an object instance providing config map operations
+   */
+  configMaps(): ConfigMaps;
 
   /**
    * Create a new namespace
@@ -98,47 +113,42 @@ export interface K8 {
    *    name: config.txt
    * }]
    *
-   * @param podRef - the pod reference
-   * @param containerName - the container name
+   * @param containerRef - the container reference
    * @param destPath - path inside the container
    * @returns a promise that returns array of directory entries, custom object
    */
-  listDir(podRef: PodRef, containerName: string, destPath: string): Promise<any[] | TDirectoryData[]>;
+  listDir(containerRef: ContainerRef, destPath: string): Promise<any[] | TDirectoryData[]>;
 
   /**
    * Check if a filepath exists in the container
-   * @param podRef - the pod reference
-   * @param containerName - the container name
+   * @param containerRef - the container reference
    * @param destPath - path inside the container
    * @param [filters] - an object with metadata fields and value
    */
-  hasFile(podRef: PodRef, containerName: string, destPath: string, filters?: object): Promise<boolean>;
+  hasFile(containerRef: ContainerRef, destPath: string, filters?: object): Promise<boolean>;
 
   /**
    * Check if a directory path exists in the container
-   * @param podRef - the pod reference
-   * @param containerName - the container name
+   * @param containerRef - the container reference
    * @param destPath - path inside the container
    */
-  hasDir(podRef: PodRef, containerName: string, destPath: string): Promise<boolean>;
+  hasDir(containerRef: ContainerRef, destPath: string): Promise<boolean>;
 
-  mkdir(podRef: PodRef, containerName: string, destPath: string): Promise<string>;
+  mkdir(containerRef: ContainerRef, destPath: string): Promise<string>;
 
   /**
    * Copy a file into a container
    *
    * It overwrites any existing file inside the container at the destination directory
    *
-   * @param podRef - the pod reference
-   * @param containerName - the container name
+   * @param containerRef - the container reference
    * @param srcPath - source file path in the local
    * @param destDir - destination directory in the container
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
   copyTo(
-    podRef: PodRef,
-    containerName: string,
+    containerRef: ContainerRef,
     srcPath: string,
     destDir: string,
     filter?: TarCreateFilter | undefined,
@@ -149,21 +159,19 @@ export interface K8 {
    *
    * It overwrites any existing file at the destination directory
    *
-   * @param podRef - the pod reference
-   * @param containerName - the container name
+   * @param containerRef - the container reference
    * @param srcPath - source file path in the container
    * @param destDir - destination directory in the local
    */
-  copyFrom(podRef: PodRef, containerName: string, srcPath: string, destDir: string): Promise<unknown>;
+  copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string): Promise<unknown>;
 
   /**
    * Invoke sh command within a container and return the console output as string
-   * @param podRef - the pod reference
-   * @param containerName - the container name
+   * @param containerRef - the container reference
    * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
    * @returns console output as string
    */
-  execContainer(podRef: PodRef, containerName: string, command: string | string[]): Promise<string>;
+  execContainer(containerRef: ContainerRef, command: string | string[]): Promise<string>;
 
   /**
    * Port forward a port from a pod to localhost
