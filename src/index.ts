@@ -33,6 +33,7 @@ import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
 import {Container} from './core/container_init.js';
+import {type NamespaceName} from './core/kube/namespace_name.js';
 
 export function main(argv: any) {
   Container.getInstance().init();
@@ -115,7 +116,7 @@ export function main(argv: any) {
       logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(contextName));
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
       logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
-      if (typeof configManager.getFlag(flags.namespace) !== 'undefined') {
+      if (typeof configManager.getFlag<NamespaceName>(flags.namespace)?.name !== 'undefined') {
         logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)));
       }
       logger.showUser(chalk.cyan('**********************************************************************************'));
