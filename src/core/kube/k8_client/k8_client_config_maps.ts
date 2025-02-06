@@ -1,8 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import * as k8s from '@kubernetes/client-node';
-import {type V1ConfigMap} from '@kubernetes/client-node';
+import {type CoreV1Api, V1ConfigMap, V1ObjectMeta} from '@kubernetes/client-node';
 import {type ConfigMaps} from '../config_maps.js';
 import {type NamespaceName} from '../namespace_name.js';
 import {
@@ -16,9 +15,9 @@ import {ResourceOperation} from '../resource_operation.js';
 import {KubeApiResponse} from '../kube_api_response.js';
 
 export default class K8ClientConfigMaps implements ConfigMaps {
-  constructor(private readonly kubeClient: k8s.CoreV1Api) {}
+  public constructor(private readonly kubeClient: CoreV1Api) {}
 
-  async create(
+  public async create(
     namespace: NamespaceName,
     name: string,
     labels: Record<string, string>,
@@ -27,7 +26,7 @@ export default class K8ClientConfigMaps implements ConfigMaps {
     return this.createOrReplaceWithForce(namespace, name, labels, data, false, true);
   }
 
-  async createOrReplace(
+  public async createOrReplace(
     namespace: NamespaceName,
     name: string,
     labels: Record<string, string>,
@@ -36,7 +35,7 @@ export default class K8ClientConfigMaps implements ConfigMaps {
     return this.createOrReplaceWithForce(namespace, name, labels, data, false, false);
   }
 
-  async delete(namespace: NamespaceName, name: string): Promise<boolean> {
+  public async delete(namespace: NamespaceName, name: string): Promise<boolean> {
     try {
       const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace.name);
       return KubeApiResponse.isFailingStatus(resp.response);
@@ -45,13 +44,13 @@ export default class K8ClientConfigMaps implements ConfigMaps {
     }
   }
 
-  async read(namespace: NamespaceName, name: string): Promise<V1ConfigMap> {
+  public async read(namespace: NamespaceName, name: string): Promise<V1ConfigMap> {
     const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, namespace.name).catch(e => e);
     KubeApiResponse.check(response, ResourceOperation.READ, ResourceType.CONFIG_MAP, namespace, name);
-    return body as k8s.V1ConfigMap;
+    return body as V1ConfigMap;
   }
 
-  async replace(
+  public async replace(
     namespace: NamespaceName,
     name: string,
     labels: Record<string, string>,
@@ -60,7 +59,7 @@ export default class K8ClientConfigMaps implements ConfigMaps {
     return this.createOrReplaceWithForce(namespace, name, labels, data, true, false);
   }
 
-  async exists(namespace: NamespaceName, name: string): Promise<boolean> {
+  public async exists(namespace: NamespaceName, name: string): Promise<boolean> {
     try {
       const cm = await this.read(namespace, name);
       return !!cm;
@@ -82,10 +81,10 @@ export default class K8ClientConfigMaps implements ConfigMaps {
     forceCreate?: boolean,
   ): Promise<boolean> {
     const replace = await this.shouldReplace(namespace, name, forceReplace, forceCreate);
-    const configMap = new k8s.V1ConfigMap();
+    const configMap = new V1ConfigMap();
     configMap.data = data;
 
-    const metadata = new k8s.V1ObjectMeta();
+    const metadata = new V1ObjectMeta();
     metadata.name = name;
     metadata.namespace = namespace.name;
     metadata.labels = labels;

@@ -4,7 +4,13 @@
 # the docs/content/User/StepByStepGuide.md file. This is useful to keep the guide up to date
 
 set -xeo pipefail
-export SOLO_CLUSTER_NAME=solo
+
+if [[ -z "${SOLO_TEST_CLUSTER}" && ${SOLO_CLUSTER_NAME} != "" ]]; then
+  SOLO_CLUSTER_NAME=solo-e2e
+else
+  SOLO_CLUSTER_NAME=${SOLO_TEST_CLUSTER}
+fi
+
 export SOLO_NAMESPACE=solo
 export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
 
