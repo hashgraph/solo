@@ -99,6 +99,19 @@ hedera-node1.key    hedera-node3.key    s-private-node2.pem s-public-node2.pem  
 hedera-node2.crt    hedera-node4.crt    s-private-node3.pem s-public-node3.pem
 hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 ```
+
+* Create a deployment in the specified clusters, generate RemoteConfig and LocalConfig objects.
+
+```
+solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --deployment "${SOLO_DEPLOYMENT}"
+```
+
+* Example output
+
+```
+$SOLO_DEPLOYMENT_CREATE_OUTPUT
+```
+
 * Setup cluster with shared components
 
 ```
@@ -118,18 +131,6 @@ In a separate terminal, you may run `k9s` to view the pod status.
 It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
 
 If it fails, ensure you have enough resources allocated for Docker engine and retry the command.
-
-```
-solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --deployment "${SOLO_DEPLOYMENT}"
-```
-
-* Example output
-
-```
-$SOLO_DEPLOYMENT_CREATE_OUTPUT
-```
-
-* Create a deployment in the specified clusters, generate RemoteConfig and LocalConfig objects.
 
 ```
 solo network deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
