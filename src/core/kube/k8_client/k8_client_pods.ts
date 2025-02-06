@@ -8,13 +8,13 @@ import {type PodRef} from '../pod_ref.js';
 import {type Pod} from '../pod.js';
 import {K8ClientPod} from './k8_client_pod.js';
 import {Duration} from '../../time/duration.js';
-import {K8ClientFilter} from './k8_client_filter.js';
+import {K8ClientBase} from './k8_client_base.js';
 import {MissingArgumentError, SoloError} from '../../errors.js';
 import * as constants from '../../constants.js';
 import {SoloLogger} from '../../logging.js';
 import {container} from 'tsyringe-neo';
 
-export class K8ClientPods extends K8ClientFilter implements Pods {
+export class K8ClientPods extends K8ClientBase implements Pods {
   private readonly logger: SoloLogger;
 
   constructor(

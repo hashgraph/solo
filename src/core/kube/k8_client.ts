@@ -35,7 +35,10 @@ import type http from 'node:http';
 import {K8ClientContexts} from './k8_client/k8_client_contexts.js';
 import {K8ClientPods} from './k8_client/k8_client_pods.js';
 import {type Pods} from './pods.js';
-import {K8ClientFilter} from './k8_client/k8_client_filter.js';
+import {K8ClientBase} from './k8_client/k8_client_base.js';
+import {type Services} from './services.js';
+import {K8ClientServices} from './k8_client/k8_client_services.js';
+import {type Service} from './service.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -45,7 +48,7 @@ import {K8ClientFilter} from './k8_client/k8_client_filter.js';
  */
 // TODO move to kube folder
 @injectable()
-export class K8Client extends K8ClientFilter implements K8 {
+export class K8Client extends K8ClientBase implements K8 {
   // TODO - remove extends K8ClientFilter after services refactor, it is using filterItem()
 
   private kubeConfig!: k8s.KubeConfig;
@@ -58,6 +61,7 @@ export class K8Client extends K8ClientFilter implements K8 {
   private k8Containers: Containers;
   private k8Pods: Pods;
   private k8Contexts: Contexts;
+  private k8Services: Services;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -91,6 +95,7 @@ export class K8Client extends K8ClientFilter implements K8 {
     this.k8ConfigMaps = new K8ClientConfigMaps(this.kubeClient);
     this.k8Containers = new K8ClientContainers(this.kubeConfig);
     this.k8Contexts = new K8ClientContexts(this.kubeConfig);
+    this.k8Services = new K8ClientServices(this.kubeClient);
     this.k8Pods = new K8ClientPods(this.kubeClient, this.kubeConfig);
 
     return this; // to enable chaining
@@ -134,6 +139,14 @@ export class K8Client extends K8ClientFilter implements K8 {
    */
   public contexts(): Contexts {
     return this.k8Contexts;
+  }
+
+  /**
+   * Fluent accessor for reading and manipulating services in the kubernetes cluster.
+   * @returns an object instance providing service operations
+   */
+  public services(): Services {
+    return this.k8Services;
   }
 
   /**
@@ -207,24 +220,8 @@ export class K8Client extends K8ClientFilter implements K8 {
     return result.body.items;
   }
 
-  public async getSvcByName(name: string): Promise<k8s.V1Service> {
-    const ns = this.getNamespace();
-    const fieldSelector = `metadata.name=${name}`;
-    const resp = await this.kubeClient.listNamespacedService(
-      ns.name,
-      undefined,
-      undefined,
-      undefined,
-      fieldSelector,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      Duration.ofMinutes(5).toMillis(),
-    );
-
-    return this.filterItem(resp.body.items, {name});
+  public async getSvcByName(name: string): Promise<Service> {
+    return this.services().read(this.getNamespace(), name);
   }
 
   public getClusters(): string[] {
@@ -352,13 +349,7 @@ export class K8Client extends K8ClientFilter implements K8 {
 
   // TODO this can be removed once K8 is context/cluster specific when instantiating
   public async testContextConnection(context: string): Promise<boolean> {
-    this.kubeConfig.setCurrentContext(context);
-
-    const tempKubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
-    return await tempKubeClient
-      .listNamespace()
-      .then(() => true)
-      .catch(() => false);
+    return this.contexts().testContextConnection(context);
   }
 
   // --------------------------------------- Secret --------------------------------------- //
@@ -789,11 +780,7 @@ export class K8Client extends K8ClientFilter implements K8 {
 
   // TODO make private once we are instantiating multiple K8 instances
   public setCurrentContext(context: string) {
-    this.kubeConfig.setCurrentContext(context);
-
-    // Reinitialize clients
-    this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
-    this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
+    return this.contexts().updateCurrent(context);
   }
 
   public getCurrentContext(): string {
@@ -808,16 +795,7 @@ export class K8Client extends K8ClientFilter implements K8 {
     return this.clusters().readCurrent();
   }
 
-  public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<k8s.V1Service[]> {
-    const labelSelector = labels.join(',');
-    const serviceList = await this.kubeClient.listNamespacedService(
-      namespace.name,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector,
-    );
-    return serviceList.body.items;
+  public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]> {
+    return this.services().list(namespace, labels);
   }
 }

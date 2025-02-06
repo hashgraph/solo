@@ -7,4 +7,5 @@ export enum ResourceOperation {
   UPDATE = 'update',
   DELETE = 'delete',
   REPLACE = 'replace',
+  LIST = 'list',
 }

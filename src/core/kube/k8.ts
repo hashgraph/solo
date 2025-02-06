@@ -14,6 +14,9 @@ import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {type ContainerRef} from './container_ref.js';
 import {type Contexts} from './contexts.js';
+import {type Services} from './services.js';
+import {type Service} from './service.js';
+import {type Pods} from './pods.js';
 
 export interface K8 {
   /**
@@ -45,6 +48,14 @@ export interface K8 {
    * @returns an object instance providing context operations
    */
   contexts(): Contexts;
+
+  /**
+   * Fluent accessor for reading and manipulating services.
+   * @returns an object instance providing service operations
+   */
+  services(): Services;
+
+  pods(): Pods;
 
   /**
    * Create a new namespace
@@ -90,9 +101,9 @@ export interface K8 {
    * Get a svc by name
    * @param name - svc name
    */
-  getSvcByName(name: string): Promise<k8s.V1Service>;
+  getSvcByName(name: string): Promise<Service>;
 
-  listSvcs(namespace: NamespaceName, labels: string[]): Promise<k8s.V1Service[]>;
+  listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]>;
 
   /**
    * Get a list of clusters
