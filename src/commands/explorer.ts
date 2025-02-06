@@ -252,15 +252,6 @@ export class ExplorerCommand extends BaseCommand {
               `${config.namespace}-hedera-explorer-ingress-class`,
             );
 
-            // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
-            // to support grpc over http/2
-            await this.k8.patchIngress(
-              config.namespace,
-              constants.HEDERA_EXPLORER_RELEASE_NAME,
-              '/metadata/annotations/haproxy-ingress.github.io/backend-protocol',
-              'h1',
-            );
-
             // to support GRPC over HTTP/2
             await this.k8.patchConfigMap(
               clusterSetupNamespace,
@@ -287,6 +278,15 @@ export class ExplorerCommand extends BaseCommand {
               constants.HEDERA_EXPLORER_CHART_URL,
               config.hederaExplorerVersion,
               exploreValuesArg,
+            );
+
+            // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
+            // to support grpc over http/2
+            await this.k8.patchIngress(
+              config.namespace,
+              constants.HEDERA_EXPLORER_RELEASE_NAME,
+              '/metadata/annotations/haproxy-ingress.github.io/backend-protocol',
+              'h1',
             );
           },
         },
