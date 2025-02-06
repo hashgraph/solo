@@ -56,7 +56,7 @@ e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(10).toMillis());
-        await container.resolve(NetworkNodes).getNodeLogs(namespace);
+        await container.resolve(NetworkNodes).getLogs(namespace);
         await k8.deleteNamespace(namespace);
       });
 

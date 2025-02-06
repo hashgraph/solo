@@ -49,7 +49,7 @@ e2eTestSuite(
       });
 
       it('get the logs and delete the namespace', async () => {
-        await container.resolve(NetworkNodes).getNodeLogs(LOCAL_PTT);
+        await container.resolve(NetworkNodes).getLogs(LOCAL_PTT);
         await pttK8.deleteNamespace(LOCAL_PTT);
       }).timeout(Duration.ofMinutes(2).toMillis());
     });

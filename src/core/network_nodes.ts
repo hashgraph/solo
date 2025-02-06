@@ -35,20 +35,19 @@ export class NetworkNodes {
    * @param namespace - the namespace of the network
    * @returns a promise that resolves when the logs are downloaded
    */
-  // TODO move this to new class src/core/NetworkNodes.getLogs()
-  public async getNodeLogs(namespace: NamespaceName) {
+  public async getLogs(namespace: NamespaceName) {
     const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
 
     const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
 
     const promises = [];
     for (const pod of pods) {
-      promises.push(this.getNodeLog(pod, namespace, timeString));
+      promises.push(this.getLog(pod, namespace, timeString));
     }
     return await Promise.all(promises);
   }
 
-  private async getNodeLog(pod: V1Pod, namespace: NamespaceName, timeString: string) {
+  private async getLog(pod: V1Pod, namespace: NamespaceName, timeString: string) {
     const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
     this.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace.name, timeString);
@@ -83,7 +82,7 @@ export class NetworkNodes {
    * @param nodeAlias - the pod name
    * @returns a promise that resolves when the state files are downloaded
    */
-  public async getNodeStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
+  public async getStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
     const pods = await this.k8.getPodsByLabel([
       `solo.hedera.com/node-name=${nodeAlias}`,
       'solo.hedera.com/type=network-node',
@@ -92,12 +91,12 @@ export class NetworkNodes {
     // get length of pods
     const promises = [];
     for (const pod of pods) {
-      promises.push(this.getNodeState(pod, namespace));
+      promises.push(this.getState(pod, namespace));
     }
     return await Promise.all(promises);
   }
 
-  private async getNodeState(pod: V1Pod, namespace: NamespaceName) {
+  private async getState(pod: V1Pod, namespace: NamespaceName) {
     const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
     this.logger.debug(`getNodeState(${pod.metadata.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace.name);

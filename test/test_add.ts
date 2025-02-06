@@ -69,7 +69,7 @@ export function testNodeAdd(
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await container.resolve(NetworkNodes).getNodeLogs(namespace);
+          await container.resolve(NetworkNodes).getLogs(namespace);
           await bootstrapResp.opts.accountManager.close();
           await nodeCmd.handlers.stop(argv);
           await networkCmd.destroy(argv);

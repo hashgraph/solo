@@ -36,7 +36,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     const relayCmd = new RelayCommand(bootstrapResp.opts);
 
     after(async () => {
-      await container.resolve(NetworkNodes).getNodeLogs(namespace);
+      await container.resolve(NetworkNodes).getLogs(namespace);
       await k8.deleteNamespace(namespace);
     });
 

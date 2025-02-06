@@ -67,7 +67,7 @@ e2eTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(10).toMillis());
 
-        await container.resolve(NetworkNodes).getNodeLogs(namespace);
+        await container.resolve(NetworkNodes).getLogs(namespace);
         // @ts-ignore
         await nodeCmd.accountManager.close();
         await nodeCmd.handlers.stop(argv);

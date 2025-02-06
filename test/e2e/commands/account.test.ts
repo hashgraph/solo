@@ -67,7 +67,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());
 
-      await container.resolve(NetworkNodes).getNodeLogs(namespace);
+      await container.resolve(NetworkNodes).getLogs(namespace);
       await k8.deleteNamespace(namespace);
       await accountManager.close();
       await nodeCmd.close();
