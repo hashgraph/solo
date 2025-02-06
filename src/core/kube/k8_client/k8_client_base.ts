@@ -1,12 +1,16 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {MissingArgumentError, SoloError} from '../../errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../errors.js';
+import {type V1ObjectMeta} from '@kubernetes/client-node';
+import {type ObjectMeta} from '../object_meta.js';
+import {K8ClientObjectMeta} from './k8_client_object_meta.js';
+import {NamespaceName} from '../namespace_name.js';
 
 /**
  * The abstract K8 Client Filter adds the `filterItem` method to the class that extends it.
  */
-export abstract class K8ClientFilter {
+export abstract class K8ClientBase {
   /**
    * Apply filters to metadata
    * @param items - list of items
@@ -51,5 +55,25 @@ export abstract class K8ClientFilter {
     const filtered = this.applyMetadataFilter(items, filters);
     if (filtered.length > 1) throw new SoloError('multiple items found with filters', {filters});
     return filtered[0];
+  }
+
+  /**
+   * Wraps the V1ObjectMeta object instance into a ObjectMeta instance.
+   *
+   * @param v1meta - the V1ObjectMeta object from the K8S API client.
+   * @protected
+   */
+  protected wrapObjectMeta(v1meta: V1ObjectMeta): ObjectMeta {
+    if (!v1meta) {
+      throw new IllegalArgumentError('metadata is required');
+    }
+
+    return new K8ClientObjectMeta(
+      NamespaceName.of(v1meta!.name),
+      v1meta?.name,
+      v1meta?.labels,
+      v1meta?.annotations,
+      v1meta?.uid,
+    );
   }
 }
