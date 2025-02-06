@@ -3,9 +3,6 @@
  */
 import {type NamespaceName} from './namespace_name.js';
 
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
 export interface Contexts {
   /**
    * List all contexts in the kubeconfig
