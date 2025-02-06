@@ -14,7 +14,7 @@ import {ResourceType} from '../resource_type.js';
 import {ResourceOperation} from '../resource_operation.js';
 import {KubeApiResponse} from '../kube_api_response.js';
 
-export default class K8ClientConfigMaps implements ConfigMaps {
+export class K8ClientConfigMaps implements ConfigMaps {
   public constructor(private readonly kubeClient: CoreV1Api) {}
 
   public async create(
