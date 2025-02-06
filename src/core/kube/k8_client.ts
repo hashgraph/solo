@@ -50,7 +50,7 @@ export class K8Client extends K8ClientBase implements K8 {
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
-  private networkingApi: k8s.NetworkingV1Api;
+  networkingApi!: k8s.NetworkingV1Api;
 
   private k8Clusters: Clusters;
   private k8ConfigMaps: ConfigMaps;
@@ -524,135 +524,6 @@ export class K8Client extends K8ClientBase implements K8 {
     this.handleKubernetesClientError(response, body, 'Failed to delete namespaced lease');
 
     return body as k8s.V1Status;
-  }
-
-  // --------------------------------------- Pod Identifiers --------------------------------------- //
-
-  /**
-   * Check if cert-manager is installed inside any namespace.
-   * @returns if cert-manager is found
-   */
-  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
-  //  - ClusterChecks ? SOLID principles, single responsibility
-  public async isCertManagerInstalled(): Promise<boolean> {
-    try {
-      const pods = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, 'app=cert-manager');
-
-      return pods.body.items.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find cert-manager:', e);
-
-      return false;
-    }
-  }
-
-  /**
-   * Check if minio is installed inside the namespace.
-   * @returns if minio is found
-   */
-  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
-  //  - ClusterChecks ? SOLID principles, single responsibility
-  public async isMinioInstalled(namespace: NamespaceName): Promise<boolean> {
-    try {
-      // TODO DETECT THE OPERATOR
-      const pods = await this.kubeClient.listNamespacedPod(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'app=minio',
-      );
-
-      return pods.body.items.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find minio:', e);
-
-      return false;
-    }
-  }
-
-  /**
-   * Check if the ingress controller is installed inside any namespace.
-   * @returns if ingress controller is found
-   */
-  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
-  //  - ClusterChecks ? SOLID principles, single responsibility
-  public async isIngressControllerInstalled(): Promise<boolean> {
-    try {
-      const response = await this.networkingApi.listIngressClass();
-
-      return response.body.items.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find ingress controller:', e);
-
-      return false;
-    }
-  }
-
-  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
-  //  - ClusterChecks ? SOLID principles, single responsibility
-  public async isRemoteConfigPresentInAnyNamespace() {
-    try {
-      const configmaps = await this.kubeClient.listConfigMapForAllNamespaces(
-        undefined,
-        undefined,
-        undefined,
-        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
-      );
-
-      return configmaps.body.items.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find remote config:', e);
-
-      return false;
-    }
-  }
-
-  // TODO - move this into another class (business logic) that uses K8, that sits outside of kube folder
-  //  - ClusterChecks ? SOLID principles, single responsibility
-  public async isPrometheusInstalled(namespace: NamespaceName) {
-    try {
-      const pods = await this.kubeClient.listNamespacedPod(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'app.kubernetes.io/name=prometheus',
-      );
-
-      return pods.body.items.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find prometheus:', e);
-
-      return false;
-    }
-  }
-
-  /**
-   * Searches specific namespace for remote config's config map
-   *
-   * @param namespace - namespace where to search
-   * @returns true if found else false
-   */
-  public async isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean> {
-    try {
-      const configmaps = await this.kubeClient.listNamespacedConfigMap(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
-      );
-
-      return configmaps.body.items.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find remote config:', e);
-
-      return false;
-    }
   }
 
   /* ------------- Utilities ------------- */

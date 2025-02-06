@@ -15,6 +15,8 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
 import {type Opts} from '../types/command_types.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {ClusterChecks} from '../core/cluster_checks.js';
+import {container} from 'tsyringe-neo';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -174,7 +176,7 @@ export class DeploymentCommand extends BaseCommand {
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {
-              const isFound = await self.k8.isRemoteConfigPresentInNamespace(namespace);
+              const isFound = await container.resolve(ClusterChecks).isRemoteConfigPresentInNamespace(namespace);
               if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
             }
 
