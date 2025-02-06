@@ -3,16 +3,23 @@
  */
 import {type V1Pod} from '@kubernetes/client-node';
 import {type NamespaceName} from './namespace_name.js';
-import {type PodName} from './pod_name.js';
+import {type PodRef} from './pod_ref.js';
+import {type Pod} from './pod.js';
 
 export interface Pods {
   /**
-   * Get a pod by name
-   * @param namespace - the namespace of the pod
-   * @param name - podName name
-   * @returns V1Pod - pod object
+   * Get a pod by reference for running operations against
+   * @param podRef - the reference to the pod
+   * @returns a pod object
    */
-  readByName(namespace: NamespaceName, name: PodName): Promise<V1Pod>; // TODO was getPodByName
+  readByRef(podRef: PodRef): Pod;
+
+  /**
+   * Get a pod by name
+   * @returns V1Pod - pod object
+   * @param podRef - the reference to the pod
+   */
+  readByName(podRef: PodRef): Promise<V1Pod>; // TODO was getPodByName
 
   /**
    * Get pods by labels
@@ -26,22 +33,14 @@ export interface Pods {
    * Check if pod's ready status is true
    * @param namespace - namespace
    * @param [labels] - pod labels
-   * @param [podCount] - number of pod expected
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
    */
-  waitForReadyStatus(
-    namespace: NamespaceName,
-    labels: string[],
-    podCount: number,
-    maxAttempts: number,
-    delay: number,
-  ): Promise<V1Pod[]>; // TODO was waitForPodReady
+  waitForReadyStatus(namespace: NamespaceName, labels: string[], maxAttempts: number, delay: number): Promise<V1Pod[]>; // TODO was waitForPodReady
 
   /**
    * Check if pod's phase is running
    * @param namespace - namespace
-   * @param phases - list of phases
    * @param labels - pod labels
    * @param podCount - number of pod expected
    * @param maxAttempts - maximum attempts to check
@@ -50,9 +49,7 @@ export interface Pods {
    */
   waitForRunningPhase(
     namespace: NamespaceName,
-    phases: string[],
     labels: string[],
-    podCount: number,
     maxAttempts: number,
     delay: number,
     podItemPredicate?: (items: V1Pod) => boolean,

@@ -2,9 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
-import {type Context, type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
+import {type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
 import fs from 'fs';
-import net from 'net';
 import path from 'path';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
@@ -23,17 +22,20 @@ import {patchInject} from './../container_helper.js';
 import {type K8} from './k8.js';
 import {type Namespaces} from './namespaces.js';
 import {NamespaceName} from './namespace_name.js';
-import K8ClientClusters from './k8_client/k8_client_clusters.js';
+import {K8ClientClusters} from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
-import K8ClientConfigMaps from './k8_client/k8_client_config_maps.js';
+import {K8ClientConfigMaps} from './k8_client/k8_client_config_maps.js';
 import {PodRef} from './pod_ref.js';
 import {ContainerRef} from './container_ref.js';
 import {K8ClientContainers} from './k8_client/k8_client_containers.js';
 import {type Containers} from './containers.js';
 import {type Contexts} from './contexts.js';
 import type http from 'node:http';
-import K8ClientContexts from './k8_client/k8_client_contexts.js';
+import {K8ClientContexts} from './k8_client/k8_client_contexts.js';
+import {K8ClientPods} from './k8_client/k8_client_pods.js';
+import {type Pods} from './pods.js';
+import {K8ClientFilter} from './k8_client/k8_client_filter.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -41,28 +43,27 @@ import K8ClientContexts from './k8_client/k8_client_contexts.js';
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
-// TODO rename to K8Client and move to kube folder
+// TODO move to kube folder
 @injectable()
-export class K8Client implements K8 {
-  static PodReadyCondition = new Map<string, string>().set(
-    constants.POD_CONDITION_READY,
-    constants.POD_CONDITION_STATUS_TRUE,
-  );
+export class K8Client extends K8ClientFilter implements K8 {
+  // TODO - remove extends K8ClientFilter after services refactor, it is using filterItem()
 
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
   private networkingApi: k8s.NetworkingV1Api;
 
-  private k8Clusters: K8ClientClusters;
-  private k8ConfigMaps: K8ClientConfigMaps;
-  private k8Containers: K8ClientContainers;
-  private k8Contexts: K8ClientContexts;
+  private k8Clusters: Clusters;
+  private k8ConfigMaps: ConfigMaps;
+  private k8Containers: Containers;
+  private k8Pods: Pods;
+  private k8Contexts: Contexts;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
   ) {
+    super();
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
 
@@ -90,11 +91,15 @@ export class K8Client implements K8 {
     this.k8ConfigMaps = new K8ClientConfigMaps(this.kubeClient);
     this.k8Containers = new K8ClientContainers(this.kubeConfig);
     this.k8Contexts = new K8ClientContexts(this.kubeConfig);
+    this.k8Pods = new K8ClientPods(this.kubeClient, this.kubeConfig);
 
     return this; // to enable chaining
   }
 
-  // TODO in the future this will return the namespaces class instance for fluent pattern
+  /**
+   * Fluent accessor for reading and manipulating namespaces in the kubernetes cluster.
+   * @returns an object instance providing namespace operations
+   */
   public namespaces(): Namespaces {
     return null;
   }
@@ -132,50 +137,14 @@ export class K8Client implements K8 {
   }
 
   /**
-   * Apply filters to metadata
-   * @param items - list of items
-   * @param [filters] - an object with metadata fields and value
-   * @returns a list of items that match the filters
+   * Fluent accessor for reading and manipulating pods in the kubernetes cluster.
+   * @returns an object instance providing pod operations
    */
-  private applyMetadataFilter(items: (object | any)[], filters: Record<string, string> = {}) {
-    if (!filters) throw new MissingArgumentError('filters are required');
-
-    const matched = [];
-    const filterMap = new Map(Object.entries(filters));
-    for (const item of items) {
-      // match all filters
-      let foundMatch = true;
-      for (const entry of filterMap.entries()) {
-        const field = entry[0];
-        const value = entry[1];
-
-        if (item.metadata[field] !== value) {
-          foundMatch = false;
-          break;
-        }
-      }
-
-      if (foundMatch) {
-        matched.push(item);
-      }
-    }
-
-    return matched;
-  }
-
-  /**
-   * Filter a single item using metadata filter
-   * @param items - list of items
-   * @param [filters] - an object with metadata fields and value
-   */
-  private filterItem(items: (object | any)[], filters: Record<string, string> = {}) {
-    const filtered = this.applyMetadataFilter(items, filters);
-    if (filtered.length > 1) throw new SoloError('multiple items found with filters', {filters});
-    return filtered[0];
+  public pods(): Pods {
+    return this.k8Pods;
   }
 
   public async createNamespace(namespace: NamespaceName) {
-    // TODO what should the name be if want to create multiple namespaces (theoretical and bad example): createMany(...)
     const payload = {
       metadata: {
         name: namespace.name,
@@ -184,8 +153,6 @@ export class K8Client implements K8 {
 
     const resp = await this.kubeClient.createNamespace(payload);
     return resp.response.statusCode === StatusCodes.CREATED;
-    // TODO future, the below line will be used, the above will move into the create method in the namespaces class
-    // return this.namespaces().create(name);
   }
 
   public async deleteNamespace(namespace: NamespaceName) {
@@ -213,43 +180,11 @@ export class K8Client implements K8 {
   }
 
   public async getPodByName(podRef: PodRef): Promise<k8s.V1Pod> {
-    const ns = podRef.namespaceName;
-    const fieldSelector = `metadata.name=${podRef.podName.name}`;
-    const resp = await this.kubeClient.listNamespacedPod(
-      ns.name,
-      undefined,
-      undefined,
-      undefined,
-      fieldSelector,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      Duration.ofMinutes(5).toMillis(),
-    );
-
-    return this.filterItem(resp.body.items, {name: podRef.podName.name});
+    return this.pods().readByName(podRef);
   }
 
   public async getPodsByLabel(labels: string[] = []) {
-    const ns = this.getNamespace();
-    const labelSelector = labels.join(',');
-    const result = await this.kubeClient.listNamespacedPod(
-      ns.name,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      Duration.ofMinutes(5).toMillis(),
-    );
-
-    return result.body.items;
+    return this.pods().readManyByLabel(this.getNamespace(), labels);
   }
 
   public async getSecretsByLabel(labels: string[] = [], namespace?: NamespaceName) {
@@ -334,167 +269,24 @@ export class K8Client implements K8 {
   }
 
   public async portForward(podRef: PodRef, localPort: number, podPort: number) {
-    try {
-      this.logger.debug(
-        `Creating port-forwarder for ${podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`,
-      );
-      const ns = podRef.namespaceName;
-      const forwarder = new k8s.PortForward(this.kubeConfig, false);
-      const server = (await net.createServer(socket => {
-        forwarder.portForward(ns.name, podRef.podName.name, [podPort], socket, null, socket, 3);
-      })) as ExtendedNetServer;
-
-      // add info for logging
-      server.info = `${podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
-      server.localPort = localPort;
-      this.logger.debug(`Starting port-forwarder [${server.info}]`);
-      return server.listen(localPort, constants.LOCAL_HOST);
-    } catch (e) {
-      const message = `failed to start port-forwarder [${podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
-      this.logger.error(message, e);
-      throw new SoloError(message, e);
-    }
+    return this.pods().readByRef(podRef).portForward(localPort, podPort);
   }
 
   public async stopPortForward(server: ExtendedNetServer, maxAttempts = 20, timeout = 500) {
-    if (!server) {
-      return;
-    }
-
-    this.logger.debug(`Stopping port-forwarder [${server.info}]`);
-
-    // try to close the websocket server
-    await new Promise<void>((resolve, reject) => {
-      server.close(e => {
-        if (e) {
-          if (e.message?.includes('Server is not running')) {
-            this.logger.debug(`Server not running, port-forwarder [${server.info}]`);
-            resolve();
-          } else {
-            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`, e);
-            reject(e);
-          }
-        } else {
-          this.logger.debug(`Stopped port-forwarder [${server.info}]`);
-          resolve();
-        }
-      });
-    });
-
-    // test to see if the port has been closed or if it is still open
-    let attempts = 0;
-    while (attempts < maxAttempts) {
-      let hasError = 0;
-      attempts++;
-
-      try {
-        const isPortOpen = await new Promise(resolve => {
-          const testServer = net
-            .createServer()
-            .once('error', err => {
-              if (err) {
-                resolve(false);
-              }
-            })
-            .once('listening', () => {
-              testServer
-                .once('close', () => {
-                  hasError++;
-                  if (hasError > 1) {
-                    resolve(false);
-                  } else {
-                    resolve(true);
-                  }
-                })
-                .close();
-            })
-            .listen(server.localPort, '0.0.0.0');
-        });
-        if (isPortOpen) {
-          return;
-        }
-      } catch {
-        return;
-      }
-      await sleep(Duration.ofMillis(timeout));
-    }
-    if (attempts >= maxAttempts) {
-      throw new SoloError(`failed to stop port-forwarder [${server.info}]`);
-    }
+    return this.pods().readByRef(null).stopPortForward(server, maxAttempts, timeout);
   }
 
   public async waitForPods(
-    phases = [constants.POD_PHASE_RUNNING],
+    phases = [constants.POD_PHASE_RUNNING], // TODO - phases goes away
     labels: string[] = [],
-    podCount = 1,
+    podCount = 1, // TODO - podCount goes away
     maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
     delay = constants.PODS_RUNNING_DELAY,
     podItemPredicate?: (items: k8s.V1Pod) => boolean,
     namespace?: NamespaceName,
   ): Promise<k8s.V1Pod[]> {
     const ns = namespace || this.getNamespace();
-    const labelSelector = labels.join(',');
-
-    this.logger.info(`WaitForPod [labelSelector: ${labelSelector}, namespace:${ns}, maxAttempts: ${maxAttempts}]`);
-
-    return new Promise<k8s.V1Pod[]>((resolve, reject) => {
-      let attempts = 0;
-
-      const check = async (resolve: (items: k8s.V1Pod[]) => void, reject: (reason?: Error) => void) => {
-        // wait for the pod to be available with the given status and labels
-        try {
-          const resp = await this.kubeClient.listNamespacedPod(
-            ns.name,
-            // @ts-ignore
-            false,
-            false,
-            undefined,
-            undefined,
-            labelSelector,
-            podCount,
-            undefined,
-            undefined,
-            undefined,
-            Duration.ofMinutes(5).toMillis(),
-          );
-          this.logger.debug(
-            `[attempt: ${attempts}/${maxAttempts}] ${resp.body?.items?.length}/${podCount} pod found [labelSelector: ${labelSelector}, namespace:${ns}]`,
-          );
-          if (resp.body?.items?.length === podCount) {
-            let phaseMatchCount = 0;
-            let predicateMatchCount = 0;
-
-            for (const item of resp.body.items) {
-              if (phases.includes(item.status?.phase)) {
-                phaseMatchCount++;
-              }
-
-              if (podItemPredicate && podItemPredicate(item)) {
-                predicateMatchCount++;
-              }
-            }
-
-            if (phaseMatchCount === podCount && (!podItemPredicate || predicateMatchCount === podCount)) {
-              return resolve(resp.body.items);
-            }
-          }
-        } catch (e) {
-          this.logger.info('Error occurred while waiting for pods, retrying', e);
-        }
-
-        if (++attempts < maxAttempts) {
-          setTimeout(() => check(resolve, reject), delay);
-        } else {
-          return reject(
-            new SoloError(
-              `Expected number of pod (${podCount}) not found for labels: ${labelSelector}, phases: ${phases.join(',')} [attempts = ${attempts}/${maxAttempts}]`,
-            ),
-          );
-        }
-      };
-
-      check(resolve, reject);
-    });
+    return this.pods().waitForRunningPhase(ns, labels, maxAttempts, delay, podItemPredicate);
   }
 
   public async waitForPodReady(
@@ -504,64 +296,8 @@ export class K8Client implements K8 {
     delay = 500,
     namespace?: NamespaceName,
   ) {
-    try {
-      return await this.waitForPodConditions(
-        K8Client.PodReadyCondition,
-        labels,
-        podCount,
-        maxAttempts,
-        delay,
-        namespace,
-      );
-    } catch (e: Error | unknown) {
-      throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e);
-    }
-  }
-
-  /**
-   * Check pods for conditions
-   * @param conditionsMap - a map of conditions and values
-   * @param [labels] - pod labels
-   * @param [podCount] - number of pod expected
-   * @param [maxAttempts] - maximum attempts to check
-   * @param [delay] - delay between checks in milliseconds
-   */
-  private async waitForPodConditions(
-    conditionsMap: Map<string, string>,
-    labels: string[] = [],
-    podCount = 1,
-    maxAttempts = 10,
-    delay = 500,
-    namespace?: NamespaceName,
-  ) {
-    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
-
-    return await this.waitForPods(
-      [constants.POD_PHASE_RUNNING],
-      labels,
-      podCount,
-      maxAttempts,
-      delay,
-      pod => {
-        if (pod.status?.conditions?.length > 0) {
-          for (const cond of pod.status.conditions) {
-            for (const entry of conditionsMap.entries()) {
-              const condType = entry[0];
-              const condStatus = entry[1];
-              if (cond.type === condType && cond.status === condStatus) {
-                this.logger.info(
-                  `Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`,
-                );
-                return true;
-              }
-            }
-          }
-        }
-        // condition not found
-        return false;
-      },
-      namespace,
-    );
+    const ns = namespace || this.getNamespace();
+    return this.pods().waitForReadyStatus(ns, labels, maxAttempts, delay);
   }
 
   public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
@@ -962,37 +698,7 @@ export class K8Client implements K8 {
   }
 
   public async killPod(podRef: PodRef) {
-    try {
-      const result = await this.kubeClient.deleteNamespacedPod(
-        podRef.podName.name,
-        podRef.namespaceName.name,
-        undefined,
-        undefined,
-        1,
-      );
-      if (result.response.statusCode !== StatusCodes.OK) {
-        throw new SoloError(
-          `Failed to delete pod ${podRef.podName.name} in namespace ${podRef.namespaceName.name}: statusCode: ${result.response.statusCode}`,
-        );
-      }
-      let podExists = true;
-      while (podExists) {
-        const pod = await this.getPodByName(podRef);
-        if (!pod?.metadata?.deletionTimestamp) {
-          podExists = false;
-        } else {
-          await sleep(Duration.ofSeconds(1));
-        }
-      }
-    } catch (e) {
-      const errorMessage = `Failed to delete pod ${podRef.podName.name} in namespace ${podRef.namespaceName.name}: ${e.message}`;
-      if (e.body?.code === StatusCodes.NOT_FOUND || e.response?.body?.code === StatusCodes.NOT_FOUND) {
-        this.logger.info(`Pod not found: ${errorMessage}`, e);
-        return;
-      }
-      this.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
-    }
+    return this.pods().readByRef(podRef).killPod();
   }
 
   /**

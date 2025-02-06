@@ -5,7 +5,7 @@ import {type Clusters} from '../clusters.js';
 import {type KubeConfig} from '@kubernetes/client-node';
 import {IllegalArgumentError} from '../../errors.js';
 
-export default class K8ClientClusters implements Clusters {
+export class K8ClientClusters implements Clusters {
   public constructor(private readonly kubeConfig: KubeConfig) {
     if (!kubeConfig) {
       throw new IllegalArgumentError('kubeConfig must not be null or undefined');
