@@ -10,7 +10,6 @@ import {K8ClientPod} from './k8_client_pod.js';
 import {Duration} from '../../time/duration.js';
 import {K8ClientFilter} from './k8_client_filter.js';
 import {MissingArgumentError, SoloError} from '../../errors.js';
-import {K8Client} from '../k8_client.js';
 import * as constants from '../../constants.js';
 import {SoloLogger} from '../../logging.js';
 import {container} from 'tsyringe-neo';
@@ -77,8 +76,13 @@ export class K8ClientPods extends K8ClientFilter implements Pods {
     maxAttempts: number,
     delay: number,
   ): Promise<V1Pod[]> {
+    const podReadyCondition = new Map<string, string>().set(
+      constants.POD_CONDITION_READY,
+      constants.POD_CONDITION_STATUS_TRUE,
+    );
+
     try {
-      return await this.waitForPodConditions(namespace, K8Client.PodReadyCondition, labels, maxAttempts, delay);
+      return await this.waitForPodConditions(namespace, podReadyCondition, labels, maxAttempts, delay);
     } catch (e: Error | unknown) {
       throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e);
     }

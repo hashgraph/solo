@@ -48,11 +48,6 @@ import {K8ClientFilter} from './k8_client/k8_client_filter.js';
 export class K8Client extends K8ClientFilter implements K8 {
   // TODO - remove extends K8ClientFilter after services refactor, it is using filterItem()
 
-  static PodReadyCondition = new Map<string, string>().set(
-    constants.POD_CONDITION_READY,
-    constants.POD_CONDITION_STATUS_TRUE,
-  );
-
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
