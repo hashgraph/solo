@@ -9,9 +9,9 @@ import {type TDirectoryData} from './t_directory_data.js';
 import {type V1Lease} from '@kubernetes/client-node';
 import {type Namespaces} from './namespaces.js';
 import {type NamespaceName} from './namespace_name.js';
+import {type Containers} from './containers.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
-import {type ContainerName} from './container_name.js';
 import {type ContainerRef} from './container_ref.js';
 
 export interface K8 {
@@ -20,6 +20,12 @@ export interface K8 {
    * @returns an object instance providing namespace operations
    */
   namespaces(): Namespaces;
+
+  /**
+   * Fluent accessor for reading and manipulating containers.
+   * returns an object instance providing container operations
+   */
+  containers(): Containers;
 
   /**
    * Fluent accessor for reading and manipulating cluster information from the kubeconfig file.
