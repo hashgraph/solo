@@ -150,13 +150,13 @@ jobs:
       e2e_node_local_ptt_test_subdir: e2e-node-local-ptt
       e2e_node_add_test_subdir: e2e-node-add
       e2e_node_add_local_test_subdir: e2e-node-add-local
-      e2e_node_add_separate_commands_test_subdir: e2e-node-add-separate-commands
+      e2e_node_add_separate_commands_test_subdir: e2e-node-add-separate
       e2e_node_update_test_subdir: e2e-node-update
-      e2e_node_update_separate_commands_test_subdir: e2e-node-update-separate-commands
+      e2e_node_update_separate_commands_test_subdir: e2e-node-update-separate
       e2e_node_delete_test_subdir: e2e-node-delete
-      e2e_node_delete_separate_commands_test_subdir: e2e-node-delete-separate-commands
+      e2e_node_delete_separate_commands_test_subdir: e2e-node-delete-separate
       e2e_node_upgrade_test_subdir: e2e-node-upgrade
-      e2e_node_upgrade_separate_commands_test_subdir: e2e-node-upgrade-separate-commands
+      e2e_node_upgrade_separate_commands_test_subdir: e2e-node-upgrade-separate
       e2e_relay_test_subdir: e2e-relay
       e2e_integration_coverage_report: "E2E Integration Tests Coverage Report"
       e2e_standard_coverage_report: "E2E Standard Tests Coverage Report"
