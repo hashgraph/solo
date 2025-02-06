@@ -17,6 +17,8 @@ import {type AccountCommand} from '../../../src/commands/account.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const LOCAL_HEDERA = NamespaceName.of('local-hedera-app');
 const argv = getDefaultArgv();
@@ -100,7 +102,7 @@ e2eTestSuite(
 
       it('get the logs and delete the namespace', async () => {
         await accountManager.close();
-        await hederaK8.getNodeLogs(LOCAL_HEDERA);
+        await container.resolve(NetworkNodes).getNodeLogs(LOCAL_HEDERA);
         await hederaK8.deleteNamespace(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());
     });

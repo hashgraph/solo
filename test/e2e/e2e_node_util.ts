@@ -25,6 +25,7 @@ import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/core/kube/namespace_name.js';
 import {PodName} from '../../src/core/kube/pod_name.js';
 import {PodRef} from '../../src/core/kube/pod_ref.js';
+import {NetworkNodes} from '../../src/core/network_nodes.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
@@ -68,7 +69,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await k8.getNodeLogs(namespace);
+          await container.resolve(NetworkNodes).getNodeLogs(namespace);
           await k8.deleteNamespace(namespace);
         });
 

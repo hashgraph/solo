@@ -2,19 +2,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
-import {type V1Lease, V1ObjectMeta, type V1Pod, V1Secret} from '@kubernetes/client-node';
-import fs from 'fs';
-import path from 'path';
+import {type V1Lease, V1ObjectMeta, V1Secret} from '@kubernetes/client-node';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 import {sleep} from './../helpers.js';
 import * as constants from './../constants.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
-import {PodName} from './pod_name.js';
 import {type ExtendedNetServer, type Optional} from '../../types/index.js';
 import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -26,8 +22,8 @@ import {K8ClientClusters} from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {K8ClientConfigMaps} from './k8_client/k8_client_config_maps.js';
-import {PodRef} from './pod_ref.js';
-import {ContainerRef} from './container_ref.js';
+import {type PodRef} from './pod_ref.js';
+import {type ContainerRef} from './container_ref.js';
 import {K8ClientContainers} from './k8_client/k8_client_containers.js';
 import {type Containers} from './containers.js';
 import {type Contexts} from './contexts.js';
@@ -699,92 +695,6 @@ export class K8Client extends K8ClientFilter implements K8 {
 
   public async killPod(podRef: PodRef) {
     return this.pods().readByRef(podRef).killPod();
-  }
-
-  /**
-   * Download logs files from all network pods and save to local solo log directory
-   * @param namespace - the namespace of the network
-   * @returns a promise that resolves when the logs are downloaded
-   */
-  // TODO move this to new class src/core/NetworkNodes.getLogs()
-  public async getNodeLogs(namespace: NamespaceName) {
-    const pods = await this.getPodsByLabel(['solo.hedera.com/type=network-node']);
-
-    const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
-
-    const promises = [];
-    for (const pod of pods) {
-      promises.push(this.getNodeLog(pod, namespace, timeString));
-    }
-    return await Promise.all(promises);
-  }
-
-  private async getNodeLog(pod: V1Pod, namespace: NamespaceName, timeString: string) {
-    const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
-    this.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
-    const targetDir = path.join(SOLO_LOGS_DIR, namespace.name, timeString);
-    try {
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, {recursive: true});
-      }
-      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-      const scriptName = 'support-zip.sh';
-      const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyTo(containerRef, sourcePath, `${HEDERA_HAPI_PATH}`);
-      await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
-      await this.execContainer(containerRef, [
-        'bash',
-        '-c',
-        `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
-      ]);
-      await this.execContainer(containerRef, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
-      await this.execContainer(containerRef, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
-    } catch (e: Error | unknown) {
-      // not throw error here, so we can continue to finish downloading logs from other pods
-      // and also delete namespace in the end
-      this.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podRef}`, e);
-    }
-    this.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`);
-  }
-
-  /**
-   * Download state files from a pod
-   * @param namespace - the namespace of the network
-   * @param nodeAlias - the pod name
-   * @returns a promise that resolves when the state files are downloaded
-   */
-  public async getNodeStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
-    const pods = await this.getPodsByLabel([
-      `solo.hedera.com/node-name=${nodeAlias}`,
-      'solo.hedera.com/type=network-node',
-    ]);
-
-    // get length of pods
-    const promises = [];
-    for (const pod of pods) {
-      promises.push(this.getNodeState(pod, namespace));
-    }
-    return await Promise.all(promises);
-  }
-
-  public async getNodeState(pod: V1Pod, namespace: NamespaceName) {
-    const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
-    this.logger.debug(`getNodeState(${pod.metadata.name}): begin...`);
-    const targetDir = path.join(SOLO_LOGS_DIR, namespace.name);
-    try {
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, {recursive: true});
-      }
-      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
-      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-      await this.execContainer(containerRef, zipCommand);
-      await this.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
-    } catch (e: Error | unknown) {
-      this.logger.error(`failed to download state from pod ${podRef.podName.name}`, e);
-      this.logger.showUser(`Failed to download state from pod ${podRef.podName.name}` + e);
-    }
-    this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }
 
   // TODO make private once we are instantiating multiple K8 instances

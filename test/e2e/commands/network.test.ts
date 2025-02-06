@@ -16,6 +16,8 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 import {PodName} from '../../../src/core/kube/pod_name.js';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';
@@ -50,7 +52,7 @@ describe('NetworkCommand', () => {
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await k8.getNodeLogs(namespace);
+    await container.resolve(NetworkNodes).getNodeLogs(namespace);
     await k8.deleteNamespace(namespace);
     await accountManager.close();
   });

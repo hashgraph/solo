@@ -12,6 +12,8 @@ import {sleep} from '../../../src/core/helpers.js';
 import {RelayCommand} from '../../../src/commands/relay.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const testName = 'relay-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -34,7 +36,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     const relayCmd = new RelayCommand(bootstrapResp.opts);
 
     after(async () => {
-      await k8.getNodeLogs(namespace);
+      await container.resolve(NetworkNodes).getNodeLogs(namespace);
       await k8.deleteNamespace(namespace);
     });
 
