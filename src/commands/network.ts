@@ -11,6 +11,7 @@ import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';
 import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
 import {type KeyManager} from '../core/key_manager.js';
@@ -37,6 +38,7 @@ export interface NetworkDeployConfigClass {
   loadBalancerEnabled: boolean;
   soloChartVersion: string;
   namespace: NamespaceName;
+  deployment: string;
   nodeAliasesUnparsed: string;
   persistentVolumeClaims: string;
   profileFile: string;
@@ -115,7 +117,7 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeAlias,
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
-      flags.namespace,
+      flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
       flags.profileFile,
@@ -385,6 +387,7 @@ export class NetworkCommand extends BaseCommand {
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
+    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
     // create a config object for subsequent steps
     const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
@@ -395,6 +398,7 @@ export class NetworkCommand extends BaseCommand {
       'stagingKeysDir',
       'valuesArg',
       'resolvedThrottlesFile',
+      'namespace',
     ]) as NetworkDeployConfigClass;
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -425,9 +429,10 @@ export class NetworkCommand extends BaseCommand {
     );
 
     config.valuesArg = await this.prepareValuesArg(config);
+    config.namespace = namespace;
 
-    if (!(await this.k8.hasNamespace(config.namespace))) {
-      await this.k8.createNamespace(config.namespace);
+    if (!(await this.k8.hasNamespace(namespace))) {
+      await this.k8.createNamespace(namespace);
     }
 
     // prepare staging keys directory
@@ -745,12 +750,13 @@ export class NetworkCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              namespace,
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
             };
@@ -900,7 +906,7 @@ export class NetworkCommand extends BaseCommand {
                 flags.deleteSecrets,
                 flags.enableTimeout,
                 flags.force,
-                flags.namespace,
+                flags.deployment,
                 flags.quiet,
               ),
             handler: (argv: any) => {
@@ -961,17 +967,17 @@ export class NetworkCommand extends BaseCommand {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.add(
               nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED),
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, ConsensusNodeStates.INITIALIZED),
             );
 
             remoteConfig.components.add(
               `envoy-proxy-${nodeAlias}`,
-              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace),
+              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace.name),
             );
 
             remoteConfig.components.add(
               `haproxy-${nodeAlias}`,
-              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace),
+              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace.name),
             );
           }
         });

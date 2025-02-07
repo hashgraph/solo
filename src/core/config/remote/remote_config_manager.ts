@@ -95,8 +95,8 @@ export class RemoteConfigManager {
     const clusters: Record<Cluster, NamespaceNameAsString> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
-      ([deployment, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
-        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = deployment));
+      ([deploymentName, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
+        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = deploymentStructure.namespace));
       },
     );
 
@@ -148,7 +148,7 @@ export class RemoteConfigManager {
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
     } catch {
-      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getCurrentClusterName()));
+      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.clusters().readCurrent()));
     }
     return this.remoteConfig;
   }
@@ -299,7 +299,8 @@ export class RemoteConfigManager {
     }
 
     // TODO: Current quick fix for commands where namespace is not passed
-    const namespace = this.localConfig.currentDeploymentName.replace(/^kind-/, '');
+    const currentDeployment = this.localConfig.deployments[this.localConfig.currentDeploymentName];
+    const namespace = currentDeployment.namespace;
 
     this.configManager.setFlag(flags.namespace, namespace);
   }

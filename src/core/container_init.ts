@@ -18,11 +18,13 @@ import {ProfileManager} from './profile_manager.js';
 import {IntervalLeaseRenewalService} from './lease/interval_lease_renewal.js';
 import {LeaseManager} from './lease/lease_manager.js';
 import {CertificateManager} from './certificate_manager.js';
-import path from 'path';
+import path, {normalize} from 'path';
 import {LocalConfig} from './config/local_config.js';
 import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import os from 'os';
 import * as version from '../../version.js';
+import {NetworkNodes} from './network_nodes.js';
+import {ClusterChecks} from './cluster_checks.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -92,11 +94,14 @@ export class Container {
     container.register(CertificateManager, {useClass: CertificateManager}, {lifecycle: Lifecycle.Singleton});
 
     // LocalConfig
-    const localConfigPath = path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigPath = normalize(path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
     container.register('localConfigFilePath', {useValue: localConfigPath});
     container.register(LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
     container.register(RemoteConfigManager, {useClass: RemoteConfigManager}, {lifecycle: Lifecycle.Singleton});
+
+    container.register(ClusterChecks, {useClass: ClusterChecks}, {lifecycle: Lifecycle.Singleton});
+    container.register(NetworkNodes, {useClass: NetworkNodes}, {lifecycle: Lifecycle.Singleton});
 
     Container.isInitialized = true;
   }

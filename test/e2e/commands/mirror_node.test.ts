@@ -24,6 +24,8 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -63,7 +65,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());
 
-      await k8.getNodeLogs(namespace);
+      await container.resolve(NetworkNodes).getLogs(namespace);
       await k8.deleteNamespace(namespace);
       await accountManager.close();
 
@@ -86,6 +88,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.chartDirectory.constName,
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
@@ -93,6 +96,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.storageEndpoint.constName,
       ]);
       expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,

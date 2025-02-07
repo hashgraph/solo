@@ -21,6 +21,8 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/container_ref.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const namespace = NamespaceName.of('node-delete');
 const deleteNodeAlias = 'node1';
@@ -54,7 +56,7 @@ e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(10).toMillis());
-        await k8.getNodeLogs(namespace);
+        await container.resolve(NetworkNodes).getLogs(namespace);
         await k8.deleteNamespace(namespace);
       });
 

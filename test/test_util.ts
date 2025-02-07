@@ -17,11 +17,9 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
+import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
-import {SoloError} from '../src/core/errors.js';
-import {execSync} from 'child_process';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 
 import {SoloLogger} from '../src/core/logging.js';
@@ -46,12 +44,13 @@ import {KeyManager} from '../src/core/key_manager.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {resetTestContainer} from './test_container.js';
+import {resetForTest} from './test_container.js';
 import {NamespaceName} from '../src/core/kube/namespace_name.js';
 import {PodRef} from '../src/core/kube/pod_ref.js';
 import {ContainerRef} from '../src/core/kube/container_ref.js';
+import {NetworkNodes} from '../src/core/network_nodes.js';
 
-export const TEST_CLUSTER = 'solo-e2e';
+export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
@@ -78,6 +77,12 @@ export function getDefaultArgv() {
     argv[f.name] = f.definition.defaultValue;
   }
 
+  const currentDeployment = testLocalConfigData.currentDeploymentName;
+  const cacheDir = getTestCacheDir();
+  argv.cacheDir = cacheDir;
+  argv[flags.cacheDir.name] = cacheDir;
+  argv.deployment = currentDeployment;
+  argv[flags.deployment.name] = currentDeployment;
   return argv;
 }
 
@@ -101,6 +106,7 @@ interface TestOpts {
 }
 
 interface BootstrapResponse {
+  deployment: string;
   namespace: NamespaceName;
   opts: TestOpts;
   manager: {
@@ -127,8 +133,9 @@ export function bootstrapTestVariables(
   accountCmdArg: AccountCommand | null = null,
 ): BootstrapResponse {
   const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
+  const deployment: string = argv[flags.deployment.name] || 'deployment';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-  resetTestContainer(cacheDir);
+  resetForTest(namespace.name, cacheDir);
   const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 
@@ -173,6 +180,7 @@ export function bootstrapTestVariables(
   const accountCmd = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
   return {
     namespace,
+    deployment,
     opts,
     manager: {
       accountManager,
@@ -230,7 +238,7 @@ export function e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(5).toMillis());
-        await k8.getNodeLogs(namespace);
+        await container.resolve(NetworkNodes).getLogs(namespace);
         bootstrapResp.opts.logger.showUser(
           `------------------------- END: bootstrap (${testName}) ----------------------------`,
         );
@@ -273,6 +281,7 @@ export function e2eTestSuite(
           flags.bootstrapProperties.constName,
           flags.chainId.constName,
           flags.log4j2Xml.constName,
+          flags.deployment.constName,
           flags.profileFile.constName,
           flags.profileName.constName,
           flags.quiet.constName,
@@ -451,12 +460,15 @@ export const testLocalConfigData = {
   deployments: {
     deployment: {
       clusters: ['cluster-1'],
+      namespace: 'solo-e2e',
     },
     'deployment-2': {
       clusters: ['cluster-2'],
+      namespace: 'solo-2',
     },
     'deployment-3': {
       clusters: ['cluster-3'],
+      namespace: 'solo-3',
     },
   },
   currentDeploymentName: 'deployment',

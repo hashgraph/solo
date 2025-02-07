@@ -3,7 +3,12 @@ readonly KIND_IMAGE="kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23
 echo "SOLO_CHARTS_DIR: ${SOLO_CHARTS_DIR}"
 export PATH=${PATH}:~/.solo/bin
 
-SOLO_CLUSTER_NAME=solo-e2e
+if [[ -z "${SOLO_TEST_CLUSTER}" && ${SOLO_CLUSTER_NAME} != "" ]]; then
+  SOLO_CLUSTER_NAME=solo-e2e
+else
+  SOLO_CLUSTER_NAME=${SOLO_TEST_CLUSTER}
+fi
+
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 kind delete cluster -n "${SOLO_CLUSTER_NAME}" || true

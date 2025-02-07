@@ -15,7 +15,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {resetTestContainer} from '../../test_container.js';
+import {resetForTest} from '../../test_container.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -31,7 +31,7 @@ describe('BaseCommand', () => {
 
   describe('runShell', () => {
     before(() => {
-      resetTestContainer();
+      resetForTest();
       testLogger = container.resolve(SoloLogger);
       helm = container.resolve(Helm);
       chartManager = container.resolve(ChartManager);
