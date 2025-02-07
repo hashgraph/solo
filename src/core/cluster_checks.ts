@@ -8,6 +8,7 @@ import {SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type K8} from './kube/k8.js';
 import {type K8Client} from './kube/k8_client.js';
+import {type IngressClass} from './kube/ingress_class.js';
 
 /**
  * Class to check if certain components are installed in the cluster.
@@ -69,20 +70,13 @@ export class ClusterChecks {
 
   /**
    * Check if the ingress controller is installed inside any namespace.
-   * @param labels - labels to filter the ingress controller
    * @returns if ingress controller is found
    */
-  public async isIngressControllerInstalled(labels: string[] = []): Promise<boolean> {
+  public async isIngressControllerInstalled(): Promise<boolean> {
     try {
-      const response = await (this.k8 as K8Client).networkingApi.listIngressClass(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        labels.join(','),
-      );
+      const ingressClassList: IngressClass[] = await this.k8.ingressClasses().list();
 
-      return response.body.items.length > 0;
+      return ingressClassList.length > 0;
     } catch (e) {
       this.logger.error('Failed to find ingress controller:', e);
 

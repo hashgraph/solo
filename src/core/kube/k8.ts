@@ -19,6 +19,7 @@ import {type Services} from './services.js';
 import {type Service} from './service.js';
 import {type Pods} from './pods.js';
 import {type Leases} from './leases.js';
+import {type IngressClasses} from './ingress_classes.js';
 
 export interface K8 {
   /**
@@ -57,6 +58,10 @@ export interface K8 {
    */
   services(): Services;
 
+  /**
+   * Fluent accessor for reading and manipulating pods in the kubernetes cluster.
+   * @returns an object instance providing pod operations
+   */
   pods(): Pods;
 
   /**
@@ -65,11 +70,17 @@ export interface K8 {
    */
   pvcs(): Pvcs;
 
-  /*
+  /**
    * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
    * @returns an object instance providing lease operations
    */
   leases(): Leases;
+
+  /**
+   * Fluent accessor for reading and manipulating ingress classes in the kubernetes cluster.
+   * @returns an object instance providing ingress class operations
+   */
+  ingressClasses(): IngressClasses;
 
   /**
    * Create a new namespace

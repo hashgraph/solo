@@ -122,13 +122,7 @@ export class ExplorerCommand extends BaseCommand {
     const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
 
     // Install ingress controller only if haproxy ingress not already present
-    if (
-      !(await clusterChecks.isIngressControllerInstalled([
-        'app.kubernetes.io/name=haproxy-ingress',
-        `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
-      ])) &&
-      config.enableIngress
-    ) {
+    if (!(await clusterChecks.isIngressControllerInstalled()) && config.enableIngress) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
