@@ -939,7 +939,7 @@ export class NodeCommandTasks {
   private async generateNodeOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
 
-    const networkOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
+    const nodeOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
     const nodeOverridesJson = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
     fs.writeFileSync(nodeOverridesJson, nodeOverridesModel.toYAML());
