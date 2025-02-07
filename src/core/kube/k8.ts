@@ -18,7 +18,7 @@ import {type Pvcs} from './pvcs.js';
 import {type Services} from './services.js';
 import {type Service} from './service.js';
 import {type Pods} from './pods.js';
-import type {Leases} from './leases.js';
+import {type Leases} from './leases.js';
 
 export interface K8 {
   /**
