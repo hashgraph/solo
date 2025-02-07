@@ -23,9 +23,12 @@ import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {ClusterChecks} from '../../core/cluster_checks.js';
+import {container} from 'tsyringe-neo';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
+  private readonly clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
 
   constructor(
     parent,
@@ -387,14 +390,14 @@ export class ClusterCommandTasks {
         );
 
         // if minio is already present, don't deploy it
-        if (ctx.config.deployMinio && (await self.k8.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
+        if (ctx.config.deployMinio && (await self.clusterChecks.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
           ctx.config.deployMinio = false;
         }
 
         // if prometheus is found, don't deploy it
         if (
           ctx.config.deployPrometheusStack &&
-          !(await self.k8.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
+          !(await self.clusterChecks.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
         ) {
           ctx.config.deployPrometheusStack = false;
         }
@@ -402,7 +405,7 @@ export class ClusterCommandTasks {
         // if cert manager is installed, don't deploy it
         if (
           (ctx.config.deployCertManager || ctx.config.deployCertManagerCrds) &&
-          (await self.k8.isCertManagerInstalled())
+          (await self.clusterChecks.isCertManagerInstalled())
         ) {
           ctx.config.deployCertManager = false;
           ctx.config.deployCertManagerCrds = false;
@@ -484,7 +487,7 @@ export class ClusterCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
-        if (!argv.force && (await self.k8.isRemoteConfigPresentInAnyNamespace())) {
+        if (!argv.force && (await self.clusterChecks.isRemoteConfigPresentInAnyNamespace())) {
           const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
             type: 'toggle',
             default: false,

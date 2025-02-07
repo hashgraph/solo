@@ -17,6 +17,8 @@ import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirr
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {ClusterChecks} from '../core/cluster_checks.js';
+import {container} from 'tsyringe-neo';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -108,15 +110,17 @@ export class ExplorerCommand extends BaseCommand {
       );
     }
 
+    const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
+
     // Install ingress controller only if it's not already present
-    if (!(await this.k8.isIngressControllerInstalled())) {
+    if (!(await clusterChecks.isIngressControllerInstalled())) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
     }
 
-    if (!(await this.k8.isCertManagerInstalled())) {
+    if (!(await clusterChecks.isCertManagerInstalled())) {
       valuesArg += ' --set cloud.certManager.enabled=true';
       valuesArg += ' --set cert-manager.installCRDs=true';
     }

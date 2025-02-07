@@ -45,6 +45,7 @@ import fs from 'fs';
 import {stringify} from 'yaml';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -155,9 +156,10 @@ describe('ClusterCommand unit tests', () => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
       k8Stub = sandbox.createStubInstance(K8Client);
       k8Stub.getContextNames.returns(['context-1', 'context-2', 'context-3']);
-      k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
-      k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
-      k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
+      const clusterChecksStub = sandbox.createStubInstance(ClusterChecks);
+      clusterChecksStub.isMinioInstalled.returns(new Promise<boolean>(() => true));
+      clusterChecksStub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
+      clusterChecksStub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
 
       if (opts.testContextConnectionError) {
         k8Stub.testContextConnection.resolves(false);

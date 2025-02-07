@@ -13,6 +13,12 @@ import {type Containers} from './containers.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {type ContainerRef} from './container_ref.js';
+import {type Contexts} from './contexts.js';
+import {type Pvcs} from './pvcs.js';
+import {type Services} from './services.js';
+import {type Service} from './service.js';
+import {type Pods} from './pods.js';
+import {type Leases} from './leases.js';
 
 export interface K8 {
   /**
@@ -38,6 +44,32 @@ export interface K8 {
    * @returns an object instance providing config map operations
    */
   configMaps(): ConfigMaps;
+
+  /**
+   * Fluent accessor for reading and manipulating contexts in the kubeconfig file.
+   * @returns an object instance providing context operations
+   */
+  contexts(): Contexts;
+
+  /**
+   * Fluent accessor for reading and manipulating services.
+   * @returns an object instance providing service operations
+   */
+  services(): Services;
+
+  pods(): Pods;
+
+  /**
+   * Fluent accessor for reading and manipulating pvcs (persistent volume claims) in the kubernetes cluster.
+   * @returns an object instance providing pvc (persistent volume claim) operations
+   */
+  pvcs(): Pvcs;
+
+  /*
+   * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
+   * @returns an object instance providing lease operations
+   */
+  leases(): Leases;
 
   /**
    * Create a new namespace
@@ -83,9 +115,9 @@ export interface K8 {
    * Get a svc by name
    * @param name - svc name
    */
-  getSvcByName(name: string): Promise<k8s.V1Service>;
+  getSvcByName(name: string): Promise<Service>;
 
-  listSvcs(namespace: NamespaceName, labels: string[]): Promise<k8s.V1Service[]>;
+  listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]>;
 
   /**
    * Get a list of clusters
@@ -331,50 +363,11 @@ export interface K8 {
   deleteNamespacedLease(name: string, namespace: NamespaceName): Promise<k8s.V1Status>;
 
   /**
-   * Check if cert-manager is installed inside any namespace.
-   * @returns if cert-manager is found
-   */
-  isCertManagerInstalled(): Promise<boolean>;
-
-  /**
-   * Check if minio is installed inside the namespace.
-   * @returns if minio is found
-   */
-  isMinioInstalled(namespace: NamespaceName): Promise<boolean>;
-
-  /**
-   * Check if the ingress controller is installed inside any namespace.
-   * @returns if ingress controller is found
-   */
-  isIngressControllerInstalled(): Promise<boolean>;
-
-  isRemoteConfigPresentInAnyNamespace(): Promise<boolean>;
-
-  isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean>;
-
-  isPrometheusInstalled(namespace: NamespaceName): Promise<boolean>;
-
-  /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
    * Can throw a SoloError if there is an error while deleting the pod.
    * @param podRef - the pod reference
    */
   killPod(podRef: PodRef): Promise<void>;
-
-  /**
-   * Download logs files from all network pods and save to local solo log directory
-   * @param namespace - the namespace of the network
-   * @returns a promise that resolves when the logs are downloaded
-   */
-  getNodeLogs(namespace: NamespaceName): Promise<Awaited<unknown>[]>;
-
-  /**
-   * Download state files from a pod
-   * @param namespace - the namespace of the network
-   * @param nodeAlias - the pod name
-   * @returns a promise that resolves when the state files are downloaded
-   */
-  getNodeStatesFromPod(namespace: NamespaceName, nodeAlias: string): Promise<Awaited<unknown>[]>;
 
   setCurrentContext(context: string): void;
 

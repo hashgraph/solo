@@ -16,7 +16,6 @@ import {
   FREEZE_ADMIN_ACCOUNT,
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   IGNORED_NODE_ACCOUNT_ID,
-  NODE_COPY_CONCURRENT,
   TREASURY_ACCOUNT_ID,
 } from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
@@ -64,8 +63,9 @@ import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 import {type NamespaceName} from '../../core/kube/namespace_name.js';
 import {PodRef} from '../../core/kube/pod_ref.js';
-import {Container} from '../../core/container_init.js';
 import {ContainerRef} from '../../core/kube/container_ref.js';
+import {NetworkNodes} from '../../core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -1205,15 +1205,14 @@ export class NodeCommandTasks {
 
   getNodeLogsAndConfigs() {
     return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await this.k8.getNodeLogs(ctx.config.namespace);
+      await container.resolve(NetworkNodes).getLogs(ctx.config.namespace);
     });
   }
 
   getNodeStateFiles() {
-    const self = this;
     return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       for (const nodeAlias of ctx.config.nodeAliases) {
-        await self.k8.getNodeStatesFromPod(ctx.config.namespace, nodeAlias);
+        await container.resolve(NetworkNodes).getStatesFromPod(ctx.config.namespace, nodeAlias);
       }
     });
   }
