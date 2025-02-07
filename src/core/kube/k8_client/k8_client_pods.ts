@@ -3,8 +3,8 @@
  */
 import {type KubeConfig, type CoreV1Api, type V1Pod} from '@kubernetes/client-node';
 import {type Pods} from '../pods.js';
-import {type NamespaceName} from '../namespace_name.js';
-import {type PodRef} from '../pod_ref.js';
+import {NamespaceName} from '../namespace_name.js';
+import {PodRef} from '../pod_ref.js';
 import {type Pod} from '../pod.js';
 import {K8ClientPod} from './k8_client_pod.js';
 import {Duration} from '../../time/duration.js';
@@ -13,6 +13,7 @@ import {MissingArgumentError, SoloError} from '../../errors.js';
 import * as constants from '../../constants.js';
 import {SoloLogger} from '../../logging.js';
 import {container} from 'tsyringe-neo';
+import {PodName} from '../pod_name.js';
 
 export class K8ClientPods extends K8ClientBase implements Pods {
   private readonly logger: SoloLogger;
@@ -199,5 +200,31 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
       check(resolve, reject);
     });
+  }
+
+  public async listForAllNamespaces(labels: string[]): Promise<Pod[]> {
+    const labelSelector = labels.join(',');
+    const pods: Pod[] = [];
+
+    try {
+      const response = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, labelSelector);
+
+      if (response?.body?.items?.length > 0) {
+        response.body.items.forEach(item => {
+          pods.push(
+            new K8ClientPod(
+              PodRef.of(NamespaceName.of(item.metadata?.namespace), PodName.of(item.metadata?.name)),
+              this,
+              this.kubeClient,
+              this.kubeConfig,
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      this.logger.debug(`Failed to list pods for labelSelector [${labelSelector}]: `, e);
+    }
+
+    return pods;
   }
 }

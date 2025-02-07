@@ -54,4 +54,11 @@ export interface Pods {
     delay: number,
     podItemPredicate?: (items: V1Pod) => boolean,
   ): Promise<V1Pod[]>; // TODO was waitForPods - make waitForProds private and call with method that supplies running phase
+
+  /**
+   * List all the pods across all namespaces with the given labels
+   * @param labels - list of labels
+   * @returns list of pods
+   */
+  listForAllNamespaces(labels: string[]): Promise<Pod[]>;
 }

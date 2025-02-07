@@ -19,7 +19,7 @@ export class K8ClientPod implements Pod {
   private readonly logger: SoloLogger;
 
   constructor(
-    private readonly podRef: PodRef,
+    public readonly podRef: PodRef,
     private readonly pods: Pods,
     private readonly kubeClient: CoreV1Api,
     private readonly kubeConfig: KubeConfig,

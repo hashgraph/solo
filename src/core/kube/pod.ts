@@ -2,8 +2,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type ExtendedNetServer} from '../../types/index.js';
+import {type PodRef} from './pod_ref.js';
 
 export interface Pod {
+  /**
+   * The pod reference
+   */
+  podRef: PodRef;
+
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
    * Can throw a SoloError if there is an error while deleting the pod.
