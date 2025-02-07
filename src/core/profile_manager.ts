@@ -15,13 +15,14 @@ import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import type {SemVer} from 'semver';
+import {type SemVer} from 'semver';
 import {SoloLogger} from './logging.js';
-import type {AnyObject, DirPath, NodeAlias, NodeAliases, Path} from '../types/aliases.js';
-import type {Optional} from '../types/index.js';
+import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
+import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import * as versions from '../../version.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 @injectable()
 export class ProfileManager {
@@ -446,7 +447,7 @@ export class ProfileManager {
    * @returns the config.txt file path
    */
   prepareConfigTxt(
-    namespace: string,
+    namespace: NamespaceName,
     nodeAccountMap: Map<NodeAlias, string>,
     destPath: string,
     releaseTagOverride: string,
@@ -525,7 +526,10 @@ export class ProfileManager {
 
       return configFilePath;
     } catch (e: Error | unknown) {
-      throw new SoloError('failed to generate config.txt', e);
+      throw new SoloError(
+        `failed to generate config.txt, ${e instanceof Error ? (e as Error).message : 'unknown error'}`,
+        e,
+      );
     }
   }
 }

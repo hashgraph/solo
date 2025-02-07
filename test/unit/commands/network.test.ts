@@ -23,18 +23,20 @@ import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {K8} from '../../../src/core/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetTestContainer} from '../../test_container.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 
 const testName = 'network-cmd-unit';
-const namespace = testName;
+const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
 
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
@@ -42,7 +44,7 @@ argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterName.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.force.name] = true;
-argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE;
+argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
 argv[flags.chartDirectory.name] = undefined;
 
 describe('NetworkCommand unit tests', () => {
@@ -64,12 +66,14 @@ describe('NetworkCommand unit tests', () => {
       opts.k8.waitForPodReady = sinon.stub();
       opts.k8.waitForPods = sinon.stub();
       opts.k8.readNamespacedLease = sinon.stub();
-      opts.k8.isMinioInstalled = sinon.stub();
-      opts.k8.isPrometheusInstalled = sinon.stub();
-      opts.k8.isCertManagerInstalled = sinon.stub();
+      const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
+      clusterChecksStub.isMinioInstalled = sinon.stub();
+      clusterChecksStub.isPrometheusInstalled = sinon.stub();
+      clusterChecksStub.isCertManagerInstalled = sinon.stub();
+      container.registerInstance(ClusterChecks, clusterChecksStub);
 
       opts.k8.logger = opts.logger;
-      container.registerInstance(K8, opts.k8);
+      container.registerInstance('K8', opts.k8);
 
       opts.depManager = sinon.stub() as unknown as DependencyManager;
       container.registerInstance(DependencyManager, opts.depManager);
@@ -117,7 +121,7 @@ describe('NetworkCommand unit tests', () => {
       const networkCommand = new NetworkCommand(opts);
       await networkCommand.deploy(argv);
 
-      expect(opts.chartManager.install.args[0][0]).to.equal(testName);
+      expect(opts.chartManager.install.args[0][0].name).to.equal(namespace.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
@@ -131,7 +135,7 @@ describe('NetworkCommand unit tests', () => {
 
       const networkCommand = new NetworkCommand(opts);
       await networkCommand.deploy(argv);
-      expect(opts.chartManager.install.args[0][0]).to.equal(testName);
+      expect(opts.chartManager.install.args[0][0].name).to.equal(namespace.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),

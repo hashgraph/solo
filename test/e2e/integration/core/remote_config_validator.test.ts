@@ -6,7 +6,7 @@ import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
-import {K8} from '../../../../src/core/k8.js';
+import {type K8Client} from '../../../../src/core/kube/k8_client.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {V1Container, V1ExecAction, V1ObjectMeta, V1Pod, V1PodSpec, V1Probe} from '@kubernetes/client-node';
@@ -21,24 +21,25 @@ import {ConsensusNodeComponent} from '../../../../src/core/config/remote/compone
 import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
 import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
 
-import type {NodeAlias, NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
+import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = 'remote-config-validator';
 
   let configManager: ConfigManager;
-  let k8: K8;
+  let k8: K8Client;
 
   before(async () => {
     configManager = container.resolve(ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
-    k8 = container.resolve(K8);
-    await k8.createNamespace(namespace);
+    k8 = container.resolve('K8') as K8Client;
+    await k8.createNamespace(NamespaceName.of(namespace));
   });
 
   after(async () => {
-    await k8.deleteNamespace(namespace);
+    await k8.deleteNamespace(NamespaceName.of(namespace));
   });
 
   const cluster = 'cluster';

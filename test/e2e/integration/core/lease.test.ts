@@ -4,7 +4,7 @@
 import {it, describe, before, after} from 'mocha';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {K8} from '../../../../src/core/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
@@ -13,6 +13,7 @@ import {LeaseRelinquishmentError} from '../../../../src/core/lease/lease_errors.
 import {NoopLeaseRenewalService} from './noop_lease_renewal_service.test.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
@@ -20,8 +21,8 @@ const leaseDuration = 4;
 describe('Lease', async () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager = container.resolve(ConfigManager);
-  const k8 = container.resolve(K8);
-  const testNamespace = 'lease-e2e';
+  const k8 = container.resolve('K8') as K8;
+  const testNamespace = NamespaceName.of('lease-e2e');
   const renewalService = new NoopLeaseRenewalService();
 
   before(async function () {

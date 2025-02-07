@@ -5,9 +5,9 @@ import type * as x509 from '@peculiar/x509';
 import type net from 'net';
 import type * as WebSocket from 'ws';
 import type crypto from 'crypto';
-import type {ListrTask, ListrTaskWrapper} from 'listr2';
-import type {PublicKey} from '@hashgraph/sdk';
-import type {JsonString} from './aliases.js';
+import {type ListrTask, type ListrTaskWrapper} from 'listr2';
+import {type PublicKey} from '@hashgraph/sdk';
+import {type JsonString} from './aliases.js';
 
 // NOTE: DO NOT add any Solo imports in this file to avoid circular dependencies
 

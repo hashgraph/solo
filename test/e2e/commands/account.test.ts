@@ -23,18 +23,21 @@ import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER,
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {type K8} from '../../../src/core/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type NodeCommand} from '../../../src/commands/node/index.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const testName = 'account-cmd-e2e';
-const namespace = testName;
+const namespace: NamespaceName = NamespaceName.of(testName);
 const testSystemAccounts = [[3, 5]];
 const argv = getDefaultArgv();
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
@@ -64,7 +67,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());
 
-      await k8.getNodeLogs(namespace);
+      await container.resolve(NetworkNodes).getLogs(namespace);
       await k8.deleteNamespace(namespace);
       await accountManager.close();
       await nodeCmd.close();

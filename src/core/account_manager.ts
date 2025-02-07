@@ -3,7 +3,7 @@
  */
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import type {Key} from '@hashgraph/sdk';
+import {type Key} from '@hashgraph/sdk';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -23,19 +23,22 @@ import {
 } from '@hashgraph/sdk';
 import {SoloError, MissingArgumentError} from './errors.js';
 import {Templates} from './templates.js';
-import type {NetworkNodeServices} from './network_node_services.js';
+import {type NetworkNodeServices} from './network_node_services.js';
 import {NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
 import {SoloLogger} from './logging.js';
-import {K8} from './k8.js';
-import type {AccountIdWithKeyPairObject, ExtendedNetServer} from '../types/index.js';
-import type {NodeAlias, PodName, SdkNetworkEndpoint} from '../types/aliases.js';
+import {type K8} from './kube/k8.js';
+import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
+import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {PodName} from './kube/pod_name.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import {type NamespaceName} from './kube/namespace_name.js';
+import {PodRef} from './kube/pod_ref.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -51,10 +54,10 @@ export class AccountManager {
 
   constructor(
     @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
   ) {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -65,7 +68,7 @@ export class AccountManager {
    * @param accountId - the account ID for which we want its keys
    * @param namespace - the namespace that is storing the secret
    */
-  async getAccountKeysFromSecret(accountId: string, namespace: string): Promise<AccountIdWithKeyPairObject> {
+  async getAccountKeysFromSecret(accountId: string, namespace: NamespaceName): Promise<AccountIdWithKeyPairObject> {
     const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId));
     if (secret) {
       return {
@@ -88,7 +91,7 @@ export class AccountManager {
    * accountId, ed25519PrivateKey, publicKey
    * @param namespace - the namespace that the secret is in
    */
-  async getTreasuryAccountKeys(namespace: string) {
+  async getTreasuryAccountKeys(namespace: NamespaceName) {
     // check to see if the treasure account is in the secrets
     return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace);
   }
@@ -144,7 +147,7 @@ export class AccountManager {
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
    */
-  async loadNodeClient(namespace: string) {
+  async loadNodeClient(namespace: NamespaceName) {
     try {
       this.logger.debug(
         `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
@@ -176,7 +179,7 @@ export class AccountManager {
    * @param namespace - the namespace of the network
    * @param skipNodeAlias - the node alias to skip
    */
-  async refreshNodeClient(namespace: string, skipNodeAlias?: NodeAlias) {
+  async refreshNodeClient(namespace: NamespaceName, skipNodeAlias?: NodeAlias) {
     try {
       await this.close();
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
@@ -218,7 +221,7 @@ export class AccountManager {
    * @returns a node client that can be used to call transactions
    */
   async _getNodeClient(
-    namespace: string,
+    namespace: NamespaceName,
     networkNodeServicesMap: Map<string, NetworkNodeServices>,
     operatorId: string,
     operatorKey: string,
@@ -335,7 +338,13 @@ export class AccountManager {
       const targetPort = localPort;
 
       if (this._portForwards.length < totalNodes) {
-        this._portForwards.push(await this.k8.portForward(networkNodeService.haProxyPodName, localPort, port));
+        this._portForwards.push(
+          await this.k8.portForward(
+            PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName),
+            localPort,
+            port,
+          ),
+        );
       }
 
       this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
@@ -397,24 +406,17 @@ export class AccountManager {
    * @param namespace - the namespace of the solo network deployment
    * @returns a map of the network node services
    */
-  async getNodeServiceMap(namespace: string) {
+  async getNodeServiceMap(namespace: NamespaceName) {
     const labelSelector = 'solo.hedera.com/node-name';
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
     try {
-      const serviceList = await this.k8.kubeClient.listNamespacedService(
-        namespace,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        labelSelector,
-      );
+      const serviceList = await this.k8.listSvcs(namespace, [labelSelector]);
 
       let nodeId = '0';
       // retrieve the list of services and build custom objects for the attributes we need
-      for (const service of serviceList.body.items) {
+      for (const service of serviceList) {
         let serviceBuilder = new NetworkNodeServicesBuilder(
           service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
         );
@@ -488,15 +490,8 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList = await this.k8.kubeClient.listNamespacedPod(
-          namespace,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          `app=${serviceBuilder.haProxyAppSelector}`,
-        );
-        serviceBuilder.withHaProxyPodName(podList.body!.items[0].metadata.name as PodName);
+        const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
+        serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
@@ -507,10 +502,10 @@ export class AccountManager {
           // TODO Review why this fixes issue
           continue;
         }
-        const podName = pod.metadata!.name;
+        const podName = PodName.of(pod.metadata!.name);
         const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
         const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
-        serviceBuilder.withNodePodName(podName as PodName);
+        serviceBuilder.withNodePodName(podName);
       }
 
       const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
@@ -534,7 +529,7 @@ export class AccountManager {
    * @returns the updated resultTracker object
    */
   async updateSpecialAccountsKeys(
-    namespace: string,
+    namespace: NamespaceName,
     currentSet: number[],
     updateSecrets: boolean,
     resultTracker: {
@@ -599,7 +594,7 @@ export class AccountManager {
    * @returns the result of the call
    */
   async updateAccountKeys(
-    namespace: string,
+    namespace: NamespaceName,
     accountId: AccountId,
     genesisKey: PrivateKey,
     updateSecrets: boolean,
@@ -775,7 +770,7 @@ export class AccountManager {
    * @param [setAlias] - whether to set the alias of the account to the public key, requires the ed25519PrivateKey supplied to be ECDSA
    * @returns a custom object with the account information in it
    */
-  async createNewAccount(namespace: string, privateKey: PrivateKey, amount: number, setAlias = false) {
+  async createNewAccount(namespace: NamespaceName, privateKey: PrivateKey, amount: number, setAlias = false) {
     const newAccountTransaction = new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar));
@@ -892,7 +887,7 @@ export class AccountManager {
     return Base64.encode(addressBookBytes);
   }
 
-  async getFileContents(namespace: string, fileNum: number) {
+  async getFileContents(namespace: NamespaceName, fileNum: number) {
     await this.loadNodeClient(namespace);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);

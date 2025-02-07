@@ -4,7 +4,7 @@
 import {it, describe, before, after} from 'mocha';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {K8} from '../../../../src/core/k8.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
@@ -13,6 +13,7 @@ import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_l
 import {type V1Lease} from '@kubernetes/client-node';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
@@ -20,9 +21,9 @@ const leaseDuration = 4;
 describe('LeaseRenewalService', async () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager = container.resolve(ConfigManager);
-  const k8 = container.resolve(K8);
+  const k8 = container.resolve('K8') as K8;
   const renewalService = container.resolve(IntervalLeaseRenewalService);
-  const testNamespace = 'lease-renewal-e2e';
+  const testNamespace = NamespaceName.of('lease-renewal-e2e');
 
   before(async function () {
     this.timeout(defaultTimeout);

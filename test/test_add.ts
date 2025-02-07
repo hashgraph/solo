@@ -15,10 +15,13 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
 } from './test_util.js';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
-import type {NodeAlias} from '../src/types/aliases.js';
-import type {NetworkNodeServices} from '../src/core/network_node_services.js';
+import {type NodeAlias} from '../src/types/aliases.js';
+import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {Duration} from '../src/core/time/duration.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../version.js';
+import {NamespaceName} from '../src/core/kube/namespace_name.js';
+import {NetworkNodes} from '../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -28,7 +31,7 @@ export function testNodeAdd(
   timeout: number = defaultTimeout,
 ): void {
   const suffix = localBuildPath.substring(0, 5);
-  const namespace = 'node-add' + suffix;
+  const namespace = NamespaceName.of(`node-add${suffix}`);
   const argv = getDefaultArgv();
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
   argv[flags.stakeAmounts.name] = '1500,1';
@@ -38,14 +41,14 @@ export function testNodeAdd(
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
   argv[flags.releaseTag.name] =
     !localBuildPath || localBuildPath === '' ? HEDERA_PLATFORM_VERSION_TAG : LOCAL_HEDERA_PLATFORM_VERSION;
-  argv[flags.namespace.name] = namespace;
+  argv[flags.namespace.name] = namespace.name;
   argv[flags.force.name] = true;
   argv[flags.persistentVolumeClaims.name] = true;
   argv[flags.localBuildPath.name] = localBuildPath;
   argv[flags.quiet.name] = true;
 
   e2eTestSuite(
-    namespace,
+    namespace.name,
     argv,
     undefined,
     undefined,
@@ -66,7 +69,7 @@ export function testNodeAdd(
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await k8.getNodeLogs(namespace);
+          await container.resolve(NetworkNodes).getLogs(namespace);
           await bootstrapResp.opts.accountManager.close();
           await nodeCmd.handlers.stop(argv);
           await networkCmd.destroy(argv);
@@ -75,12 +78,7 @@ export function testNodeAdd(
 
         it('cache current version of private keys', async () => {
           existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
-          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
-            existingServiceMap,
-            namespace,
-            k8,
-            getTmpDir(),
-          );
+          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
         }).timeout(defaultTimeout);
 
         it('should succeed with init command', async () => {
@@ -105,7 +103,6 @@ export function testNodeAdd(
         it('existing nodes private keys should not have changed', async () => {
           const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
             existingServiceMap,
-            namespace,
             k8,
             getTmpDir(),
           );

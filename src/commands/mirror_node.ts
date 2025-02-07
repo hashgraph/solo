@@ -5,24 +5,29 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
-import type {AccountManager} from '../core/account_manager.js';
-import type {ProfileManager} from '../core/profile_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getEnvValue, prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
-import type {CommandBuilder, PodName} from '../types/aliases.js';
-import type {Opts} from '../types/command_types.js';
+import {type CommandBuilder} from '../types/aliases.js';
+import {PodName} from '../core/kube/pod_name.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type {Optional, SoloListrTask} from '../types/index.js';
+import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {PodRef} from '../core/kube/pod_ref.js';
+import {ContainerName} from '../core/kube/container_name.js';
+import {ContainerRef} from '../core/kube/container_ref.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
-  namespace: string;
+  namespace: NamespaceName;
   profileFile: string;
   profileName: string;
   valuesFile: string;
@@ -330,7 +335,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
-                    const namespace = self.configManager.getFlag<string>(flags.namespace) as string;
+                    const namespace = self.configManager.getFlag<NamespaceName>(flags.namespace);
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -354,13 +359,11 @@ export class MirrorNodeCommand extends BaseCommand {
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
-                    const postgresPodName = pods[0].metadata.name as PodName;
-                    const postgresContainerName = 'postgresql';
-                    const mirrorEnvVars = await self.k8.execContainer(
-                      postgresPodName,
-                      postgresContainerName,
-                      '/bin/bash -c printenv',
-                    );
+                    const postgresPodName = PodName.of(pods[0].metadata.name);
+                    const postgresContainerName = ContainerName.of('postgresql');
+                    const postgresPodRef = PodRef.of(namespace, postgresPodName);
+                    const containerRef = ContainerRef.of(postgresPodRef, postgresContainerName);
+                    const mirrorEnvVars = await self.k8.execContainer(containerRef, '/bin/bash -c printenv');
                     const mirrorEnvVarsArray = mirrorEnvVars.split('\n');
                     const HEDERA_MIRROR_IMPORTER_DB_OWNER = getEnvValue(
                       mirrorEnvVarsArray,
@@ -375,7 +378,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
-                    await self.k8.execContainer(postgresPodName, postgresContainerName, [
+                    await self.k8.execContainer(containerRef, [
                       'psql',
                       `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
                       '-c',
@@ -420,7 +423,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
     interface Context {
       config: {
-        namespace: string;
+        namespace: NamespaceName;
         isChartInstalled: boolean;
       };
     }
@@ -447,7 +450,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             // @ts-ignore
             ctx.config = {
-              namespace: self.configManager.getFlag<string>(flags.namespace),
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
             };
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {

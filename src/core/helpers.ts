@@ -10,12 +10,12 @@ import {Templates} from './templates.js';
 import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
-import type {NodeAlias, NodeAliases} from '../types/aliases.js';
-import type {CommandFlag} from '../types/flag_types.js';
-import type {SoloLogger} from './logging.js';
-import type {Duration} from './time/duration.js';
-import type {NodeAddConfigClass} from '../commands/node/node_add_config.js';
-import type {Helm} from './helm.js';
+import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type CommandFlag} from '../types/flag_types.js';
+import {type SoloLogger} from './logging.js';
+import {type Duration} from './time/duration.js';
+import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
+import {type Helm} from './helm.js';
 import paths from 'path';
 
 export function sleep(duration: Duration) {

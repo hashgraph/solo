@@ -2,14 +2,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {MissingArgumentError, SoloError} from '../errors.js';
-import type {V1Lease} from '@kubernetes/client-node';
-import type {K8} from '../k8.js';
+import {type V1Lease} from '@kubernetes/client-node';
+import {type K8} from '../../core/kube/k8.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
-import type {Lease, LeaseRenewalService} from './lease.js';
+import {type Lease, type LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
+import {type NamespaceName} from '../kube/namespace_name.js';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -27,7 +28,7 @@ export class IntervalLease implements Lease {
   private readonly _leaseHolder: LeaseHolder;
 
   /** The namespace which contains the lease. */
-  private readonly _namespace: string;
+  private readonly _namespace: NamespaceName;
 
   /** The name of the lease. */
   private readonly _leaseName: string;
@@ -50,7 +51,7 @@ export class IntervalLease implements Lease {
     readonly client: K8,
     readonly renewalService: LeaseRenewalService,
     leaseHolder: LeaseHolder,
-    namespace: string,
+    namespace: NamespaceName,
     leaseName: string | null = null,
     durationSeconds: number | null = null,
   ) {
@@ -63,7 +64,7 @@ export class IntervalLease implements Lease {
     this._namespace = namespace;
 
     if (!leaseName) {
-      this._leaseName = this._namespace;
+      this._leaseName = this._namespace.name;
     }
 
     // In most production cases, the environment variable should be preferred over the constructor argument.
@@ -92,7 +93,7 @@ export class IntervalLease implements Lease {
    * The namespace in which the lease is to be acquired. By default, the namespace is used as the lease name.
    * The defaults assume there is only a single deployment in a given namespace.
    */
-  get namespace(): string {
+  get namespace(): NamespaceName {
     return this._namespace;
   }
 
@@ -311,8 +312,8 @@ export class IntervalLease implements Lease {
     try {
       if (!lease) {
         await this.client.createNamespacedLease(
-          this.leaseName,
           this.namespace,
+          this.leaseName,
           this.leaseHolder.toJson(),
           this.durationSeconds,
         );

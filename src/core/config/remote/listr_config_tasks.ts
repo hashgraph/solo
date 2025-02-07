@@ -2,10 +2,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import chalk from 'chalk';
-import type {BaseCommand} from '../../../commands/base.js';
-import type {Cluster, Context, Namespace} from './types.js';
-import type {SoloListrTask} from '../../../types/index.js';
-import type {AnyObject} from '../../../types/aliases.js';
+import {type BaseCommand} from '../../../commands/base.js';
+import {type Cluster, type Context} from './types.js';
+import {type SoloListrTask} from '../../../types/index.js';
+import {type AnyObject} from '../../../types/aliases.js';
+import {type NamespaceName} from '../../kube/namespace_name.js';
 import {type RemoteConfigManager} from './remote_config_manager.js';
 
 /**
@@ -46,13 +47,13 @@ export class ListrRemoteConfig {
     command: BaseCommand,
     cluster: Cluster,
     context: Context,
-    namespace: Namespace,
+    namespace: NamespaceName,
     argv: AnyObject,
   ): SoloListrTask<any> {
     return {
       title: `Create remote config in cluster: ${chalk.cyan(cluster)}`,
       task: async (): Promise<void> => {
-        await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace, argv);
+        await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace.name, argv);
       },
     };
   }

@@ -27,16 +27,18 @@ import {LeaseManager} from '../../core/lease/lease_manager.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
+import {type NodeCommandTasks} from './tasks.js';
+import {type Lease} from '../../core/lease/lease.js';
 import {NodeCommandTasks} from './tasks.js';
-import type {Lease} from '../../core/lease/lease.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
-import type {NodeAlias, NodeAliases} from '../../types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
-import type {Listr, ListrTask} from 'listr2';
+import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import type {ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import type {Optional} from '../../types/index.js';
+import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/container_helper.js';
 import {CommandHandler} from '../../core/command_handler.js';
@@ -847,7 +849,7 @@ export class NodeCommandHandlers extends CommandHandler {
    */
   public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
-      config: {namespace: string; nodeAliases: NodeAliases};
+      config: {namespace: NamespaceNameAsString; nodeAliases: NodeAliases};
     }
 
     return {

@@ -7,14 +7,15 @@ import {SoloError, IllegalArgumentError} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
-import type {AccountManager} from '../core/account_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
-import type {Opts} from '../types/command_types.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import type {CommandBuilder} from '../types/aliases.js';
+import {type CommandBuilder} from '../types/aliases.js';
 import {sleep} from '../core/helpers.js';
 import {Duration} from '../core/time/duration.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -42,7 +43,7 @@ export class AccountCommand extends BaseCommand {
     await this.accountManager.close();
   }
 
-  async buildAccountInfo(accountInfo: AccountInfo, namespace: string, shouldRetrievePrivateKey: boolean) {
+  async buildAccountInfo(accountInfo: AccountInfo, namespace: NamespaceName, shouldRetrievePrivateKey: boolean) {
     if (!accountInfo || !(accountInfo instanceof AccountInfo))
       throw new IllegalArgumentError('An instance of AccountInfo is required');
 
@@ -79,7 +80,7 @@ export class AccountCommand extends BaseCommand {
       generateEcdsaKey: boolean;
       ecdsaPrivateKey?: string;
       ed25519PrivateKey?: string;
-      namespace: string;
+      namespace: NamespaceName;
       setAlias: boolean;
       amount: number;
     };
@@ -148,7 +149,7 @@ export class AccountCommand extends BaseCommand {
 
     interface Context {
       config: {
-        namespace: string;
+        namespace: NamespaceName;
       };
       updateSecrets: boolean;
       accountsBatchedSet: number[][];
@@ -168,7 +169,7 @@ export class AccountCommand extends BaseCommand {
             await self.configManager.executePrompt(task, [flags.namespace]);
 
             const config = {
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
             };
 
             if (!(await this.k8.hasNamespace(config.namespace))) {
@@ -304,7 +305,7 @@ export class AccountCommand extends BaseCommand {
         amount: number;
         ecdsaPrivateKey: string;
         ed25519PrivateKey: string;
-        namespace: string;
+        namespace: NamespaceName;
         setAlias: boolean;
         generateEcdsaKey: boolean;
         createAmount: number;
@@ -323,7 +324,7 @@ export class AccountCommand extends BaseCommand {
             const config = {
               amount: self.configManager.getFlag<number>(flags.amount) as number,
               ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
               setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean,
               generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean,
@@ -388,7 +389,7 @@ export class AccountCommand extends BaseCommand {
       config: {
         accountId: string;
         amount: number;
-        namespace: string;
+        namespace: NamespaceName;
         ecdsaPrivateKey: string;
         ed25519PrivateKey: string;
       };
@@ -406,7 +407,7 @@ export class AccountCommand extends BaseCommand {
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
               amount: self.configManager.getFlag<number>(flags.amount) as number,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
             };
@@ -472,7 +473,7 @@ export class AccountCommand extends BaseCommand {
     interface Context {
       config: {
         accountId: string;
-        namespace: string;
+        namespace: NamespaceName;
         privateKey: boolean;
       };
     }
@@ -488,7 +489,7 @@ export class AccountCommand extends BaseCommand {
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
-              namespace: self.configManager.getFlag<string>(flags.namespace) as string,
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               privateKey: self.configManager.getFlag<boolean>(flags.privateKey) as boolean,
             };
 

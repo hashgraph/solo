@@ -25,10 +25,10 @@ import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from '../../test_container.js';
 import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
-import type {BaseCommand} from '../../../src/commands/base.js';
+import {type BaseCommand} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
-import type {CommandFlag} from '../../../src/types/flag_types.js';
-import {K8} from '../../../src/core/k8.js';
+import {type CommandFlag} from '../../../src/types/flag_types.js';
+import {K8Client} from '../../../src/core/kube/k8_client.js';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
@@ -39,11 +39,13 @@ import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
-import type {Opts} from '../../../src/types/command_types.js';
-import type {ListrTaskWrapper} from 'listr2';
+import {type Opts} from '../../../src/types/command_types.js';
+import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -60,10 +62,10 @@ const getBaseCommandOpts = () => ({
 });
 
 const testName = 'cluster-cmd-unit';
-const namespace = testName;
+const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
 
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
@@ -71,7 +73,7 @@ argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterName.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.force.name] = true;
-argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE;
+argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
 
 describe('ClusterCommand unit tests', () => {
   beforeEach(() => {
@@ -99,7 +101,7 @@ describe('ClusterCommand unit tests', () => {
       const clusterCommand = new ClusterCommand(opts);
       await clusterCommand.handlers.setup(argv);
 
-      expect(opts.chartManager.install.args[0][0]).to.equal(constants.SOLO_SETUP_NAMESPACE);
+      expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_CLUSTER_SETUP_CHART,
@@ -129,7 +131,7 @@ describe('ClusterCommand unit tests', () => {
     let tasks: ClusterCommandTasks;
     let command: BaseCommand;
     let loggerStub: sinon.SinonStubbedInstance<SoloLogger>;
-    let k8Stub: sinon.SinonStubbedInstance<K8>;
+    let k8Stub: sinon.SinonStubbedInstance<K8Client>;
     let remoteConfigManagerStub: sinon.SinonStubbedInstance<RemoteConfigManager>;
     let localConfig: LocalConfig;
     const defaultRemoteConfig = {
@@ -150,11 +152,12 @@ describe('ClusterCommand unit tests', () => {
       },
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
-      k8Stub = sandbox.createStubInstance(K8);
+      k8Stub = sandbox.createStubInstance(K8Client);
       k8Stub.getContextNames.returns(['context-1', 'context-2', 'context-3']);
-      k8Stub.isMinioInstalled.returns(new Promise<boolean>(() => true));
-      k8Stub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
-      k8Stub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
+      const clusterChecksStub = sandbox.createStubInstance(ClusterChecks);
+      clusterChecksStub.isMinioInstalled.returns(new Promise<boolean>(() => true));
+      clusterChecksStub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
+      clusterChecksStub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
 
       if (opts.testContextConnectionError) {
         k8Stub.testContextConnection.resolves(false);

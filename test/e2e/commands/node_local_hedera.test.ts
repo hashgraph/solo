@@ -7,7 +7,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
-import {type K8} from '../../../src/core/k8.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
@@ -16,8 +16,11 @@ import {type NodeCommand} from '../../../src/commands/node/index.js';
 import {type AccountCommand} from '../../../src/commands/account.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
-const LOCAL_HEDERA = 'local-hedera-app';
+const LOCAL_HEDERA = NamespaceName.of('local-hedera-app');
 const argv = getDefaultArgv();
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
@@ -30,11 +33,11 @@ argv[flags.quiet.name] = true;
 let hederaK8: K8;
 console.log('Starting local build for Hedera app');
 argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data';
-argv[flags.namespace.name] = LOCAL_HEDERA;
+argv[flags.namespace.name] = LOCAL_HEDERA.name;
 argv[flags.releaseTag.name] = LOCAL_HEDERA_PLATFORM_VERSION;
 
 e2eTestSuite(
-  LOCAL_HEDERA,
+  LOCAL_HEDERA.name,
   argv,
   undefined,
   undefined,
@@ -85,7 +88,7 @@ e2eTestSuite(
         await nodeCmd.handlers.stop(argv);
         await nodeCmd.handlers.states(argv);
 
-        argv[flags.stateFile.name] = path.join(SOLO_LOGS_DIR, LOCAL_HEDERA, 'network-node1-0-state.zip');
+        argv[flags.stateFile.name] = path.join(SOLO_LOGS_DIR, LOCAL_HEDERA.name, 'network-node1-0-state.zip');
         await nodeCmd.handlers.start(argv);
 
         // check balance of accountInfo.accountId
@@ -99,7 +102,7 @@ e2eTestSuite(
 
       it('get the logs and delete the namespace', async () => {
         await accountManager.close();
-        await hederaK8.getNodeLogs(LOCAL_HEDERA);
+        await container.resolve(NetworkNodes).getLogs(LOCAL_HEDERA);
         await hederaK8.deleteNamespace(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());
     });

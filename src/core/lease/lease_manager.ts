@@ -3,7 +3,7 @@
  */
 import {Flags as flags} from '../../commands/flags.js';
 import {ConfigManager} from '../config_manager.js';
-import {K8} from '../k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import {SoloLogger} from '../logging.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';
@@ -11,6 +11,7 @@ import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
+import {type NamespaceName} from '../kube/namespace_name.js';
 
 /**
  * Manages the acquisition and renewal of leases.
@@ -28,12 +29,12 @@ export class LeaseManager {
   constructor(
     @inject('LeaseRenewalService') private readonly _renewalService?: LeaseRenewalService,
     @inject(SoloLogger) private readonly _logger?: SoloLogger,
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
     this._renewalService = patchInject(_renewalService, 'LeaseRenewalService', this.constructor.name);
     this._logger = patchInject(_logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
 
@@ -70,9 +71,9 @@ export class LeaseManager {
    * @returns the namespace to use for lease acquisition or null if no namespace is specified.
    * @throws LeaseAcquisitionError if the namespace does not exist and cannot be created.
    */
-  private async currentNamespace(): Promise<string> {
-    const deploymentNamespace = this.configManager.getFlag<string>(flags.namespace);
-    const clusterSetupNamespace = this.configManager.getFlag<string>(flags.clusterSetupNamespace);
+  private async currentNamespace(): Promise<NamespaceName> {
+    const deploymentNamespace = this.configManager.getFlag<NamespaceName>(flags.namespace);
+    const clusterSetupNamespace = this.configManager.getFlag<NamespaceName>(flags.clusterSetupNamespace);
 
     if (!deploymentNamespace && !clusterSetupNamespace) {
       return null;

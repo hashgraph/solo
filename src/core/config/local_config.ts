@@ -5,18 +5,24 @@ import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-valid
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import type {ClusterContextMapping, Deployments, DeploymentStructure, LocalConfigData} from './local_config_data.js';
+import {
+  type ClusterContextMapping,
+  type Deployments,
+  type DeploymentStructure,
+  type LocalConfigData,
+} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
 import {ConfigManager} from '../config_manager.js';
-import type {EmailAddress, Namespace} from './remote/types.js';
+import {type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import type {K8} from '../k8.js';
+import {type K8} from '../../core/kube/k8.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
-import type {SoloListrTask} from '../../types/index.js';
+import {type SoloListrTask} from '../../types/index.js';
+import {type NamespaceName} from '../kube/namespace_name.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -43,7 +49,7 @@ export class LocalConfig implements LocalConfigData {
     message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST,
   })
   @IsNotEmpty()
-  currentDeploymentName: string;
+  currentDeploymentName: DeploymentName;
 
   @IsClusterContextMapping({
     message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
@@ -112,7 +118,7 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
-  public setCurrentDeployment(deploymentName: Namespace): this {
+  public setCurrentDeployment(deploymentName: DeploymentName): this {
     this.currentDeploymentName = deploymentName;
     this.validate();
     return this;
@@ -157,7 +163,8 @@ export class LocalConfig implements LocalConfigData {
 
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
-        const deploymentName = self.configManager.getFlag<Namespace>(flags.namespace);
+        const deploymentName: DeploymentName = self.configManager.getFlag<NamespaceName>(flags.namespace)
+          .name as string;
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
 

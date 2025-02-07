@@ -12,24 +12,26 @@ import {
   getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
-  testLogger,
 } from '../test_util.js';
 import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
-import type {NodeAlias} from '../../src/types/aliases.js';
-import type {ListrTaskWrapper} from 'listr2';
+import {type NodeAlias} from '../../src/types/aliases.js';
+import {type ListrTaskWrapper} from 'listr2';
 import {ConfigManager} from '../../src/core/config_manager.js';
-import {type K8} from '../../src/core/k8.js';
+import {type K8} from '../../src/core/kube/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {NodeCommandTasks} from '../../src/commands/node/tasks.js';
 import {Duration} from '../../src/core/time/duration.js';
-import {StatusCodes} from 'http-status-codes';
 import {container} from 'tsyringe-neo';
+import {NamespaceName} from '../../src/core/kube/namespace_name.js';
+import {PodName} from '../../src/core/kube/pod_name.js';
+import {PodRef} from '../../src/core/kube/pod_ref.js';
+import {NetworkNodes} from '../../src/core/network_nodes.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
-  const namespace = testName;
+  const namespace = NamespaceName.of(testName);
   const argv = getDefaultArgv();
-  argv[flags.namespace.name] = namespace;
+  argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = releaseTag;
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
   argv[flags.generateGossipKeys.name] = true;
@@ -68,7 +70,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await k8.getNodeLogs(namespace);
+          await container.resolve(NetworkNodes).getLogs(namespace);
           await k8.deleteNamespace(namespace);
         });
 
@@ -101,9 +103,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
             const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
             if (mode === 'kill') {
-              const resp = await k8.kubeClient.deleteNamespacedPod(podName, namespace);
-              expect(resp.response.statusCode).to.equal(StatusCodes.OK);
-              await sleep(Duration.ofSeconds(20)); // sleep to wait for pod to finish terminating
+              await k8.killPod(PodRef.of(namespace, podName));
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;
               await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs
@@ -123,11 +123,11 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           accountCreationShouldSucceed(accountManager, nodeCmd, namespace);
         });
 
-        function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: string, nodeAlias: NodeAlias) {
+        function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: NamespaceName, nodeAlias: NodeAlias) {
           it(`${nodeAlias} should be running`, async () => {
             try {
               const nodeTasks = container.resolve(NodeCommandTasks);
-              expect(await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).to.equal(`network-${nodeAlias}-0`);
+              expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).podName.name).to.equal(`network-${nodeAlias}-0`);
             } catch (e) {
               nodeCmd.logger.showUserError(e);
               expect.fail();
@@ -187,8 +187,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           const podArray = await k8.getPodsByLabel([`app=network-${nodeAliases}`, 'solo.hedera.com/type=network-node']);
 
           if (podArray.length > 0) {
-            const podName = podArray[0].metadata.name;
-            nodeCmd.logger.info(`nodeRefreshTestSetup: podName: ${podName}`);
+            const podName = PodName.of(podArray[0].metadata.name);
+            nodeCmd.logger.info(`nodeRefreshTestSetup: podName: ${podName.name}`);
             return podName;
           }
           throw new Error(`pod for ${nodeAliases} not found`);

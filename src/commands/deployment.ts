@@ -9,11 +9,13 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import type {Namespace} from '../core/config/remote/types.js';
-import type {CommandFlag} from '../types/flag_types.js';
-import type {CommandBuilder} from '../types/aliases.js';
-import type {SoloListrTask} from '../types/index.js';
-import type {Opts} from '../types/command_types.js';
+import {type Cluster, type NamespaceNameAsString} from '../core/config/remote/types.js';
+import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandBuilder} from '../types/aliases.js';
+import {type SoloListrTask} from '../types/index.js';
+import {type Opts} from '../types/command_types.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 
 export class DeploymentCommand extends BaseCommand {
@@ -36,12 +38,16 @@ export class DeploymentCommand extends BaseCommand {
     ];
   }
 
+  private static get LIST_DEPLOYMENTS_FLAGS_LIST(): CommandFlag[] {
+    return [flags.quiet, flags.clusterName];
+  }
+
   private async create(argv: any): Promise<boolean> {
     const self = this;
 
     interface Config {
       context: string;
-      namespace: Namespace;
+      namespace: NamespaceName;
     }
 
     interface Context {
@@ -59,7 +65,7 @@ export class DeploymentCommand extends BaseCommand {
             await self.configManager.executePrompt(task, [flags.namespace]);
 
             ctx.config = {
-              namespace: self.configManager.getFlag<Namespace>(flags.namespace),
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -90,7 +96,7 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             const subTasks: SoloListrTask<Context>[] = [];
 
-            for (const cluster of self.localConfig.deployments[ctx.config.namespace].clusters) {
+            for (const cluster of self.localConfig.deployments[ctx.config.namespace.name].clusters) {
               const context = self.localConfig.clusterContextMapping?.[cluster];
               if (!context) continue;
 
@@ -107,7 +113,7 @@ export class DeploymentCommand extends BaseCommand {
             }
 
             return task.newListr(subTasks, {
-              concurrent: false,
+              concurrent: true,
               rendererOptions: {collapseSubtasks: false},
             });
           },
@@ -129,18 +135,82 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
+  private async list(argv: any): Promise<boolean> {
+    const self = this;
+
+    interface Config {
+      clusterName: Cluster;
+    }
+
+    interface Context {
+      config: Config;
+    }
+
+    const tasks = new Listr<Context>(
+      [
+        {
+          title: 'Initialize',
+          task: async (ctx, task) => {
+            self.configManager.update(argv);
+            self.logger.debug('Updated config with argv', {config: self.configManager.config});
+
+            await self.configManager.executePrompt(task, [flags.clusterName]);
+
+            ctx.config = {
+              clusterName: self.configManager.getFlag<Cluster>(flags.clusterName),
+            } as Config;
+
+            self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
+          },
+        },
+        {
+          title: 'Validate context',
+          task: async ctx => {
+            const clusterName = ctx.config.clusterName;
+
+            const context = self.localConfig.clusterContextMapping[clusterName];
+
+            self.k8.setCurrentContext(context);
+
+            const namespaces = await self.k8.getNamespaces();
+            const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
+
+            for (const namespace of namespaces) {
+              const isFound = await container.resolve(ClusterChecks).isRemoteConfigPresentInNamespace(namespace);
+              if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
+            }
+
+            self.logger.showList(`Deployments inside cluster: ${chalk.cyan(clusterName)}`, namespacesWithRemoteConfigs);
+          },
+        },
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+    );
+
+    try {
+      await tasks.run();
+    } catch (e: Error | unknown) {
+      throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
+    }
+
+    return true;
+  }
+
   public getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
       command: 'deployment',
       desc: 'Manage solo network deployment',
-      builder: (yargs: any): any => {
+      builder: yargs => {
         return yargs
           .command({
             command: 'create',
             desc: 'Creates solo deployment',
-            builder: (y: any) => flags.setCommandFlags(y, ...DeploymentCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            builder: y => flags.setCommandFlags(y, ...DeploymentCommand.DEPLOY_FLAGS_LIST),
+            handler: argv => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
 
@@ -148,6 +218,27 @@ export class DeploymentCommand extends BaseCommand {
                 .create(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
+
+                  if (!r) process.exit(1);
+                })
+                .catch(err => {
+                  self.logger.showUserError(err);
+                  process.exit(1);
+                });
+            },
+          })
+          .command({
+            command: 'list',
+            desc: 'List solo deployments inside a cluster',
+            builder: y => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
+            handler: argv => {
+              self.logger.info("==== Running 'deployment list' ===");
+              self.logger.info(argv);
+
+              self
+                .list(argv)
+                .then(r => {
+                  self.logger.info('==== Finished running `deployment list`====');
 
                   if (!r) process.exit(1);
                 })

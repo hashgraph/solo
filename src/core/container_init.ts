@@ -10,7 +10,7 @@ import * as constants from './constants.js';
 import {Helm} from './helm.js';
 import {ChartManager} from './chart_manager.js';
 import {ConfigManager} from './config_manager.js';
-import {K8} from './k8.js';
+import {K8Client} from './kube/k8_client.js';
 import {AccountManager} from './account_manager.js';
 import {PlatformInstaller} from './platform_installer.js';
 import {KeyManager} from './key_manager.js';
@@ -23,6 +23,8 @@ import {LocalConfig} from './config/local_config.js';
 import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import os from 'os';
 import * as version from '../../version.js';
+import {NetworkNodes} from './network_nodes.js';
+import {ClusterChecks} from './cluster_checks.js';
 import {ClusterCommandHandlers} from '../commands/cluster/handlers.js';
 import {ClusterCommandTasks} from '../commands/cluster/tasks.js';
 import {NodeCommandTasks} from '../commands/node/tasks.js';
@@ -76,7 +78,7 @@ export class Container {
 
     container.register(ChartManager, {useClass: ChartManager}, {lifecycle: Lifecycle.Singleton});
     container.register(ConfigManager, {useClass: ConfigManager}, {lifecycle: Lifecycle.Singleton});
-    container.register(K8, {useClass: K8}, {lifecycle: Lifecycle.Singleton});
+    container.register('K8', {useClass: K8Client}, {lifecycle: Lifecycle.Singleton});
     container.register(AccountManager, {useClass: AccountManager}, {lifecycle: Lifecycle.Singleton});
     container.register(PlatformInstaller, {useClass: PlatformInstaller}, {lifecycle: Lifecycle.Singleton});
     container.register(KeyManager, {useClass: KeyManager}, {lifecycle: Lifecycle.Singleton});
@@ -101,6 +103,9 @@ export class Container {
     container.register(LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
     container.register(RemoteConfigManager, {useClass: RemoteConfigManager}, {lifecycle: Lifecycle.Singleton});
+
+    container.register(ClusterChecks, {useClass: ClusterChecks}, {lifecycle: Lifecycle.Singleton});
+    container.register(NetworkNodes, {useClass: NetworkNodes}, {lifecycle: Lifecycle.Singleton});
 
     // Commands
     container.register(ClusterCommandHandlers, {useClass: ClusterCommandHandlers}, {lifecycle: Lifecycle.Singleton});

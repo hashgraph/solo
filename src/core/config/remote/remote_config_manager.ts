@@ -10,13 +10,13 @@ import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
-import {K8} from '../../k8.js';
-import type {Cluster, Context, Namespace} from './types.js';
+import {type K8} from '../../kube/k8.js';
+import {type Cluster, type Context, type DeploymentName, type NamespaceNameAsString} from './types.js';
 import {SoloLogger} from '../../logging.js';
 import {ConfigManager} from '../../config_manager.js';
 import {LocalConfig} from '../local_config.js';
-import type {DeploymentStructure} from '../local_config_data.js';
-import type {Optional} from '../../../types/index.js';
+import {type DeploymentStructure} from '../local_config_data.js';
+import {type Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
@@ -24,6 +24,8 @@ import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyObject} from '../../../types/aliases.js';
+import {NamespaceName} from '../../kube/namespace_name.js';
+import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -41,12 +43,12 @@ export class RemoteConfigManager {
    * @param configManager - Manager to retrieve application flags and settings.
    */
   public constructor(
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(LocalConfig) private readonly localConfig?: LocalConfig,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
@@ -90,11 +92,11 @@ export class RemoteConfigManager {
    * entry in the cluster with initial command history and metadata.
    */
   private async create(argv: AnyObject): Promise<void> {
-    const clusters: Record<Cluster, Namespace> = {};
+    const clusters: Record<Cluster, NamespaceNameAsString> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
-      ([namespace, deployment]: [Namespace, DeploymentStructure]) => {
-        deployment.clusters.forEach(cluster => (clusters[cluster] = namespace));
+      ([deployment, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
+        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = deployment));
       },
     );
 
@@ -206,12 +208,17 @@ export class RemoteConfigManager {
     await self.save();
   }
 
-  public async createAndValidate(cluster: Cluster, context: Context, namespace: Namespace, argv: AnyObject) {
+  public async createAndValidate(
+    cluster: Cluster,
+    context: Context,
+    namespace: NamespaceNameAsString,
+    argv: AnyObject,
+  ) {
     const self = this;
     self.k8.setCurrentContext(context);
 
-    if (!(await self.k8.hasNamespace(namespace))) {
-      await self.k8.createNamespace(namespace);
+    if (!(await self.k8.hasNamespace(NamespaceName.of(namespace)))) {
+      await self.k8.createNamespace(NamespaceName.of(namespace));
     }
 
     const localConfigExists = this.localConfig.configFileExists();
@@ -255,7 +262,7 @@ export class RemoteConfigManager {
     try {
       return await this.k8.getNamespacedConfigMap(constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (error: any) {
-      if (error.meta?.statusCode !== StatusCodes.NOT_FOUND) {
+      if (!(error instanceof ResourceNotFoundError)) {
         throw new SoloError('Failed to read remote config from cluster', error);
       }
 
@@ -316,9 +323,9 @@ export class RemoteConfigManager {
    * Retrieves the namespace value from the configuration manager's flags.
    * @returns string - The namespace value if set.
    */
-  private getNamespace(): string {
-    const ns = this.configManager.getFlag<string>(flags.namespace) as string;
+  private getNamespace(): NamespaceNameAsString {
+    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
-    return ns;
+    return ns.name;
   }
 }

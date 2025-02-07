@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {NodeDeleteConfigClass, NodeUpdateConfigClass, NodeUpgradeConfigClass} from './configs.js';
-import type {NodeAlias, NodeAliases} from '../../types/aliases.js';
+import {type NodeDeleteConfigClass, type NodeUpdateConfigClass, type NodeUpgradeConfigClass} from './configs.js';
+import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {PrivateKey} from '@hashgraph/sdk';
 
 export class NodeHelper {
@@ -42,7 +42,7 @@ export class NodeHelper {
     config.existingNodeAliases = ctxData.existingNodeAliases;
     config.allNodeAliases = ctxData.existingNodeAliases;
     ctx.upgradeZipHash = ctxData.upgradeZipHash;
-    config.podNames = {};
+    config.podRefs = {};
   }
 
   /**
@@ -106,7 +106,7 @@ export class NodeHelper {
     config.existingNodeAliases = ctxData.existingNodeAliases;
     config.allNodeAliases = ctxData.allNodeAliases;
     ctx.upgradeZipHash = ctxData.upgradeZipHash;
-    config.podNames = {};
+    config.podRefs = {};
   }
 
   /**
@@ -135,6 +135,6 @@ export class NodeHelper {
     config.gossipPrivateKey = ctxData.gossipPrivateKey;
     config.allNodeAliases = ctxData.allNodeAliases;
     ctx.upgradeZipHash = ctxData.upgradeZipHash;
-    config.podNames = {};
+    config.podRefs = {};
   }
 }

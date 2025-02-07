@@ -1,9 +1,10 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type {NodeAlias, NodeAliases, PodName} from '../../types/aliases.js';
-import type {NetworkNodeServices} from '../../core/network_node_services.js';
-import type {PrivateKey} from '@hashgraph/sdk';
+import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type PodRef} from '../../core/kube/pod_ref.js';
+import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {type PrivateKey} from '@hashgraph/sdk';
 
 export interface NodeAddConfigClass {
   app: string;
@@ -31,7 +32,7 @@ export interface NodeAddConfigClass {
   keysDir: string;
   lastStateZipPath: string;
   nodeClient: any;
-  podNames: Record<NodeAlias, PodName>;
+  podRefs: Record<NodeAlias, PodRef>;
   serviceMap: Map<string, NetworkNodeServices>;
   treasuryKey: PrivateKey;
   stagingDir: string;

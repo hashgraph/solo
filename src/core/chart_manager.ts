@@ -8,6 +8,7 @@ import {SoloError} from './errors.js';
 import {SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 @injectable()
 export class ChartManager {
@@ -50,12 +51,12 @@ export class ChartManager {
   }
 
   /** List available clusters */
-  async getInstalledCharts(namespaceName: string) {
+  async getInstalledCharts(namespaceName: NamespaceName) {
     try {
       if (!namespaceName) {
         return await this.helm.list('--all-namespaces --no-headers | awk \'{print $1 " [" $9"]"}\'');
       }
-      return await this.helm.list(`-n ${namespaceName}`, '--no-headers | awk \'{print $1 " [" $9"]"}\'');
+      return await this.helm.list(`-n ${namespaceName.name}`, '--no-headers | awk \'{print $1 " [" $9"]"}\'');
     } catch (e: Error | any) {
       this.logger.showUserError(e);
     }
@@ -63,7 +64,13 @@ export class ChartManager {
     return [];
   }
 
-  async install(namespaceName: string, chartReleaseName: string, chartPath: string, version: string, valuesArg = '') {
+  async install(
+    namespaceName: NamespaceName,
+    chartReleaseName: string,
+    chartPath: string,
+    version: string,
+    valuesArg = '',
+  ) {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName);
       if (!isInstalled) {
@@ -83,14 +90,14 @@ export class ChartManager {
     return true;
   }
 
-  async isChartInstalled(namespaceName: string, chartReleaseName: string) {
+  async isChartInstalled(namespaceName: NamespaceName, chartReleaseName: string) {
     this.logger.debug(`> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName} ]`);
     const charts = await this.getInstalledCharts(namespaceName);
 
     return charts.some(item => item.startsWith(chartReleaseName));
   }
 
-  async uninstall(namespaceName: string, chartReleaseName: string) {
+  async uninstall(namespaceName: NamespaceName, chartReleaseName: string) {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName);
       if (isInstalled) {
@@ -107,13 +114,19 @@ export class ChartManager {
     return true;
   }
 
-  async upgrade(namespaceName: string, chartReleaseName: string, chartPath: string, version = '', valuesArg = '') {
+  async upgrade(
+    namespaceName: NamespaceName,
+    chartReleaseName: string,
+    chartPath: string,
+    version = '',
+    valuesArg = '',
+  ) {
     const versionArg = version ? `--version ${version}` : '';
 
     try {
       this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`));
       await this.helm.upgrade(
-        `-n ${namespaceName} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg}`,
+        `-n ${namespaceName.name} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg}`,
       );
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`);
     } catch (e: Error | any) {

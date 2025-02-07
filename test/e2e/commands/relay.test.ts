@@ -11,11 +11,14 @@ import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {RelayCommand} from '../../../src/commands/relay.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const testName = 'relay-cmd-e2e';
-const namespace = testName;
+const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
-argv[flags.namespace.name] = namespace;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
@@ -33,7 +36,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     const relayCmd = new RelayCommand(bootstrapResp.opts);
 
     after(async () => {
-      await k8.getNodeLogs(namespace);
+      await container.resolve(NetworkNodes).getLogs(namespace);
       await k8.deleteNamespace(namespace);
     });
 

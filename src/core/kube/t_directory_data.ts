@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-export default interface TDirectoryData {
+export interface TDirectoryData {
   directory: boolean;
   owner: string;
   group: string;

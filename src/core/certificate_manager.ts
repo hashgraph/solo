@@ -8,12 +8,13 @@ import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
 import {ConfigManager} from './config_manager.js';
-import {K8} from './k8.js';
+import {type K8} from './kube/k8.js';
 import {SoloLogger} from './logging.js';
-import type {ListrTaskWrapper} from 'listr2';
-import type {NodeAlias} from '../types/aliases.js';
+import {type ListrTaskWrapper} from 'listr2';
+import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
+import {type NamespaceName} from './kube/namespace_name.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
@@ -21,11 +22,11 @@ import {patchInject} from './container_helper.js';
 @injectable()
 export class CertificateManager {
   constructor(
-    @inject(K8) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
   }
@@ -196,7 +197,7 @@ export class CertificateManager {
   }
 
   private getNamespace() {
-    const ns = this.configManager.getFlag<string>(flags.namespace) as string;
+    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }

@@ -3,8 +3,9 @@
  */
 import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
-import type {ListrTaskWrapper} from 'listr2';
-import type {ConfigBuilder} from '../../types/aliases.js';
+import {type ListrTaskWrapper} from 'listr2';
+import {type ConfigBuilder} from '../../types/aliases.js';
+import {type BaseCommand} from '../base.js';
 import {prepareChartPath, splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
@@ -13,11 +14,12 @@ import {ListrLease} from '../../core/lease/listr_lease.js';
 import {ErrorMessages} from '../../core/error_messages.js';
 import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import type {RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
-import {K8} from '../../core/k8.js';
-import type {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
-import type {SelectClusterContextContext} from './configs.js';
-import type {Namespace} from '../../core/config/remote/types.js';
+import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
+import {type K8} from '../../core/kube/k8.js';
+import {K8Client} from '../../core/kube/k8_client.js';
+import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
+import {type SelectClusterContextContext} from './configs.js';
+import {type DeploymentName} from '../../core/config/remote/types.js';
 import {LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {inject, injectable} from 'tsyringe-neo';
@@ -27,11 +29,17 @@ import {SoloLogger} from '../../core/logging.js';
 import {ChartManager} from '../../core/chart_manager.js';
 import {LeaseManager} from '../../core/lease/lease_manager.js';
 import {Helm} from '../../core/helm.js';
+import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {ClusterChecks} from '../../core/cluster_checks.js';
+import {container} from 'tsyringe-neo';
 
 @injectable()
 export class ClusterCommandTasks {
+  private readonly parent: BaseCommand;
+  private readonly clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
+
   constructor(
-    @inject(K8) private readonly k8: K8,
+    @inject(K8Client) private readonly k8: K8,
     @inject(ConfigManager) private readonly configManager: ConfigManager,
     @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(LocalConfig) private readonly localConfig: LocalConfig,
@@ -147,7 +155,7 @@ export class ClusterCommandTasks {
 
         if (localConfig.deployments[namespace]) {
           for (const cluster of Object.keys(remoteConfig.clusters)) {
-            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster]) {
+            if (localConfig.currentDeploymentName === remoteConfig.clusters[cluster].valueOf()) {
               remoteClusterList.push(cluster);
             }
           }
@@ -263,8 +271,8 @@ export class ClusterCommandTasks {
   }
 
   /** Show list of installed chart */
-  private async showInstalledChartList(clusterSetupNamespace: string) {
-    this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
+  private async showInstalledChartList(clusterSetupNamespace: NamespaceName) {
+      this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
   }
 
   public selectContext(): SoloListrTask<SelectClusterContextContext> {
@@ -274,7 +282,7 @@ export class ClusterCommandTasks {
         this.logger.info('Read local configuration settings...');
         const configManager = this.configManager;
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
-        const deploymentName: string = configManager.getFlag<Namespace>(flags.namespace);
+        const deploymentName: string = configManager.getFlag<DeploymentName>(flags.namespace);
         let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
         const localConfig = this.localConfig;
@@ -397,14 +405,14 @@ export class ClusterCommandTasks {
         );
 
         // if minio is already present, don't deploy it
-        if (ctx.config.deployMinio && (await self.k8.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
+        if (ctx.config.deployMinio && (await self.clusterChecks.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
           ctx.config.deployMinio = false;
         }
 
         // if prometheus is found, don't deploy it
         if (
           ctx.config.deployPrometheusStack &&
-          !(await self.k8.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
+          !(await self.clusterChecks.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
         ) {
           ctx.config.deployPrometheusStack = false;
         }
@@ -412,7 +420,7 @@ export class ClusterCommandTasks {
         // if cert manager is installed, don't deploy it
         if (
           (ctx.config.deployCertManager || ctx.config.deployCertManagerCrds) &&
-          (await self.k8.isCertManagerInstalled())
+          (await self.clusterChecks.isCertManagerInstalled())
         ) {
           ctx.config.deployCertManager = false;
           ctx.config.deployCertManagerCrds = false;
@@ -497,7 +505,7 @@ export class ClusterCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
-        if (!argv.force && (await self.k8.isRemoteConfigPresentInAnyNamespace())) {
+        if (!argv.force && (await self.clusterChecks.isRemoteConfigPresentInAnyNamespace())) {
           const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
             type: 'toggle',
             default: false,

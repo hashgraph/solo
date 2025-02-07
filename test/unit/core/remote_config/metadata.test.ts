@@ -6,10 +6,10 @@ import {describe, it} from 'mocha';
 import {Migration} from '../../../../src/core/config/remote/migration.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigMetadata} from '../../../../src/core/config/remote/metadata.js';
-import type {EmailAddress, Namespace} from '../../../../src/core/config/remote/types.js';
+import {type EmailAddress, type NamespaceNameAsString} from '../../../../src/core/config/remote/types.js';
 
 export function createMetadata() {
-  const name: Namespace = 'namespace';
+  const name: NamespaceNameAsString = 'namespace';
   const lastUpdatedAt: Date = new Date();
   const lastUpdateBy: EmailAddress = 'test@test.test';
   const migration = new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0');

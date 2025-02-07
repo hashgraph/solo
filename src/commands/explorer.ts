@@ -5,18 +5,21 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
 import {SoloError, MissingArgumentError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
-import type {ProfileManager} from '../core/profile_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
-import type {CommandBuilder} from '../types/aliases.js';
-import type {Opts} from '../types/command_types.js';
+import {type CommandBuilder} from '../types/aliases.js';
+import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
-import type {Namespace} from '../core/config/remote/types.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import type {SoloListrTask} from '../types/index.js';
 import {prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
+import {type SoloListrTask} from '../types/index.js';
+import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {ClusterChecks} from '../core/cluster_checks.js';
+import {container} from 'tsyringe-neo';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -24,14 +27,14 @@ interface ExplorerDeployConfigClass {
   hederaExplorerTlsHostName: string;
   hederaExplorerTlsLoadBalancerIp: string | '';
   hederaExplorerVersion: string;
-  namespace: string;
+  namespace: NamespaceName;
   profileFile: string;
   profileName: string;
   tlsClusterIssuerType: string;
   valuesFile: string;
   valuesArg: string;
   getUnusedConfigs: () => string[];
-  clusterSetupNamespace: string;
+  clusterSetupNamespace: NamespaceName;
   soloChartVersion: string;
 }
 
@@ -108,15 +111,17 @@ export class ExplorerCommand extends BaseCommand {
       );
     }
 
+    const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
+
     // Install ingress controller only if it's not already present
-    if (!(await this.k8.isIngressControllerInstalled())) {
+    if (!(await clusterChecks.isIngressControllerInstalled())) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
       valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
     }
 
-    if (!(await this.k8.isCertManagerInstalled())) {
+    if (!(await clusterChecks.isCertManagerInstalled())) {
       valuesArg += ' --set cloud.certManager.enabled=true';
       valuesArg += ' --set cert-manager.installCRDs=true';
     }
@@ -303,7 +308,7 @@ export class ExplorerCommand extends BaseCommand {
 
     interface Context {
       config: {
-        namespace: string;
+        namespace: NamespaceName;
         isChartInstalled: boolean;
       };
     }
@@ -330,7 +335,7 @@ export class ExplorerCommand extends BaseCommand {
 
             // @ts-ignore
             ctx.config = {
-              namespace: self.configManager.getFlag<string>(flags.namespace),
+              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
             };
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
@@ -439,7 +444,7 @@ export class ExplorerCommand extends BaseCommand {
   }
 
   /** Adds the explorer components to remote config. */
-  private addMirrorNodeExplorerComponents(): SoloListrTask<{config: {namespace: Namespace}}> {
+  private addMirrorNodeExplorerComponents(): SoloListrTask<{config: {namespace: NamespaceName}}> {
     return {
       title: 'Add explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -451,7 +456,7 @@ export class ExplorerCommand extends BaseCommand {
           const cluster = this.remoteConfigManager.currentCluster;
           remoteConfig.components.add(
             'mirrorNodeExplorer',
-            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace),
+            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name),
           );
         });
       },

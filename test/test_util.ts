@@ -17,18 +17,16 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
+import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
-import {SoloError} from '../src/core/errors.js';
-import {execSync} from 'child_process';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 
 import {SoloLogger} from '../src/core/logging.js';
-import type {BaseCommand} from '../src/commands/base.js';
-import type {NodeAlias} from '../src/types/aliases.js';
-import type {NetworkNodeServices} from '../src/core/network_node_services.js';
-import {K8} from '../src/core/k8.js';
+import {type BaseCommand} from '../src/commands/base.js';
+import {type NodeAlias} from '../src/types/aliases.js';
+import {type NetworkNodeServices} from '../src/core/network_node_services.js';
+import {type K8} from '../src/core/kube/k8.js';
 import {AccountManager} from '../src/core/account_manager.js';
 import {PlatformInstaller} from '../src/core/platform_installer.js';
 import {ProfileManager} from '../src/core/profile_manager.js';
@@ -47,8 +45,12 @@ import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {resetTestContainer} from './test_container.js';
+import {NamespaceName} from '../src/core/kube/namespace_name.js';
+import {PodRef} from '../src/core/kube/pod_ref.js';
+import {ContainerRef} from '../src/core/kube/container_ref.js';
+import {NetworkNodes} from '../src/core/network_nodes.js';
 
-export const TEST_CLUSTER = 'solo-e2e';
+export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
@@ -98,7 +100,7 @@ interface TestOpts {
 }
 
 interface BootstrapResponse {
-  namespace: string;
+  namespace: NamespaceName;
   opts: TestOpts;
   manager: {
     accountManager: AccountManager;
@@ -123,7 +125,7 @@ export function bootstrapTestVariables(
   nodeCmdArg: NodeCommand | null = null,
   accountCmdArg: AccountCommand | null = null,
 ): BootstrapResponse {
-  const namespace: string = argv[flags.namespace.name] || 'bootstrap-ns';
+  const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
   resetTestContainer(cacheDir);
   const configManager = container.resolve(ConfigManager);
@@ -134,7 +136,7 @@ export function bootstrapTestVariables(
   const helm = container.resolve(Helm);
   const chartManager = container.resolve(ChartManager);
   const keyManager = container.resolve(KeyManager);
-  const k8 = k8Arg || container.resolve(K8);
+  const k8 = k8Arg || container.resolve('K8');
   const accountManager = container.resolve(AccountManager);
   const platformInstaller = container.resolve(PlatformInstaller);
   const profileManager = container.resolve(ProfileManager);
@@ -227,7 +229,7 @@ export function e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(5).toMillis());
-        await k8.getNodeLogs(namespace);
+        await container.resolve(NetworkNodes).getLogs(namespace);
         bootstrapResp.opts.logger.showUser(
           `------------------------- END: bootstrap (${testName}) ----------------------------`,
         );
@@ -328,7 +330,7 @@ export function e2eTestSuite(
 export function balanceQueryShouldSucceed(
   accountManager: AccountManager,
   cmd: BaseCommand,
-  namespace: string,
+  namespace: NamespaceName,
   skipNodeAlias?: NodeAlias,
 ) {
   it('Balance query should succeed', async () => {
@@ -353,7 +355,7 @@ export function balanceQueryShouldSucceed(
 export function accountCreationShouldSucceed(
   accountManager: AccountManager,
   nodeCmd: BaseCommand,
-  namespace: string,
+  namespace: NamespaceName,
   skipNodeAlias?: NodeAlias,
 ) {
   it('Account creation should succeed', async () => {
@@ -388,7 +390,6 @@ export function accountCreationShouldSucceed(
 
 export async function getNodeAliasesPrivateKeysHash(
   networkNodeServicesMap: Map<NodeAlias, NetworkNodeServices>,
-  namespace: string,
   k8: K8,
   destDir: string,
 ) {
@@ -403,6 +404,7 @@ export async function getNodeAliasesPrivateKeysHash(
       fs.mkdirSync(uniqueNodeDestDir, {recursive: true});
     }
     await addKeyHashToMap(
+      networkNodeServices.namespace,
       k8,
       nodeAlias,
       dataKeysDir,
@@ -410,13 +412,22 @@ export async function getNodeAliasesPrivateKeysHash(
       keyHashMap,
       Templates.renderGossipPemPrivateKeyFile(nodeAlias),
     );
-    await addKeyHashToMap(k8, nodeAlias, tlsKeysDir, uniqueNodeDestDir, keyHashMap, 'hedera.key');
+    await addKeyHashToMap(
+      networkNodeServices.namespace,
+      k8,
+      nodeAlias,
+      tlsKeysDir,
+      uniqueNodeDestDir,
+      keyHashMap,
+      'hedera.key',
+    );
     nodeKeyHashMap.set(nodeAlias, keyHashMap);
   }
   return nodeKeyHashMap;
 }
 
 async function addKeyHashToMap(
+  namespace: NamespaceName,
   k8: K8,
   nodeAlias: NodeAlias,
   keyDir: string,
@@ -425,34 +436,13 @@ async function addKeyHashToMap(
   privateKeyFileName: string,
 ) {
   await k8.copyFrom(
-    Templates.renderNetworkPodName(nodeAlias),
-    ROOT_CONTAINER,
+    ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER),
     path.join(keyDir, privateKeyFileName),
     uniqueNodeDestDir,
   );
   const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName));
   const keyString = keyBytes.toString();
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'));
-}
-
-export function getK8Instance(configManager: ConfigManager) {
-  try {
-    return container.resolve(K8);
-    // TODO: return a mock without running the init within constructor after we convert to Mocha, Jest ESModule mocks are broke.
-  } catch (e) {
-    if (!(e instanceof SoloError)) {
-      throw e;
-    }
-
-    // Set envs
-    process.env.SOLO_CLUSTER_NAME = 'solo-e2e';
-    process.env.SOLO_NAMESPACE = 'solo-e2e';
-    process.env.SOLO_CLUSTER_SETUP_NAMESPACE = 'solo-setup';
-
-    // Create cluster
-    execSync(`kind create cluster --name "${process.env.SOLO_CLUSTER_NAME}"`, {stdio: 'inherit'});
-    return container.resolve(K8);
-  }
 }
 
 export const testLocalConfigData = {

@@ -13,27 +13,34 @@ import {MirrorNodeComponent} from '../../../../src/core/config/remote/components
 import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
-import type {NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeAliases} from '../../../../src/types/aliases.js';
 
 function testBaseComponentData(classComponent: any) {
+  const validNamespace = 'valid';
   it('should fail if name is not provided', () => {
     const name = '';
-    expect(() => new classComponent(name, 'valid', 'valid')).to.throw(SoloError, `Invalid name: ${name}`);
+    expect(() => new classComponent(name, 'valid', validNamespace)).to.throw(SoloError, `Invalid name: ${name}`);
   });
 
   it('should fail if name is string', () => {
     const name = 1; // @ts-ignore
-    expect(() => new classComponent(name, 'valid', 'valid')).to.throw(SoloError, `Invalid name: ${name}`);
+    expect(() => new classComponent(name, 'valid', validNamespace)).to.throw(SoloError, `Invalid name: ${name}`);
   });
 
   it('should fail if cluster is not provided', () => {
     const cluster = '';
-    expect(() => new classComponent('valid', cluster, 'valid')).to.throw(SoloError, `Invalid cluster: ${cluster}`);
+    expect(() => new classComponent('valid', cluster, validNamespace)).to.throw(
+      SoloError,
+      `Invalid cluster: ${cluster}`,
+    );
   });
 
   it('should fail if cluster is string', () => {
-    const cluster = 1; // @ts-ignore
-    expect(() => new classComponent('valid', cluster, 'valid')).to.throw(SoloError, `Invalid cluster: ${cluster}`);
+    const cluster = 1;
+    expect(() => new classComponent('valid', cluster, validNamespace)).to.throw(
+      SoloError,
+      `Invalid cluster: ${cluster}`,
+    );
   });
 
   it('should fail if namespace is not provided', () => {
@@ -45,7 +52,7 @@ function testBaseComponentData(classComponent: any) {
   });
 
   it('should fail if namespace is string', () => {
-    const namespace = 1; // @ts-ignore
+    const namespace = 1;
     expect(() => new classComponent('valid', 'valid', namespace)).to.throw(
       SoloError,
       `Invalid namespace: ${namespace}`,
@@ -57,7 +64,7 @@ function testBaseComponentData(classComponent: any) {
   });
 
   it('should be an instance of BaseComponent', () => {
-    const component = new classComponent('valid', 'valid', 'valid');
+    const component = new classComponent('valid', 'valid', validNamespace);
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
@@ -83,7 +90,8 @@ describe('RelayComponent', () => {
   });
 
   it('should fail if name is string', () => {
-    const name = 1; // @ts-ignore
+    const name = 1;
+    // @ts-expect-error - TS2345: Argument of type number is not assignable to parameter of type string
     expect(() => new RelayComponent(name, 'valid', 'valid', [])).to.throw(SoloError, `Invalid name: ${name}`);
   });
 
@@ -93,12 +101,13 @@ describe('RelayComponent', () => {
   });
 
   it('should fail if cluster is string', () => {
-    const cluster = 1; // @ts-ignore
+    const cluster = 1;
+    // @ts-expect-error - TS2345: Argument of type number is not assignable to parameter of type string
     expect(() => new RelayComponent('valid', cluster, 'valid', [])).to.throw(SoloError, `Invalid cluster: ${cluster}`);
   });
 
   it('should fail if namespace is not provided', () => {
-    const namespace = '';
+    const namespace = null;
     expect(() => new RelayComponent('valid', 'valid', namespace, [])).to.throw(
       SoloError,
       `Invalid namespace: ${namespace}`,
@@ -106,7 +115,8 @@ describe('RelayComponent', () => {
   });
 
   it('should fail if namespace is string', () => {
-    const namespace = 1; // @ts-ignore
+    const namespace = 1;
+    // @ts-expect-error - forcefully provide namespace as a number to create an error
     expect(() => new RelayComponent('valid', 'valid', namespace, [])).to.throw(
       SoloError,
       `Invalid namespace: ${namespace}`,
@@ -147,7 +157,7 @@ describe('RelayComponent', () => {
     };
 
     const component = new RelayComponent(name, cluster, namespace, consensusNodeAliases);
-    expect(component.toObject()).to.deep.equal({name, cluster, namespace, consensusNodeAliases});
+    expect(component.toObject()).to.deep.equal({name, cluster, namespace: namespace, consensusNodeAliases});
   });
 });
 
@@ -185,7 +195,7 @@ describe('ConsensusNodeComponent', () => {
   });
 
   it('should fail if namespace is not provided', () => {
-    const namespace = '';
+    const namespace = null;
     expect(() => new ConsensusNodeComponent('valid', 'valid', namespace, ConsensusNodeStates.STARTED)).to.throw(
       SoloError,
       `Invalid namespace: ${namespace}`,
