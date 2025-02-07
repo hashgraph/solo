@@ -39,6 +39,8 @@ import {K8ClientPvcs} from './k8_client/k8_client_pvcs.js';
 import {type Leases} from './leases.js';
 import {K8ClientLeases} from './k8_client/k8_client_leases.js';
 import {K8ClientNamespaces} from './k8_client/k8_client_namespaces.js';
+import {K8ClientIngressClasses} from './k8_client/k8_client_ingress_classes.js';
+import {type IngressClasses} from './ingress_classes.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -54,7 +56,7 @@ export class K8Client extends K8ClientBase implements K8 {
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
-  networkingApi!: k8s.NetworkingV1Api;
+  private networkingApi!: k8s.NetworkingV1Api;
 
   private k8Leases: Leases;
   private k8Clusters: Clusters;
@@ -65,6 +67,7 @@ export class K8Client extends K8ClientBase implements K8 {
   private k8Services: Services;
   private k8Pvcs: Pvcs;
   private k8Namespaces: Namespaces;
+  private k8IngressClasses: IngressClasses;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -103,6 +106,7 @@ export class K8Client extends K8ClientBase implements K8 {
     this.k8Pvcs = new K8ClientPvcs(this.kubeClient);
     this.k8Leases = new K8ClientLeases(this.coordinationApiClient);
     this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
+    this.k8IngressClasses = new K8ClientIngressClasses(this.networkingApi);
 
     return this; // to enable chaining
   }
@@ -127,18 +131,10 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.k8Contexts;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating services in the kubernetes cluster.
-   * @returns an object instance providing service operations
-   */
   public services(): Services {
     return this.k8Services;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating pods in the kubernetes cluster.
-   * @returns an object instance providing pod operations
-   */
   public pods(): Pods {
     return this.k8Pods;
   }
@@ -147,12 +143,12 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.k8Pvcs;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
-   * @returns an object instance providing lease operations
-   */
   public leases(): Leases {
     return this.k8Leases;
+  }
+
+  public ingressClasses(): IngressClasses {
+    return this.k8IngressClasses;
   }
 
   public async createNamespace(namespace: NamespaceName) {
@@ -201,10 +197,6 @@ export class K8Client extends K8ClientBase implements K8 {
 
   public async getSvcByName(name: string): Promise<Service> {
     return this.services().read(this.getNamespace(), name);
-  }
-
-  public getContextNames(): string[] {
-    return this.contexts().list();
   }
 
   public async listDir(containerRef: ContainerRef, destPath: string) {
@@ -300,11 +292,6 @@ export class K8Client extends K8ClientBase implements K8 {
 
   // --------------------------------------- Utility Methods --------------------------------------- //
 
-  // TODO this can be removed once K8 is context/cluster specific when instantiating
-  public async testContextConnection(context: string): Promise<boolean> {
-    return this.contexts().testContextConnection(context);
-  }
-
   // --------------------------------------- Secret --------------------------------------- //
 
   /**
@@ -374,32 +361,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return resp.response.statusCode === StatusCodes.OK;
   }
 
-  /* ------------- ConfigMap ------------- */
-
-  public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
-    return this.configMaps().read(this.getNamespace(), name);
-  }
-
-  public async createNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean> {
-    return this.configMaps().create(this.getNamespace(), name, labels, data);
-  }
-
-  public async replaceNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean> {
-    return this.configMaps().replace(this.getNamespace(), name, labels, data);
-  }
-
-  public async deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean> {
-    return this.configMaps().delete(namespace, name);
-  }
-
   // --------------------------------------- LEASES --------------------------------------- //
 
   public async createNamespacedLease(
@@ -437,19 +398,6 @@ export class K8Client extends K8ClientBase implements K8 {
 
   public async killPod(podRef: PodRef) {
     return this.pods().readByRef(podRef).killPod();
-  }
-
-  // TODO make private once we are instantiating multiple K8 instances
-  public setCurrentContext(context: string) {
-    return this.contexts().updateCurrent(context);
-  }
-
-  public getCurrentContext(): string {
-    return this.contexts().readCurrent();
-  }
-
-  public getCurrentContextNamespace(): NamespaceName {
-    return this.contexts().readCurrentNamespace();
   }
 
   public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]> {

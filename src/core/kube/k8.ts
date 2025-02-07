@@ -19,6 +19,7 @@ import {type Services} from './services.js';
 import {type Service} from './service.js';
 import {type Pods} from './pods.js';
 import {type Leases} from './leases.js';
+import {type IngressClasses} from './ingress_classes.js';
 
 export interface K8 {
   /**
@@ -57,6 +58,10 @@ export interface K8 {
    */
   services(): Services;
 
+  /**
+   * Fluent accessor for reading and manipulating pods in the kubernetes cluster.
+   * @returns an object instance providing pod operations
+   */
   pods(): Pods;
 
   /**
@@ -65,11 +70,17 @@ export interface K8 {
    */
   pvcs(): Pvcs;
 
-  /*
+  /**
    * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
    * @returns an object instance providing lease operations
    */
   leases(): Leases;
+
+  /**
+   * Fluent accessor for reading and manipulating ingress classes in the kubernetes cluster.
+   * @returns an object instance providing ingress class operations
+   */
+  ingressClasses(): IngressClasses;
 
   /**
    * Create a new namespace
@@ -118,12 +129,6 @@ export interface K8 {
   getSvcByName(name: string): Promise<Service>;
 
   listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]>;
-
-  /**
-   * Get a list of contexts
-   * @returns a list of context names
-   */
-  getContextNames(): string[];
 
   /**
    * List files and directories in a container
@@ -263,8 +268,6 @@ export interface K8 {
    */
   deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
 
-  testContextConnection(context: string): Promise<boolean>;
-
   /**
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param namespace - the namespace of the secret to search for
@@ -310,37 +313,6 @@ export interface K8 {
    */
   deleteSecret(name: string, namespace: NamespaceName): Promise<boolean>;
 
-  /**
-   * @param name - name of the configmap
-   * @returns the configmap if found
-   * @throws SoloError - if the response if not found or the response is not OK
-   */
-  getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap>;
-
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
-  createNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean>;
-
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
-  replaceNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean>;
-
-  deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean>;
-
   createNamespacedLease(
     namespace: NamespaceName,
     leaseName: string,
@@ -362,10 +334,4 @@ export interface K8 {
    * @param podRef - the pod reference
    */
   killPod(podRef: PodRef): Promise<void>;
-
-  setCurrentContext(context: string): void;
-
-  getCurrentContext(): string;
-
-  getCurrentContextNamespace(): NamespaceName;
 }

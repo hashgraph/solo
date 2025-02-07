@@ -46,14 +46,14 @@ export class ClusterCommandTasks {
         if (!context) {
           const isQuiet = self.parent.getConfigManager().getFlag(flags.quiet);
           if (isQuiet) {
-            context = self.parent.getK8().getCurrentContext();
+            context = self.parent.getK8().contexts().readCurrent();
           } else {
             context = await self.promptForContext(parentTask, cluster);
           }
 
           localConfig.clusterContextMapping[cluster] = context;
         }
-        if (!(await self.parent.getK8().testContextConnection(context))) {
+        if (!(await self.parent.getK8().contexts().testContextConnection(context))) {
           subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
           throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
         }
@@ -72,7 +72,7 @@ export class ClusterCommandTasks {
       title: `Pull and validate remote configuration for cluster: ${chalk.cyan(cluster)}`,
       task: async (_, subTask: ListrTaskWrapper<any, any, any>) => {
         const context = localConfig.clusterContextMapping[cluster];
-        self.parent.getK8().setCurrentContext(context);
+        self.parent.getK8().contexts().updateCurrent(context);
         const remoteConfigFromOtherCluster = await self.parent.getRemoteConfigManager().get();
         if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
           throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentClusterName, cluster));
@@ -162,7 +162,7 @@ export class ClusterCommandTasks {
           } else if (!localConfig.clusterContextMapping[cluster]) {
             // In quiet mode, use the currently selected context to update the mapping
             if (isQuiet) {
-              localConfig.clusterContextMapping[cluster] = this.parent.getK8().getCurrentContext();
+              localConfig.clusterContextMapping[cluster] = this.parent.getK8().contexts().readCurrent();
             }
 
             // Prompt the user to select a context if mapping value is missing
@@ -185,7 +185,7 @@ export class ClusterCommandTasks {
   ) {
     let selectedContext;
     if (isQuiet) {
-      selectedContext = this.parent.getK8().getCurrentContext();
+      selectedContext = this.parent.getK8().contexts().readCurrent();
     } else {
       selectedContext = await this.promptForContext(task, selectedCluster);
       localConfig.clusterContextMapping[selectedCluster] = selectedContext;
@@ -194,7 +194,7 @@ export class ClusterCommandTasks {
   }
 
   private async promptForContext(task: SoloListrTaskWrapper<SelectClusterContextContext>, cluster: string) {
-    const kubeContexts = this.parent.getK8().getContextNames();
+    const kubeContexts = this.parent.getK8().contexts().list();
     return flags.context.prompt(task, kubeContexts, cluster);
   }
 
@@ -306,7 +306,7 @@ export class ClusterCommandTasks {
           else {
             // Add the deployment to the LocalConfig with the currently selected cluster and context in KubeConfig
             if (isQuiet) {
-              selectedContext = this.parent.getK8().getCurrentContext();
+              selectedContext = this.parent.getK8().contexts().readCurrent();
               selectedCluster = this.parent.getK8().clusters().readCurrent();
               localConfig.deployments[deploymentName] = {
                 clusters: [selectedCluster],
@@ -335,11 +335,11 @@ export class ClusterCommandTasks {
           }
         }
 
-        const connectionValid = await this.parent.getK8().testContextConnection(selectedContext);
+        const connectionValid = await this.parent.getK8().contexts().testContextConnection(selectedContext);
         if (!connectionValid) {
           throw new SoloError(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER(selectedContext, selectedCluster));
         }
-        this.parent.getK8().setCurrentContext(selectedContext);
+        this.parent.getK8().contexts().updateCurrent(selectedContext);
         this.parent.getConfigManager().setFlag(flags.context, selectedContext);
       },
     };
