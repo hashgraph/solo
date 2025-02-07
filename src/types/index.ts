@@ -122,7 +122,7 @@ export interface GossipEndpoint {
   port: number;
 }
 
-export interface NetworkOverridesStructure {
+export interface NodeOverridesStructure {
   interfaceBindings: GossipEndpoint[];
   endpointOverrides: GossipEndpoint[];
 }
