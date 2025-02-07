@@ -148,7 +148,7 @@ export class RemoteConfigManager {
     try {
       await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
     } catch {
-      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.getCurrentClusterName()));
+      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.clusters().readCurrent()));
     }
     return this.remoteConfig;
   }

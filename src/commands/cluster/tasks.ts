@@ -86,7 +86,7 @@ export class ClusterCommandTasks {
       title: 'Read clusters from remote config',
       task: async (ctx, task) => {
         const localConfig = this.parent.getLocalConfig();
-        const currentClusterName = this.parent.getK8().getCurrentClusterName();
+        const currentClusterName = this.parent.getK8().clusters().readCurrent();
         const currentRemoteConfig: RemoteConfigDataWrapper = await this.parent.getRemoteConfigManager().get();
         const subTasks = [];
         const remoteConfigClusters = Object.keys(currentRemoteConfig.clusters);
@@ -299,7 +299,7 @@ export class ClusterCommandTasks {
             // Add the deployment to the LocalConfig with the currently selected cluster and context in KubeConfig
             if (isQuiet) {
               selectedContext = this.parent.getK8().getCurrentContext();
-              selectedCluster = this.parent.getK8().getCurrentClusterName();
+              selectedCluster = this.parent.getK8().clusters().readCurrent();
               localConfig.deployments[deploymentName] = {
                 clusters: [selectedCluster],
               };
@@ -352,14 +352,14 @@ export class ClusterCommandTasks {
 
   showClusterList() {
     return new Task('List all available clusters', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.parent.logger.showList('Clusters', this.parent.getK8().getClusters());
+      this.parent.logger.showList('Clusters', this.parent.getK8().clusters().list());
     });
   }
 
   getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       try {
-        const clusterName = this.parent.getK8().getCurrentClusterName();
+        const clusterName = this.parent.getK8().clusters().readCurrent();
         this.parent.logger.showUser(`Cluster Name (${clusterName})`);
         this.parent.logger.showUser('\n');
       } catch (e: Error | unknown) {
