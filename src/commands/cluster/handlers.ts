@@ -1,39 +1,50 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type BaseCommand, type CommandHandlers} from '../base.js';
-import {type ClusterCommandTasks} from './tasks.js';
+import {ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
-import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/container_helper.js';
+import {K8Client} from '../../core/kube/k8_client.js';
+import {type K8} from '../../core/kube/k8.js';
+import {CommandHandler} from '../../core/command_handler.js';
+import {LocalConfig} from '../../core/config/local_config.js';
+import {ChartManager} from '../../core/chart_manager.js';
 
-export class ClusterCommandHandlers implements CommandHandlers {
-  readonly parent: BaseCommand;
-  readonly tasks: ClusterCommandTasks;
-  public readonly remoteConfigManager: RemoteConfigManager;
-  private getConfig: any;
+@injectable()
+export class ClusterCommandHandlers extends CommandHandler {
+  constructor(
+    @inject(ClusterCommandTasks) private readonly tasks: ClusterCommandTasks,
+    @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(K8Client) private readonly k8: K8,
+    @inject(ChartManager) private readonly chartManager: ChartManager,
+  ) {
+    super();
 
-  constructor(parent: BaseCommand, tasks: ClusterCommandTasks, remoteConfigManager: RemoteConfigManager) {
-    this.parent = parent;
-    this.tasks = tasks;
-    this.remoteConfigManager = remoteConfigManager;
-    this.getConfig = parent.getConfig.bind(parent);
+    this.tasks = patchInject(tasks, ClusterCommandTasks, this.constructor.name);
+    this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
+    this.k8 = patchInject(k8, K8Client, this.constructor.name);
+    this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
+    this.chartManager = patchInject(chartManager, ChartManager, this.constructor.name);
   }
 
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    const action = this.commandActionBuilder(
       [
         this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
-        this.parent.setupHomeDirectoryTask(),
-        this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8()),
+        this.setupHomeDirectoryTask(),
+        this.localConfig.promptLocalConfigTask(this.k8),
         this.tasks.selectContext(),
-        ListrRemoteConfig.loadRemoteConfig(this.parent, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         this.tasks.readClustersFromRemoteConfig(argv),
         this.tasks.updateLocalConfig(),
       ],
@@ -52,7 +63,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   async list(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    const action = this.commandActionBuilder(
       [this.tasks.showClusterList()],
       {
         concurrent: false,
@@ -69,7 +80,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   async info(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    const action = this.commandActionBuilder(
       [this.tasks.getClusterInfo()],
       {
         concurrent: false,
@@ -86,7 +97,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   async setup(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    const action = this.commandActionBuilder(
       [
         this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
         this.tasks.prepareChartValues(argv),
@@ -112,7 +123,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   async reset(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    const action = this.commandActionBuilder(
       [
         this.tasks.initialize(argv, resetConfigBuilder.bind(this)),
         this.tasks.acquireNewLease(argv),

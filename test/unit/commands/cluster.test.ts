@@ -76,7 +76,7 @@ argv[flags.force.name] = true;
 argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
 
 describe('ClusterCommand unit tests', () => {
-  before(() => {
+  beforeEach(() => {
     resetTestContainer();
   });
 
@@ -193,7 +193,23 @@ describe('ClusterCommand unit tests', () => {
         configManager.getFlag.withArgs(stubbedFlags[i][0]).returns(stubbedFlags[i][1]);
       }
 
-      return {
+      container.unregister(RemoteConfigManager);
+      container.registerInstance(RemoteConfigManager, remoteConfigManagerStub);
+
+      container.unregister(K8Client);
+      container.registerInstance(K8Client, k8Stub);
+
+      const localConfig = new LocalConfig(filePath);
+      container.unregister(LocalConfig);
+      container.registerInstance(LocalConfig, localConfig);
+
+      container.unregister(ConfigManager);
+      container.registerInstance(ConfigManager, configManager);
+
+      container.unregister(SoloLogger);
+      container.registerInstance(SoloLogger, loggerStub);
+
+      const options = {
         logger: loggerStub,
         helm: sandbox.createStubInstance(Helm),
         k8: k8Stub,
@@ -210,16 +226,17 @@ describe('ClusterCommand unit tests', () => {
         certificateManager: sandbox.createStubInstance(CertificateManager),
         remoteConfigManager: remoteConfigManagerStub,
       } as Opts;
+
+      return options;
     };
 
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8);
+        tasks = container.resolve(ClusterCommandTasks);
 
-        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1.
-        const taskObj = tasks.updateLocalConfig({});
+        const taskObj = tasks.updateLocalConfig();
 
         await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
@@ -358,7 +375,7 @@ describe('ClusterCommand unit tests', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8);
+        tasks = container.resolve(ClusterCommandTasks);
 
         // @ts-expect-error - TS2554: Expected 0 arguments, but got 1
         const taskObj = tasks.selectContext({});
@@ -485,7 +502,7 @@ describe('ClusterCommand unit tests', () => {
 
       async function runReadClustersFromRemoteConfigTask(opts) {
         command = new ClusterCommand(opts);
-        tasks = new ClusterCommandTasks(command, k8Stub);
+        tasks = container.resolve(ClusterCommandTasks);
         const taskObj = tasks.readClustersFromRemoteConfig({});
         taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
         taskStub.newListr = sandbox.stub();

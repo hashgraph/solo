@@ -24,7 +24,7 @@ export class DeploymentCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.tasks = new ClusterCommandTasks(this, this.k8);
+    this.tasks = container.resolve(ClusterCommandTasks);
   }
 
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
