@@ -18,6 +18,7 @@ import {type Pvcs} from './pvcs.js';
 import {type Services} from './services.js';
 import {type Service} from './service.js';
 import {type Pods} from './pods.js';
+import {type Leases} from './leases.js';
 
 export interface K8 {
   /**
@@ -63,6 +64,12 @@ export interface K8 {
    * @returns an object instance providing pvc (persistent volume claim) operations
    */
   pvcs(): Pvcs;
+
+  /*
+   * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
+   * @returns an object instance providing lease operations
+   */
+  leases(): Leases;
 
   /**
    * Create a new namespace
