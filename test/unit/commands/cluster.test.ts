@@ -196,8 +196,8 @@ describe('ClusterCommand unit tests', () => {
       container.unregister(RemoteConfigManager);
       container.registerInstance(RemoteConfigManager, remoteConfigManagerStub);
 
-      container.unregister(K8);
-      container.registerInstance(K8, k8Stub);
+      container.unregister(K8Client);
+      container.registerInstance(K8Client, k8Stub);
 
       const localConfig = new LocalConfig(filePath);
       container.unregister(LocalConfig);

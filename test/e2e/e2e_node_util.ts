@@ -127,7 +127,9 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`${nodeAlias} should be running`, async () => {
             try {
               const nodeTasks = container.resolve(NodeCommandTasks);
-              expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).podName.name).to.equal(`network-${nodeAlias}-0`);
+              expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).podName.name).to.equal(
+                `network-${nodeAlias}-0`,
+              );
             } catch (e) {
               nodeCmd.logger.showUserError(e);
               expect.fail();

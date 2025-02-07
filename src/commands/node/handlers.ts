@@ -22,12 +22,12 @@ import {
 import * as constants from '../../core/constants.js';
 import {AccountManager} from '../../core/account_manager.js';
 import {PlatformInstaller} from '../../core/platform_installer.js';
-import {K8} from '../../core/k8.js';
+import {K8Client} from '../../core/kube/k8_client.js';
+import {type K8} from '../../core/kube/k8.js';
 import {LeaseManager} from '../../core/lease/lease_manager.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
-import {type NodeCommandTasks} from './tasks.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
@@ -49,7 +49,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
   constructor(
     @inject(AccountManager) private readonly accountManager: AccountManager,
-    @inject(K8) private readonly k8: K8,
+    @inject(K8Client) private readonly k8: K8,
     @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
     @inject(LeaseManager) private readonly leaseManager: LeaseManager,
     @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
@@ -58,7 +58,7 @@ export class NodeCommandHandlers extends CommandHandler {
     super();
 
     this.accountManager = patchInject(accountManager, AccountManager, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, K8Client, this.constructor.name);
     this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
     this.leaseManager = patchInject(leaseManager, LeaseManager, this.constructor.name);
     this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);

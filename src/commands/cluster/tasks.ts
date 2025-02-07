@@ -48,7 +48,7 @@ export class ClusterCommandTasks {
     @inject(LeaseManager) private readonly leaseManager: LeaseManager,
     @inject(Helm) private readonly helm: Helm,
   ) {
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, K8Client, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
     this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
     this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
@@ -272,7 +272,7 @@ export class ClusterCommandTasks {
 
   /** Show list of installed chart */
   private async showInstalledChartList(clusterSetupNamespace: NamespaceName) {
-      this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
+    this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
   }
 
   public selectContext(): SoloListrTask<SelectClusterContextContext> {

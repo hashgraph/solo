@@ -14,7 +14,6 @@ import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
-import type {SoloListrTask} from '../types/index.js';
 import {prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
 import {type SoloListrTask} from '../types/index.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';

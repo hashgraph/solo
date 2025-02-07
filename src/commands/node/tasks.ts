@@ -6,7 +6,8 @@ import {ConfigManager} from '../../core/config_manager.js';
 import {KeyManager} from '../../core/key_manager.js';
 import {ProfileManager} from '../../core/profile_manager.js';
 import {PlatformInstaller} from '../../core/platform_installer.js';
-import {K8} from '../../core/kube/k8.js';
+import {K8Client} from '../../core/kube/k8_client.js';
+import {type K8} from '../../core/kube/k8.js';
 import {ChartManager} from '../../core/chart_manager.js';
 import {CertificateManager} from '../../core/certificate_manager.js';
 import {Zippy} from '../../core/zippy.js';
@@ -76,7 +77,7 @@ export class NodeCommandTasks {
     @inject(SoloLogger) private readonly logger: SoloLogger,
     @inject(AccountManager) private readonly accountManager: AccountManager,
     @inject(ConfigManager) private readonly configManager: ConfigManager,
-    @inject(K8) private readonly k8: K8,
+    @inject(K8Client) private readonly k8: K8,
     @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
     @inject(KeyManager) private readonly keyManager: KeyManager,
     @inject(ProfileManager) private readonly profileManager: ProfileManager,
@@ -86,7 +87,7 @@ export class NodeCommandTasks {
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.accountManager = patchInject(accountManager, AccountManager, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
-    this.k8 = patchInject(k8, K8, this.constructor.name);
+    this.k8 = patchInject(k8, K8Client, this.constructor.name);
     this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
     this.keyManager = patchInject(keyManager, KeyManager, this.constructor.name);
     this.profileManager = patchInject(profileManager, ProfileManager, this.constructor.name);
