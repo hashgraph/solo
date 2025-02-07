@@ -163,10 +163,10 @@ export class MirrorNodeCommand extends BaseCommand {
         'db.owner.username': username,
         'importer.db.username': username,
         'grpc.db.username': username,
-        // Fixes problem where importer's V1.0__Init.sql migration fails
-        // 'rest.db.username': username,
         'restjava.db.username': username,
         'web3.db.username': username,
+        // Fixes problem where importer's V1.0__Init.sql migration fails
+        // 'rest.db.username': username,
 
         // set the passwords
         'db.owner.password': password,

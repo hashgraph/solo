@@ -478,7 +478,7 @@ tasks:
       - name: "Wait for PostgreSQL pod to be ready"
         cmd: |
           kubectl wait --for=condition=ready pod/{{.postgres_container_name}} \
-          -n {{.postgres_database_namespace}} --timeout=60s
+          -n {{.postgres_database_namespace}} --timeout=160s
       - name: "Copy init.sql inside the database pod"
         cmd: |
           kubectl cp ../external-database-test/scripts/init.sh \

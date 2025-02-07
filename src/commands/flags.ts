@@ -1529,7 +1529,7 @@ export class Flags {
     constName: 'externalDatabaseHost',
     name: 'external-database-host',
     definition: {
-      describe: "Use to provide the external database host if the '--use-external-database' is passed",
+      describe: `Use to provide the external database host if the '--${Flags.useExternalDatabase.name}' is passed`,
       defaultValue: '',
       type: 'string',
     },
@@ -1549,7 +1549,7 @@ export class Flags {
     constName: 'externalDatabaseOwnerUsername',
     name: 'external-database-owner-username',
     definition: {
-      describe: "Use to provide the external database owner's username if the '--use-external-database' is passed",
+      describe: `Use to provide the external database owner's username if the '--${Flags.useExternalDatabase.name}' is passed`,
       defaultValue: '',
       type: 'string',
     },
@@ -1569,7 +1569,7 @@ export class Flags {
     constName: 'externalDatabaseOwnerPassword',
     name: 'external-database-owner-password',
     definition: {
-      describe: "Use to provide the external database owner's password if the '--use-external-database' is passed",
+      describe: `Use to provide the external database owner's password if the '--${Flags.useExternalDatabase.name}' is passed`,
       defaultValue: '',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
