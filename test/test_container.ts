@@ -9,7 +9,11 @@ import * as yaml from 'yaml';
 
 const cacheDirectory = path.join('test', 'data', 'tmp');
 
-export function resetTestContainer(namespace?: NamespaceNameAsString, cacheDir: string = cacheDirectory) {
+export function resetTestContainer(cacheDir: string = cacheDirectory) {
+  Container.getInstance().reset(cacheDir, 'debug', true);
+}
+
+export function resetForTest(namespace?: NamespaceNameAsString, cacheDir: string = cacheDirectory) {
   const localConfigFile = 'local-config.yaml';
   if (!fs.existsSync(cacheDirectory)) {
     fs.mkdirSync(cacheDirectory, {recursive: true});
@@ -22,6 +26,5 @@ export function resetTestContainer(namespace?: NamespaceNameAsString, cacheDir: 
     parsedData.deployments[parsedData.currentDeploymentName].namespace = namespace;
   }
 
-  fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
-  Container.getInstance().reset(cacheDir, 'debug', true);
+  resetTestContainer(cacheDir);
 }

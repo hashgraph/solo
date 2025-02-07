@@ -44,7 +44,7 @@ import {KeyManager} from '../src/core/key_manager.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {resetTestContainer} from './test_container.js';
+import {resetForTest} from './test_container.js';
 import {NamespaceName} from '../src/core/kube/namespace_name.js';
 import {PodRef} from '../src/core/kube/pod_ref.js';
 import {ContainerRef} from '../src/core/kube/container_ref.js';
@@ -135,7 +135,7 @@ export function bootstrapTestVariables(
   const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
   const deployment: string = argv[flags.deployment.name] || 'deployment';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-  resetTestContainer(namespace.name, cacheDir);
+  resetForTest(namespace.name, cacheDir);
   const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 

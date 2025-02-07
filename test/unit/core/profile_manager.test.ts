@@ -15,7 +15,7 @@ import {getTestCacheDir, getTmpDir} from '../../test_util.js';
 import * as version from '../../../version.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
-import {resetTestContainer} from '../../test_container.js';
+import {resetForTest} from '../../test_container.js';
 import {Templates} from '../../../src/core/templates.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 
@@ -26,7 +26,7 @@ describe('ProfileManager', () => {
   let stagingDir = '';
 
   before(() => {
-    resetTestContainer(namespace.name);
+    resetForTest(namespace.name);
     tmpDir = getTmpDir();
     configManager = container.resolve(ConfigManager);
     profileManager = new ProfileManager(undefined, undefined, tmpDir);

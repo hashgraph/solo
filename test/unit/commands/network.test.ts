@@ -28,7 +28,7 @@ import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
-import {resetTestContainer} from '../../test_container.js';
+import {resetForTest} from '../../test_container.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 
 const testName = 'network-cmd-unit';
@@ -50,7 +50,7 @@ describe('NetworkCommand unit tests', () => {
     let opts: any;
 
     beforeEach(() => {
-      resetTestContainer();
+      resetForTest();
       opts = {};
 
       opts.logger = container.resolve(SoloLogger);
@@ -75,11 +75,7 @@ describe('NetworkCommand unit tests', () => {
 
       opts.depManager = sinon.stub() as unknown as DependencyManager;
       container.registerInstance(DependencyManager, opts.depManager);
-
       opts.localConfig = container.resolve(LocalConfig);
-      // opts.localConfig = sinon.stub() as unknown as LocalConfig;
-      // container.registerInstance(LocalConfig, opts.localConfig);
-
       opts.helm = container.resolve(Helm);
       opts.helm.dependency = sinon.stub();
 

@@ -23,7 +23,7 @@ import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 import {container} from 'tsyringe-neo';
-import {resetTestContainer} from '../../test_container.js';
+import {resetForTest} from '../../test_container.js';
 import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import {type BaseCommand} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
@@ -78,7 +78,7 @@ argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
 
 describe('ClusterCommand unit tests', () => {
   before(() => {
-    resetTestContainer(namespace.name);
+    resetForTest(namespace.name);
   });
 
   describe('Chart Install Function is called correctly', () => {
