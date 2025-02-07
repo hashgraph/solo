@@ -936,7 +936,7 @@ export class NodeCommandTasks {
     });
   }
 
-  private async generateNetworksOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
+  private async generateNodeOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
 
     const networkOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
