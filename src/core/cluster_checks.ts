@@ -10,6 +10,7 @@ import {type K8} from './kube/k8.js';
 import {type K8Client} from './kube/k8_client.js';
 import {type Pod} from './kube/pod.js';
 import {type IngressClass} from './kube/ingress_class.js';
+import {type V1Pod, type V1ConfigMap} from '@kubernetes/client-node';
 
 /**
  * Class to check if certain components are installed in the cluster.
@@ -47,16 +48,9 @@ export class ClusterChecks {
   public async isMinioInstalled(namespace: NamespaceName): Promise<boolean> {
     try {
       // TODO DETECT THE OPERATOR
-      const pods = await (this.k8 as K8Client).kubeClient.listNamespacedPod(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'app=minio',
-      );
+      const pods: V1Pod[] = await this.k8.pods().list(namespace, ['app=minio']);
 
-      return pods.body.items.length > 0;
+      return pods.length > 0;
     } catch (e) {
       this.logger.error('Failed to find minio:', e);
 
@@ -86,14 +80,11 @@ export class ClusterChecks {
    */
   public async isRemoteConfigPresentInAnyNamespace() {
     try {
-      const configmaps = await (this.k8 as K8Client).kubeClient.listConfigMapForAllNamespaces(
-        undefined,
-        undefined,
-        undefined,
-        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
-      );
+      const configmaps: V1ConfigMap[] = await this.k8
+        .configMaps()
+        .listForAllNamespaces([constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 
-      return configmaps.body.items.length > 0;
+      return configmaps.length > 0;
     } catch (e) {
       this.logger.error('Failed to find remote config:', e);
 
@@ -108,16 +99,9 @@ export class ClusterChecks {
    */
   public async isPrometheusInstalled(namespace: NamespaceName) {
     try {
-      const pods = await (this.k8 as K8Client).kubeClient.listNamespacedPod(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'app.kubernetes.io/name=prometheus',
-      );
+      const pods: V1Pod[] = await this.k8.pods().list(namespace, ['app.kubernetes.io/name=prometheus']);
 
-      return pods.body.items.length > 0;
+      return pods.length > 0;
     } catch (e) {
       this.logger.error('Failed to find prometheus:', e);
 
@@ -133,16 +117,11 @@ export class ClusterChecks {
    */
   public async isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean> {
     try {
-      const configmaps = await (this.k8 as K8Client).kubeClient.listNamespacedConfigMap(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
-      );
+      const configmaps: V1ConfigMap[] = await this.k8
+        .configMaps()
+        .list(namespace, [constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 
-      return configmaps.body.items.length > 0;
+      return configmaps.length > 0;
     } catch (e) {
       this.logger.error('Failed to find remote config:', e);
 

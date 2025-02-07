@@ -17,14 +17,9 @@ import {ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {
-  V1Container,
-  V1ExecAction,
   V1ObjectMeta,
   V1PersistentVolumeClaim,
   V1PersistentVolumeClaimSpec,
-  V1Pod,
-  V1PodSpec,
-  V1Probe,
   V1Service,
   V1ServicePort,
   V1ServiceSpec,
@@ -48,25 +43,16 @@ async function createPod(
   podLabelValue: string,
   k8: K8Client,
 ): Promise<void> {
-  const v1Pod = new V1Pod();
-  const v1Metadata = new V1ObjectMeta();
-  v1Metadata.name = podRef.name.toString();
-  v1Metadata.namespace = podRef.namespace.toString();
-  v1Metadata.labels = {app: podLabelValue};
-  v1Pod.metadata = v1Metadata;
-  const v1Container = new V1Container();
-  v1Container.name = containerName.name;
-  v1Container.image = 'alpine:latest';
-  v1Container.command = ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200'];
-  const v1Probe = new V1Probe();
-  const v1ExecAction = new V1ExecAction();
-  v1ExecAction.command = ['bash', '-c', 'exit 0'];
-  v1Probe.exec = v1ExecAction;
-  v1Container.startupProbe = v1Probe;
-  const v1Spec = new V1PodSpec();
-  v1Spec.containers = [v1Container];
-  v1Pod.spec = v1Spec;
-  await k8.kubeClient.createNamespacedPod(podRef.namespace.toString(), v1Pod);
+  await k8
+    .pods()
+    .create(
+      podRef,
+      {app: podLabelValue},
+      containerName,
+      'alpine:latest',
+      ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200'],
+      ['bash', '-c', 'exit 0'],
+    );
 }
 
 describe('K8', () => {

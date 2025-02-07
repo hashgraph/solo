@@ -1,7 +1,16 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type KubeConfig, type CoreV1Api, type V1Pod} from '@kubernetes/client-node';
+import {
+  V1Pod,
+  type KubeConfig,
+  type CoreV1Api,
+  V1ObjectMeta,
+  V1Container,
+  V1Probe,
+  V1ExecAction,
+  V1PodSpec,
+} from '@kubernetes/client-node';
 import {type Pods} from '../pods.js';
 import {NamespaceName} from '../namespace_name.js';
 import {PodRef} from '../pod_ref.js';
@@ -13,6 +22,7 @@ import {MissingArgumentError, SoloError} from '../../errors.js';
 import * as constants from '../../constants.js';
 import {SoloLogger} from '../../logging.js';
 import {container} from 'tsyringe-neo';
+import {type ContainerName} from '../container_name.js';
 import {PodName} from '../pod_name.js';
 
 export class K8ClientPods extends K8ClientBase implements Pods {
@@ -30,7 +40,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     return new K8ClientPod(podRef, this, this.kubeClient, this.kubeConfig);
   }
 
-  public async readByName(podRef: PodRef): Promise<V1Pod> {
+  public async read(podRef: PodRef): Promise<V1Pod> {
     const ns = podRef.namespace;
     const fieldSelector = `metadata.name=${podRef.name}`;
 
@@ -51,7 +61,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     return this.filterItem(resp.body.items, {name: podRef.name.toString()});
   }
 
-  public async readManyByLabel(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]> {
+  public async list(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]> {
     const labelSelector = labels.join(',');
 
     const result = await this.kubeClient.listNamespacedPod(
@@ -208,7 +218,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
     try {
       const response = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, labelSelector);
-
+      // TODO - use KubeApiResponse
       if (response?.body?.items?.length > 0) {
         response.body.items.forEach(item => {
           pods.push(
@@ -222,9 +232,58 @@ export class K8ClientPods extends K8ClientBase implements Pods {
         });
       }
     } catch (e) {
-      this.logger.debug(`Failed to list pods for labelSelector [${labelSelector}]: `, e);
+      throw new SoloError('Error listing pods for all namespaces', e);
     }
 
     return pods;
+  }
+
+  public async create(
+    podRef: PodRef,
+    labels: Record<string, string>,
+    containerName: ContainerName,
+    containerImage: string,
+    containerCommand: string[],
+    startupProbeCommand: string[],
+  ): Promise<Pod> {
+    const v1Metadata = new V1ObjectMeta();
+    v1Metadata.name = podRef.podName.name;
+    v1Metadata.namespace = podRef.namespaceName.name;
+    v1Metadata.labels = labels;
+
+    const v1ExecAction = new V1ExecAction();
+    v1ExecAction.command = startupProbeCommand;
+
+    const v1Probe = new V1Probe();
+    v1Probe.exec = v1ExecAction;
+
+    const v1Container = new V1Container();
+    v1Container.name = containerName.name;
+    v1Container.image = containerImage;
+    v1Container.command = containerCommand;
+    v1Container.startupProbe = v1Probe;
+
+    const v1Spec = new V1PodSpec();
+    v1Spec.containers = [v1Container];
+
+    const v1Pod = new V1Pod();
+    v1Pod.metadata = v1Metadata;
+    v1Pod.spec = v1Spec;
+
+    try {
+      const result = await this.kubeClient.createNamespacedPod(podRef.namespaceName.name, v1Pod);
+
+      // TODO - use KubeApiResponse
+      if (result?.body) {
+        return new K8ClientPod(podRef, this, this.kubeClient, this.kubeConfig);
+      } else {
+        throw new SoloError('Error creating pod', result);
+      }
+    } catch (e) {
+      if (e instanceof SoloError) {
+        throw e;
+      }
+      throw new SoloError('Error creating pod', e);
+    }
   }
 }
