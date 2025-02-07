@@ -349,30 +349,6 @@ export interface K8 {
   deleteNamespacedLease(name: string, namespace: NamespaceName): Promise<k8s.V1Status>;
 
   /**
-   * Check if cert-manager is installed inside any namespace.
-   * @returns if cert-manager is found
-   */
-  isCertManagerInstalled(): Promise<boolean>;
-
-  /**
-   * Check if minio is installed inside the namespace.
-   * @returns if minio is found
-   */
-  isMinioInstalled(namespace: NamespaceName): Promise<boolean>;
-
-  /**
-   * Check if the ingress controller is installed inside any namespace.
-   * @returns if ingress controller is found
-   */
-  isIngressControllerInstalled(): Promise<boolean>;
-
-  isRemoteConfigPresentInAnyNamespace(): Promise<boolean>;
-
-  isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean>;
-
-  isPrometheusInstalled(namespace: NamespaceName): Promise<boolean>;
-
-  /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
    * Can throw a SoloError if there is an error while deleting the pod.
    * @param podRef - the pod reference

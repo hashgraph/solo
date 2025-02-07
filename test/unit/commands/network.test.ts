@@ -30,6 +30,7 @@ import {DependencyManager} from '../../../src/core/dependency_managers/index.js'
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetTestContainer} from '../../test_container.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -65,9 +66,11 @@ describe('NetworkCommand unit tests', () => {
       opts.k8.waitForPodReady = sinon.stub();
       opts.k8.waitForPods = sinon.stub();
       opts.k8.readNamespacedLease = sinon.stub();
-      opts.k8.isMinioInstalled = sinon.stub();
-      opts.k8.isPrometheusInstalled = sinon.stub();
-      opts.k8.isCertManagerInstalled = sinon.stub();
+      const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
+      clusterChecksStub.isMinioInstalled = sinon.stub();
+      clusterChecksStub.isPrometheusInstalled = sinon.stub();
+      clusterChecksStub.isCertManagerInstalled = sinon.stub();
+      container.registerInstance(ClusterChecks, clusterChecksStub);
 
       opts.k8.logger = opts.logger;
       container.registerInstance('K8', opts.k8);
