@@ -39,6 +39,8 @@ import {K8ClientPvcs} from './k8_client/k8_client_pvcs.js';
 import {type Leases} from './leases.js';
 import {K8ClientLeases} from './k8_client/k8_client_leases.js';
 import {K8ClientNamespaces} from './k8_client/k8_client_namespaces.js';
+import {K8ClientIngressClasses} from './k8_client/k8_client_ingress_classes.js';
+import {type IngressClasses} from './ingress_classes.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -65,6 +67,7 @@ export class K8Client extends K8ClientBase implements K8 {
   private k8Services: Services;
   private k8Pvcs: Pvcs;
   private k8Namespaces: Namespaces;
+  private k8IngressClasses: IngressClasses;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -103,6 +106,7 @@ export class K8Client extends K8ClientBase implements K8 {
     this.k8Pvcs = new K8ClientPvcs(this.kubeClient);
     this.k8Leases = new K8ClientLeases(this.coordinationApiClient);
     this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
+    this.k8IngressClasses = new K8ClientIngressClasses(this.networkingApi);
 
     return this; // to enable chaining
   }
@@ -127,18 +131,10 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.k8Contexts;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating services in the kubernetes cluster.
-   * @returns an object instance providing service operations
-   */
   public services(): Services {
     return this.k8Services;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating pods in the kubernetes cluster.
-   * @returns an object instance providing pod operations
-   */
   public pods(): Pods {
     return this.k8Pods;
   }
@@ -147,12 +143,12 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.k8Pvcs;
   }
 
-  /**
-   * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
-   * @returns an object instance providing lease operations
-   */
   public leases(): Leases {
     return this.k8Leases;
+  }
+
+  public ingressClasses(): IngressClasses {
+    return this.k8IngressClasses;
   }
 
   public async createNamespace(namespace: NamespaceName) {
