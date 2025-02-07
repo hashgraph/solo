@@ -36,6 +36,7 @@ import {type Services} from './services.js';
 import {K8ClientServices} from './k8_client/k8_client_services.js';
 import {type Service} from './service.js';
 import {type Pvcs} from './pvcs.js';
+import {K8ClientPvcs} from './k8_client/k8_client_pvcs.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
