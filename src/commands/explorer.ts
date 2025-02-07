@@ -182,15 +182,12 @@ export class ExplorerCommand extends BaseCommand {
             ]);
 
             await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);
-            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = this.getConfig(ExplorerCommand.DEPLOY_CONFIGS_NAME, ExplorerCommand.DEPLOY_FLAGS_LIST, [
               'valuesArg',
-              'namespace',
             ]) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
-            ctx.config.namespace = namespace;
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
