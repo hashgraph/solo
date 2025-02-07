@@ -67,6 +67,7 @@ import {PodRef} from '../../core/kube/pod_ref.js';
 import {ContainerRef} from '../../core/kube/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import * as helpers from '../../core/helpers.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -906,6 +907,7 @@ export class NodeCommandTasks {
 
   setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean) {
     return new Task('Setup network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
       if (isGenesis) {
         await this.generateGenesisNetworkJson(
           ctx.config.namespace,
