@@ -8,25 +8,25 @@ export interface Contexts {
    * List all contexts in the kubeconfig
    * @returns a list of context names
    */
-  list(): string[]; // TODO was getContextNames
+  list(): string[];
 
   /**
    * Read the current context in the kubeconfig
    * @returns the current context name
    */
-  readCurrent(): string; // TODO was getCurrentContext
+  readCurrent(): string;
 
   /**
    * Read the current namespace in the kubeconfig
    * @returns the current namespace name
    */
-  readCurrentNamespace(): NamespaceName; // TODO was getCurrentContextNamespace
+  readCurrentNamespace(): NamespaceName;
 
   /**
    * Set the current context in the kubeconfig
    * @param context - the context name to set
    */
-  updateCurrent(context: string): void; // TODO delete this once we are instantiating multiple K8 instances, was setCurrentContext
+  updateCurrent(context: string): void; // TODO delete this once we are instantiating multiple K8 instances
 
   /**
    * Test the connection to a context

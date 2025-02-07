@@ -134,7 +134,7 @@ describe('K8', () => {
   }).timeout(defaultTimeout);
 
   it('should be able to list context names', () => {
-    const contexts = k8.getContextNames();
+    const contexts = k8.contexts().list();
     expect(contexts).not.to.have.lengthOf(0);
   }).timeout(defaultTimeout);
 

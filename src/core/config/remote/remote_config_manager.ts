@@ -215,7 +215,7 @@ export class RemoteConfigManager {
     argv: AnyObject,
   ) {
     const self = this;
-    self.k8.setCurrentContext(context);
+    self.k8.contexts().updateCurrent(context);
 
     if (!(await self.k8.hasNamespace(NamespaceName.of(namespace)))) {
       await self.k8.createNamespace(NamespaceName.of(namespace));
@@ -308,7 +308,7 @@ export class RemoteConfigManager {
   private setDefaultContextIfNotSet(): void {
     if (this.configManager.hasFlag(flags.context)) return;
 
-    const context = this.k8.getCurrentContext();
+    const context = this.k8.contexts().readCurrent();
 
     if (!context) {
       this.logger.error("Context is not passed and default one can't be acquired", this.localConfig);
