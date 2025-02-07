@@ -245,6 +245,9 @@ export class ExplorerCommand extends BaseCommand {
               constants.DEFAULT_CERT_MANAGER_NAMESPACE,
             );
 
+            // sleep for a few seconds to allow cert-manager to be ready
+            await new Promise(resolve => setTimeout(resolve, 10000));
+
             await self.chartManager.upgrade(
               clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
