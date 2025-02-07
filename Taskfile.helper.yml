@@ -82,6 +82,7 @@ tasks:
       - echo "CLUSTER_TLS_FLAGS=${CLUSTER_TLS_FLAGS}"
       - echo "NETWORK_DEPLOY_EXTRA_FLAGS=${NETWORK_DEPLOY_EXTRA_FLAGS}"
       - echo "MIRROR_NODE_DEPLOY_EXTRA_FLAGS=${MIRROR_NODE_DEPLOY_EXTRA_FLAGS}"
+      - echo "NODE_COPY_CONCURRENT=${NODE_COPY_CONCURRENT}"
       - touch {{ .var_check_file }}
 
   readme:
@@ -198,7 +199,7 @@ tasks:
         if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
           export CONSENSUS_NODE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q --dev
+        NODE_COPY_CONCURRENT=${NODE_COPY_CONCURRENT} SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q --dev
 
   solo:network:destroy:
     silent: true
