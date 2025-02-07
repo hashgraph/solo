@@ -8,6 +8,7 @@ import {SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type K8} from './kube/k8.js';
 import {type K8Client} from './kube/k8_client.js';
+import {type Pod} from './kube/pod.js';
 import {type IngressClass} from './kube/ingress_class.js';
 
 /**
@@ -29,14 +30,9 @@ export class ClusterChecks {
    */
   public async isCertManagerInstalled(): Promise<boolean> {
     try {
-      const pods = await (this.k8 as K8Client).kubeClient.listPodForAllNamespaces(
-        undefined,
-        undefined,
-        undefined,
-        'app=cert-manager',
-      );
+      const pods: Pod[] = await this.k8.pods().listForAllNamespaces(['app=cert-manager']);
 
-      return pods.body.items.length > 0;
+      return pods.length > 0;
     } catch (e) {
       this.logger.error('Failed to find cert-manager:', e);
 
