@@ -379,21 +379,6 @@ export interface K8 {
    */
   killPod(podRef: PodRef): Promise<void>;
 
-  /**
-   * Download logs files from all network pods and save to local solo log directory
-   * @param namespace - the namespace of the network
-   * @returns a promise that resolves when the logs are downloaded
-   */
-  getNodeLogs(namespace: NamespaceName): Promise<Awaited<unknown>[]>;
-
-  /**
-   * Download state files from a pod
-   * @param namespace - the namespace of the network
-   * @param nodeAlias - the pod name
-   * @returns a promise that resolves when the state files are downloaded
-   */
-  getNodeStatesFromPod(namespace: NamespaceName, nodeAlias: string): Promise<Awaited<unknown>[]>;
-
   setCurrentContext(context: string): void;
 
   getCurrentContext(): string;
