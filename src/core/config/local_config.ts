@@ -178,7 +178,7 @@ export class LocalConfig implements LocalConfigData {
 
         if (!deploymentClusters) {
           if (isQuiet) {
-            deploymentClusters = k8.getCurrentClusterName();
+            deploymentClusters = k8.clusters().readCurrent();
           } else {
             deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
           }

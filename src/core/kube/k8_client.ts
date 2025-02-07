@@ -203,10 +203,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.services().read(this.getNamespace(), name);
   }
 
-  public getClusters(): string[] {
-    return this.clusters().list();
-  }
-
   public getContextNames(): string[] {
     return this.contexts().list();
   }
@@ -454,10 +450,6 @@ export class K8Client extends K8ClientBase implements K8 {
 
   public getCurrentContextNamespace(): NamespaceName {
     return this.contexts().readCurrentNamespace();
-  }
-
-  public getCurrentClusterName(): string {
-    return this.clusters().readCurrent();
   }
 
   public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]> {

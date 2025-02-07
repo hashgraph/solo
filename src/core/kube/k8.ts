@@ -120,12 +120,6 @@ export interface K8 {
   listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]>;
 
   /**
-   * Get a list of clusters
-   * @returns a list of cluster names
-   */
-  getClusters(): string[];
-
-  /**
    * Get a list of contexts
    * @returns a list of context names
    */
@@ -374,6 +368,4 @@ export interface K8 {
   getCurrentContext(): string;
 
   getCurrentContextNamespace(): NamespaceName;
-
-  getCurrentClusterName(): string;
 }
