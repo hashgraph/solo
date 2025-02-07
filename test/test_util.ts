@@ -48,6 +48,7 @@ import {resetTestContainer} from './test_container.js';
 import {NamespaceName} from '../src/core/kube/namespace_name.js';
 import {PodRef} from '../src/core/kube/pod_ref.js';
 import {ContainerRef} from '../src/core/kube/container_ref.js';
+import {NetworkNodes} from '../src/core/network_nodes.js';
 
 export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
@@ -228,7 +229,7 @@ export function e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(5).toMillis());
-        await k8.getNodeLogs(namespace);
+        await container.resolve(NetworkNodes).getLogs(namespace);
         bootstrapResp.opts.logger.showUser(
           `------------------------- END: bootstrap (${testName}) ----------------------------`,
         );
