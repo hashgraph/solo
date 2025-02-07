@@ -33,12 +33,12 @@ export class K8ClientContainer implements Container {
 
   public async copyFrom(srcPath: string, destDir: string): Promise<unknown> {
     const self = this;
-    const namespace = this.containerRef.podRef.namespaceName;
+    const namespace = this.containerRef.parentRef.namespace;
     const guid = uuid4();
-    const messagePrefix = `copyFrom[${this.containerRef.podRef.podName.name},${guid}]: `;
+    const messagePrefix = `copyFrom[${this.containerRef.parentRef.name},${guid}]: `;
 
-    if (!(await self.k8.getPodByName(this.containerRef.podRef)))
-      throw new IllegalArgumentError(`Invalid pod ${this.containerRef.podRef.podName.name}`);
+    if (!(await self.k8.getPodByName(this.containerRef.parentRef)))
+      throw new IllegalArgumentError(`Invalid pod ${this.containerRef.parentRef.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
@@ -98,8 +98,8 @@ export class K8ClientContainer implements Container {
         execInstance
           .exec(
             namespace.name,
-            this.containerRef.podRef.podName.name,
-            this.containerRef.containerName.name,
+            this.containerRef.parentRef.name.toString(),
+            this.containerRef.name.toString(),
             command,
             outputFileStream,
             errPassthroughStream,
@@ -167,12 +167,12 @@ export class K8ClientContainer implements Container {
 
   public async copyTo(srcPath: string, destDir: string, filter: TarCreateFilter | undefined): Promise<boolean> {
     const self = this;
-    const namespace = this.containerRef.podRef.namespaceName;
+    const namespace = this.containerRef.parentRef.namespace;
     const guid = uuid4();
-    const messagePrefix = `copyTo[${this.containerRef.podRef.podName.name},${guid}]: `;
+    const messagePrefix = `copyTo[${this.containerRef.parentRef.name},${guid}]: `;
 
-    if (!(await self.k8.getPodByName(this.containerRef.podRef)))
-      throw new IllegalArgumentError(`Invalid pod ${this.containerRef.podRef.podName.name}`);
+    if (!(await self.k8.getPodByName(this.containerRef.parentRef)))
+      throw new IllegalArgumentError(`Invalid pod ${this.containerRef.parentRef.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
 
@@ -208,8 +208,8 @@ export class K8ClientContainer implements Container {
         execInstance
           .exec(
             namespace.name,
-            this.containerRef.podRef.podName.name,
-            this.containerRef.containerName.name,
+            this.containerRef.parentRef.name.toString(),
+            this.containerRef.name.toString(),
             command,
             null,
             errPassthroughStream,
@@ -252,12 +252,12 @@ export class K8ClientContainer implements Container {
 
   public async execContainer(command: string | string[]): Promise<string> {
     const self = this;
-    const namespace = this.containerRef.podRef.namespaceName;
+    const namespace = this.containerRef.parentRef.namespace;
     const guid = uuid4();
-    const messagePrefix = `execContainer[${this.containerRef.podRef.podName.name},${guid}]:`;
+    const messagePrefix = `execContainer[${this.containerRef.parentRef.name},${guid}]:`;
 
-    if (!(await self.k8.getPodByName(this.containerRef.podRef)))
-      throw new IllegalArgumentError(`Invalid pod ${this.containerRef.podRef.podName.name}`);
+    if (!(await self.k8.getPodByName(this.containerRef.parentRef)))
+      throw new IllegalArgumentError(`Invalid pod ${this.containerRef.parentRef.name}`);
 
     if (!command) throw new MissingArgumentError('command cannot be empty');
     if (!Array.isArray(command)) {
@@ -270,7 +270,7 @@ export class K8ClientContainer implements Container {
       const localContext = {} as LocalContextObject;
       localContext.reject = reject;
       const execInstance = new Exec(self.kubeConfig);
-      const tmpFile = self.tempFileFor(`${this.containerRef.podRef.podName.name}-output.txt`);
+      const tmpFile = self.tempFileFor(`${this.containerRef.parentRef.name}-output.txt`);
       const outputFileStream = fs.createWriteStream(tmpFile);
       const outputPassthroughStream = new stream.PassThrough({highWaterMark: 10 * 1024 * 1024});
       const errPassthroughStream = new stream.PassThrough();
@@ -290,8 +290,8 @@ export class K8ClientContainer implements Container {
       execInstance
         .exec(
           namespace.name,
-          this.containerRef.podRef.podName.name,
-          this.containerRef.containerName.name,
+          this.containerRef.parentRef.name.toString(),
+          this.containerRef.name.toString(),
           command,
           outputFileStream,
           errPassthroughStream,
@@ -353,7 +353,7 @@ export class K8ClientContainer implements Container {
             const field = entry[0];
             const value = entry[1];
             this.logger.debug(
-              `Checking file ${this.containerRef.podRef.podName.name}:${this.containerRef.containerName.name} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
+              `Checking file ${this.containerRef.parentRef.name}:${this.containerRef.name} ${destPath}; ${field} expected ${value}, found ${item[field]}`,
               {filters},
             );
             if (`${value}` !== `${item[field]}`) {
@@ -364,7 +364,7 @@ export class K8ClientContainer implements Container {
 
           if (found) {
             this.logger.debug(
-              `File check succeeded ${this.containerRef.podRef.podName.name}:${this.containerRef.containerName.name} ${destPath}`,
+              `File check succeeded ${this.containerRef.parentRef.name}:${this.containerRef.name} ${destPath}`,
               {
                 filters,
               },
@@ -375,7 +375,7 @@ export class K8ClientContainer implements Container {
       }
     } catch (e) {
       const error = new SoloError(
-        `unable to check file in '${this.containerRef.podRef.podName.name}':${this.containerRef.containerName.name}' - ${destPath}: ${e.message}`,
+        `unable to check file in '${this.containerRef.parentRef.name}':${this.containerRef.name}' - ${destPath}: ${e.message}`,
         e,
       );
       this.logger.error(error.message, error);
@@ -441,7 +441,7 @@ export class K8ClientContainer implements Container {
       return items;
     } catch (e) {
       throw new SoloError(
-        `unable to check path in '${this.containerRef.podRef.podName.name}':${this.containerRef.containerName.name}' - ${destPath}: ${e.message}`,
+        `unable to check path in '${this.containerRef.parentRef.name}':${this.containerRef.name}' - ${destPath}: ${e.message}`,
         e,
       );
     }

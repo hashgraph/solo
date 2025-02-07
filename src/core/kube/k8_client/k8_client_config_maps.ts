@@ -93,7 +93,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
       const resp = replace
         ? await this.kubeClient.replaceNamespacedConfigMap(name, namespace.name, configMap)
         : await this.kubeClient.createNamespacedConfigMap(namespace.name, configMap);
-      return KubeApiResponse.isFailingStatus(resp.response);
+      return KubeApiResponse.isCreatedStatus(resp.response);
     } catch (e) {
       if (replace) {
         throw new ResourceReplaceError(ResourceType.CONFIG_MAP, namespace, name, e);

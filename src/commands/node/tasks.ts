@@ -1023,7 +1023,7 @@ export class NodeCommandTasks {
       'Enable port forwarding for JVM debugger',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const podRef = PodRef.of(ctx.config.namespace, PodName.of(`network-${ctx.config.debugNodeAlias}-0`));
-        this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podRef.podName.name}`);
+        this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podRef.name}`);
         await this.k8.portForward(podRef, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT);
       },
       (ctx: any) => !ctx.config.debugNodeAlias,
