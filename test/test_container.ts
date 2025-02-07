@@ -26,5 +26,6 @@ export function resetForTest(namespace?: NamespaceNameAsString, cacheDir: string
     parsedData.deployments[parsedData.currentDeploymentName].namespace = namespace;
   }
 
+  fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
   resetTestContainer(cacheDir);
 }
