@@ -942,7 +942,7 @@ export class NodeCommandTasks {
     const networkOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
     const genesisNetworkJson = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
-    fs.writeFileSync(genesisNetworkJson, networkOverridesModel.toYAML());
+    fs.writeFileSync(nodeOverridesJson, nodeOverridesModel.toYAML());
   }
 
   /**
