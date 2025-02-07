@@ -126,7 +126,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`${nodeAlias} should be running`, async () => {
             try {
               // @ts-ignore to access tasks which is a private property
-              expect((await nodeCmd.tasks.checkNetworkNodePod(namespace, nodeAlias)).podName.name).to.equal(
+              expect((await nodeCmd.tasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
                 `network-${nodeAlias}-0`,
               );
             } catch (e) {
