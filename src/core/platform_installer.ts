@@ -307,7 +307,7 @@ export class PlatformInstaller {
     }
 
     const networkOverridesYaml = [path.join(stagingDir, constants.NODE_OVERRIDE_FILE)];
-    await this.copyFiles(podRef, networkOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`);
+    await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`);
   }
 
   /**
