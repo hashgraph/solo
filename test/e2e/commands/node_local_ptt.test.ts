@@ -9,6 +9,8 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {type K8} from '../../../src/core/kube/k8.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
 
 const LOCAL_PTT = NamespaceName.of('local-ptt-app');
 const argv = getDefaultArgv();
@@ -47,7 +49,7 @@ e2eTestSuite(
       });
 
       it('get the logs and delete the namespace', async () => {
-        await pttK8.getNodeLogs(LOCAL_PTT);
+        await container.resolve(NetworkNodes).getLogs(LOCAL_PTT);
         await pttK8.deleteNamespace(LOCAL_PTT);
       }).timeout(Duration.ofMinutes(2).toMillis());
     });

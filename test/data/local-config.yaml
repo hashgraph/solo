@@ -1,9 +1,10 @@
 userEmailAddress: joe@doe.com
 deployments:
-  deployment-1:
-    clusterAliases:
+  deployment:
+    clusters:
       - cluster-1
-currentDeploymentName: deployment-1
+    namespace: solo-e2e
+currentDeploymentName: deployment
 clusterContextMapping:
   cluster-1: context-1
   cluster-2: context-2

@@ -15,7 +15,10 @@ import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {ClusterChecks} from '../core/cluster_checks.js';
+import {container} from 'tsyringe-neo';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -66,6 +69,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.hederaExplorerVersion,
       flags.mirrorStaticIp,
       flags.namespace,
+      flags.deployment,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
@@ -115,9 +119,11 @@ export class ExplorerCommand extends BaseCommand {
       );
     }
 
+    const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
+
     // Install ingress controller only if haproxy ingress not already present
     if (
-      !(await this.k8.isIngressControllerInstalled([
+      !(await clusterChecks.isIngressControllerInstalled([
         'app.kubernetes.io/name=haproxy-ingress',
         `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
       ])) &&
@@ -128,7 +134,7 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
     }
 
-    if (!(await this.k8.isCertManagerInstalled())) {
+    if (!(await clusterChecks.isCertManagerInstalled())) {
       valuesArg += ' --set cloud.certManager.enabled=true';
       valuesArg += ' --set cert-manager.installCRDs=true';
     }
@@ -182,12 +188,15 @@ export class ExplorerCommand extends BaseCommand {
             ]);
 
             await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = this.getConfig(ExplorerCommand.DEPLOY_CONFIGS_NAME, ExplorerCommand.DEPLOY_FLAGS_LIST, [
               'valuesArg',
+              'namespace',
             ]) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
+            ctx.config.namespace = namespace;
 
             if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
@@ -368,21 +377,20 @@ export class ExplorerCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            // @ts-ignore
-            ctx.config = {
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
-            };
-
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
-              throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
+            if (!(await self.k8.hasNamespace(namespace))) {
+              throw new SoloError(`namespace ${namespace} does not exist`);
             }
 
-            ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
-              ctx.config.namespace,
-              constants.HEDERA_EXPLORER_RELEASE_NAME,
-            );
+            ctx.config = {
+              namespace,
+              isChartInstalled: await this.chartManager.isChartInstalled(
+                namespace,
+                constants.HEDERA_EXPLORER_RELEASE_NAME,
+              ),
+            };
+
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
@@ -445,7 +453,7 @@ export class ExplorerCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy explorer',
-            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.namespace),
+            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.deployment),
             handler: argv => {
               self.logger.info('==== Running explorer destroy ===');
               self.logger.info(argv);

@@ -9,6 +9,7 @@ vars:
 env:
   SOLO_NETWORK_SIZE: 4
   SOLO_NAMESPACE: solo-gke-test
+  SOLO_DEPLOYMENT: solo-deployment-gke-test
   # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: v0.58.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"

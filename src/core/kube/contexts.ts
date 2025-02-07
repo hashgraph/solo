@@ -1,30 +1,32 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
+import {type NamespaceName} from './namespace_name.js';
+
 export interface Contexts {
   /**
    * List all contexts in the kubeconfig
    * @returns a list of context names
    */
-  list(): Promise<string[]>; // TODO was getContextNames
+  list(): string[];
 
   /**
    * Read the current context in the kubeconfig
    * @returns the current context name
    */
-  readCurrent(): Promise<string>; // TODO was getCurrentContext
+  readCurrent(): string;
 
   /**
    * Read the current namespace in the kubeconfig
    * @returns the current namespace name
    */
-  readCurrentNamespace(): Promise<string>; // TODO was getCurrentContextNamespace
+  readCurrentNamespace(): NamespaceName;
 
   /**
    * Set the current context in the kubeconfig
    * @param context - the context name to set
    */
-  updateCurrent(context: string): Promise<void>; // TODO delete this once we are instantiating multiple K8 instances, was setCurrentContext
+  updateCurrent(context: string): void; // TODO delete this once we are instantiating multiple K8 instances
 
   /**
    * Test the connection to a context

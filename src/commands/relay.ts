@@ -10,6 +10,7 @@ import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getNodeAccountMap} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -40,7 +41,7 @@ export class RelayCommand extends BaseCommand {
     return [
       flags.chainId,
       flags.chartDirectory,
-      flags.namespace,
+      flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.operatorId,
       flags.operatorKey,
@@ -54,7 +55,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   static get DESTROY_FLAGS_LIST() {
-    return [flags.chartDirectory, flags.namespace, flags.nodeAliasesUnparsed];
+    return [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed];
   }
 
   async prepareValuesArg(
@@ -174,6 +175,7 @@ export class RelayCommand extends BaseCommand {
       chainId: string;
       chartDirectory: string;
       namespace: NamespaceName;
+      deployment: string;
       nodeAliasesUnparsed: string;
       operatorId: string;
       operatorKey: string;
@@ -213,6 +215,7 @@ export class RelayCommand extends BaseCommand {
               'nodeAliases',
             ]) as RelayDeployConfigClass;
 
+            ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
             ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(
@@ -315,6 +318,7 @@ export class RelayCommand extends BaseCommand {
     interface RelayDestroyConfigClass {
       chartDirectory: string;
       namespace: NamespaceName;
+      deployment: string;
       nodeAliases: NodeAliases;
       releaseName: string;
       isChartInstalled: boolean;
@@ -334,11 +338,12 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
             await self.configManager.executePrompt(task, RelayCommand.DESTROY_FLAGS_LIST);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {
               chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              namespace: namespace,
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
               ),
@@ -422,7 +427,7 @@ export class RelayCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy JSON RPC relay',
             builder: (y: any) =>
-              flags.setCommandFlags(y, flags.chartDirectory, flags.namespace, flags.quiet, flags.nodeAliasesUnparsed),
+              flags.setCommandFlags(y, flags.chartDirectory, flags.deployment, flags.quiet, flags.nodeAliasesUnparsed),
             handler: (argv: any) => {
               self.logger.info("==== Running 'relay destroy' ===", {argv});
               self.logger.debug(argv);
@@ -451,7 +456,7 @@ export class RelayCommand extends BaseCommand {
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace, nodeAliases));
+          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace.name, nodeAliases));
         });
       },
     };
