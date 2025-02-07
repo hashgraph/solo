@@ -66,7 +66,7 @@ export function main(argv: any) {
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
     const contextNamespace = k8.contexts().readCurrentNamespace();
-    const currentClusterName = k8.getCurrentClusterName();
+    const currentClusterName = k8.clusters().readCurrent();
     const contextName = k8.contexts().readCurrent();
 
     const opts: Opts = {

@@ -122,7 +122,7 @@ describe('K8', () => {
   });
 
   it('should be able to list clusters', async () => {
-    const clusters = k8.getClusters();
+    const clusters = k8.clusters().list();
     expect(clusters).not.to.have.lengthOf(0);
   }).timeout(defaultTimeout);
 

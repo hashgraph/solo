@@ -120,12 +120,6 @@ export interface K8 {
   listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]>;
 
   /**
-   * Get a list of clusters
-   * @returns a list of cluster names
-   */
-  getClusters(): string[];
-
-  /**
    * List files and directories in a container
    *
    * It runs ls -la on the specified path and returns a list of object containing the entries.
@@ -360,6 +354,4 @@ export interface K8 {
    * @param podRef - the pod reference
    */
   killPod(podRef: PodRef): Promise<void>;
-
-  getCurrentClusterName(): string;
 }

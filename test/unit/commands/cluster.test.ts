@@ -46,7 +46,7 @@ import {stringify} from 'yaml';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
-import {K8ClientContexts} from '../../../src/core/kube/k8_client/k8_client_contexts.js';
+import {K8ClientClusters} from '../../../src/core/kube/k8_client/k8_client_clusters.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -189,7 +189,9 @@ describe('ClusterCommand unit tests', () => {
       });
       remoteConfigManagerStub.get.resolves(remoteConfig);
 
-      k8Stub.getCurrentClusterName.returns(kubeConfigClusterObject.name);
+      const k8ClustersStub = sandbox.createStubInstance(K8ClientClusters);
+      k8ClustersStub.readCurrent.returns(kubeConfigClusterObject.name);
+      k8Stub.clusters.returns(k8ClustersStub);
       k8StubContexts.readCurrent.returns('context-from-kubeConfig');
 
       const configManager = sandbox.createStubInstance(ConfigManager);
