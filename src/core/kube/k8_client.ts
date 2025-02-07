@@ -54,7 +54,7 @@ export class K8Client extends K8ClientBase implements K8 {
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
-  networkingApi!: k8s.NetworkingV1Api;
+  private networkingApi!: k8s.NetworkingV1Api;
 
   private k8Leases: Leases;
   private k8Clusters: Clusters;
