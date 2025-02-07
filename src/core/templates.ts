@@ -26,7 +26,7 @@ export class Templates {
     return svcName.split('-').slice(1, -1).join('-') as NodeAlias;
   }
 
-  private static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
+  public static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}`;
   }
 

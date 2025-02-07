@@ -14,11 +14,10 @@ export class NodeOverridesModel {
 
   public constructor(nodeAliases: NodeAliases, networkNodeServiceMap: Map<string, NetworkNodeServices>) {
     nodeAliases.forEach(nodeAlias => {
-      const namespace = networkNodeServiceMap.get(nodeAlias).namespace;
       const nodeId = +networkNodeServiceMap.get(nodeAlias).nodeId;
 
       const localClusterPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
-      const localClusterHostName = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeAlias);
+      const localClusterHostName = Templates.renderNetworkHeadlessSvcName(nodeAlias);
 
       this.interfaceBindings.push({nodeId, hostname: localClusterHostName, port: localClusterPort});
       // TODO future, add endpointOverrides for addresses external to cluster in multi-cluster support situation
