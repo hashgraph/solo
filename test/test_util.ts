@@ -44,7 +44,7 @@ import {KeyManager} from '../src/core/key_manager.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {resetTestContainer} from './test_container.js';
+import {resetForTest} from './test_container.js';
 import {NamespaceName} from '../src/core/kube/namespace_name.js';
 import {PodRef} from '../src/core/kube/pod_ref.js';
 import {ContainerRef} from '../src/core/kube/container_ref.js';
@@ -77,6 +77,12 @@ export function getDefaultArgv() {
     argv[f.name] = f.definition.defaultValue;
   }
 
+  const currentDeployment = testLocalConfigData.currentDeploymentName;
+  const cacheDir = getTestCacheDir();
+  argv.cacheDir = cacheDir;
+  argv[flags.cacheDir.name] = cacheDir;
+  argv.deployment = currentDeployment;
+  argv[flags.deployment.name] = currentDeployment;
   return argv;
 }
 
@@ -100,6 +106,7 @@ interface TestOpts {
 }
 
 interface BootstrapResponse {
+  deployment: string;
   namespace: NamespaceName;
   opts: TestOpts;
   manager: {
@@ -126,8 +133,9 @@ export function bootstrapTestVariables(
   accountCmdArg: AccountCommand | null = null,
 ): BootstrapResponse {
   const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
+  const deployment: string = argv[flags.deployment.name] || 'deployment';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
-  resetTestContainer(cacheDir);
+  resetForTest(namespace.name, cacheDir);
   const configManager = container.resolve(ConfigManager);
   configManager.update(argv);
 
@@ -172,6 +180,7 @@ export function bootstrapTestVariables(
   const accountCmd = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
   return {
     namespace,
+    deployment,
     opts,
     manager: {
       accountManager,
@@ -272,6 +281,7 @@ export function e2eTestSuite(
           flags.bootstrapProperties.constName,
           flags.chainId.constName,
           flags.log4j2Xml.constName,
+          flags.deployment.constName,
           flags.profileFile.constName,
           flags.profileName.constName,
           flags.quiet.constName,
@@ -450,12 +460,15 @@ export const testLocalConfigData = {
   deployments: {
     deployment: {
       clusters: ['cluster-1'],
+      namespace: 'solo-e2e',
     },
     'deployment-2': {
       clusters: ['cluster-2'],
+      namespace: 'solo-2',
     },
     'deployment-3': {
       clusters: ['cluster-3'],
+      namespace: 'solo-3',
     },
   },
   currentDeploymentName: 'deployment',

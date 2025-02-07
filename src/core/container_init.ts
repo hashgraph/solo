@@ -18,7 +18,7 @@ import {ProfileManager} from './profile_manager.js';
 import {IntervalLeaseRenewalService} from './lease/interval_lease_renewal.js';
 import {LeaseManager} from './lease/lease_manager.js';
 import {CertificateManager} from './certificate_manager.js';
-import path from 'path';
+import path, {normalize} from 'path';
 import {LocalConfig} from './config/local_config.js';
 import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import os from 'os';
@@ -94,7 +94,7 @@ export class Container {
     container.register(CertificateManager, {useClass: CertificateManager}, {lifecycle: Lifecycle.Singleton});
 
     // LocalConfig
-    const localConfigPath = path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigPath = normalize(path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
     container.register('localConfigFilePath', {useValue: localConfigPath});
     container.register(LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
