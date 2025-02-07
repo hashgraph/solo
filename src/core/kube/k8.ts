@@ -126,12 +126,6 @@ export interface K8 {
   getClusters(): string[];
 
   /**
-   * Get a list of contexts
-   * @returns a list of context names
-   */
-  getContextNames(): string[];
-
-  /**
    * List files and directories in a container
    *
    * It runs ls -la on the specified path and returns a list of object containing the entries.
@@ -269,8 +263,6 @@ export interface K8 {
    */
   deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
 
-  testContextConnection(context: string): Promise<boolean>;
-
   /**
    * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
    * @param namespace - the namespace of the secret to search for
@@ -368,12 +360,6 @@ export interface K8 {
    * @param podRef - the pod reference
    */
   killPod(podRef: PodRef): Promise<void>;
-
-  setCurrentContext(context: string): void;
-
-  getCurrentContext(): string;
-
-  getCurrentContextNamespace(): NamespaceName;
 
   getCurrentClusterName(): string;
 }

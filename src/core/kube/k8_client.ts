@@ -207,10 +207,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.clusters().list();
   }
 
-  public getContextNames(): string[] {
-    return this.contexts().list();
-  }
-
   public async listDir(containerRef: ContainerRef, destPath: string) {
     return this.containers().readByRef(containerRef).listDir(destPath);
   }
@@ -303,11 +299,6 @@ export class K8Client extends K8ClientBase implements K8 {
   }
 
   // --------------------------------------- Utility Methods --------------------------------------- //
-
-  // TODO this can be removed once K8 is context/cluster specific when instantiating
-  public async testContextConnection(context: string): Promise<boolean> {
-    return this.contexts().testContextConnection(context);
-  }
 
   // --------------------------------------- Secret --------------------------------------- //
 
@@ -441,19 +432,6 @@ export class K8Client extends K8ClientBase implements K8 {
 
   public async killPod(podRef: PodRef) {
     return this.pods().readByRef(podRef).killPod();
-  }
-
-  // TODO make private once we are instantiating multiple K8 instances
-  public setCurrentContext(context: string) {
-    return this.contexts().updateCurrent(context);
-  }
-
-  public getCurrentContext(): string {
-    return this.contexts().readCurrent();
-  }
-
-  public getCurrentContextNamespace(): NamespaceName {
-    return this.contexts().readCurrentNamespace();
   }
 
   public getCurrentClusterName(): string {

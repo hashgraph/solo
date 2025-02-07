@@ -103,7 +103,7 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Validate context',
           task: async (ctx, task) => {
             ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
-            const availableContexts = self.k8.getContextNames();
+            const availableContexts = self.k8.contexts().list();
 
             if (availableContexts.includes(ctx.config.context)) {
               task.title += chalk.green(`- validated context ${ctx.config.context}`);
@@ -128,7 +128,7 @@ export class DeploymentCommand extends BaseCommand {
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
                 task: async (_, task) => {
-                  if (!(await self.k8.testContextConnection(context))) {
+                  if (!(await self.k8.contexts().testContextConnection(context))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
 
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
@@ -195,7 +195,7 @@ export class DeploymentCommand extends BaseCommand {
 
             const context = self.localConfig.clusterContextMapping[clusterName];
 
-            self.k8.setCurrentContext(context);
+            self.k8.contexts().updateCurrent(context);
 
             const namespaces = await self.k8.getNamespaces();
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
