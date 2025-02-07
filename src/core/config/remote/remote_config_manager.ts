@@ -18,7 +18,6 @@ import {LocalConfig} from '../local_config.js';
 import {type DeploymentStructure} from '../local_config_data.js';
 import {type Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
-import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
@@ -26,7 +25,6 @@ import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {NamespaceName} from '../../kube/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
-import {K8Client} from '../../kube/k8_client.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -44,12 +42,12 @@ export class RemoteConfigManager {
    * @param configManager - Manager to retrieve application flags and settings.
    */
   public constructor(
-    @inject(K8Client) private readonly k8?: K8,
+    @inject('K8') private readonly k8?: K8,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
     @inject(LocalConfig) private readonly localConfig?: LocalConfig,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, K8Client, this.constructor.name);
+    this.k8 = patchInject(k8, 'K8', this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
     this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
