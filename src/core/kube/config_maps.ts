@@ -20,7 +20,7 @@ export interface ConfigMaps {
     name: string,
     labels: Record<string, string>,
     data: Record<string, string>,
-  ): Promise<boolean>; // TODO was createNamespacedConfigMap
+  ): Promise<boolean>;
 
   /**
    * Create or replace a config map. If the config map already exists, it will be replaced.
@@ -45,7 +45,7 @@ export interface ConfigMaps {
    * @param namespace - for the config map
    * @param name - for the config name
    */
-  read(namespace: NamespaceName, name: string): Promise<V1ConfigMap>; // TODO was getNamespacedConfigMap
+  read(namespace: NamespaceName, name: string): Promise<V1ConfigMap>;
 
   /**
    * Replace an existing config map with a new one
@@ -59,14 +59,14 @@ export interface ConfigMaps {
     name: string,
     labels: Record<string, string>,
     data: Record<string, string>,
-  ): Promise<boolean>; // TODO was replaceNamespacedConfigMap
+  ): Promise<boolean>;
 
   /**
    * Delete a config map
    * @param namespace - for the config map
    * @param name - for the config name
    */
-  delete(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was deleteNamespacedConfigMap
+  delete(namespace: NamespaceName, name: string): Promise<boolean>;
 
   /**
    * Check if a config map exists

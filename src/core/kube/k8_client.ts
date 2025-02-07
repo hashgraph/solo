@@ -365,32 +365,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return resp.response.statusCode === StatusCodes.OK;
   }
 
-  /* ------------- ConfigMap ------------- */
-
-  public async getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap> {
-    return this.configMaps().read(this.getNamespace(), name);
-  }
-
-  public async createNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean> {
-    return this.configMaps().create(this.getNamespace(), name, labels, data);
-  }
-
-  public async replaceNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean> {
-    return this.configMaps().replace(this.getNamespace(), name, labels, data);
-  }
-
-  public async deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean> {
-    return this.configMaps().delete(namespace, name);
-  }
-
   // --------------------------------------- LEASES --------------------------------------- //
 
   public async createNamespacedLease(
