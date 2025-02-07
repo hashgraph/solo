@@ -917,7 +917,7 @@ export class NodeCommandTasks {
         );
       }
 
-      await this.generateNetworksOverridesJson(ctx.config.namespace, ctx.config.nodeAliases, ctx.config.stagingDir);
+      await this.generateNodeOverridesJson(ctx.config.namespace, ctx.config.nodeAliases, ctx.config.stagingDir);
 
       const subTasks = [];
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
