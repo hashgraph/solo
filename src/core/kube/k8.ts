@@ -14,6 +14,7 @@ import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {type ContainerRef} from './container_ref.js';
 import {type Contexts} from './contexts.js';
+import {type Pvcs} from './pvcs.js';
 import {type Services} from './services.js';
 import {type Service} from './service.js';
 import {type Pods} from './pods.js';
@@ -56,6 +57,12 @@ export interface K8 {
   services(): Services;
 
   pods(): Pods;
+
+  /**
+   * Fluent accessor for reading and manipulating pvcs (persistent volume claims) in the kubernetes cluster.
+   * @returns an object instance providing pvc (persistent volume claim) operations
+   */
+  pvcs(): Pvcs;
 
   /**
    * Create a new namespace
