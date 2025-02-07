@@ -31,6 +31,7 @@ import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetTestContainer} from '../../test_container.js';
 import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
+import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/k8_client_config_maps.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -62,7 +63,8 @@ describe('NetworkCommand unit tests', () => {
 
       opts.k8 = sinon.stub() as unknown as K8;
       opts.k8.hasNamespace = sinon.stub().returns(true);
-      opts.k8.getNamespacedConfigMap = sinon.stub().returns(null);
+      opts.k8.configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
+      opts.k8.configMaps.read = sinon.stub();
       opts.k8.waitForPodReady = sinon.stub();
       opts.k8.waitForPods = sinon.stub();
       opts.k8.readNamespacedLease = sinon.stub();

@@ -316,37 +316,6 @@ export interface K8 {
    */
   deleteSecret(name: string, namespace: NamespaceName): Promise<boolean>;
 
-  /**
-   * @param name - name of the configmap
-   * @returns the configmap if found
-   * @throws SoloError - if the response if not found or the response is not OK
-   */
-  getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap>;
-
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
-  createNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean>;
-
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
-  replaceNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean>;
-
-  deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean>;
-
   createNamespacedLease(
     namespace: NamespaceName,
     leaseName: string,
