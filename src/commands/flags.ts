@@ -171,6 +171,25 @@ export class Flags {
     },
   };
 
+  static readonly mirrorNamespace: CommandFlag = {
+    constName: 'mirrorNamespace',
+    name: 'mirror-namespace',
+    definition: {
+      describe: 'Namespace',
+      type: 'string',
+    },
+    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        'solo',
+        'Enter mirror node namespace name: ',
+        'namespace cannot be empty',
+        Flags.mirrorNamespace.name,
+      );
+    },
+  };
+
   static readonly valuesFile: CommandFlag = {
     constName: 'valuesFile',
     name: 'values-file',
@@ -1815,6 +1834,7 @@ export class Flags {
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
+    Flags.mirrorNamespace,
     Flags.namespace,
     Flags.newAccountNumber,
     Flags.newAdminKey,

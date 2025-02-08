@@ -335,6 +335,8 @@ export interface K8 {
    */
   killPod(podRef: PodRef): Promise<void>;
 
+  deleteIngressClass(ingressClassName: string): Promise<void>;
+
   createIngressClass(ingressClassName: string, controllerName: string): Promise<void>;
 
   patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;

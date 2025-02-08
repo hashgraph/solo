@@ -29,8 +29,9 @@ env:
   TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
   # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
 #  NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=<ip-address>,node2=<ip-address>,node3=<ip-address>,node4=<ip-address> --pvcs"
-  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/mirror-node-values.yaml"
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/mirror-node-values.yaml --mirror-static-ip 34.55.235.252"
   EXPLORER_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/ingress-values.yaml --hedera-explorer-static-ip 35.226.75.168"
-  EXPLORER_NAME_SPACE: "explorer-space"
+  EXPLORER_NAME_SPACE: "explorer-name-space"
+  EXPLORER_DEPLOYMENT: "explorer-test"
   RELAY_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/relay-values.yaml"
   SKIP_NODE_PING: 'true'

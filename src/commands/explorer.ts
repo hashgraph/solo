@@ -19,8 +19,9 @@ import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
-import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
+import {INGRESS_CONTROLLER_NAME, INGRESS_CONTROLLER_RELEASE_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
+import {Templates} from '../core/templates.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -29,6 +30,7 @@ interface ExplorerDeployConfigClass {
   hederaExplorerTlsHostName: string;
   hederaExplorerStaticIp: string | '';
   hederaExplorerVersion: string;
+  mirrorNamespace: NamespaceName;
   namespace: NamespaceName;
   profileFile: string;
   profileName: string;
@@ -68,6 +70,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerStaticIp,
       flags.hederaExplorerVersion,
+      flags.mirrorNamespace,
       flags.namespace,
       flags.deployment,
       flags.profileFile,
@@ -101,7 +104,13 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ` --set ingressClassName=${constants.EXPLORER_INGRESS_CLASS_NAME}`;
     }
     valuesArg += ` --set fullnameOverride=${constants.HEDERA_EXPLORER_RELEASE_NAME}`;
-    valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
+
+    if (config.mirrorNamespace) {
+      // use fully qualified service name for mirror node since the explorer is in a different namespace
+      valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest.${config.mirrorNamespace}.svc.cluster.local" `;
+    } else {
+      valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
+    }
     return valuesArg;
   }
 
@@ -310,7 +319,7 @@ export class ExplorerCommand extends BaseCommand {
             await self.k8.waitForPodReady(
               [
                 'app.kubernetes.io/name=haproxy-ingress',
-                `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+                `app.kubernetes.io/instance=${constants.INGRESS_CONTROLLER_RELEASE_NAME}`,
               ],
               1,
               constants.PODS_READY_MAX_ATTEMPTS,
@@ -397,9 +406,10 @@ export class ExplorerCommand extends BaseCommand {
           skip: ctx => !ctx.config.isChartInstalled,
         },
         {
-          title: 'Uninstall ingress',
+          title: 'Uninstall explorer ingress controller',
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
+            await this.k8.deleteIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME);
           },
         },
         this.removeMirrorNodeExplorerComponents(),

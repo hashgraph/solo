@@ -422,6 +422,13 @@ export class K8Client extends K8ClientBase implements K8 {
     }
   }
 
+  public async deleteIngressClass(ingressClassName: string) {
+    try {
+      await this.networkingApi.deleteIngressClass(ingressClassName);
+    } catch (e) {
+      this.logger.error(`Error deleting IngressClass ${ingressClassName}: ${e}`);
+    }
+  }
   public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {
     const ingressNames = [];
     await this.networkingApi
