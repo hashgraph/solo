@@ -13,6 +13,7 @@ import {
 import {ResourceType} from '../resource_type.js';
 import {ResourceOperation} from '../resource_operation.js';
 import {KubeApiResponse} from '../kube_api_response.js';
+import {SoloError} from '../../errors.js';
 
 export class K8ClientConfigMaps implements ConfigMaps {
   public constructor(private readonly kubeClient: CoreV1Api) {}
@@ -118,5 +119,40 @@ export class K8ClientConfigMaps implements ConfigMaps {
     }
 
     return await this.exists(namespace, name);
+  }
+
+  public async list(namespace: NamespaceName, labels: string[]): Promise<V1ConfigMap[]> {
+    const labelsSelector: string = labels.join(',');
+
+    let results: {response: any; body: any};
+    try {
+      results = await this.kubeClient.listNamespacedConfigMap(
+        namespace.name,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        labelsSelector,
+      );
+    } catch (e) {
+      throw new SoloError('Failed to list config maps', e);
+    }
+
+    KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, namespace, '');
+    return results?.body?.items || [];
+  }
+
+  public async listForAllNamespaces(labels: string[]): Promise<V1ConfigMap[]> {
+    const labelsSelector = labels.join(',');
+
+    let results: {response: any; body: any};
+    try {
+      results = await this.kubeClient.listConfigMapForAllNamespaces(undefined, undefined, undefined, labelsSelector);
+    } catch (e) {
+      throw new SoloError('Failed to list config maps for all namespaces', e);
+    }
+
+    KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, undefined, '');
+    return results?.body?.items || [];
   }
 }

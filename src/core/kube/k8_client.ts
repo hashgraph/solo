@@ -174,11 +174,11 @@ export class K8Client extends K8ClientBase implements K8 {
   }
 
   public async getPodByName(podRef: PodRef): Promise<k8s.V1Pod> {
-    return this.pods().readByName(podRef);
+    return this.pods().read(podRef);
   }
 
   public async getPodsByLabel(labels: string[] = []) {
-    return this.pods().readManyByLabel(this.getNamespace(), labels);
+    return this.pods().list(this.getNamespace(), labels);
   }
 
   public async getSecretsByLabel(labels: string[] = [], namespace?: NamespaceName) {

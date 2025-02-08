@@ -9,7 +9,6 @@ import {ConfigManager} from '../../../../src/core/config_manager.js';
 import {type K8Client} from '../../../../src/core/kube/k8_client.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
-import {V1Container, V1ExecAction, V1ObjectMeta, V1Pod, V1PodSpec, V1Probe} from '@kubernetes/client-node';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components_data_wrapper.js';
@@ -24,9 +23,12 @@ import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components
 import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../../src/core/kube/pod_ref.js';
+import {PodName} from '../../../../src/core/kube/pod_name.js';
+import {ContainerName} from '../../../../src/core/kube/container_name.js';
 
 describe('RemoteConfigValidator', () => {
-  const namespace = 'remote-config-validator';
+  const namespace = NamespaceName.of('remote-config-validator');
 
   let configManager: ConfigManager;
   let k8: K8Client;
@@ -35,11 +37,11 @@ describe('RemoteConfigValidator', () => {
     configManager = container.resolve(ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
     k8 = container.resolve('K8') as K8Client;
-    await k8.createNamespace(NamespaceName.of(namespace));
+    await k8.createNamespace(namespace);
   });
 
   after(async () => {
-    await k8.deleteNamespace(NamespaceName.of(namespace));
+    await k8.deleteNamespace(namespace);
   });
 
   const cluster = 'cluster';
@@ -56,35 +58,26 @@ describe('RemoteConfigValidator', () => {
 
   // @ts-ignore
   const components = new ComponentsDataWrapper(
-    {[relayName]: new RelayComponent(relayName, cluster, namespace, consensusNodeAliases)},
-    {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace)},
-    {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace)},
-    {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace)},
-    {[nodeAlias]: new ConsensusNodeComponent(nodeAlias, cluster, namespace, state)},
-    {[mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(mirrorNodeExplorerName, cluster, namespace)},
+    {[relayName]: new RelayComponent(relayName, cluster, namespace.name, consensusNodeAliases)},
+    {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name)},
+    {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name)},
+    {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace.name)},
+    {[nodeAlias]: new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, state)},
+    {[mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(mirrorNodeExplorerName, cluster, namespace.name)},
   );
 
   async function createPod(name: string, labels: Record<string, string>) {
-    const v1Pod = new V1Pod();
-    const v1Metadata = new V1ObjectMeta();
-    v1Metadata.name = name;
-    v1Metadata.namespace = namespace;
-    v1Metadata.labels = labels;
-    v1Pod.metadata = v1Metadata;
-    const v1Container = new V1Container();
-    v1Container.name = name;
-    v1Container.image = 'alpine:latest';
-    v1Container.command = ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200'];
-    const v1Probe = new V1Probe();
-    const v1ExecAction = new V1ExecAction();
-    v1ExecAction.command = ['bash', '-c', 'exit 0'];
-    v1Probe.exec = v1ExecAction;
-    v1Container.startupProbe = v1Probe;
-    const v1Spec = new V1PodSpec();
-    v1Spec.containers = [v1Container];
-    v1Pod.spec = v1Spec;
     try {
-      await k8.kubeClient.createNamespacedPod(namespace, v1Pod);
+      await k8
+        .pods()
+        .create(
+          PodRef.of(namespace, PodName.of(name)),
+          labels,
+          ContainerName.of(name),
+          'alpine:latest',
+          ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200'],
+          ['bash', '-c', 'exit 0'],
+        );
     } catch (e) {
       console.error(e);
       throw new Error('Error creating pod');

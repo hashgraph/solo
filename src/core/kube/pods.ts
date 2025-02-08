@@ -5,6 +5,7 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {type NamespaceName} from './namespace_name.js';
 import {type PodRef} from './pod_ref.js';
 import {type Pod} from './pod.js';
+import {type ContainerName} from './container_name.js';
 
 export interface Pods {
   /**
@@ -19,7 +20,7 @@ export interface Pods {
    * @returns V1Pod - pod object
    * @param podRef - the reference to the pod
    */
-  readByName(podRef: PodRef): Promise<V1Pod>; // TODO was getPodByName
+  read(podRef: PodRef): Promise<V1Pod>; // TODO was getPodByName
 
   /**
    * Get pods by labels
@@ -27,7 +28,7 @@ export interface Pods {
    * @param labels - list of labels
    * @returns V1Pod[] - list of pod objects
    */
-  readManyByLabel(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]>; // TODO was getPodsByLabel
+  list(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]>; // TODO was getPodsByLabel
 
   /**
    * Check if pod's ready status is true
@@ -42,7 +43,6 @@ export interface Pods {
    * Check if pod's phase is running
    * @param namespace - namespace
    * @param labels - pod labels
-   * @param podCount - number of pod expected
    * @param maxAttempts - maximum attempts to check
    * @param delay - delay between checks in milliseconds
    * @param [podItemPredicate] - pod item predicate
@@ -61,4 +61,23 @@ export interface Pods {
    * @returns list of pods
    */
   listForAllNamespaces(labels: string[]): Promise<Pod[]>;
+
+  /**
+   * Create a pod
+   * @param podRef - the reference to the pod
+   * @param labels - list of label records where the key is the label name and the value is the label value
+   * @param containerName - the name of the container
+   * @param containerImage - the image of the container
+   * @param containerCommand - the command to run in the container
+   * @param startupProbeCommand - the command to run in the startup probe
+   * @returns the pod that was created
+   */
+  create(
+    podRef: PodRef,
+    labels: Record<string, string>,
+    containerName: ContainerName,
+    containerImage: string,
+    containerCommand: string[],
+    startupProbeCommand: string[],
+  ): Promise<Pod>;
 }

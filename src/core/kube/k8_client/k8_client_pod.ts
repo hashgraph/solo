@@ -45,7 +45,7 @@ export class K8ClientPod implements Pod {
 
       let podExists = true;
       while (podExists) {
-        const pod = await this.pods.readByName(this.podRef);
+        const pod = await this.pods.read(this.podRef);
 
         if (!pod?.metadata?.deletionTimestamp) {
           podExists = false;

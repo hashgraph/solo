@@ -74,4 +74,21 @@ export interface ConfigMaps {
    * @param name - for the config name
    */
   exists(namespace: NamespaceName, name: string): Promise<boolean>;
+
+  /**
+   * List all config maps in a namespace for the given labels
+   * @param namespace - for the config maps
+   * @param labels - for the config maps
+   * @returns list of config maps
+   * @throws SoloError if the list operation fails
+   */
+  list(namespace: NamespaceName, labels: string[]): Promise<V1ConfigMap[]>;
+
+  /**
+   * List all config maps in all namespaces for the given labels
+   * @param labels - for the config maps
+   * @returns list of config maps
+   * @throws SoloError if the list operation fails
+   */
+  listForAllNamespaces(labels: string[]): Promise<V1ConfigMap[]>;
 }
