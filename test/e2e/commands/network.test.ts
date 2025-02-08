@@ -145,7 +145,7 @@ describe('NetworkCommand', () => {
       await expect(k8.listPvcsByNamespace(namespace)).eventually.to.have.lengthOf(0);
 
       // check if secrets are deleted
-      await expect(k8.listSecretsByNamespace(namespace)).eventually.to.have.lengthOf(0);
+      await expect(k8.secrets().list(namespace)).eventually.to.have.lengthOf(0);
     } catch (e) {
       networkCmd.logger.showUserError(e);
       expect.fail();

@@ -12,12 +12,13 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
+import {K8ClientSecrets} from '../../../src/core/kube/k8_client/k8_client_secrets.js';
 
 describe('Certificate Manager', () => {
   const argv = {};
   // @ts-ignore
   const k8InitSpy = jest.spyOn(K8Client.prototype, 'init').mockImplementation(() => {});
-  const k8CreateSecret = jest.spyOn(K8Client.prototype, 'createSecret').mockResolvedValue(true);
+  const k8CreateSecretSpy = jest.spyOn(K8ClientSecrets.prototype, 'create').mockResolvedValue(true);
   let certificateManager: CertificateManager;
 
   before(() => {
@@ -30,7 +31,7 @@ describe('Certificate Manager', () => {
 
   after(() => {
     k8InitSpy.mockRestore();
-    k8CreateSecret.mockRestore();
+    k8CreateSecretSpy.mockRestore();
   });
 
   it('should throw if and error if nodeAlias is not provided', async () => {

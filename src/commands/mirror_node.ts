@@ -3,7 +3,7 @@
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
@@ -197,7 +197,10 @@ export class MirrorNodeCommand extends BaseCommand {
                   ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${ctx.config.operatorKey}`;
                 } else {
                   try {
-                    const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${operatorId}`]);
+                    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+                    const secrets = await this.k8
+                      .secrets()
+                      .list(namespace, [`solo.hedera.com/account-id=${operatorId}`]);
                     if (secrets.length === 0) {
                       this.logger.info(`No k8s secret found for operator account id ${operatorId}, use default one`);
                       ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`;
@@ -347,10 +350,15 @@ export class MirrorNodeCommand extends BaseCommand {
                     const fees = await this.accountManager.getFileContents(namespace, feesFileIdNum);
                     const exchangeRates = await this.accountManager.getFileContents(namespace, exchangeRatesFileIdNum);
 
-                    const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`;
-                    const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${
-                      timestamp + '000001'
-                    }, ${exchangeRatesFileIdNum}, 17);`;
+                    const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id,
+                                                                              transaction_type)
+                                                 VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'},
+                                                         ${feesFileIdNum}, 17);`;
+                    const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp,
+                                                                                       entity_id, transaction_type)
+                                                          VALUES (decode('${exchangeRates}', 'hex'), ${
+                                                            timestamp + '000001'
+                                                          }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
                     if (ctx.config.customMirrorNodeDatabaseValuePath) {

@@ -4,7 +4,7 @@
 import * as fs from 'fs';
 import {Listr} from 'listr2';
 import * as path from 'path';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import {type K8} from '../core/kube/k8.js';
@@ -22,6 +22,7 @@ import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/namespace_name.js';
 import {type PodRef} from './kube/pod_ref.js';
 import {ContainerRef} from './kube/container_ref.js';
+import {SecretType} from './kube/secret_type.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -166,16 +167,17 @@ export class PlatformInstaller {
         data[fileName] = Base64.encode(fileContents);
       }
 
-      if (
-        !(await this.k8.createSecret(
-          Templates.renderGossipKeySecretName(nodeAlias),
+      const secretCreated = await this.k8
+        .secrets()
+        .createOrReplace(
           this._getNamespace(),
-          'Opaque',
+          Templates.renderGossipKeySecretName(nodeAlias),
+          SecretType.OPAQUE,
           data,
           Templates.renderGossipKeySecretLabelObject(nodeAlias),
-          true,
-        ))
-      ) {
+        );
+
+      if (!secretCreated) {
         throw new SoloError(`failed to create secret for gossip keys for node '${nodeAlias}'`);
       }
     } catch (e: Error | any) {
@@ -209,16 +211,12 @@ export class PlatformInstaller {
           data[fileName] = Base64.encode(fileContents);
         }
       }
-      if (
-        !(await this.k8.createSecret(
-          'network-node-hapi-app-secrets',
-          this._getNamespace(),
-          'Opaque',
-          data,
-          undefined,
-          true,
-        ))
-      ) {
+
+      const secretCreated = await this.k8
+        .secrets()
+        .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data, undefined);
+
+      if (!secretCreated) {
         throw new SoloError('failed to create secret for TLS keys');
       }
     } catch (e: Error | any) {

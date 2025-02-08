@@ -3,7 +3,7 @@
  */
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import {type Key} from '@hashgraph/sdk';
+import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -14,6 +14,7 @@ import {
   FileId,
   Hbar,
   HbarUnit,
+  type Key,
   KeyList,
   Logger,
   LogLevel,
@@ -21,10 +22,9 @@ import {
   Status,
   TransferTransaction,
 } from '@hashgraph/sdk';
-import {SoloError, MissingArgumentError} from './errors.js';
+import {MissingArgumentError, ResourceNotFoundError, SoloError} from './errors.js';
 import {Templates} from './templates.js';
-import {type NetworkNodeServices} from './network_node_services.js';
-import {NetworkNodeServicesBuilder} from './network_node_services.js';
+import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
 import {SoloLogger} from './logging.js';
@@ -32,13 +32,13 @@ import {type K8} from './kube/k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {PodName} from './kube/pod_name.js';
-import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/namespace_name.js';
 import {PodRef} from './kube/pod_ref.js';
+import {SecretType} from './kube/secret_type.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -69,14 +69,25 @@ export class AccountManager {
    * @param namespace - the namespace that is storing the secret
    */
   async getAccountKeysFromSecret(accountId: string, namespace: NamespaceName): Promise<AccountIdWithKeyPairObject> {
-    const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId));
-    if (secret) {
-      return {
-        accountId: secret.labels['solo.hedera.com/account-id'],
-        privateKey: Base64.decode(secret.data.privateKey),
-        publicKey: Base64.decode(secret.data.publicKey),
-      };
+    try {
+      const secrets = await this.k8
+        .secrets()
+        .list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
+
+      if (secrets.length > 0) {
+        const secret = secrets[0];
+        return {
+          accountId: secret.labels['solo.hedera.com/account-id'],
+          privateKey: Base64.decode(secret.data.privateKey),
+          publicKey: Base64.decode(secret.data.publicKey),
+        };
+      }
+    } catch (e) {
+      if (!(e instanceof ResourceNotFoundError)) {
+        throw e;
+      }
     }
+
     // if it isn't in the secrets we can load genesis key
     return {
       accountId,
@@ -643,16 +654,27 @@ export class AccountManager {
     };
 
     try {
-      if (
-        !(await this.k8.createSecret(
-          Templates.renderAccountKeySecretName(accountId),
-          namespace,
-          'Opaque',
-          data,
-          Templates.renderAccountKeySecretLabelObject(accountId),
-          updateSecrets,
-        ))
-      ) {
+      const createdOrUpdated = updateSecrets
+        ? await this.k8
+            .secrets()
+            .replace(
+              namespace,
+              Templates.renderAccountKeySecretName(accountId),
+              SecretType.OPAQUE,
+              data,
+              Templates.renderAccountKeySecretLabelObject(accountId),
+            )
+        : await this.k8
+            .secrets()
+            .create(
+              namespace,
+              Templates.renderAccountKeySecretName(accountId),
+              SecretType.OPAQUE,
+              data,
+              Templates.renderAccountKeySecretLabelObject(accountId),
+            );
+
+      if (!createdOrUpdated) {
         this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
         return {
           status: REJECTED,
@@ -814,16 +836,15 @@ export class AccountManager {
     }
 
     try {
-      const accountSecretCreated = await this.k8.createSecret(
-        Templates.renderAccountKeySecretName(accountInfo.accountId),
+      const accountSecretCreated = await this.k8.secrets().createOrReplace(
         namespace,
-        'Opaque',
+        Templates.renderAccountKeySecretName(accountInfo.accountId),
+        SecretType.OPAQUE,
         {
           privateKey: Base64.encode(accountInfo.privateKey),
           publicKey: Base64.encode(accountInfo.publicKey),
         },
         Templates.renderAccountKeySecretLabelObject(accountInfo.accountId),
-        true,
       );
 
       if (!accountSecretCreated) {

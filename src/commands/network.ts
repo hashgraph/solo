@@ -29,6 +29,7 @@ import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {SecretType} from '../core/kube/secret_type.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -153,14 +154,9 @@ export class NetworkCommand extends BaseCommand {
       // Generating new minio credentials
       const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
       minioData['config.env'] = Base64.encode(envString);
-      const isMinioSecretCreated = await this.k8.createSecret(
-        constants.MINIO_SECRET_NAME,
-        namespace,
-        'Opaque',
-        minioData,
-        undefined,
-        true,
-      );
+      const isMinioSecretCreated = await this.k8
+        .secrets()
+        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
       if (!isMinioSecretCreated) {
         throw new SoloError('ailed to create new minio secret');
       }
@@ -190,14 +186,9 @@ export class NetworkCommand extends BaseCommand {
         cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
       }
 
-      const isCloudSecretCreated = await this.k8.createSecret(
-        constants.UPLOADER_SECRET_NAME,
-        namespace,
-        'Opaque',
-        cloudData,
-        undefined,
-        true,
-      );
+      const isCloudSecretCreated = await this.k8
+        .secrets()
+        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
       if (!isCloudSecretCreated) {
         throw new SoloError(
           `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
@@ -208,14 +199,9 @@ export class NetworkCommand extends BaseCommand {
         const backupData = {};
         const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
         backupData['saJson'] = Base64.encode(googleCredential);
-        const isBackupSecretCreated = await this.k8.createSecret(
-          constants.BACKUP_SECRET_NAME,
-          namespace,
-          'Opaque',
-          backupData,
-          undefined,
-          true,
-        );
+        const isBackupSecretCreated = await this.k8
+          .secrets()
+          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
         if (!isBackupSecretCreated) {
           throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
         }
@@ -480,11 +466,11 @@ export class NetworkCommand extends BaseCommand {
 
     if (ctx.config.deleteSecrets) {
       task.title = `Deleting secrets in namespace ${ctx.config.namespace}`;
-      const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace);
+      const secrets = await self.k8.secrets().list(ctx.config.namespace);
 
       if (secrets) {
         for (const secret of secrets) {
-          await self.k8.deleteSecret(secret, ctx.config.namespace);
+          await self.k8.secrets().delete(ctx.config.namespace, secret.name);
         }
       }
     }

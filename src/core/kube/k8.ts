@@ -2,11 +2,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type * as k8s from '@kubernetes/client-node';
+import {type V1Lease} from '@kubernetes/client-node';
 import {type TarCreateFilter} from '../../types/aliases.js';
 import {type PodRef} from './pod_ref.js';
-import {type ExtendedNetServer, type Optional} from '../../types/index.js';
+import {type ExtendedNetServer} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
-import {type V1Lease} from '@kubernetes/client-node';
 import {type Namespaces} from './namespaces.js';
 import {type NamespaceName} from './namespace_name.js';
 import {type Containers} from './containers.js';
@@ -16,7 +16,6 @@ import {type ContainerRef} from './container_ref.js';
 import {type Contexts} from './contexts.js';
 import {type Pvcs} from './pvcs.js';
 import {type Services} from './services.js';
-import {type Service} from './service.js';
 import {type Pods} from './pods.js';
 import {type Leases} from './leases.js';
 import {type IngressClasses} from './ingress_classes.js';
@@ -121,13 +120,6 @@ export interface K8 {
    * @param labels - list of labels
    */
   getPodsByLabel(labels: string[]): Promise<any>;
-
-  /**
-   * Get secrets by labels
-   * @param labels - list of labels
-   * @param namespace - the namespace of the secrets to return
-   */
-  getSecretsByLabel(labels: string[], namespace?: NamespaceName): Promise<any>;
 
   /**
    * List files and directories in a container
@@ -252,65 +244,12 @@ export interface K8 {
   listPvcsByNamespace(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
 
   /**
-   * Get a list of secrets for the given namespace
-   * @param namespace - the namespace of the secrets to return
-   * @param [labels] - labels
-   * @returns list of secret names
-   */
-  listSecretsByNamespace(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
-
-  /**
    * Delete a persistent volume claim
    * @param name - the name of the persistent volume claim to delete
    * @param namespace - the namespace of the persistent volume claim to delete
    * @returns true if the persistent volume claim was deleted
    */
   deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
-
-  /**
-   * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
-   * @param namespace - the namespace of the secret to search for
-   * @param labelSelector - the label selector used to fetch the Kubernetes secret
-   * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
-   *   objects must be base64 decoded
-   */
-  getSecret(
-    namespace: NamespaceName,
-    labelSelector: string,
-  ): Promise<{
-    data: Record<string, string>;
-    name: string;
-    namespace: string;
-    type: string;
-    labels: Record<string, string>;
-  }>;
-
-  /**
-   * creates a new Kubernetes secret with the provided attributes
-   * @param name - the name of the new secret
-   * @param namespace - the namespace to store the secret
-   * @param secretType - the secret type
-   * @param data - the secret, any values of a key:value pair must be base64 encoded
-   * @param labels - the label to use for future label selector queries
-   * @param recreate - if we should first run delete in the case that there the secret exists from a previous install
-   * @returns whether the secret was created successfully
-   */
-  createSecret(
-    name: string,
-    namespace: NamespaceName,
-    secretType: string,
-    data: Record<string, string>,
-    labels: Optional<Record<string, string>>,
-    recreate: boolean,
-  ): Promise<boolean>;
-
-  /**
-   * Delete a secret from the namespace
-   * @param name - the name of the existing secret
-   * @param namespace - the namespace to store the secret
-   * @returns whether the secret was deleted successfully
-   */
-  deleteSecret(name: string, namespace: NamespaceName): Promise<boolean>;
 
   createNamespacedLease(
     namespace: NamespaceName,

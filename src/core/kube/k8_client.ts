@@ -5,12 +5,11 @@ import * as k8s from '@kubernetes/client-node';
 import {type V1Lease} from '@kubernetes/client-node';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
-import {StatusCodes} from 'http-status-codes';
 import * as constants from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
-import {type ExtendedNetServer, type Optional} from '../../types/index.js';
+import {type ExtendedNetServer} from '../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
 import {type K8} from './k8.js';
@@ -31,7 +30,6 @@ import {type Pods} from './pods.js';
 import {K8ClientBase} from './k8_client/k8_client_base.js';
 import {type Services} from './services.js';
 import {K8ClientServices} from './k8_client/k8_client_services.js';
-import {type Service} from './service.js';
 import {type Pvcs} from './pvcs.js';
 import {K8ClientPvcs} from './k8_client/k8_client_pvcs.js';
 import {type Leases} from './leases.js';
@@ -181,10 +179,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.pods().list(this.getNamespace(), labels);
   }
 
-  public async getSecretsByLabel(labels: string[] = [], namespace?: NamespaceName) {
-    return this.secrets().list(namespace || this.getNamespace(), labels);
-  }
-
   public async listDir(containerRef: ContainerRef, destPath: string) {
     return this.containers().readByRef(containerRef).listDir(destPath);
   }
@@ -254,58 +248,11 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.pvcs().list(namespace, labels);
   }
 
-  /**
-   * Get a list of secrets for the given namespace
-   * @param namespace - the namespace of the secrets to return
-   * @param [labels] - labels
-   * @returns list of secret names
-   */
-  // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
-  public async listSecretsByNamespace(namespace: NamespaceName, labels: string[] = []) {
-    const results = await this.secrets().list(namespace, labels);
-    return results.map(secret => secret.name);
-  }
-
   public async deletePvc(name: string, namespace: NamespaceName) {
     return this.pvcs().delete(namespace, name);
   }
 
   // --------------------------------------- Utility Methods --------------------------------------- //
-
-  // --------------------------------------- Secret --------------------------------------- //
-
-  /**
-   * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
-   * @param namespace - the namespace of the secret to search for
-   * @param labelSelector - the label selector used to fetch the Kubernetes secret
-   * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
-   *   objects must be base64 decoded
-   */
-  // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
-  public async getSecret(namespace: NamespaceName, labelSelector: string) {
-    const items = await this.secrets().list(namespace, labelSelector ? [labelSelector] : null);
-    return items.length > 0 ? items[0] : null;
-  }
-
-  public async createSecret(
-    name: string,
-    namespace: NamespaceName,
-    secretType: string,
-    data: Record<string, string>,
-    labels: Optional<Record<string, string>>,
-    recreate: boolean,
-  ) {
-    if (recreate) {
-      return await this.secrets().createOrReplace(namespace, name, secretType, data, labels);
-    }
-
-    return await this.secrets().create(namespace, name, secretType, data, labels);
-  }
-
-  public async deleteSecret(name: string, namespace: NamespaceName) {
-    const resp = await this.kubeClient.deleteNamespacedSecret(name, namespace.name);
-    return resp.response.statusCode === StatusCodes.OK;
-  }
 
   // --------------------------------------- LEASES --------------------------------------- //
 
