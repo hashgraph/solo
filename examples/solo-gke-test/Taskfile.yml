@@ -10,6 +10,7 @@ env:
   SOLO_NETWORK_SIZE: 4
   SOLO_NAMESPACE: solo-gke-test
   SOLO_DEPLOYMENT: solo-deployment-gke-test
+  CLUSTER_CONTEXT: "gke_hashsphere-staging_us-central1_jeromy-sphere-load-test-us-central"
   # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: v0.58.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
@@ -24,6 +25,7 @@ env:
   LOAD_BALANCER_FLAG: "--load-balancer true"
   ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
   ENABLE_EXPLORER_INGRESS: "--enable-ingress"
+  ENABLE_MIRROR_INGRESS: "--enable-ingress"
   TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
   # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
 #  NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=<ip-address>,node2=<ip-address>,node3=<ip-address>,node4=<ip-address> --pvcs"

@@ -27,7 +27,6 @@ interface ExplorerDeployConfigClass {
   hederaExplorerTlsHostName: string;
   hederaExplorerStaticIp: string | '';
   hederaExplorerVersion: string;
-  mirrorStaticIp: string;
   namespace: NamespaceName;
   profileFile: string;
   profileName: string;
@@ -67,7 +66,6 @@ export class ExplorerCommand extends BaseCommand {
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerStaticIp,
       flags.hederaExplorerVersion,
-      flags.mirrorStaticIp,
       flags.namespace,
       flags.deployment,
       flags.profileFile,
@@ -109,7 +107,7 @@ export class ExplorerCommand extends BaseCommand {
    * @param config - the configuration object
    */
   private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
-    const {tlsClusterIssuerType, namespace, mirrorStaticIp, hederaExplorerStaticIp} = config;
+    const {tlsClusterIssuerType, namespace, hederaExplorerStaticIp} = config;
 
     let valuesArg = '';
 
@@ -135,8 +133,6 @@ export class ExplorerCommand extends BaseCommand {
 
     if (hederaExplorerStaticIp !== '') {
       valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerStaticIp}`;
-    } else if (mirrorStaticIp !== '') {
-      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${mirrorStaticIp}`;
     }
 
     if (tlsClusterIssuerType === 'self-signed') {

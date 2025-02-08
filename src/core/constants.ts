@@ -78,6 +78,8 @@ export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
   .set(MIRROR_NODE_RELEASE_NAME, MIRROR_NODE_CHART_URL);
 
+export const MIRROR_INGRESS_CLASS_NAME = 'mirror-ingress-class';
+export const MIRROR_INGRESS_CONTROLLER = 'mirror-ingress-controller';
 // ------------------- Hedera Account related ---------------------------------------------------------------------------------
 export const OPERATOR_ID = process.env.SOLO_OPERATOR_ID || '0.0.2';
 export const OPERATOR_KEY =

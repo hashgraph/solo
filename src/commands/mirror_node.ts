@@ -29,6 +29,8 @@ import {ContainerRef} from '../core/kube/container_ref.js';
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   namespace: NamespaceName;
+  enableIngress: boolean;
+  mirrorStaticIp: string;
   profileFile: string;
   profileName: string;
   valuesFile: string;
@@ -76,6 +78,8 @@ export class MirrorNodeCommand extends BaseCommand {
     return [
       flags.chartDirectory,
       flags.deployment,
+      flags.enableIngress,
+      flags.mirrorStaticIp,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
@@ -233,6 +237,35 @@ export class MirrorNodeCommand extends BaseCommand {
                   },
                 },
                 {
+                  title: 'Upgrade solo-deployment chart to deploy mirror ingress controller',
+                  task: async ctx => {
+                    const config = ctx.config;
+                    const {chartDirectory} = config;
+
+                    const chartPath = await this.prepareChartPath(
+                      chartDirectory,
+                      constants.SOLO_TESTING_CHART_URL,
+                      constants.SOLO_DEPLOYMENT_CHART,
+                    );
+
+                    let soloDeploymentValuesArg = ' --set mirrorIngressController.enabled=true';
+                    soloDeploymentValuesArg += ` --set mirrorIngressController.mirrorIngressClassName=${constants.MIRROR_INGRESS_CLASS_NAME}`;
+
+                    if (ctx.config.mirrorStaticIp !== '') {
+                      soloDeploymentValuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${ctx.config.mirrorStaticIp}`;
+                    }
+
+                    await self.chartManager.upgrade(
+                      config.namespace,
+                      constants.SOLO_DEPLOYMENT_CHART,
+                      chartPath,
+                      undefined,
+                      soloDeploymentValuesArg,
+                    );
+                  },
+                  skip: ctx => !ctx.config.enableIngress,
+                },
+                {
                   title: 'Deploy mirror-node',
                   task: async ctx => {
                     if (ctx.config.customMirrorNodeDatabaseValuePath) {
@@ -256,6 +289,20 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.mirrorNodeVersion,
                       ctx.config.valuesArg,
                     );
+
+                    if (ctx.config.enableIngress) {
+                      // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+                      await this.k8.patchIngress(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                        spec: {
+                          ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
+                        },
+                      });
+
+                      // to support GRPC over HTTP/2
+                      await this.k8.patchConfigMap(ctx.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
+                        'backend-protocol': 'h2',
+                      });
+                    }
                   },
                 },
               ],
