@@ -85,6 +85,8 @@ export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
 
 export const MIRROR_INGRESS_CLASS_NAME = 'mirror-ingress-class';
 export const MIRROR_INGRESS_CONTROLLER = 'mirror-ingress-controller';
+export const EXPLORER_INGRESS_CLASS_NAME = 'explorer-ingress-class';
+export const EXPLORER_INGRESS_CONTROLLER = 'explorer-ingress-controller';
 // ------------------- Hedera Account related ---------------------------------------------------------------------------------
 export const OPERATOR_ID = process.env.SOLO_OPERATOR_ID || '0.0.2';
 export const OPERATOR_KEY =

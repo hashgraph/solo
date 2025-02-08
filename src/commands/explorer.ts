@@ -19,6 +19,8 @@ import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
+import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
+import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -96,7 +98,7 @@ export class ExplorerCommand extends BaseCommand {
 
     if (config.enableIngress) {
       valuesArg += ' --set ingress.enabled=true';
-      valuesArg += ` --set ingressClassName=${config.namespace}-hedera-explorer-ingress-class`;
+      valuesArg += ` --set ingressClassName=${constants.EXPLORER_INGRESS_CLASS_NAME}`;
     }
     valuesArg += ` --set fullnameOverride=${constants.HEDERA_EXPLORER_RELEASE_NAME}`;
     valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
@@ -107,7 +109,7 @@ export class ExplorerCommand extends BaseCommand {
    * @param config - the configuration object
    */
   private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
-    const {tlsClusterIssuerType, namespace, hederaExplorerStaticIp} = config;
+    const {tlsClusterIssuerType, namespace} = config;
 
     let valuesArg = '';
 
@@ -119,20 +121,9 @@ export class ExplorerCommand extends BaseCommand {
 
     const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
 
-    // Install ingress controller only if haproxy ingress not already present
-    if (!(await clusterChecks.isIngressControllerInstalled()) && config.enableIngress) {
-      valuesArg += ' --set ingress.enabled=true';
-      valuesArg += ' --set haproxyIngressController.enabled=true';
-      valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
-    }
-
     if (!(await clusterChecks.isCertManagerInstalled())) {
       valuesArg += ' --set cloud.certManager.enabled=true';
       valuesArg += ' --set cert-manager.installCRDs=true';
-    }
-
-    if (hederaExplorerStaticIp !== '') {
-      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerStaticIp}`;
     }
 
     if (tlsClusterIssuerType === 'self-signed') {
@@ -193,74 +184,58 @@ export class ExplorerCommand extends BaseCommand {
           },
         },
         ListrRemoteConfig.loadRemoteConfig(this, argv),
-        {
-          title: 'Upgrade solo-setup chart',
-          task: async ctx => {
-            const config = ctx.config;
-            const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
-
-            const chartPath = await this.prepareChartPath(
-              chartDirectory,
-              constants.SOLO_TESTING_CHART_URL,
-              constants.SOLO_CLUSTER_SETUP_CHART,
-            );
-
-            const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
-
-            // if cert-manager isn't already installed we want to install it separate from the certificate issuers
-            // as they will fail to be created due to the order of the installation being dependent on the cert-manager
-            // being installed first
-            if (soloChartSetupValuesArg.includes('cloud.certManager.enabled=true')) {
-              await self.chartManager.upgrade(
-                clusterSetupNamespace,
-                constants.SOLO_CLUSTER_SETUP_CHART,
-                chartPath,
-                soloChartVersion,
-                '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
-              );
-            }
-
-            // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
-            await self.k8.waitForPodReady(
-              [
-                'app.kubernetes.io/component=webhook',
-                `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
-              ],
-              1,
-              constants.PODS_READY_MAX_ATTEMPTS,
-              constants.PODS_READY_DELAY,
-              constants.DEFAULT_CERT_MANAGER_NAMESPACE,
-            );
-
-            // sleep for a few seconds to allow cert-manager to be ready
-            await new Promise(resolve => setTimeout(resolve, 10000));
-
-            await self.chartManager.upgrade(
-              clusterSetupNamespace,
-              constants.SOLO_CLUSTER_SETUP_CHART,
-              chartPath,
-              soloChartVersion,
-              soloChartSetupValuesArg,
-            );
-
-            // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
-            await this.k8.patchIngress(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
-              spec: {
-                ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
-              },
-            });
-
-            // to support GRPC over HTTP/2
-            await this.k8.patchConfigMap(
-              clusterSetupNamespace,
-              constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress',
-              {
-                'backend-protocol': 'h2',
-              },
-            );
-          },
-          skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
-        },
+        // {
+        //   title: 'Upgrade solo-setup chart',
+        //   task: async ctx => {
+        //     const config = ctx.config;
+        //     const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
+        //
+        //     const chartPath = await this.prepareChartPath(
+        //       chartDirectory,
+        //       constants.SOLO_TESTING_CHART_URL,
+        //       constants.SOLO_CLUSTER_SETUP_CHART,
+        //     );
+        //
+        //     const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
+        //
+        //     // if cert-manager isn't already installed we want to install it separate from the certificate issuers
+        //     // as they will fail to be created due to the order of the installation being dependent on the cert-manager
+        //     // being installed first
+        //     if (soloChartSetupValuesArg.includes('cloud.certManager.enabled=true')) {
+        //       await self.chartManager.upgrade(
+        //         clusterSetupNamespace,
+        //         constants.SOLO_CLUSTER_SETUP_CHART,
+        //         chartPath,
+        //         soloChartVersion,
+        //         '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
+        //       );
+        //     }
+        //
+        //     // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
+        //     await self.k8.waitForPodReady(
+        //       [
+        //         'app.kubernetes.io/component=webhook',
+        //         `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+        //       ],
+        //       1,
+        //       constants.PODS_READY_MAX_ATTEMPTS,
+        //       constants.PODS_READY_DELAY,
+        //       constants.DEFAULT_CERT_MANAGER_NAMESPACE,
+        //     );
+        //
+        //     // sleep for a few seconds to allow cert-manager to be ready
+        //     await new Promise(resolve => setTimeout(resolve, 10000));
+        //
+        //     await self.chartManager.upgrade(
+        //       clusterSetupNamespace,
+        //       constants.SOLO_CLUSTER_SETUP_CHART,
+        //       chartPath,
+        //       soloChartVersion,
+        //       soloChartSetupValuesArg,
+        //     );
+        //   },
+        //   skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
+        // },
 
         {
           title: 'Install explorer',
@@ -277,6 +252,33 @@ export class ExplorerCommand extends BaseCommand {
               config.hederaExplorerVersion,
               exploreValuesArg,
             );
+          },
+        },
+        {
+          title: 'Install explorer ingress controller',
+          task: async ctx => {
+            const config = ctx.config;
+
+            let explorerIngressControllerValuesArg = '';
+
+            if (config.hederaExplorerStaticIp !== '') {
+              explorerIngressControllerValuesArg += ` --set controller.service.loadBalancerIP=${config.hederaExplorerStaticIp}`;
+            }
+            explorerIngressControllerValuesArg += ` --set fullnameOverride=${constants.EXPLORER_INGRESS_CONTROLLER}`;
+
+            const ingressControllerChartPath = await self.prepareChartPath(
+              '', // don't use chartPath which is for local solo-charts only
+              constants.INGRESS_CONTROLLER_RELEASE_NAME,
+              constants.INGRESS_CONTROLLER_RELEASE_NAME,
+            );
+
+            await self.chartManager.install(
+              config.namespace,
+              constants.INGRESS_CONTROLLER_RELEASE_NAME,
+              ingressControllerChartPath,
+              INGRESS_CONTROLLER_VERSION,
+              explorerIngressControllerValuesArg,
+            );
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
             // to support grpc over http/2
@@ -287,7 +289,9 @@ export class ExplorerCommand extends BaseCommand {
                 },
               },
             });
+            await this.k8.createIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
           },
+          skip: ctx => !ctx.config.enableIngress,
         },
         {
           title: 'Check explorer pod is ready',
@@ -302,7 +306,7 @@ export class ExplorerCommand extends BaseCommand {
         },
         {
           title: 'Check haproxy ingress controller pod is ready',
-          task: async () => {
+          task: async ctx => {
             await self.k8.waitForPodReady(
               [
                 'app.kubernetes.io/name=haproxy-ingress',
@@ -311,7 +315,7 @@ export class ExplorerCommand extends BaseCommand {
               1,
               constants.PODS_READY_MAX_ATTEMPTS,
               constants.PODS_READY_DELAY,
-              constants.SOLO_SETUP_NAMESPACE,
+              ctx.config.namespace,
             );
           },
           skip: ctx => !ctx.config.enableIngress,
@@ -391,6 +395,12 @@ export class ExplorerCommand extends BaseCommand {
             await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME);
           },
           skip: ctx => !ctx.config.isChartInstalled,
+        },
+        {
+          title: 'Uninstall ingress',
+          task: async ctx => {
+            await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
+          },
         },
         this.removeMirrorNodeExplorerComponents(),
       ],
