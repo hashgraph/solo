@@ -418,7 +418,7 @@ export class AccountManager {
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
     try {
-      const serviceList = await this.k8.listSvcs(namespace, [labelSelector]);
+      const serviceList = await this.k8.services().list(namespace, [labelSelector]);
 
       let nodeId = '0';
       // retrieve the list of services and build custom objects for the attributes we need

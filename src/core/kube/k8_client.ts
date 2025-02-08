@@ -185,10 +185,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.secrets().list(namespace || this.getNamespace(), labels);
   }
 
-  public async getSvcByName(name: string): Promise<Service> {
-    return this.services().read(this.getNamespace(), name);
-  }
-
   public async listDir(containerRef: ContainerRef, destPath: string) {
     return this.containers().readByRef(containerRef).listDir(destPath);
   }
@@ -348,10 +344,6 @@ export class K8Client extends K8ClientBase implements K8 {
 
   public async killPod(podRef: PodRef) {
     return this.pods().readByRef(podRef).killPod();
-  }
-
-  public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]> {
-    return this.services().list(namespace, labels);
   }
 
   public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {

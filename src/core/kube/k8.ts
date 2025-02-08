@@ -130,14 +130,6 @@ export interface K8 {
   getSecretsByLabel(labels: string[], namespace?: NamespaceName): Promise<any>;
 
   /**
-   * Get a svc by name
-   * @param name - svc name
-   */
-  getSvcByName(name: string): Promise<Service>;
-
-  listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]>;
-
-  /**
    * List files and directories in a container
    *
    * It runs ls -la on the specified path and returns a list of object containing the entries.
