@@ -341,4 +341,8 @@ export interface K8 {
    * @param podRef - the pod reference
    */
   killPod(podRef: PodRef): Promise<void>;
+
+  patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;
+
+  patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>): Promise<void>;
 }

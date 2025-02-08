@@ -480,10 +480,10 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Delete PVCs',
           task: async ctx => {
+            // filtering postgres and redis PVCs using instance labels
+            // since they have different name or component labels
             const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
-              'app.kubernetes.io/component=postgresql',
-              'app.kubernetes.io/instance=solo-deployment',
-              'app.kubernetes.io/name=postgres',
+              `app.kubernetes.io/instance=${constants.MIRROR_NODE_RELEASE_NAME}`,
             ]);
 
             if (pvcs) {

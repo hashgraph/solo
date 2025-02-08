@@ -19,7 +19,6 @@ import {splitFlagInput} from '../core/helpers.js';
 import {type NamespaceName} from '../core/kube/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
-import {type SelectClusterContextContext} from './cluster/configs.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;

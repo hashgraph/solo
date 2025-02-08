@@ -116,9 +116,9 @@ function check_importer_log()
   fi
 }
 
-# if first parameter equals to ACCOUNT_INIT,
+# if first parameter equals to account-init,
 # then call solo account init before deploy mirror and relay node
-if [ "$1" == "ACCOUNT_INIT" ]; then
+if [ "$1" == "account-init" ]; then
   echo "Call solo account init"
   npm run solo-test -- account init --deployment solo-deployment
 fi
