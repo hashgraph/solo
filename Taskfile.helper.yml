@@ -166,7 +166,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context kind-${SOLO_CLUSTER_NAME} --email {{ .SOLO_EMAIL }} --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context ${CLUSTER_CONTEXT} --email {{ .SOLO_EMAIL }} --deployment-clusters ${CLUSTER_CONTEXT} --deployment "${SOLO_DEPLOYMENT}" --dev
 
   solo:keys:
     silent: true
@@ -435,8 +435,15 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer deploy --deployment  "${SOLO_DEPLOYMENT}" -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
+#      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
+      - |
+        if [[ "${EXPLORER_NAME_SPACE}" != "" && "${EXPLORER_DEPLOYMENT}" != "" ]]; then
+          # create deployment on different namespace
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create --deployment "${EXPLORER_DEPLOYMENT}" -n "${EXPLORER_NAME_SPACE}" --context ${EXPLORER_CLUSTER_CONTEXT} --email ${SOLO_EMAIL} --deployment-clusters ${EXPLORER_CLUSTER_CONTEXT} --dev
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${EXPLORER_DEPLOYMENT}" -n "${EXPLORER_NAME_SPACE}" --mirrorNamespace ${SOLO_NAMESPACE} -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
+        else
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
+        fi
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
@@ -459,7 +466,12 @@ tasks:
       - task: "init"
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
+      - |
+        if [[ "${EXPLORER_NAME_SPACE}" != "" && "${EXPLORER_DEPLOYMENT}" != "" ]]; then
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${EXPLORER_DEPLOYMENT}" --force -q --dev || true
+        else
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
+        fi
 
   clean:
     desc: destroy, then remove cache directory, logs directory, config, and port forwards
