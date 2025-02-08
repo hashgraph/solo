@@ -61,11 +61,13 @@ import {Duration} from '../../core/time/duration.js';
 import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
+import {NodeOverridesModel} from '../../core/node_overrides_model.js';
 import {type NamespaceName} from '../../core/kube/namespace_name.js';
 import {PodRef} from '../../core/kube/pod_ref.js';
 import {ContainerRef} from '../../core/kube/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import * as helpers from '../../core/helpers.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -903,8 +905,9 @@ export class NodeCommandTasks {
     });
   }
 
-  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean = false) {
+  setupNetworkNodes(nodeAliasesProperty: string, isGenesis: boolean) {
     return new Task('Setup network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
       if (isGenesis) {
         await this.generateGenesisNetworkJson(
           ctx.config.namespace,
@@ -913,6 +916,8 @@ export class NodeCommandTasks {
           ctx.config.stagingDir,
         );
       }
+
+      await this.generateNodeOverridesJson(ctx.config.namespace, ctx.config.nodeAliases, ctx.config.stagingDir);
 
       const subTasks = [];
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
@@ -929,6 +934,15 @@ export class NodeCommandTasks {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       });
     });
+  }
+
+  private async generateNodeOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
+    const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
+
+    const nodeOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
+
+    const nodeOverridesJson = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
+    fs.writeFileSync(nodeOverridesJson, nodeOverridesModel.toYAML());
   }
 
   /**
@@ -951,6 +965,7 @@ export class NodeCommandTasks {
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
       nodeAliases,
       this.keyManager,
+      this.accountManager,
       keysDir,
       networkNodeServiceMap,
       adminPublicKeys,

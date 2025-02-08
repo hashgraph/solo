@@ -115,3 +115,14 @@ export interface GenesisNetworkRosterStructure {
   gossipEndpoint: ServiceEndpoint[];
   gossipCaCertificate: string;
 }
+
+export interface GossipEndpoint {
+  nodeId: number;
+  hostname: string;
+  port: number;
+}
+
+export interface NodeOverridesStructure {
+  interfaceBindings: GossipEndpoint[];
+  endpointOverrides: GossipEndpoint[];
+}

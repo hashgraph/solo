@@ -204,6 +204,7 @@ export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TIMEOUT || 120;
 
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml';
+export const NODE_OVERRIDE_FILE = 'node-overrides.yaml';
 export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
 
 export const UPLOADER_SECRET_NAME = 'uploader-mirror-secrets';
