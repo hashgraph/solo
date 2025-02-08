@@ -1,9 +1,9 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type V1Service} from '@kubernetes/client-node';
 import {type NamespaceName} from './namespace_name.js';
 import {type Service} from './service.js';
+import {type ServiceRef} from './service_ref.js';
 
 export interface Services {
   /**
@@ -19,4 +19,20 @@ export interface Services {
    * @param labels - labels
    */
   list(namespace: NamespaceName, labels?: string[]): Promise<Service[]>; // TODO was listSvcs
+
+  /**
+   * Create a service
+   * @param serviceRef - service reference
+   * @param labels - the labels for the service
+   * @param servicePort - the service port
+   * @param podTargetPort - the target port
+   * @returns the service
+   * @throws {SoloError} if the service could not be created
+   */
+  create(
+    serviceRef: ServiceRef,
+    labels: Record<string, string>,
+    servicePort: number,
+    podTargetPort: number,
+  ): Promise<Service>;
 }
