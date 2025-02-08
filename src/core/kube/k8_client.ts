@@ -404,6 +404,24 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.services().list(namespace, labels);
   }
 
+  public async createIngressClass(ingressClassName: string, controllerName: string) {
+    const ingressClass = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'IngressClass',
+      metadata: {
+        name: ingressClassName,
+      },
+      spec: {
+        controller: controllerName,
+      },
+    };
+    try {
+      await this.networkingApi.createIngressClass(ingressClass);
+    } catch (e) {
+      this.logger.error(`Error creating IngressClass ${ingressClassName}: ${e}`);
+    }
+  }
+
   public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {
     const ingressNames = [];
     await this.networkingApi

@@ -69,6 +69,10 @@ export const HEDERA_EXPLORER_RELEASE_NAME = 'hedera-explorer';
 export const SOLO_RELAY_LABEL = 'app=hedera-json-rpc-relay';
 export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/component=hedera-explorer';
 
+export const INGRESS_CONTROLLER_CHART_URL = 'https://haproxy-ingress.github.io/charts';
+export const INGRESS_CONTROLLER_RELEASE_NAME = 'haproxy-ingress';
+export const INGRESS_CONTROLLER_NAME = 'haproxy-ingress.github.io/controller';
+
 export const SOLO_HEDERA_MIRROR_IMPORTER = [
   'app.kubernetes.io/component=importer',
   'app.kubernetes.io/instance=mirror',
@@ -76,7 +80,8 @@ export const SOLO_HEDERA_MIRROR_IMPORTER = [
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
-  .set(MIRROR_NODE_RELEASE_NAME, MIRROR_NODE_CHART_URL);
+  .set(MIRROR_NODE_RELEASE_NAME, MIRROR_NODE_CHART_URL)
+  .set(INGRESS_CONTROLLER_RELEASE_NAME, INGRESS_CONTROLLER_CHART_URL);
 
 export const MIRROR_INGRESS_CLASS_NAME = 'mirror-ingress-class';
 export const MIRROR_INGRESS_CONTROLLER = 'mirror-ingress-controller';
@@ -115,7 +120,6 @@ export const POD_CONDITION_STATUS_TRUE = 'True';
 
 export const EXPLORER_VALUES_FILE = path.join(RESOURCES_DIR, 'hedera-explorer-values.yaml');
 export const MIRROR_NODE_VALUES_FILE = path.join(RESOURCES_DIR, 'mirror-node-values.yaml');
-
 export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod';
 
 /**
