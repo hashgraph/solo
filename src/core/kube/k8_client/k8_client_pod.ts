@@ -30,8 +30,8 @@ export class K8ClientPod implements Pod {
   public async killPod(): Promise<void> {
     try {
       const result = await this.kubeClient.deleteNamespacedPod(
-        this.podRef.podName.name,
-        this.podRef.namespaceName.name,
+        this.podRef.name.toString(),
+        this.podRef.namespace.toString(),
         undefined,
         undefined,
         1,
@@ -39,7 +39,7 @@ export class K8ClientPod implements Pod {
 
       if (result.response.statusCode !== StatusCodes.OK) {
         throw new SoloError(
-          `Failed to delete pod ${this.podRef.podName.name} in namespace ${this.podRef.namespaceName.name}: statusCode: ${result.response.statusCode}`,
+          `Failed to delete pod ${this.podRef.name} in namespace ${this.podRef.namespace}: statusCode: ${result.response.statusCode}`,
         );
       }
 
@@ -54,7 +54,7 @@ export class K8ClientPod implements Pod {
         }
       }
     } catch (e) {
-      const errorMessage = `Failed to delete pod ${this.podRef.podName.name} in namespace ${this.podRef.namespaceName.name}: ${e.message}`;
+      const errorMessage = `Failed to delete pod ${this.podRef.name} in namespace ${this.podRef.namespace}: ${e.message}`;
 
       if (e.body?.code === StatusCodes.NOT_FOUND || e.response?.body?.code === StatusCodes.NOT_FOUND) {
         this.logger.info(`Pod not found: ${errorMessage}`, e);
@@ -69,23 +69,23 @@ export class K8ClientPod implements Pod {
   public async portForward(localPort: number, podPort: number): Promise<ExtendedNetServer> {
     try {
       this.logger.debug(
-        `Creating port-forwarder for ${this.podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`,
+        `Creating port-forwarder for ${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`,
       );
 
-      const ns = this.podRef.namespaceName;
+      const ns = this.podRef.namespace;
       const forwarder = new PortForward(this.kubeConfig, false);
 
       const server = (await net.createServer(socket => {
-        forwarder.portForward(ns.name, this.podRef.podName.name, [podPort], socket, null, socket, 3);
+        forwarder.portForward(ns.name, this.podRef.name.toString(), [podPort], socket, null, socket, 3);
       })) as ExtendedNetServer;
 
       // add info for logging
-      server.info = `${this.podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
+      server.info = `${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
       server.localPort = localPort;
       this.logger.debug(`Starting port-forwarder [${server.info}]`);
       return server.listen(localPort, constants.LOCAL_HOST);
     } catch (e) {
-      const message = `failed to start port-forwarder [${this.podRef.podName.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
+      const message = `failed to start port-forwarder [${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }

@@ -50,8 +50,8 @@ async function createPod(
 ): Promise<void> {
   const v1Pod = new V1Pod();
   const v1Metadata = new V1ObjectMeta();
-  v1Metadata.name = podRef.podName.name;
-  v1Metadata.namespace = podRef.namespaceName.name;
+  v1Metadata.name = podRef.name.toString();
+  v1Metadata.namespace = podRef.namespace.toString();
   v1Metadata.labels = {app: podLabelValue};
   v1Pod.metadata = v1Metadata;
   const v1Container = new V1Container();
@@ -66,7 +66,7 @@ async function createPod(
   const v1Spec = new V1PodSpec();
   v1Spec.containers = [v1Container];
   v1Pod.spec = v1Spec;
-  await k8.kubeClient.createNamespacedPod(podRef.namespaceName.name, v1Pod);
+  await k8.kubeClient.createNamespacedPod(podRef.namespace.toString(), v1Pod);
 }
 
 describe('K8', () => {

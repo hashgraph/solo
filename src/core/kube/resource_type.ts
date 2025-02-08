@@ -23,4 +23,5 @@ export enum ResourceType {
   CLUSTER_ROLE = 'ClusterRole',
   CLUSTER_ROLE_BINDING = 'ClusterRoleBinding',
   CLUSTER = 'Cluster',
+  CONTAINER = 'Container',
 }
