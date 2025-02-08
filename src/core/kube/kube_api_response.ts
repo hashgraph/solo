@@ -54,4 +54,8 @@ export class KubeApiResponse {
   public static isNotFound(response: http.IncomingMessage): boolean {
     return +response?.statusCode === StatusCodes.NOT_FOUND;
   }
+
+  public static isCreatedStatus(response: http.IncomingMessage): boolean {
+    return +response?.statusCode === StatusCodes.CREATED;
+  }
 }

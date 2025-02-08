@@ -31,8 +31,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
   }
 
   public async readByName(podRef: PodRef): Promise<V1Pod> {
-    const ns = podRef.namespaceName;
-    const fieldSelector = `metadata.name=${podRef.podName.name}`;
+    const ns = podRef.namespace;
+    const fieldSelector = `metadata.name=${podRef.name}`;
 
     const resp = await this.kubeClient.listNamespacedPod(
       ns.name,
@@ -48,7 +48,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
       Duration.ofMinutes(5).toMillis(),
     );
 
-    return this.filterItem(resp.body.items, {name: podRef.podName.name});
+    return this.filterItem(resp.body.items, {name: podRef.name.toString()});
   }
 
   public async readManyByLabel(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]> {
