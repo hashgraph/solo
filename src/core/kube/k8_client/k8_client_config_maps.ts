@@ -132,7 +132,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
         undefined,
         labelsSelector,
       );
-      // TODO - use KubeApiResponse
+      KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, namespace, '');
       return results?.body?.items || [];
     } catch (e) {
       throw new SoloError('Failed to list config maps', e);
@@ -148,7 +148,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
         undefined,
         labelsSelector,
       );
-      // TODO - use KubeApiResponse
+      KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, undefined, '');
       return results?.body?.items || [];
     } catch (e) {
       throw new SoloError('Failed to list config maps for all namespaces', e);
