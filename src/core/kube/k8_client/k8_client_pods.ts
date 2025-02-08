@@ -24,6 +24,9 @@ import {SoloLogger} from '../../logging.js';
 import {container} from 'tsyringe-neo';
 import {type ContainerName} from '../container_name.js';
 import {PodName} from '../pod_name.js';
+import {KubeApiResponse} from '../kube_api_response.js';
+import {ResourceOperation} from '../resource_operation.js';
+import {ResourceType} from '../resource_type.js';
 
 export class K8ClientPods extends K8ClientBase implements Pods {
   private readonly logger: SoloLogger;
@@ -218,7 +221,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
     try {
       const response = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, labelSelector);
-      // TODO - use KubeApiResponse
+      KubeApiResponse.check(response.response, ResourceOperation.LIST, ResourceType.POD, undefined, '');
       if (response?.body?.items?.length > 0) {
         response.body.items.forEach(item => {
           pods.push(
@@ -246,44 +249,51 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     containerCommand: string[],
     startupProbeCommand: string[],
   ): Promise<Pod> {
-    const v1Metadata = new V1ObjectMeta();
+    const v1Metadata: V1ObjectMeta = new V1ObjectMeta();
     v1Metadata.name = podRef.name.toString();
     v1Metadata.namespace = podRef.namespace.toString();
     v1Metadata.labels = labels;
 
-    const v1ExecAction = new V1ExecAction();
+    const v1ExecAction: V1ExecAction = new V1ExecAction();
     v1ExecAction.command = startupProbeCommand;
 
-    const v1Probe = new V1Probe();
+    const v1Probe: V1Probe = new V1Probe();
     v1Probe.exec = v1ExecAction;
 
-    const v1Container = new V1Container();
+    const v1Container: V1Container = new V1Container();
     v1Container.name = containerName.name;
     v1Container.image = containerImage;
     v1Container.command = containerCommand;
     v1Container.startupProbe = v1Probe;
 
-    const v1Spec = new V1PodSpec();
+    const v1Spec: V1PodSpec = new V1PodSpec();
     v1Spec.containers = [v1Container];
 
-    const v1Pod = new V1Pod();
+    const v1Pod: V1Pod = new V1Pod();
     v1Pod.metadata = v1Metadata;
     v1Pod.spec = v1Spec;
 
+    let result: {response: any; body: any};
     try {
-      const result = await this.kubeClient.createNamespacedPod(podRef.namespace.toString(), v1Pod);
-
-      // TODO - use KubeApiResponse
-      if (result?.body) {
-        return new K8ClientPod(podRef, this, this.kubeClient, this.kubeConfig);
-      } else {
-        throw new SoloError('Error creating pod', result);
-      }
+      result = await this.kubeClient.createNamespacedPod(podRef.namespace.toString(), v1Pod);
     } catch (e) {
       if (e instanceof SoloError) {
         throw e;
       }
-      throw new SoloError('Error creating pod', e);
+      throw new SoloError('Error creating pod with call to createNamespacedPod()', e);
+    }
+
+    KubeApiResponse.check(
+      result.response,
+      ResourceOperation.CREATE,
+      ResourceType.POD,
+      podRef.namespace,
+      podRef.name.toString(),
+    );
+    if (result?.body) {
+      return new K8ClientPod(podRef, this, this.kubeClient, this.kubeConfig);
+    } else {
+      throw new SoloError('Error creating pod', result);
     }
   }
 }

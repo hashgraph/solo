@@ -122,9 +122,11 @@ export class K8ClientConfigMaps implements ConfigMaps {
   }
 
   public async list(namespace: NamespaceName, labels: string[]): Promise<V1ConfigMap[]> {
+    const labelsSelector: string = labels.join(',');
+
+    let results: {response: any; body: any};
     try {
-      const labelsSelector = labels.join(',');
-      const results = await this.kubeClient.listNamespacedConfigMap(
+      results = await this.kubeClient.listNamespacedConfigMap(
         namespace.name,
         undefined,
         undefined,
@@ -132,26 +134,25 @@ export class K8ClientConfigMaps implements ConfigMaps {
         undefined,
         labelsSelector,
       );
-      KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, namespace, '');
-      return results?.body?.items || [];
     } catch (e) {
       throw new SoloError('Failed to list config maps', e);
     }
+
+    KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, namespace, '');
+    return results?.body?.items || [];
   }
 
   public async listForAllNamespaces(labels: string[]): Promise<V1ConfigMap[]> {
+    const labelsSelector = labels.join(',');
+
+    let results: {response: any; body: any};
     try {
-      const labelsSelector = labels.join(',');
-      const results = await this.kubeClient.listConfigMapForAllNamespaces(
-        undefined,
-        undefined,
-        undefined,
-        labelsSelector,
-      );
-      KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, undefined, '');
-      return results?.body?.items || [];
+      results = await this.kubeClient.listConfigMapForAllNamespaces(undefined, undefined, undefined, labelsSelector);
     } catch (e) {
       throw new SoloError('Failed to list config maps for all namespaces', e);
     }
+
+    KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, undefined, '');
+    return results?.body?.items || [];
   }
 }
