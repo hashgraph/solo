@@ -30,8 +30,8 @@ import {type Pods} from './pods.js';
 import {K8ClientBase} from './k8_client/k8_client_base.js';
 import {type Services} from './services.js';
 import {K8ClientServices} from './k8_client/k8_client_services.js';
-import {type Pvcs} from './pvcs.js';
-import {K8ClientPvcs} from './k8_client/k8_client_pvcs.js';
+import {type Pvcs} from './resources/pvc/pvcs.js';
+import {K8ClientPvcs} from './k8_client/resources/pvc/k8_client_pvcs.js';
 import {type Leases} from './leases.js';
 import {K8ClientLeases} from './k8_client/k8_client_leases.js';
 import {K8ClientNamespaces} from './k8_client/k8_client_namespaces.js';
@@ -39,6 +39,8 @@ import {K8ClientIngressClasses} from './k8_client/k8_client_ingress_classes.js';
 import {type IngressClasses} from './ingress_classes.js';
 import {type Secrets} from './secrets.js';
 import {K8ClientSecrets} from './k8_client/k8_client_secrets.js';
+import {PvcRef} from './resources/pvc/pvc_ref.js';
+import {PvcName} from './resources/pvc/pvc_name.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -249,7 +251,7 @@ export class K8Client extends K8ClientBase implements K8 {
   }
 
   public async deletePvc(name: string, namespace: NamespaceName) {
-    return this.pvcs().delete(namespace, name);
+    return this.pvcs().delete(PvcRef.of(namespace, PvcName.of(name)));
   }
 
   // --------------------------------------- Utility Methods --------------------------------------- //
