@@ -247,8 +247,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     startupProbeCommand: string[],
   ): Promise<Pod> {
     const v1Metadata = new V1ObjectMeta();
-    v1Metadata.name = podRef.podName.name;
-    v1Metadata.namespace = podRef.namespaceName.name;
+    v1Metadata.name = podRef.name.toString();
+    v1Metadata.namespace = podRef.namespace.toString();
     v1Metadata.labels = labels;
 
     const v1ExecAction = new V1ExecAction();
@@ -271,7 +271,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     v1Pod.spec = v1Spec;
 
     try {
-      const result = await this.kubeClient.createNamespacedPod(podRef.namespaceName.name, v1Pod);
+      const result = await this.kubeClient.createNamespacedPod(podRef.namespace.toString(), v1Pod);
 
       // TODO - use KubeApiResponse
       if (result?.body) {
