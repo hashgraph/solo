@@ -435,7 +435,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-#      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
       - |
         if [[ "${EXPLORER_NAME_SPACE}" != "" && "${EXPLORER_DEPLOYMENT}" != "" ]]; then
           # create deployment on different namespace
