@@ -20,6 +20,7 @@ import {type Service} from './service.js';
 import {type Pods} from './pods.js';
 import {type Leases} from './leases.js';
 import {type IngressClasses} from './ingress_classes.js';
+import {type Secrets} from './secrets.js';
 
 export interface K8 {
   /**
@@ -75,6 +76,12 @@ export interface K8 {
    * @returns an object instance providing lease operations
    */
   leases(): Leases;
+
+  /**
+   * Fluent accessor for reading and manipulating secrets in the kubernetes cluster.
+   * @returns an object instance providing secret operations
+   */
+  secrets(): Secrets;
 
   /**
    * Fluent accessor for reading and manipulating ingress classes in the kubernetes cluster.

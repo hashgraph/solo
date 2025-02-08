@@ -67,7 +67,7 @@ export class NetworkNodes {
       ]);
       await this.k8.execContainer(containerRef, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
       await this.k8.execContainer(containerRef, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
+      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
@@ -104,13 +104,13 @@ export class NetworkNodes {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
       }
-      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
+      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       await this.k8.execContainer(containerRef, zipCommand);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
+      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
     } catch (e: Error | unknown) {
-      this.logger.error(`failed to download state from pod ${podRef.podName.name}`, e);
-      this.logger.showUser(`Failed to download state from pod ${podRef.podName.name}` + e);
+      this.logger.error(`failed to download state from pod ${podRef.name}`, e);
+      this.logger.showUser(`Failed to download state from pod ${podRef.name}` + e);
     }
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }

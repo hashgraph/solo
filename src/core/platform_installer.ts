@@ -100,7 +100,7 @@ export class PlatformInstaller {
       await this.k8.execContainer(containerRef, [extractScript, tag]);
       return true;
     } catch (e: Error | any) {
-      const message = `failed to extract platform code in this pod '${podRef.podName.name}': ${e.message}`;
+      const message = `failed to extract platform code in this pod '${podRef.name}': ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }
@@ -129,7 +129,7 @@ export class PlatformInstaller {
           await this.k8.mkdir(containerRef, destDir);
         }
 
-        this.logger.debug(`Copying file into ${podRef.podName.name}: ${srcPath} -> ${destDir}`);
+        this.logger.debug(`Copying file into ${podRef.name}: ${srcPath} -> ${destDir}`);
         await this.k8.copyTo(containerRef, srcPath, destDir);
 
         const fileName = path.basename(srcPath);
@@ -138,7 +138,7 @@ export class PlatformInstaller {
 
       return copiedFiles;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to copy files to pod '${podRef.podName.name}': ${e.message}`, e);
+      throw new SoloError(`failed to copy files to pod '${podRef.name}': ${e.message}`, e);
     }
   }
 
@@ -266,7 +266,7 @@ export class PlatformInstaller {
 
       return true;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to set permission in '${podRef.podName.name}'`, e);
+      throw new SoloError(`failed to set permission in '${podRef.name}'`, e);
     }
   }
 

@@ -12,7 +12,6 @@ export interface Secrets {
    * @param secretType - the secret type
    * @param data - the secret, any values of a key:value pair must be base64 encoded
    * @param labels - the label to use for future label selector queries
-   * @param recreate - if we should first run delete in the case that there the secret exists from a previous install
    * @returns whether the secret was created successfully
    */
   create(
@@ -21,8 +20,25 @@ export interface Secrets {
     secretType: string,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
-    recreate: boolean,
   ): Promise<boolean>; // TODO was createSecret
+
+  createOrReplace(
+    namespace: NamespaceName,
+    name: string,
+    secretType: string,
+    data: Record<string, string>,
+    labels: Optional<Record<string, string>>,
+  ): Promise<boolean>;
+
+  replace(
+    namespace: NamespaceName,
+    name: string,
+    secretType: string,
+    data: Record<string, string>,
+    labels: Optional<Record<string, string>>,
+  ): Promise<boolean>;
+
+  read(namespace: NamespaceName, name: string): Promise<object>; // TODO was getSecret
 
   /**
    * Delete a secret from the namespace
@@ -38,7 +54,20 @@ export interface Secrets {
    * @param labels - list of labels
    * @returns the list of secrets that match the labels
    */
-  listByLabel(namespace: NamespaceName, labels: string[]): Promise<any>; // TODO was getSecretsByLabel(labels: string[]): Promise<any>
+  list(
+    namespace: NamespaceName,
+    labels?: string[],
+  ): Promise<
+    Array<{
+      data: Record<string, string>;
+      name: string;
+      namespace: string;
+      type: string;
+      labels: Record<string, string>;
+    }>
+  >; // TODO was getSecretsByLabel(labels: string[]): Promise<any>
   // TODO consolidate getSecret into listByLabel
   // TODO consolidate listSecretsByNamespace into listByLabel
+
+  exists(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was secretExists
 }

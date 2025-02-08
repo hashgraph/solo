@@ -854,11 +854,11 @@ export class NodeCommandTasks {
         for (const nodeAlias of ctx.config.nodeAliases) {
           const podRef = ctx.config.podRefs[nodeAlias];
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
-          self.logger.debug(`Uploading state files to pod ${podRef.podName.name}`);
+          self.logger.debug(`Uploading state files to pod ${podRef.name}`);
           await self.k8.copyTo(containerRef, zipFile, `${constants.HEDERA_HAPI_PATH}/data`);
 
           self.logger.info(
-            `Deleting the previous state files in pod ${podRef.podName.name} directory ${constants.HEDERA_HAPI_PATH}/data/saved`,
+            `Deleting the previous state files in pod ${podRef.name} directory ${constants.HEDERA_HAPI_PATH}/data/saved`,
           );
           await self.k8.execContainer(containerRef, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`]);
           await self.k8.execContainer(containerRef, [
@@ -1023,7 +1023,7 @@ export class NodeCommandTasks {
       'Enable port forwarding for JVM debugger',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const podRef = PodRef.of(ctx.config.namespace, PodName.of(`network-${ctx.config.debugNodeAlias}-0`));
-        this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podRef.podName.name}`);
+        this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podRef.name}`);
         await this.k8.portForward(podRef, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT);
       },
       (ctx: any) => !ctx.config.debugNodeAlias,

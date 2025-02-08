@@ -2,17 +2,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
-import {type V1Lease, V1ObjectMeta, V1Secret} from '@kubernetes/client-node';
+import {type V1Lease} from '@kubernetes/client-node';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
 import {StatusCodes} from 'http-status-codes';
-import {sleep} from './../helpers.js';
 import * as constants from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
 import {type ExtendedNetServer, type Optional} from '../../types/index.js';
-import {Duration} from './../time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
 import {type K8} from './k8.js';
@@ -41,6 +39,8 @@ import {K8ClientLeases} from './k8_client/k8_client_leases.js';
 import {K8ClientNamespaces} from './k8_client/k8_client_namespaces.js';
 import {K8ClientIngressClasses} from './k8_client/k8_client_ingress_classes.js';
 import {type IngressClasses} from './ingress_classes.js';
+import {type Secrets} from './secrets.js';
+import {K8ClientSecrets} from './k8_client/k8_client_secrets.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -68,6 +68,7 @@ export class K8Client extends K8ClientBase implements K8 {
   private k8Pvcs: Pvcs;
   private k8Namespaces: Namespaces;
   private k8IngressClasses: IngressClasses;
+  private k8Secrets: Secrets;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -107,6 +108,7 @@ export class K8Client extends K8ClientBase implements K8 {
     this.k8Leases = new K8ClientLeases(this.coordinationApiClient);
     this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
     this.k8IngressClasses = new K8ClientIngressClasses(this.networkingApi);
+    this.k8Secrets = new K8ClientSecrets(this.kubeClient);
 
     return this; // to enable chaining
   }
@@ -147,6 +149,10 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.k8Leases;
   }
 
+  public secrets(): Secrets {
+    return this.k8Secrets;
+  }
+
   public ingressClasses(): IngressClasses {
     return this.k8IngressClasses;
   }
@@ -176,23 +182,7 @@ export class K8Client extends K8ClientBase implements K8 {
   }
 
   public async getSecretsByLabel(labels: string[] = [], namespace?: NamespaceName) {
-    const ns = namespace || this.getNamespace();
-    const labelSelector = labels.join(',');
-    const result = await this.kubeClient.listNamespacedSecret(
-      ns.name,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      labelSelector,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      Duration.ofMinutes(5).toMillis(),
-    );
-
-    return result.body.items;
+    return this.secrets().list(namespace || this.getNamespace(), labels);
   }
 
   public async getSvcByName(name: string): Promise<Service> {
@@ -276,14 +266,8 @@ export class K8Client extends K8ClientBase implements K8 {
    */
   // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
   public async listSecretsByNamespace(namespace: NamespaceName, labels: string[] = []) {
-    const secrets: string[] = [];
-    const items = await this.getSecretsByLabel(labels, namespace);
-
-    for (const item of items) {
-      secrets.push(item.metadata!.name as string);
-    }
-
-    return secrets;
+    const results = await this.secrets().list(namespace, labels);
+    return results.map(secret => secret.name);
   }
 
   public async deletePvc(name: string, namespace: NamespaceName) {
@@ -303,20 +287,8 @@ export class K8Client extends K8ClientBase implements K8 {
    */
   // TODO - delete this method, and change downstream to use getSecretsByLabel(labels: string[] = [], namespace?: string): Promise<V1Secret[]>
   public async getSecret(namespace: NamespaceName, labelSelector: string) {
-    const labels = labelSelector.split(',');
-    const items = await this.getSecretsByLabel(labels, namespace);
-
-    if (items.length > 0) {
-      const secretObject = items[0];
-      return {
-        name: secretObject.metadata!.name as string,
-        labels: secretObject.metadata!.labels as Record<string, string>,
-        namespace: secretObject.metadata!.namespace as string,
-        type: secretObject.type as string,
-        data: secretObject.data as Record<string, string>,
-      };
-    }
-    return null;
+    const items = await this.secrets().list(namespace, labelSelector ? [labelSelector] : null);
+    return items.length > 0 ? items[0] : null;
   }
 
   public async createSecret(
@@ -328,32 +300,10 @@ export class K8Client extends K8ClientBase implements K8 {
     recreate: boolean,
   ) {
     if (recreate) {
-      try {
-        await this.kubeClient.deleteNamespacedSecret(name, namespace.name);
-      } catch {
-        // do nothing
-      }
+      return await this.secrets().createOrReplace(namespace, name, secretType, data, labels);
     }
 
-    const v1Secret = new V1Secret();
-    v1Secret.apiVersion = 'v1';
-    v1Secret.kind = 'Secret';
-    v1Secret.type = secretType;
-    v1Secret.data = data;
-    v1Secret.metadata = new V1ObjectMeta();
-    v1Secret.metadata.name = name;
-    v1Secret.metadata.labels = labels;
-
-    try {
-      const resp = await this.kubeClient.createNamespacedSecret(namespace.name, v1Secret);
-
-      return resp.response.statusCode === StatusCodes.CREATED;
-    } catch (e) {
-      throw new SoloError(
-        `failed to create secret ${name} in namespace ${namespace}: ${e.message}, ${e?.body?.message}`,
-        e,
-      );
-    }
+    return await this.secrets().create(namespace, name, secretType, data, labels);
   }
 
   public async deleteSecret(name: string, namespace: NamespaceName) {
