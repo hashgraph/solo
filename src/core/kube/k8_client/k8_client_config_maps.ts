@@ -23,7 +23,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    return this.createOrReplaceWithForce(namespace, name, labels, data, false, true);
+    return await this.createOrReplaceWithForce(namespace, name, labels, data, false, true);
   }
 
   public async createOrReplace(
@@ -32,7 +32,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    return this.createOrReplaceWithForce(namespace, name, labels, data, false, false);
+    return await this.createOrReplaceWithForce(namespace, name, labels, data, false, false);
   }
 
   public async delete(namespace: NamespaceName, name: string): Promise<boolean> {
@@ -56,7 +56,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
     labels: Record<string, string>,
     data: Record<string, string>,
   ): Promise<boolean> {
-    return this.createOrReplaceWithForce(namespace, name, labels, data, true, false);
+    return await this.createOrReplaceWithForce(namespace, name, labels, data, true, false);
   }
 
   public async exists(namespace: NamespaceName, name: string): Promise<boolean> {
@@ -117,6 +117,6 @@ export class K8ClientConfigMaps implements ConfigMaps {
       return false;
     }
 
-    return this.exists(namespace, name);
+    return await this.exists(namespace, name);
   }
 }

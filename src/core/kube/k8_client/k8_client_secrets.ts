@@ -21,7 +21,7 @@ export class K8ClientSecrets implements Secrets {
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean> {
-    return this.createOrReplaceWithForce(namespace, name, secretType, data, labels, false, true);
+    return await this.createOrReplaceWithForce(namespace, name, secretType, data, labels, false, true);
   }
 
   public async createOrReplace(
@@ -31,7 +31,7 @@ export class K8ClientSecrets implements Secrets {
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean> {
-    return this.createOrReplaceWithForce(namespace, name, secretType, data, labels, false, false);
+    return await this.createOrReplaceWithForce(namespace, name, secretType, data, labels, false, false);
   }
 
   public async delete(namespace: NamespaceName, name: string): Promise<boolean> {
@@ -135,7 +135,7 @@ export class K8ClientSecrets implements Secrets {
       const resp = replace
         ? await this.kubeClient.replaceNamespacedSecret(name, namespace.name, v1Secret)
         : await this.kubeClient.createNamespacedSecret(namespace.name, v1Secret);
-      return KubeApiResponse.isCreatedStatus(resp.response);
+      return !KubeApiResponse.isFailingStatus(resp.response);
     } catch (e) {
       if (replace) {
         throw new ResourceReplaceError(ResourceType.SECRET, namespace, name, e);
@@ -159,6 +159,6 @@ export class K8ClientSecrets implements Secrets {
       return false;
     }
 
-    return this.exists(namespace, name);
+    return await this.exists(namespace, name);
   }
 }
