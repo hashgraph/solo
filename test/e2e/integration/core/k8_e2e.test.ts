@@ -34,6 +34,8 @@ import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/pod_ref.js';
 import {ContainerName} from '../../../../src/core/kube/container_name.js';
 import {ContainerRef} from '../../../../src/core/kube/container_ref.js';
+import {ServiceRef} from '../../../../src/core/kube/service_ref.js';
+import {ServiceName} from '../../../../src/core/kube/service_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -76,19 +78,9 @@ describe('K8', () => {
         await k8.createNamespace(testNamespace);
       }
       await createPod(podRef, containerName, podLabelValue, k8);
-      const v1Svc = new V1Service();
-      const v1SvcMetadata = new V1ObjectMeta();
-      v1SvcMetadata.name = serviceName;
-      v1SvcMetadata.namespace = testNamespace.name;
-      v1SvcMetadata.labels = {app: 'svc-test'};
-      v1Svc.metadata = v1SvcMetadata;
-      const v1SvcSpec = new V1ServiceSpec();
-      const v1SvcPort = new V1ServicePort();
-      v1SvcPort.port = 80;
-      v1SvcPort.targetPort = 80;
-      v1SvcSpec.ports = [v1SvcPort];
-      v1Svc.spec = v1SvcSpec;
-      await k8.kubeClient.createNamespacedService(testNamespace.name, v1Svc);
+
+      const serviceRef: ServiceRef = ServiceRef.of(testNamespace, ServiceName.of(serviceName));
+      await k8.services().create(serviceRef, {app: 'svc-test'}, 80, 80);
     } catch (e) {
       console.log(`${e}, ${e.stack}`);
       throw e;
