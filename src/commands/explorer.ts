@@ -16,12 +16,11 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {NamespaceName} from '../core/kube/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
-import {INGRESS_CONTROLLER_NAME, INGRESS_CONTROLLER_RELEASE_NAME} from '../core/constants.js';
+import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
-import {Templates} from '../core/templates.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -131,7 +130,6 @@ export class ExplorerCommand extends BaseCommand {
     const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
 
     if (!(await clusterChecks.isCertManagerInstalled())) {
-      valuesArg += ' --set cloud.certManager.enabled=true';
       valuesArg += ' --set cert-manager.installCRDs=true';
     }
 
@@ -194,58 +192,56 @@ export class ExplorerCommand extends BaseCommand {
           },
         },
         ListrRemoteConfig.loadRemoteConfig(this, argv),
-        // {
-        //   title: 'Upgrade solo-setup chart',
-        //   task: async ctx => {
-        //     const config = ctx.config;
-        //     const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
-        //
-        //     const chartPath = await this.prepareChartPath(
-        //       chartDirectory,
-        //       constants.SOLO_TESTING_CHART_URL,
-        //       constants.SOLO_CLUSTER_SETUP_CHART,
-        //     );
-        //
-        //     const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
-        //
-        //     // if cert-manager isn't already installed we want to install it separate from the certificate issuers
-        //     // as they will fail to be created due to the order of the installation being dependent on the cert-manager
-        //     // being installed first
-        //     if (soloChartSetupValuesArg.includes('cloud.certManager.enabled=true')) {
-        //       await self.chartManager.upgrade(
-        //         clusterSetupNamespace,
-        //         constants.SOLO_CLUSTER_SETUP_CHART,
-        //         chartPath,
-        //         soloChartVersion,
-        //         '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
-        //       );
-        //     }
-        //
-        //     // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
-        //     await self.k8.waitForPodReady(
-        //       [
-        //         'app.kubernetes.io/component=webhook',
-        //         `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
-        //       ],
-        //       1,
-        //       constants.PODS_READY_MAX_ATTEMPTS,
-        //       constants.PODS_READY_DELAY,
-        //       constants.DEFAULT_CERT_MANAGER_NAMESPACE,
-        //     );
-        //
-        //     // sleep for a few seconds to allow cert-manager to be ready
-        //     await new Promise(resolve => setTimeout(resolve, 10000));
-        //
-        //     await self.chartManager.upgrade(
-        //       clusterSetupNamespace,
-        //       constants.SOLO_CLUSTER_SETUP_CHART,
-        //       chartPath,
-        //       soloChartVersion,
-        //       soloChartSetupValuesArg,
-        //     );
-        //   },
-        //   skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
-        // },
+        {
+          title: 'Install cert manager',
+          task: async ctx => {
+            const config = ctx.config;
+            const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
+
+            const chartPath = await this.prepareChartPath(
+              chartDirectory,
+              constants.SOLO_TESTING_CHART_URL,
+              constants.SOLO_CERT_MANAGER_CHART,
+            );
+
+            const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
+
+            // if cert-manager isn't already installed we want to install it separate from the certificate issuers
+            // as they will fail to be created due to the order of the installation being dependent on the cert-manager
+            // being installed first
+            await self.chartManager.install(
+              NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
+              constants.SOLO_CERT_MANAGER_CHART,
+              chartPath,
+              soloChartVersion,
+              '  --set cert-manager.installCRDs=true',
+            );
+
+            // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
+            await self.k8.waitForPodReady(
+              [
+                'app.kubernetes.io/component=webhook',
+                `app.kubernetes.io/instance=${constants.SOLO_CERT_MANAGER_CHART}`,
+              ],
+              1,
+              constants.PODS_READY_MAX_ATTEMPTS,
+              constants.PODS_READY_DELAY,
+              constants.DEFAULT_CERT_MANAGER_NAMESPACE,
+            );
+
+            // sleep for a few seconds to allow cert-manager to be ready
+            await new Promise(resolve => setTimeout(resolve, 10000));
+
+            await self.chartManager.upgrade(
+              NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
+              constants.SOLO_CERT_MANAGER_CHART,
+              chartPath,
+              soloChartVersion,
+              soloChartSetupValuesArg,
+            );
+          },
+          skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
+        },
 
         {
           title: 'Install explorer',

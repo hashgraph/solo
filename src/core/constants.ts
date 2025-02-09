@@ -59,6 +59,7 @@ export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts';
 export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
 export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup';
 export const SOLO_DEPLOYMENT_CHART = 'solo-deployment';
+export const SOLO_CERT_MANAGER_CHART = 'solo-cert-manager';
 export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay';
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts';
@@ -73,6 +74,7 @@ export const INGRESS_CONTROLLER_CHART_URL = 'https://haproxy-ingress.github.io/c
 export const INGRESS_CONTROLLER_RELEASE_NAME = 'haproxy-ingress';
 export const INGRESS_CONTROLLER_NAME = 'haproxy-ingress.github.io/controller';
 
+export const CERT_MANAGER_NAME_SPACE = 'cert-manager';
 export const SOLO_HEDERA_MIRROR_IMPORTER = [
   'app.kubernetes.io/component=importer',
   'app.kubernetes.io/instance=mirror',
