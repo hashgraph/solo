@@ -5,7 +5,7 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {type NamespaceName} from '../namespace/namespace_name.js';
 import {type PodRef} from '../pod/pod_ref.js';
 import {type Pod} from '../pod/pod.js';
-import {type ContainerName} from '../../container_name.js';
+import {type ContainerName} from '../../resources/container/container_name.js';
 
 export interface Pods {
   /**

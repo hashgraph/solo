@@ -7,7 +7,7 @@ import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
 import path, {dirname, normalize} from 'path';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {ContainerName} from './kube/container_name.js';
+import {ContainerName} from './kube/resources/container/container_name.js';
 
 export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 

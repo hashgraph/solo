@@ -23,8 +23,8 @@ import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
-import {ContainerName} from '../core/kube/container_name.js';
-import {ContainerRef} from '../core/kube/container_ref.js';
+import {ContainerName} from '../core/kube/resources/container/container_name.js';
+import {ContainerRef} from '../core/kube/resources/container/container_ref.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;

@@ -29,7 +29,7 @@ import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {SecretType} from '../core/kube/secret_type.js';
+import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;

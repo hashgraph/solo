@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import type http from 'node:http';
-import {type ResourceOperation} from './resource_operation.js';
-import {type ResourceType} from './resource_type.js';
+import {type ResourceOperation} from './resources/resource_operation.js';
+import {type ResourceType} from './resources/resource_type.js';
 import {type NamespaceName} from './resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from './errors/resource_operation_errors.js';
 import {StatusCodes} from 'http-status-codes';

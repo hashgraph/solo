@@ -12,7 +12,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
-import {K8ClientSecrets} from '../../../src/core/kube/k8_client/k8_client_secrets.js';
+import {K8ClientSecrets} from '../../../src/core/kube/k8_client/resources/secret/k8_client_secrets.js';
 
 describe('Certificate Manager', () => {
   const argv = {};

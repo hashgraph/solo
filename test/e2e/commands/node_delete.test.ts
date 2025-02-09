@@ -20,7 +20,7 @@ import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
-import {ContainerRef} from '../../../src/core/kube/container_ref.js';
+import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';

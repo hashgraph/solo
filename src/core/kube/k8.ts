@@ -1,23 +1,21 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type * as k8s from '@kubernetes/client-node';
-import {type V1Lease} from '@kubernetes/client-node';
 import {type TarCreateFilter} from '../../types/aliases.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './resources/namespace/namespaces.js';
 import {type NamespaceName} from './resources/namespace/namespace_name.js';
-import {type Containers} from './containers.js';
-import {type Clusters} from './clusters.js';
-import {type ConfigMaps} from './config_maps.js';
-import {type ContainerRef} from './container_ref.js';
-import {type Contexts} from './contexts.js';
+import {type Containers} from './resources/container/containers.js';
+import {type Clusters} from './resources/cluster/clusters.js';
+import {type ConfigMaps} from './resources/config_map/config_maps.js';
+import {type ContainerRef} from './resources/container/container_ref.js';
+import {type Contexts} from './resources/context/contexts.js';
 import {type Pvcs} from './resources/pvc/pvcs.js';
-import {type Services} from './services.js';
+import {type Services} from './resources/service/services.js';
 import {type Pods} from './resources/pod/pods.js';
 import {type Leases} from './resources/lease/leases.js';
-import {type IngressClasses} from './ingress_classes.js';
-import {type Secrets} from './secrets.js';
+import {type IngressClasses} from './resources/ingress_class/ingress_classes.js';
+import {type Secrets} from './resources/secret/secrets.js';
 
 export interface K8 {
   /**
