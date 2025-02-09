@@ -36,6 +36,8 @@ import {type Secrets} from '../resources/secret/secrets.js';
 import {K8ClientSecrets} from '../k8_client/resources/secret/k8_client_secrets.js';
 import {PvcRef} from '../resources/pvc/pvc_ref.js';
 import {PvcName} from '../resources/pvc/pvc_name.js';
+import {type Ingresses} from '../resources/ingress/ingresses.js';
+import {K8ClientIngresses} from './resources/ingress/k8_client_ingresses.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -61,6 +63,7 @@ export class K8Client implements K8 {
   private k8Namespaces: Namespaces;
   private k8IngressClasses: IngressClasses;
   private k8Secrets: Secrets;
+  private k8Ingresses: Ingresses;
 
   constructor(
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
@@ -100,6 +103,7 @@ export class K8Client implements K8 {
     this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
     this.k8IngressClasses = new K8ClientIngressClasses(this.networkingApi);
     this.k8Secrets = new K8ClientSecrets(this.kubeClient);
+    this.k8Ingresses = new K8ClientIngresses(this.networkingApi);
 
     return this; // to enable chaining
   }
@@ -148,43 +152,15 @@ export class K8Client implements K8 {
     return this.k8IngressClasses;
   }
 
+  public ingresses(): Ingresses {
+    return this.k8Ingresses;
+  }
+
   public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
     return this.pvcs().list(namespace, labels);
   }
 
   public async deletePvc(name: string, namespace: NamespaceName) {
     return this.pvcs().delete(PvcRef.of(namespace, PvcName.of(name)));
-  }
-
-  public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {
-    const ingressNames = [];
-    await this.networkingApi
-      .listIngressForAllNamespaces()
-      .then(response => {
-        response.body.items.forEach(ingress => {
-          const currentIngressName = ingress.metadata.name;
-          if (currentIngressName.includes(ingressName)) {
-            ingressNames.push(currentIngressName);
-          }
-        });
-      })
-      .catch(err => {
-        this.logger.error(`Error listing Ingresses: ${err}`);
-      });
-
-    for (const name of ingressNames) {
-      await this.networkingApi
-        .patchNamespacedIngress(name, namespace.name, patch, undefined, undefined, undefined, undefined, undefined, {
-          headers: {'Content-Type': 'application/strategic-merge-patch+json'},
-        })
-        .then(response => {
-          this.logger.info(`Patched Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)}`);
-        })
-        .catch(err => {
-          this.logger.error(
-            `Error patching Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)} ${err}`,
-          );
-        });
-    }
   }
 }

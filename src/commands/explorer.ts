@@ -249,7 +249,7 @@ export class ExplorerCommand extends BaseCommand {
             );
 
             // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
-            await this.k8.patchIngress(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+            await this.k8.ingresses().update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
               spec: {
                 ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
               },
@@ -283,7 +283,7 @@ export class ExplorerCommand extends BaseCommand {
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
             // to support grpc over http/2
-            await this.k8.patchIngress(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
+            await this.k8.ingresses().update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
               metadata: {
                 annotations: {
                   'haproxy-ingress.github.io/backend-protocol': 'h1',
