@@ -26,6 +26,7 @@ import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace_n
 import {PodName} from '../../src/core/kube/resources/pod/pod_name.js';
 import {PodRef} from '../../src/core/kube/resources/pod/pod_ref.js';
 import {NetworkNodes} from '../../src/core/network_nodes.js';
+import {type V1Pod} from '@kubernetes/client-node';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
@@ -81,7 +82,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
             try {
               const labels = ['app=haproxy-node1', 'solo.hedera.com/type=haproxy'];
-              const readyPods = await k8.pods().waitForReadyStatus(namespace, labels, 300, 1000);
+              const readyPods: V1Pod[] = await k8.pods().waitForReadyStatus(namespace, labels, 300, 1000);
               expect(readyPods).to.not.be.null;
               expect(readyPods).to.not.be.undefined;
               expect(readyPods.length).to.be.greaterThan(0);

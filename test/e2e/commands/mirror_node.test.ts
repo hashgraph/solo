@@ -26,6 +26,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {type V1Pod} from '@kubernetes/client-node';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -108,7 +109,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await accountManager.loadNodeClient(namespace);
       try {
         // find hedera explorer pod
-        const pods = await k8.pods().list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
+        const pods: V1Pod[] = await k8.pods().list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod = pods[0];
 
         portForwarder = await k8

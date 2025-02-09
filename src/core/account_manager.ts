@@ -39,6 +39,7 @@ import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/secret_type.js';
+import {type V1Pod} from '@kubernetes/client-node';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -506,12 +507,12 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList = await this.k8.pods().list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
+        const podList: V1Pod[] = await this.k8.pods().list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
-      const pods = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      const pods: V1Pod[] = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       for (const pod of pods) {
         // eslint-disable-next-line no-prototype-builtins
         if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {

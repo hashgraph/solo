@@ -19,7 +19,6 @@ import {K8ClientClusters} from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {K8ClientConfigMaps} from './k8_client/k8_client_config_maps.js';
-import {type PodRef} from './resources/pod/pod_ref.js';
 import {type ContainerRef} from './container_ref.js';
 import {K8ClientContainers} from './k8_client/k8_client_containers.js';
 import {type Containers} from './containers.js';

@@ -7,8 +7,8 @@ import {SoloError} from '../../errors.js';
 import {type K8} from '../../kube/k8.js';
 import {type ComponentsDataWrapper} from './components_data_wrapper.js';
 import {type BaseComponent} from './components/base_component.js';
-import {resolveNamespaceFromDeployment} from '../../resolvers.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
+import {type V1Pod} from '@kubernetes/client-node';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -41,7 +41,7 @@ export class RemoteConfigValidator {
   private static validateRelays(namespace: NamespaceName, components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
     return Object.values(components.relays).map(async component => {
       try {
-        const pods = await k8.pods().list(namespace, [constants.SOLO_RELAY_LABEL]);
+        const pods: V1Pod[] = await k8.pods().list(namespace, [constants.SOLO_RELAY_LABEL]);
 
         // to return the generic error message
         if (!pods.length) throw new Error('Pod not found');
@@ -58,7 +58,7 @@ export class RemoteConfigValidator {
   ): Promise<void>[] {
     return Object.values(components.haProxies).map(async component => {
       try {
-        const pods = await k8.pods().list(namespace, [`app=${component.name}`]);
+        const pods: V1Pod[] = await k8.pods().list(namespace, [`app=${component.name}`]);
 
         // to return the generic error message
         if (!pods.length) throw new Error('Pod not found');
@@ -75,7 +75,7 @@ export class RemoteConfigValidator {
   ): Promise<void>[] {
     return Object.values(components.mirrorNodes).map(async component => {
       try {
-        const pods = await k8.pods().list(namespace, constants.SOLO_HEDERA_MIRROR_IMPORTER);
+        const pods: V1Pod[] = await k8.pods().list(namespace, constants.SOLO_HEDERA_MIRROR_IMPORTER);
 
         // to return the generic error message
         if (!pods.length) throw new Error('Pod not found');
@@ -92,7 +92,7 @@ export class RemoteConfigValidator {
   ): Promise<void>[] {
     return Object.values(components.envoyProxies).map(async component => {
       try {
-        const pods = await k8.pods().list(namespace, [`app=${component.name}`]);
+        const pods: V1Pod[] = await k8.pods().list(namespace, [`app=${component.name}`]);
 
         // to return the generic error message
         if (!pods.length) throw new Error('Pod not found');
@@ -109,7 +109,7 @@ export class RemoteConfigValidator {
   ): Promise<void>[] {
     return Object.values(components.consensusNodes).map(async component => {
       try {
-        const pods = await k8.pods().list(namespace, [`app=network-${component.name}`]);
+        const pods: V1Pod[] = await k8.pods().list(namespace, [`app=network-${component.name}`]);
 
         // to return the generic error message
         if (!pods.length) throw new Error('Pod not found');
@@ -126,7 +126,7 @@ export class RemoteConfigValidator {
   ): Promise<void>[] {
     return Object.values(components.mirrorNodeExplorers).map(async component => {
       try {
-        const pods = await k8.pods().list(namespace, [constants.SOLO_HEDERA_EXPLORER_LABEL]);
+        const pods: V1Pod[] = await k8.pods().list(namespace, [constants.SOLO_HEDERA_EXPLORER_LABEL]);
 
         // to return the generic error message
         if (!pods.length) throw new Error('Pod not found');

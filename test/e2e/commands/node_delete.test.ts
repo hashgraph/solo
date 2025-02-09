@@ -23,6 +23,7 @@ import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/container_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {type V1Pod} from '@kubernetes/client-node';
 
 const namespace = NamespaceName.of('node-delete');
 const deleteNodeAlias = 'node1';
@@ -82,8 +83,8 @@ e2eTestSuite(
 
       it('config.txt should no longer contain removed node alias name', async () => {
         // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
-        const pods = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
-        const podName = PodName.of(pods[0].metadata.name);
+        const pods: V1Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+        const podName: PodName = PodName.of(pods[0].metadata.name);
         const tmpDir = getTmpDir();
         await k8.copyFrom(
           ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER),
