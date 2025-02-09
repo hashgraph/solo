@@ -31,13 +31,13 @@ import {SoloLogger} from './logging.js';
 import {type K8} from './kube/k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
-import {PodName} from './kube/pod_name.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {PodRef} from './kube/pod_ref.js';
+import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/secret_type.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';

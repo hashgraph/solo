@@ -23,8 +23,8 @@ import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodName} from '../../src/core/kube/pod_name.js';
-import {PodRef} from '../../src/core/kube/pod_ref.js';
+import {PodName} from '../../src/core/kube/resources/pod/pod_name.js';
+import {PodRef} from '../../src/core/kube/resources/pod/pod_ref.js';
 import {NetworkNodes} from '../../src/core/network_nodes.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {

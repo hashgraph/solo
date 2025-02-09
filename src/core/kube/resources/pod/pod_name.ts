@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {ResourceName} from './resource_name.js';
-import {ResourceType} from './resource_type.js';
+import {ResourceName} from '../../resource_name.js';
+import {ResourceType} from '../../resource_type.js';
 
 /**
  * Represents a Kubernetes pod name. A Kubernetes pod name must be a valid RFC-1123 DNS label.

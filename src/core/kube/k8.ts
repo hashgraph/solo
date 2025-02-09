@@ -4,7 +4,7 @@
 import type * as k8s from '@kubernetes/client-node';
 import {type V1Lease} from '@kubernetes/client-node';
 import {type TarCreateFilter} from '../../types/aliases.js';
-import {type PodRef} from './pod_ref.js';
+import {type PodRef} from './resources/pod/pod_ref.js';
 import {type ExtendedNetServer} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './resources/namespace/namespaces.js';
@@ -16,7 +16,7 @@ import {type ContainerRef} from './container_ref.js';
 import {type Contexts} from './contexts.js';
 import {type Pvcs} from './resources/pvc/pvcs.js';
 import {type Services} from './services.js';
-import {type Pods} from './pods.js';
+import {type Pods} from './resources/pod/pods.js';
 import {type Leases} from './leases.js';
 import {type IngressClasses} from './ingress_classes.js';
 import {type Secrets} from './secrets.js';

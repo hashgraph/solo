@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type ExtendedNetServer} from '../../types/index.js';
+import {type ExtendedNetServer} from '../../../../types/index.js';
 import {type PodRef} from './pod_ref.js';
 
 export interface Pod {

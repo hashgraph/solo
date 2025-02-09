@@ -18,12 +18,12 @@ import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
 import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
-import {PodName} from '../../../src/core/kube/pod_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/pod_ref.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 

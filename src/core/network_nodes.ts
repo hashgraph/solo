@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {PodRef} from './kube/pod_ref.js';
-import {PodName} from './kube/pod_name.js';
+import {PodRef} from './kube/resources/pod/pod_ref.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import path from 'path';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import fs from 'fs';

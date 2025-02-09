@@ -1,18 +1,18 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type Pod} from '../pod.js';
-import {type ExtendedNetServer} from '../../../types/index.js';
-import {type PodRef} from '../pod_ref.js';
-import {SoloError} from '../../errors.js';
-import {sleep} from '../../helpers.js';
-import {Duration} from '../../time/duration.js';
+import {type Pod} from '../../../resources/pod/pod.js';
+import {type ExtendedNetServer} from '../../../../../types/index.js';
+import {type PodRef} from '../../../resources/pod/pod_ref.js';
+import {SoloError} from '../../../../errors.js';
+import {sleep} from '../../../../helpers.js';
+import {Duration} from '../../../../time/duration.js';
 import {StatusCodes} from 'http-status-codes';
-import {SoloLogger} from '../../logging.js';
+import {SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
 import {type KubeConfig, type CoreV1Api, PortForward} from '@kubernetes/client-node';
-import {type Pods} from '../pods.js';
-import * as constants from '../../constants.js';
+import {type Pods} from '../../../resources/pod/pods.js';
+import * as constants from '../../../../constants.js';
 import net from 'net';
 
 export class K8ClientPod implements Pod {

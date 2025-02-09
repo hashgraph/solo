@@ -12,7 +12,7 @@ import {Flags as flags} from './flags.js';
 import {getEnvValue} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {PodName} from '../core/kube/pod_name.js';
+import {PodName} from '../core/kube/resources/pod/pod_name.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -22,7 +22,7 @@ import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../core/kube/pod_ref.js';
+import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
 import {ContainerName} from '../core/kube/container_name.js';
 import {ContainerRef} from '../core/kube/container_ref.js';
 
