@@ -1,11 +1,11 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type Namespaces} from '../namespaces.js';
-import {NamespaceName} from '../namespace_name.js';
+import {type Namespaces} from '../../../resources/namespace/namespaces.js';
 import {type CoreV1Api} from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../../../errors.js';
+import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
 
 export class K8ClientNamespaces implements Namespaces {
   constructor(private readonly kubeClient: CoreV1Api) {}

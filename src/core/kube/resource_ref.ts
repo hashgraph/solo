@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from './namespace_name.js';
+import {type NamespaceName} from './resources/namespace/namespace_name.js';
 import {type ResourceName} from './resource_name.js';
 import {MissingNamespaceError} from './errors/missing_namespace_error.js';
 import {MissingResourceNameError} from './errors/missing_resource_name_error.js';

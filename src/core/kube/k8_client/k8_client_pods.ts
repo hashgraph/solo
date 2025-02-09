@@ -12,7 +12,7 @@ import {
   V1PodSpec,
 } from '@kubernetes/client-node';
 import {type Pods} from '../pods.js';
-import {NamespaceName} from '../namespace_name.js';
+import {NamespaceName} from '../resources/namespace/namespace_name.js';
 import {PodRef} from '../pod_ref.js';
 import {type Pod} from '../pod.js';
 import {K8ClientPod} from './k8_client_pod.js';

@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from './namespace_name.js';
+import {type NamespaceName} from './resources/namespace/namespace_name.js';
 import {type Service} from './service.js';
 import {type ServiceRef} from './service_ref.js';
 

@@ -17,7 +17,7 @@ import {ListrLease} from '../core/lease/listr_lease.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
-import {NamespaceName} from '../core/kube/namespace_name.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../core/config/remote/types.js';
 
 export class RelayCommand extends BaseCommand {

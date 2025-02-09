@@ -22,7 +22,7 @@ import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components
 
 import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/pod_ref.js';
 import {PodName} from '../../../../src/core/kube/pod_name.js';
 import {ContainerName} from '../../../../src/core/kube/container_name.js';
@@ -37,11 +37,11 @@ describe('RemoteConfigValidator', () => {
     configManager = container.resolve(ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
     k8 = container.resolve('K8') as K8Client;
-    await k8.createNamespace(namespace);
+    await k8.namespaces().create(namespace);
   });
 
   after(async () => {
-    await k8.deleteNamespace(namespace);
+    await k8.namespaces().delete(namespace);
   });
 
   const cluster = 'cluster';

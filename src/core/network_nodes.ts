@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {PodRef} from './kube/pod_ref.js';
 import {PodName} from './kube/pod_name.js';
 import path from 'path';

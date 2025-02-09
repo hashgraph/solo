@@ -28,7 +28,7 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {SecretType} from '../core/kube/secret_type.js';
 
 export interface NetworkDeployConfigClass {
@@ -417,8 +417,8 @@ export class NetworkCommand extends BaseCommand {
     config.valuesArg = await this.prepareValuesArg(config);
     config.namespace = namespace;
 
-    if (!(await this.k8.hasNamespace(namespace))) {
-      await this.k8.createNamespace(namespace);
+    if (!(await this.k8.namespaces().has(namespace))) {
+      await this.k8.namespaces().create(namespace);
     }
 
     // prepare staging keys directory
@@ -761,7 +761,7 @@ export class NetworkCommand extends BaseCommand {
                 networkDestroySuccess = false;
 
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
-                  self.k8.deleteNamespace(ctx.config.namespace);
+                  self.k8.namespaces().delete(ctx.config.namespace);
                 } else {
                   // If the namespace is not being deleted,
                   // remove all components data from the remote configuration

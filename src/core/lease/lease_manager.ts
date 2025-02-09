@@ -11,7 +11,7 @@ import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 
 /**
  * Manages the acquisition and renewal of leases.
@@ -80,10 +80,10 @@ export class LeaseManager {
     }
     const namespace = deploymentNamespace ? deploymentNamespace : clusterSetupNamespace;
 
-    if (!(await this.k8.hasNamespace(namespace))) {
-      await this.k8.createNamespace(namespace);
+    if (!(await this.k8.namespaces().has(namespace))) {
+      await this.k8.namespaces().create(namespace);
 
-      if (!(await this.k8.hasNamespace(namespace))) {
+      if (!(await this.k8.namespaces().has(namespace))) {
         throw new LeaseAcquisitionError(`failed to create the '${namespace}' namespace`);
       }
     }

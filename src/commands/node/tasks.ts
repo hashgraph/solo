@@ -62,7 +62,7 @@ import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 import {NodeOverridesModel} from '../../core/node_overrides_model.js';
-import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../core/kube/pod_ref.js';
 import {ContainerRef} from '../../core/kube/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';

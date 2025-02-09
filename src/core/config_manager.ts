@@ -12,7 +12,7 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {patchInject} from './container_helper.js';
 import * as constants from '../core/constants.js';
-import {NamespaceName} from './kube/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.

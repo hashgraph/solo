@@ -16,7 +16,7 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 
@@ -189,7 +189,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
+            if (!(await self.k8.namespaces().has(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
@@ -373,7 +373,7 @@ export class ExplorerCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            if (!(await self.k8.hasNamespace(namespace))) {
+            if (!(await self.k8.namespaces().has(namespace))) {
               throw new SoloError(`namespace ${namespace} does not exist`);
             }
 

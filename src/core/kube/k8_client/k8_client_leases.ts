@@ -10,7 +10,7 @@ import {
   type V1Status,
 } from '@kubernetes/client-node';
 import {type Leases} from '../leases.js';
-import {type NamespaceName} from '../namespace_name.js';
+import {type NamespaceName} from '../resources/namespace/namespace_name.js';
 import type http from 'node:http';
 import {SoloError} from '../../errors.js';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';

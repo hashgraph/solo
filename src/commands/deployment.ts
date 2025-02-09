@@ -16,7 +16,7 @@ import {type SoloListrTask} from '../types/index.js';
 import {type Opts} from '../types/command_types.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 
@@ -200,7 +200,7 @@ export class DeploymentCommand extends BaseCommand {
 
             self.k8.contexts().updateCurrent(context);
 
-            const namespaces = await self.k8.getNamespaces();
+            const namespaces = await self.k8.namespaces().list();
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {

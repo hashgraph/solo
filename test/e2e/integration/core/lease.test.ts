@@ -13,7 +13,7 @@ import {LeaseRelinquishmentError} from '../../../../src/core/lease/lease_errors.
 import {NoopLeaseRenewalService} from './noop_lease_renewal_service.test.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
@@ -27,17 +27,17 @@ describe('Lease', async () => {
 
   before(async function () {
     this.timeout(defaultTimeout);
-    if (await k8.hasNamespace(testNamespace)) {
-      await k8.deleteNamespace(testNamespace);
+    if (await k8.namespaces().has(testNamespace)) {
+      await k8.namespaces().delete(testNamespace);
       await sleep(Duration.ofSeconds(5));
     }
 
-    await k8.createNamespace(testNamespace);
+    await k8.namespaces().create(testNamespace);
   });
 
   after(async function () {
     this.timeout(defaultTimeout);
-    await k8.deleteNamespace(testNamespace);
+    await k8.namespaces().delete(testNamespace);
   });
 
   describe('acquire and release', async function () {

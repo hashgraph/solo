@@ -44,7 +44,7 @@ import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {K8ClientClusters} from '../../../src/core/kube/k8_client/k8_client_clusters.js';
 import {K8ClientContexts} from '../../../src/core/kube/k8_client/k8_client_contexts.js';

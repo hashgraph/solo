@@ -4,7 +4,7 @@
 
 import {type NodeAlias} from '../types/aliases.js';
 import {type PodName} from './kube/pod_name.js';
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 
 export class NetworkNodeServices {
   public readonly nodeAlias: NodeAlias;

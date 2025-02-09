@@ -7,8 +7,8 @@ import {type TarCreateFilter} from '../../types/aliases.js';
 import {type PodRef} from './pod_ref.js';
 import {type ExtendedNetServer} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
-import {type Namespaces} from './namespaces.js';
-import {type NamespaceName} from './namespace_name.js';
+import {type Namespaces} from './resources/namespace/namespaces.js';
+import {type NamespaceName} from './resources/namespace/namespace_name.js';
 import {type Containers} from './containers.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
@@ -87,27 +87,6 @@ export interface K8 {
    * @returns an object instance providing ingress class operations
    */
   ingressClasses(): IngressClasses;
-
-  /**
-   * Create a new namespace
-   * @param namespace - the namespace to create
-   */
-  createNamespace(namespace: NamespaceName): Promise<boolean>;
-
-  /**
-   * Delete a namespace
-   * @param namespace - the namespace to delete
-   */
-  deleteNamespace(namespace: NamespaceName): Promise<boolean>;
-
-  /** Get a list of namespaces */
-  getNamespaces(): Promise<NamespaceName[]>;
-
-  /**
-   * Returns true if a namespace exists with the given name
-   * @param namespace namespace name
-   */
-  hasNamespace(namespace: NamespaceName): Promise<any>;
 
   /**
    * Get a pod by PodRef

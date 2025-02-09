@@ -4,7 +4,7 @@
 import {SoloError} from '../../errors.js';
 import {ResourceOperation} from '../resource_operation.js';
 import {type ResourceType} from '../resource_type.js';
-import {type NamespaceName} from '../namespace_name.js';
+import {type NamespaceName} from '../resources/namespace/namespace_name.js';
 
 export class ResourceOperationError extends SoloError {
   /**

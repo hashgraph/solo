@@ -12,7 +12,7 @@ import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {PodName} from '../../../src/core/kube/pod_name.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/container_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
@@ -53,7 +53,7 @@ e2eTestSuite(
         this.timeout(Duration.ofMinutes(10).toMillis());
 
         await container.resolve(NetworkNodes).getLogs(namespace);
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
       });
 
       it('should succeed with init command', async () => {

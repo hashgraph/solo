@@ -23,7 +23,7 @@ import {patchInject} from '../../container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyObject} from '../../../types/aliases.js';
-import {NamespaceName} from '../../kube/namespace_name.js';
+import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 
 /**
@@ -216,8 +216,8 @@ export class RemoteConfigManager {
     const self = this;
     self.k8.contexts().updateCurrent(context);
 
-    if (!(await self.k8.hasNamespace(NamespaceName.of(namespace)))) {
-      await self.k8.createNamespace(NamespaceName.of(namespace));
+    if (!(await self.k8.namespaces().has(NamespaceName.of(namespace)))) {
+      await self.k8.namespaces().create(NamespaceName.of(namespace));
     }
 
     const localConfigExists = this.localConfig.configFileExists();

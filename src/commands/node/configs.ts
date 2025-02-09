@@ -16,7 +16,7 @@ import {type NetworkNodePodNameAsString, type NodeAlias, type NodeAliases} from 
 import {type PodName} from '../../core/kube/pod_name.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
-import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type PodRef} from '../../core/kube/pod_ref.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
@@ -36,7 +36,7 @@ const initializeSetup = async (config, k8) => {
   config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
   config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
 
-  if (!(await k8.hasNamespace(config.namespace))) {
+  if (!(await k8.namespaces().has(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
   }
 
@@ -324,7 +324,7 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
     deployment: this.configManager.getFlag(flags.deployment),
   };
 
-  if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
+  if (!(await this.k8.namespaces().has(ctx.config.namespace))) {
     throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
   }
 
@@ -335,7 +335,7 @@ export const startConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
-  if (!(await this.k8.hasNamespace(config.namespace))) {
+  if (!(await this.k8.namespaces().has(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
   }
 

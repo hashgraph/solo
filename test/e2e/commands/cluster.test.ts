@@ -12,7 +12,7 @@ import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 
 import {NamespaceNameInvalidError} from '../../../src/core/kube/errors/namespace_name_invalid_error.js';
 
@@ -55,7 +55,7 @@ describe('ClusterCommand', () => {
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await k8.deleteNamespace(namespace);
+    await k8.namespaces().delete(namespace);
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
     configManager.update(argv);
     await clusterCmd.handlers.setup(argv); // restore solo-cluster-setup for other e2e tests to leverage
