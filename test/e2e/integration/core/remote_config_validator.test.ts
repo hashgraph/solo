@@ -88,7 +88,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateRelays(components, k8));
+        await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -100,7 +100,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(relayName, {[key]: value});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateRelays(components, k8));
+      await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8));
     });
   });
 
@@ -108,7 +108,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateHaProxies(components, k8));
+        await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -119,7 +119,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(haProxyName, {app: haProxyName});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateHaProxies(components, k8));
+      await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8));
     });
   });
 
@@ -127,7 +127,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateMirrorNodes(components, k8));
+        await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -140,7 +140,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(mirrorNodeName, {[key1]: value1, [key2]: value2});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateMirrorNodes(components, k8));
+      await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8));
     });
   });
 
@@ -148,7 +148,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateEnvoyProxies(components, k8));
+        await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -159,7 +159,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(envoyProxyName, {app: envoyProxyName});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateEnvoyProxies(components, k8));
+      await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8));
     });
   });
 
@@ -167,7 +167,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateConsensusNodes(components, k8));
+        await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -178,7 +178,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(nodeAlias, {app: `network-${nodeAlias}`});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateConsensusNodes(components, k8));
+      await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8));
     });
   });
 
@@ -186,7 +186,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(components, k8));
+        await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -198,7 +198,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(mirrorNodeExplorerName, {[key]: value});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(components, k8));
+      await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8));
     });
   });
 });
