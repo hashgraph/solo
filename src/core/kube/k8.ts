@@ -15,7 +15,7 @@ import {type Contexts} from './contexts.js';
 import {type Pvcs} from './resources/pvc/pvcs.js';
 import {type Services} from './services.js';
 import {type Pods} from './resources/pod/pods.js';
-import {type Leases} from './leases.js';
+import {type Leases} from './resources/lease/leases.js';
 import {type IngressClasses} from './ingress_classes.js';
 import {type Secrets} from './secrets.js';
 
@@ -175,21 +175,6 @@ export interface K8 {
    * @returns true if the persistent volume claim was deleted
    */
   deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
-
-  createNamespacedLease(
-    namespace: NamespaceName,
-    leaseName: string,
-    holderName: string,
-    durationSeconds,
-  ): Promise<k8s.V1Lease>;
-
-  readNamespacedLease(leaseName: string, namespace: NamespaceName, timesCalled?): Promise<any>;
-
-  renewNamespaceLease(leaseName: string, namespace: NamespaceName, lease: k8s.V1Lease): Promise<k8s.V1Lease>;
-
-  transferNamespaceLease(lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease>;
-
-  deleteNamespacedLease(name: string, namespace: NamespaceName): Promise<k8s.V1Status>;
 
   patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;
 
