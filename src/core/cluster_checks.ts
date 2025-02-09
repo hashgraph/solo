@@ -8,7 +8,7 @@ import {SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type K8} from './kube/k8.js';
 import {type Pod} from './kube/resources/pod/pod.js';
-import {type IngressClass} from './kube/ingress_class.js';
+import {type IngressClass} from './kube/resources/ingress_class/ingress_class.js';
 import {type V1Pod, type V1ConfigMap} from '@kubernetes/client-node';
 
 /**

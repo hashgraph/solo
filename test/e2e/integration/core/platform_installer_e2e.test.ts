@@ -17,7 +17,7 @@ import {type PlatformInstaller} from '../../../../src/core/platform_installer.js
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
-import {ContainerRef} from '../../../../src/core/kube/container_ref.js';
+import {ContainerRef} from '../../../../src/core/kube/resources/container/container_ref.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 

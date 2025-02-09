@@ -7,7 +7,7 @@ import {PodName} from './kube/resources/pod/pod_name.js';
 import path from 'path';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import fs from 'fs';
-import {ContainerRef} from './kube/container_ref.js';
+import {ContainerRef} from './kube/resources/container/container_ref.js';
 import * as constants from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';

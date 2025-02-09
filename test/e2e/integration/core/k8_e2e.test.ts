@@ -23,10 +23,10 @@ import {container} from 'tsyringe-neo';
 import {type K8Client} from '../../../../src/core/kube/k8_client/k8_client.js';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
-import {ContainerName} from '../../../../src/core/kube/container_name.js';
-import {ContainerRef} from '../../../../src/core/kube/container_ref.js';
-import {ServiceRef} from '../../../../src/core/kube/service_ref.js';
-import {ServiceName} from '../../../../src/core/kube/service_name.js';
+import {ContainerName} from '../../../../src/core/kube/resources/container/container_name.js';
+import {ContainerRef} from '../../../../src/core/kube/resources/container/container_ref.js';
+import {ServiceRef} from '../../../../src/core/kube/resources/service/service_ref.js';
+import {ServiceName} from '../../../../src/core/kube/resources/service/service_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 

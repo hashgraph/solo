@@ -38,7 +38,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {PodRef} from './kube/resources/pod/pod_ref.js';
-import {SecretType} from './kube/secret_type.js';
+import {SecretType} from './kube/resources/secret/secret_type.js';
 import {type V1Pod} from '@kubernetes/client-node';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';

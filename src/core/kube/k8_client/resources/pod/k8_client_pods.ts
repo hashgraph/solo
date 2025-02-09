@@ -22,11 +22,11 @@ import {MissingArgumentError, SoloError} from '../../../../errors.js';
 import * as constants from '../../../../constants.js';
 import {SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
-import {type ContainerName} from '../../../container_name.js';
+import {type ContainerName} from '../../../resources/container/container_name.js';
 import {PodName} from '../../../resources/pod/pod_name.js';
 import {KubeApiResponse} from '../../../kube_api_response.js';
-import {ResourceOperation} from '../../../resource_operation.js';
-import {ResourceType} from '../../../resource_type.js';
+import {ResourceOperation} from '../../../resources/resource_operation.js';
+import {ResourceType} from '../../../resources/resource_type.js';
 
 export class K8ClientPods extends K8ClientBase implements Pods {
   private readonly logger: SoloLogger;

@@ -15,7 +15,7 @@ import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {SecretType} from './kube/secret_type.js';
+import {SecretType} from './kube/resources/secret/secret_type.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets

@@ -25,7 +25,7 @@ import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
-import {ContainerName} from '../../../../src/core/kube/container_name.js';
+import {ContainerName} from '../../../../src/core/kube/resources/container/container_name.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');

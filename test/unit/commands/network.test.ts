@@ -30,7 +30,7 @@ import {DependencyManager} from '../../../src/core/dependency_managers/index.js'
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetForTest} from '../../test_container.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
-import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/k8_client_config_maps.js';
+import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/resources/config_map/k8_client_config_maps.js';
 
 const testName = 'network-cmd-unit';
 const argv = getDefaultArgv();

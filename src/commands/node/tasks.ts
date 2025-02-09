@@ -64,7 +64,7 @@ import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/g
 import {NodeOverridesModel} from '../../core/node_overrides_model.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../core/kube/resources/pod/pod_ref.js';
-import {ContainerRef} from '../../core/kube/container_ref.js';
+import {ContainerRef} from '../../core/kube/resources/container/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';

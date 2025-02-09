@@ -12,29 +12,28 @@ import {patchInject} from '../../container_helper.js';
 import {type K8} from '../k8.js';
 import {type Namespaces} from '../resources/namespace/namespaces.js';
 import {type NamespaceName} from '../resources/namespace/namespace_name.js';
-import {K8ClientClusters} from '../k8_client/k8_client_clusters.js';
-import {type Clusters} from '../clusters.js';
-import {type ConfigMaps} from '../config_maps.js';
-import {K8ClientConfigMaps} from '../k8_client/k8_client_config_maps.js';
-import {type ContainerRef} from '../container_ref.js';
-import {K8ClientContainers} from '../k8_client/k8_client_containers.js';
-import {type Containers} from '../containers.js';
-import {type Contexts} from '../contexts.js';
-import {K8ClientContexts} from '../k8_client/k8_client_contexts.js';
+import {K8ClientClusters} from '../k8_client/resources/cluster/k8_client_clusters.js';
+import {type Clusters} from '../resources/cluster/clusters.js';
+import {type ConfigMaps} from '../resources/config_map/config_maps.js';
+import {K8ClientConfigMaps} from '../k8_client/resources/config_map/k8_client_config_maps.js';
+import {type ContainerRef} from '../resources/container/container_ref.js';
+import {K8ClientContainers} from '../k8_client/resources/container/k8_client_containers.js';
+import {type Containers} from '../resources/container/containers.js';
+import {type Contexts} from '../resources/context/contexts.js';
+import {K8ClientContexts} from '../k8_client/resources/context/k8_client_contexts.js';
 import {K8ClientPods} from '../k8_client/resources/pod/k8_client_pods.js';
 import {type Pods} from '../resources/pod/pods.js';
-import {K8ClientBase} from '../k8_client/k8_client_base.js';
-import {type Services} from '../services.js';
-import {K8ClientServices} from '../k8_client/k8_client_services.js';
+import {type Services} from '../resources/service/services.js';
+import {K8ClientServices} from '../k8_client/resources/service/k8_client_services.js';
 import {type Pvcs} from '../resources/pvc/pvcs.js';
 import {K8ClientPvcs} from '../k8_client/resources/pvc/k8_client_pvcs.js';
 import {type Leases} from '../resources/lease/leases.js';
 import {K8ClientLeases} from '../k8_client/resources/lease/k8_client_leases.js';
 import {K8ClientNamespaces} from '../k8_client/resources/namespace/k8_client_namespaces.js';
-import {K8ClientIngressClasses} from '../k8_client/k8_client_ingress_classes.js';
-import {type IngressClasses} from '../ingress_classes.js';
-import {type Secrets} from '../secrets.js';
-import {K8ClientSecrets} from '../k8_client/k8_client_secrets.js';
+import {K8ClientIngressClasses} from '../k8_client/resources/ingress_class/k8_client_ingress_classes.js';
+import {type IngressClasses} from '../resources/ingress_class/ingress_classes.js';
+import {type Secrets} from '../resources/secret/secrets.js';
+import {K8ClientSecrets} from '../k8_client/resources/secret/k8_client_secrets.js';
 import {PvcRef} from '../resources/pvc/pvc_ref.js';
 import {PvcName} from '../resources/pvc/pvc_name.js';
 
@@ -44,11 +43,8 @@ import {PvcName} from '../resources/pvc/pvc_name.js';
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
-// TODO move to kube folder
 @injectable()
-export class K8Client extends K8ClientBase implements K8 {
-  // TODO - remove extends K8ClientFilter after services refactor, it is using filterItem()
-
+export class K8Client implements K8 {
   private kubeConfig!: k8s.KubeConfig;
   kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient: k8s.CoordinationV1Api;
@@ -70,7 +66,6 @@ export class K8Client extends K8ClientBase implements K8 {
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
     @inject(SoloLogger) private readonly logger?: SoloLogger,
   ) {
-    super();
     this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, SoloLogger, this.constructor.name);
 
@@ -96,10 +91,10 @@ export class K8Client extends K8ClientBase implements K8 {
 
     this.k8Clusters = new K8ClientClusters(this.kubeConfig);
     this.k8ConfigMaps = new K8ClientConfigMaps(this.kubeClient);
-    this.k8Containers = new K8ClientContainers(this.kubeConfig);
     this.k8Contexts = new K8ClientContexts(this.kubeConfig);
     this.k8Services = new K8ClientServices(this.kubeClient);
     this.k8Pods = new K8ClientPods(this.kubeClient, this.kubeConfig);
+    this.k8Containers = new K8ClientContainers(this.kubeConfig, this.k8Pods);
     this.k8Pvcs = new K8ClientPvcs(this.kubeClient);
     this.k8Leases = new K8ClientLeases(this.coordinationApiClient);
     this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
