@@ -48,7 +48,7 @@ export class K8ClientPvcs implements Pvcs {
 
   public async list(namespace: NamespaceName, labels: string[]): Promise<string[]> {
     const pvcs: string[] = [];
-    const labelSelector = labels?.join(',');
+    const labelSelector: string = labels ? labels.join(',') : undefined;
 
     let resp: {body: any; response?: IncomingMessage};
     try {

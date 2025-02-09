@@ -65,7 +65,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
   }
 
   public async list(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]> {
-    const labelSelector = labels.join(',');
+    const labelSelector: string = labels ? labels.join(',') : undefined;
 
     const result = await this.kubeClient.listNamespacedPod(
       namespace.name,
@@ -147,7 +147,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     podItemPredicate?: (items: V1Pod) => boolean,
   ): Promise<V1Pod[]> {
     const phases = [constants.POD_PHASE_RUNNING];
-    const labelSelector = labels.join(',');
+    const labelSelector: string = labels ? labels.join(',') : undefined;
 
     this.logger.info(
       `waitForRunningPhase [labelSelector: ${labelSelector}, namespace:${namespace.name}, maxAttempts: ${maxAttempts}]`,
@@ -216,7 +216,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
   }
 
   public async listForAllNamespaces(labels: string[]): Promise<Pod[]> {
-    const labelSelector = labels.join(',');
+    const labelSelector: string = labels ? labels.join(',') : undefined;
     const pods: Pod[] = [];
 
     try {

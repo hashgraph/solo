@@ -122,7 +122,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
   }
 
   public async list(namespace: NamespaceName, labels: string[]): Promise<V1ConfigMap[]> {
-    const labelsSelector: string = labels.join(',');
+    const labelsSelector: string = labels ? labels.join(',') : undefined;
 
     let results: {response: any; body: any};
     try {
@@ -143,7 +143,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
   }
 
   public async listForAllNamespaces(labels: string[]): Promise<V1ConfigMap[]> {
-    const labelsSelector = labels.join(',');
+    const labelsSelector: string = labels ? labels.join(',') : undefined;
 
     let results: {response: any; body: any};
     try {
