@@ -10,6 +10,7 @@ import {ResourceCreateError, ResourceNotFoundError, ResourceReplaceError} from '
 import {ResourceType} from '../resource_type.js';
 import {ResourceOperation} from '../resource_operation.js';
 import {Duration} from '../../time/duration.js';
+import {type SecretType} from '../secret_type.js';
 
 export class K8ClientSecrets implements Secrets {
   public constructor(private readonly kubeClient: CoreV1Api) {}
@@ -17,7 +18,7 @@ export class K8ClientSecrets implements Secrets {
   public async create(
     namespace: NamespaceName,
     name: string,
-    secretType: string,
+    secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean> {
@@ -27,7 +28,7 @@ export class K8ClientSecrets implements Secrets {
   public async createOrReplace(
     namespace: NamespaceName,
     name: string,
-    secretType: string,
+    secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean> {
@@ -42,14 +43,23 @@ export class K8ClientSecrets implements Secrets {
   public async replace(
     namespace: NamespaceName,
     name: string,
-    secretType: string,
+    secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean> {
     return this.createOrReplaceWithForce(namespace, name, secretType, data, labels, true, false);
   }
 
-  public async read(namespace: NamespaceName, name: string): Promise<object> {
+  public async read(
+    namespace: NamespaceName,
+    name: string,
+  ): Promise<{
+    data: Record<string, string>;
+    name: string;
+    namespace: string;
+    type: string;
+    labels: Record<string, string>;
+  }> {
     const {response, body} = await this.kubeClient.readNamespacedSecret(name, namespace.name).catch(e => e);
     KubeApiResponse.check(response, ResourceOperation.READ, ResourceType.SECRET, namespace, name);
     return {
@@ -115,7 +125,7 @@ export class K8ClientSecrets implements Secrets {
   private async createOrReplaceWithForce(
     namespace: NamespaceName,
     name: string,
-    secretType: string,
+    secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
     forceReplace?: boolean,

@@ -3,6 +3,7 @@
  */
 import {type Optional} from '../../types/index.js';
 import {type NamespaceName} from './namespace_name.js';
+import {type SecretType} from './secret_type.js';
 
 export interface Secrets {
   /**
@@ -17,7 +18,7 @@ export interface Secrets {
   create(
     namespace: NamespaceName,
     name: string,
-    secretType: string,
+    secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean>; // TODO was createSecret
@@ -25,7 +26,7 @@ export interface Secrets {
   createOrReplace(
     namespace: NamespaceName,
     name: string,
-    secretType: string,
+    secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean>;
@@ -33,12 +34,21 @@ export interface Secrets {
   replace(
     namespace: NamespaceName,
     name: string,
-    secretType: string,
+    secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
   ): Promise<boolean>;
 
-  read(namespace: NamespaceName, name: string): Promise<object>; // TODO was getSecret
+  read(
+    namespace: NamespaceName,
+    name: string,
+  ): Promise<{
+    data: Record<string, string>;
+    name: string;
+    namespace: string;
+    type: string;
+    labels: Record<string, string>;
+  }>; // TODO was getSecret
 
   /**
    * Delete a secret from the namespace

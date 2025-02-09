@@ -3,13 +3,13 @@
  */
 import chalk from 'chalk';
 import {BaseCommand} from './base.js';
-import {SoloError, IllegalArgumentError} from '../core/errors.js';
+import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
+import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
@@ -190,7 +190,8 @@ export class AccountCommand extends BaseCommand {
                 {
                   title: 'Prepare for account key updates',
                   task: async ctx => {
-                    const secrets = await self.k8.getSecretsByLabel(['solo.hedera.com/account-id']);
+                    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+                    const secrets = await self.k8.secrets().list(namespace, ['solo.hedera.com/account-id']);
                     ctx.updateSecrets = secrets.length > 0;
 
                     ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts);
