@@ -31,6 +31,7 @@ import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetForTest} from '../../test_container.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/k8_client_config_maps.js';
+import {type K8ClientNamespaces} from '../../../src/core/kube/k8_client/resources/namespace/k8_client_namespaces.js';
 
 const testName = 'network-cmd-unit';
 const argv = getDefaultArgv();
@@ -60,7 +61,9 @@ describe('NetworkCommand unit tests', () => {
       opts.configManager.update(argv);
 
       opts.k8 = sinon.stub() as unknown as K8;
-      opts.k8.hasNamespace = sinon.stub().returns(true);
+      opts.k8.namespaces = sinon.stub().returns({
+        has: sinon.stub().returns(true),
+      });
       opts.k8.configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
       opts.k8.configMaps.read = sinon.stub();
       opts.k8.waitForPodReady = sinon.stub();
