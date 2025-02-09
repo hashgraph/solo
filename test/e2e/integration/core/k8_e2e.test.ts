@@ -116,7 +116,7 @@ describe('K8', () => {
   it('should be able to run wait for pod', async () => {
     const labels = [`app=${podLabelValue}`];
 
-    const pods = await k8.pods().waitForRunningPhase(testNamespace, labels, 1, 30);
+    const pods = await k8.pods().waitForRunningPhase(testNamespace, labels, 30, constants.PODS_RUNNING_DELAY);
     expect(pods).to.have.lengthOf(1);
   }).timeout(defaultTimeout);
 
