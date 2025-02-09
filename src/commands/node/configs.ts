@@ -12,12 +12,11 @@ import fs from 'fs';
 import {validatePath} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
-import {type NetworkNodePodNameAsString, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
-import {type PodName} from '../../core/kube/pod_name.js';
+import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type PodRef} from '../../core/kube/pod_ref.js';
+import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';

@@ -19,14 +19,13 @@ import {K8ClientClusters} from './k8_client/k8_client_clusters.js';
 import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {K8ClientConfigMaps} from './k8_client/k8_client_config_maps.js';
-import {type PodRef} from './pod_ref.js';
 import {type ContainerRef} from './container_ref.js';
 import {K8ClientContainers} from './k8_client/k8_client_containers.js';
 import {type Containers} from './containers.js';
 import {type Contexts} from './contexts.js';
 import {K8ClientContexts} from './k8_client/k8_client_contexts.js';
-import {K8ClientPods} from './k8_client/k8_client_pods.js';
-import {type Pods} from './pods.js';
+import {K8ClientPods} from './k8_client/resources/pod/k8_client_pods.js';
+import {type Pods} from './resources/pod/pods.js';
 import {K8ClientBase} from './k8_client/k8_client_base.js';
 import {type Services} from './services.js';
 import {K8ClientServices} from './k8_client/k8_client_services.js';
@@ -157,14 +156,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.k8IngressClasses;
   }
 
-  public async getPodByName(podRef: PodRef): Promise<k8s.V1Pod> {
-    return this.pods().read(podRef);
-  }
-
-  public async getPodsByLabel(labels: string[] = []) {
-    return this.pods().list(this.getNamespace(), labels);
-  }
-
   public async listDir(containerRef: ContainerRef, destPath: string) {
     return this.containers().readByRef(containerRef).listDir(destPath);
   }
@@ -196,38 +187,6 @@ export class K8Client extends K8ClientBase implements K8 {
 
   public async execContainer(containerRef: ContainerRef, command: string | string[]) {
     return this.containers().readByRef(containerRef).execContainer(command);
-  }
-
-  public async portForward(podRef: PodRef, localPort: number, podPort: number) {
-    return this.pods().readByRef(podRef).portForward(localPort, podPort);
-  }
-
-  public async stopPortForward(server: ExtendedNetServer, maxAttempts = 20, timeout = 500) {
-    return this.pods().readByRef(null).stopPortForward(server, maxAttempts, timeout);
-  }
-
-  public async waitForPods(
-    phases = [constants.POD_PHASE_RUNNING], // TODO - phases goes away
-    labels: string[] = [],
-    podCount = 1, // TODO - podCount goes away
-    maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
-    delay = constants.PODS_RUNNING_DELAY,
-    podItemPredicate?: (items: k8s.V1Pod) => boolean,
-    namespace?: NamespaceName,
-  ): Promise<k8s.V1Pod[]> {
-    const ns = namespace || this.getNamespace();
-    return this.pods().waitForRunningPhase(ns, labels, maxAttempts, delay, podItemPredicate);
-  }
-
-  public async waitForPodReady(
-    labels: string[] = [],
-    podCount = 1,
-    maxAttempts = 10,
-    delay = 500,
-    namespace?: NamespaceName,
-  ) {
-    const ns = namespace || this.getNamespace();
-    return this.pods().waitForReadyStatus(ns, labels, maxAttempts, delay);
   }
 
   public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
@@ -273,10 +232,6 @@ export class K8Client extends K8ClientBase implements K8 {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
-  }
-
-  public async killPod(podRef: PodRef) {
-    return this.pods().readByRef(podRef).killPod();
   }
 
   public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {

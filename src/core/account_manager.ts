@@ -31,14 +31,15 @@ import {SoloLogger} from './logging.js';
 import {type K8} from './kube/k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
-import {PodName} from './kube/pod_name.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {PodRef} from './kube/pod_ref.js';
+import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/secret_type.js';
+import {type V1Pod} from '@kubernetes/client-node';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -145,7 +146,7 @@ export class AccountManager {
     this._nodeClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        await this.k8.stopPortForward(srv);
+        await this.k8.pods().readByRef(null).stopPortForward(srv);
       }
     }
 
@@ -356,11 +357,10 @@ export class AccountManager {
 
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
-          await this.k8.portForward(
-            PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName),
-            localPort,
-            port,
-          ),
+          await this.k8
+            .pods()
+            .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
+            .portForward(localPort, port),
         );
       }
 
@@ -507,12 +507,12 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
+        const podList: V1Pod[] = await this.k8.pods().list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
-      const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+      const pods: V1Pod[] = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       for (const pod of pods) {
         // eslint-disable-next-line no-prototype-builtins
         if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {

@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {PodRef} from './kube/pod_ref.js';
-import {PodName} from './kube/pod_name.js';
+import {PodRef} from './kube/resources/pod/pod_ref.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import path from 'path';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import fs from 'fs';
@@ -36,7 +36,7 @@ export class NetworkNodes {
    * @returns a promise that resolves when the logs are downloaded
    */
   public async getLogs(namespace: NamespaceName) {
-    const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+    const pods: V1Pod[] = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
 
     const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
 
@@ -83,10 +83,9 @@ export class NetworkNodes {
    * @returns a promise that resolves when the state files are downloaded
    */
   public async getStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
-    const pods = await this.k8.getPodsByLabel([
-      `solo.hedera.com/node-name=${nodeAlias}`,
-      'solo.hedera.com/type=network-node',
-    ]);
+    const pods: V1Pod[] = await this.k8
+      .pods()
+      .list(namespace, [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node']);
 
     // get length of pods
     const promises = [];

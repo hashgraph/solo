@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type ExtendedNetServer} from '../../types/index.js';
+import {type ExtendedNetServer} from '../../../../types/index.js';
 import {type PodRef} from './pod_ref.js';
 
 export interface Pod {
@@ -33,5 +33,5 @@ export interface Pod {
    * @param [maxAttempts] - the maximum number of attempts to check if the server is stopped
    * @param [timeout] - the delay between checks in milliseconds
    */
-  stopPortForward(server: ExtendedNetServer, maxAttempts: number, timeout: number): Promise<void>;
+  stopPortForward(server: ExtendedNetServer, maxAttempts?: number, timeout?: number): Promise<void>;
 }

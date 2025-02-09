@@ -2,14 +2,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type V1Pod} from '@kubernetes/client-node';
-import {type NamespaceName} from './resources/namespace/namespace_name.js';
-import {type PodRef} from './pod_ref.js';
-import {type Pod} from './pod.js';
-import {type ContainerName} from './container_name.js';
+import {type NamespaceName} from '../namespace/namespace_name.js';
+import {type PodRef} from '../pod/pod_ref.js';
+import {type Pod} from '../pod/pod.js';
+import {type ContainerName} from '../../container_name.js';
 
 export interface Pods {
   /**
-   * Get a pod by reference for running operations against
+   * Get a pod by reference for running operations against.  You can use null if you only want to use stopPortForward()
    * @param podRef - the reference to the pod
    * @returns a pod object
    */
@@ -20,7 +20,7 @@ export interface Pods {
    * @returns V1Pod - pod object
    * @param podRef - the reference to the pod
    */
-  read(podRef: PodRef): Promise<V1Pod>; // TODO was getPodByName
+  read(podRef: PodRef): Promise<V1Pod>;
 
   /**
    * Get pods by labels
@@ -28,7 +28,7 @@ export interface Pods {
    * @param labels - list of labels
    * @returns V1Pod[] - list of pod objects
    */
-  list(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]>; // TODO was getPodsByLabel
+  list(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]>;
 
   /**
    * Check if pod's ready status is true
@@ -37,7 +37,12 @@ export interface Pods {
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
    */
-  waitForReadyStatus(namespace: NamespaceName, labels: string[], maxAttempts: number, delay: number): Promise<V1Pod[]>; // TODO was waitForPodReady
+  waitForReadyStatus(
+    namespace: NamespaceName,
+    labels: string[],
+    maxAttempts?: number,
+    delay?: number,
+  ): Promise<V1Pod[]>;
 
   /**
    * Check if pod's phase is running
@@ -53,7 +58,7 @@ export interface Pods {
     maxAttempts: number,
     delay: number,
     podItemPredicate?: (items: V1Pod) => boolean,
-  ): Promise<V1Pod[]>; // TODO was waitForPods - make waitForProds private and call with method that supplies running phase
+  ): Promise<V1Pod[]>;
 
   /**
    * List all the pods across all namespaces with the given labels

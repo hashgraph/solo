@@ -76,12 +76,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     describe('node proxies should be UP', () => {
       for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
         it(`proxy should be UP: ${nodeAlias} `, async () => {
-          await k8.waitForPodReady(
-            [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
-            1,
-            300,
-            Duration.ofSeconds(2).toMillis(),
-          );
+          await k8
+            .pods()
+            .waitForReadyStatus(
+              namespace,
+              [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
+              300,
+              Duration.ofSeconds(2).toMillis(),
+            );
         }).timeout(Duration.ofSeconds(30).toMillis());
       }
     });

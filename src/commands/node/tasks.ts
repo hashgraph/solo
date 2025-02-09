@@ -52,7 +52,7 @@ import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type ConfigBuilder, type NodeAlias, type NodeAliases, type SkipCheck} from '../../types/aliases.js';
-import {PodName} from '../../core/kube/pod_name.js';
+import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
@@ -63,7 +63,7 @@ import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 import {NodeOverridesModel} from '../../core/node_overrides_model.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../core/kube/pod_ref.js';
+import {PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../core/kube/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
@@ -423,13 +423,15 @@ export class NodeCommandTasks {
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
-        task: async () =>
-          await this.k8.waitForPodReady(
-            [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
-            1,
-            constants.NETWORK_PROXY_MAX_ATTEMPTS,
-            constants.NETWORK_PROXY_DELAY,
-          ),
+        task: async ctx =>
+          await this.k8
+            .pods()
+            .waitForReadyStatus(
+              ctx.config.namespace,
+              [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
+              constants.NETWORK_PROXY_MAX_ATTEMPTS,
+              constants.NETWORK_PROXY_DELAY,
+            ),
       });
     }
 
@@ -816,13 +818,14 @@ export class NodeCommandTasks {
     const podRef = PodRef.of(namespace, podName);
 
     try {
-      await this.k8.waitForPods(
-        [constants.POD_PHASE_RUNNING],
-        [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
-        1,
-        maxAttempts,
-        delay,
-      );
+      await this.k8
+        .pods()
+        .waitForRunningPhase(
+          namespace,
+          [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
+          maxAttempts,
+          delay,
+        );
 
       return podRef;
     } catch (e: Error | any) {
@@ -1039,7 +1042,7 @@ export class NodeCommandTasks {
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const podRef = PodRef.of(ctx.config.namespace, PodName.of(`network-${ctx.config.debugNodeAlias}-0`));
         this.logger.debug(`Enable port forwarding for JVM debugger on pod ${podRef.name}`);
-        await this.k8.portForward(podRef, constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT);
+        await this.k8.pods().readByRef(podRef).portForward(constants.JVM_DEBUG_PORT, constants.JVM_DEBUG_PORT);
       },
       (ctx: any) => !ctx.config.debugNodeAlias,
     );
@@ -1567,7 +1570,7 @@ export class NodeCommandTasks {
     return new Task('Kill nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
       for (const service of config.serviceMap.values()) {
-        await this.k8.killPod(PodRef.of(config.namespace, service.nodePodName));
+        await this.k8.pods().readByRef(PodRef.of(config.namespace, service.nodePodName)).killPod();
       }
     });
   }
@@ -1581,7 +1584,7 @@ export class NodeCommandTasks {
         config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace);
 
         for (const service of config.serviceMap.values()) {
-          await this.k8.killPod(PodRef.of(config.namespace, service.nodePodName));
+          await this.k8.pods().readByRef(PodRef.of(config.namespace, service.nodePodName)).killPod();
         }
 
         // again, the pod names will change after the pods are killed
@@ -1603,13 +1606,14 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Check Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-            await this.k8.waitForPods(
-              [constants.POD_PHASE_RUNNING],
-              [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
-              1,
-              constants.PODS_RUNNING_MAX_ATTEMPTS,
-              constants.PODS_RUNNING_DELAY,
-            ), // timeout 15 minutes
+            await this.k8
+              .pods()
+              .waitForRunningPhase(
+                config.namespace,
+                [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
+                constants.PODS_RUNNING_MAX_ATTEMPTS,
+                constants.PODS_RUNNING_DELAY,
+              ), // timeout 15 minutes
         });
       }
 

@@ -266,13 +266,14 @@ export class RelayCommand extends BaseCommand {
               config.valuesArg,
             );
 
-            await self.k8.waitForPods(
-              [constants.POD_PHASE_RUNNING],
-              ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
-              1,
-              constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
-              constants.RELAY_PODS_RUNNING_DELAY,
-            );
+            await self.k8
+              .pods()
+              .waitForRunningPhase(
+                config.namespace,
+                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
+                constants.RELAY_PODS_RUNNING_DELAY,
+              );
 
             // reset nodeAlias
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
@@ -283,12 +284,14 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
             try {
-              await self.k8.waitForPodReady(
-                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
-                1,
-                constants.RELAY_PODS_READY_MAX_ATTEMPTS,
-                constants.RELAY_PODS_READY_DELAY,
-              );
+              await self.k8
+                .pods()
+                .waitForReadyStatus(
+                  config.namespace,
+                  ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                  constants.RELAY_PODS_READY_MAX_ATTEMPTS,
+                  constants.RELAY_PODS_READY_DELAY,
+                );
             } catch (e: Error | any) {
               throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e);
             }

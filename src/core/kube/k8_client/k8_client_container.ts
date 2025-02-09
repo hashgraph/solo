@@ -37,7 +37,7 @@ export class K8ClientContainer implements Container {
     const guid = uuid4();
     const messagePrefix = `copyFrom[${this.containerRef.parentRef.name},${guid}]: `;
 
-    if (!(await self.k8.getPodByName(this.containerRef.parentRef)))
+    if (!(await self.k8.pods().read(this.containerRef.parentRef)))
       throw new IllegalArgumentError(`Invalid pod ${this.containerRef.parentRef.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
@@ -171,7 +171,7 @@ export class K8ClientContainer implements Container {
     const guid = uuid4();
     const messagePrefix = `copyTo[${this.containerRef.parentRef.name},${guid}]: `;
 
-    if (!(await self.k8.getPodByName(this.containerRef.parentRef)))
+    if (!(await self.k8.pods().read(this.containerRef.parentRef)))
       throw new IllegalArgumentError(`Invalid pod ${this.containerRef.parentRef.name}`);
 
     self.logger.info(`${messagePrefix}[srcPath=${srcPath}, destDir=${destDir}]`);
@@ -256,7 +256,7 @@ export class K8ClientContainer implements Container {
     const guid = uuid4();
     const messagePrefix = `execContainer[${this.containerRef.parentRef.name},${guid}]:`;
 
-    if (!(await self.k8.getPodByName(this.containerRef.parentRef)))
+    if (!(await self.k8.pods().read(this.containerRef.parentRef)))
       throw new IllegalArgumentError(`Invalid pod ${this.containerRef.parentRef.name}`);
 
     if (!command) throw new MissingArgumentError('command cannot be empty');

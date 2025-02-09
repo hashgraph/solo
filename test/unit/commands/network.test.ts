@@ -31,7 +31,6 @@ import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetForTest} from '../../test_container.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/k8_client_config_maps.js';
-import {type K8ClientNamespaces} from '../../../src/core/kube/k8_client/resources/namespace/k8_client_namespaces.js';
 
 const testName = 'network-cmd-unit';
 const argv = getDefaultArgv();
@@ -66,8 +65,10 @@ describe('NetworkCommand unit tests', () => {
       });
       opts.k8.configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
       opts.k8.configMaps.read = sinon.stub();
-      opts.k8.waitForPodReady = sinon.stub();
-      opts.k8.waitForPods = sinon.stub();
+      opts.k8.pods = sinon.stub().returns({
+        waitForRunningPhase: sinon.stub(),
+        waitForReadyStatus: sinon.stub(),
+      });
       opts.k8.readNamespacedLease = sinon.stub();
       const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
       clusterChecksStub.isMinioInstalled = sinon.stub();
