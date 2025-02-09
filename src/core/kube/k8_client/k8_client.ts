@@ -187,33 +187,4 @@ export class K8Client implements K8 {
         });
     }
   }
-
-  public async patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>) {
-    const patch = {
-      data: data,
-    };
-
-    const options = {
-      headers: {'Content-Type': 'application/merge-patch+json'}, // Or the appropriate content type
-    };
-
-    await this.kubeClient
-      .patchNamespacedConfigMap(
-        configMapName,
-        namespace.name,
-        patch,
-        undefined, // pretty
-        undefined, // dryRun
-        undefined, // fieldManager
-        undefined, // fieldValidation
-        undefined, // force
-        options, // Pass the options here
-      )
-      .then(response => {
-        this.logger.info(`Patched ConfigMap ${configMapName} in namespace ${namespace}`);
-      })
-      .catch(err => {
-        this.logger.error(`Error patching ConfigMap ${configMapName} in namespace ${namespace}: ${err}`);
-      });
-  }
 }

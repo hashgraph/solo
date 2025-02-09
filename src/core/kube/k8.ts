@@ -101,6 +101,4 @@ export interface K8 {
   deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
 
   patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;
-
-  patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>): Promise<void>;
 }

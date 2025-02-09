@@ -91,4 +91,12 @@ export interface ConfigMaps {
    * @throws SoloError if the list operation fails
    */
   listForAllNamespaces(labels: string[]): Promise<V1ConfigMap[]>;
+
+  /**
+   * Patch a config map
+   * @param namespace - the namespace for the config map
+   * @param name - the name of the config map
+   * @param data - the data to patch
+   */
+  update(namespace: NamespaceName, name: string, data: Record<string, string>): Promise<void>;
 }

@@ -256,13 +256,11 @@ export class ExplorerCommand extends BaseCommand {
             });
 
             // to support GRPC over HTTP/2
-            await this.k8.patchConfigMap(
-              clusterSetupNamespace,
-              constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress',
-              {
+            await this.k8
+              .configMaps()
+              .update(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress', {
                 'backend-protocol': 'h2',
-              },
-            );
+              });
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },
