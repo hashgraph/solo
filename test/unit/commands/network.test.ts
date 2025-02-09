@@ -69,9 +69,7 @@ describe('NetworkCommand unit tests', () => {
         waitForRunningPhase: sinon.stub(),
         waitForReadyStatus: sinon.stub(),
       });
-      opts.k8.leases = sinon.stub().returns({
-        read: sinon.stub(),
-      });
+      opts.k8.readNamespacedLease = sinon.stub();
       const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
       clusterChecksStub.isMinioInstalled = sinon.stub();
       clusterChecksStub.isPrometheusInstalled = sinon.stub();
