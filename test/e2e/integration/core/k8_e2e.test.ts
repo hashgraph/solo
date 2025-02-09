@@ -30,7 +30,7 @@ import {PodName} from '../../../../src/core/kube/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {type K8Client} from '../../../../src/core/kube/k8_client.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/pod_ref.js';
 import {ContainerName} from '../../../../src/core/kube/container_name.js';
 import {ContainerRef} from '../../../../src/core/kube/container_ref.js';

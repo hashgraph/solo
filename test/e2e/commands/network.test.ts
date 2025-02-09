@@ -13,7 +13,7 @@ import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodName} from '../../../src/core/kube/pod_name.js';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';

@@ -10,7 +10,7 @@ import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.

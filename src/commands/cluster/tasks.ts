@@ -22,7 +22,7 @@ import {type SelectClusterContextContext} from './configs.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
-import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 

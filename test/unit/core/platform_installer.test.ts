@@ -13,7 +13,7 @@ import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/erro
 import {PodName} from '../../../src/core/kube/pod_name.js';
 import {container} from 'tsyringe-neo';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 
 describe('PackageInstaller', () => {
   let installer: PlatformInstaller;

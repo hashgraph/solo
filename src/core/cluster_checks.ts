@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import * as constants from './constants.js';
 import {patchInject} from './container_helper.js';
 import {SoloLogger} from './logging.js';

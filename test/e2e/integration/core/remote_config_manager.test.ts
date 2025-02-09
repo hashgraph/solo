@@ -16,7 +16,7 @@ import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {type K8} from '../../../../src/core/kube/k8.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 

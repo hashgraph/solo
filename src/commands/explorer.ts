@@ -16,7 +16,7 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 

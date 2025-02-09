@@ -21,7 +21,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../core/kube/pod_ref.js';
 import {ContainerName} from '../core/kube/container_name.js';
 import {ContainerRef} from '../core/kube/container_ref.js';

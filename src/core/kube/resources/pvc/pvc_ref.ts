@@ -3,7 +3,7 @@
  */
 
 import {ResourceRef} from '../../resource_ref.js';
-import {type NamespaceName} from '../../namespace_name.js';
+import {type NamespaceName} from '../namespace/namespace_name.js';
 import {type PvcName} from './pvc_name.js';
 
 /**

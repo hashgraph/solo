@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {isDns1123Label} from './kube_validation.js';
-import {NamespaceNameInvalidError} from './errors/namespace_name_invalid_error.js';
+import {isDns1123Label} from '../../kube_validation.js';
+import {NamespaceNameInvalidError} from '../../errors/namespace_name_invalid_error.js';
 
 /**
  * Represents a Kubernetes namespace name. A Kubernetes namespace name must

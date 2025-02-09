@@ -22,7 +22,7 @@ import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components
 
 import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/pod_ref.js';
 import {PodName} from '../../../../src/core/kube/pod_name.js';
 import {ContainerName} from '../../../../src/core/kube/container_name.js';

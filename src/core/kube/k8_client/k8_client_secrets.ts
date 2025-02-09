@@ -3,7 +3,7 @@
  */
 import {type Secrets} from '../secrets.js';
 import {type CoreV1Api, V1ObjectMeta, V1Secret} from '@kubernetes/client-node';
-import {type NamespaceName} from '../namespace_name.js';
+import {type NamespaceName} from '../resources/namespace/namespace_name.js';
 import {type Optional} from '../../../types/index.js';
 import {KubeApiResponse} from '../kube_api_response.js';
 import {ResourceCreateError, ResourceNotFoundError, ResourceReplaceError} from '../errors/resource_operation_errors.js';

@@ -16,7 +16,7 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {sleep} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;

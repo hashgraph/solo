@@ -7,7 +7,7 @@ import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {SoloError} from '../../core/errors.js';
-import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';

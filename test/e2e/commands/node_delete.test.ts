@@ -18,7 +18,7 @@ import fs from 'fs';
 import {PodName} from '../../../src/core/kube/pod_name.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/container_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';

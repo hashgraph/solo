@@ -8,7 +8,7 @@ import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type K8} from '../../../src/core/kube/k8.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 

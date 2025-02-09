@@ -28,7 +28,7 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {SecretType} from '../core/kube/secret_type.js';
 
 export interface NetworkDeployConfigClass {

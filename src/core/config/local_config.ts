@@ -22,7 +22,7 @@ import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../container_helper.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {

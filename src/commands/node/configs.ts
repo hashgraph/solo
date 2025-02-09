@@ -16,7 +16,7 @@ import {type NetworkNodePodNameAsString, type NodeAlias, type NodeAliases} from 
 import {type PodName} from '../../core/kube/pod_name.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
-import {type NamespaceName} from '../../core/kube/namespace_name.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type PodRef} from '../../core/kube/pod_ref.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';

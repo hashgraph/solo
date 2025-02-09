@@ -36,7 +36,7 @@ import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {PodRef} from './kube/pod_ref.js';
 import {SecretType} from './kube/secret_type.js';
 

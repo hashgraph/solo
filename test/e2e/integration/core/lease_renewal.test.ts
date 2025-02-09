@@ -13,7 +13,7 @@ import {IntervalLeaseRenewalService} from '../../../../src/core/lease/interval_l
 import {type V1Lease} from '@kubernetes/client-node';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
