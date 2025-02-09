@@ -83,7 +83,7 @@ export class K8ClientSecrets implements Secrets {
       labels: Record<string, string>;
     }>
   > {
-    const labelSelector = labels ? labels.join(',') : undefined;
+    const labelSelector: string = labels ? labels.join(',') : undefined;
     const secretList = await this.kubeClient.listNamespacedSecret(
       namespace.toString(),
       undefined,

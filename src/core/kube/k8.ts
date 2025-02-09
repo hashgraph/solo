@@ -14,7 +14,7 @@ import {type Clusters} from './clusters.js';
 import {type ConfigMaps} from './config_maps.js';
 import {type ContainerRef} from './container_ref.js';
 import {type Contexts} from './contexts.js';
-import {type Pvcs} from './pvcs.js';
+import {type Pvcs} from './resources/pvc/pvcs.js';
 import {type Services} from './services.js';
 import {type Pods} from './pods.js';
 import {type Leases} from './leases.js';

@@ -220,26 +220,16 @@ describe('K8', () => {
   }).timeout(defaultTimeout);
 
   it('should be able to list persistent volume claims', async () => {
-    const v1Pvc = new V1PersistentVolumeClaim() as V1PersistentVolumeClaim & {name: string};
+    const pvcRef: PodRef = PodRef.of(testNamespace, PodName.of(`test-pvc-${uuid4()}`));
     try {
-      v1Pvc.name = `test-pvc-${uuid4()}`;
-      const v1Spec = new V1PersistentVolumeClaimSpec();
-      v1Spec.accessModes = ['ReadWriteOnce'];
-      const v1ResReq = new V1VolumeResourceRequirements();
-      v1ResReq.requests = {storage: '50Mi'};
-      v1Spec.resources = v1ResReq;
-      v1Pvc.spec = v1Spec;
-      const v1Metadata = new V1ObjectMeta();
-      v1Metadata.name = v1Pvc.name;
-      v1Pvc.metadata = v1Metadata;
-      await k8.kubeClient.createNamespacedPersistentVolumeClaim(testNamespace.name, v1Pvc);
-      const pvcs = await k8.listPvcsByNamespace(testNamespace);
+      await k8.pvcs().create(pvcRef, {storage: '50Mi'}, ['ReadWriteOnce']);
+      const pvcs: string[] = await k8.pvcs().list(testNamespace, undefined);
       expect(pvcs).to.have.length.greaterThan(0);
     } catch (e) {
       console.error(e);
       throw e;
     } finally {
-      await k8.deletePvc(v1Pvc.name, testNamespace);
+      await k8.pvcs().delete(pvcRef);
     }
   }).timeout(defaultTimeout);
 

@@ -22,7 +22,7 @@ export class K8ClientServices extends K8ClientBase implements Services {
   }
 
   public async list(namespace: NamespaceName, labels?: string[]): Promise<Service[]> {
-    const labelSelector = labels ? labels.join(',') : undefined;
+    const labelSelector: string = labels ? labels.join(',') : undefined;
     const serviceList = await this.kubeClient.listNamespacedService(
       namespace.name,
       undefined,
