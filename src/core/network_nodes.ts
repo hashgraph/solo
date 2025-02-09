@@ -36,7 +36,7 @@ export class NetworkNodes {
    * @returns a promise that resolves when the logs are downloaded
    */
   public async getLogs(namespace: NamespaceName) {
-    const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+    const pods = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
 
     const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
 
@@ -83,10 +83,9 @@ export class NetworkNodes {
    * @returns a promise that resolves when the state files are downloaded
    */
   public async getStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
-    const pods = await this.k8.getPodsByLabel([
-      `solo.hedera.com/node-name=${nodeAlias}`,
-      'solo.hedera.com/type=network-node',
-    ]);
+    const pods = await this.k8
+      .pods()
+      .list(namespace, [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node']);
 
     // get length of pods
     const promises = [];

@@ -588,13 +588,14 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8
+                    .pods()
+                    .waitForRunningPhase(
+                      config.namespace,
+                      [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -618,13 +619,14 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    ['solo.hedera.com/type=haproxy'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8
+                    .pods()
+                    .waitForRunningPhase(
+                      config.namespace,
+                      ['solo.hedera.com/type=haproxy'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -633,13 +635,14 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    ['solo.hedera.com/type=envoy-proxy'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8
+                    .pods()
+                    .waitForRunningPhase(
+                      ctx.config.namespace,
+                      ['solo.hedera.com/type=envoy-proxy'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -660,13 +663,15 @@ export class NetworkCommand extends BaseCommand {
             // minio
             subTasks.push({
               title: 'Check MinIO',
-              task: async () =>
-                await self.k8.waitForPodReady(
-                  ['v1.min.io/tenant=minio'],
-                  1,
-                  constants.PODS_RUNNING_MAX_ATTEMPTS,
-                  constants.PODS_RUNNING_DELAY,
-                ),
+              task: async ctx =>
+                await self.k8
+                  .pods()
+                  .waitForReadyStatus(
+                    ctx.config.namespace,
+                    ['v1.min.io/tenant=minio'],
+                    constants.PODS_RUNNING_MAX_ATTEMPTS,
+                    constants.PODS_RUNNING_DELAY,
+                  ),
               // skip if only cloud storage is/are used
               skip: ctx =>
                 ctx.config.storageType === constants.StorageType.GCS_ONLY ||
@@ -828,12 +833,16 @@ export class NetworkCommand extends BaseCommand {
         },
         {
           title: 'Waiting for network pods to be running',
-          task: async () => {
-            await this.k8.waitForPods(
-              [constants.POD_PHASE_RUNNING],
-              ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
-              1,
-            );
+          task: async ctx => {
+            const config = ctx.config;
+            await this.k8
+              .pods()
+              .waitForRunningPhase(
+                config.namespace,
+                ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
+                constants.PODS_RUNNING_MAX_ATTEMPTS,
+                constants.PODS_RUNNING_DELAY,
+              );
           },
         },
       ],

@@ -94,7 +94,7 @@ e2eTestSuite(
       it('network nodes version file was upgraded', async () => {
         // copy the version.txt file from the pod data/upgrade/current directory
         const tmpDir = getTmpDir();
-        const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+        const pods = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
         const podName = PodName.of(pods[0].metadata.name);
         const podRef = PodRef.of(namespace, podName);
         const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);

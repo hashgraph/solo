@@ -33,5 +33,5 @@ export interface Pod {
    * @param [maxAttempts] - the maximum number of attempts to check if the server is stopped
    * @param [timeout] - the delay between checks in milliseconds
    */
-  stopPortForward(server: ExtendedNetServer, maxAttempts: number, timeout: number): Promise<void>;
+  stopPortForward(server: ExtendedNetServer, maxAttempts?: number, timeout?: number): Promise<void>;
 }

@@ -108,10 +108,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await accountManager.loadNodeClient(namespace);
       try {
         // find hedera explorer pod
-        const pods = await k8.getPodsByLabel(['app.kubernetes.io/component=hedera-explorer']);
+        const pods = await k8.pods().list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod = pods[0];
 
-        portForwarder = await k8.portForward(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)), 8_080, 8_080);
+        portForwarder = await k8
+          .pods()
+          .readByRef(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)))
+          .portForward(8_080, 8_080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running
@@ -195,7 +198,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         }
         await sleep(Duration.ofSeconds(1));
         expect(receivedMessage).to.equal(testMessage);
-        await k8.stopPortForward(portForwarder);
+        await k8.pods().readByRef(null).stopPortForward(portForwarder);
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();

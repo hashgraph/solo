@@ -70,7 +70,7 @@ e2eTestSuite(
 
         // ports should be opened
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
-        accountManager._portForwards.push(await k8.portForward(podRef, localPort, podPort));
+        accountManager._portForwards.push(await k8.pods().portForward(podRef, localPort, podPort));
 
         // ports should be closed
         await accountManager.close();

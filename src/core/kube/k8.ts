@@ -89,18 +89,6 @@ export interface K8 {
   ingressClasses(): IngressClasses;
 
   /**
-   * Get a pod by PodRef
-   * @param podRef - the pod reference
-   */
-  getPodByName(podRef: PodRef): Promise<k8s.V1Pod>;
-
-  /**
-   * Get pods by labels
-   * @param labels - list of labels
-   */
-  getPodsByLabel(labels: string[]): Promise<any>;
-
-  /**
    * List files and directories in a container
    *
    * It runs ls -la on the specified path and returns a list of object containing the entries.
@@ -175,46 +163,6 @@ export interface K8 {
   execContainer(containerRef: ContainerRef, command: string | string[]): Promise<string>;
 
   /**
-   * Port forward a port from a pod to localhost
-   *
-   * This simple server just forwards traffic from itself to a service running in kubernetes
-   * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
-   * @param podRef - the pod reference
-   * @param localPort - the local port to forward to
-   * @param podPort - the pod port to forward from
-   */
-  portForward(podRef: PodRef, localPort: number, podPort: number): Promise<ExtendedNetServer>;
-
-  /**
-   * Stop the port forwarder server
-   *
-   * @param server - an instance of server returned by portForward method
-   * @param [maxAttempts] - the maximum number of attempts to check if the server is stopped
-   * @param [timeout] - the delay between checks in milliseconds
-   */
-  stopPortForward(server: ExtendedNetServer, maxAttempts?, timeout?): Promise<void>;
-
-  waitForPods(
-    phases?,
-    labels?: string[],
-    podCount?,
-    maxAttempts?,
-    delay?,
-    podItemPredicate?: (items: k8s.V1Pod) => boolean,
-    namespace?: NamespaceName,
-  ): Promise<k8s.V1Pod[]>;
-
-  /**
-   * Check if pod is ready
-   * @param [labels] - pod labels
-   * @param [podCount] - number of pod expected
-   * @param [maxAttempts] - maximum attempts to check
-   * @param [delay] - delay between checks in milliseconds
-   * @param [namespace] - namespace
-   */
-  waitForPodReady(labels: string[], podCount?, maxAttempts?, delay?, namespace?: NamespaceName): Promise<k8s.V1Pod[]>;
-
-  /**
    * Get a list of persistent volume claim names for the given namespace
    * @param namespace - the namespace of the persistent volume claims to return
    * @param [labels] - labels
@@ -244,13 +192,6 @@ export interface K8 {
   transferNamespaceLease(lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease>;
 
   deleteNamespacedLease(name: string, namespace: NamespaceName): Promise<k8s.V1Status>;
-
-  /**
-   * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
-   * Can throw a SoloError if there is an error while deleting the pod.
-   * @param podRef - the pod reference
-   */
-  killPod(podRef: PodRef): Promise<void>;
 
   patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;
 

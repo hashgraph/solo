@@ -87,8 +87,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
   public async waitForReadyStatus(
     namespace: NamespaceName,
     labels: string[],
-    maxAttempts: number,
-    delay: number,
+    maxAttempts: number = 10,
+    delay: number = 500,
   ): Promise<V1Pod[]> {
     const podReadyCondition = new Map<string, string>().set(
       constants.POD_CONDITION_READY,

@@ -91,7 +91,11 @@ export class K8ClientPod implements Pod {
     }
   }
 
-  public async stopPortForward(server: ExtendedNetServer, maxAttempts: number, timeout: number): Promise<void> {
+  public async stopPortForward(
+    server: ExtendedNetServer,
+    maxAttempts: number = 20,
+    timeout: number = 500,
+  ): Promise<void> {
     if (!server) {
       return;
     }

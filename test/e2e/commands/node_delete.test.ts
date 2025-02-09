@@ -82,7 +82,7 @@ e2eTestSuite(
 
       it('config.txt should no longer contain removed node alias name', async () => {
         // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
-        const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+        const pods = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
         const podName = PodName.of(pods[0].metadata.name);
         const tmpDir = getTmpDir();
         await k8.copyFrom(

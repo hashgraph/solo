@@ -145,7 +145,11 @@ export class RemoteConfigManager {
   public async get(): Promise<RemoteConfigDataWrapper> {
     await this.load();
     try {
-      await RemoteConfigValidator.validateComponents(this.remoteConfig.components, this.k8);
+      await RemoteConfigValidator.validateComponents(
+        this.configManager.getFlag(flags.namespace),
+        this.remoteConfig.components,
+        this.k8,
+      );
     } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8.clusters().readCurrent()));
     }
@@ -193,7 +197,11 @@ export class RemoteConfigManager {
       // throw new SoloError('Failed to load remote config')
     }
 
-    await RemoteConfigValidator.validateComponents(self.remoteConfig.components, self.k8);
+    await RemoteConfigValidator.validateComponents(
+      this.configManager.getFlag(flags.namespace),
+      self.remoteConfig.components,
+      self.k8,
+    );
 
     const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
 

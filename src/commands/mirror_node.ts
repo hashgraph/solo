@@ -181,7 +181,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
-              const networkPods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+              const networkPods = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
 
               if (networkPods.length) {
                 const pod = networkPods[0];
@@ -276,54 +276,64 @@ export class MirrorNodeCommand extends BaseCommand {
               [
                 {
                   title: 'Check Postgres DB',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                   skip: ctx => !!ctx.config.customMirrorNodeDatabaseValuePath,
                 },
                 {
                   title: 'Check REST API',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
                 {
                   title: 'Check GRPC',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
                 {
                   title: 'Check Monitor',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
                 {
                   title: 'Check Importer',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
               ],
               {
@@ -366,7 +376,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       return;
                     }
 
-                    const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
+                    const pods = await this.k8.pods().list(namespace, ['app.kubernetes.io/name=postgres']);
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }

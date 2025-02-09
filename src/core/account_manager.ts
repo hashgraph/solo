@@ -145,7 +145,7 @@ export class AccountManager {
     this._nodeClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        await this.k8.stopPortForward(srv);
+        await this.k8.pods().readByRef(null).stopPortForward(srv);
       }
     }
 
@@ -356,11 +356,10 @@ export class AccountManager {
 
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
-          await this.k8.portForward(
-            PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName),
-            localPort,
-            port,
-          ),
+          await this.k8
+            .pods()
+            .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
+            .portForward(localPort, port),
         );
       }
 
@@ -507,12 +506,12 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
+        const podList = await this.k8.pods().list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
-      const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+      const pods = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       for (const pod of pods) {
         // eslint-disable-next-line no-prototype-builtins
         if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
