@@ -36,7 +36,7 @@ const initializeSetup = async (config, k8) => {
   config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
   config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
 
-  if (!(await k8.hasNamespace(config.namespace))) {
+  if (!(await k8.namespaces().has(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
   }
 
@@ -324,7 +324,7 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
     deployment: this.configManager.getFlag(flags.deployment),
   };
 
-  if (!(await this.k8.hasNamespace(ctx.config.namespace))) {
+  if (!(await this.k8.namespaces().has(ctx.config.namespace))) {
     throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
   }
 
@@ -335,7 +335,7 @@ export const startConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
-  if (!(await this.k8.hasNamespace(config.namespace))) {
+  if (!(await this.k8.namespaces().has(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
   }
 

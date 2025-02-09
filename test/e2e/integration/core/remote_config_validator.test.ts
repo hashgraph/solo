@@ -37,11 +37,11 @@ describe('RemoteConfigValidator', () => {
     configManager = container.resolve(ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
     k8 = container.resolve('K8') as K8Client;
-    await k8.createNamespace(namespace);
+    await k8.namespaces().create(namespace);
   });
 
   after(async () => {
-    await k8.deleteNamespace(namespace);
+    await k8.namespaces().delete(namespace);
   });
 
   const cluster = 'cluster';

@@ -80,10 +80,10 @@ export class LeaseManager {
     }
     const namespace = deploymentNamespace ? deploymentNamespace : clusterSetupNamespace;
 
-    if (!(await this.k8.hasNamespace(namespace))) {
-      await this.k8.createNamespace(namespace);
+    if (!(await this.k8.namespaces().has(namespace))) {
+      await this.k8.namespaces().create(namespace);
 
-      if (!(await this.k8.hasNamespace(namespace))) {
+      if (!(await this.k8.namespaces().has(namespace))) {
         throw new LeaseAcquisitionError(`failed to create the '${namespace}' namespace`);
       }
     }

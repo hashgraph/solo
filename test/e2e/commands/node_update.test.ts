@@ -70,7 +70,7 @@ e2eTestSuite(
 
         await container.resolve(NetworkNodes).getLogs(namespace);
         await nodeCmd.handlers.stop(argv);
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
       });
 
       it('cache current version of private keys', async () => {

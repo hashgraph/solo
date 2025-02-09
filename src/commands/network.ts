@@ -417,8 +417,8 @@ export class NetworkCommand extends BaseCommand {
     config.valuesArg = await this.prepareValuesArg(config);
     config.namespace = namespace;
 
-    if (!(await this.k8.hasNamespace(namespace))) {
-      await this.k8.createNamespace(namespace);
+    if (!(await this.k8.namespaces().has(namespace))) {
+      await this.k8.namespaces().create(namespace);
     }
 
     // prepare staging keys directory
@@ -761,7 +761,7 @@ export class NetworkCommand extends BaseCommand {
                 networkDestroySuccess = false;
 
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
-                  self.k8.deleteNamespace(ctx.config.namespace);
+                  self.k8.namespaces().delete(ctx.config.namespace);
                 } else {
                   // If the namespace is not being deleted,
                   // remove all components data from the remote configuration

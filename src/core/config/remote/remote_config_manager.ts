@@ -216,8 +216,8 @@ export class RemoteConfigManager {
     const self = this;
     self.k8.contexts().updateCurrent(context);
 
-    if (!(await self.k8.hasNamespace(NamespaceName.of(namespace)))) {
-      await self.k8.createNamespace(NamespaceName.of(namespace));
+    if (!(await self.k8.namespaces().has(NamespaceName.of(namespace)))) {
+      await self.k8.namespaces().create(NamespaceName.of(namespace));
     }
 
     const localConfigExists = this.localConfig.configFileExists();

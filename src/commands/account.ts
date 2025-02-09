@@ -170,7 +170,7 @@ export class AccountCommand extends BaseCommand {
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             const config = {namespace};
 
-            if (!(await this.k8.hasNamespace(namespace))) {
+            if (!(await this.k8.namespaces().has(namespace))) {
               throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
@@ -334,7 +334,7 @@ export class AccountCommand extends BaseCommand {
               config.amount = flags.amount.definition.defaultValue as number;
             }
 
-            if (!(await this.k8.hasNamespace(config.namespace))) {
+            if (!(await this.k8.namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 
@@ -412,7 +412,7 @@ export class AccountCommand extends BaseCommand {
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
             };
 
-            if (!(await this.k8.hasNamespace(config.namespace))) {
+            if (!(await this.k8.namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 
@@ -494,7 +494,7 @@ export class AccountCommand extends BaseCommand {
               privateKey: self.configManager.getFlag<boolean>(flags.privateKey) as boolean,
             };
 
-            if (!(await this.k8.hasNamespace(config.namespace))) {
+            if (!(await this.k8.namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 

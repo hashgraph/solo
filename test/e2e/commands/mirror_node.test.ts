@@ -66,7 +66,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       this.timeout(Duration.ofMinutes(3).toMillis());
 
       await container.resolve(NetworkNodes).getLogs(namespace);
-      await k8.deleteNamespace(namespace);
+      await k8.namespaces().delete(namespace);
       await accountManager.close();
 
       bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`);

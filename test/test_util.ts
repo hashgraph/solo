@@ -247,10 +247,10 @@ export function e2eTestSuite(
       it('should cleanup previous deployment', async () => {
         await initCmd.init(argv);
 
-        if (await k8.hasNamespace(namespace)) {
-          await k8.deleteNamespace(namespace);
+        if (await k8.namespaces().has(namespace)) {
+          await k8.namespaces().delete(namespace);
 
-          while (await k8.hasNamespace(namespace)) {
+          while (await k8.namespaces().has(namespace)) {
             testLogger.debug(`Namespace ${namespace} still exist. Waiting...`);
             await sleep(Duration.ofSeconds(2));
           }

@@ -37,7 +37,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     after(async () => {
       await container.resolve(NetworkNodes).getLogs(namespace);
-      await k8.deleteNamespace(namespace);
+      await k8.namespaces().delete(namespace);
     });
 
     afterEach(async () => await sleep(Duration.ofMillis(5)));

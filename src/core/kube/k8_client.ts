@@ -157,22 +157,6 @@ export class K8Client extends K8ClientBase implements K8 {
     return this.k8IngressClasses;
   }
 
-  public async createNamespace(namespace: NamespaceName) {
-    return this.namespaces().create(namespace);
-  }
-
-  public async deleteNamespace(namespace: NamespaceName) {
-    return this.namespaces().delete(namespace);
-  }
-
-  public async getNamespaces() {
-    return this.namespaces().list();
-  }
-
-  public async hasNamespace(namespace: NamespaceName) {
-    return this.namespaces().has(namespace);
-  }
-
   public async getPodByName(podRef: PodRef): Promise<k8s.V1Pod> {
     return this.pods().read(podRef);
   }

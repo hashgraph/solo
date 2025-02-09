@@ -103,7 +103,7 @@ e2eTestSuite(
       it('get the logs and delete the namespace', async () => {
         await accountManager.close();
         await container.resolve(NetworkNodes).getLogs(LOCAL_HEDERA);
-        await hederaK8.deleteNamespace(LOCAL_HEDERA);
+        await hederaK8.namespaces().delete(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());
     });
   },

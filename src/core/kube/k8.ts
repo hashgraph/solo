@@ -89,27 +89,6 @@ export interface K8 {
   ingressClasses(): IngressClasses;
 
   /**
-   * Create a new namespace
-   * @param namespace - the namespace to create
-   */
-  createNamespace(namespace: NamespaceName): Promise<boolean>;
-
-  /**
-   * Delete a namespace
-   * @param namespace - the namespace to delete
-   */
-  deleteNamespace(namespace: NamespaceName): Promise<boolean>;
-
-  /** Get a list of namespaces */
-  getNamespaces(): Promise<NamespaceName[]>;
-
-  /**
-   * Returns true if a namespace exists with the given name
-   * @param namespace namespace name
-   */
-  hasNamespace(namespace: NamespaceName): Promise<any>;
-
-  /**
    * Get a pod by PodRef
    * @param podRef - the pod reference
    */

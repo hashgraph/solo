@@ -53,7 +53,7 @@ describe('NetworkCommand', () => {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
     await container.resolve(NetworkNodes).getLogs(namespace);
-    await k8.deleteNamespace(namespace);
+    await k8.namespaces().delete(namespace);
     await accountManager.close();
   });
 

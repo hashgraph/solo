@@ -70,7 +70,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           this.timeout(Duration.ofMinutes(10).toMillis());
 
           await container.resolve(NetworkNodes).getLogs(namespace);
-          await k8.deleteNamespace(namespace);
+          await k8.namespaces().delete(namespace);
         });
 
         describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}]`, () => {

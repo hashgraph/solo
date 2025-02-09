@@ -189,7 +189,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
+            if (!(await self.k8.namespaces().has(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
@@ -373,7 +373,7 @@ export class ExplorerCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            if (!(await self.k8.hasNamespace(namespace))) {
+            if (!(await self.k8.namespaces().has(namespace))) {
               throw new SoloError(`namespace ${namespace} does not exist`);
             }
 

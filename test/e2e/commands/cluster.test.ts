@@ -55,7 +55,7 @@ describe('ClusterCommand', () => {
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await k8.deleteNamespace(namespace);
+    await k8.namespaces().delete(namespace);
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
     configManager.update(argv);
     await clusterCmd.handlers.setup(argv); // restore solo-cluster-setup for other e2e tests to leverage

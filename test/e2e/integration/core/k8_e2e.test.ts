@@ -74,8 +74,8 @@ describe('K8', () => {
     try {
       argv[flags.namespace.name] = testNamespace.name;
       configManager.update(argv);
-      if (!(await k8.hasNamespace(testNamespace))) {
-        await k8.createNamespace(testNamespace);
+      if (!(await k8.namespaces().has(testNamespace))) {
+        await k8.namespaces().create(testNamespace);
       }
       await createPod(podRef, containerName, podLabelValue, k8);
 
@@ -105,7 +105,7 @@ describe('K8', () => {
   }).timeout(defaultTimeout);
 
   it('should be able to list namespaces', async () => {
-    const namespaces = await k8.getNamespaces();
+    const namespaces = await k8.namespaces().list();
     expect(namespaces).not.to.have.lengthOf(0);
     const match = namespaces.filter(n => n.name === constants.DEFAULT_NAMESPACE.name);
     expect(match).to.have.lengthOf(1);
@@ -118,8 +118,8 @@ describe('K8', () => {
 
   it('should be able to create and delete a namespaces', async () => {
     const name = uuid4();
-    expect(await k8.createNamespace(NamespaceName.of(name))).to.be.true;
-    expect(await k8.deleteNamespace(NamespaceName.of(name))).to.be.true;
+    expect(await k8.namespaces().create(NamespaceName.of(name))).to.be.true;
+    expect(await k8.namespaces().delete(NamespaceName.of(name))).to.be.true;
   }).timeout(defaultTimeout);
 
   it('should be able to run wait for pod', async () => {

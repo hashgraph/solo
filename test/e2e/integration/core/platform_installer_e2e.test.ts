@@ -62,7 +62,7 @@ e2eTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
 
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
         await accountManager.close();
       });
 

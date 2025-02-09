@@ -200,7 +200,7 @@ export class DeploymentCommand extends BaseCommand {
 
             self.k8.contexts().updateCurrent(context);
 
-            const namespaces = await self.k8.getNamespaces();
+            const namespaces = await self.k8.namespaces().list();
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {

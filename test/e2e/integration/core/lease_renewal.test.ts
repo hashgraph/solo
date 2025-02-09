@@ -27,17 +27,17 @@ describe('LeaseRenewalService', async () => {
 
   before(async function () {
     this.timeout(defaultTimeout);
-    if (await k8.hasNamespace(testNamespace)) {
-      await k8.deleteNamespace(testNamespace);
+    if (await k8.namespaces().has(testNamespace)) {
+      await k8.namespaces().delete(testNamespace);
       await sleep(Duration.ofSeconds(5));
     }
 
-    await k8.createNamespace(testNamespace);
+    await k8.namespaces().create(testNamespace);
   });
 
   after(async function () {
     this.timeout(defaultTimeout);
-    await k8.deleteNamespace(testNamespace);
+    await k8.namespaces().delete(testNamespace);
   });
 
   it('acquired leases should be scheduled', async () => {
