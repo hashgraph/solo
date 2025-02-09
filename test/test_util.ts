@@ -445,11 +445,10 @@ async function addKeyHashToMap(
   keyHashMap: Map<string, string>,
   privateKeyFileName: string,
 ) {
-  await k8.copyFrom(
-    ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER),
-    path.join(keyDir, privateKeyFileName),
-    uniqueNodeDestDir,
-  );
+  await k8
+    .containers()
+    .readByRef(ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER))
+    .copyFrom(path.join(keyDir, privateKeyFileName), uniqueNodeDestDir);
   const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName));
   const keyString = keyBytes.toString();
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'));

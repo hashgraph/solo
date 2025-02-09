@@ -164,7 +164,7 @@ export class K8ClientContainer implements Container {
     }
   }
 
-  public async copyTo(srcPath: string, destDir: string, filter: TarCreateFilter | undefined): Promise<boolean> {
+  public async copyTo(srcPath: string, destDir: string, filter?: TarCreateFilter | undefined): Promise<boolean> {
     const self = this;
     const namespace = this.containerRef.parentRef.namespace;
     const guid = uuid4();
@@ -336,7 +336,7 @@ export class K8ClientContainer implements Container {
     );
   }
 
-  public async hasFile(destPath: string, filters: object): Promise<boolean> {
+  public async hasFile(destPath: string, filters?: object): Promise<boolean> {
     const parentDir = path.dirname(destPath);
     const fileName = path.basename(destPath);
     const filterMap = new Map(Object.entries(filters));

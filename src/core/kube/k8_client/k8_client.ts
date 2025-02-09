@@ -148,55 +148,12 @@ export class K8Client implements K8 {
     return this.k8IngressClasses;
   }
 
-  public async listDir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().readByRef(containerRef).listDir(destPath);
-  }
-
-  public async hasFile(containerRef: ContainerRef, destPath: string, filters: object = {}) {
-    return this.containers().readByRef(containerRef).hasFile(destPath, filters);
-  }
-
-  public async hasDir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().readByRef(containerRef).hasDir(destPath);
-  }
-
-  public mkdir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().readByRef(containerRef).mkdir(destPath);
-  }
-
-  public async copyTo(
-    containerRef: ContainerRef,
-    srcPath: string,
-    destDir: string,
-    filter: TarCreateFilter | undefined = undefined,
-  ) {
-    return this.containers().readByRef(containerRef).copyTo(srcPath, destDir, filter);
-  }
-
-  public async copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string) {
-    return this.containers().readByRef(containerRef).copyFrom(srcPath, destDir);
-  }
-
-  public async execContainer(containerRef: ContainerRef, command: string | string[]) {
-    return this.containers().readByRef(containerRef).execContainer(command);
-  }
-
   public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
     return this.pvcs().list(namespace, labels);
   }
 
   public async deletePvc(name: string, namespace: NamespaceName) {
     return this.pvcs().delete(PvcRef.of(namespace, PvcName.of(name)));
-  }
-
-  // --------------------------------------- Utility Methods --------------------------------------- //
-
-  /* ------------- Utilities ------------- */
-
-  private getNamespace(): NamespaceName {
-    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
-    return ns;
   }
 
   public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {

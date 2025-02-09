@@ -99,7 +99,10 @@ e2eTestSuite(
         const podName: PodName = PodName.of(pods[0].metadata.name);
         const podRef: PodRef = PodRef.of(namespace, podName);
         const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-        await k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
+        await k8
+          .containers()
+          .readByRef(containerRef)
+          .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
 
         // compare the version.txt
         const version: string = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');

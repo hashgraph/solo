@@ -145,11 +145,10 @@ e2eTestSuite(
         const pods: V1Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
         const podName: PodName = PodName.of(pods[0].metadata.name);
         const tmpDir = getTmpDir();
-        await k8.copyFrom(
-          ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER),
-          `${HEDERA_HAPI_PATH}/config.txt`,
-          tmpDir,
-        );
+        await k8
+          .containers()
+          .readByRef(ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER))
+          .copyFrom(`${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
         const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
         console.log('config.txt:', configTxt);
 

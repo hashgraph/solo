@@ -158,7 +158,7 @@ e2eTestSuite(
         const podRef: PodRef = PodRef.of(namespace, podName);
         const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
         const tmpDir: string = getTmpDir();
-        await k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
+        await k8.containers().readByRef(containerRef).copyFrom(`${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
         const configTxt: string = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
         console.log('config.txt:', configTxt);
 
