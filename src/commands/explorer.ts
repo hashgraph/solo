@@ -173,6 +173,7 @@ export class ExplorerCommand extends BaseCommand {
               flags.hederaExplorerTlsHostName,
               flags.hederaExplorerStaticIp,
               flags.hederaExplorerVersion,
+              flags.mirrorNamespace,
               flags.tlsClusterIssuerType,
               flags.valuesFile,
             ]);
