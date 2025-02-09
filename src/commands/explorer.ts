@@ -37,7 +37,6 @@ interface ExplorerDeployConfigClass {
   valuesFile: string;
   valuesArg: string;
   getUnusedConfigs: () => string[];
-  clusterSetupNamespace: NamespaceName;
   soloChartVersion: string;
 }
 
@@ -75,7 +74,6 @@ export class ExplorerCommand extends BaseCommand {
       flags.profileFile,
       flags.profileName,
       flags.quiet,
-      flags.clusterSetupNamespace,
       flags.soloChartVersion,
       flags.tlsClusterIssuerType,
       flags.valuesFile,
@@ -116,7 +114,7 @@ export class ExplorerCommand extends BaseCommand {
   /**
    * @param config - the configuration object
    */
-  private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
+  private async prepareCertManagerChartValuesArg(config: ExplorerDeployConfigClass) {
     const {tlsClusterIssuerType, namespace} = config;
 
     let valuesArg = '';
@@ -196,7 +194,7 @@ export class ExplorerCommand extends BaseCommand {
           title: 'Install cert manager',
           task: async ctx => {
             const config = ctx.config;
-            const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
+            const {chartDirectory, soloChartVersion} = config;
 
             const chartPath = await this.prepareChartPath(
               chartDirectory,
@@ -204,7 +202,7 @@ export class ExplorerCommand extends BaseCommand {
               constants.SOLO_CERT_MANAGER_CHART,
             );
 
-            const soloChartSetupValuesArg = await self.prepareSoloChartSetupValuesArg(config);
+            const soloCertManagerValuesArg = await self.prepareCertManagerChartValuesArg(config);
 
             // if cert-manager isn't already installed we want to install it separate from the certificate issuers
             // as they will fail to be created due to the order of the installation being dependent on the cert-manager
@@ -237,7 +235,7 @@ export class ExplorerCommand extends BaseCommand {
               constants.SOLO_CERT_MANAGER_CHART,
               chartPath,
               soloChartVersion,
-              soloChartSetupValuesArg,
+              soloCertManagerValuesArg,
             );
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
