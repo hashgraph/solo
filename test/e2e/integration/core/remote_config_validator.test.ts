@@ -6,7 +6,7 @@ import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
 import {ConfigManager} from '../../../../src/core/config_manager.js';
-import {type K8Client} from '../../../../src/core/kube/k8_client.js';
+import {type K8Client} from '../../../../src/core/kube/k8_client/k8_client.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';

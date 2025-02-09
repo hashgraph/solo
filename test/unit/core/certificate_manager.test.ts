@@ -6,7 +6,7 @@ import {after, before, describe, it} from 'mocha';
 import jest from 'jest-mock';
 
 import {ConfigManager} from '../../../src/core/config_manager.js';
-import {K8Client} from '../../../src/core/kube/k8_client.js';
+import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors.js';
