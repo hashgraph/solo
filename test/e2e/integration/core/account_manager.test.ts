@@ -55,8 +55,6 @@ e2eTestSuite(
 
       it('should be able to stop port forwards', async () => {
         await accountManager.close();
-        const localHost = '127.0.0.1';
-
         const podName = PodName.of('minio-console'); // use a svc that is less likely to be used by other tests
         const podRef: PodRef = PodRef.of(namespace, podName);
         const podPort = 9_090;
@@ -70,7 +68,7 @@ e2eTestSuite(
 
         // ports should be opened
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
-        accountManager._portForwards.push(await k8.pods().portForward(podRef, localPort, podPort));
+        accountManager._portForwards.push(await k8.pods().readByRef(podRef).portForward(localPort, podPort));
 
         // ports should be closed
         await accountManager.close();
