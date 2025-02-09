@@ -9,15 +9,15 @@ import {
   V1ObjectMeta,
   type V1Status,
 } from '@kubernetes/client-node';
-import {type Leases} from '../leases.js';
-import {type NamespaceName} from '../resources/namespace/namespace_name.js';
+import {type Leases} from '../../../resources/lease/leases.js';
+import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
 import type http from 'node:http';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../../../errors.js';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
-import {SoloLogger} from '../../logging.js';
+import {SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
-import {sleep} from '../../helpers.js';
-import {Duration} from '../../time/duration.js';
+import {sleep} from '../../../../helpers.js';
+import {Duration} from '../../../../time/duration.js';
 
 export class K8ClientLeases implements Leases {
   private readonly logger: SoloLogger;

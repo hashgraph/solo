@@ -5,11 +5,9 @@ import * as k8s from '@kubernetes/client-node';
 import {type V1Lease} from '@kubernetes/client-node';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
-import * as constants from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
 import {type TarCreateFilter} from '../../types/aliases.js';
-import {type ExtendedNetServer} from '../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './../container_helper.js';
 import {type K8} from './k8.js';
@@ -31,8 +29,8 @@ import {type Services} from './services.js';
 import {K8ClientServices} from './k8_client/k8_client_services.js';
 import {type Pvcs} from './resources/pvc/pvcs.js';
 import {K8ClientPvcs} from './k8_client/resources/pvc/k8_client_pvcs.js';
-import {type Leases} from './leases.js';
-import {K8ClientLeases} from './k8_client/k8_client_leases.js';
+import {type Leases} from './resources/lease/leases.js';
+import {K8ClientLeases} from './k8_client/resources/lease/k8_client_leases.js';
 import {K8ClientNamespaces} from './k8_client/resources/namespace/k8_client_namespaces.js';
 import {K8ClientIngressClasses} from './k8_client/k8_client_ingress_classes.js';
 import {type IngressClasses} from './ingress_classes.js';
@@ -198,33 +196,6 @@ export class K8Client extends K8ClientBase implements K8 {
   }
 
   // --------------------------------------- Utility Methods --------------------------------------- //
-
-  // --------------------------------------- LEASES --------------------------------------- //
-
-  public async createNamespacedLease(
-    namespace: NamespaceName,
-    leaseName: string,
-    holderName: string,
-    durationSeconds = 20,
-  ) {
-    return this.leases().create(namespace, leaseName, holderName, durationSeconds);
-  }
-
-  public async readNamespacedLease(leaseName: string, namespace: NamespaceName, timesCalled = 0) {
-    return this.leases().read(namespace, leaseName, timesCalled);
-  }
-
-  public async renewNamespaceLease(leaseName: string, namespace: NamespaceName, lease: k8s.V1Lease) {
-    return this.leases().renew(namespace, leaseName, lease);
-  }
-
-  public async transferNamespaceLease(lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease> {
-    return this.leases().transfer(lease, newHolderName);
-  }
-
-  public async deleteNamespacedLease(name: string, namespace: NamespaceName) {
-    return this.leases().delete(namespace, name);
-  }
 
   /* ------------- Utilities ------------- */
 
