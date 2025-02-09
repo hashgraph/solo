@@ -24,5 +24,4 @@ export enum ResourceType {
   CLUSTER_ROLE_BINDING = 'ClusterRoleBinding',
   CLUSTER = 'Cluster',
   CONTAINER = 'Container',
-  PVC = 'PersistentVolumeClaim',
 }

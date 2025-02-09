@@ -12,7 +12,7 @@ import {ResourceType} from '../../resource_type.js';
  */
 export class PvcName extends ResourceName {
   private constructor(name: string) {
-    super(ResourceType.PVC, name);
+    super(ResourceType.PERSISTENT_VOLUME_CLAIM, name);
   }
 
   /**

@@ -38,7 +38,7 @@ export class K8ClientPvcs implements Pvcs {
     KubeApiResponse.check(
       resp.response,
       ResourceOperation.DELETE,
-      ResourceType.PVC,
+      ResourceType.PERSISTENT_VOLUME_CLAIM,
       pvcRef.namespace,
       pvcRef.name.toString(),
     );
@@ -69,7 +69,7 @@ export class K8ClientPvcs implements Pvcs {
       throw new SoloError('Failed to list pvcs', e);
     }
 
-    KubeApiResponse.check(resp.response, ResourceOperation.LIST, ResourceType.PVC, namespace, '');
+    KubeApiResponse.check(resp.response, ResourceOperation.LIST, ResourceType.PERSISTENT_VOLUME_CLAIM, namespace, '');
 
     for (const item of resp.body.items) {
       pvcs.push(item.metadata!.name as string);
@@ -103,7 +103,7 @@ export class K8ClientPvcs implements Pvcs {
     KubeApiResponse.check(
       result.response,
       ResourceOperation.CREATE,
-      ResourceType.PVC,
+      ResourceType.PERSISTENT_VOLUME_CLAIM,
       pvcRef.namespace,
       pvcRef.name.toString(),
     );
