@@ -248,19 +248,21 @@ export class ExplorerCommand extends BaseCommand {
               soloChartSetupValuesArg,
             );
 
-            // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
-            await this.k8.ingresses().update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
-              spec: {
-                ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
-              },
-            });
-
-            // to support GRPC over HTTP/2
-            await this.k8
-              .configMaps()
-              .update(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress', {
-                'backend-protocol': 'h2',
+            if (config.enableIngress) {
+              // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+              await this.k8.ingresses().update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                spec: {
+                  ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
+                },
               });
+
+              // to support GRPC over HTTP/2
+              await this.k8
+                .configMaps()
+                .update(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress', {
+                  'backend-protocol': 'h2',
+                });
+            }
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },

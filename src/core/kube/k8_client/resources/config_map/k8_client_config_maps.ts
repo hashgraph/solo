@@ -164,6 +164,10 @@ export class K8ClientConfigMaps implements ConfigMaps {
   }
 
   public async update(namespace: NamespaceName, name: string, data: Record<string, string>) {
+    if (!(await this.exists(namespace, name))) {
+      throw new ResourceNotFoundError(ResourceOperation.READ, ResourceType.CONFIG_MAP, namespace, name);
+    }
+
     const patch: {data: Record<string, string>} = {
       data: data,
     };
