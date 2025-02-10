@@ -77,8 +77,8 @@ describe('NetworkCommand', () => {
       await expect(
         k8.pods().read(PodRef.of(namespace, PodName.of('network-node1-0'))),
       ).eventually.to.have.nested.property('metadata.name', 'network-node1-0');
-      // get list of pvc using k8 listPvcsByNamespace function and print to log
-      const pvcs = await k8.listPvcsByNamespace(namespace);
+      // get list of pvc using k8 pvcs list function and print to log
+      const pvcs = await k8.pvcs().list(namespace, []);
       networkCmd.logger.showList('PVCs', pvcs);
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
@@ -143,7 +143,7 @@ describe('NetworkCommand', () => {
       expect(chartInstalledStatus).to.be.false;
 
       // check if pvc are deleted
-      await expect(k8.listPvcsByNamespace(namespace)).eventually.to.have.lengthOf(0);
+      await expect(k8.pvcs().list(namespace, [])).eventually.to.have.lengthOf(0);
 
       // check if secrets are deleted
       await expect(k8.secrets().list(namespace)).eventually.to.have.lengthOf(0);

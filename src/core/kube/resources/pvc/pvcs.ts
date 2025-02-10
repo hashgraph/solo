@@ -12,7 +12,7 @@ export interface Pvcs {
    * @returns true if the persistent volume claim was deleted
    * @throws {SoloError} if the persistent volume claim could not be deleted
    */
-  delete(pvcRef: PvcRef): Promise<boolean>; // TODO was deletePvc
+  delete(pvcRef: PvcRef): Promise<boolean>;
 
   /**
    * Get a list of persistent volume claim names for the given namespace
@@ -21,7 +21,7 @@ export interface Pvcs {
    * @returns list of persistent volume claim names
    * @throws {SoloError} if the persistent volume claims could not be listed
    */
-  list(namespace: NamespaceName, labels: string[]): Promise<string[]>; // TODO was listPvcsByNamespace
+  list(namespace: NamespaceName, labels: string[]): Promise<string[]>;
 
   /**
    * Create a persistent volume claim
