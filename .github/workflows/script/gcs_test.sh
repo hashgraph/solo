@@ -55,7 +55,7 @@ else
 fi
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
-
+SOLO_DEPLOYMENT=solo-deployment
 
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
@@ -63,21 +63,22 @@ npm run solo-test -- init
 npm run solo-test -- cluster setup \
   -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
-npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
+npm run solo-test -- deployment create -n "${SOLO_NAMESPACE}" --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" \
   --gcs-endpoint "https://storage.googleapis.com" \
   --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
   --storage-type "${storageType}" --gcs-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION \
   --backup-bucket "${streamBackupBucket}" \
   --google-credential gcp_service_account.json
 
-npm run solo-test -- node setup -i node1 -n "${SOLO_NAMESPACE}"
-npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"
-npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" \
+npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" \
   --gcs-endpoint "https://storage.googleapis.com" \
   --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
   --storage-type "${storageType}" --gcs-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION
 
-npm run solo-test -- explorer deploy -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
 
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 
@@ -88,7 +89,7 @@ cd ..; create_test_account ; cd -
 
 node examples/create-topic.js
 
-npm run solo-test -- node stop -i node1 -n "${SOLO_NAMESPACE}"
+npm run solo-test -- node stop -i node1 --deployment "${SOLO_DEPLOYMENT}"
 
 echo "Waiting for backup uploader to run"
 # manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
@@ -102,4 +103,4 @@ if grep -q \""error\"" backup-uploader.log; then
   exit 1
 fi
 
-npm run solo-test -- network destroy -n "${SOLO_NAMESPACE}" --force -q
+npm run solo-test -- network destroy -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --force -q
