@@ -484,7 +484,7 @@ tasks:
     desc: setup external database PostgreSQL with helm
     cmds:
       - |
-        {{.solo_bin_dir}}/helm install {{.postgres_name}} bitnami/postgresql \
+        {{.solo_bin_dir}}/helm install {{.postgres_name}} https://charts.bitnami.com/bitnami/postgresql-12.1.2.tgz \
           --set image.tag=16.4.0 \
           --namespace {{.postgres_database_namespace}} --create-namespace \
           --set global.postgresql.auth.postgresPassword={{.postgres_password}} \

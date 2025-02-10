@@ -15,7 +15,9 @@ vars:
   postgres_database_namespace: "database"
 env:
   SOLO_NETWORK_SIZE: "1"
+  SOLO_DEPLOYMENT: "solo-e2e"
   SOLO_NAMESPACE: "solo-e2e"
+  SOLO_CLUSTER_NAME: "solo-e2e"
   MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--use-external-database --external-database-host {{.postgres_host_fqdn}} --external-database-owner-username {{.postgres_username}} --external-database-owner-password {{.postgres_password}}"
 tasks:
   default:
@@ -36,6 +38,7 @@ tasks:
       - task: "cluster:create"
       - task: "solo:init"
       - task: "solo:cluster:setup"
+      - task: "solo:deployment:create"
       - task: "solo:keys"
       - task: "solo:network:deploy"
       - task: "solo:node:setup"

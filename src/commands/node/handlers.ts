@@ -978,7 +978,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     let nodeComponent: ConsensusNodeComponent;
     try {
       nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
-    } catch (e) {
+    } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }
 
