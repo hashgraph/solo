@@ -159,7 +159,7 @@ export class NetworkCommand extends BaseCommand {
   async prepareStorageSecrets(config: NetworkDeployConfigClass) {
     try {
       const namespace = config.namespace;
-      if (config.storageType == constants.StorageType.MINIO_ONLY) {
+      if (config.storageType === constants.StorageType.MINIO_ONLY) {
         const minioAccessKey = uuidv4();
         const minioSecretKey = uuidv4();
         const minioData = {};
