@@ -234,21 +234,18 @@ export class NodeCommandTasks {
           const filterFunction = (path, stat) => {
             return !(path.includes('data/keys') || path.includes('data/config'));
           };
-          await self.k8.copyTo(
-            ContainerRef.of(podRef, constants.ROOT_CONTAINER),
-            localDataLibBuildPath,
-            `${constants.HEDERA_HAPI_PATH}`,
-            filterFunction,
-          );
+          await self.k8
+            .containers()
+            .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+            .copyTo(localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`, filterFunction);
           if (self.configManager.getFlag<string>(flags.appConfig)) {
             const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
             for (const jsonFile of testJsonFiles) {
               if (fs.existsSync(jsonFile)) {
-                await self.k8.copyTo(
-                  ContainerRef.of(podRef, constants.ROOT_CONTAINER),
-                  jsonFile,
-                  `${constants.HEDERA_HAPI_PATH}`,
-                );
+                await self.k8
+                  .containers()
+                  .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+                  .copyTo(jsonFile, `${constants.HEDERA_HAPI_PATH}`);
               }
             }
           }
@@ -360,11 +357,14 @@ export class NodeCommandTasks {
       }, timeout);
 
       try {
-        const response = await this.k8.execContainer(ContainerRef.of(podRef, constants.ROOT_CONTAINER), [
-          'bash',
-          '-c',
-          'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
-        ]);
+        const response = await this.k8
+          .containers()
+          .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+          .execContainer([
+            'bash',
+            '-c',
+            'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
+          ]);
 
         if (!response) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
@@ -689,40 +689,47 @@ export class NodeCommandTasks {
         const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
 
         // copy the config.txt file from the node1 upgrade directory
-        await self.k8.copyFrom(
-          containerRef,
-          `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`,
-          config.stagingDir,
-        );
+        await self.k8
+          .containers()
+          .readByRef(containerRef)
+          .copyFrom(`${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir);
 
         // if directory data/upgrade/current/data/keys does not exist, then use data/upgrade/current
         let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`;
-        if (!(await self.k8.hasDir(containerRef, keyDir))) {
+        if (!(await self.k8.containers().readByRef(containerRef).hasDir(keyDir))) {
           keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`;
         }
-        const signedKeyFiles = (await self.k8.listDir(containerRef, keyDir)).filter(file =>
+        const signedKeyFiles = (await self.k8.containers().readByRef(containerRef).listDir(keyDir)).filter(file =>
           file.name.startsWith(constants.SIGNING_KEY_PREFIX),
         );
-        await self.k8.execContainer(containerRef, [
-          'bash',
-          '-c',
-          `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`,
-        ]);
+        await self.k8
+          .containers()
+          .readByRef(containerRef)
+          .execContainer([
+            'bash',
+            '-c',
+            `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`,
+          ]);
         for (const signedKeyFile of signedKeyFiles) {
-          await self.k8.copyFrom(containerRef, `${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`);
+          await self.k8
+            .containers()
+            .readByRef(containerRef)
+            .copyFrom(`${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`);
         }
 
         if (
-          await self.k8.hasFile(
-            containerRef,
-            `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`,
-          )
+          await self.k8
+            .containers()
+            .readByRef(containerRef)
+            .hasFile(`${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`)
         ) {
-          await self.k8.copyFrom(
-            containerRef,
-            `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`,
-            `${config.stagingDir}/templates`,
-          );
+          await self.k8
+            .containers()
+            .readByRef(containerRef)
+            .copyFrom(
+              `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/application.properties`,
+              `${config.stagingDir}/templates`,
+            );
         }
       },
     );
@@ -748,10 +755,10 @@ export class NodeCommandTasks {
         const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
         for (const upgradeDir of upgradeDirectories) {
           // check if directory upgradeDir exist in root container
-          if (!(await self.k8.hasDir(containerRef, upgradeDir))) {
+          if (!(await self.k8.containers().readByRef(containerRef).hasDir(upgradeDir))) {
             continue;
           }
-          const files = await self.k8.listDir(containerRef, upgradeDir);
+          const files = await self.k8.containers().readByRef(containerRef).listDir(upgradeDir);
           // iterate all files and copy them to the staging directory
           for (const file of files) {
             if (file.name.endsWith('.mf')) {
@@ -761,7 +768,10 @@ export class NodeCommandTasks {
               continue;
             }
             this.logger.debug(`Copying file: ${file.name}`);
-            await self.k8.copyFrom(containerRef, `${upgradeDir}/${file.name}`, `${config.stagingDir}`);
+            await self.k8
+              .containers()
+              .readByRef(containerRef)
+              .copyFrom(`${upgradeDir}/${file.name}`, `${config.stagingDir}`);
           }
         }
       },
@@ -860,19 +870,25 @@ export class NodeCommandTasks {
           const podRef = ctx.config.podRefs[nodeAlias];
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
           self.logger.debug(`Uploading state files to pod ${podRef.name}`);
-          await self.k8.copyTo(containerRef, zipFile, `${constants.HEDERA_HAPI_PATH}/data`);
+          await self.k8.containers().readByRef(containerRef).copyTo(zipFile, `${constants.HEDERA_HAPI_PATH}/data`);
 
           self.logger.info(
             `Deleting the previous state files in pod ${podRef.name} directory ${constants.HEDERA_HAPI_PATH}/data/saved`,
           );
-          await self.k8.execContainer(containerRef, ['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`]);
-          await self.k8.execContainer(containerRef, [
-            'tar',
-            '-xvf',
-            `${constants.HEDERA_HAPI_PATH}/data/${path.basename(zipFile)}`,
-            '-C',
-            `${constants.HEDERA_HAPI_PATH}/data/saved`,
-          ]);
+          await self.k8
+            .containers()
+            .readByRef(containerRef)
+            .execContainer(['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`]);
+          await self.k8
+            .containers()
+            .readByRef(containerRef)
+            .execContainer([
+              'tar',
+              '-xvf',
+              `${constants.HEDERA_HAPI_PATH}/data/${path.basename(zipFile)}`,
+              '-C',
+              `${constants.HEDERA_HAPI_PATH}/data/saved`,
+            ]);
         }
       },
       skip,
@@ -1020,7 +1036,7 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Start node: ${chalk.yellow(nodeAlias)}`,
           task: async () => {
-            await this.k8.execContainer(containerRef, ['systemctl', 'restart', 'network-node']);
+            await this.k8.containers().readByRef(containerRef).execContainer(['systemctl', 'restart', 'network-node']);
           },
         });
       }
@@ -1169,7 +1185,8 @@ export class NodeCommandTasks {
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
           subTasks.push({
             title: `Stop node: ${chalk.yellow(nodeAlias)}`,
-            task: async () => await this.k8.execContainer(containerRef, 'systemctl stop network-node'),
+            task: async () =>
+              await this.k8.containers().readByRef(containerRef).execContainer('systemctl stop network-node'),
           });
         }
       }
@@ -1203,11 +1220,10 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: async () =>
-            await this.k8.execContainer(containerRef, [
-              'bash',
-              '-c',
-              `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`,
-            ]),
+            await this.k8
+              .containers()
+              .readByRef(containerRef)
+              .execContainer(['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`]),
         });
       }
 
@@ -1223,14 +1239,14 @@ export class NodeCommandTasks {
 
   getNodeLogsAndConfigs() {
     return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await container.resolve(NetworkNodes).getLogs(ctx.config.namespace);
+      await container.resolve<NetworkNodes>(NetworkNodes).getLogs(ctx.config.namespace);
     });
   }
 
   getNodeStateFiles() {
     return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       for (const nodeAlias of ctx.config.nodeAliases) {
-        await container.resolve(NetworkNodes).getStatesFromPod(ctx.config.namespace, nodeAlias);
+        await container.resolve<NetworkNodes>(NetworkNodes).getStatesFromPod(ctx.config.namespace, nodeAlias);
       }
     });
   }
@@ -1641,12 +1657,18 @@ export class NodeCommandTasks {
       const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
       const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`;
       // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
-      const zipFileName = await this.k8.execContainer(containerRef, [
-        'bash',
-        '-c',
-        `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`,
-      ]);
-      await this.k8.copyFrom(containerRef, `${upgradeDirectory}/${zipFileName}`, config.stagingDir);
+      const zipFileName = await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .execContainer([
+          'bash',
+          '-c',
+          `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`,
+        ]);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .copyFrom(`${upgradeDirectory}/${zipFileName}`, config.stagingDir);
       config.lastStateZipPath = path.join(config.stagingDir, zipFileName);
     });
   }
@@ -1662,14 +1684,20 @@ export class NodeCommandTasks {
         const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
         const savedStateDir = config.lastStateZipPath.match(/\/(\d+)\.zip$/)[1];
         const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`;
-        await this.k8.execContainer(containerRef, ['bash', '-c', `mkdir -p ${savedStatePath}`]);
-        await this.k8.copyTo(containerRef, config.lastStateZipPath, savedStatePath);
+        await this.k8
+          .containers()
+          .readByRef(containerRef)
+          .execContainer(['bash', '-c', `mkdir -p ${savedStatePath}`]);
+        await this.k8.containers().readByRef(containerRef).copyTo(config.lastStateZipPath, savedStatePath);
         await this.platformInstaller.setPathPermission(podRef, constants.HEDERA_HAPI_PATH);
-        await this.k8.execContainer(containerRef, [
-          'bash',
-          '-c',
-          `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`,
-        ]);
+        await this.k8
+          .containers()
+          .readByRef(containerRef)
+          .execContainer([
+            'bash',
+            '-c',
+            `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`,
+          ]);
       },
     );
   }

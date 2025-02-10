@@ -14,7 +14,7 @@ import {ClusterCommand} from '../src/commands/cluster/index.js';
 import {InitCommand} from '../src/commands/init.js';
 import {NetworkCommand} from '../src/commands/network.js';
 import {NodeCommand} from '../src/commands/node/index.js';
-import {DependencyManager} from '../src/core/dependency_managers/index.js';
+import {type DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
@@ -22,25 +22,25 @@ import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 
-import {SoloLogger} from '../src/core/logging.js';
+import {type SoloLogger} from '../src/core/logging.js';
 import {type BaseCommand} from '../src/commands/base.js';
 import {type NodeAlias} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {type K8} from '../src/core/kube/k8.js';
-import {AccountManager} from '../src/core/account_manager.js';
-import {PlatformInstaller} from '../src/core/platform_installer.js';
-import {ProfileManager} from '../src/core/profile_manager.js';
-import {LeaseManager} from '../src/core/lease/lease_manager.js';
-import {CertificateManager} from '../src/core/certificate_manager.js';
-import {LocalConfig} from '../src/core/config/local_config.js';
-import {RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
+import {type AccountManager} from '../src/core/account_manager.js';
+import {type PlatformInstaller} from '../src/core/platform_installer.js';
+import {type ProfileManager} from '../src/core/profile_manager.js';
+import {type LeaseManager} from '../src/core/lease/lease_manager.js';
+import {type CertificateManager} from '../src/core/certificate_manager.js';
+import {type LocalConfig} from '../src/core/config/local_config.js';
+import {type RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
 import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';
-import {ConfigManager} from '../src/core/config_manager.js';
-import {Helm} from '../src/core/helm.js';
-import {ChartManager} from '../src/core/chart_manager.js';
-import {PackageDownloader} from '../src/core/package_downloader.js';
-import {KeyManager} from '../src/core/key_manager.js';
+import {type ConfigManager} from '../src/core/config_manager.js';
+import {type Helm} from '../src/core/helm.js';
+import {type ChartManager} from '../src/core/chart_manager.js';
+import {type PackageDownloader} from '../src/core/package_downloader.js';
+import {type KeyManager} from '../src/core/key_manager.js';
 import {HEDERA_PLATFORM_VERSION} from '../version.js';
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
@@ -48,14 +48,15 @@ import {resetForTest} from './test_container.js';
 import {NamespaceName} from '../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../src/core/kube/resources/container/container_ref.js';
-import {NetworkNodes} from '../src/core/network_nodes.js';
+import {type NetworkNodes} from '../src/core/network_nodes.js';
+import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 
 export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
 
-export let testLogger = container.resolve(SoloLogger);
+export let testLogger: SoloLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
 
 export function getTestCacheDir(testName?: string) {
   const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR;
@@ -136,23 +137,23 @@ export function bootstrapTestVariables(
   const deployment: string = argv[flags.deployment.name] || 'deployment';
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
   resetForTest(namespace.name, cacheDir);
-  const configManager = container.resolve(ConfigManager);
+  const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   configManager.update(argv);
 
-  const downloader = container.resolve(PackageDownloader);
-  const depManager = container.resolve(DependencyManager);
-  const helm = container.resolve(Helm);
-  const chartManager = container.resolve(ChartManager);
-  const keyManager = container.resolve(KeyManager);
-  const k8 = k8Arg || container.resolve('K8');
-  const accountManager = container.resolve(AccountManager);
-  const platformInstaller = container.resolve(PlatformInstaller);
-  const profileManager = container.resolve(ProfileManager);
-  const leaseManager = container.resolve(LeaseManager);
-  const certificateManager = container.resolve(CertificateManager);
-  const localConfig = container.resolve(LocalConfig);
-  const remoteConfigManager = container.resolve(RemoteConfigManager);
-  testLogger = container.resolve(SoloLogger);
+  const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
+  const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
+  const helm: Helm = container.resolve(InjectTokens.Helm);
+  const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
+  const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
+  const k8: K8 = k8Arg || container.resolve(InjectTokens.K8);
+  const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
+  const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
+  const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
+  const leaseManager: LeaseManager = container.resolve(InjectTokens.LeaseManager);
+  const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
+  const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
+  const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
+  testLogger = container.resolve(InjectTokens.SoloLogger);
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -238,7 +239,7 @@ export function e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(5).toMillis());
-        await container.resolve(NetworkNodes).getLogs(namespace);
+        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
         bootstrapResp.opts.logger.showUser(
           `------------------------- END: bootstrap (${testName}) ----------------------------`,
         );
@@ -445,11 +446,10 @@ async function addKeyHashToMap(
   keyHashMap: Map<string, string>,
   privateKeyFileName: string,
 ) {
-  await k8.copyFrom(
-    ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER),
-    path.join(keyDir, privateKeyFileName),
-    uniqueNodeDestDir,
-  );
+  await k8
+    .containers()
+    .readByRef(ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER))
+    .copyFrom(path.join(keyDir, privateKeyFileName), uniqueNodeDestDir);
   const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName));
   const keyString = keyBytes.toString();
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'));

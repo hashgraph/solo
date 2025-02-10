@@ -15,9 +15,10 @@ import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
-import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const namespace = NamespaceName.of('node-upgrade');
 const argv = getDefaultArgv();
@@ -53,7 +54,7 @@ e2eTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(10).toMillis());
 
-        await container.resolve(NetworkNodes).getLogs(namespace);
+        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
         await k8.namespaces().delete(namespace);
       });
 
@@ -99,7 +100,10 @@ e2eTestSuite(
         const podName: PodName = PodName.of(pods[0].metadata.name);
         const podRef: PodRef = PodRef.of(namespace, podName);
         const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-        await k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
+        await k8
+          .containers()
+          .readByRef(containerRef)
+          .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
 
         // compare the version.txt
         const version: string = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');

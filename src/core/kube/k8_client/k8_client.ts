@@ -2,13 +2,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
-import {Flags as flags} from '../../../commands/flags.js';
-import {MissingArgumentError, SoloError} from '../../errors.js';
-import {ConfigManager} from '../../config_manager.js';
-import {SoloLogger} from '../../logging.js';
-import {type TarCreateFilter} from '../../../types/aliases.js';
+import {SoloError} from '../../errors.js';
+import {type ConfigManager} from '../../config_manager.js';
+import {type SoloLogger} from '../../logging.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../container_helper.js';
+import {patchInject} from '../../dependency_injection/container_helper.js';
 import {type K8} from '../k8.js';
 import {type Namespaces} from '../resources/namespace/namespaces.js';
 import {type NamespaceName} from '../resources/namespace/namespace_name.js';
@@ -16,7 +14,6 @@ import {K8ClientClusters} from '../k8_client/resources/cluster/k8_client_cluster
 import {type Clusters} from '../resources/cluster/clusters.js';
 import {type ConfigMaps} from '../resources/config_map/config_maps.js';
 import {K8ClientConfigMaps} from '../k8_client/resources/config_map/k8_client_config_maps.js';
-import {type ContainerRef} from '../resources/container/container_ref.js';
 import {K8ClientContainers} from '../k8_client/resources/container/k8_client_containers.js';
 import {type Containers} from '../resources/container/containers.js';
 import {type Contexts} from '../resources/context/contexts.js';
@@ -36,6 +33,9 @@ import {type Secrets} from '../resources/secret/secrets.js';
 import {K8ClientSecrets} from '../k8_client/resources/secret/k8_client_secrets.js';
 import {PvcRef} from '../resources/pvc/pvc_ref.js';
 import {PvcName} from '../resources/pvc/pvc_name.js';
+import {type Ingresses} from '../resources/ingress/ingresses.js';
+import {K8ClientIngresses} from './resources/ingress/k8_client_ingresses.js';
+import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -61,13 +61,14 @@ export class K8Client implements K8 {
   private k8Namespaces: Namespaces;
   private k8IngressClasses: IngressClasses;
   private k8Secrets: Secrets;
+  private k8Ingresses: Ingresses;
 
   constructor(
-    @inject(ConfigManager) private readonly configManager?: ConfigManager,
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
   ) {
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
 
     this.init();
   }
@@ -100,6 +101,7 @@ export class K8Client implements K8 {
     this.k8Namespaces = new K8ClientNamespaces(this.kubeClient);
     this.k8IngressClasses = new K8ClientIngressClasses(this.networkingApi);
     this.k8Secrets = new K8ClientSecrets(this.kubeClient);
+    this.k8Ingresses = new K8ClientIngresses(this.networkingApi);
 
     return this; // to enable chaining
   }
@@ -148,37 +150,8 @@ export class K8Client implements K8 {
     return this.k8IngressClasses;
   }
 
-  public async listDir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().readByRef(containerRef).listDir(destPath);
-  }
-
-  public async hasFile(containerRef: ContainerRef, destPath: string, filters: object = {}) {
-    return this.containers().readByRef(containerRef).hasFile(destPath, filters);
-  }
-
-  public async hasDir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().readByRef(containerRef).hasDir(destPath);
-  }
-
-  public mkdir(containerRef: ContainerRef, destPath: string) {
-    return this.containers().readByRef(containerRef).mkdir(destPath);
-  }
-
-  public async copyTo(
-    containerRef: ContainerRef,
-    srcPath: string,
-    destDir: string,
-    filter: TarCreateFilter | undefined = undefined,
-  ) {
-    return this.containers().readByRef(containerRef).copyTo(srcPath, destDir, filter);
-  }
-
-  public async copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string) {
-    return this.containers().readByRef(containerRef).copyFrom(srcPath, destDir);
-  }
-
-  public async execContainer(containerRef: ContainerRef, command: string | string[]) {
-    return this.containers().readByRef(containerRef).execContainer(command);
+  public ingresses(): Ingresses {
+    return this.k8Ingresses;
   }
 
   public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
@@ -187,76 +160,5 @@ export class K8Client implements K8 {
 
   public async deletePvc(name: string, namespace: NamespaceName) {
     return this.pvcs().delete(PvcRef.of(namespace, PvcName.of(name)));
-  }
-
-  // --------------------------------------- Utility Methods --------------------------------------- //
-
-  /* ------------- Utilities ------------- */
-
-  private getNamespace(): NamespaceName {
-    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
-    return ns;
-  }
-
-  public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {
-    const ingressNames = [];
-    await this.networkingApi
-      .listIngressForAllNamespaces()
-      .then(response => {
-        response.body.items.forEach(ingress => {
-          const currentIngressName = ingress.metadata.name;
-          if (currentIngressName.includes(ingressName)) {
-            ingressNames.push(currentIngressName);
-          }
-        });
-      })
-      .catch(err => {
-        this.logger.error(`Error listing Ingresses: ${err}`);
-      });
-
-    for (const name of ingressNames) {
-      await this.networkingApi
-        .patchNamespacedIngress(name, namespace.name, patch, undefined, undefined, undefined, undefined, undefined, {
-          headers: {'Content-Type': 'application/strategic-merge-patch+json'},
-        })
-        .then(response => {
-          this.logger.info(`Patched Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)}`);
-        })
-        .catch(err => {
-          this.logger.error(
-            `Error patching Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)} ${err}`,
-          );
-        });
-    }
-  }
-
-  public async patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>) {
-    const patch = {
-      data: data,
-    };
-
-    const options = {
-      headers: {'Content-Type': 'application/merge-patch+json'}, // Or the appropriate content type
-    };
-
-    await this.kubeClient
-      .patchNamespacedConfigMap(
-        configMapName,
-        namespace.name,
-        patch,
-        undefined, // pretty
-        undefined, // dryRun
-        undefined, // fieldManager
-        undefined, // fieldValidation
-        undefined, // force
-        options, // Pass the options here
-      )
-      .then(response => {
-        this.logger.info(`Patched ConfigMap ${configMapName} in namespace ${namespace}`);
-      })
-      .catch(err => {
-        this.logger.error(`Error patching ConfigMap ${configMapName} in namespace ${namespace}: ${err}`);
-      });
   }
 }

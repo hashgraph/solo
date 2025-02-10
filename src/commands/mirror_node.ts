@@ -469,7 +469,10 @@ export class MirrorNodeCommand extends BaseCommand {
                     const postgresContainerName = ContainerName.of('postgresql');
                     const postgresPodRef = PodRef.of(namespace, postgresPodName);
                     const containerRef = ContainerRef.of(postgresPodRef, postgresContainerName);
-                    const mirrorEnvVars = await self.k8.execContainer(containerRef, '/bin/bash -c printenv');
+                    const mirrorEnvVars = await self.k8
+                      .containers()
+                      .readByRef(containerRef)
+                      .execContainer('/bin/bash -c printenv');
                     const mirrorEnvVarsArray = mirrorEnvVars.split('\n');
                     const HEDERA_MIRROR_IMPORTER_DB_OWNER = helpers.getEnvValue(
                       mirrorEnvVarsArray,
@@ -484,12 +487,15 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
-                    await self.k8.execContainer(containerRef, [
-                      'psql',
-                      `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
-                      '-c',
-                      sqlQuery,
-                    ]);
+                    await self.k8
+                      .containers()
+                      .readByRef(containerRef)
+                      .execContainer([
+                        'psql',
+                        `postgresql://${HEDERA_MIRROR_IMPORTER_DB_OWNER}:${HEDERA_MIRROR_IMPORTER_DB_OWNERPASSWORD}@localhost:5432/${HEDERA_MIRROR_IMPORTER_DB_NAME}`,
+                        '-c',
+                        sqlQuery,
+                      ]);
                   },
                 },
               ],

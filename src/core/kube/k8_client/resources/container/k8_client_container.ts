@@ -14,10 +14,11 @@ import fs from 'fs';
 import {type LocalContextObject} from '../../../../../types/index.js';
 import * as stream from 'node:stream';
 import {v4 as uuid4} from 'uuid';
-import {SoloLogger} from '../../../../logging.js';
+import {type SoloLogger} from '../../../../logging.js';
 import os from 'os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
+import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
 
 export class K8ClientContainer implements Container {
   private readonly logger: SoloLogger;
@@ -27,7 +28,7 @@ export class K8ClientContainer implements Container {
     private readonly containerRef: ContainerRef,
     private readonly pods: Pods,
   ) {
-    this.logger = container.resolve(SoloLogger);
+    this.logger = container.resolve(InjectTokens.SoloLogger);
   }
 
   public async copyFrom(srcPath: string, destDir: string): Promise<unknown> {
@@ -164,7 +165,11 @@ export class K8ClientContainer implements Container {
     }
   }
 
-  public async copyTo(srcPath: string, destDir: string, filter: TarCreateFilter | undefined): Promise<boolean> {
+  public async copyTo(
+    srcPath: string,
+    destDir: string,
+    filter: TarCreateFilter | undefined = undefined,
+  ): Promise<boolean> {
     const self = this;
     const namespace = this.containerRef.parentRef.namespace;
     const guid = uuid4();
@@ -336,7 +341,7 @@ export class K8ClientContainer implements Container {
     );
   }
 
-  public async hasFile(destPath: string, filters: object): Promise<boolean> {
+  public async hasFile(destPath: string, filters: object = {}): Promise<boolean> {
     const parentDir = path.dirname(destPath);
     const fileName = path.basename(destPath);
     const filterMap = new Map(Object.entries(filters));

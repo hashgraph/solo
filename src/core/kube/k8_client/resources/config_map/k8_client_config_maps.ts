@@ -9,14 +9,21 @@ import {
   ResourceDeleteError,
   ResourceNotFoundError,
   ResourceReplaceError,
+  ResourceUpdateError,
 } from '../../../errors/resource_operation_errors.js';
 import {ResourceType} from '../../../resources/resource_type.js';
 import {ResourceOperation} from '../../../resources/resource_operation.js';
 import {KubeApiResponse} from '../../../kube_api_response.js';
 import {SoloError} from '../../../../errors.js';
+import {SoloLogger} from '../../../../logging.js';
+import {container} from 'tsyringe-neo';
 
 export class K8ClientConfigMaps implements ConfigMaps {
-  public constructor(private readonly kubeClient: CoreV1Api) {}
+  private readonly logger: SoloLogger;
+
+  public constructor(private readonly kubeClient: CoreV1Api) {
+    this.logger = container.resolve(SoloLogger);
+  }
 
   public async create(
     namespace: NamespaceName,
@@ -154,5 +161,47 @@ export class K8ClientConfigMaps implements ConfigMaps {
 
     KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, undefined, '');
     return results?.body?.items || [];
+  }
+
+  public async update(namespace: NamespaceName, name: string, data: Record<string, string>) {
+    if (!(await this.exists(namespace, name))) {
+      throw new ResourceNotFoundError(ResourceOperation.READ, ResourceType.CONFIG_MAP, namespace, name);
+    }
+
+    const patch: {data: Record<string, string>} = {
+      data: data,
+    };
+
+    const options: {headers: {[name: string]: string} | {'Content-Type': string}} = {
+      headers: {'Content-Type': 'application/merge-patch+json'}, // Or the appropriate content type
+    };
+
+    let result: {response: any; body?: V1ConfigMap};
+    try {
+      result = await this.kubeClient.patchNamespacedConfigMap(
+        name,
+        namespace.name,
+        patch,
+        undefined, // pretty
+        undefined, // dryRun
+        undefined, // fieldManager
+        undefined, // fieldValidation
+        undefined, // force
+        options, // Pass the options here
+      );
+      this.logger.info(`Patched ConfigMap ${name} in namespace ${namespace}`);
+    } catch (e) {
+      throw new ResourceUpdateError(ResourceType.CONFIG_MAP, namespace, name, e);
+    }
+
+    KubeApiResponse.check(result.response, ResourceOperation.UPDATE, ResourceType.CONFIG_MAP, namespace, name);
+
+    if (!result.body) {
+      throw new SoloError(
+        `Failed to patch ConfigMap ${name} in namespace ${namespace}, no config map returned from patch`,
+      );
+    } else {
+      return;
+    }
   }
 }

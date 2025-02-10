@@ -12,10 +12,11 @@ import * as constants from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {type K8} from './kube/k8.js';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
 import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 /**
  * Class to manage network nodes
@@ -23,11 +24,11 @@ import {type V1Pod} from '@kubernetes/client-node';
 @injectable()
 export class NetworkNodes {
   constructor(
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject('K8') private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.K8) private readonly k8?: K8,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
   }
 
   /**
@@ -58,16 +59,25 @@ export class NetworkNodes {
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.k8.copyTo(containerRef, sourcePath, `${HEDERA_HAPI_PATH}`);
+      await this.k8.containers().readByRef(containerRef).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
       await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
-      await this.k8.execContainer(containerRef, [
-        'bash',
-        '-c',
-        `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
-      ]);
-      await this.k8.execContainer(containerRef, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
-      await this.k8.execContainer(containerRef, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .execContainer([
+          'bash',
+          '-c',
+          `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
+        ]);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .execContainer(['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
+      await this.k8.containers().readByRef(containerRef).execContainer(`${HEDERA_HAPI_PATH}/${scriptName}`);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .copyFrom(`${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
@@ -105,8 +115,11 @@ export class NetworkNodes {
       }
       const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-      await this.k8.execContainer(containerRef, zipCommand);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
+      await this.k8.containers().readByRef(containerRef).execContainer(zipCommand);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .copyFrom(`${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
     } catch (e: Error | unknown) {
       this.logger.error(`failed to download state from pod ${podRef.name}`, e);
       this.logger.showUser(`Failed to download state from pod ${podRef.name}` + e);

@@ -5,8 +5,7 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
-import {ConfigManager} from '../../../../src/core/config_manager.js';
-import {type K8Client} from '../../../../src/core/kube/k8_client/k8_client.js';
+import {type ConfigManager} from '../../../../src/core/config_manager.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';
@@ -26,17 +25,19 @@ import {NamespaceName} from '../../../../src/core/kube/resources/namespace/names
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {ContainerName} from '../../../../src/core/kube/resources/container/container_name.js';
+import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
 
   let configManager: ConfigManager;
-  let k8: K8Client;
+  let k8: K8;
 
   before(async () => {
-    configManager = container.resolve(ConfigManager);
+    configManager = container.resolve(InjectTokens.ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
-    k8 = container.resolve('K8') as K8Client;
+    k8 = container.resolve(InjectTokens.K8);
     await k8.namespaces().create(namespace);
   });
 

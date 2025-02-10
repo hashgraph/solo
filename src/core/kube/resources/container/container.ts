@@ -23,7 +23,7 @@ export interface Container {
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
-  copyTo(srcPath: string, destDir: string, filter: TarCreateFilter | undefined): Promise<boolean>;
+  copyTo(srcPath: string, destDir: string, filter?: TarCreateFilter | undefined): Promise<boolean>;
 
   /**
    * Invoke sh command within a container and return the console output as string
@@ -43,7 +43,7 @@ export interface Container {
    * @param destPath - the remote path to the file
    * @param [filters] - optional filters to apply to the tar stream
    */
-  hasFile(destPath: string, filters: object): Promise<boolean>;
+  hasFile(destPath: string, filters?: object): Promise<boolean>;
 
   /**
    * List files and directories in a container

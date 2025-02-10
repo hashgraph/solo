@@ -27,7 +27,7 @@ import {Templates} from './templates.js';
 import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {type K8} from './kube/k8.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
@@ -35,11 +35,12 @@ import {PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -54,11 +55,11 @@ export class AccountManager {
   public _nodeClient: Client | null;
 
   constructor(
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject('K8') private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.K8) private readonly k8?: K8,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
