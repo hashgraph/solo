@@ -33,7 +33,7 @@ import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
 import {SoloLogger} from './core/logging.js';
 import {Container} from './core/container_init.js';
-import {type NamespaceName} from './core/kube/namespace_name.js';
+import {type NamespaceName} from './core/kube/resources/namespace/namespace_name.js';
 
 export function main(argv: any) {
   Container.getInstance().init();
