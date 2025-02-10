@@ -159,7 +159,7 @@ export class NetworkCommand extends BaseCommand {
   async prepareStorageSecrets(config: NetworkDeployConfigClass) {
     try {
       const namespace = config.namespace;
-      if (config.storageType === constants.StorageType.MINIO_ONLY) {
+      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
         const minioAccessKey = uuidv4();
         const minioSecretKey = uuidv4();
         const minioData = {};
@@ -195,14 +195,17 @@ export class NetworkCommand extends BaseCommand {
         cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
       }
 
-      const isCloudSecretCreated = await this.k8
-        .secrets()
-        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
-      if (!isCloudSecretCreated) {
-        throw new SoloError(
-          `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
-        );
+      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+        const isCloudSecretCreated = await this.k8
+          .secrets()
+          .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+        if (!isCloudSecretCreated) {
+          throw new SoloError(
+            `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
+          );
+        }
       }
+
       // generate backup uploader secret
       if (config.googleCredential) {
         const backupData = {};

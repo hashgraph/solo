@@ -26,7 +26,7 @@ else
 fi
 
 if [ -z "${STORAGE_TYPE}" ]; then
-  storageType="gcs_and_minio"
+  storageType="minio_only"
 else
   storageType=${STORAGE_TYPE}
 fi
