@@ -9,7 +9,6 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {type K8} from '../k8.js';
 import {type Namespaces} from '../resources/namespace/namespaces.js';
-import {type NamespaceName} from '../resources/namespace/namespace_name.js';
 import {K8ClientClusters} from '../k8_client/resources/cluster/k8_client_clusters.js';
 import {type Clusters} from '../resources/cluster/clusters.js';
 import {type ConfigMaps} from '../resources/config_map/config_maps.js';
@@ -31,8 +30,6 @@ import {K8ClientIngressClasses} from '../k8_client/resources/ingress_class/k8_cl
 import {type IngressClasses} from '../resources/ingress_class/ingress_classes.js';
 import {type Secrets} from '../resources/secret/secrets.js';
 import {K8ClientSecrets} from '../k8_client/resources/secret/k8_client_secrets.js';
-import {PvcRef} from '../resources/pvc/pvc_ref.js';
-import {PvcName} from '../resources/pvc/pvc_name.js';
 import {type Ingresses} from '../resources/ingress/ingresses.js';
 import {K8ClientIngresses} from './resources/ingress/k8_client_ingresses.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
@@ -152,13 +149,5 @@ export class K8Client implements K8 {
 
   public ingresses(): Ingresses {
     return this.k8Ingresses;
-  }
-
-  public async listPvcsByNamespace(namespace: NamespaceName, labels: string[] = []) {
-    return this.pvcs().list(namespace, labels);
-  }
-
-  public async deletePvc(name: string, namespace: NamespaceName) {
-    return this.pvcs().delete(PvcRef.of(namespace, PvcName.of(name)));
   }
 }
