@@ -3,14 +3,15 @@
  */
 import {spawn} from 'child_process';
 import chalk from 'chalk';
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 @injectable()
 export class ShellRunner {
-  constructor(@inject(SoloLogger) public logger?: SoloLogger) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+  constructor(@inject(InjectTokens.SoloLogger) public logger?: SoloLogger) {
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
   }
 
   /** Returns a promise that invokes the shell command */

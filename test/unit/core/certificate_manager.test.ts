@@ -5,14 +5,15 @@ import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
 import jest from 'jest-mock';
 
-import {ConfigManager} from '../../../src/core/config_manager.js';
+import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
-import {CertificateManager} from '../../../src/core/certificate_manager.js';
+import {type CertificateManager} from '../../../src/core/certificate_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
 import {K8ClientSecrets} from '../../../src/core/kube/k8_client/resources/secret/k8_client_secrets.js';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('Certificate Manager', () => {
   const argv = {};
@@ -24,9 +25,9 @@ describe('Certificate Manager', () => {
   before(() => {
     resetForTest();
     argv[flags.namespace.name] = 'namespace';
-    const configManager = container.resolve(ConfigManager);
+    const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
     configManager.update(argv);
-    certificateManager = container.resolve(CertificateManager);
+    certificateManager = container.resolve(InjectTokens.CertificateManager);
   });
 
   after(() => {

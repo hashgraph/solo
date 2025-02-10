@@ -17,7 +17,7 @@ import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {ConfigManager} from '../../src/core/config_manager.js';
+import {type ConfigManager} from '../../src/core/config_manager.js';
 import {type K8} from '../../src/core/kube/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
@@ -25,8 +25,9 @@ import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodName} from '../../src/core/kube/resources/pod/pod_name.js';
 import {PodRef} from '../../src/core/kube/resources/pod/pod_ref.js';
-import {NetworkNodes} from '../../src/core/network_nodes.js';
+import {type NetworkNodes} from '../../src/core/network_nodes.js';
 import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from '../../src/core/dependency_injection/inject_tokens.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
@@ -70,7 +71,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await container.resolve(NetworkNodes).getLogs(namespace);
+          await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
           await k8.namespaces().delete(namespace);
         });
 
@@ -182,7 +183,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
         async function nodeRefreshTestSetup(argv: Record<any, any>, testName: string, k8: K8, nodeAliases: string) {
           argv[flags.nodeAliasesUnparsed.name] = nodeAliases;
-          const configManager = container.resolve(ConfigManager);
+          const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
           configManager.update(argv);
 
           const podArray = await k8

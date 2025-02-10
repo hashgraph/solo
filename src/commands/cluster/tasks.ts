@@ -16,19 +16,19 @@ import {SoloError} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {type K8} from '../../core/kube/k8.js';
-import {type Cluster} from '@kubernetes/client-node/dist/config_types.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type SelectClusterContextContext} from './configs.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {ClusterChecks} from '../../core/cluster_checks.js';
+import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
-  private readonly clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
+  private readonly clusterChecks: ClusterChecks = container.resolve(InjectTokens.ClusterChecks);
 
   constructor(
     parent,

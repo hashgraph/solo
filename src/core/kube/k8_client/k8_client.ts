@@ -2,13 +2,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import * as k8s from '@kubernetes/client-node';
-import {Flags as flags} from '../../../commands/flags.js';
-import {MissingArgumentError, SoloError} from '../../errors.js';
-import {ConfigManager} from '../../config_manager.js';
-import {SoloLogger} from '../../logging.js';
-import {type TarCreateFilter} from '../../../types/aliases.js';
+import {SoloError} from '../../errors.js';
+import {type ConfigManager} from '../../config_manager.js';
+import {type SoloLogger} from '../../logging.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../container_helper.js';
+import {patchInject} from '../../dependency_injection/container_helper.js';
 import {type K8} from '../k8.js';
 import {type Namespaces} from '../resources/namespace/namespaces.js';
 import {type NamespaceName} from '../resources/namespace/namespace_name.js';
@@ -16,7 +14,6 @@ import {K8ClientClusters} from '../k8_client/resources/cluster/k8_client_cluster
 import {type Clusters} from '../resources/cluster/clusters.js';
 import {type ConfigMaps} from '../resources/config_map/config_maps.js';
 import {K8ClientConfigMaps} from '../k8_client/resources/config_map/k8_client_config_maps.js';
-import {type ContainerRef} from '../resources/container/container_ref.js';
 import {K8ClientContainers} from '../k8_client/resources/container/k8_client_containers.js';
 import {type Containers} from '../resources/container/containers.js';
 import {type Contexts} from '../resources/context/contexts.js';
@@ -38,6 +35,7 @@ import {PvcRef} from '../resources/pvc/pvc_ref.js';
 import {PvcName} from '../resources/pvc/pvc_name.js';
 import {type Ingresses} from '../resources/ingress/ingresses.js';
 import {K8ClientIngresses} from './resources/ingress/k8_client_ingresses.js';
+import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -66,11 +64,11 @@ export class K8Client implements K8 {
   private k8Ingresses: Ingresses;
 
   constructor(
-    @inject(ConfigManager) private readonly configManager?: ConfigManager,
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
   ) {
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
 
     this.init();
   }

@@ -12,19 +12,20 @@ import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8} from '../../kube/k8.js';
 import {type Cluster, type Context, type DeploymentName, type NamespaceNameAsString} from './types.js';
-import {SoloLogger} from '../../logging.js';
-import {ConfigManager} from '../../config_manager.js';
-import {LocalConfig} from '../local_config.js';
+import {type SoloLogger} from '../../logging.js';
+import {type ConfigManager} from '../../config_manager.js';
+import {type LocalConfig} from '../local_config.js';
 import {type DeploymentStructure} from '../local_config_data.js';
 import {type Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../container_helper.js';
+import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
+import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -42,15 +43,15 @@ export class RemoteConfigManager {
    * @param configManager - Manager to retrieve application flags and settings.
    */
   public constructor(
-    @inject('K8') private readonly k8?: K8,
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject(LocalConfig) private readonly localConfig?: LocalConfig,
-    @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(InjectTokens.K8) private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig?: LocalConfig,
+    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.localConfig = patchInject(localConfig, LocalConfig, this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
 
   /* ---------- Getters ---------- */

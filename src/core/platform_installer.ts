@@ -6,35 +6,36 @@ import {Listr} from 'listr2';
 import * as path from 'path';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
-import {ConfigManager} from './config_manager.js';
+import {type ConfigManager} from './config_manager.js';
 import {type K8} from '../core/kube/k8.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
 import chalk from 'chalk';
 
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type PodRef} from './kube/resources/pod/pod_ref.js';
 import {ContainerRef} from './kube/resources/container/container_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
 export class PlatformInstaller {
   constructor(
-    @inject(SoloLogger) private logger?: SoloLogger,
-    @inject('K8') private k8?: K8,
-    @inject(ConfigManager) private configManager?: ConfigManager,
+    @inject(InjectTokens.SoloLogger) private logger?: SoloLogger,
+    @inject(InjectTokens.K8) private k8?: K8,
+    @inject(InjectTokens.ConfigManager) private configManager?: ConfigManager,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
 
   private _getNamespace(): NamespaceName {

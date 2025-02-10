@@ -17,8 +17,9 @@ import {type Opts} from '../types/command_types.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {ClusterChecks} from '../core/cluster_checks.js';
+import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -204,7 +205,9 @@ export class DeploymentCommand extends BaseCommand {
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {
-              const isFound = await container.resolve(ClusterChecks).isRemoteConfigPresentInNamespace(namespace);
+              const isFound: boolean = await container
+                .resolve<ClusterChecks>(InjectTokens.ClusterChecks)
+                .isRemoteConfigPresentInNamespace(namespace);
               if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
             }
 

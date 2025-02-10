@@ -14,16 +14,17 @@ import {type NamespaceName} from '../../../resources/namespace/namespace_name.js
 import type http from 'node:http';
 import {SoloError} from '../../../../errors.js';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
-import {SoloLogger} from '../../../../logging.js';
+import {type SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
+import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
 
 export class K8ClientLeases implements Leases {
   private readonly logger: SoloLogger;
 
   constructor(private readonly coordinationApiClient: CoordinationV1Api) {
-    this.logger = container.resolve(SoloLogger);
+    this.logger = container.resolve(InjectTokens.SoloLogger);
   }
 
   public async create(

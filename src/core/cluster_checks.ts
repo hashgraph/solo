@@ -3,13 +3,14 @@
  */
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import * as constants from './constants.js';
-import {patchInject} from './container_helper.js';
-import {SoloLogger} from './logging.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type K8} from './kube/k8.js';
 import {type Pod} from './kube/resources/pod/pod.js';
 import {type IngressClass} from './kube/resources/ingress_class/ingress_class.js';
 import {type V1Pod, type V1ConfigMap} from '@kubernetes/client-node';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 /**
  * Class to check if certain components are installed in the cluster.
@@ -17,11 +18,11 @@ import {type V1Pod, type V1ConfigMap} from '@kubernetes/client-node';
 @injectable()
 export class ClusterChecks {
   constructor(
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject('K8') private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.K8) private readonly k8?: K8,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
   }
 
   /**

@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import path from 'path';
-import {Container} from '../src/core/container_init.js';
+import {Container} from '../src/core/dependency_injection/container_init.js';
 import fs from 'fs';
 import {type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import * as yaml from 'yaml';

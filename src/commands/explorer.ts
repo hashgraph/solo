@@ -17,8 +17,9 @@ import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirr
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {ClusterChecks} from '../core/cluster_checks.js';
+import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -119,7 +120,7 @@ export class ExplorerCommand extends BaseCommand {
       );
     }
 
-    const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
+    const clusterChecks: ClusterChecks = container.resolve(InjectTokens.ClusterChecks);
 
     // Install ingress controller only if haproxy ingress not already present
     if (!(await clusterChecks.isIngressControllerInstalled()) && config.enableIngress) {
