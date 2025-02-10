@@ -75,7 +75,7 @@ jobs:
 
       - name: Run Example Task File Test with type ${{ matrix.type }}
         run: |
+          cd examples/external-database-test
           export CONSENSUS_NODE_VERSION=v0.58.3
-          SOLO_CLUSTER_NAME=solo-task-test-${{ matrix.type }}-${{ github.run_id }}-${{ github.run_attempt }} task default
-          .github/workflows/script/solo_smoke_test.sh ${{ matrix.type }}
-          task clean
+          SOLO_CLUSTER_NAME=solo-task-test-${{ matrix.type }}-${{ github.run_id }}-${{ github.run_attempt }} task install
+          task destroy

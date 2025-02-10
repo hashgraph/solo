@@ -93,9 +93,11 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
-        flags.quiet.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
+        flags.externalDatabaseHost.constName,
+        flags.externalDatabaseOwnerUsername.constName,
+        flags.externalDatabaseOwnerPassword.constName,
       ]);
       expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.hederaExplorerTlsHostName.constName,

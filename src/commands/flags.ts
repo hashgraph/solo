@@ -1555,15 +1555,77 @@ export class Flags {
     },
   };
 
-  static readonly customMirrorNodeDatabaseValuePath: CommandFlag = {
-    constName: 'customMirrorNodeDatabaseValuePath',
-    name: 'custom-mirror-node-database-values-path',
+  static readonly useExternalDatabase: CommandFlag = {
+    constName: 'useExternalDatabase',
+    name: 'use-external-database',
     definition: {
-      describe: 'Path to custom mirror node database values',
+      describe:
+        'Set to true if you have an external database to use instead of the database that the Mirror Node Helm chart supplies',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  static readonly externalDatabaseHost: CommandFlag = {
+    constName: 'externalDatabaseHost',
+    name: 'external-database-host',
+    definition: {
+      describe: `Use to provide the external database host if the '--${Flags.useExternalDatabase.name}' is passed`,
       defaultValue: '',
       type: 'string',
     },
-    prompt: undefined,
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseHost.definition.defaultValue,
+        'Enter host of the external database',
+        null,
+        Flags.externalDatabaseHost.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseOwnerUsername: CommandFlag = {
+    constName: 'externalDatabaseOwnerUsername',
+    name: 'external-database-owner-username',
+    definition: {
+      describe: `Use to provide the external database owner's username if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerUsername.definition.defaultValue,
+        'Enter username of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerUsername.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseOwnerPassword: CommandFlag = {
+    constName: 'externalDatabaseOwnerPassword',
+    name: 'external-database-owner-password',
+    definition: {
+      describe: `Use to provide the external database owner's password if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerPassword.definition.defaultValue,
+        'Enter password of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerPassword.name,
+      );
+    },
   };
 
   static readonly grpcTlsKeyPath: CommandFlag = {
@@ -1852,7 +1914,10 @@ export class Flags {
     Flags.upgradeZipFile,
     Flags.userEmailAddress,
     Flags.valuesFile,
-    Flags.customMirrorNodeDatabaseValuePath,
+    Flags.useExternalDatabase,
+    Flags.externalDatabaseHost,
+    Flags.externalDatabaseOwnerUsername,
+    Flags.externalDatabaseOwnerPassword,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

@@ -978,23 +978,24 @@ export class NodeCommandHandlers implements CommandHandlers {
     let nodeComponent: ConsensusNodeComponent;
     try {
       nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
-    } catch (e) {
+    } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }
 
-    if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
-
-    if (excludedStates && excludedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
+    // TODO: Enable once the states have been mapped
+    // if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
+    //
+    // if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
 
     return nodeComponent.state;
   }
