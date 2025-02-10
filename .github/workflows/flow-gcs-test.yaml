@@ -116,6 +116,7 @@ jobs:
           .github/workflows/script/gcs_test.sh
 
       - name: Delete Test Directory after Test
+        if: matrix.storageType == 'gcs_only'
         run: |
           gcloud storage rm --recursive gs://${BUCKET_NAME}/${{ steps.jobs.outputs.job_id }} --project=${{ vars.GCP_S3_PROJECT_ID }}
           gcloud storage rm --recursive gs://${BACKUP_BUCKET_NAME}/${{ steps.jobs.outputs.job_id }} --project=${{ vars.GCP_S3_PROJECT_ID }}
