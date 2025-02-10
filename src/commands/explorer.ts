@@ -23,6 +23,7 @@ import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
+  clusterRef: string;
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
   hederaExplorerTlsHostName: string;
@@ -63,6 +64,7 @@ export class ExplorerCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
+      flags.clusterRef,
       flags.enableIngress,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,

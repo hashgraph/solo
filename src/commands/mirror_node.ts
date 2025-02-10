@@ -32,6 +32,7 @@ import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
+  clusterRef: string;
   namespace: NamespaceName;
   profileFile: string;
   profileName: string;
@@ -83,6 +84,7 @@ export class MirrorNodeCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
+      flags.clusterRef,
       flags.deployment,
       flags.profileFile,
       flags.profileName,
