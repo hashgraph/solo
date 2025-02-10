@@ -16,7 +16,7 @@ import {type NodeCommand} from '../../../src/commands/node/index.js';
 import {type AccountCommand} from '../../../src/commands/account.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 
@@ -103,7 +103,7 @@ e2eTestSuite(
       it('get the logs and delete the namespace', async () => {
         await accountManager.close();
         await container.resolve(NetworkNodes).getLogs(LOCAL_HEDERA);
-        await hederaK8.deleteNamespace(LOCAL_HEDERA);
+        await hederaK8.namespaces().delete(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());
     });
   },

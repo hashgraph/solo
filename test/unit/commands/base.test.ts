@@ -9,13 +9,13 @@ import {ChartManager} from '../../../src/core/chart_manager.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {K8Client} from '../../../src/core/kube/k8_client.js';
+import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {resetTestContainer} from '../../test_container.js';
+import {resetForTest} from '../../test_container.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -31,7 +31,7 @@ describe('BaseCommand', () => {
 
   describe('runShell', () => {
     before(() => {
-      resetTestContainer();
+      resetForTest();
       testLogger = container.resolve(SoloLogger);
       helm = container.resolve(Helm);
       chartManager = container.resolve(ChartManager);

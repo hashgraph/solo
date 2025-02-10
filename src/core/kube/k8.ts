@@ -1,24 +1,21 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import type * as k8s from '@kubernetes/client-node';
 import {type TarCreateFilter} from '../../types/aliases.js';
-import {type PodRef} from './pod_ref.js';
-import {type ExtendedNetServer, type Optional} from '../../types/index.js';
 import {type TDirectoryData} from './t_directory_data.js';
-import {type V1Lease} from '@kubernetes/client-node';
-import {type Namespaces} from './namespaces.js';
-import {type NamespaceName} from './namespace_name.js';
-import {type Containers} from './containers.js';
-import {type Clusters} from './clusters.js';
-import {type ConfigMaps} from './config_maps.js';
-import {type ContainerRef} from './container_ref.js';
-import {type Contexts} from './contexts.js';
-import {type Pvcs} from './pvcs.js';
-import {type Services} from './services.js';
-import {type Service} from './service.js';
-import {type Pods} from './pods.js';
-import {type Leases} from './leases.js';
+import {type Namespaces} from './resources/namespace/namespaces.js';
+import {type NamespaceName} from './resources/namespace/namespace_name.js';
+import {type Containers} from './resources/container/containers.js';
+import {type Clusters} from './resources/cluster/clusters.js';
+import {type ConfigMaps} from './resources/config_map/config_maps.js';
+import {type ContainerRef} from './resources/container/container_ref.js';
+import {type Contexts} from './resources/context/contexts.js';
+import {type Pvcs} from './resources/pvc/pvcs.js';
+import {type Services} from './resources/service/services.js';
+import {type Pods} from './resources/pod/pods.js';
+import {type Leases} from './resources/lease/leases.js';
+import {type IngressClasses} from './resources/ingress_class/ingress_classes.js';
+import {type Secrets} from './resources/secret/secrets.js';
 
 export interface K8 {
   /**
@@ -57,6 +54,10 @@ export interface K8 {
    */
   services(): Services;
 
+  /**
+   * Fluent accessor for reading and manipulating pods in the kubernetes cluster.
+   * @returns an object instance providing pod operations
+   */
   pods(): Pods;
 
   /**
@@ -65,71 +66,23 @@ export interface K8 {
    */
   pvcs(): Pvcs;
 
-  /*
+  /**
    * Fluent accessor for reading and manipulating leases in the kubernetes cluster.
    * @returns an object instance providing lease operations
    */
   leases(): Leases;
 
   /**
-   * Create a new namespace
-   * @param namespace - the namespace to create
+   * Fluent accessor for reading and manipulating secrets in the kubernetes cluster.
+   * @returns an object instance providing secret operations
    */
-  createNamespace(namespace: NamespaceName): Promise<boolean>;
+  secrets(): Secrets;
 
   /**
-   * Delete a namespace
-   * @param namespace - the namespace to delete
+   * Fluent accessor for reading and manipulating ingress classes in the kubernetes cluster.
+   * @returns an object instance providing ingress class operations
    */
-  deleteNamespace(namespace: NamespaceName): Promise<boolean>;
-
-  /** Get a list of namespaces */
-  getNamespaces(): Promise<NamespaceName[]>;
-
-  /**
-   * Returns true if a namespace exists with the given name
-   * @param namespace namespace name
-   */
-  hasNamespace(namespace: NamespaceName): Promise<any>;
-
-  /**
-   * Get a pod by PodRef
-   * @param podRef - the pod reference
-   */
-  getPodByName(podRef: PodRef): Promise<k8s.V1Pod>;
-
-  /**
-   * Get pods by labels
-   * @param labels - list of labels
-   */
-  getPodsByLabel(labels: string[]): Promise<any>;
-
-  /**
-   * Get secrets by labels
-   * @param labels - list of labels
-   * @param namespace - the namespace of the secrets to return
-   */
-  getSecretsByLabel(labels: string[], namespace?: NamespaceName): Promise<any>;
-
-  /**
-   * Get a svc by name
-   * @param name - svc name
-   */
-  getSvcByName(name: string): Promise<Service>;
-
-  listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]>;
-
-  /**
-   * Get a list of clusters
-   * @returns a list of cluster names
-   */
-  getClusters(): string[];
-
-  /**
-   * Get a list of contexts
-   * @returns a list of context names
-   */
-  getContextNames(): string[];
+  ingressClasses(): IngressClasses;
 
   /**
    * List files and directories in a container
@@ -206,60 +159,12 @@ export interface K8 {
   execContainer(containerRef: ContainerRef, command: string | string[]): Promise<string>;
 
   /**
-   * Port forward a port from a pod to localhost
-   *
-   * This simple server just forwards traffic from itself to a service running in kubernetes
-   * -> localhost:localPort -> port-forward-tunnel -> kubernetes-pod:targetPort
-   * @param podRef - the pod reference
-   * @param localPort - the local port to forward to
-   * @param podPort - the pod port to forward from
-   */
-  portForward(podRef: PodRef, localPort: number, podPort: number): Promise<ExtendedNetServer>;
-
-  /**
-   * Stop the port forwarder server
-   *
-   * @param server - an instance of server returned by portForward method
-   * @param [maxAttempts] - the maximum number of attempts to check if the server is stopped
-   * @param [timeout] - the delay between checks in milliseconds
-   */
-  stopPortForward(server: ExtendedNetServer, maxAttempts?, timeout?): Promise<void>;
-
-  waitForPods(
-    phases?,
-    labels?: string[],
-    podCount?,
-    maxAttempts?,
-    delay?,
-    podItemPredicate?: (items: k8s.V1Pod) => boolean,
-    namespace?: NamespaceName,
-  ): Promise<k8s.V1Pod[]>;
-
-  /**
-   * Check if pod is ready
-   * @param [labels] - pod labels
-   * @param [podCount] - number of pod expected
-   * @param [maxAttempts] - maximum attempts to check
-   * @param [delay] - delay between checks in milliseconds
-   * @param [namespace] - namespace
-   */
-  waitForPodReady(labels: string[], podCount?, maxAttempts?, delay?, namespace?: NamespaceName): Promise<k8s.V1Pod[]>;
-
-  /**
    * Get a list of persistent volume claim names for the given namespace
    * @param namespace - the namespace of the persistent volume claims to return
    * @param [labels] - labels
    * @returns list of persistent volume claim names
    */
   listPvcsByNamespace(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
-
-  /**
-   * Get a list of secrets for the given namespace
-   * @param namespace - the namespace of the secrets to return
-   * @param [labels] - labels
-   * @returns list of secret names
-   */
-  listSecretsByNamespace(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
 
   /**
    * Delete a persistent volume claim
@@ -269,111 +174,7 @@ export interface K8 {
    */
   deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
 
-  testContextConnection(context: string): Promise<boolean>;
+  patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;
 
-  /**
-   * retrieve the secret of the given namespace and label selector, if there is more than one, it returns the first
-   * @param namespace - the namespace of the secret to search for
-   * @param labelSelector - the label selector used to fetch the Kubernetes secret
-   * @returns a custom secret object with the relevant attributes, the values of the data key:value pair
-   *   objects must be base64 decoded
-   */
-  getSecret(
-    namespace: NamespaceName,
-    labelSelector: string,
-  ): Promise<{
-    data: Record<string, string>;
-    name: string;
-    namespace: string;
-    type: string;
-    labels: Record<string, string>;
-  }>;
-
-  /**
-   * creates a new Kubernetes secret with the provided attributes
-   * @param name - the name of the new secret
-   * @param namespace - the namespace to store the secret
-   * @param secretType - the secret type
-   * @param data - the secret, any values of a key:value pair must be base64 encoded
-   * @param labels - the label to use for future label selector queries
-   * @param recreate - if we should first run delete in the case that there the secret exists from a previous install
-   * @returns whether the secret was created successfully
-   */
-  createSecret(
-    name: string,
-    namespace: NamespaceName,
-    secretType: string,
-    data: Record<string, string>,
-    labels: Optional<Record<string, string>>,
-    recreate: boolean,
-  ): Promise<boolean>;
-
-  /**
-   * Delete a secret from the namespace
-   * @param name - the name of the existing secret
-   * @param namespace - the namespace to store the secret
-   * @returns whether the secret was deleted successfully
-   */
-  deleteSecret(name: string, namespace: NamespaceName): Promise<boolean>;
-
-  /**
-   * @param name - name of the configmap
-   * @returns the configmap if found
-   * @throws SoloError - if the response if not found or the response is not OK
-   */
-  getNamespacedConfigMap(name: string): Promise<k8s.V1ConfigMap>;
-
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
-  createNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean>;
-
-  /**
-   * @param name - for the config name
-   * @param labels - for the config metadata
-   * @param data - to contain in the config
-   */
-  replaceNamespacedConfigMap(
-    name: string,
-    labels: Record<string, string>,
-    data: Record<string, string>,
-  ): Promise<boolean>;
-
-  deleteNamespacedConfigMap(name: string, namespace: NamespaceName): Promise<boolean>;
-
-  createNamespacedLease(
-    namespace: NamespaceName,
-    leaseName: string,
-    holderName: string,
-    durationSeconds,
-  ): Promise<k8s.V1Lease>;
-
-  readNamespacedLease(leaseName: string, namespace: NamespaceName, timesCalled?): Promise<any>;
-
-  renewNamespaceLease(leaseName: string, namespace: NamespaceName, lease: k8s.V1Lease): Promise<k8s.V1Lease>;
-
-  transferNamespaceLease(lease: k8s.V1Lease, newHolderName: string): Promise<V1Lease>;
-
-  deleteNamespacedLease(name: string, namespace: NamespaceName): Promise<k8s.V1Status>;
-
-  /**
-   * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.
-   * Can throw a SoloError if there is an error while deleting the pod.
-   * @param podRef - the pod reference
-   */
-  killPod(podRef: PodRef): Promise<void>;
-
-  setCurrentContext(context: string): void;
-
-  getCurrentContext(): string;
-
-  getCurrentContextNamespace(): NamespaceName;
-
-  getCurrentClusterName(): string;
+  patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>): Promise<void>;
 }

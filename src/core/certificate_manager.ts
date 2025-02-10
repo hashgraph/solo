@@ -14,7 +14,8 @@ import {type ListrTaskWrapper} from 'listr2';
 import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {SecretType} from './kube/resources/secret/secret_type.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
@@ -78,7 +79,7 @@ export class CertificateManager {
       const namespace = this.getNamespace();
       const labels = Templates.renderGrpcTlsCertificatesSecretLabelObject(nodeAlias, type);
 
-      const isSecretCreated = await this.k8.createSecret(name, namespace, 'Opaque', data, labels, true);
+      const isSecretCreated = await this.k8.secrets().createOrReplace(namespace, name, SecretType.OPAQUE, data, labels);
       if (!isSecretCreated) {
         throw new SoloError(`failed to create secret for TLS certificates for node '${nodeAlias}'`);
       }

@@ -36,7 +36,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'connect',
               },
-              ContextFlags.USE_FLAGS,
+              ContextFlags.CONNECT_FLAGS,
             ),
           )
           .command(

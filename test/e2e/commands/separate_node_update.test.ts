@@ -17,14 +17,15 @@ import {
 } from '../../test_util.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import fs from 'fs';
-import {PodName} from '../../../src/core/kube/pod_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/pod_ref.js';
-import {ContainerRef} from '../../../src/core/kube/container_ref.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
 import {NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {type V1Pod} from '@kubernetes/client-node';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update-separate');
@@ -70,7 +71,7 @@ e2eTestSuite(
 
         await container.resolve(NetworkNodes).getLogs(namespace);
         await nodeCmd.handlers.stop(argv);
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
       });
 
       it('cache current version of private keys', async () => {
@@ -152,13 +153,13 @@ e2eTestSuite(
 
       it('config.txt should be changed with new account id', async () => {
         // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
-        const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-        const podName = PodName.of(pods[0].metadata.name);
-        const podRef = PodRef.of(namespace, podName);
-        const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-        const tmpDir = getTmpDir();
+        const pods: V1Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+        const podName: PodName = PodName.of(pods[0].metadata.name);
+        const podRef: PodRef = PodRef.of(namespace, podName);
+        const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
+        const tmpDir: string = getTmpDir();
         await k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
-        const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
+        const configTxt: string = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
         console.log('config.txt:', configTxt);
 
         expect(configTxt).to.contain(newAccountId);

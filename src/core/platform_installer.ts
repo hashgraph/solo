@@ -4,7 +4,7 @@
 import * as fs from 'fs';
 import {Listr} from 'listr2';
 import * as path from 'path';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {ConfigManager} from './config_manager.js';
 import {type K8} from '../core/kube/k8.js';
@@ -19,9 +19,10 @@ import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './container_helper.js';
-import {type NamespaceName} from './kube/namespace_name.js';
-import {type PodRef} from './kube/pod_ref.js';
-import {ContainerRef} from './kube/container_ref.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type PodRef} from './kube/resources/pod/pod_ref.js';
+import {ContainerRef} from './kube/resources/container/container_ref.js';
+import {SecretType} from './kube/resources/secret/secret_type.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -100,7 +101,7 @@ export class PlatformInstaller {
       await this.k8.execContainer(containerRef, [extractScript, tag]);
       return true;
     } catch (e: Error | any) {
-      const message = `failed to extract platform code in this pod '${podRef.podName.name}': ${e.message}`;
+      const message = `failed to extract platform code in this pod '${podRef.name}': ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }
@@ -129,7 +130,7 @@ export class PlatformInstaller {
           await this.k8.mkdir(containerRef, destDir);
         }
 
-        this.logger.debug(`Copying file into ${podRef.podName.name}: ${srcPath} -> ${destDir}`);
+        this.logger.debug(`Copying file into ${podRef.name}: ${srcPath} -> ${destDir}`);
         await this.k8.copyTo(containerRef, srcPath, destDir);
 
         const fileName = path.basename(srcPath);
@@ -138,7 +139,7 @@ export class PlatformInstaller {
 
       return copiedFiles;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to copy files to pod '${podRef.podName.name}': ${e.message}`, e);
+      throw new SoloError(`failed to copy files to pod '${podRef.name}': ${e.message}`, e);
     }
   }
 
@@ -166,16 +167,17 @@ export class PlatformInstaller {
         data[fileName] = Base64.encode(fileContents);
       }
 
-      if (
-        !(await this.k8.createSecret(
-          Templates.renderGossipKeySecretName(nodeAlias),
+      const secretCreated = await this.k8
+        .secrets()
+        .createOrReplace(
           this._getNamespace(),
-          'Opaque',
+          Templates.renderGossipKeySecretName(nodeAlias),
+          SecretType.OPAQUE,
           data,
           Templates.renderGossipKeySecretLabelObject(nodeAlias),
-          true,
-        ))
-      ) {
+        );
+
+      if (!secretCreated) {
         throw new SoloError(`failed to create secret for gossip keys for node '${nodeAlias}'`);
       }
     } catch (e: Error | any) {
@@ -209,16 +211,12 @@ export class PlatformInstaller {
           data[fileName] = Base64.encode(fileContents);
         }
       }
-      if (
-        !(await this.k8.createSecret(
-          'network-node-hapi-app-secrets',
-          this._getNamespace(),
-          'Opaque',
-          data,
-          undefined,
-          true,
-        ))
-      ) {
+
+      const secretCreated = await this.k8
+        .secrets()
+        .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data, undefined);
+
+      if (!secretCreated) {
         throw new SoloError('failed to create secret for TLS keys');
       }
     } catch (e: Error | any) {
@@ -266,7 +264,7 @@ export class PlatformInstaller {
 
       return true;
     } catch (e: Error | any) {
-      throw new SoloError(`failed to set permission in '${podRef.podName.name}'`, e);
+      throw new SoloError(`failed to set permission in '${podRef.name}'`, e);
     }
   }
 
@@ -305,6 +303,9 @@ export class PlatformInstaller {
       const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
       await this.copyFiles(podRef, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);
     }
+
+    const nodeOverridesYaml = [path.join(stagingDir, constants.NODE_OVERRIDE_FILE)];
+    await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`);
   }
 
   /**

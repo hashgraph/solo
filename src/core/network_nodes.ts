@@ -1,13 +1,13 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from './kube/namespace_name.js';
-import {PodRef} from './kube/pod_ref.js';
-import {PodName} from './kube/pod_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {PodRef} from './kube/resources/pod/pod_ref.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import path from 'path';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import fs from 'fs';
-import {ContainerRef} from './kube/container_ref.js';
+import {ContainerRef} from './kube/resources/container/container_ref.js';
 import * as constants from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
@@ -36,7 +36,7 @@ export class NetworkNodes {
    * @returns a promise that resolves when the logs are downloaded
    */
   public async getLogs(namespace: NamespaceName) {
-    const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+    const pods: V1Pod[] = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
 
     const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
 
@@ -67,7 +67,7 @@ export class NetworkNodes {
       ]);
       await this.k8.execContainer(containerRef, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
       await this.k8.execContainer(containerRef, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.podName.name}.zip`, targetDir);
+      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
@@ -83,10 +83,9 @@ export class NetworkNodes {
    * @returns a promise that resolves when the state files are downloaded
    */
   public async getStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
-    const pods = await this.k8.getPodsByLabel([
-      `solo.hedera.com/node-name=${nodeAlias}`,
-      'solo.hedera.com/type=network-node',
-    ]);
+    const pods: V1Pod[] = await this.k8
+      .pods()
+      .list(namespace, [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node']);
 
     // get length of pods
     const promises = [];
@@ -104,13 +103,13 @@ export class NetworkNodes {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
       }
-      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
+      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       await this.k8.execContainer(containerRef, zipCommand);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.podName.name}-state.zip`, targetDir);
+      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
     } catch (e: Error | unknown) {
-      this.logger.error(`failed to download state from pod ${podRef.podName.name}`, e);
-      this.logger.showUser(`Failed to download state from pod ${podRef.podName.name}` + e);
+      this.logger.error(`failed to download state from pod ${podRef.name}`, e);
+      this.logger.showUser(`Failed to download state from pod ${podRef.name}` + e);
     }
     this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
   }

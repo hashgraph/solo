@@ -6,7 +6,7 @@ import {type BaseCommand} from '../../../commands/base.js';
 import {type Cluster, type Context} from './types.js';
 import {type SoloListrTask} from '../../../types/index.js';
 import {type AnyObject} from '../../../types/aliases.js';
-import {type NamespaceName} from '../../kube/namespace_name.js';
+import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -66,7 +66,7 @@ export class ListrRemoteConfig {
       task: async (ctx, task) => {
         const subTasks: SoloListrTask<Context>[] = [];
 
-        for (const cluster of command.localConfig.deployments[ctx.config.namespace].clusters) {
+        for (const cluster of command.localConfig.deployments[ctx.config.deployment].clusters) {
           const context = command.localConfig.clusterContextMapping?.[cluster];
           if (!context) continue;
 

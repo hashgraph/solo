@@ -8,10 +8,10 @@ import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentErr
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import {type IP, type NodeAlias, type NodeId} from '../types/aliases.js';
-import {PodName} from './kube/pod_name.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -26,7 +26,7 @@ export class Templates {
     return svcName.split('-').slice(1, -1).join('-') as NodeAlias;
   }
 
-  private static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
+  public static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}`;
   }
 

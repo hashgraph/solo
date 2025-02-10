@@ -10,10 +10,10 @@ import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
 import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
-import {PodName} from '../../../src/core/kube/pod_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {container} from 'tsyringe-neo';
-import {PodRef} from '../../../src/core/kube/pod_ref.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 
 describe('PackageInstaller', () => {
   let installer: PlatformInstaller;

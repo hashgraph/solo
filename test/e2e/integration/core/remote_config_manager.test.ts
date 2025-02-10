@@ -16,15 +16,17 @@ import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {type K8} from '../../../../src/core/kube/k8.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = NamespaceName.of('remote-config-manager-e2e');
+const deploymentName = 'deployment';
 const argv = getDefaultArgv();
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
 argv[flags.namespace.name] = namespace.name;
+argv[flags.deployment.name] = deploymentName;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterName.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
@@ -54,7 +56,7 @@ e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
       });
 
       before(function () {
@@ -65,8 +67,8 @@ e2eTestSuite(
         remoteConfigManager = container.resolve(RemoteConfigManager);
 
         localConfig.userEmailAddress = email;
-        localConfig.deployments = {[namespace.name]: {clusters: [`kind-${namespace}`]}};
-        localConfig.currentDeploymentName = namespace.name;
+        localConfig.deployments = {[deploymentName]: {clusters: [`kind-${deploymentName}`], namespace: namespace.name}};
+        localConfig.currentDeploymentName = deploymentName;
 
         if (!fs.existsSync(testCacheDir)) {
           fs.mkdirSync(testCacheDir);

@@ -10,7 +10,7 @@ import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -282,7 +282,7 @@ export class IntervalLease implements Lease {
    */
   private async retrieveLease(): Promise<V1Lease> {
     try {
-      return await this.client.readNamespacedLease(this.leaseName, this.namespace);
+      return await this.client.leases().read(this.namespace, this.leaseName);
     } catch (e: any) {
       if (!(e instanceof SoloError)) {
         throw new LeaseAcquisitionError(
@@ -311,14 +311,11 @@ export class IntervalLease implements Lease {
   private async createOrRenewLease(lease: V1Lease): Promise<void> {
     try {
       if (!lease) {
-        await this.client.createNamespacedLease(
-          this.namespace,
-          this.leaseName,
-          this.leaseHolder.toJson(),
-          this.durationSeconds,
-        );
+        await this.client
+          .leases()
+          .create(this.namespace, this.leaseName, this.leaseHolder.toJson(), this.durationSeconds);
       } else {
-        await this.client.renewNamespaceLease(this.leaseName, this.namespace, lease);
+        await this.client.leases().renew(this.namespace, this.leaseName, lease);
       }
 
       if (!this.scheduleId) {
@@ -339,7 +336,7 @@ export class IntervalLease implements Lease {
    */
   private async transferLease(lease: V1Lease): Promise<void> {
     try {
-      await this.client.transferNamespaceLease(lease, this.leaseHolder.toJson());
+      await this.client.leases().transfer(lease, this.leaseHolder.toJson());
 
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);
@@ -357,7 +354,7 @@ export class IntervalLease implements Lease {
    */
   private async deleteLease(): Promise<void> {
     try {
-      await this.client.deleteNamespacedLease(this.leaseName, this.namespace);
+      await this.client.leases().delete(this.namespace, this.leaseName);
     } catch (e: any) {
       throw new LeaseRelinquishmentError(
         `failed to delete the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,

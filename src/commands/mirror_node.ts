@@ -3,15 +3,16 @@
  */
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {Listr} from 'listr2';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from '../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {PodName} from '../core/kube/pod_name.js';
+import {PodName} from '../core/kube/resources/pod/pod_name.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -20,12 +21,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
+import {ContainerName} from '../core/kube/resources/container/container_name.js';
+import {ContainerRef} from '../core/kube/resources/container/container_ref.js';
 import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag_types.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
-import {PodRef} from '../core/kube/pod_ref.js';
-import {ContainerName} from '../core/kube/container_name.js';
-import {ContainerRef} from '../core/kube/container_ref.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -80,7 +81,7 @@ export class MirrorNodeCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
-      flags.namespace,
+      flags.deployment,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
@@ -206,12 +207,15 @@ export class MirrorNodeCommand extends BaseCommand {
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
               'chartPath',
               'valuesArg',
+              'namespace',
             ]) as MirrorNodeDeployConfigClass;
 
+            ctx.config.namespace = namespace;
             ctx.config.chartPath = await self.prepareChartPath(
               '', // don't use chartPath which is for local solo-charts only
               constants.MIRROR_NODE_RELEASE_NAME,
@@ -227,7 +231,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
-              const networkPods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+              const networkPods = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
 
               if (networkPods.length) {
                 const pod = networkPods[0];
@@ -243,7 +247,10 @@ export class MirrorNodeCommand extends BaseCommand {
                   ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${ctx.config.operatorKey}`;
                 } else {
                   try {
-                    const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${operatorId}`]);
+                    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+                    const secrets = await this.k8
+                      .secrets()
+                      .list(namespace, [`solo.hedera.com/account-id=${operatorId}`]);
                     if (secrets.length === 0) {
                       this.logger.info(`No k8s secret found for operator account id ${operatorId}, use default one`);
                       ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.privateKey=${constants.OPERATOR_KEY}`;
@@ -288,7 +295,7 @@ export class MirrorNodeCommand extends BaseCommand {
               }
             }
 
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
+            if (!(await self.k8.namespaces().has(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
@@ -334,54 +341,64 @@ export class MirrorNodeCommand extends BaseCommand {
               [
                 {
                   title: 'Check Postgres DB',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                   skip: ctx => !!ctx.config.useExternalDatabase,
                 },
                 {
                   title: 'Check REST API',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
                 {
                   title: 'Check GRPC',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
                 {
                   title: 'Check Monitor',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
                 {
                   title: 'Check Importer',
-                  task: async () =>
-                    await self.k8.waitForPodReady(
-                      ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
-                      1,
-                      constants.PODS_READY_MAX_ATTEMPTS,
-                      constants.PODS_READY_DELAY,
-                    ),
+                  task: async ctx =>
+                    await self.k8
+                      .pods()
+                      .waitForReadyStatus(
+                        ctx.config.namespace,
+                        ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      ),
                 },
               ],
               {
@@ -399,7 +416,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
-                    const namespace = self.configManager.getFlag<NamespaceName>(flags.namespace);
+                    const namespace = ctx.config.namespace;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -408,10 +425,15 @@ export class MirrorNodeCommand extends BaseCommand {
                     const fees = await this.accountManager.getFileContents(namespace, feesFileIdNum);
                     const exchangeRates = await this.accountManager.getFileContents(namespace, exchangeRatesFileIdNum);
 
-                    const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'}, ${feesFileIdNum}, 17);`;
-                    const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id, transaction_type) VALUES (decode('${exchangeRates}', 'hex'), ${
-                      timestamp + '000001'
-                    }, ${exchangeRatesFileIdNum}, 17);`;
+                    const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id,
+                                                                              transaction_type)
+                                                 VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'},
+                                                         ${feesFileIdNum}, 17);`;
+                    const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp,
+                                                                                       entity_id, transaction_type)
+                                                          VALUES (decode('${exchangeRates}', 'hex'), ${
+                                                            timestamp + '000001'
+                                                          }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
                     // When useExternalDatabase flag is enabled, the query is not executed,
@@ -439,7 +461,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       return; //! stop the execution
                     }
 
-                    const pods = await this.k8.getPodsByLabel(['app.kubernetes.io/name=postgres']);
+                    const pods = await this.k8.pods().list(namespace, ['app.kubernetes.io/name=postgres']);
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
@@ -530,21 +552,21 @@ export class MirrorNodeCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            // @ts-ignore
-            ctx.config = {
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
-            };
-
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
-              throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
+            if (!(await self.k8.namespaces().has(namespace))) {
+              throw new SoloError(`namespace ${namespace} does not exist`);
             }
 
-            ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
-              ctx.config.namespace,
+            const isChartInstalled = await this.chartManager.isChartInstalled(
+              namespace,
               constants.MIRROR_NODE_RELEASE_NAME,
             );
+
+            ctx.config = {
+              namespace,
+              isChartInstalled,
+            };
 
             await self.accountManager.loadNodeClient(ctx.config.namespace);
 
@@ -561,10 +583,10 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Delete PVCs',
           task: async ctx => {
+            // filtering postgres and redis PVCs using instance labels
+            // since they have different name or component labels
             const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
-              'app.kubernetes.io/component=postgresql',
-              'app.kubernetes.io/instance=solo-deployment',
-              'app.kubernetes.io/name=postgres',
+              `app.kubernetes.io/instance=${constants.MIRROR_NODE_RELEASE_NAME}`,
             ]);
 
             if (pvcs) {
@@ -627,7 +649,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
-            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.namespace),
+            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.deployment),
             handler: argv => {
               self.logger.info("==== Running 'mirror-node destroy' ===");
               self.logger.info(argv);
@@ -674,7 +696,7 @@ export class MirrorNodeCommand extends BaseCommand {
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('mirrorNode', new MirrorNodeComponent('mirrorNode', cluster, namespace));
+          remoteConfig.components.add('mirrorNode', new MirrorNodeComponent('mirrorNode', cluster, namespace.name));
         });
       },
     };

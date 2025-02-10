@@ -9,12 +9,14 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type Cluster, type NamespaceNameAsString} from '../core/config/remote/types.js';
+import {type DeploymentName, type NamespaceNameAsString, type Cluster} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
 import {type Opts} from '../types/command_types.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {ErrorMessages} from '../core/error_messages.js';
+import {splitFlagInput} from '../core/helpers.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 
@@ -34,6 +36,7 @@ export class DeploymentCommand extends BaseCommand {
       flags.namespace,
       flags.clusterName,
       flags.userEmailAddress,
+      flags.deployment,
       flags.deploymentClusters,
     ];
   }
@@ -46,8 +49,13 @@ export class DeploymentCommand extends BaseCommand {
     const self = this;
 
     interface Config {
+      quiet: boolean;
       context: string;
+      clusterName: string;
+      clusters: string[];
       namespace: NamespaceName;
+      deployment: DeploymentName;
+      deploymentClusters: string[];
     }
 
     interface Context {
@@ -62,10 +70,17 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.namespace, flags.deployment, flags.deploymentClusters]);
+            const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
+
+            if (self.localConfig.deployments && self.localConfig.deployments[deploymentName]) {
+              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(deploymentName));
+            }
 
             ctx.config = {
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
+              deploymentClusters: splitFlagInput(self.configManager.getFlag<string>(flags.deploymentClusters)),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -73,12 +88,25 @@ export class DeploymentCommand extends BaseCommand {
         },
         this.setupHomeDirectoryTask(),
         this.localConfig.promptLocalConfigTask(self.k8),
+        {
+          title: 'Add new deployment to local config',
+          task: async (ctx, task) => {
+            const {deployments} = this.localConfig;
+            const {deployment, namespace, deploymentClusters} = ctx.config;
+            deployments[deployment] = {
+              namespace: namespace.name,
+              clusters: deploymentClusters,
+            };
+            this.localConfig.setDeployments(deployments);
+            await this.localConfig.write();
+          },
+        },
         this.tasks.selectContext(),
         {
           title: 'Validate context',
           task: async (ctx, task) => {
             ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
-            const availableContexts = self.k8.getContextNames();
+            const availableContexts = self.k8.contexts().list();
 
             if (availableContexts.includes(ctx.config.context)) {
               task.title += chalk.green(`- validated context ${ctx.config.context}`);
@@ -96,14 +124,14 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             const subTasks: SoloListrTask<Context>[] = [];
 
-            for (const cluster of self.localConfig.deployments[ctx.config.namespace.name].clusters) {
+            for (const cluster of self.localConfig.deployments[ctx.config.deployment].clusters) {
               const context = self.localConfig.clusterContextMapping?.[cluster];
               if (!context) continue;
 
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
                 task: async (_, task) => {
-                  if (!(await self.k8.testContextConnection(context))) {
+                  if (!(await self.k8.contexts().testContextConnection(context))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
 
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
@@ -129,7 +157,7 @@ export class DeploymentCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (e: Error | unknown) {
-      throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
+      throw new SoloError('Error creating deployment', e);
     }
 
     return true;
@@ -170,9 +198,9 @@ export class DeploymentCommand extends BaseCommand {
 
             const context = self.localConfig.clusterContextMapping[clusterName];
 
-            self.k8.setCurrentContext(context);
+            self.k8.contexts().updateCurrent(context);
 
-            const namespaces = await self.k8.getNamespaces();
+            const namespaces = await self.k8.namespaces().list();
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {

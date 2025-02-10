@@ -22,10 +22,11 @@ import {type K8} from '../../src/core/kube/k8.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../src/core/kube/namespace_name.js';
-import {PodName} from '../../src/core/kube/pod_name.js';
-import {PodRef} from '../../src/core/kube/pod_ref.js';
+import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodName} from '../../src/core/kube/resources/pod/pod_name.js';
+import {PodRef} from '../../src/core/kube/resources/pod/pod_ref.js';
 import {NetworkNodes} from '../../src/core/network_nodes.js';
+import {type V1Pod} from '@kubernetes/client-node';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
@@ -70,7 +71,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           this.timeout(Duration.ofMinutes(10).toMillis());
 
           await container.resolve(NetworkNodes).getLogs(namespace);
-          await k8.deleteNamespace(namespace);
+          await k8.namespaces().delete(namespace);
         });
 
         describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}]`, () => {
@@ -81,7 +82,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
             try {
               const labels = ['app=haproxy-node1', 'solo.hedera.com/type=haproxy'];
-              const readyPods = await k8.waitForPodReady(labels, 1, 300, 1000);
+              const readyPods: V1Pod[] = await k8.pods().waitForReadyStatus(namespace, labels, 300, 1000);
               expect(readyPods).to.not.be.null;
               expect(readyPods).to.not.be.undefined;
               expect(readyPods.length).to.be.greaterThan(0);
@@ -102,7 +103,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
             const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
             if (mode === 'kill') {
-              await k8.killPod(PodRef.of(namespace, podName));
+              await k8.pods().readByRef(PodRef.of(namespace, podName)).killPod();
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;
               await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs
@@ -126,7 +127,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`${nodeAlias} should be running`, async () => {
             try {
               // @ts-ignore to access tasks which is a private property
-              expect((await nodeCmd.tasks.checkNetworkNodePod(namespace, nodeAlias)).podName.name).to.equal(
+              expect((await nodeCmd.tasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
                 `network-${nodeAlias}-0`,
               );
             } catch (e) {
@@ -184,7 +185,12 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           const configManager = container.resolve(ConfigManager);
           configManager.update(argv);
 
-          const podArray = await k8.getPodsByLabel([`app=network-${nodeAliases}`, 'solo.hedera.com/type=network-node']);
+          const podArray = await k8
+            .pods()
+            .list(configManager.getFlag(flags.namespace), [
+              `app=network-${nodeAliases}`,
+              'solo.hedera.com/type=network-node',
+            ]);
 
           if (podArray.length > 0) {
             const podName = PodName.of(podArray[0].metadata.name);

@@ -10,7 +10,7 @@ import * as constants from './constants.js';
 import {Helm} from './helm.js';
 import {ChartManager} from './chart_manager.js';
 import {ConfigManager} from './config_manager.js';
-import {K8Client} from './kube/k8_client.js';
+import {K8Client} from './kube/k8_client/k8_client.js';
 import {AccountManager} from './account_manager.js';
 import {PlatformInstaller} from './platform_installer.js';
 import {KeyManager} from './key_manager.js';
@@ -18,7 +18,7 @@ import {ProfileManager} from './profile_manager.js';
 import {IntervalLeaseRenewalService} from './lease/interval_lease_renewal.js';
 import {LeaseManager} from './lease/lease_manager.js';
 import {CertificateManager} from './certificate_manager.js';
-import path from 'path';
+import path, {normalize} from 'path';
 import {LocalConfig} from './config/local_config.js';
 import {RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import os from 'os';
@@ -94,7 +94,7 @@ export class Container {
     container.register(CertificateManager, {useClass: CertificateManager}, {lifecycle: Lifecycle.Singleton});
 
     // LocalConfig
-    const localConfigPath = path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigPath = normalize(path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
     container.register('localConfigFilePath', {useValue: localConfigPath});
     container.register(LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
