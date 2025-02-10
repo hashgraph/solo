@@ -65,11 +65,11 @@ export interface NetworkDeployConfigClass {
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
   storageType: constants.StorageType;
-  storageAccessKey: string;
-  storageSecrets: string;
-  storageEndpoint: string;
-  storageBucket: string;
-  storageBucketPrefix: string;
+  gcsAccessKey: string;
+  gcsSecrets: string;
+  gcsEndpoint: string;
+  gcsBucket: string;
+  gcsBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
 }
@@ -136,11 +136,11 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.storageAccessKey,
-      flags.storageSecrets,
-      flags.storageEndpoint,
-      flags.storageBucket,
-      flags.storageBucketPrefix,
+      flags.gcsAccessKey,
+      flags.gcsSecrets,
+      flags.gcsEndpoint,
+      flags.gcsBucket,
+      flags.gcsBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
     ];
@@ -164,24 +164,24 @@ export class NetworkCommand extends BaseCommand {
       }
 
       // Generating cloud storage secrets
-      const {storageAccessKey, storageSecrets, storageEndpoint} = config;
+      const {gcsAccessKey, gcsSecrets, gcsEndpoint} = config;
       const cloudData = {};
       if (
         config.storageType === constants.StorageType.S3_ONLY ||
         config.storageType === constants.StorageType.S3_AND_GCS
       ) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(gcsSecrets);
+        cloudData['S3_ENDPOINT'] = Base64.encode(gcsEndpoint);
       }
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
         config.storageType === constants.StorageType.S3_AND_GCS ||
         config.storageType === constants.StorageType.GCS_AND_MINIO
       ) {
-        cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
+        cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
+        cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+        cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
       }
       if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
         cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
@@ -228,11 +228,11 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    storageAccessKey: string;
-    storageSecrets: string;
-    storageEndpoint: string;
-    storageBucket: string;
-    storageBucketPrefix: string;
+    gcsAccessKey: string;
+    gcsSecrets: string;
+    gcsEndpoint: string;
+    gcsBucket: string;
+    gcsBucketPrefix: string;
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
@@ -279,13 +279,13 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ' --set cloud.generateNewSecrets=false';
     }
 
-    if (config.storageBucket) {
-      valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
-      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+    if (config.gcsBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.gcsBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`;
     }
 
-    if (config.storageBucketPrefix) {
-      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.storageBucketPrefix}`;
+    if (config.gcsBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
     }
 
     if (config.backupBucket) {
@@ -367,11 +367,11 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.storageAccessKey,
-      flags.storageSecrets,
-      flags.storageEndpoint,
-      flags.storageBucket,
-      flags.storageBucketPrefix,
+      flags.gcsAccessKey,
+      flags.gcsSecrets,
+      flags.gcsEndpoint,
+      flags.gcsBucket,
+      flags.gcsBucketPrefix,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
@@ -436,9 +436,9 @@ export class NetworkCommand extends BaseCommand {
     // if storageType is set, then we need to set the storage secrets
     if (
       this.configManager.getFlag<string>(flags.storageType) &&
-      this.configManager.getFlag<string>(flags.storageAccessKey) &&
-      this.configManager.getFlag<string>(flags.storageSecrets) &&
-      this.configManager.getFlag<string>(flags.storageEndpoint)
+      this.configManager.getFlag<string>(flags.gcsAccessKey) &&
+      this.configManager.getFlag<string>(flags.gcsSecrets) &&
+      this.configManager.getFlag<string>(flags.gcsEndpoint)
     ) {
       this.logger.debug('Preparing storage secrets');
       await this.prepareStorageSecrets(config);

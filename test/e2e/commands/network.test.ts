@@ -95,9 +95,9 @@ describe('NetworkCommand', () => {
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
-        flags.storageAccessKey.constName,
-        flags.storageSecrets.constName,
-        flags.storageEndpoint.constName,
+        flags.gcsAccessKey.constName,
+        flags.gcsSecrets.constName,
+        flags.gcsEndpoint.constName,
         flags.googleCredential.constName,
       ]);
     } catch (e) {
