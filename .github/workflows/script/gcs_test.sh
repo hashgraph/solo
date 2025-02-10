@@ -66,7 +66,7 @@ npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
 npm run solo-test -- network deploy -i node1 -n "${SOLO_NAMESPACE}" \
   --gcs-endpoint "https://storage.googleapis.com" \
   --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
-  --gcs-type "${storageType}" --gcs-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION \
+  --storage-type "${storageType}" --gcs-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION \
   --backup-bucket "${streamBackupBucket}" \
   --google-credential gcp_service_account.json
 
@@ -75,7 +75,7 @@ npm run solo-test -- node start -i node1 -n "${SOLO_NAMESPACE}"
 npm run solo-test -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" \
   --gcs-endpoint "https://storage.googleapis.com" \
   --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
-  --gcs-type "${storageType}" --gcs-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION
+  --storage-type "${storageType}" --gcs-bucket "${streamBucket}" $BUCKET_PREFIX_OPTION
 
 npm run solo-test -- explorer deploy -n "${SOLO_NAMESPACE}" -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
