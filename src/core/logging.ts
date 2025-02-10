@@ -8,7 +8,8 @@ import chalk from 'chalk';
 import path from 'path';
 import * as constants from './constants.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -46,11 +47,11 @@ export class SoloLogger {
    * @param devMode - if true, show full stack traces in error messages
    */
   constructor(
-    @inject('logLevel') logLevel?: string,
-    @inject('devMode') private devMode?: boolean | null,
+    @inject(InjectTokens.LogLevel) logLevel?: string,
+    @inject(InjectTokens.DevMode) private devMode?: boolean | null,
   ) {
-    logLevel = patchInject(logLevel, 'logLevel', this.constructor.name);
-    this.devMode = patchInject(devMode, 'devMode', this.constructor.name);
+    logLevel = patchInject(logLevel, InjectTokens.LogLevel, this.constructor.name);
+    this.devMode = patchInject(devMode, InjectTokens.DevMode, this.constructor.name);
 
     this.nextTraceId();
 

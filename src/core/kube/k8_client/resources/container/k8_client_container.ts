@@ -14,10 +14,11 @@ import fs from 'fs';
 import {type LocalContextObject} from '../../../../../types/index.js';
 import * as stream from 'node:stream';
 import {v4 as uuid4} from 'uuid';
-import {SoloLogger} from '../../../../logging.js';
+import {type SoloLogger} from '../../../../logging.js';
 import os from 'os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
+import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
 
 export class K8ClientContainer implements Container {
   private readonly logger: SoloLogger;
@@ -27,7 +28,7 @@ export class K8ClientContainer implements Container {
     private readonly containerRef: ContainerRef,
     private readonly pods: Pods,
   ) {
-    this.logger = container.resolve(SoloLogger);
+    this.logger = container.resolve(InjectTokens.SoloLogger);
   }
 
   public async copyFrom(srcPath: string, destDir: string): Promise<unknown> {

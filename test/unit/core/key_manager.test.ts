@@ -7,14 +7,15 @@ import {describe, it} from 'mocha';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import {KeyManager} from '../../../src/core/key_manager.js';
+import {type KeyManager} from '../../../src/core/key_manager.js';
 import * as constants from '../../../src/core/constants.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('KeyManager', () => {
-  const keyManager = container.resolve(KeyManager);
+  const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
 
   it('should generate signing key', async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'));

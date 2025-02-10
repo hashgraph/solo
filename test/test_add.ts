@@ -20,8 +20,9 @@ import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {Duration} from '../src/core/time/duration.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../version.js';
 import {NamespaceName} from '../src/core/kube/resources/namespace/namespace_name.js';
-import {NetworkNodes} from '../src/core/network_nodes.js';
+import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -69,7 +70,7 @@ export function testNodeAdd(
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await container.resolve(NetworkNodes).getLogs(namespace);
+          await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
           await bootstrapResp.opts.accountManager.close();
           await nodeCmd.handlers.stop(argv);
           await networkCmd.destroy(argv);

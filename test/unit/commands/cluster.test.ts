@@ -48,6 +48,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {K8ClientClusters} from '../../../src/core/kube/k8_client/resources/cluster/k8_client_clusters.js';
 import {K8ClientContexts} from '../../../src/core/kube/k8_client/resources/context/k8_client_contexts.js';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
@@ -88,15 +89,15 @@ describe('ClusterCommand unit tests', () => {
 
     beforeEach(() => {
       opts = getBaseCommandOpts();
-      opts.logger = container.resolve(SoloLogger);
-      opts.helm = container.resolve(Helm);
-      opts.chartManager = container.resolve(ChartManager);
+      opts.logger = container.resolve(InjectTokens.SoloLogger);
+      opts.helm = container.resolve(InjectTokens.Helm);
+      opts.chartManager = container.resolve(InjectTokens.ChartManager);
       opts.helm.dependency = sinon.stub();
 
       opts.chartManager.isChartInstalled = sinon.stub().returns(false);
       opts.chartManager.install = sinon.stub().returns(true);
 
-      opts.configManager = container.resolve(ConfigManager);
+      opts.configManager = container.resolve(InjectTokens.ConfigManager);
       opts.remoteConfigManager = sinon.stub();
     });
 

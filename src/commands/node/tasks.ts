@@ -1239,14 +1239,14 @@ export class NodeCommandTasks {
 
   getNodeLogsAndConfigs() {
     return new Task('Get node logs and configs', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await container.resolve(NetworkNodes).getLogs(ctx.config.namespace);
+      await container.resolve<NetworkNodes>(NetworkNodes).getLogs(ctx.config.namespace);
     });
   }
 
   getNodeStateFiles() {
     return new Task('Get node states', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       for (const nodeAlias of ctx.config.nodeAliases) {
-        await container.resolve(NetworkNodes).getStatesFromPod(ctx.config.namespace, nodeAlias);
+        await container.resolve<NetworkNodes>(NetworkNodes).getStatesFromPod(ctx.config.namespace, nodeAlias);
       }
     });
   }

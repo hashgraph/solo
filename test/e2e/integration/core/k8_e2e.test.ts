@@ -13,29 +13,25 @@ import {v4 as uuid4} from 'uuid';
 import {SoloError} from '../../../../src/core/errors.js';
 import * as constants from '../../../../src/core/constants.js';
 import {Templates} from '../../../../src/core/templates.js';
-import {ConfigManager} from '../../../../src/core/config_manager.js';
+import {type ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import crypto from 'crypto';
 import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {type K8Client} from '../../../../src/core/kube/k8_client/k8_client.js';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerName} from '../../../../src/core/kube/resources/container/container_name.js';
 import {ContainerRef} from '../../../../src/core/kube/resources/container/container_ref.js';
 import {ServiceRef} from '../../../../src/core/kube/resources/service/service_ref.js';
 import {ServiceName} from '../../../../src/core/kube/resources/service/service_name.js';
+import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
+import {type K8} from '../../../../src/core/kube/k8.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
-async function createPod(
-  podRef: PodRef,
-  containerName: ContainerName,
-  podLabelValue: string,
-  k8: K8Client,
-): Promise<void> {
+async function createPod(podRef: PodRef, containerName: ContainerName, podLabelValue: string, k8: K8): Promise<void> {
   await k8
     .pods()
     .create(
@@ -50,8 +46,8 @@ async function createPod(
 
 describe('K8', () => {
   const testLogger = logging.NewLogger('debug', true);
-  const configManager = container.resolve(ConfigManager);
-  const k8 = container.resolve('K8') as K8Client;
+  const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+  const k8: K8 = container.resolve(InjectTokens.K8);
   const testNamespace = NamespaceName.of('k8-e2e');
   const argv = [];
   const podName = PodName.of(`test-pod-${uuid4()}`);

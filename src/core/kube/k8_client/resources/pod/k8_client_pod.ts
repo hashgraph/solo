@@ -8,12 +8,13 @@ import {SoloError} from '../../../../errors.js';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
 import {StatusCodes} from 'http-status-codes';
-import {SoloLogger} from '../../../../logging.js';
+import {type SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
 import {type KubeConfig, type CoreV1Api, PortForward} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import * as constants from '../../../../constants.js';
 import net from 'net';
+import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
 
 export class K8ClientPod implements Pod {
   private readonly logger: SoloLogger;
@@ -24,7 +25,7 @@ export class K8ClientPod implements Pod {
     private readonly kubeClient: CoreV1Api,
     private readonly kubeConfig: KubeConfig,
   ) {
-    this.logger = container.resolve(SoloLogger);
+    this.logger = container.resolve(InjectTokens.SoloLogger);
   }
 
   public async killPod(): Promise<void> {
