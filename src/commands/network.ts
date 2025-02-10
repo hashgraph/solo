@@ -30,6 +30,8 @@ import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
+import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -455,11 +457,11 @@ export class NetworkCommand extends BaseCommand {
     await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART);
 
     if (ctx.config.deletePvcs) {
-      const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace);
+      const pvcs = await self.k8.pvcs().list(ctx.config.namespace, []);
       task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`;
       if (pvcs) {
         for (const pvc of pvcs) {
-          await self.k8.deletePvc(pvc, ctx.config.namespace);
+          await self.k8.pvcs().delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
         }
       }
     }

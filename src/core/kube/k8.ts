@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type Namespaces} from './resources/namespace/namespaces.js';
-import {type NamespaceName} from './resources/namespace/namespace_name.js';
 import {type Containers} from './resources/container/containers.js';
 import {type Clusters} from './resources/cluster/clusters.js';
 import {type ConfigMaps} from './resources/config_map/config_maps.js';
@@ -87,20 +86,4 @@ export interface K8 {
    * @returns an object instance providing ingress operations
    */
   ingresses(): Ingresses;
-
-  /**
-   * Get a list of persistent volume claim names for the given namespace
-   * @param namespace - the namespace of the persistent volume claims to return
-   * @param [labels] - labels
-   * @returns list of persistent volume claim names
-   */
-  listPvcsByNamespace(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
-
-  /**
-   * Delete a persistent volume claim
-   * @param name - the name of the persistent volume claim to delete
-   * @param namespace - the namespace of the persistent volume claim to delete
-   * @returns true if the persistent volume claim was deleted
-   */
-  deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
 }

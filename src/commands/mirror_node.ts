@@ -25,6 +25,8 @@ import {type NamespaceName} from '../core/kube/resources/namespace/namespace_nam
 import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
 import {ContainerName} from '../core/kube/resources/container/container_name.js';
 import {ContainerRef} from '../core/kube/resources/container/container_ref.js';
+import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
+import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -506,13 +508,13 @@ export class MirrorNodeCommand extends BaseCommand {
           task: async ctx => {
             // filtering postgres and redis PVCs using instance labels
             // since they have different name or component labels
-            const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace, [
-              `app.kubernetes.io/instance=${constants.MIRROR_NODE_RELEASE_NAME}`,
-            ]);
+            const pvcs = await self.k8
+              .pvcs()
+              .list(ctx.config.namespace, [`app.kubernetes.io/instance=${constants.MIRROR_NODE_RELEASE_NAME}`]);
 
             if (pvcs) {
               for (const pvc of pvcs) {
-                await self.k8.deletePvc(pvc, ctx.config.namespace);
+                await self.k8.pvcs().delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
               }
             }
           },
