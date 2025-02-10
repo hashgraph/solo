@@ -58,16 +58,25 @@ export class NetworkNodes {
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.k8.copyTo(containerRef, sourcePath, `${HEDERA_HAPI_PATH}`);
+      await this.k8.containers().readByRef(containerRef).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
       await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
-      await this.k8.execContainer(containerRef, [
-        'bash',
-        '-c',
-        `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
-      ]);
-      await this.k8.execContainer(containerRef, ['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
-      await this.k8.execContainer(containerRef, `${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .execContainer([
+          'bash',
+          '-c',
+          `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
+        ]);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .execContainer(['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
+      await this.k8.containers().readByRef(containerRef).execContainer(`${HEDERA_HAPI_PATH}/${scriptName}`);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .copyFrom(`${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
     } catch (e: Error | unknown) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
@@ -105,8 +114,11 @@ export class NetworkNodes {
       }
       const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-      await this.k8.execContainer(containerRef, zipCommand);
-      await this.k8.copyFrom(containerRef, `${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
+      await this.k8.containers().readByRef(containerRef).execContainer(zipCommand);
+      await this.k8
+        .containers()
+        .readByRef(containerRef)
+        .copyFrom(`${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
     } catch (e: Error | unknown) {
       this.logger.error(`failed to download state from pod ${podRef.name}`, e);
       this.logger.showUser(`Failed to download state from pod ${podRef.name}` + e);

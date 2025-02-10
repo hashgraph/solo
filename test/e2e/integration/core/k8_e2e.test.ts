@@ -130,7 +130,12 @@ describe('K8', () => {
   it('should be able to check if a path is directory inside a container', async () => {
     const pods = await k8.pods().list(testNamespace, [`app=${podLabelValue}`]);
     const podName = PodName.of(pods[0].metadata.name);
-    expect(await k8.hasDir(ContainerRef.of(PodRef.of(testNamespace, podName), containerName), '/tmp')).to.be.true;
+    expect(
+      await k8
+        .containers()
+        .readByRef(ContainerRef.of(PodRef.of(testNamespace, podName), containerName))
+        .hasDir('/tmp'),
+    ).to.be.true;
   }).timeout(defaultTimeout);
 
   const testCases = ['test/data/pem/keys/a-private-node0.pem', 'test/data/build-v0.54.0-alpha.4.zip'];
@@ -149,10 +154,14 @@ describe('K8', () => {
       const originalStat = fs.statSync(localFilePath);
 
       // upload the file
-      expect(await k8.copyTo(ContainerRef.of(podRef, containerName), localFilePath, remoteTmpDir)).to.be.true;
+      expect(
+        await k8.containers().readByRef(ContainerRef.of(podRef, containerName)).copyTo(localFilePath, remoteTmpDir),
+      ).to.be.true;
 
       // download the same file
-      expect(await k8.copyFrom(ContainerRef.of(podRef, containerName), remoteFilePath, localTmpDir)).to.be.true;
+      expect(
+        await k8.containers().readByRef(ContainerRef.of(podRef, containerName)).copyFrom(remoteFilePath, localTmpDir),
+      ).to.be.true;
       const downloadedFilePath = path.join(localTmpDir, fileName);
       const downloadedFileData = fs.readFileSync(downloadedFilePath);
       const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex');
@@ -162,7 +171,10 @@ describe('K8', () => {
       expect(downloadedFileHash, 'downloaded file hash should match original file hash').to.equal(originalFileHash);
 
       // rm file inside the container
-      await k8.execContainer(ContainerRef.of(podRef, containerName), ['rm', '-f', remoteFilePath]);
+      await k8
+        .containers()
+        .readByRef(ContainerRef.of(podRef, containerName))
+        .execContainer(['rm', '-f', remoteFilePath]);
 
       fs.rmdirSync(localTmpDir, {recursive: true});
     }).timeout(defaultTimeout);
@@ -205,10 +217,10 @@ describe('K8', () => {
   it('should be able to cat a file inside the container', async () => {
     const pods = await k8.pods().list(testNamespace, [`app=${podLabelValue}`]);
     const podName = PodName.of(pods[0].metadata.name);
-    const output = await k8.execContainer(ContainerRef.of(PodRef.of(testNamespace, podName), containerName), [
-      'cat',
-      '/etc/hostname',
-    ]);
+    const output = await k8
+      .containers()
+      .readByRef(ContainerRef.of(PodRef.of(testNamespace, podName), containerName))
+      .execContainer(['cat', '/etc/hostname']);
     expect(output.indexOf(podName.name)).to.equal(0);
   }).timeout(defaultTimeout);
 

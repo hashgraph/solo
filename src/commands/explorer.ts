@@ -248,21 +248,21 @@ export class ExplorerCommand extends BaseCommand {
               soloChartSetupValuesArg,
             );
 
-            // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
-            await this.k8.patchIngress(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
-              spec: {
-                ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
-              },
-            });
+            if (config.enableIngress) {
+              // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+              await this.k8.ingresses().update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                spec: {
+                  ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
+                },
+              });
 
-            // to support GRPC over HTTP/2
-            await this.k8.patchConfigMap(
-              clusterSetupNamespace,
-              constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress',
-              {
-                'backend-protocol': 'h2',
-              },
-            );
+              // to support GRPC over HTTP/2
+              await this.k8
+                .configMaps()
+                .update(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress', {
+                  'backend-protocol': 'h2',
+                });
+            }
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },
@@ -285,7 +285,7 @@ export class ExplorerCommand extends BaseCommand {
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
             // to support grpc over http/2
-            await this.k8.patchIngress(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
+            await this.k8.ingresses().update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
               metadata: {
                 annotations: {
                   'haproxy-ingress.github.io/backend-protocol': 'h1',

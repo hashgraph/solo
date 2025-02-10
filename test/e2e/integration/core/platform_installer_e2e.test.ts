@@ -107,10 +107,10 @@ e2eTestSuite(
 
         it('should succeed with valid tag and pod', async () => {
           expect(await installer.fetchPlatform(podRef, packageVersion)).to.be.true;
-          const outputs = await k8.execContainer(
-            ContainerRef.of(podRef, constants.ROOT_CONTAINER),
-            `ls -la ${constants.HEDERA_HAPI_PATH}`,
-          );
+          const outputs = await k8
+            .containers()
+            .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+            .execContainer(`ls -la ${constants.HEDERA_HAPI_PATH}`);
           testLogger.showUser(outputs);
         }).timeout(Duration.ofMinutes(1).toMillis());
       });

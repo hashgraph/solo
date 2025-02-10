@@ -97,8 +97,8 @@ export class PlatformInstaller {
 
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
       const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
-      await this.k8.execContainer(containerRef, `chmod +x ${extractScript}`);
-      await this.k8.execContainer(containerRef, [extractScript, tag]);
+      await this.k8.containers().readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
+      await this.k8.containers().readByRef(containerRef).execContainer([extractScript, tag]);
       return true;
     } catch (e: Error | any) {
       const message = `failed to extract platform code in this pod '${podRef.name}': ${e.message}`;
@@ -126,12 +126,12 @@ export class PlatformInstaller {
           throw new SoloError(`file does not exist: ${srcPath}`);
         }
 
-        if (!(await this.k8.hasDir(containerRef, destDir))) {
-          await this.k8.mkdir(containerRef, destDir);
+        if (!(await this.k8.containers().readByRef(containerRef).hasDir(destDir))) {
+          await this.k8.containers().readByRef(containerRef).mkdir(destDir);
         }
 
         this.logger.debug(`Copying file into ${podRef.name}: ${srcPath} -> ${destDir}`);
-        await this.k8.copyTo(containerRef, srcPath, destDir);
+        await this.k8.containers().readByRef(containerRef).copyTo(srcPath, destDir);
 
         const fileName = path.basename(srcPath);
         copiedFiles.push(path.join(destDir, fileName));
@@ -237,16 +237,14 @@ export class PlatformInstaller {
     const containerRef = ContainerRef.of(podRef, container);
 
     const recursiveFlag = recursive ? '-R' : '';
-    await this.k8.execContainer(containerRef, [
-      'bash',
-      '-c',
-      `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`,
-    ]);
-    await this.k8.execContainer(containerRef, [
-      'bash',
-      '-c',
-      `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`,
-    ]);
+    await this.k8
+      .containers()
+      .readByRef(containerRef)
+      .execContainer(['bash', '-c', `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`]);
+    await this.k8
+      .containers()
+      .readByRef(containerRef)
+      .execContainer(['bash', '-c', `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`]);
 
     return true;
   }

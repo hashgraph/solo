@@ -1,14 +1,11 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type TarCreateFilter} from '../../types/aliases.js';
-import {type TDirectoryData} from './t_directory_data.js';
 import {type Namespaces} from './resources/namespace/namespaces.js';
 import {type NamespaceName} from './resources/namespace/namespace_name.js';
 import {type Containers} from './resources/container/containers.js';
 import {type Clusters} from './resources/cluster/clusters.js';
 import {type ConfigMaps} from './resources/config_map/config_maps.js';
-import {type ContainerRef} from './resources/container/container_ref.js';
 import {type Contexts} from './resources/context/contexts.js';
 import {type Pvcs} from './resources/pvc/pvcs.js';
 import {type Services} from './resources/service/services.js';
@@ -16,6 +13,7 @@ import {type Pods} from './resources/pod/pods.js';
 import {type Leases} from './resources/lease/leases.js';
 import {type IngressClasses} from './resources/ingress_class/ingress_classes.js';
 import {type Secrets} from './resources/secret/secrets.js';
+import {type Ingresses} from './resources/ingress/ingresses.js';
 
 export interface K8 {
   /**
@@ -85,78 +83,10 @@ export interface K8 {
   ingressClasses(): IngressClasses;
 
   /**
-   * List files and directories in a container
-   *
-   * It runs ls -la on the specified path and returns a list of object containing the entries.
-   * For example:
-   * [{
-   *    directory: false,
-   *    owner: hedera,
-   *    group: hedera,
-   *    size: 121,
-   *    modifiedAt: Jan 15 13:50
-   *    name: config.txt
-   * }]
-   *
-   * @param containerRef - the container reference
-   * @param destPath - path inside the container
-   * @returns a promise that returns array of directory entries, custom object
+   * Fluent accessor for reading and manipulating ingresses in the kubernetes cluster.
+   * @returns an object instance providing ingress operations
    */
-  listDir(containerRef: ContainerRef, destPath: string): Promise<any[] | TDirectoryData[]>;
-
-  /**
-   * Check if a filepath exists in the container
-   * @param containerRef - the container reference
-   * @param destPath - path inside the container
-   * @param [filters] - an object with metadata fields and value
-   */
-  hasFile(containerRef: ContainerRef, destPath: string, filters?: object): Promise<boolean>;
-
-  /**
-   * Check if a directory path exists in the container
-   * @param containerRef - the container reference
-   * @param destPath - path inside the container
-   */
-  hasDir(containerRef: ContainerRef, destPath: string): Promise<boolean>;
-
-  mkdir(containerRef: ContainerRef, destPath: string): Promise<string>;
-
-  /**
-   * Copy a file into a container
-   *
-   * It overwrites any existing file inside the container at the destination directory
-   *
-   * @param containerRef - the container reference
-   * @param srcPath - source file path in the local
-   * @param destDir - destination directory in the container
-   * @param [filter] - the filter to pass to tar to keep or skip files or directories
-   * @returns a Promise that performs the copy operation
-   */
-  copyTo(
-    containerRef: ContainerRef,
-    srcPath: string,
-    destDir: string,
-    filter?: TarCreateFilter | undefined,
-  ): Promise<boolean>;
-
-  /**
-   * Copy a file from a container
-   *
-   * It overwrites any existing file at the destination directory
-   *
-   * @param containerRef - the container reference
-   * @param srcPath - source file path in the container
-   * @param destDir - destination directory in the local
-   */
-  copyFrom(containerRef: ContainerRef, srcPath: string, destDir: string): Promise<unknown>;
-
-  /**
-   * Invoke sh command within a container and return the console output as string
-   * @param containerRef - the container reference
-   * @param command - sh commands as an array to be run within the containerName (e.g 'ls -la /opt/hgcapp')
-   * @returns console output as string
-   */
-  execContainer(containerRef: ContainerRef, command: string | string[]): Promise<string>;
+  ingresses(): Ingresses;
 
   /**
    * Get a list of persistent volume claim names for the given namespace
@@ -173,8 +103,4 @@ export interface K8 {
    * @returns true if the persistent volume claim was deleted
    */
   deletePvc(name: string, namespace: NamespaceName): Promise<boolean>;
-
-  patchIngress(namespace: NamespaceName, ingressName: string, patch: object): Promise<void>;
-
-  patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>): Promise<void>;
 }
