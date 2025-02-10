@@ -158,18 +158,18 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareStorageSecrets(config: NetworkDeployConfigClass) {
     try {
+      const namespace = config.namespace;
       if (config.storageType == constants.StorageType.MINIO_ONLY) {
         const minioAccessKey = uuidv4();
         const minioSecretKey = uuidv4();
         const minioData = {};
-        const namespace = config.namespace;
 
         // Generating new minio credentials
         const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
         minioData['config.env'] = Base64.encode(envString);
         const isMinioSecretCreated = await this.k8
-        .secrets()
-        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+          .secrets()
+          .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
         if (!isMinioSecretCreated) {
           throw new SoloError('ailed to create new minio secret');
         }
