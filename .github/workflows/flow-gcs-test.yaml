@@ -35,7 +35,7 @@ jobs:
     runs-on: solo-linux-large
     strategy:
       matrix:
-        storageType: ["gcs_only", "gcs_and_minio"]
+        storageType: ["gcs_only", "minio_only"]
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4

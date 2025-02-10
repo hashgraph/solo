@@ -70,6 +70,11 @@ export interface NetworkDeployConfigClass {
   gcsEndpoint: string;
   gcsBucket: string;
   gcsBucketPrefix: string;
+  awsAccessKey: string;
+  awsSecrets: string;
+  awsEndpoint: string;
+  awsBucket: string;
+  awsBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
 }
@@ -141,6 +146,11 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
+      flags.awsAccessKey,
+      flags.awsSecrets,
+      flags.awsEndpoint,
+      flags.awsBucket,
+      flags.awsBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
     ];
@@ -164,28 +174,23 @@ export class NetworkCommand extends BaseCommand {
       }
 
       // Generating cloud storage secrets
-      const {gcsAccessKey, gcsSecrets, gcsEndpoint} = config;
+      const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
       const cloudData = {};
       if (
         config.storageType === constants.StorageType.S3_ONLY ||
         config.storageType === constants.StorageType.S3_AND_GCS
       ) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(gcsSecrets);
-        cloudData['S3_ENDPOINT'] = Base64.encode(gcsEndpoint);
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+        cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
       }
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS ||
-        config.storageType === constants.StorageType.GCS_AND_MINIO
+        config.storageType === constants.StorageType.S3_AND_GCS
       ) {
         cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
         cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
         cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
-      }
-      if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
       }
 
       const isCloudSecretCreated = await this.k8
@@ -254,8 +259,7 @@ export class NetworkCommand extends BaseCommand {
 
     if (
       config.storageType === constants.StorageType.S3_AND_GCS ||
-      config.storageType === constants.StorageType.GCS_ONLY ||
-      config.storageType === constants.StorageType.GCS_AND_MINIO
+      config.storageType === constants.StorageType.GCS_ONLY
     ) {
       valuesArg += ' --set cloud.gcs.enabled=true';
     }
