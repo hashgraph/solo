@@ -127,7 +127,7 @@ describe('BaseCommand', () => {
   });
 
   describe('get consensus nodes', () => {
-    it('should return consensus nodes', () => {
+    before(() => {
       const testLogger = sinon.stub();
       const helm = sinon.stub();
       const chartManager = sinon.stub();
@@ -157,7 +157,9 @@ describe('BaseCommand', () => {
         localConfig,
         remoteConfigManager,
       });
+    });
 
+    it('should return consensus nodes', () => {
       const consensusNodes = baseCmd.getConsensusNodes();
       expect(consensusNodes).to.be.an('array');
       expect(consensusNodes[0].context).to.equal('context1');
@@ -170,6 +172,13 @@ describe('BaseCommand', () => {
       expect(consensusNodes[1].nodeId).to.equal(1);
       expect(consensusNodes[0].cluster).to.equal('cluster');
       expect(consensusNodes[1].cluster).to.equal('cluster2');
+    });
+
+    it('should return contexts', () => {
+      const contexts = baseCmd.getContexts();
+      expect(contexts).to.be.an('array');
+      expect(contexts[0]).to.equal('context1');
+      expect(contexts[1]).to.equal('context2');
     });
   });
 });
