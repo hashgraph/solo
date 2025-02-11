@@ -116,7 +116,7 @@ export class Flags {
     definition: {
       describe:
         'The cluster reference that will be used for referencing the Kubernetes cluster and stored in the local and ' +
-        'remote configuration for the deployment.  Multiple can be separated by commas.',
+        'remote configuration for the deployment.  For commands that take multiple clusters they can be separated by commas.',
       alias: 'c',
       type: 'string',
     },
