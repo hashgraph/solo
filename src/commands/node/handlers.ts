@@ -42,6 +42,7 @@ import {type ComponentsDataWrapper} from '../../core/config/remote/components_da
 import {type Optional} from '../../types/index.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {Templates} from '../../core/templates.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -52,6 +53,8 @@ export class NodeCommandHandlers implements CommandHandlers {
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
+  public readonly contexts: string[];
+  public readonly consensusNodes: ConsensusNode[];
 
   private getConfig: any;
   private prepareChartPath: any;
@@ -79,6 +82,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     this.getConfig = opts.parent.getConfig.bind(opts.parent);
     this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent);
+
+    this.consensusNodes = opts.parent.getConsensusNodes();
+    this.contexts = opts.parent.getContexts();
+
     this.parent = opts.parent;
   }
 

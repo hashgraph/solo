@@ -362,6 +362,7 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeAlias,
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
+      flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
       flags.profileName,
       flags.profileFile,
@@ -433,6 +434,12 @@ export class NetworkCommand extends BaseCommand {
 
     config.consensusNodes = this.getConsensusNodes();
     config.contexts = this.getContexts();
+    if (config.nodeAliases.length === 0) {
+      config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
+      if (config.nodeAliases.length === 0) {
+        throw new SoloError('no node aliases provided via flags or RemoteConfig');
+      }
+    }
 
     if (!(await this.k8Factory.default().namespaces().has(namespace))) {
       await this.k8Factory.default().namespaces().create(namespace);

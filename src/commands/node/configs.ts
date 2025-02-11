@@ -300,7 +300,7 @@ export const refreshConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const keysConfigBuilder = function (argv, ctx, task) {
-  const config = this.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
+  const config: NodeKeysConfigClass = this.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
     'curDate',
     'keysDir',
     'nodeAliases',
@@ -308,6 +308,12 @@ export const keysConfigBuilder = function (argv, ctx, task) {
 
   config.curDate = new Date();
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  if (config.nodeAliases.length === 0) {
+    config.nodeAliases = this.consensusNodes.map((node: {nodeAlias: string}) => node.nodeAlias);
+    if (config.nodeAliases.length === 0) {
+      throw new SoloError('no node aliases provided via flags or RemoteConfig');
+    }
+  }
   config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys');
 
   if (!fs.existsSync(config.keysDir)) {

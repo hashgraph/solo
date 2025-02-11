@@ -255,18 +255,20 @@ export abstract class BaseCommand extends ShellRunner {
     const consensusNodes: ConsensusNode[] = [];
 
     // using the remoteConfigManager to get the consensus nodes
-    Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
-      consensusNodes.push(
-        new ConsensusNode(
-          node.name,
-          node.nodeId,
-          node.namespace,
-          node.cluster,
-          // use local config to get the context
-          this.getLocalConfig().clusterRefs[node.cluster],
-        ),
-      );
-    });
+    if (this.getRemoteConfigManager()?.components?.consensusNodes) {
+      Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
+        consensusNodes.push(
+          new ConsensusNode(
+            node.name,
+            node.nodeId,
+            node.namespace,
+            node.cluster,
+            // use local config to get the context
+            this.getLocalConfig().clusterRefs[node.cluster],
+          ),
+        );
+      });
+    }
 
     // return the consensus nodes
     return consensusNodes;

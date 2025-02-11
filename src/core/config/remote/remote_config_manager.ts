@@ -63,7 +63,7 @@ export class RemoteConfigManager {
 
   /** @returns the components data wrapper cloned */
   public get components(): ComponentsDataWrapper {
-    return this.remoteConfig.components.clone();
+    return this.remoteConfig?.components?.clone();
   }
 
   /* ---------- Readers and Modifiers ---------- */
