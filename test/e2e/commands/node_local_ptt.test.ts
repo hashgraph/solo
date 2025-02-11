@@ -18,7 +18,7 @@ const argv = getDefaultArgv();
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 argv[flags.quiet.name] = true;

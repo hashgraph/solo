@@ -65,6 +65,8 @@ describe('NetworkCommand', () => {
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
   });
 
+  it('deployment create should succeed', async () => {});
+
   it('keys should be generated', async () => {
     expect(await nodeCmd.handlers.keys(argv)).to.be.true;
   });

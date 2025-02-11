@@ -75,7 +75,7 @@ argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.force.name] = true;
 argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
@@ -255,7 +255,7 @@ describe('ClusterCommand unit tests', () => {
             resolve('deployment-3');
           });
         });
-        clusterNamePromptStub = sandbox.stub(flags.clusterName, 'prompt').callsFake(() => {
+        clusterNamePromptStub = sandbox.stub(flags.clusterRef, 'prompt').callsFake(() => {
           return new Promise(resolve => {
             resolve('cluster-3');
           });
@@ -386,7 +386,7 @@ describe('ClusterCommand unit tests', () => {
             resolve('deployment-3');
           });
         });
-        clusterNamePromptStub = sandbox.stub(flags.clusterName, 'prompt').callsFake(() => {
+        clusterNamePromptStub = sandbox.stub(flags.clusterRef, 'prompt').callsFake(() => {
           return new Promise(resolve => {
             resolve('cluster-3');
           });
@@ -410,14 +410,14 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should use local config mapping to connect to first provided cluster', async () => {
-        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-2,cluster-3']]);
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterRef, 'cluster-2,cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected cluster is not found in local config mapping', async () => {
-        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-3']]);
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterRef, 'cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-3');
@@ -425,7 +425,7 @@ describe('ClusterCommand unit tests', () => {
 
       it('should use default kubeConfig context if selected cluster is not found in local config mapping and quiet=true', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [
-          [flags.clusterName, 'unknown-cluster'],
+          [flags.clusterRef, 'unknown-cluster'],
           [flags.quiet, true],
         ]);
 

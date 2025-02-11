@@ -110,11 +110,13 @@ export class Flags {
   };
 
   // list of common flags across commands. command specific flags are defined in the command's module.
-  static readonly clusterName: CommandFlag = {
-    constName: 'clusterName',
-    name: 'cluster-name',
+  static readonly clusterRef: CommandFlag = {
+    constName: 'clusterRef',
+    name: 'cluster-ref',
     definition: {
-      describe: 'Cluster name',
+      describe:
+        'The cluster reference that will be used for referencing the Kubernetes cluster and stored in the local and ' +
+        'remote configuration for the deployment.  Multiple can be separated by commas.',
       alias: 'c',
       type: 'string',
     },
@@ -122,10 +124,10 @@ export class Flags {
       return await Flags.promptText(
         task,
         input,
-        Flags.clusterName.definition.defaultValue,
+        Flags.clusterRef.definition.defaultValue,
         'Enter cluster name: ',
         'cluster name cannot be empty',
-        Flags.clusterName.name,
+        Flags.clusterRef.name,
       );
     },
   };
@@ -1877,7 +1879,7 @@ export class Flags {
     Flags.cacheDir,
     Flags.chainId,
     Flags.chartDirectory,
-    Flags.clusterName,
+    Flags.clusterRef,
     Flags.clusterSetupNamespace,
     Flags.context,
     Flags.createAmount,

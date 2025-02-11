@@ -266,7 +266,7 @@ export class ClusterCommandTasks {
         const configManager = this.parent.getConfigManager();
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
         const deploymentName: string = configManager.getFlag<DeploymentName>(flags.deployment);
-        let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
+        let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterRef));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
         const namespace = configManager.getFlag<NamespaceName>(flags.namespace);
         const localConfig = this.parent.getLocalConfig();
@@ -319,7 +319,7 @@ export class ClusterCommandTasks {
 
             // Prompt user for clusters and contexts
             else {
-              const promptedClusters = await flags.clusterName.prompt(task, '');
+              const promptedClusters = await flags.clusterRef.prompt(task, '');
               clusters = splitFlagInput(promptedClusters);
 
               for (const cluster of clusters) {

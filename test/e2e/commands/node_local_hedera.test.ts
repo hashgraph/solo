@@ -20,14 +20,13 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import net from 'net';
 
 const LOCAL_HEDERA = NamespaceName.of('local-hedera-app');
 const argv = getDefaultArgv();
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 argv[flags.quiet.name] = true;

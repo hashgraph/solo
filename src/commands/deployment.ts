@@ -35,7 +35,7 @@ export class DeploymentCommand extends BaseCommand {
       flags.quiet,
       flags.context,
       flags.namespace,
-      flags.clusterName,
+      flags.clusterRef,
       flags.userEmailAddress,
       flags.deployment,
       flags.deploymentClusters,
@@ -43,7 +43,7 @@ export class DeploymentCommand extends BaseCommand {
   }
 
   private static get LIST_DEPLOYMENTS_FLAGS_LIST(): CommandFlag[] {
-    return [flags.quiet, flags.clusterName];
+    return [flags.quiet, flags.clusterRef];
   }
 
   private async create(argv: any): Promise<boolean> {
@@ -183,10 +183,10 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [flags.clusterName]);
+            await self.configManager.executePrompt(task, [flags.clusterRef]);
 
             ctx.config = {
-              clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterName),
+              clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
