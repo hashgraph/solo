@@ -271,4 +271,18 @@ export abstract class BaseCommand extends ShellRunner {
     // return the consensus nodes
     return consensusNodes;
   }
+
+  /**
+   * Gets a list of distinct contexts from the consensus nodes
+   * @returns an array of context strings
+   */
+  public getContexts(): string[] {
+    const contexts: string[] = [];
+    this.getConsensusNodes().forEach(node => {
+      if (!contexts.includes(node.context)) {
+        contexts.push(node.context);
+      }
+    });
+    return contexts;
+  }
 }
