@@ -41,11 +41,13 @@ if [ -z "${PREFIX}" ]; then
 else
   echo "Using PREFIX: ${PREFIX}"
   if [ "${storageType}" == "aws_only" ]; then
-    AWS_BUCKET_PREFIX_OPTION="--aws-bucket-prefix ${PREFIX}"
-    MIRROR_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
-  else
-    GCS_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
-    MIRROR_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
+    STORAGE_OPTIONS=--aws-endpoint "https://storage.googleapis.com" \
+                    --aws-access-key "${GCS_ACCESS_KEY}" --aws-secrets "${GCS_SECRET_KEY}" \
+                    --aws-bucket "${streamBucket}" -aws-bucket-prefix "${PREFIX}"
+  elif [ "${storageType}" == "gcs_only" ]; then
+    STORAGE_OPTIONS=--gcs-endpoint "https://storage.googleapis.com" \
+                    --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
+                    --gcs-bucket "${streamBucket}" -gcs-bucket-prefix "${PREFIX}"
   fi
 fi
 
@@ -67,23 +69,16 @@ npm run solo-test -- cluster setup \
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
 npm run solo-test -- deployment create -n "${SOLO_NAMESPACE}" --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" \
-  --storage-type "${storageType}" \
-  --gcs-endpoint "https://storage.googleapis.com" \
-  --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
-  --gcs-bucket "${streamBucket}" $GCS_BUCKET_PREFIX_OPTION \
-  --aws-endpoint "https://storage.googleapis.com" \
-  --aws-access-key "${GCS_ACCESS_KEY}" --aws-secrets "${GCS_SECRET_KEY}" \
-  --aws-bucket "${streamBucket}" $AWS_BUCKET_PREFIX_OPTION \
-  --backup-bucket "${streamBackupBucket}" \
+  ${STORAGE_OPTIONS} \
   --google-credential gcp_service_account.json
 
 npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" \
   --storage-type "${storageType}" \
-  --gcs-endpoint "https://storage.googleapis.com" \
-  --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
-  --gcs-bucket "${streamBucket}" $MIRROR_BUCKET_PREFIX_OPTION
+  --storage-endpoint "https://storage.googleapis.com" \
+  --storage-access-key "${GCS_ACCESS_KEY}" --storage-secrets "${GCS_SECRET_KEY}" \
+  --storage-bucket "${streamBucket}" --storage-bucket-prefix "${PREFIX}"
 
 npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
 

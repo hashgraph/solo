@@ -1911,6 +1911,65 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly storageAccessKey: CommandFlag = {
+    constName: 'storageAccessKey',
+    name: 'storage-access-key',
+    definition: {
+      defaultValue: '',
+      describe: 'storage access key for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageSecrets: CommandFlag = {
+    constName: 'storageSecrets',
+    name: 'storage-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'storage secret key for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageEndpoint: CommandFlag = {
+    constName: 'storageEndpoint',
+    name: 'storage-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'storage endpoint URL for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucket: CommandFlag = {
+    constName: 'storageBucket',
+    name: 'storage-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of storage bucket for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucketPrefix: CommandFlag = {
+    constName: 'storageBucketPrefix',
+    name: 'storage-bucket-prefix',
+    definition: {
+      defaultValue: '',
+      describe: 'path prefix of storage bucket mirror node importer',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly loadBalancerEnabled: CommandFlag = {
     constName: 'loadBalancerEnabled',
     name: 'load-balancer',
@@ -2014,6 +2073,11 @@ export class Flags {
     Flags.awsEndpoint,
     Flags.awsBucket,
     Flags.awsBucketPrefix,
+    Flags.storageAccessKey,
+    Flags.storageSecrets,
+    Flags.storageEndpoint,
+    Flags.storageBucket,
+    Flags.storageBucketPrefix,
     Flags.backupBucket,
     Flags.googleCredential,
     Flags.tlsClusterIssuerType,

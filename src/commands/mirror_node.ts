@@ -46,11 +46,11 @@ interface MirrorNodeDeployConfigClass {
   operatorKey: string;
   useExternalDatabase: boolean;
   storageType: constants.StorageType;
-  gcsAccessKey: string;
-  gcsSecrets: string;
-  gcsEndpoint: string;
-  gcsBucket: string;
-  gcsBucketPrefix: string;
+  storageAccessKey: string;
+  storageSecrets: string;
+  storageEndpoint: string;
+  storageBucket: string;
+  storageBucketPrefix: string;
   externalDatabaseHost: Optional<string>;
   externalDatabaseOwnerUsername: Optional<string>;
   externalDatabaseOwnerPassword: Optional<string>;
@@ -96,11 +96,11 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.operatorId,
       flags.operatorKey,
       flags.storageType,
-      flags.gcsAccessKey,
-      flags.gcsSecrets,
-      flags.gcsEndpoint,
-      flags.gcsBucket,
-      flags.gcsBucketPrefix,
+      flags.storageAccessKey,
+      flags.storageSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
+      flags.storageBucketPrefix,
       flags.externalDatabaseHost,
       flags.externalDatabaseOwnerUsername,
       flags.externalDatabaseOwnerPassword,
@@ -122,20 +122,20 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
 
-    if (config.gcsBucket) {
-      valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.bucketName=${config.gcsBucket}`;
+    if (config.storageBucket) {
+      valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.bucketName=${config.storageBucket}`;
     }
-    if (config.gcsBucketPrefix) {
-      this.logger.info(`Setting storage bucket prefix to ${config.gcsBucketPrefix}`);
-      valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.pathPrefix=${config.gcsBucketPrefix}`;
+    if (config.storageBucketPrefix) {
+      this.logger.info(`Setting storage bucket prefix to ${config.storageBucketPrefix}`);
+      valuesArg += ` --set importer.config.hedera.mirror.importer.downloader.pathPrefix=${config.storageBucketPrefix}`;
     }
 
     let storageType = '';
     if (
       config.storageType !== constants.StorageType.MINIO_ONLY &&
-      config.gcsAccessKey &&
-      config.gcsSecrets &&
-      config.gcsEndpoint
+      config.storageAccessKey &&
+      config.storageSecrets &&
+      config.storageEndpoint
     ) {
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
@@ -148,9 +148,9 @@ export class MirrorNodeCommand extends BaseCommand {
         throw new IllegalArgumentError(`Invalid cloud storage type: ${config.storageType}`);
       }
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE=${storageType}`;
-      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI=${config.gcsEndpoint}`;
-      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.gcsAccessKey}`;
-      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.gcsSecrets}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI=${config.storageEndpoint}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageAccessKey}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageSecrets}`;
     }
 
     // if the useExternalDatabase populate all the required values before installing the chart

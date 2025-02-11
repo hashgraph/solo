@@ -292,6 +292,11 @@ export function e2eTestSuite(
           flags.gcsAccessKey.constName,
           flags.gcsSecrets.constName,
           flags.gcsEndpoint.constName,
+          flags.awsAccessKey.constName,
+          flags.awsSecrets.constName,
+          flags.awsEndpoint.constName,
+          flags.awsBucket.constName,
+          flags.awsBucketPrefix.constName,
           flags.googleCredential.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
