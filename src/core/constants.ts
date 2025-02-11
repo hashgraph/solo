@@ -215,7 +215,7 @@ export const BACKUP_SECRET_NAME = 'backup-uploader-secrets';
 
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',
-  S3_ONLY = 's3_only',
+  AWS_ONLY = 'aws_only',
   GCS_ONLY = 'gcs_only',
-  S3_AND_GCS = 's3_and_gcs',
+  S3_AND_GCS = 'aws_and_gcs',
 }

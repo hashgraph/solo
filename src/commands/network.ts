@@ -179,7 +179,7 @@ export class NetworkCommand extends BaseCommand {
       const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
       const cloudData = {};
       if (
-        config.storageType === constants.StorageType.S3_ONLY ||
+        config.storageType === constants.StorageType.AWS_ONLY ||
         config.storageType === constants.StorageType.S3_AND_GCS
       ) {
         cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
@@ -271,14 +271,14 @@ export class NetworkCommand extends BaseCommand {
 
     if (
       config.storageType === constants.StorageType.S3_AND_GCS ||
-      config.storageType === constants.StorageType.S3_ONLY
+      config.storageType === constants.StorageType.AWS_ONLY
     ) {
       valuesArg += ' --set cloud.s3.enabled=true';
     }
 
     if (
       config.storageType === constants.StorageType.GCS_ONLY ||
-      config.storageType === constants.StorageType.S3_ONLY ||
+      config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.S3_AND_GCS
     ) {
       valuesArg += ' --set cloud.minio.enabled=false';
@@ -686,7 +686,7 @@ export class NetworkCommand extends BaseCommand {
               // skip if only cloud storage is/are used
               skip: ctx =>
                 ctx.config.storageType === constants.StorageType.GCS_ONLY ||
-                ctx.config.storageType === constants.StorageType.S3_ONLY ||
+                ctx.config.storageType === constants.StorageType.AWS_ONLY ||
                 ctx.config.storageType === constants.StorageType.S3_AND_GCS,
             });
 
