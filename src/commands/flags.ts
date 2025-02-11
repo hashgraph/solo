@@ -1567,6 +1567,8 @@ export class Flags {
     prompt: undefined,
   };
 
+  //* ----------------- External Mirror Node PostgreSQL Database Related Flags ------------------ *//
+
   static readonly externalDatabaseHost: CommandFlag = {
     constName: 'externalDatabaseHost',
     name: 'external-database-host',
@@ -1627,6 +1629,49 @@ export class Flags {
       );
     },
   };
+
+  static readonly externalDatabaseReadonlyUsername: CommandFlag = {
+    constName: 'externalDatabaseReadonlyUsername',
+    name: 'external-database-read-username',
+    definition: {
+      describe: `Use to provide the external database readonly user's username if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseReadonlyUsername.definition.defaultValue,
+        'Enter username of the external database readonly user',
+        null,
+        Flags.externalDatabaseReadonlyUsername.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseReadonlyPassword: CommandFlag = {
+    constName: 'externalDatabaseReadonlyPassword',
+    name: 'external-database-read-password',
+    definition: {
+      describe: `Use to provide the external database readonly user's password if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseReadonlyPassword.definition.defaultValue,
+        'Enter password of the external database readonly user',
+        null,
+        Flags.externalDatabaseReadonlyPassword.name,
+      );
+    },
+  };
+
+  //* ------------------------------------------------------------------------------------------- *//
 
   static readonly grpcTlsKeyPath: CommandFlag = {
     constName: 'grpcTlsKeyPath',
@@ -1918,6 +1963,8 @@ export class Flags {
     Flags.externalDatabaseHost,
     Flags.externalDatabaseOwnerUsername,
     Flags.externalDatabaseOwnerPassword,
+    Flags.externalDatabaseReadonlyUsername,
+    Flags.externalDatabaseReadonlyPassword,
   ];
 
   /** Resets the definition.disablePrompt for all flags */
