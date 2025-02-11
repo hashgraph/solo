@@ -41,9 +41,9 @@ if [ -z "${PREFIX}" ]; then
 else
   echo "Using PREFIX: ${PREFIX}"
   if [ "${storageType}" == "aws_only" ]; then
-    GCS_BUCKET_PREFIX_OPTION="--aws-bucket-prefix ${PREFIX}"
+    GCS_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
   else
-    AWS_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
+    AWS_BUCKET_PREFIX_OPTION="--aws-bucket-prefix ${PREFIX}"
   fi
 fi
 
