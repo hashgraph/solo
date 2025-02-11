@@ -450,16 +450,8 @@ export class NetworkCommand extends BaseCommand {
       fs.mkdirSync(config.keysDir);
     }
 
-    // if storageType is set, then we need to set the storage secrets
-    if (
-      this.configManager.getFlag<string>(flags.storageType) &&
-      this.configManager.getFlag<string>(flags.gcsAccessKey) &&
-      this.configManager.getFlag<string>(flags.gcsSecrets) &&
-      this.configManager.getFlag<string>(flags.gcsEndpoint)
-    ) {
-      this.logger.debug('Preparing storage secrets');
-      await this.prepareStorageSecrets(config);
-    }
+    this.logger.debug('Preparing storage secrets');
+    await this.prepareStorageSecrets(config);
 
     this.logger.debug('Prepared config', {
       config,
