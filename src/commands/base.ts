@@ -21,6 +21,7 @@ import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
+import {ConsensusNode} from '../core/model/consensus_node.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -244,5 +245,26 @@ export abstract class BaseCommand extends ShellRunner {
     return new Task('Setup home directory', async () => {
       this.setupHomeDirectory();
     });
+  }
+
+  /**
+   * Get the consensus nodes from the remoteConfigManager and use the localConfig to get the context
+   * @returns an array of ConsensusNode objects
+   */
+  public getConsenusNodes(): ConsensusNode[] {
+    const consensusNodes: ConsensusNode[] = [];
+
+    // use the localConfig to get the context
+    const clusterRefs = this.getLocalConfig().clusterRefs;
+
+    // using the remoteConfigManager to get the consensus nodes
+    Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
+      consensusNodes.push(
+        new ConsensusNode(node.name, node.nodeId, node.namespace, node.cluster, clusterRefs[node.cluster]),
+      );
+    });
+
+    // return the consensus nodes
+    return consensusNodes;
   }
 }
