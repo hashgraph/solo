@@ -63,7 +63,15 @@ describe('RemoteConfigValidator', () => {
     {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name)},
     {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name)},
     {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace.name)},
-    {[nodeAlias]: new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, state)},
+    {
+      [nodeAlias]: new ConsensusNodeComponent(
+        nodeAlias,
+        cluster,
+        namespace.name,
+        state,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
+      ),
+    },
     {[mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(mirrorNodeExplorerName, cluster, namespace.name)},
   );
 
