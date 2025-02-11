@@ -12,7 +12,7 @@ export enum ComponentType {
   EnvoyProxy = 'envoyProxies',
   MirrorNode = 'mirrorNodes',
   MirrorNodeExplorer = 'mirrorNodeExplorers',
-  Relay = 'replays',
+  Relay = 'relays',
 }
 
 /**
