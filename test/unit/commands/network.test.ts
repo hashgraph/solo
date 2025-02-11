@@ -23,7 +23,7 @@ import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {type K8} from '../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import {type DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {type LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetForTest} from '../../test_container.js';
@@ -58,17 +58,19 @@ describe('NetworkCommand unit tests', () => {
       opts.configManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
       opts.configManager.update(argv);
 
-      opts.k8 = sinon.stub() as unknown as K8;
-      opts.k8.namespaces = sinon.stub().returns({
+      opts.k8Factory = sinon.stub() as unknown as K8Factory;
+      const k8Stub = sinon.stub();
+      opts.k8Factory.default = sinon.stub().returns(k8Stub);
+      opts.k8Factory.default().namespaces = sinon.stub().returns({
         has: sinon.stub().returns(true),
       });
-      opts.k8.configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
-      opts.k8.configMaps.read = sinon.stub();
-      opts.k8.pods = sinon.stub().returns({
+      opts.k8Factory.default().configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
+      opts.k8Factory.default().configMaps.read = sinon.stub();
+      opts.k8Factory.default().pods = sinon.stub().returns({
         waitForRunningPhase: sinon.stub(),
         waitForReadyStatus: sinon.stub(),
       });
-      opts.k8.leases = sinon.stub().returns({
+      opts.k8Factory.default().leases = sinon.stub().returns({
         read: sinon.stub(),
       });
       const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
@@ -77,8 +79,8 @@ describe('NetworkCommand unit tests', () => {
       clusterChecksStub.isCertManagerInstalled = sinon.stub();
       container.registerInstance(InjectTokens.ClusterChecks, clusterChecksStub);
 
-      opts.k8.logger = opts.logger;
-      container.registerInstance(InjectTokens.K8, opts.k8);
+      opts.k8Factory.default().logger = opts.logger;
+      container.registerInstance(InjectTokens.K8Factory, opts.k8Factory);
 
       opts.depManager = sinon.stub() as unknown as DependencyManager;
       container.registerInstance<DependencyManager>(InjectTokens.DependencyManager, opts.depManager);

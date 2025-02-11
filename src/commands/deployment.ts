@@ -27,7 +27,7 @@ export class DeploymentCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.tasks = new ClusterCommandTasks(this, this.k8);
+    this.tasks = new ClusterCommandTasks(this, this.k8Factory);
   }
 
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
@@ -88,7 +88,7 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(self.k8),
+        this.localConfig.promptLocalConfigTask(self.k8Factory),
         {
           title: 'Add new deployment to local config',
           task: async (ctx, task) => {
@@ -107,7 +107,7 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Validate context',
           task: async (ctx, task) => {
             ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
-            const availableContexts = self.k8.contexts().list();
+            const availableContexts = self.k8Factory.default().contexts().list();
 
             if (availableContexts.includes(ctx.config.context)) {
               task.title += chalk.green(`- validated context ${ctx.config.context}`);
@@ -132,7 +132,7 @@ export class DeploymentCommand extends BaseCommand {
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
                 task: async (_, task) => {
-                  if (!(await self.k8.contexts().testContextConnection(context))) {
+                  if (!(await self.k8Factory.default().contexts().testContextConnection(context))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
 
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
@@ -199,9 +199,9 @@ export class DeploymentCommand extends BaseCommand {
 
             const context = self.localConfig.clusterRefs[clusterName];
 
-            self.k8.contexts().updateCurrent(context);
+            self.k8Factory.default().contexts().updateCurrent(context);
 
-            const namespaces = await self.k8.namespaces().list();
+            const namespaces = await self.k8Factory.default().namespaces().list();
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {

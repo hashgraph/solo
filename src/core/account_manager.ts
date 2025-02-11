@@ -28,7 +28,7 @@ import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network_no
 import path from 'path';
 
 import {type SoloLogger} from './logging.js';
-import {type K8} from './kube/k8.js';
+import {type K8Factory} from './kube/k8_factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {PodName} from './kube/resources/pod/pod_name.js';
@@ -56,10 +56,10 @@ export class AccountManager {
 
   constructor(
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
-    @inject(InjectTokens.K8) private readonly k8?: K8,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -72,7 +72,8 @@ export class AccountManager {
    */
   async getAccountKeysFromSecret(accountId: string, namespace: NamespaceName): Promise<AccountIdWithKeyPairObject> {
     try {
-      const secrets = await this.k8
+      const secrets = await this.k8Factory
+        .default()
         .secrets()
         .list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
 
@@ -147,7 +148,7 @@ export class AccountManager {
     this._nodeClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        await this.k8.pods().readByRef(null).stopPortForward(srv);
+        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
       }
     }
 
@@ -358,7 +359,8 @@ export class AccountManager {
 
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
-          await this.k8
+          await this.k8Factory
+            .default()
             .pods()
             .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
             .portForward(localPort, port),
@@ -430,7 +432,7 @@ export class AccountManager {
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
     try {
-      const serviceList = await this.k8.services().list(namespace, [labelSelector]);
+      const serviceList = await this.k8Factory.default().services().list(namespace, [labelSelector]);
 
       let nodeId = '0';
       // retrieve the list of services and build custom objects for the attributes we need
@@ -508,12 +510,18 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList: V1Pod[] = await this.k8.pods().list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
+        const podList: V1Pod[] = await this.k8Factory
+          .default()
+          .pods()
+          .list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
-      const pods: V1Pod[] = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      const pods: V1Pod[] = await this.k8Factory
+        .default()
+        .pods()
+        .list(namespace, ['solo.hedera.com/type=network-node']);
       for (const pod of pods) {
         // eslint-disable-next-line no-prototype-builtins
         if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
@@ -656,7 +664,8 @@ export class AccountManager {
 
     try {
       const createdOrUpdated = updateSecrets
-        ? await this.k8
+        ? await this.k8Factory
+            .default()
             .secrets()
             .replace(
               namespace,
@@ -665,7 +674,8 @@ export class AccountManager {
               data,
               Templates.renderAccountKeySecretLabelObject(accountId),
             )
-        : await this.k8
+        : await this.k8Factory
+            .default()
             .secrets()
             .create(
               namespace,
@@ -837,16 +847,19 @@ export class AccountManager {
     }
 
     try {
-      const accountSecretCreated = await this.k8.secrets().createOrReplace(
-        namespace,
-        Templates.renderAccountKeySecretName(accountInfo.accountId),
-        SecretType.OPAQUE,
-        {
-          privateKey: Base64.encode(accountInfo.privateKey),
-          publicKey: Base64.encode(accountInfo.publicKey),
-        },
-        Templates.renderAccountKeySecretLabelObject(accountInfo.accountId),
-      );
+      const accountSecretCreated = await this.k8Factory
+        .default()
+        .secrets()
+        .createOrReplace(
+          namespace,
+          Templates.renderAccountKeySecretName(accountInfo.accountId),
+          SecretType.OPAQUE,
+          {
+            privateKey: Base64.encode(accountInfo.privateKey),
+            publicKey: Base64.encode(accountInfo.publicKey),
+          },
+          Templates.renderAccountKeySecretLabelObject(accountInfo.accountId),
+        );
 
       if (!accountSecretCreated) {
         this.logger.error(

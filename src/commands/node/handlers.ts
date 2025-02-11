@@ -23,7 +23,7 @@ import * as constants from '../../core/constants.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type LeaseManager} from '../../core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError, SoloError} from '../../core/errors.js';
@@ -48,7 +48,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   private readonly configManager: ConfigManager;
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
-  private readonly k8: K8;
+  private readonly k8Factory: K8Factory;
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
@@ -64,7 +64,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
     if (!opts || !opts.tasks) throw new Error('An instance of NodeCommandTasks is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.platformInstaller)
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
 
@@ -72,7 +72,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     this.tasks = opts.tasks;
     this.accountManager = opts.accountManager;
     this.configManager = opts.configManager;
-    this.k8 = opts.k8;
+    this.k8Factory = opts.k8Factory;
     this.platformInstaller = opts.platformInstaller;
     this.leaseManager = opts.leaseManager;
     this.remoteConfigManager = opts.remoteConfigManager;

@@ -10,7 +10,7 @@ import {NodeCommand} from '../../../src/commands/node/index.js';
 const getBaseCommandOpts = () => ({
   logger: sinon.stub(),
   helm: sinon.stub(),
-  k8: sinon.stub(),
+  k8Factory: sinon.stub(),
   chartManager: sinon.stub(),
   configManager: sinon.stub(),
   depManager: sinon.stub(),
