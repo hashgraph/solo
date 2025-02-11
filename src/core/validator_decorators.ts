@@ -25,6 +25,8 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
             if (typeof key !== 'string') return false;
             if (!isObject(value[key])) return false;
             if (!Array.isArray(value[key].clusters)) return false;
+            if (!value[key].namespace || typeof value[key].namespace !== 'string' || !value[key].namespace.length)
+              return false;
             if (!value[key].clusters.every(val => typeof val === 'string')) return false;
             return true;
           });

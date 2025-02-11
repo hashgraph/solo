@@ -23,7 +23,7 @@ Once the nodes are up, you may now expose various services (using `k9s` (shift-f
 * Hedera explorer: `solo-deployment-hedera-explorer`
   ```bash
   #enable portforwarding for hedera explorer, can be access at http://localhost:8080/
-  kubectl port-forward svc/hedera-explorer-hedera-explorer-chart -n "${SOLO_NAMESPACE}" 8080:80 &
+  kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 &
   ```
 * JSON Rpc Relays
 

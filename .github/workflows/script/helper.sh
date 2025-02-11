@@ -7,13 +7,13 @@ function create_test_account ()
   cd solo
 
   # create new account and extract account id
-  npm run solo-test -- account create -n solo-e2e --hbar-amount 100 --generate-ecdsa-key --set-alias > test.log
+  npm run solo-test -- account create --deployment solo-e2e --hbar-amount 100 --generate-ecdsa-key --set-alias > test.log
   export OPERATOR_ID=$(grep "accountId" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
   echo "OPERATOR_ID=${OPERATOR_ID}"
   rm test.log
 
   # get private key of the account
-  npm run solo-test -- account get -n solo-e2e --account-id ${OPERATOR_ID} --private-key > test.log
+  npm run solo-test -- account get --deployment solo-e2e --account-id ${OPERATOR_ID} --private-key > test.log
 
   # retrieve the field privateKey but not privateKeyRaw
   export OPERATOR_KEY=$(grep "privateKey" test.log | grep -v "privateKeyRaw" | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
@@ -21,9 +21,9 @@ function create_test_account ()
   echo "CONTRACT_TEST_KEY_ONE=${CONTRACT_TEST_KEY_ONE}"
   rm test.log
 
-  npm run solo-test -- account create -n solo-e2e --hbar-amount 100 --generate-ecdsa-key --set-alias > test.log
+  npm run solo-test -- account create --deployment solo-e2e --hbar-amount 100 --generate-ecdsa-key --set-alias > test.log
   export SECOND_KEY=$(grep "accountId" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
-  npm run solo-test -- account get -n solo-e2e --account-id ${SECOND_KEY} --private-key > test.log
+  npm run solo-test -- account get --deployment solo-e2e --account-id ${SECOND_KEY} --private-key > test.log
   export CONTRACT_TEST_KEY_TWO=0x$(grep "privateKeyRaw" test.log | awk '{print $2}' | sed 's/"//g'| sed 's/,//g')
   echo "CONTRACT_TEST_KEY_TWO=${CONTRACT_TEST_KEY_TWO}"
   rm test.log

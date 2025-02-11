@@ -14,10 +14,10 @@ import {Duration} from '../../../../src/core/time/duration.js';
 import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
-import {PodName} from '../../../../src/core/kube/pod_name.js';
-import {PodRef} from '../../../../src/core/kube/pod_ref.js';
-import {ContainerRef} from '../../../../src/core/kube/container_ref.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
+import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
+import {ContainerRef} from '../../../../src/core/kube/resources/container/container_ref.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -62,7 +62,7 @@ e2eTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
 
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
         await accountManager.close();
       });
 
@@ -107,10 +107,10 @@ e2eTestSuite(
 
         it('should succeed with valid tag and pod', async () => {
           expect(await installer.fetchPlatform(podRef, packageVersion)).to.be.true;
-          const outputs = await k8.execContainer(
-            ContainerRef.of(podRef, constants.ROOT_CONTAINER),
-            `ls -la ${constants.HEDERA_HAPI_PATH}`,
-          );
+          const outputs = await k8
+            .containers()
+            .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+            .execContainer(`ls -la ${constants.HEDERA_HAPI_PATH}`);
           testLogger.showUser(outputs);
         }).timeout(Duration.ofMinutes(1).toMillis());
       });

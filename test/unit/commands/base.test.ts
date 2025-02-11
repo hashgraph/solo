@@ -3,19 +3,20 @@
  */
 import {expect} from 'chai';
 
-import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
-import {Helm} from '../../../src/core/helm.js';
-import {ChartManager} from '../../../src/core/chart_manager.js';
-import {ConfigManager} from '../../../src/core/config_manager.js';
-import {LocalConfig} from '../../../src/core/config/local_config.js';
-import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {K8Client} from '../../../src/core/kube/k8_client.js';
+import {type DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {type Helm} from '../../../src/core/helm.js';
+import {type ChartManager} from '../../../src/core/chart_manager.js';
+import {type ConfigManager} from '../../../src/core/config_manager.js';
+import {type LocalConfig} from '../../../src/core/config/local_config.js';
+import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
-import {SoloLogger} from '../../../src/core/logging.js';
-import {resetTestContainer} from '../../test_container.js';
+import {type SoloLogger} from '../../../src/core/logging.js';
+import {resetForTest} from '../../test_container.js';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -31,18 +32,18 @@ describe('BaseCommand', () => {
 
   describe('runShell', () => {
     before(() => {
-      resetTestContainer();
-      testLogger = container.resolve(SoloLogger);
-      helm = container.resolve(Helm);
-      chartManager = container.resolve(ChartManager);
-      configManager = container.resolve(ConfigManager);
-      depManager = container.resolve(DependencyManager);
-      localConfig = container.resolve(LocalConfig);
-      remoteConfigManager = container.resolve(RemoteConfigManager);
+      resetForTest();
+      testLogger = container.resolve(InjectTokens.SoloLogger);
+      helm = container.resolve(InjectTokens.Helm);
+      chartManager = container.resolve(InjectTokens.ChartManager);
+      configManager = container.resolve(InjectTokens.ConfigManager);
+      depManager = container.resolve(InjectTokens.DependencyManager);
+      localConfig = container.resolve(InjectTokens.LocalConfig);
+      remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
 
       sandbox = sinon.createSandbox();
       sandbox.stub(K8Client.prototype, 'init').callsFake(() => this);
-      const k8 = container.resolve('K8');
+      const k8 = container.resolve(InjectTokens.K8);
 
       // @ts-ignore
       baseCmd = new BaseCommand({

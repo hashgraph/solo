@@ -747,11 +747,11 @@ export class Flags {
     },
   };
 
-  static readonly hederaExplorerTlsLoadBalancerIp: CommandFlag = {
-    constName: 'hederaExplorerTlsLoadBalancerIp',
-    name: 'hedera-explorer-tls-load-balancer-ip',
+  static readonly hederaExplorerStaticIp: CommandFlag = {
+    constName: 'hederaExplorerStaticIp',
+    name: 'hedera-explorer-static-ip',
     definition: {
-      describe: 'The static IP address to use for the Hedera Explorer TLS load balancer, defaults to ""',
+      describe: 'The static IP address to use for the Hedera Explorer load balancer, defaults to ""',
       defaultValue: '',
       type: 'string',
     },
@@ -1369,6 +1369,28 @@ export class Flags {
     },
   };
 
+  static readonly enableIngress: CommandFlag = {
+    constName: 'enableIngress',
+    name: 'enable-ingress',
+    definition: {
+      describe: 'enable ingress on the component/pod',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  static readonly mirrorStaticIp: CommandFlag = {
+    constName: 'mirrorStaticIp',
+    name: 'mirror-static-ip',
+    definition: {
+      describe: 'static IP address for the mirror node',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly hederaExplorerVersion: CommandFlag = {
     constName: 'hederaExplorerVersion',
     name: 'hedera-explorer-version',
@@ -1432,6 +1454,26 @@ export class Flags {
         message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
         choices: input,
       });
+    },
+  };
+
+  static readonly deployment: CommandFlag = {
+    constName: 'deployment',
+    name: 'deployment',
+    definition: {
+      describe: 'The name the user will reference locally to link to a deployment',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptDeployment(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.deployment.definition.defaultValue,
+        'Enter the name of the deployment:',
+        null,
+        Flags.deployment.name,
+      );
     },
   };
 
@@ -1513,15 +1555,77 @@ export class Flags {
     },
   };
 
-  static readonly customMirrorNodeDatabaseValuePath: CommandFlag = {
-    constName: 'customMirrorNodeDatabaseValuePath',
-    name: 'custom-mirror-node-database-values-path',
+  static readonly useExternalDatabase: CommandFlag = {
+    constName: 'useExternalDatabase',
+    name: 'use-external-database',
     definition: {
-      describe: 'Path to custom mirror node database values',
+      describe:
+        'Set to true if you have an external database to use instead of the database that the Mirror Node Helm chart supplies',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  static readonly externalDatabaseHost: CommandFlag = {
+    constName: 'externalDatabaseHost',
+    name: 'external-database-host',
+    definition: {
+      describe: `Use to provide the external database host if the '--${Flags.useExternalDatabase.name}' is passed`,
       defaultValue: '',
       type: 'string',
     },
-    prompt: undefined,
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseHost.definition.defaultValue,
+        'Enter host of the external database',
+        null,
+        Flags.externalDatabaseHost.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseOwnerUsername: CommandFlag = {
+    constName: 'externalDatabaseOwnerUsername',
+    name: 'external-database-owner-username',
+    definition: {
+      describe: `Use to provide the external database owner's username if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerUsername.definition.defaultValue,
+        'Enter username of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerUsername.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseOwnerPassword: CommandFlag = {
+    constName: 'externalDatabaseOwnerPassword',
+    name: 'external-database-owner-password',
+    definition: {
+      describe: `Use to provide the external database owner's password if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerPassword.definition.defaultValue,
+        'Enter password of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerPassword.name,
+      );
+    },
   };
 
   static readonly grpcTlsKeyPath: CommandFlag = {
@@ -1740,10 +1844,12 @@ export class Flags {
     Flags.deployJsonRpcRelay,
     Flags.deployMinio,
     Flags.deployPrometheusStack,
+    Flags.deployment,
     Flags.deploymentClusters,
     Flags.devMode,
     Flags.ecdsaPrivateKey,
     Flags.ed25519PrivateKey,
+    Flags.enableIngress,
     Flags.enableHederaExplorerTls,
     Flags.enablePrometheusSvcMonitor,
     Flags.enableTimeout,
@@ -1763,13 +1869,14 @@ export class Flags {
     Flags.grpcWebTlsKeyPath,
     Flags.haproxyIps,
     Flags.hederaExplorerTlsHostName,
-    Flags.hederaExplorerTlsLoadBalancerIp,
+    Flags.hederaExplorerStaticIp,
     Flags.hederaExplorerVersion,
     Flags.inputDir,
     Flags.loadBalancerEnabled,
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
+    Flags.mirrorStaticIp,
     Flags.namespace,
     Flags.newAccountNumber,
     Flags.newAdminKey,
@@ -1807,7 +1914,10 @@ export class Flags {
     Flags.upgradeZipFile,
     Flags.userEmailAddress,
     Flags.valuesFile,
-    Flags.customMirrorNodeDatabaseValuePath,
+    Flags.useExternalDatabase,
+    Flags.externalDatabaseHost,
+    Flags.externalDatabaseOwnerUsername,
+    Flags.externalDatabaseOwnerPassword,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

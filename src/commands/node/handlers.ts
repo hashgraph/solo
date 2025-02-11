@@ -41,6 +41,7 @@ import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
 import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -121,7 +122,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.populateServiceMap(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -172,7 +173,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
       this.tasks.downloadLastState(),
       this.tasks.uploadStateToNewNode(),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -217,7 +218,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.killNodesAndUpdateConfigMap(),
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -716,7 +717,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         this.tasks.identifyNetworkPods(),
         this.tasks.dumpNetworkNodesSaveState(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        this.tasks.setupNetworkNodes('nodeAliases'),
+        this.tasks.setupNetworkNodes('nodeAliases', true),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
@@ -825,8 +826,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        // TODO: change to isGenesis: true once we are ready to use genesis-network.json: this.tasks.setupNetworkNodes('nodeAliases', true),
-        this.tasks.setupNetworkNodes('nodeAliases', false),
+        this.tasks.setupNetworkNodes('nodeAliases', true),
         this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
@@ -863,7 +863,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    */
   public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
-      config: {namespace: NamespaceNameAsString; nodeAliases: NodeAliases};
+      config: {namespace: NamespaceName; nodeAliases: NodeAliases};
     }
 
     return {
@@ -877,7 +877,10 @@ export class NodeCommandHandlers implements CommandHandlers {
           const cluster = this.remoteConfigManager.currentCluster;
 
           for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.edit(nodeAlias, new ConsensusNodeComponent(nodeAlias, cluster, namespace, state));
+            remoteConfig.components.edit(
+              nodeAlias,
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, state),
+            );
           }
         });
       },
@@ -975,23 +978,24 @@ export class NodeCommandHandlers implements CommandHandlers {
     let nodeComponent: ConsensusNodeComponent;
     try {
       nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
-    } catch (e) {
+    } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }
 
-    if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
-
-    if (excludedStates && excludedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
+    // TODO: Enable once the states have been mapped
+    // if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
+    //
+    // if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
 
     return nodeComponent.state;
   }

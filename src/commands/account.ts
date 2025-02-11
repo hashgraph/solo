@@ -3,19 +3,20 @@
  */
 import chalk from 'chalk';
 import {BaseCommand} from './base.js';
-import {SoloError, IllegalArgumentError} from '../core/errors.js';
+import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
+import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {sleep} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -166,14 +167,11 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+            const config = {namespace};
 
-            const config = {
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
-            };
-
-            if (!(await this.k8.hasNamespace(config.namespace))) {
-              throw new SoloError(`namespace ${config.namespace} does not exist`);
+            if (!(await this.k8.namespaces().has(namespace))) {
+              throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
             // set config in the context for later tasks to use
@@ -192,7 +190,8 @@ export class AccountCommand extends BaseCommand {
                 {
                   title: 'Prepare for account key updates',
                   task: async ctx => {
-                    const secrets = await self.k8.getSecretsByLabel(['solo.hedera.com/account-id']);
+                    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+                    const secrets = await self.k8.secrets().list(namespace, ['solo.hedera.com/account-id']);
                     ctx.updateSecrets = secrets.length > 0;
 
                     ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts);
@@ -319,12 +318,12 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             const config = {
               amount: self.configManager.getFlag<number>(flags.amount) as number,
               ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              namespace: namespace,
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
               setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean,
               generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean,
@@ -335,7 +334,7 @@ export class AccountCommand extends BaseCommand {
               config.amount = flags.amount.definition.defaultValue as number;
             }
 
-            if (!(await this.k8.hasNamespace(config.namespace))) {
+            if (!(await this.k8.namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 
@@ -402,17 +401,18 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.accountId]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
               amount: self.configManager.getFlag<number>(flags.amount) as number,
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              namespace: namespace,
               ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
             };
 
-            if (!(await this.k8.hasNamespace(config.namespace))) {
+            if (!(await this.k8.namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 
@@ -485,15 +485,16 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.accountId, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.accountId]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             const config = {
               accountId: self.configManager.getFlag<string>(flags.accountId) as string,
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              namespace: namespace,
               privateKey: self.configManager.getFlag<boolean>(flags.privateKey) as boolean,
             };
 
-            if (!(await this.k8.hasNamespace(config.namespace))) {
+            if (!(await this.k8.namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 
@@ -545,7 +546,7 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'init',
             desc: 'Initialize system accounts with new keys',
-            builder: (y: any) => flags.setCommandFlags(y, flags.namespace),
+            builder: (y: any) => flags.setCommandFlags(y, flags.deployment),
             handler: (argv: any) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
@@ -571,7 +572,7 @@ export class AccountCommand extends BaseCommand {
                 flags.amount,
                 flags.createAmount,
                 flags.ecdsaPrivateKey,
-                flags.namespace,
+                flags.deployment,
                 flags.ed25519PrivateKey,
                 flags.generateEcdsaKey,
                 flags.setAlias,
@@ -600,7 +601,7 @@ export class AccountCommand extends BaseCommand {
                 y,
                 flags.accountId,
                 flags.amount,
-                flags.namespace,
+                flags.deployment,
                 flags.ecdsaPrivateKey,
                 flags.ed25519PrivateKey,
               ),
@@ -623,7 +624,7 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
-            builder: (y: any) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.namespace),
+            builder: (y: any) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.deployment),
             handler: (argv: any) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);

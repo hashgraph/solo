@@ -11,7 +11,7 @@ import {createComponentsDataWrapper} from './components_data_wrapper.test.js';
 import {SoloError} from '../../../../src/core/errors.js';
 import * as constants from '../../../../src/core/constants.js';
 import {CommonFlagsDataWrapper} from '../../../../src/core/config/remote/common_flags_data_wrapper.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 
 const configManagerMock = {
   update: (...args: any) => true,

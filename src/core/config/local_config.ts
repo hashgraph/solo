@@ -12,17 +12,18 @@ import {
   type LocalConfigData,
 } from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {SoloLogger} from '../logging.js';
+import {type SoloLogger} from '../logging.js';
 import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
-import {ConfigManager} from '../config_manager.js';
+import {type ConfigManager} from '../config_manager.js';
 import {type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8} from '../../core/kube/k8.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../container_helper.js';
+import {patchInject} from '../dependency_injection/container_helper.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -60,13 +61,13 @@ export class LocalConfig implements LocalConfigData {
   private readonly skipPromptTask: boolean = false;
 
   public constructor(
-    @inject('localConfigFilePath') private readonly filePath?: string,
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(InjectTokens.LocalConfigFilePath) private readonly filePath?: string,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.filePath = patchInject(filePath, 'localConfigFilePath', this.constructor.name);
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.filePath = patchInject(filePath, InjectTokens.LocalConfigFilePath, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
 
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 
@@ -163,8 +164,8 @@ export class LocalConfig implements LocalConfigData {
 
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
-        const deploymentName: DeploymentName = self.configManager.getFlag<NamespaceName>(flags.namespace)
-          .name as string;
+        const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
+        const namespace = self.configManager.getFlag<NamespaceName>(flags.namespace);
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
 
@@ -174,11 +175,11 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
         }
 
-        if (!deploymentName) throw new SoloError('Namespace was not specified');
+        if (!deploymentName) throw new SoloError('Deployment name was not specified');
 
         if (!deploymentClusters) {
           if (isQuiet) {
-            deploymentClusters = k8.getCurrentClusterName();
+            deploymentClusters = k8.clusters().readCurrent();
           } else {
             deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
           }
@@ -188,7 +189,10 @@ export class LocalConfig implements LocalConfigData {
         const parsedClusters = splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
-          [deploymentName]: {clusters: parsedClusters},
+          [deploymentName]: {
+            clusters: parsedClusters,
+            namespace: namespace.name,
+          },
         };
 
         const parsedContexts = splitFlagInput(contexts);
@@ -197,7 +201,7 @@ export class LocalConfig implements LocalConfigData {
           if (!isQuiet) {
             const promptedContexts: string[] = [];
             for (const cluster of parsedClusters) {
-              const kubeContexts = k8.getContextNames();
+              const kubeContexts = k8.contexts().list();
               const context: string = await flags.context.prompt(task, kubeContexts, cluster);
               self.clusterContextMapping[cluster] = context;
               promptedContexts.push(context);
@@ -206,7 +210,7 @@ export class LocalConfig implements LocalConfigData {
             }
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
-            const context = k8.getCurrentContext();
+            const context = k8.contexts().readCurrent();
             for (const cluster of parsedClusters) {
               self.clusterContextMapping[cluster] = context;
             }

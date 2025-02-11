@@ -13,9 +13,12 @@ import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
-import {PodName} from '../../../src/core/kube/pod_name.js';
-import {PodRef} from '../../../src/core/kube/pod_ref.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('NetworkCommand', () => {
   const testName = 'network-cmd-e2e';
@@ -50,8 +53,8 @@ describe('NetworkCommand', () => {
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await k8.getNodeLogs(namespace);
-    await k8.deleteNamespace(namespace);
+    await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+    await k8.namespaces().delete(namespace);
     await accountManager.close();
   });
 
@@ -72,10 +75,10 @@ describe('NetworkCommand', () => {
 
       // check pod names should match expected values
       await expect(
-        k8.getPodByName(PodRef.of(namespace, PodName.of('network-node1-0'))),
+        k8.pods().read(PodRef.of(namespace, PodName.of('network-node1-0'))),
       ).eventually.to.have.nested.property('metadata.name', 'network-node1-0');
-      // get list of pvc using k8 listPvcsByNamespace function and print to log
-      const pvcs = await k8.listPvcsByNamespace(namespace);
+      // get list of pvc using k8 pvcs list function and print to log
+      const pvcs = await k8.pvcs().list(namespace, []);
       networkCmd.logger.showList('PVCs', pvcs);
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
@@ -85,6 +88,7 @@ describe('NetworkCommand', () => {
         flags.bootstrapProperties.constName,
         flags.chainId.constName,
         flags.log4j2Xml.constName,
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
@@ -121,12 +125,12 @@ describe('NetworkCommand', () => {
       const destroyResult = await networkCmd.destroy(argv);
       expect(destroyResult).to.be.true;
 
-      while ((await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])).length > 0) {
+      while ((await k8.pods().list(namespace, ['solo.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...');
         await sleep(Duration.ofSeconds(3));
       }
 
-      while ((await k8.getPodsByLabel(['app=minio'])).length > 0) {
+      while ((await k8.pods().list(namespace, ['app=minio'])).length > 0) {
         networkCmd.logger.showUser('Waiting for minio container to be deleted...');
         await sleep(Duration.ofSeconds(3));
       }
@@ -139,10 +143,10 @@ describe('NetworkCommand', () => {
       expect(chartInstalledStatus).to.be.false;
 
       // check if pvc are deleted
-      await expect(k8.listPvcsByNamespace(namespace)).eventually.to.have.lengthOf(0);
+      await expect(k8.pvcs().list(namespace, [])).eventually.to.have.lengthOf(0);
 
       // check if secrets are deleted
-      await expect(k8.listSecretsByNamespace(namespace)).eventually.to.have.lengthOf(0);
+      await expect(k8.secrets().list(namespace)).eventually.to.have.lengthOf(0);
     } catch (e) {
       networkCmd.logger.showUserError(e);
       expect.fail();

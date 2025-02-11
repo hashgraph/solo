@@ -11,6 +11,7 @@ import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';
 import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
 import {type KeyManager} from '../core/key_manager.js';
@@ -27,7 +28,10 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
+import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -37,6 +41,7 @@ export interface NetworkDeployConfigClass {
   loadBalancerEnabled: boolean;
   soloChartVersion: string;
   namespace: NamespaceName;
+  deployment: string;
   nodeAliasesUnparsed: string;
   persistentVolumeClaims: string;
   profileFile: string;
@@ -115,7 +120,7 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeAlias,
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
-      flags.namespace,
+      flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
       flags.profileFile,
@@ -151,14 +156,9 @@ export class NetworkCommand extends BaseCommand {
       // Generating new minio credentials
       const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
       minioData['config.env'] = Base64.encode(envString);
-      const isMinioSecretCreated = await this.k8.createSecret(
-        constants.MINIO_SECRET_NAME,
-        namespace,
-        'Opaque',
-        minioData,
-        undefined,
-        true,
-      );
+      const isMinioSecretCreated = await this.k8
+        .secrets()
+        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
       if (!isMinioSecretCreated) {
         throw new SoloError('ailed to create new minio secret');
       }
@@ -188,14 +188,9 @@ export class NetworkCommand extends BaseCommand {
         cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
       }
 
-      const isCloudSecretCreated = await this.k8.createSecret(
-        constants.UPLOADER_SECRET_NAME,
-        namespace,
-        'Opaque',
-        cloudData,
-        undefined,
-        true,
-      );
+      const isCloudSecretCreated = await this.k8
+        .secrets()
+        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
       if (!isCloudSecretCreated) {
         throw new SoloError(
           `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
@@ -206,14 +201,9 @@ export class NetworkCommand extends BaseCommand {
         const backupData = {};
         const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
         backupData['saJson'] = Base64.encode(googleCredential);
-        const isBackupSecretCreated = await this.k8.createSecret(
-          constants.BACKUP_SECRET_NAME,
-          namespace,
-          'Opaque',
-          backupData,
-          undefined,
-          true,
-        );
+        const isBackupSecretCreated = await this.k8
+          .secrets()
+          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
         if (!isBackupSecretCreated) {
           throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
         }
@@ -385,6 +375,7 @@ export class NetworkCommand extends BaseCommand {
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
+    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
     // create a config object for subsequent steps
     const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
@@ -395,6 +386,7 @@ export class NetworkCommand extends BaseCommand {
       'stagingKeysDir',
       'valuesArg',
       'resolvedThrottlesFile',
+      'namespace',
     ]) as NetworkDeployConfigClass;
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -425,9 +417,10 @@ export class NetworkCommand extends BaseCommand {
     );
 
     config.valuesArg = await this.prepareValuesArg(config);
+    config.namespace = namespace;
 
-    if (!(await this.k8.hasNamespace(config.namespace))) {
-      await this.k8.createNamespace(config.namespace);
+    if (!(await this.k8.namespaces().has(namespace))) {
+      await this.k8.namespaces().create(namespace);
     }
 
     // prepare staging keys directory
@@ -464,22 +457,22 @@ export class NetworkCommand extends BaseCommand {
     await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART);
 
     if (ctx.config.deletePvcs) {
-      const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace);
+      const pvcs = await self.k8.pvcs().list(ctx.config.namespace, []);
       task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`;
       if (pvcs) {
         for (const pvc of pvcs) {
-          await self.k8.deletePvc(pvc, ctx.config.namespace);
+          await self.k8.pvcs().delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
         }
       }
     }
 
     if (ctx.config.deleteSecrets) {
       task.title = `Deleting secrets in namespace ${ctx.config.namespace}`;
-      const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace);
+      const secrets = await self.k8.secrets().list(ctx.config.namespace);
 
       if (secrets) {
         for (const secret of secrets) {
-          await self.k8.deleteSecret(secret, ctx.config.namespace);
+          await self.k8.secrets().delete(ctx.config.namespace, secret.name);
         }
       }
     }
@@ -597,13 +590,14 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8
+                    .pods()
+                    .waitForRunningPhase(
+                      config.namespace,
+                      [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -627,13 +621,14 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    ['solo.hedera.com/type=haproxy'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8
+                    .pods()
+                    .waitForRunningPhase(
+                      config.namespace,
+                      ['solo.hedera.com/type=haproxy'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -642,13 +637,14 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    ['solo.hedera.com/type=envoy-proxy'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8
+                    .pods()
+                    .waitForRunningPhase(
+                      ctx.config.namespace,
+                      ['solo.hedera.com/type=envoy-proxy'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -669,13 +665,15 @@ export class NetworkCommand extends BaseCommand {
             // minio
             subTasks.push({
               title: 'Check MinIO',
-              task: async () =>
-                await self.k8.waitForPodReady(
-                  ['v1.min.io/tenant=minio'],
-                  1,
-                  constants.PODS_RUNNING_MAX_ATTEMPTS,
-                  constants.PODS_RUNNING_DELAY,
-                ),
+              task: async ctx =>
+                await self.k8
+                  .pods()
+                  .waitForReadyStatus(
+                    ctx.config.namespace,
+                    ['v1.min.io/tenant=minio'],
+                    constants.PODS_RUNNING_MAX_ATTEMPTS,
+                    constants.PODS_RUNNING_DELAY,
+                  ),
               // skip if only cloud storage is/are used
               skip: ctx =>
                 ctx.config.storageType === constants.StorageType.GCS_ONLY ||
@@ -745,12 +743,13 @@ export class NetworkCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets, flags.namespace]);
+            await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              namespace,
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
             };
@@ -769,7 +768,7 @@ export class NetworkCommand extends BaseCommand {
                 networkDestroySuccess = false;
 
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
-                  self.k8.deleteNamespace(ctx.config.namespace);
+                  self.k8.namespaces().delete(ctx.config.namespace);
                 } else {
                   // If the namespace is not being deleted,
                   // remove all components data from the remote configuration
@@ -836,12 +835,16 @@ export class NetworkCommand extends BaseCommand {
         },
         {
           title: 'Waiting for network pods to be running',
-          task: async () => {
-            await this.k8.waitForPods(
-              [constants.POD_PHASE_RUNNING],
-              ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
-              1,
-            );
+          task: async ctx => {
+            const config = ctx.config;
+            await this.k8
+              .pods()
+              .waitForRunningPhase(
+                config.namespace,
+                ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
+                constants.PODS_RUNNING_MAX_ATTEMPTS,
+                constants.PODS_RUNNING_DELAY,
+              );
           },
         },
       ],
@@ -900,7 +903,7 @@ export class NetworkCommand extends BaseCommand {
                 flags.deleteSecrets,
                 flags.enableTimeout,
                 flags.force,
-                flags.namespace,
+                flags.deployment,
                 flags.quiet,
               ),
             handler: (argv: any) => {
@@ -961,17 +964,17 @@ export class NetworkCommand extends BaseCommand {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.add(
               nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace, ConsensusNodeStates.INITIALIZED),
+              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, ConsensusNodeStates.INITIALIZED),
             );
 
             remoteConfig.components.add(
               `envoy-proxy-${nodeAlias}`,
-              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace),
+              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace.name),
             );
 
             remoteConfig.components.add(
               `haproxy-${nodeAlias}`,
-              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace),
+              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace.name),
             );
           }
         });

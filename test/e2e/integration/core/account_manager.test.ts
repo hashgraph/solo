@@ -7,16 +7,17 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js';
 import * as version from '../../../../version.js';
-import {PodName} from '../../../../src/core/kube/pod_name.js';
+import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {type K8} from '../../../../src/core/kube/k8.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
-import {PodRef} from '../../../../src/core/kube/pod_ref.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 
 const namespace = NamespaceName.of('account-mngr-e2e');
 const argv = getDefaultArgv();
 argv[flags.namespace.name] = namespace.name;
+argv[flags.deployment.name] = 'deployment';
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterName.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
@@ -48,14 +49,12 @@ e2eTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
 
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
         await accountManager.close();
       });
 
       it('should be able to stop port forwards', async () => {
         await accountManager.close();
-        const localHost = '127.0.0.1';
-
         const podName = PodName.of('minio-console'); // use a svc that is less likely to be used by other tests
         const podRef: PodRef = PodRef.of(namespace, podName);
         const podPort = 9_090;
@@ -69,7 +68,7 @@ e2eTestSuite(
 
         // ports should be opened
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
-        accountManager._portForwards.push(await k8.portForward(podRef, localPort, podPort));
+        accountManager._portForwards.push(await k8.pods().readByRef(podRef).portForward(localPort, podPort));
 
         // ports should be closed
         await accountManager.close();

@@ -16,7 +16,10 @@ import {
 } from '../../test_util.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-add-separated');
@@ -65,12 +68,12 @@ e2eTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(10).toMillis());
 
-        await k8.getNodeLogs(namespace);
+        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
         // @ts-ignore
         await nodeCmd.accountManager.close();
         await nodeCmd.handlers.stop(argv);
         await networkCmd.destroy(argv);
-        await k8.deleteNamespace(namespace);
+        await k8.namespaces().delete(namespace);
       });
 
       it('cache current version of private keys', async () => {

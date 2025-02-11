@@ -6,6 +6,7 @@ includes:
 env:
   SOLO_NETWORK_SIZE: 7
   SOLO_NAMESPACE: solo-perf-test
+  SOLO_DEPLOYMENT: solo-deployment-perf-test
   # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: v0.58.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"

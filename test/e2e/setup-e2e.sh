@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
+
+##### Setup Environment #####
+SCRIPT_PATH=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+readonly SCRIPT_PATH
+
+readonly KIND_CONFIG_FILE="${SCRIPT_PATH}/kind-cluster.yaml"
 readonly KIND_IMAGE="kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72"
 echo "SOLO_CHARTS_DIR: ${SOLO_CHARTS_DIR}"
 export PATH=${PATH}:~/.solo/bin
 
-if [[ -z "${SOLO_TEST_CLUSTER}" && ${SOLO_CLUSTER_NAME} != "" ]]; then
-  SOLO_CLUSTER_NAME=solo-e2e
-else
-  SOLO_CLUSTER_NAME=${SOLO_TEST_CLUSTER}
+if [[ -n "${SOLO_TEST_CLUSTER}" ]]; then
+  SOLO_CLUSTER_NAME="${SOLO_TEST_CLUSTER}"
+elif [[ -z "${SOLO_CLUSTER_NAME}" ]]; then
+  SOLO_CLUSTER_NAME="solo-e2e"
 fi
 
-SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 kind delete cluster -n "${SOLO_CLUSTER_NAME}" || true
-kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" || exit 1
+kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" --config "${KIND_CONFIG_FILE}" || exit 1
 
 # **********************************************************************************************************************
 # Warm up the cluster

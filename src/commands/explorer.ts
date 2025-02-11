@@ -15,14 +15,20 @@ import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {type ClusterChecks} from '../core/cluster_checks.js';
+import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
+  enableIngress: boolean;
   enableHederaExplorerTls: boolean;
   hederaExplorerTlsHostName: string;
-  hederaExplorerTlsLoadBalancerIp: string | '';
+  hederaExplorerStaticIp: string | '';
   hederaExplorerVersion: string;
+  mirrorStaticIp: string;
   namespace: NamespaceName;
   profileFile: string;
   profileName: string;
@@ -57,11 +63,14 @@ export class ExplorerCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
+      flags.enableIngress,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
-      flags.hederaExplorerTlsLoadBalancerIp,
+      flags.hederaExplorerStaticIp,
       flags.hederaExplorerVersion,
+      flags.mirrorStaticIp,
       flags.namespace,
+      flags.deployment,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
@@ -72,7 +81,10 @@ export class ExplorerCommand extends BaseCommand {
     ];
   }
 
-  async prepareHederaExplorerValuesArg(config: {valuesFile: string}) {
+  /**
+   * @param config - the configuration object
+   */
+  async prepareHederaExplorerValuesArg(config: ExplorerDeployConfigClass) {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -85,19 +97,20 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
 
+    if (config.enableIngress) {
+      valuesArg += ' --set ingress.enabled=true';
+      valuesArg += ` --set ingressClassName=${config.namespace}-hedera-explorer-ingress-class`;
+    }
+    valuesArg += ` --set fullnameOverride=${constants.HEDERA_EXPLORER_RELEASE_NAME}`;
     valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
     return valuesArg;
   }
 
   /**
-   * @param config
-   * @param config.tlsClusterIssuerType - must be one of - acme-staging, acme-prod, or self-signed
-   * @param config.namespace - used for classname ingress class name prefix
-   * @param config.hederaExplorerTlsLoadBalancerIp - can be an empty string
-   * @param config.hederaExplorerTlsHostName
+   * @param config - the configuration object
    */
   private async prepareSoloChartSetupValuesArg(config: ExplorerDeployConfigClass) {
-    const {tlsClusterIssuerType, namespace, hederaExplorerTlsLoadBalancerIp, hederaExplorerTlsHostName} = config;
+    const {tlsClusterIssuerType, namespace, mirrorStaticIp, hederaExplorerStaticIp} = config;
 
     let valuesArg = '';
 
@@ -107,30 +120,36 @@ export class ExplorerCommand extends BaseCommand {
       );
     }
 
-    // Install ingress controller only if it's not already present
-    if (!(await this.k8.isIngressControllerInstalled())) {
+    const clusterChecks: ClusterChecks = container.resolve(InjectTokens.ClusterChecks);
+
+    // Install ingress controller only if haproxy ingress not already present
+    if (!(await clusterChecks.isIngressControllerInstalled()) && config.enableIngress) {
       valuesArg += ' --set ingress.enabled=true';
       valuesArg += ' --set haproxyIngressController.enabled=true';
       valuesArg += ` --set ingressClassName=${namespace}-hedera-explorer-ingress-class`;
-      valuesArg += ` --set-json 'ingress.hosts[0]={"host":"${hederaExplorerTlsHostName}","paths":[{"path":"/","pathType":"Prefix"}]}'`;
     }
 
-    if (!(await this.k8.isCertManagerInstalled())) {
+    if (!(await clusterChecks.isCertManagerInstalled())) {
       valuesArg += ' --set cloud.certManager.enabled=true';
       valuesArg += ' --set cert-manager.installCRDs=true';
     }
 
-    if (hederaExplorerTlsLoadBalancerIp !== '') {
-      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerTlsLoadBalancerIp}`;
+    if (hederaExplorerStaticIp !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${hederaExplorerStaticIp}`;
+    } else if (mirrorStaticIp !== '') {
+      valuesArg += ` --set haproxy-ingress.controller.service.loadBalancerIP=${mirrorStaticIp}`;
     }
 
     if (tlsClusterIssuerType === 'self-signed') {
       valuesArg += ' --set selfSignedClusterIssuer.enabled=true';
     } else {
+      valuesArg += ` --set global.explorerNamespace=${namespace}`;
       valuesArg += ' --set acmeClusterIssuer.enabled=true';
       valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
-
+    if (config.valuesFile) {
+      valuesArg += this.prepareValuesFiles(config.valuesFile);
+    }
     return valuesArg;
   }
 
@@ -157,7 +176,7 @@ export class ExplorerCommand extends BaseCommand {
             flags.disablePrompts([
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsHostName,
-              flags.hederaExplorerTlsLoadBalancerIp,
+              flags.hederaExplorerStaticIp,
               flags.hederaExplorerVersion,
               flags.tlsClusterIssuerType,
               flags.valuesFile,
@@ -171,7 +190,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
+            if (!(await self.k8.namespaces().has(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
@@ -207,16 +226,20 @@ export class ExplorerCommand extends BaseCommand {
             }
 
             // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
-            await self.k8.waitForPodReady(
-              [
-                'app.kubernetes.io/component=webhook',
-                `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
-              ],
-              1,
-              constants.PODS_READY_MAX_ATTEMPTS,
-              constants.PODS_READY_DELAY,
-              constants.DEFAULT_CERT_MANAGER_NAMESPACE,
-            );
+            await self.k8
+              .pods()
+              .waitForReadyStatus(
+                constants.DEFAULT_CERT_MANAGER_NAMESPACE,
+                [
+                  'app.kubernetes.io/component=webhook',
+                  `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+                ],
+                constants.PODS_READY_MAX_ATTEMPTS,
+                constants.PODS_READY_DELAY,
+              );
+
+            // sleep for a few seconds to allow cert-manager to be ready
+            await new Promise(resolve => setTimeout(resolve, 10000));
 
             await self.chartManager.upgrade(
               clusterSetupNamespace,
@@ -225,8 +248,24 @@ export class ExplorerCommand extends BaseCommand {
               soloChartVersion,
               soloChartSetupValuesArg,
             );
+
+            if (config.enableIngress) {
+              // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+              await this.k8.ingresses().update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                spec: {
+                  ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
+                },
+              });
+
+              // to support GRPC over HTTP/2
+              await this.k8
+                .configMaps()
+                .update(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress', {
+                  'backend-protocol': 'h2',
+                });
+            }
           },
-          skip: ctx => !ctx.config.enableHederaExplorerTls,
+          skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },
 
         {
@@ -244,34 +283,47 @@ export class ExplorerCommand extends BaseCommand {
               config.hederaExplorerVersion,
               exploreValuesArg,
             );
+
+            // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
+            // to support grpc over http/2
+            await this.k8.ingresses().update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
+              metadata: {
+                annotations: {
+                  'haproxy-ingress.github.io/backend-protocol': 'h1',
+                },
+              },
+            });
           },
         },
         {
           title: 'Check explorer pod is ready',
-          task: async () => {
-            await self.k8.waitForPodReady(
-              [constants.SOLO_HEDERA_EXPLORER_LABEL],
-              1,
-              constants.PODS_READY_MAX_ATTEMPTS,
-              constants.PODS_READY_DELAY,
-            );
+          task: async ctx => {
+            await self.k8
+              .pods()
+              .waitForReadyStatus(
+                ctx.config.namespace,
+                [constants.SOLO_HEDERA_EXPLORER_LABEL],
+                constants.PODS_READY_MAX_ATTEMPTS,
+                constants.PODS_READY_DELAY,
+              );
           },
         },
         {
-          title: 'Check haproxy ingress pod is ready',
+          title: 'Check haproxy ingress controller pod is ready',
           task: async () => {
-            await self.k8.waitForPodReady(
-              [
-                'app.kubernetes.io/name=haproxy-ingress',
-                `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
-              ],
-              1,
-              constants.PODS_READY_MAX_ATTEMPTS,
-              constants.PODS_READY_DELAY,
-              constants.SOLO_SETUP_NAMESPACE,
-            );
+            await self.k8
+              .pods()
+              .waitForReadyStatus(
+                constants.SOLO_SETUP_NAMESPACE,
+                [
+                  'app.kubernetes.io/name=haproxy-ingress',
+                  `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+                ],
+                constants.PODS_READY_MAX_ATTEMPTS,
+                constants.PODS_READY_DELAY,
+              );
           },
-          skip: ctx => !ctx.config.enableHederaExplorerTls,
+          skip: ctx => !ctx.config.enableIngress,
         },
         this.addMirrorNodeExplorerComponents(),
       ],
@@ -324,21 +376,20 @@ export class ExplorerCommand extends BaseCommand {
             }
 
             self.configManager.update(argv);
-            await self.configManager.executePrompt(task, [flags.namespace]);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            // @ts-ignore
-            ctx.config = {
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
-            };
-
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
-              throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
+            if (!(await self.k8.namespaces().has(namespace))) {
+              throw new SoloError(`namespace ${namespace} does not exist`);
             }
 
-            ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
-              ctx.config.namespace,
-              constants.HEDERA_EXPLORER_CHART_URL,
-            );
+            ctx.config = {
+              namespace,
+              isChartInstalled: await this.chartManager.isChartInstalled(
+                namespace,
+                constants.HEDERA_EXPLORER_RELEASE_NAME,
+              ),
+            };
+
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
@@ -401,7 +452,7 @@ export class ExplorerCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy explorer',
-            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.namespace),
+            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.deployment),
             handler: argv => {
               self.logger.info('==== Running explorer destroy ===');
               self.logger.info(argv);

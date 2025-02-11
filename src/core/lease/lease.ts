@@ -4,7 +4,7 @@
 import {type K8} from '../../core/kube/k8.js';
 import {type LeaseHolder} from './lease_holder.js';
 import {type Duration} from '../time/duration.js';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 
 export interface Lease {
   readonly client: K8;

@@ -7,14 +7,16 @@ import fs from 'fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
-import {ConfigManager} from './config_manager.js';
+import {type ConfigManager} from './config_manager.js';
 import {type K8} from './kube/k8.js';
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
-import {type NamespaceName} from './kube/namespace_name.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {SecretType} from './kube/resources/secret/secret_type.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
@@ -22,13 +24,13 @@ import {type NamespaceName} from './kube/namespace_name.js';
 @injectable()
 export class CertificateManager {
   constructor(
-    @inject('K8') private readonly k8?: K8,
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(InjectTokens.K8) private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
 
   /**
@@ -78,7 +80,7 @@ export class CertificateManager {
       const namespace = this.getNamespace();
       const labels = Templates.renderGrpcTlsCertificatesSecretLabelObject(nodeAlias, type);
 
-      const isSecretCreated = await this.k8.createSecret(name, namespace, 'Opaque', data, labels, true);
+      const isSecretCreated = await this.k8.secrets().createOrReplace(namespace, name, SecretType.OPAQUE, data, labels);
       if (!isSecretCreated) {
         throw new SoloError(`failed to create secret for TLS certificates for node '${nodeAlias}'`);
       }
