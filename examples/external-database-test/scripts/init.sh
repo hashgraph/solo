@@ -3,7 +3,9 @@ set -e
 
 export HEDERA_MIRROR_DATABASE_NAME="mirror_node"
 HEDERA_MIRROR_OWNER="$1"
-HEDERA_MIRROR_OWNER_PASSWORD="$2"
+HEDERA_MIRROR_READ="$2"
+HEDERA_MIRROR_READ_PASSWORD="$3"
+
 
 export HEDERA_MIRROR_GRPC_DB_HOST="localhost"
 
@@ -26,7 +28,9 @@ psql -d "user=postgres connect_timeout=3" \
   --set "dbName=${HEDERA_MIRROR_IMPORTER_DB_NAME}" \
   --set "dbSchema=${HEDERA_MIRROR_IMPORTER_DB_SCHEMA}" \
   --set "ownerUsername=${HEDERA_MIRROR_IMPORTER_DB_OWNER}" \
-  --set "tempSchema=${HEDERA_MIRROR_IMPORTER_DB_TEMPSCHEMA}" <<__SQL__
+  --set "tempSchema=${HEDERA_MIRROR_IMPORTER_DB_TEMPSCHEMA}" \
+  --set "readUsername=${HEDERA_MIRROR_READ}" \
+  --set "readPassword=${HEDERA_MIRROR_READ_PASSWORD}" <<__SQL__
 
 -- Create database & owner
 create database :dbName with owner :ownerUsername;
@@ -58,6 +62,10 @@ revoke create on schema :dbSchema from public;
 create schema if not exists :tempSchema authorization temporary_admin;
 grant usage on schema :tempSchema to public;
 revoke create on schema :tempSchema from public;
+
+-- Create readonly user with password and grant privileges
+create user :readUsername with password :'readPassword';
+grant readonly to :readUsername;
 
 -- Grant readonly privileges
 grant connect on database :dbName to readonly;

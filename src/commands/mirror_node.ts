@@ -54,6 +54,8 @@ interface MirrorNodeDeployConfigClass {
   externalDatabaseHost: Optional<string>;
   externalDatabaseOwnerUsername: Optional<string>;
   externalDatabaseOwnerPassword: Optional<string>;
+  externalDatabaseReadonlyUsername: Optional<string>;
+  externalDatabaseReadonlyPassword: Optional<string>;
 }
 
 interface Context {
@@ -102,6 +104,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseHost,
       flags.externalDatabaseOwnerUsername,
       flags.externalDatabaseOwnerPassword,
+      flags.externalDatabaseReadonlyUsername,
+      flags.externalDatabaseReadonlyPassword,
     ];
   }
 
@@ -149,8 +153,10 @@ export class MirrorNodeCommand extends BaseCommand {
     if (config.useExternalDatabase) {
       const {
         externalDatabaseHost: host,
-        externalDatabaseOwnerUsername: username,
-        externalDatabaseOwnerPassword: password,
+        externalDatabaseOwnerUsername: ownerUsername,
+        externalDatabaseOwnerPassword: ownerPassword,
+        externalDatabaseReadonlyUsername: readonlyUsername,
+        externalDatabaseReadonlyPassword: readonlyPassword,
       } = config;
 
       valuesArg += helpers.populateHelmArgs({
@@ -163,21 +169,24 @@ export class MirrorNodeCommand extends BaseCommand {
         'db.name': 'mirror_node',
 
         // set the usernames
-        'db.owner.username': username,
-        'importer.db.username': username,
-        'grpc.db.username': username,
-        'restjava.db.username': username,
-        'web3.db.username': username,
-        // Fixes problem where importer's V1.0__Init.sql migration fails
-        // 'rest.db.username': username,
+        'db.owner.username': ownerUsername,
+        'importer.db.username': ownerUsername,
+
+        'grpc.db.username': readonlyUsername,
+        'restjava.db.username': readonlyUsername,
+        'web3.db.username': readonlyUsername,
+
+        // TODO: Fixes a problem where importer's V1.0__Init.sql migration fails
+        // 'rest.db.username': readonlyUsername,
 
         // set the passwords
-        'db.owner.password': password,
-        'importer.db.password': password,
-        'grpc.db.password': password,
-        'rest.db.password': password,
-        'restjava.db.password': password,
-        'web3.db.password': password,
+        'db.owner.password': ownerPassword,
+        'importer.db.password': ownerPassword,
+
+        'grpc.db.password': readonlyPassword,
+        'restjava.db.password': readonlyPassword,
+        'web3.db.password': readonlyPassword,
+        'rest.db.password': readonlyPassword,
       });
     }
 
@@ -206,6 +215,8 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.externalDatabaseHost,
               flags.externalDatabaseOwnerUsername,
               flags.externalDatabaseOwnerPassword,
+              flags.externalDatabaseReadonlyUsername,
+              flags.externalDatabaseReadonlyPassword,
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
@@ -276,24 +287,35 @@ export class MirrorNodeCommand extends BaseCommand {
                 flags.externalDatabaseHost,
                 flags.externalDatabaseOwnerUsername,
                 flags.externalDatabaseOwnerPassword,
+                flags.externalDatabaseReadonlyUsername,
+                flags.externalDatabaseReadonlyPassword,
               ]);
-            } else if (ctx.config.useExternalDatabase) {
-              if (
-                !ctx.config.externalDatabaseHost ||
+            } else if (
+              ctx.config.useExternalDatabase &&
+              (!ctx.config.externalDatabaseHost ||
                 !ctx.config.externalDatabaseOwnerUsername ||
-                !ctx.config.externalDatabaseOwnerPassword
-              ) {
-                const missingFlags: CommandFlag[] = [];
-                if (!ctx.config.externalDatabaseHost) missingFlags.push(flags.externalDatabaseHost);
-                if (!ctx.config.externalDatabaseOwnerUsername) missingFlags.push(flags.externalDatabaseOwnerUsername);
-                if (!ctx.config.externalDatabaseOwnerPassword) missingFlags.push(flags.externalDatabaseOwnerPassword);
-                if (missingFlags.length) {
-                  const errorMessage =
-                    'There are missing values that need to be provided when' +
-                    `${chalk.cyan(`--${flags.useExternalDatabase.name}`)} is provided: `;
+                !ctx.config.externalDatabaseOwnerPassword ||
+                !ctx.config.externalDatabaseReadonlyUsername ||
+                !ctx.config.externalDatabaseReadonlyPassword)
+            ) {
+              const missingFlags: CommandFlag[] = [];
+              if (!ctx.config.externalDatabaseHost) missingFlags.push(flags.externalDatabaseHost);
+              if (!ctx.config.externalDatabaseOwnerUsername) missingFlags.push(flags.externalDatabaseOwnerUsername);
+              if (!ctx.config.externalDatabaseOwnerPassword) missingFlags.push(flags.externalDatabaseOwnerPassword);
 
-                  throw new SoloError(`${errorMessage} ${missingFlags.map(flag => `--${flag.name}`).join(', ')}`);
-                }
+              if (!ctx.config.externalDatabaseReadonlyUsername) {
+                missingFlags.push(flags.externalDatabaseReadonlyUsername);
+              }
+              if (!ctx.config.externalDatabaseReadonlyPassword) {
+                missingFlags.push(flags.externalDatabaseReadonlyPassword);
+              }
+
+              if (missingFlags.length) {
+                const errorMessage =
+                  'There are missing values that need to be provided when' +
+                  `${chalk.cyan(`--${flags.useExternalDatabase.name}`)} is provided: `;
+
+                throw new SoloError(`${errorMessage} ${missingFlags.map(flag => `--${flag.name}`).join(', ')}`);
               }
             }
 
