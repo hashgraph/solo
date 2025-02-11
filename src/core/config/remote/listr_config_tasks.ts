@@ -67,7 +67,7 @@ export class ListrRemoteConfig {
         const subTasks: SoloListrTask<Context>[] = [];
 
         for (const cluster of command.localConfig.deployments[ctx.config.deployment].clusters) {
-          const context = command.localConfig.clusterContextMapping?.[cluster];
+          const context = command.localConfig.clusterRefs?.[cluster];
           if (!context) continue;
 
           subTasks.push(ListrRemoteConfig.createRemoteConfig(command, cluster, context, ctx.config.namespace, argv));

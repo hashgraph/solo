@@ -36,10 +36,10 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
   };
 };
 
-export const IsClusterContextMapping = (validationOptions?: ValidationOptions) => {
+export const IsclusterRefs = (validationOptions?: ValidationOptions) => {
   return function (object: any, propertyName: string) {
     registerDecorator({
-      name: 'IsClusterContextMapping',
+      name: 'IsclusterRefs',
       target: object.constructor,
       propertyName: propertyName,
       constraints: [],

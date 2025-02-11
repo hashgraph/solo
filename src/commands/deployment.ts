@@ -126,7 +126,7 @@ export class DeploymentCommand extends BaseCommand {
             const subTasks: SoloListrTask<Context>[] = [];
 
             for (const cluster of self.localConfig.deployments[ctx.config.deployment].clusters) {
-              const context = self.localConfig.clusterContextMapping?.[cluster];
+              const context = self.localConfig.clusterRefs?.[cluster];
               if (!context) continue;
 
               subTasks.push({
@@ -197,7 +197,7 @@ export class DeploymentCommand extends BaseCommand {
           task: async ctx => {
             const clusterName = ctx.config.clusterName;
 
-            const context = self.localConfig.clusterContextMapping[clusterName];
+            const context = self.localConfig.clusterRefs[clusterName];
 
             self.k8.contexts().updateCurrent(context);
 

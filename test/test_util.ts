@@ -78,7 +78,7 @@ export function getDefaultArgv() {
     argv[f.name] = f.definition.defaultValue;
   }
 
-  const currentDeployment = testLocalConfigData.currentDeploymentName;
+  const currentDeployment = 'deployment';
   const cacheDir = getTestCacheDir();
   argv.cacheDir = cacheDir;
   argv[flags.cacheDir.name] = cacheDir;
@@ -471,8 +471,7 @@ export const testLocalConfigData = {
       namespace: 'solo-3',
     },
   },
-  currentDeploymentName: 'deployment',
-  clusterContextMapping: {
+  clusterRefs: {
     'cluster-1': 'context-1',
     'cluster-2': 'context-2',
   },

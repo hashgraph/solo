@@ -13,9 +13,7 @@ import {type DeploymentName} from '../../core/config/remote/types.js';
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
 export const connectConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, [
-    'currentDeploymentName',
-  ]) as ClusterConnectConfigClass;
+  const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
 
   // set config in the context for later tasks to use
   ctx.config = config;

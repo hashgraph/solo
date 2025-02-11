@@ -277,15 +277,13 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'context-2',
         });
       });
 
-      xit('should update clusterContextMapping with provided context', async () => {
+      xit('should update clusterRefs with provided context', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -295,15 +293,13 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'provided-context',
         });
       });
 
-      xit('should update multiple clusterContextMappings with provided contexts', async () => {
+      xit('should update multiple clusterRefss with provided contexts', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -317,9 +313,7 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'cluster-3', 'cluster-4']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'provided-context-2',
           'cluster-3': 'provided-context-3',
@@ -327,7 +321,7 @@ describe('ClusterCommand unit tests', () => {
         });
       });
 
-      xit('should update multiple clusterContextMappings with default KubeConfig context if quiet=true', async () => {
+      xit('should update multiple clusterRefss with default KubeConfig context if quiet=true', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -338,16 +332,14 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'cluster-3']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'context-2',
           'cluster-3': 'context-from-kubeConfig',
         });
       });
 
-      xit('should update multiple clusterContextMappings with prompted context no value was provided', async () => {
+      xit('should update multiple clusterRefss with prompted context no value was provided', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -359,9 +351,7 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'new-cluster']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'context-2',
           'new-cluster': 'context-3', // prompted value

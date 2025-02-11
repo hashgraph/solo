@@ -40,8 +40,7 @@ describe('LocalConfig', () => {
   it('should load config from file', async () => {
     expect(localConfig.userEmailAddress).to.eq(config.userEmailAddress);
     expect(localConfig.deployments).to.deep.eq(config.deployments);
-    expect(localConfig.currentDeploymentName).to.eq(config.currentDeploymentName);
-    expect(localConfig.clusterContextMapping).to.deep.eq(config.clusterContextMapping);
+    expect(localConfig.clusterRefs).to.deep.eq(config.clusterRefs);
   });
 
   it('should set user email address', async () => {
@@ -111,64 +110,31 @@ describe('LocalConfig', () => {
     }
   });
 
-  it('should set clusterContextMapping', async () => {
+  it('should set clusterRefs', async () => {
     const newClusterMappings = {
       'cluster-3': 'context-3',
       'cluster-4': 'context-4',
     };
-    localConfig.setClusterContextMapping(newClusterMappings);
-    expect(localConfig.clusterContextMapping).to.eq(newClusterMappings);
+    localConfig.setclusterRefs(newClusterMappings);
+    expect(localConfig.clusterRefs).to.eq(newClusterMappings);
 
     await localConfig.write();
     const newConfig = new LocalConfig(filePath, testLogger, configManager);
-    expect(newConfig.clusterContextMapping).to.deep.eq(newClusterMappings);
+    expect(newConfig.clusterRefs).to.deep.eq(newClusterMappings);
   });
 
-  it('should not set invalid clusterContextMapping', async () => {
-    const invalidClusterContextMappings = {
+  it('should not set invalid clusterRefs', async () => {
+    const invalidclusterRefss = {
       'cluster-3': 'context-3',
       'invalid-cluster': 5,
     };
 
     try {
       // @ts-ignore
-      localConfig.setContextMappings(invalidClusterContextMappings);
+      localConfig.setContextMappings(invalidclusterRefss);
       expect.fail('expected an error to be thrown');
     } catch (error) {
       expect(error).to.be.instanceOf(TypeError);
-    }
-  });
-
-  it('should get current deployment', async () => {
-    expect(localConfig.getCurrentDeployment()).to.deep.eq(config.deployments[config.currentDeploymentName]);
-  });
-
-  it('should set current deployment', async () => {
-    const newCurrentDeployment = 'deployment-2';
-    localConfig.setCurrentDeployment(newCurrentDeployment);
-
-    expect(localConfig.currentDeploymentName).to.eq(newCurrentDeployment);
-
-    await localConfig.write();
-    const newConfig = new LocalConfig(filePath);
-    expect(newConfig.currentDeploymentName).to.eq(newCurrentDeployment);
-  });
-
-  it('should not set invalid or non-existent current deployment', async () => {
-    const invalidCurrentDeploymentName = 5;
-    try {
-      localConfig.setCurrentDeployment(invalidCurrentDeploymentName as any);
-      expect.fail('expected an error to be thrown');
-    } catch (error) {
-      expect(error).to.be.instanceOf(SoloError);
-    }
-
-    const nonExistentCurrentDeploymentName = 'non-existent-deployment';
-    try {
-      localConfig.setCurrentDeployment(nonExistentCurrentDeploymentName);
-      expect.fail('expected an error to be thrown');
-    } catch (error) {
-      expect(error).to.be.instanceOf(SoloError);
     }
   });
 
@@ -217,19 +183,11 @@ describe('LocalConfig', () => {
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT);
   });
 
-  it('should throw a validation error if clusterContextMapping format is not correct', async () => {
-    await fs.promises.writeFile(filePath, stringify({...config, clusterContextMapping: 'foo'}));
+  it('should throw a validation error if clusterRefs format is not correct', async () => {
+    await fs.promises.writeFile(filePath, stringify({...config, clusterRefs: 'foo'}));
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT);
 
-    await fs.promises.writeFile(filePath, stringify({...config, clusterContextMapping: ['foo', 5]}));
+    await fs.promises.writeFile(filePath, stringify({...config, clusterRefs: ['foo', 5]}));
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT);
-  });
-
-  it('should throw a validation error if currentDeploymentName format is not correct', async () => {
-    await fs.promises.writeFile(filePath, stringify({...config, currentDeploymentName: 5}));
-    expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST);
-
-    await fs.promises.writeFile(filePath, stringify({...config, currentDeploymentName: ['foo', 'bar']}));
-    expectFailedValidation(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST);
   });
 });
