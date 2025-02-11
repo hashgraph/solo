@@ -26,6 +26,7 @@ import * as version from '../../../version.js';
 import {NetworkNodes} from '../network_nodes.js';
 import {ClusterChecks} from '../cluster_checks.js';
 import {InjectTokens} from './inject_tokens.js';
+import {K8ClientFactory} from '../kube/k8_client/k8_client_factory.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -79,7 +80,7 @@ export class Container {
 
     container.register(InjectTokens.ChartManager, {useClass: ChartManager}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.ConfigManager, {useClass: ConfigManager}, {lifecycle: Lifecycle.Singleton});
-    container.register(InjectTokens.K8, {useClass: K8Client}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.K8Factory, {useClass: K8ClientFactory}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.AccountManager, {useClass: AccountManager}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.PlatformInstaller, {useClass: PlatformInstaller}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.KeyManager, {useClass: KeyManager}, {lifecycle: Lifecycle.Singleton});

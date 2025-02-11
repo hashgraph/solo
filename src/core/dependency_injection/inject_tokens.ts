@@ -14,7 +14,7 @@ export const InjectTokens = {
   CacheDir: Symbol.for('CacheDir'),
   LocalConfigFilePath: Symbol.for('LocalConfigFilePath'),
   LeaseRenewalService: Symbol.for('LeaseRenewalService'),
-  K8: Symbol.for('K8'),
+  K8Factory: Symbol.for('K8Factory'),
   SoloLogger: Symbol.for('SoloLogger'),
   PackageDownloader: Symbol.for('PackageDownloader'),
   Zippy: Symbol.for('Zippy'),

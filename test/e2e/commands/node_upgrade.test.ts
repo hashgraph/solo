@@ -49,13 +49,13 @@ e2eTestSuite(
     describe('Node upgrade', async () => {
       const nodeCmd = bootstrapResp.cmd.nodeCmd;
       const accountCmd = bootstrapResp.cmd.accountCmd;
-      const k8 = bootstrapResp.opts.k8;
+      const k8Factory = bootstrapResp.opts.k8Factory;
 
       after(async function () {
         this.timeout(Duration.ofMinutes(10).toMillis());
 
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-        await k8.namespaces().delete(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
       });
 
       it('should succeed with init command', async () => {
@@ -90,9 +90,10 @@ e2eTestSuite(
       it('network nodes version file was upgraded', async () => {
         // copy the version.txt file from the pod data/upgrade/current directory
         const tmpDir = getTmpDir();
-        const pods: V1Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+        const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
         const podName: PodName = PodName.of(pods[0].metadata.name);
-        await k8
+        await k8Factory
+          .default()
           .containers()
           .readByRef(ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER))
           .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);

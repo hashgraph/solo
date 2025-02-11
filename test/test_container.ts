@@ -23,7 +23,7 @@ export function resetForTest(namespace?: NamespaceNameAsString, cacheDir: string
   const parsedData = yaml.parse(localConfigData);
 
   if (namespace) {
-    parsedData.deployments[parsedData.currentDeploymentName].namespace = namespace;
+    parsedData.deployments['deployment'].namespace = namespace;
   }
 
   fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));

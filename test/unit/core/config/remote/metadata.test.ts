@@ -3,10 +3,10 @@
  */
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {Migration} from '../../../../src/core/config/remote/migration.js';
-import {SoloError} from '../../../../src/core/errors.js';
-import {RemoteConfigMetadata} from '../../../../src/core/config/remote/metadata.js';
-import {type EmailAddress, type NamespaceNameAsString} from '../../../../src/core/config/remote/types.js';
+import {Migration} from '../../../../../src/core/config/remote/migration.js';
+import {SoloError} from '../../../../../src/core/errors.js';
+import {RemoteConfigMetadata} from '../../../../../src/core/config/remote/metadata.js';
+import {type EmailAddress, type NamespaceNameAsString} from '../../../../../src/core/config/remote/types.js';
 
 export function createMetadata() {
   const name: NamespaceNameAsString = 'namespace';

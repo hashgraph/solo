@@ -18,7 +18,7 @@ import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {type ConfigManager} from '../../src/core/config_manager.js';
-import {type K8} from '../../src/core/kube/k8.js';
+import {type K8Factory} from '../../src/core/kube/k8_factory.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
@@ -58,7 +58,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
       describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, async () => {
         const accountManager = bootstrapResp.opts.accountManager;
-        const k8 = bootstrapResp.opts.k8;
+        const k8Factory = bootstrapResp.opts.k8Factory;
         const nodeCmd = bootstrapResp.cmd.nodeCmd;
 
         afterEach(async function () {
@@ -72,7 +72,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           this.timeout(Duration.ofMinutes(10).toMillis());
 
           await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-          await k8.namespaces().delete(namespace);
+          await k8Factory.default().namespaces().delete(namespace);
         });
 
         describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}]`, () => {
@@ -83,7 +83,10 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
             try {
               const labels = ['app=haproxy-node1', 'solo.hedera.com/type=haproxy'];
-              const readyPods: V1Pod[] = await k8.pods().waitForReadyStatus(namespace, labels, 300, 1000);
+              const readyPods: V1Pod[] = await k8Factory
+                .default()
+                .pods()
+                .waitForReadyStatus(namespace, labels, 300, 1000);
               expect(readyPods).to.not.be.null;
               expect(readyPods).to.not.be.undefined;
               expect(readyPods.length).to.be.greaterThan(0);
@@ -102,9 +105,9 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           before(async function () {
             this.timeout(Duration.ofMinutes(2).toMillis());
 
-            const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
+            const podName = await nodeRefreshTestSetup(argv, testName, k8Factory, nodeAlias);
             if (mode === 'kill') {
-              await k8.pods().readByRef(PodRef.of(namespace, podName)).killPod();
+              await k8Factory.default().pods().readByRef(PodRef.of(namespace, podName)).killPod();
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;
               await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs
@@ -181,12 +184,18 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           }).timeout(defaultTimeout);
         }
 
-        async function nodeRefreshTestSetup(argv: Record<any, any>, testName: string, k8: K8, nodeAliases: string) {
+        async function nodeRefreshTestSetup(
+          argv: Record<any, any>,
+          testName: string,
+          k8Factory: K8Factory,
+          nodeAliases: string,
+        ) {
           argv[flags.nodeAliasesUnparsed.name] = nodeAliases;
           const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
           configManager.update(argv);
 
-          const podArray = await k8
+          const podArray = await k8Factory
+            .default()
             .pods()
             .list(configManager.getFlag(flags.namespace), [
               `app=network-${nodeAliases}`,

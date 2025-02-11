@@ -43,13 +43,13 @@ describe('BaseCommand', () => {
 
       sandbox = sinon.createSandbox();
       sandbox.stub(K8Client.prototype, 'init').callsFake(() => this);
-      const k8 = container.resolve(InjectTokens.K8);
+      const k8Factory = container.resolve(InjectTokens.K8Factory);
 
       // @ts-ignore
       baseCmd = new BaseCommand({
         logger: testLogger,
         helm,
-        k8,
+        k8Factory,
         chartManager,
         configManager,
         depManager,

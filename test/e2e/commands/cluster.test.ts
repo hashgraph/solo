@@ -46,7 +46,7 @@ describe('ClusterCommand', () => {
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
   const bootstrapResp = bootstrapTestVariables(testName, argv);
-  const k8 = bootstrapResp.opts.k8;
+  const k8Factory = bootstrapResp.opts.k8Factory;
   const configManager = bootstrapResp.opts.configManager;
   const chartManager = bootstrapResp.opts.chartManager;
 
@@ -55,7 +55,7 @@ describe('ClusterCommand', () => {
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await k8.namespaces().delete(namespace);
+    await k8Factory.default().namespaces().delete(namespace);
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
     configManager.update(argv);
     await clusterCmd.handlers.setup(argv); // restore solo-cluster-setup for other e2e tests to leverage

@@ -9,7 +9,7 @@ import {type LeaseManager} from '../core/lease/lease_manager.js';
 import {type LocalConfig} from '../core/config/local_config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
 import {type Helm} from '../core/helm.js';
-import {type K8} from '../core/kube/k8.js';
+import {type K8Factory} from '../core/kube/k8_factory.js';
 import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
@@ -28,7 +28,7 @@ export interface CommandHandlers {
 
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
-  protected readonly k8: K8;
+  protected readonly k8Factory: K8Factory;
   protected readonly chartManager: ChartManager;
   protected readonly configManager: ConfigManager;
   protected readonly depManager: DependencyManager;
@@ -39,7 +39,7 @@ export abstract class BaseCommand extends ShellRunner {
 
   constructor(opts: Opts) {
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
@@ -49,7 +49,7 @@ export abstract class BaseCommand extends ShellRunner {
     super();
 
     this.helm = opts.helm;
-    this.k8 = opts.k8;
+    this.k8Factory = opts.k8Factory;
     this.chartManager = opts.chartManager;
     this.configManager = opts.configManager;
     this.depManager = opts.depManager;
@@ -177,8 +177,8 @@ export abstract class BaseCommand extends ShellRunner {
     return this._configMaps.get(configName).getUnusedConfigs();
   }
 
-  getK8() {
-    return this.k8;
+  getK8Factory() {
+    return this.k8Factory;
   }
 
   getLocalConfig() {

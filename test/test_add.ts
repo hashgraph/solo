@@ -63,7 +63,7 @@ export function testNodeAdd(
         const nodeCmd = bootstrapResp.cmd.nodeCmd;
         const accountCmd = bootstrapResp.cmd.accountCmd;
         const networkCmd = bootstrapResp.cmd.networkCmd;
-        const k8 = bootstrapResp.opts.k8;
+        const k8Factory = bootstrapResp.opts.k8Factory;
         let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
         let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
@@ -74,12 +74,16 @@ export function testNodeAdd(
           await bootstrapResp.opts.accountManager.close();
           await nodeCmd.handlers.stop(argv);
           await networkCmd.destroy(argv);
-          await k8.namespaces().delete(namespace);
+          await k8Factory.default().namespaces().delete(namespace);
         });
 
         it('cache current version of private keys', async () => {
           existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
-          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
+          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+            existingServiceMap,
+            k8Factory,
+            getTmpDir(),
+          );
         }).timeout(defaultTimeout);
 
         it('should succeed with init command', async () => {
@@ -104,7 +108,7 @@ export function testNodeAdd(
         it('existing nodes private keys should not have changed', async () => {
           const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
             existingServiceMap,
-            k8,
+            k8Factory,
             getTmpDir(),
           );
 
