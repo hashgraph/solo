@@ -9,7 +9,7 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type DeploymentName, type NamespaceNameAsString, type Cluster} from '../core/config/remote/types.js';
+import {type DeploymentName, type NamespaceNameAsString, type ClusterRef} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
@@ -168,7 +168,7 @@ export class DeploymentCommand extends BaseCommand {
     const self = this;
 
     interface Config {
-      clusterName: Cluster;
+      clusterName: ClusterRef;
     }
 
     interface Context {
@@ -186,7 +186,7 @@ export class DeploymentCommand extends BaseCommand {
             await self.configManager.executePrompt(task, [flags.clusterName]);
 
             ctx.config = {
-              clusterName: self.configManager.getFlag<Cluster>(flags.clusterName),
+              clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterName),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});

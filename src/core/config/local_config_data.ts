@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {
-  type Cluster,
+  type ClusterRef,
   type Context,
   type EmailAddress,
   type NamespaceNameAsString,
@@ -11,11 +11,11 @@ import {
 
 export interface DeploymentStructure {
   // A list of clusters on which the deployment is deployed
-  clusters: Cluster[];
+  clusters: ClusterRef[];
   namespace: NamespaceNameAsString;
 }
 
-export type ClusterContextMapping = Record<Cluster, Context>;
+export type ClusterContextMapping = Record<ClusterRef, Context>;
 
 export type Deployments = Record<DeploymentName, DeploymentStructure>;
 

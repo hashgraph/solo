@@ -964,7 +964,13 @@ export class NetworkCommand extends BaseCommand {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.add(
               nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, ConsensusNodeStates.INITIALIZED),
+              new ConsensusNodeComponent(
+                nodeAlias,
+                cluster,
+                namespace.name,
+                ConsensusNodeStates.INITIALIZED,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
+              ),
             );
 
             remoteConfig.components.add(
