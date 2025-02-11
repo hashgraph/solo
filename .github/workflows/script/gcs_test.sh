@@ -42,8 +42,10 @@ else
   echo "Using PREFIX: ${PREFIX}"
   if [ "${storageType}" == "aws_only" ]; then
     AWS_BUCKET_PREFIX_OPTION="--aws-bucket-prefix ${PREFIX}"
+    MIRROR_BUCKET_PREFIX_OPTION="--aws-bucket-prefix ${PREFIX}"
   else
     GCS_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
+    MIRROR_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
   fi
 fi
 
@@ -81,7 +83,7 @@ npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" \
   --storage-type "${storageType}" \
   --gcs-endpoint "https://storage.googleapis.com" \
   --gcs-access-key "${GCS_ACCESS_KEY}" --gcs-secrets "${GCS_SECRET_KEY}" \
-  --gcs-bucket "${streamBucket}" $GCS_BUCKET_PREFIX_OPTION
+  --gcs-bucket "${streamBucket}" $MIRROR_BUCKET_PREFIX_OPTION
 
 npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
 
