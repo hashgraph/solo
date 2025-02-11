@@ -32,6 +32,7 @@ import {type NamespaceName} from '../core/kube/resources/namespace/namespace_nam
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
+import {type ConsensusNode} from '../core/model/consensus_node.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -72,6 +73,8 @@ export interface NetworkDeployConfigClass {
   storageBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -381,16 +384,22 @@ export class NetworkCommand extends BaseCommand {
     const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
     // create a config object for subsequent steps
-    const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
-      'chartPath',
-      'keysDir',
-      'nodeAliases',
-      'stagingDir',
-      'stagingKeysDir',
-      'valuesArg',
-      'resolvedThrottlesFile',
-      'namespace',
-    ]) as NetworkDeployConfigClass;
+    const config: NetworkDeployConfigClass = this.getConfig(
+      NetworkCommand.DEPLOY_CONFIGS_NAME,
+      NetworkCommand.DEPLOY_FLAGS_LIST,
+      [
+        'chartPath',
+        'keysDir',
+        'nodeAliases',
+        'stagingDir',
+        'stagingKeysDir',
+        'valuesArg',
+        'resolvedThrottlesFile',
+        'namespace',
+        'consensusNodes',
+        'contexts',
+      ],
+    ) as NetworkDeployConfigClass;
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
 
@@ -421,6 +430,9 @@ export class NetworkCommand extends BaseCommand {
 
     config.valuesArg = await this.prepareValuesArg(config);
     config.namespace = namespace;
+
+    config.consensusNodes = this.getConsensusNodes();
+    config.contexts = this.getContexts();
 
     if (!(await this.k8Factory.default().namespaces().has(namespace))) {
       await this.k8Factory.default().namespaces().create(namespace);

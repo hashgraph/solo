@@ -121,8 +121,14 @@ describe('NetworkCommand unit tests', () => {
       GenesisNetworkDataConstructor.initialize = sinon.stub().returns(null);
     });
 
+    afterEach(() => {
+      sinon.restore();
+    });
+
     it('Install function is called with expected parameters', async () => {
       const networkCommand = new NetworkCommand(opts);
+      sinon.stub(networkCommand, 'getConsensusNodes').resolves([]);
+      sinon.stub(networkCommand, 'getContexts').resolves([]);
       await networkCommand.deploy(argv);
 
       expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
@@ -138,6 +144,8 @@ describe('NetworkCommand unit tests', () => {
       argv[flags.force.name] = true;
 
       const networkCommand = new NetworkCommand(opts);
+      sinon.stub(networkCommand, 'getConsensusNodes').resolves([]);
+      sinon.stub(networkCommand, 'getContexts').resolves([]);
       await networkCommand.deploy(argv);
       expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
