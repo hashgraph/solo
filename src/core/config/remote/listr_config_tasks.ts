@@ -3,7 +3,7 @@
  */
 import chalk from 'chalk';
 import {type BaseCommand} from '../../../commands/base.js';
-import {type Cluster, type Context} from './types.js';
+import {type ClusterRef, type Context} from './types.js';
 import {type SoloListrTask} from '../../../types/index.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
@@ -41,15 +41,15 @@ export class ListrRemoteConfig {
    */
   public static createRemoteConfig(
     command: BaseCommand,
-    cluster: Cluster,
+    clusterRef: ClusterRef,
     context: Context,
     namespace: NamespaceName,
     argv: AnyObject,
   ): SoloListrTask<any> {
     return {
-      title: `Create remote config in cluster: ${chalk.cyan(cluster)}`,
+      title: `Create remote config in cluster: ${chalk.cyan(clusterRef)}`,
       task: async (): Promise<void> => {
-        await command.getRemoteConfigManager().createAndValidate(cluster, context, namespace.name, argv);
+        await command.getRemoteConfigManager().createAndValidate(clusterRef, context, namespace.name, argv);
       },
     };
   }
@@ -66,11 +66,11 @@ export class ListrRemoteConfig {
       task: async (ctx, task) => {
         const subTasks: SoloListrTask<Context>[] = [];
 
-        for (const cluster of command.localConfig.deployments[ctx.config.deployment].clusters) {
-          const context = command.localConfig.clusterRefs?.[cluster];
+        for (const clusterRef of command.localConfig.deployments[ctx.config.deployment].clusters) {
+          const context = command.localConfig.clusterRefs?.[clusterRef];
           if (!context) continue;
 
-          subTasks.push(ListrRemoteConfig.createRemoteConfig(command, cluster, context, ctx.config.namespace, argv));
+          subTasks.push(ListrRemoteConfig.createRemoteConfig(command, clusterRef, context, ctx.config.namespace, argv));
         }
 
         return task.newListr(subTasks, {
