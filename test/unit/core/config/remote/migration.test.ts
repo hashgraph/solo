@@ -3,9 +3,9 @@
  */
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {Migration} from '../../../../src/core/config/remote/migration.js';
-import {type EmailAddress, type Version} from '../../../../src/core/config/remote/types.js';
-import {SoloError} from '../../../../src/core/errors.js';
+import {Migration} from '../../../../../src/core/config/remote/migration.js';
+import {type EmailAddress, type Version} from '../../../../../src/core/config/remote/types.js';
+import {SoloError} from '../../../../../src/core/errors.js';
 
 function createMigration() {
   const migratedAt = new Date();

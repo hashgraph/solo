@@ -40,8 +40,8 @@ import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
-import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
+import {Templates} from '../../core/templates.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -879,7 +879,13 @@ export class NodeCommandHandlers implements CommandHandlers {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.edit(
               nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, state),
+              new ConsensusNodeComponent(
+                nodeAlias,
+                cluster,
+                namespace.name,
+                state,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
+              ),
             );
           }
         });

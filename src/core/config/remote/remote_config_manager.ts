@@ -11,7 +11,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8} from '../../kube/k8.js';
-import {type Cluster, type Context, type DeploymentName, type NamespaceNameAsString} from './types.js';
+import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
@@ -26,6 +26,7 @@ import {type AnyObject} from '../../../types/aliases.js';
 import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
+import {Cluster} from './cluster.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -56,8 +57,8 @@ export class RemoteConfigManager {
 
   /* ---------- Getters ---------- */
 
-  public get currentCluster(): Cluster {
-    return this.localConfig.currentDeploymentName as Cluster;
+  public get currentCluster(): ClusterRef {
+    return this.localConfig.currentDeploymentName as ClusterRef;
   }
 
   /** @returns the components data wrapper cloned */
@@ -92,11 +93,12 @@ export class RemoteConfigManager {
    * entry in the cluster with initial command history and metadata.
    */
   private async create(argv: AnyObject): Promise<void> {
-    const clusters: Record<Cluster, NamespaceNameAsString> = {};
+    const clusters: Record<ClusterRef, Cluster> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
-      ([deploymentName, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
-        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = deploymentStructure.namespace));
+      ([, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
+        const namespace = deploymentStructure.namespace.toString();
+        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = new Cluster(cluster, namespace)));
       },
     );
 
@@ -217,7 +219,7 @@ export class RemoteConfigManager {
   }
 
   public async createAndValidate(
-    cluster: Cluster,
+    clusterRef: ClusterRef,
     context: Context,
     namespace: NamespaceNameAsString,
     argv: AnyObject,
