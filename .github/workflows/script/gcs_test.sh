@@ -42,7 +42,7 @@ else
   echo "Using PREFIX: ${PREFIX}"
   if [ "${storageType}" == "aws_only" ]; then
     AWS_BUCKET_PREFIX_OPTION="--aws-bucket-prefix ${PREFIX}"
-    MIRROR_BUCKET_PREFIX_OPTION="--aws-bucket-prefix ${PREFIX}"
+    MIRROR_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
   else
     GCS_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
     MIRROR_BUCKET_PREFIX_OPTION="--gcs-bucket-prefix ${PREFIX}"
