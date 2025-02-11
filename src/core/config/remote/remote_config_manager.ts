@@ -58,7 +58,7 @@ export class RemoteConfigManager {
   /* ---------- Getters ---------- */
 
   public get currentCluster(): ClusterRef {
-    return this.k8.clusters().readCurrent() as ClusterRef;
+    return this.k8Factory.default().clusters().readCurrent() as ClusterRef;
   }
 
   /** @returns the components data wrapper cloned */

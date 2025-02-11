@@ -161,11 +161,7 @@ export class ClusterCommandTasks {
           } else if (!localConfig.clusterRefs[cluster]) {
             // In quiet mode, use the currently selected context to update the mapping
             if (isQuiet) {
-              localConfig.clusterRefs[cluster] = this.parent
-                .getK8Factory()
-                .default()
-                .contexts()
-                .readCurrent();
+              localConfig.clusterRefs[cluster] = this.parent.getK8Factory().default().contexts().readCurrent();
             }
 
             // Prompt the user to select a context if mapping value is missing
