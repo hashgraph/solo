@@ -115,7 +115,7 @@ describe('LocalConfig', () => {
       'cluster-3': 'context-3',
       'cluster-4': 'context-4',
     };
-    localConfig.setclusterRefs(newClusterMappings);
+    localConfig.setClusterRefs(newClusterMappings);
     expect(localConfig.clusterRefs).to.eq(newClusterMappings);
 
     await localConfig.write();

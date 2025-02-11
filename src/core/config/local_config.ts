@@ -46,9 +46,6 @@ export class LocalConfig implements LocalConfigData {
   })
   public deployments: Deployments;
 
-  @IsString({
-    message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST,
-  })
   @IsClusterRefs({
     message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
   })
@@ -111,7 +108,7 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
-  public setclusterRefs(clusterRefs: ClusterRefs): this {
+  public setClusterRefs(clusterRefs: ClusterRefs): this {
     this.clusterRefs = clusterRefs;
     this.validate();
     return this;
@@ -167,24 +164,24 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
-        const parsedClusters = splitFlagInput(deploymentClusters);
+        const parsedClusterRefs = splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
           [deploymentName]: {
-            clusters: parsedClusters,
+            clusters: parsedClusterRefs,
             namespace: namespace.name,
           },
         };
 
         const parsedContexts = splitFlagInput(contexts);
 
-        if (parsedContexts.length < parsedClusters.length) {
+        if (parsedContexts.length < parsedClusterRefs.length) {
           if (!isQuiet) {
             const promptedContexts: string[] = [];
-            for (const cluster of parsedClusters) {
+            for (const clusterRef of parsedClusterRefs) {
               const kubeContexts = k8.contexts().list();
-              const context: string = await flags.context.prompt(task, kubeContexts, cluster);
-              self.clusterRefs[cluster] = context;
+              const context: string = await flags.context.prompt(task, kubeContexts, clusterRef);
+              self.clusterRefs[clusterRef] = context;
               promptedContexts.push(context);
 
               self.configManager.setFlag(flags.context, context);
@@ -192,15 +189,15 @@ export class LocalConfig implements LocalConfigData {
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
             const context = k8.contexts().readCurrent();
-            for (const cluster of parsedClusters) {
-              self.clusterRefs[cluster] = context;
+            for (const clusterRef of parsedClusterRefs) {
+              self.clusterRefs[clusterRef] = context;
             }
             self.configManager.setFlag(flags.context, context);
           }
         } else {
-          for (let i = 0; i < parsedClusters.length; i++) {
-            const cluster = parsedClusters[i];
-            self.clusterRefs[cluster] = parsedContexts[i];
+          for (let i = 0; i < parsedClusterRefs.length; i++) {
+            const clusterRef = parsedClusterRefs[i];
+            self.clusterRefs[clusterRef] = parsedContexts[i];
 
             self.configManager.setFlag(flags.context, parsedContexts[i]);
           }
