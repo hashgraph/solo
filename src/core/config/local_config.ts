@@ -6,14 +6,14 @@ import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
 import {
-  type clusterRefs,
+  type ClusterRefs,
   type Deployments,
   type DeploymentStructure,
   type LocalConfigData,
 } from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
-import {IsclusterRefs, IsDeployments} from '../validator_decorators.js';
+import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
 import {type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
@@ -49,11 +49,11 @@ export class LocalConfig implements LocalConfigData {
   @IsString({
     message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST,
   })
-  @IsclusterRefs({
+  @IsClusterRefs({
     message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
   })
   @IsNotEmpty()
-  public clusterRefs: clusterRefs = {};
+  public clusterRefs: ClusterRefs = {};
 
   private readonly skipPromptTask: boolean = false;
 
@@ -111,7 +111,7 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
-  public setclusterRefs(clusterRefs: clusterRefs): this {
+  public setclusterRefs(clusterRefs: ClusterRefs): this {
     this.clusterRefs = clusterRefs;
     this.validate();
     return this;
