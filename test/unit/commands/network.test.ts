@@ -24,8 +24,6 @@ import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_m
 import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
 import {type K8} from '../../../src/core/kube/k8.js';
-import {PlatformInstaller} from '../../../src/core/platform_installer.js';
-import {CertificateManager} from '../../../src/core/certificate_manager.js';
 import {type DependencyManager} from '../../../src/core/dependency_managers/index.js';
 import {type LocalConfig} from '../../../src/core/config/local_config.js';
 import {resetForTest} from '../../test_container.js';
@@ -125,7 +123,7 @@ describe('NetworkCommand unit tests', () => {
       const networkCommand = new NetworkCommand(opts);
       await networkCommand.deploy(argv);
 
-      expect(opts.chartManager.install.args[0][0].name).to.equal(opts.localConfig.getCurrentDeployment().namespace);
+      expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
@@ -139,7 +137,7 @@ describe('NetworkCommand unit tests', () => {
 
       const networkCommand = new NetworkCommand(opts);
       await networkCommand.deploy(argv);
-      expect(opts.chartManager.install.args[0][0].name).to.equal(opts.localConfig.getCurrentDeployment().namespace);
+      expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
       expect(opts.chartManager.install.args[0][2]).to.equal(
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),

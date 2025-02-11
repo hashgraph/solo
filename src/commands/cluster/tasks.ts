@@ -42,7 +42,7 @@ export class ClusterCommandTasks {
     return {
       title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
       task: async (_, subTask: ListrTaskWrapper<any, any, any>) => {
-        let context = localConfig.clusterContextMapping[cluster];
+        let context = localConfig.clusterRefs[cluster];
         if (!context) {
           const isQuiet = self.parent.getConfigManager().getFlag(flags.quiet);
           if (isQuiet) {
@@ -51,7 +51,7 @@ export class ClusterCommandTasks {
             context = await self.promptForContext(parentTask, cluster);
           }
 
-          localConfig.clusterContextMapping[cluster] = context;
+          localConfig.clusterRefs[cluster] = context;
         }
         if (!(await self.parent.getK8().contexts().testContextConnection(context))) {
           subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
@@ -71,7 +71,7 @@ export class ClusterCommandTasks {
     return {
       title: `Pull and validate remote configuration for cluster: ${chalk.cyan(cluster)}`,
       task: async (_, subTask: ListrTaskWrapper<any, any, any>) => {
-        const context = localConfig.clusterContextMapping[cluster];
+        const context = localConfig.clusterRefs[cluster];
         self.parent.getK8().contexts().updateCurrent(context);
         const remoteConfigFromOtherCluster = await self.parent.getRemoteConfigManager().get();
         if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
@@ -128,7 +128,6 @@ export class ClusterCommandTasks {
         const remoteNamespace = remoteConfig.metadata.name;
         for (const deployment in localConfig.deployments) {
           if (localConfig.deployments[deployment].namespace === remoteNamespace) {
-            localConfig.currentDeploymentName = deployment;
             deploymentName = deployment;
             break;
           }
@@ -158,16 +157,16 @@ export class ClusterCommandTasks {
 
           // If a context is provided, use it to update the mapping
           if (context) {
-            localConfig.clusterContextMapping[cluster] = context;
-          } else if (!localConfig.clusterContextMapping[cluster]) {
+            localConfig.clusterRefs[cluster] = context;
+          } else if (!localConfig.clusterRefs[cluster]) {
             // In quiet mode, use the currently selected context to update the mapping
             if (isQuiet) {
-              localConfig.clusterContextMapping[cluster] = this.parent.getK8().contexts().readCurrent();
+              localConfig.clusterRefs[cluster] = this.parent.getK8().contexts().readCurrent();
             }
 
             // Prompt the user to select a context if mapping value is missing
             else {
-              localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
+              localConfig.clusterRefs[cluster] = await this.promptForContext(task, cluster);
             }
           }
         }
@@ -188,7 +187,7 @@ export class ClusterCommandTasks {
       selectedContext = this.parent.getK8().contexts().readCurrent();
     } else {
       selectedContext = await this.promptForContext(task, selectedCluster);
-      localConfig.clusterContextMapping[selectedCluster] = selectedContext;
+      localConfig.clusterRefs[selectedCluster] = selectedContext;
     }
     return selectedContext;
   }
@@ -206,8 +205,8 @@ export class ClusterCommandTasks {
   ) {
     const selectedCluster = clusters[0];
 
-    if (localConfig.clusterContextMapping[selectedCluster]) {
-      return localConfig.clusterContextMapping[selectedCluster];
+    if (localConfig.clusterRefs[selectedCluster]) {
+      return localConfig.clusterRefs[selectedCluster];
     }
 
     // If a cluster does not exist in LocalConfig mapping prompt the user to select a context or use the current one
@@ -313,8 +312,8 @@ export class ClusterCommandTasks {
                 namespace: namespace ? namespace.name : '',
               };
 
-              if (!localConfig.clusterContextMapping[selectedCluster]) {
-                localConfig.clusterContextMapping[selectedCluster] = selectedContext;
+              if (!localConfig.clusterRefs[selectedCluster]) {
+                localConfig.clusterRefs[selectedCluster] = selectedContext;
               }
             }
 
@@ -324,13 +323,13 @@ export class ClusterCommandTasks {
               clusters = splitFlagInput(promptedClusters);
 
               for (const cluster of clusters) {
-                if (!localConfig.clusterContextMapping[cluster]) {
-                  localConfig.clusterContextMapping[cluster] = await this.promptForContext(task, cluster);
+                if (!localConfig.clusterRefs[cluster]) {
+                  localConfig.clusterRefs[cluster] = await this.promptForContext(task, cluster);
                 }
               }
 
               selectedCluster = clusters[0];
-              selectedContext = localConfig.clusterContextMapping[clusters[0]];
+              selectedContext = localConfig.clusterRefs[clusters[0]];
             }
           }
         }

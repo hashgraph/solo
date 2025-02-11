@@ -58,7 +58,7 @@ export class RemoteConfigManager {
   /* ---------- Getters ---------- */
 
   public get currentCluster(): ClusterRef {
-    return this.localConfig.currentDeploymentName as ClusterRef;
+    return this.k8.clusters().readCurrent() as ClusterRef;
   }
 
   /** @returns the components data wrapper cloned */
@@ -303,13 +303,15 @@ export class RemoteConfigManager {
   private setDefaultNamespaceIfNotSet(): void {
     if (this.configManager.hasFlag(flags.namespace)) return;
 
-    if (!this.localConfig?.currentDeploymentName) {
-      this.logger.error('Current deployment name is not set in local config', this.localConfig);
-      throw new SoloError('Current deployment name is not set in local config');
+    // TODO: Current quick fix for commands where namespace is not passed
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const currentDeployment = this.localConfig.deployments[deploymentName];
+
+    if (!this.localConfig?.deployments[deploymentName]) {
+      this.logger.error('Selected deployment name is not set in local config', this.localConfig);
+      throw new SoloError('Selected deployment name is not set in local config');
     }
 
-    // TODO: Current quick fix for commands where namespace is not passed
-    const currentDeployment = this.localConfig.deployments[this.localConfig.currentDeploymentName];
     const namespace = currentDeployment.namespace;
 
     this.configManager.setFlag(flags.namespace, namespace);

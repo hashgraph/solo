@@ -6,14 +6,14 @@ import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
 import {
-  type ClusterContextMapping,
+  type ClusterRefs,
   type Deployments,
   type DeploymentStructure,
   type LocalConfigData,
 } from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
-import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
+import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
 import {type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
@@ -46,17 +46,11 @@ export class LocalConfig implements LocalConfigData {
   })
   public deployments: Deployments;
 
-  @IsString({
-    message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST,
-  })
-  @IsNotEmpty()
-  currentDeploymentName: DeploymentName;
-
-  @IsClusterContextMapping({
+  @IsClusterRefs({
     message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
   })
   @IsNotEmpty()
-  public clusterContextMapping: ClusterContextMapping = {};
+  public clusterRefs: ClusterRefs = {};
 
   private readonly skipPromptTask: boolean = false;
 
@@ -71,7 +65,7 @@ export class LocalConfig implements LocalConfigData {
 
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 
-    const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterContextMapping'];
+    const allowedKeys = ['userEmailAddress', 'deployments', 'clusterRefs'];
     if (this.configFileExists()) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const parsedConfig = yaml.parse(fileContent);
@@ -100,11 +94,6 @@ export class LocalConfig implements LocalConfigData {
         throw new SoloError(ErrorMessages.LOCAL_CONFIG_GENERIC);
       }
     }
-
-    // Custom validations:
-    if (!this.deployments[this.currentDeploymentName]) {
-      throw new SoloError(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST);
-    }
   }
 
   public setUserEmailAddress(emailAddress: EmailAddress): this {
@@ -119,20 +108,10 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
-  public setCurrentDeployment(deploymentName: DeploymentName): this {
-    this.currentDeploymentName = deploymentName;
+  public setClusterRefs(clusterRefs: ClusterRefs): this {
+    this.clusterRefs = clusterRefs;
     this.validate();
     return this;
-  }
-
-  public setClusterContextMapping(clusterContextMapping: ClusterContextMapping): this {
-    this.clusterContextMapping = clusterContextMapping;
-    this.validate();
-    return this;
-  }
-
-  public getCurrentDeployment(): DeploymentStructure {
-    return this.deployments[this.currentDeploymentName];
   }
 
   public configFileExists(): boolean {
@@ -143,8 +122,7 @@ export class LocalConfig implements LocalConfigData {
     const yamlContent = yaml.stringify({
       userEmailAddress: this.userEmailAddress,
       deployments: this.deployments,
-      currentDeploymentName: this.currentDeploymentName,
-      clusterContextMapping: this.clusterContextMapping,
+      clusterRefs: this.clusterRefs,
     });
     await fs.promises.writeFile(this.filePath, yamlContent);
 
@@ -186,24 +164,24 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
-        const parsedClusters = splitFlagInput(deploymentClusters);
+        const parsedClusterRefs = splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
           [deploymentName]: {
-            clusters: parsedClusters,
+            clusters: parsedClusterRefs,
             namespace: namespace.name,
           },
         };
 
         const parsedContexts = splitFlagInput(contexts);
 
-        if (parsedContexts.length < parsedClusters.length) {
+        if (parsedContexts.length < parsedClusterRefs.length) {
           if (!isQuiet) {
             const promptedContexts: string[] = [];
-            for (const cluster of parsedClusters) {
+            for (const clusterRef of parsedClusterRefs) {
               const kubeContexts = k8.contexts().list();
-              const context: string = await flags.context.prompt(task, kubeContexts, cluster);
-              self.clusterContextMapping[cluster] = context;
+              const context: string = await flags.context.prompt(task, kubeContexts, clusterRef);
+              self.clusterRefs[clusterRef] = context;
               promptedContexts.push(context);
 
               self.configManager.setFlag(flags.context, context);
@@ -211,15 +189,15 @@ export class LocalConfig implements LocalConfigData {
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
             const context = k8.contexts().readCurrent();
-            for (const cluster of parsedClusters) {
-              self.clusterContextMapping[cluster] = context;
+            for (const clusterRef of parsedClusterRefs) {
+              self.clusterRefs[clusterRef] = context;
             }
             self.configManager.setFlag(flags.context, context);
           }
         } else {
-          for (let i = 0; i < parsedClusters.length; i++) {
-            const cluster = parsedClusters[i];
-            self.clusterContextMapping[cluster] = parsedContexts[i];
+          for (let i = 0; i < parsedClusterRefs.length; i++) {
+            const clusterRef = parsedClusterRefs[i];
+            self.clusterRefs[clusterRef] = parsedContexts[i];
 
             self.configManager.setFlag(flags.context, parsedContexts[i]);
           }
@@ -227,7 +205,6 @@ export class LocalConfig implements LocalConfigData {
 
         self.userEmailAddress = userEmailAddress;
         self.deployments = deployments;
-        self.currentDeploymentName = deploymentName;
 
         self.validate();
         await self.write();

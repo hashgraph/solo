@@ -69,7 +69,6 @@ e2eTestSuite(
 
         localConfig.userEmailAddress = email;
         localConfig.deployments = {[deploymentName]: {clusters: [`kind-${deploymentName}`], namespace: namespace.name}};
-        localConfig.currentDeploymentName = deploymentName;
 
         if (!fs.existsSync(testCacheDir)) {
           fs.mkdirSync(testCacheDir);
