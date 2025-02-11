@@ -217,5 +217,5 @@ export const enum StorageType {
   MINIO_ONLY = 'minio_only',
   AWS_ONLY = 'aws_only',
   GCS_ONLY = 'gcs_only',
-  S3_AND_GCS = 'aws_and_gcs',
+  AWS_AND_GCS = 'aws_and_gcs',
 }

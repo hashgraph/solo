@@ -180,7 +180,7 @@ export class NetworkCommand extends BaseCommand {
       const cloudData = {};
       if (
         config.storageType === constants.StorageType.AWS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
         cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
         cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
@@ -188,7 +188,7 @@ export class NetworkCommand extends BaseCommand {
       }
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
         cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
         cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
@@ -263,14 +263,14 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (
-      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.GCS_ONLY
     ) {
       valuesArg += ' --set cloud.gcs.enabled=true';
     }
 
     if (
-      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.AWS_ONLY
     ) {
       valuesArg += ' --set cloud.s3.enabled=true';
@@ -279,7 +279,7 @@ export class NetworkCommand extends BaseCommand {
     if (
       config.storageType === constants.StorageType.GCS_ONLY ||
       config.storageType === constants.StorageType.AWS_ONLY ||
-      config.storageType === constants.StorageType.S3_AND_GCS
+      config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
       valuesArg += ' --set cloud.minio.enabled=false';
     }
@@ -687,7 +687,7 @@ export class NetworkCommand extends BaseCommand {
               skip: ctx =>
                 ctx.config.storageType === constants.StorageType.GCS_ONLY ||
                 ctx.config.storageType === constants.StorageType.AWS_ONLY ||
-                ctx.config.storageType === constants.StorageType.S3_AND_GCS,
+                ctx.config.storageType === constants.StorageType.AWS_AND_GCS,
             });
 
             // set up the subtasks

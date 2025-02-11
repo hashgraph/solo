@@ -135,7 +135,7 @@ export class MirrorNodeCommand extends BaseCommand {
     ) {
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
         storageType = 'gcp';
       } else if (config.storageType === constants.StorageType.AWS_ONLY) {
