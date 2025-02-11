@@ -243,6 +243,11 @@ export class NetworkCommand extends BaseCommand {
     gcsEndpoint: string;
     gcsBucket: string;
     gcsBucketPrefix: string;
+    awsAccessKey: string;
+    awsSecrets: string;
+    awsEndpoint: string;
+    awsBucket: string;
+    awsBucketPrefix: string;
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
