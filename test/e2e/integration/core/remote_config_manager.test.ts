@@ -15,7 +15,7 @@ import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 
@@ -48,7 +48,7 @@ e2eTestSuite(
   false,
   bootstrapResp => {
     describe('RemoteConfigManager', async () => {
-      let k8: K8;
+      let k8Factory: K8Factory;
 
       let localConfig: LocalConfig;
       let remoteConfigManager: RemoteConfigManager;
@@ -57,13 +57,13 @@ e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
-        await k8.namespaces().delete(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
       });
 
       before(function () {
         this.timeout(defaultTimeout);
 
-        k8 = bootstrapResp.opts.k8;
+        k8Factory = bootstrapResp.opts.k8Factory;
         localConfig = container.resolve(InjectTokens.LocalConfig);
         remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
 

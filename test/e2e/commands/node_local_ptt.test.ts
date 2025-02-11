@@ -6,7 +6,7 @@ import {describe} from 'mocha';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {type K8} from '../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
@@ -43,15 +43,15 @@ e2eTestSuite(
   true,
   bootstrapResp => {
     describe('Node for platform app should start successfully', () => {
-      let pttK8: K8;
+      let k8Factory: K8Factory;
 
       before(() => {
-        pttK8 = bootstrapResp.opts.k8;
+        k8Factory = bootstrapResp.opts.k8Factory;
       });
 
       it('get the logs and delete the namespace', async () => {
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(LOCAL_PTT);
-        await pttK8.namespaces().delete(LOCAL_PTT);
+        await k8Factory.default().namespaces().delete(LOCAL_PTT);
       }).timeout(Duration.ofMinutes(2).toMillis());
     });
   },

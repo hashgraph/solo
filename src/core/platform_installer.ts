@@ -7,7 +7,7 @@ import * as path from 'path';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {type ConfigManager} from './config_manager.js';
-import {type K8} from '../core/kube/k8.js';
+import {type K8Factory} from '../core/kube/k8_factory.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
@@ -30,11 +30,11 @@ import {InjectTokens} from './dependency_injection/inject_tokens.js';
 export class PlatformInstaller {
   constructor(
     @inject(InjectTokens.SoloLogger) private logger?: SoloLogger,
-    @inject(InjectTokens.K8) private k8?: K8,
+    @inject(InjectTokens.K8Factory) private k8Factory?: K8Factory,
     @inject(InjectTokens.ConfigManager) private configManager?: ConfigManager,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
 
@@ -98,8 +98,8 @@ export class PlatformInstaller {
 
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
       const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
-      await this.k8.containers().readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
-      await this.k8.containers().readByRef(containerRef).execContainer([extractScript, tag]);
+      await this.k8Factory.default().containers().readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
+      await this.k8Factory.default().containers().readByRef(containerRef).execContainer([extractScript, tag]);
       return true;
     } catch (e: Error | any) {
       const message = `failed to extract platform code in this pod '${podRef.name}': ${e.message}`;
@@ -127,12 +127,12 @@ export class PlatformInstaller {
           throw new SoloError(`file does not exist: ${srcPath}`);
         }
 
-        if (!(await this.k8.containers().readByRef(containerRef).hasDir(destDir))) {
-          await this.k8.containers().readByRef(containerRef).mkdir(destDir);
+        if (!(await this.k8Factory.default().containers().readByRef(containerRef).hasDir(destDir))) {
+          await this.k8Factory.default().containers().readByRef(containerRef).mkdir(destDir);
         }
 
         this.logger.debug(`Copying file into ${podRef.name}: ${srcPath} -> ${destDir}`);
-        await this.k8.containers().readByRef(containerRef).copyTo(srcPath, destDir);
+        await this.k8Factory.default().containers().readByRef(containerRef).copyTo(srcPath, destDir);
 
         const fileName = path.basename(srcPath);
         copiedFiles.push(path.join(destDir, fileName));
@@ -168,7 +168,8 @@ export class PlatformInstaller {
         data[fileName] = Base64.encode(fileContents);
       }
 
-      const secretCreated = await this.k8
+      const secretCreated = await this.k8Factory
+        .default()
         .secrets()
         .createOrReplace(
           this._getNamespace(),
@@ -213,7 +214,8 @@ export class PlatformInstaller {
         }
       }
 
-      const secretCreated = await this.k8
+      const secretCreated = await this.k8Factory
+        .default()
         .secrets()
         .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data, undefined);
 
@@ -238,11 +240,13 @@ export class PlatformInstaller {
     const containerRef = ContainerRef.of(podRef, container);
 
     const recursiveFlag = recursive ? '-R' : '';
-    await this.k8
+    await this.k8Factory
+      .default()
       .containers()
       .readByRef(containerRef)
       .execContainer(['bash', '-c', `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`]);
-    await this.k8
+    await this.k8Factory
+      .default()
       .containers()
       .readByRef(containerRef)
       .execContainer(['bash', '-c', `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`]);

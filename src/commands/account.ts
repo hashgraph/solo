@@ -170,7 +170,7 @@ export class AccountCommand extends BaseCommand {
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             const config = {namespace};
 
-            if (!(await this.k8.namespaces().has(namespace))) {
+            if (!(await this.k8Factory.default().namespaces().has(namespace))) {
               throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
@@ -191,7 +191,10 @@ export class AccountCommand extends BaseCommand {
                   title: 'Prepare for account key updates',
                   task: async ctx => {
                     const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-                    const secrets = await self.k8.secrets().list(namespace, ['solo.hedera.com/account-id']);
+                    const secrets = await self.k8Factory
+                      .default()
+                      .secrets()
+                      .list(namespace, ['solo.hedera.com/account-id']);
                     ctx.updateSecrets = secrets.length > 0;
 
                     ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts);
@@ -334,7 +337,7 @@ export class AccountCommand extends BaseCommand {
               config.amount = flags.amount.definition.defaultValue as number;
             }
 
-            if (!(await this.k8.namespaces().has(config.namespace))) {
+            if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 
@@ -412,7 +415,7 @@ export class AccountCommand extends BaseCommand {
               ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
             };
 
-            if (!(await this.k8.namespaces().has(config.namespace))) {
+            if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 
@@ -494,7 +497,7 @@ export class AccountCommand extends BaseCommand {
               privateKey: self.configManager.getFlag<boolean>(flags.privateKey) as boolean,
             };
 
-            if (!(await this.k8.namespaces().has(config.namespace))) {
+            if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace} does not exist`);
             }
 

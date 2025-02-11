@@ -244,7 +244,10 @@ export class MirrorNodeCommand extends BaseCommand {
 
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
-              const networkPods = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+              const networkPods = await this.k8Factory
+                .default()
+                .pods()
+                .list(namespace, ['solo.hedera.com/type=network-node']);
 
               if (networkPods.length) {
                 const pod = networkPods[0];
@@ -261,7 +264,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 } else {
                   try {
                     const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-                    const secrets = await this.k8
+                    const secrets = await this.k8Factory
+                      .default()
                       .secrets()
                       .list(namespace, [`solo.hedera.com/account-id=${operatorId}`]);
                     if (secrets.length === 0) {
@@ -319,7 +323,7 @@ export class MirrorNodeCommand extends BaseCommand {
               }
             }
 
-            if (!(await self.k8.namespaces().has(ctx.config.namespace))) {
+            if (!(await self.k8Factory.default().namespaces().has(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
@@ -366,7 +370,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Check Postgres DB',
                   task: async ctx =>
-                    await self.k8
+                    await self.k8Factory
+                      .default()
                       .pods()
                       .waitForReadyStatus(
                         ctx.config.namespace,
@@ -379,7 +384,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Check REST API',
                   task: async ctx =>
-                    await self.k8
+                    await self.k8Factory
+                      .default()
                       .pods()
                       .waitForReadyStatus(
                         ctx.config.namespace,
@@ -391,7 +397,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Check GRPC',
                   task: async ctx =>
-                    await self.k8
+                    await self.k8Factory
+                      .default()
                       .pods()
                       .waitForReadyStatus(
                         ctx.config.namespace,
@@ -403,7 +410,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Check Monitor',
                   task: async ctx =>
-                    await self.k8
+                    await self.k8Factory
+                      .default()
                       .pods()
                       .waitForReadyStatus(
                         ctx.config.namespace,
@@ -415,7 +423,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Check Importer',
                   task: async ctx =>
-                    await self.k8
+                    await self.k8Factory
+                      .default()
                       .pods()
                       .waitForReadyStatus(
                         ctx.config.namespace,
@@ -485,7 +494,10 @@ export class MirrorNodeCommand extends BaseCommand {
                       return; //! stop the execution
                     }
 
-                    const pods = await this.k8.pods().list(namespace, ['app.kubernetes.io/name=postgres']);
+                    const pods = await this.k8Factory
+                      .default()
+                      .pods()
+                      .list(namespace, ['app.kubernetes.io/name=postgres']);
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
@@ -493,7 +505,8 @@ export class MirrorNodeCommand extends BaseCommand {
                     const postgresContainerName = ContainerName.of('postgresql');
                     const postgresPodRef = PodRef.of(namespace, postgresPodName);
                     const containerRef = ContainerRef.of(postgresPodRef, postgresContainerName);
-                    const mirrorEnvVars = await self.k8
+                    const mirrorEnvVars = await self.k8Factory
+                      .default()
                       .containers()
                       .readByRef(containerRef)
                       .execContainer('/bin/bash -c printenv');
@@ -511,7 +524,8 @@ export class MirrorNodeCommand extends BaseCommand {
                       'HEDERA_MIRROR_IMPORTER_DB_NAME',
                     );
 
-                    await self.k8
+                    await self.k8Factory
+                      .default()
                       .containers()
                       .readByRef(containerRef)
                       .execContainer([
@@ -584,7 +598,7 @@ export class MirrorNodeCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            if (!(await self.k8.namespaces().has(namespace))) {
+            if (!(await self.k8Factory.default().namespaces().has(namespace))) {
               throw new SoloError(`namespace ${namespace} does not exist`);
             }
 
@@ -615,13 +629,17 @@ export class MirrorNodeCommand extends BaseCommand {
           task: async ctx => {
             // filtering postgres and redis PVCs using instance labels
             // since they have different name or component labels
-            const pvcs = await self.k8
+            const pvcs = await self.k8Factory
+              .default()
               .pvcs()
               .list(ctx.config.namespace, [`app.kubernetes.io/instance=${constants.MIRROR_NODE_RELEASE_NAME}`]);
 
             if (pvcs) {
               for (const pvc of pvcs) {
-                await self.k8.pvcs().delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
+                await self.k8Factory
+                  .default()
+                  .pvcs()
+                  .delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
               }
             }
           },

@@ -63,7 +63,7 @@ e2eTestSuite(
     describe('Node update', async () => {
       const nodeCmd = bootstrapResp.cmd.nodeCmd;
       const accountCmd = bootstrapResp.cmd.accountCmd;
-      const k8 = bootstrapResp.opts.k8;
+      const k8Factory = bootstrapResp.opts.k8Factory;
       let existingServiceMap;
       let existingNodeIdsPrivateKeysHash;
 
@@ -72,12 +72,16 @@ e2eTestSuite(
 
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
         await nodeCmd.handlers.stop(argv);
-        await k8.namespaces().delete(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
       });
 
       it('cache current version of private keys', async () => {
         existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
-        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
+        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+          existingServiceMap,
+          k8Factory,
+          getTmpDir(),
+        );
       }).timeout(defaultTimeout);
 
       it('should succeed with init command', async () => {
@@ -119,7 +123,11 @@ e2eTestSuite(
       accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, updateNodeId);
 
       it('signing key and tls key should not match previous one', async () => {
-        const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
+        const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+          existingServiceMap,
+          k8Factory,
+          getTmpDir(),
+        );
 
         for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {
           const currentNodeKeyHashMap = currentNodeIdsPrivateKeysHash.get(nodeAlias);
@@ -143,10 +151,11 @@ e2eTestSuite(
 
       it('config.txt should be changed with new account id', async () => {
         // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
-        const pods: V1Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+        const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
         const podName: PodName = PodName.of(pods[0].metadata.name);
         const tmpDir = getTmpDir();
-        await k8
+        await k8Factory
+          .default()
           .containers()
           .readByRef(ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER))
           .copyFrom(`${HEDERA_HAPI_PATH}/config.txt`, tmpDir);

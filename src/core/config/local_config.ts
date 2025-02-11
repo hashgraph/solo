@@ -17,7 +17,7 @@ import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
 import {type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
@@ -129,7 +129,7 @@ export class LocalConfig implements LocalConfigData {
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
 
-  public promptLocalConfigTask(k8: K8): SoloListrTask<any> {
+  public promptLocalConfigTask(k8Factory: K8Factory): SoloListrTask<any> {
     const self = this;
 
     return {
@@ -157,7 +157,7 @@ export class LocalConfig implements LocalConfigData {
 
         if (!deploymentClusters) {
           if (isQuiet) {
-            deploymentClusters = k8.clusters().readCurrent();
+            deploymentClusters = k8Factory.default().clusters().readCurrent();
           } else {
             deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
           }
@@ -179,7 +179,7 @@ export class LocalConfig implements LocalConfigData {
           if (!isQuiet) {
             const promptedContexts: string[] = [];
             for (const clusterRef of parsedClusterRefs) {
-              const kubeContexts = k8.contexts().list();
+              const kubeContexts = k8Factory.default().contexts().list();
               const context: string = await flags.context.prompt(task, kubeContexts, clusterRef);
               self.clusterRefs[clusterRef] = context;
               promptedContexts.push(context);
@@ -188,7 +188,7 @@ export class LocalConfig implements LocalConfigData {
             }
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
-            const context = k8.contexts().readCurrent();
+            const context = k8Factory.default().contexts().readCurrent();
             for (const clusterRef of parsedClusterRefs) {
               self.clusterRefs[clusterRef] = context;
             }

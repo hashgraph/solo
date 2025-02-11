@@ -27,7 +27,7 @@ import {type CertificateManager} from './core/certificate_manager.js';
 import {type LocalConfig} from './core/config/local_config.js';
 import {type RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
 import * as helpers from './core/helpers.js';
-import {type K8} from './core/kube/k8.js';
+import {type K8Factory} from './core/kube/k8_factory.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
 import {type SoloLogger} from './core/logging.js';
@@ -54,7 +54,7 @@ export function main(argv: any) {
     const helm: Helm = container.resolve(InjectTokens.Helm);
     const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
     const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-    const k8: K8 = container.resolve(InjectTokens.K8);
+    const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
     const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
     const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
     const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
@@ -66,14 +66,14 @@ export function main(argv: any) {
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
-    const contextNamespace: NamespaceName = k8.contexts().readCurrentNamespace();
-    const currentClusterName: string = k8.clusters().readCurrent();
-    const contextName: string = k8.contexts().readCurrent();
+    const contextNamespace: NamespaceName = k8Factory.default().contexts().readCurrentNamespace();
+    const currentClusterName: string = k8Factory.default().clusters().readCurrent();
+    const contextName: string = k8Factory.default().contexts().readCurrent();
 
     const opts: Opts = {
       logger,
       helm,
-      k8,
+      k8Factory,
       downloader,
       platformInstaller,
       chartManager,

@@ -21,7 +21,7 @@ export interface Secrets {
     secretType: SecretType,
     data: Record<string, string>,
     labels: Optional<Record<string, string>>,
-  ): Promise<boolean>; // TODO was createSecret
+  ): Promise<boolean>;
 
   createOrReplace(
     namespace: NamespaceName,
@@ -48,7 +48,7 @@ export interface Secrets {
     namespace: string;
     type: string;
     labels: Record<string, string>;
-  }>; // TODO was getSecret
+  }>;
 
   /**
    * Delete a secret from the namespace
@@ -56,7 +56,7 @@ export interface Secrets {
    * @param name - the name of the existing secret
    * @returns whether the secret was deleted successfully
    */
-  delete(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was deleteSecret
+  delete(namespace: NamespaceName, name: string): Promise<boolean>;
 
   /**
    * Get secrets by labels
@@ -75,9 +75,7 @@ export interface Secrets {
       type: string;
       labels: Record<string, string>;
     }>
-  >; // TODO was getSecretsByLabel(labels: string[]): Promise<any>
-  // TODO consolidate getSecret into listByLabel
-  // TODO consolidate listSecretsByNamespace into listByLabel
+  >;
 
-  exists(namespace: NamespaceName, name: string): Promise<boolean>; // TODO was secretExists
+  exists(namespace: NamespaceName, name: string): Promise<boolean>;
 }

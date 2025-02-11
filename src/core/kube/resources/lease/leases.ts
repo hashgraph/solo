@@ -13,7 +13,7 @@ export interface Leases {
    * @param durationSeconds - the duration of the lease in seconds\
    * @returns the created lease
    */
-  create(namespace: NamespaceName, leaseName: string, holderName: string, durationSeconds: number): Promise<V1Lease>; // TODO was createNamespacedLease
+  create(namespace: NamespaceName, leaseName: string, holderName: string, durationSeconds: number): Promise<V1Lease>;
 
   /**
    * Delete a lease
@@ -21,7 +21,7 @@ export interface Leases {
    * @param name - the name of the lease
    * @returns the status of the deletion
    */
-  delete(namespace: NamespaceName, name: string): Promise<V1Status>; // TODO was deleteNamespacedLease
+  delete(namespace: NamespaceName, name: string): Promise<V1Status>;
 
   /**
    * Returns the lease with the specified name
@@ -30,7 +30,7 @@ export interface Leases {
    * @param timesCalled - the number of times this function has been called
    * @returns a list of lease names
    */
-  read(namespace: NamespaceName, leaseName: string, timesCalled?: number): Promise<any>; // TODO was readNamespacedLease
+  read(namespace: NamespaceName, leaseName: string, timesCalled?: number): Promise<any>;
 
   /**
    * Renew a lease
@@ -39,7 +39,7 @@ export interface Leases {
    * @param lease - the lease object
    * @returns the renewed lease
    */
-  renew(namespace: NamespaceName, leaseName: string, lease: V1Lease): Promise<V1Lease>; // TODO was renewNamespaceLease
+  renew(namespace: NamespaceName, leaseName: string, lease: V1Lease): Promise<V1Lease>;
 
   /**
    * Transfer a lease
@@ -47,5 +47,5 @@ export interface Leases {
    * @param newHolderName - the name of the new lease holder
    * @returns the transferred lease
    */
-  transfer(lease: V1Lease, newHolderName: string): Promise<V1Lease>; // TODO was transferNamespaceLease
+  transfer(lease: V1Lease, newHolderName: string): Promise<V1Lease>;
 }

@@ -84,7 +84,7 @@ export class NetworkCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.keyManager)
       throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
     if (!opts || !opts.platformInstaller)
@@ -156,7 +156,8 @@ export class NetworkCommand extends BaseCommand {
       // Generating new minio credentials
       const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
       minioData['config.env'] = Base64.encode(envString);
-      const isMinioSecretCreated = await this.k8
+      const isMinioSecretCreated = await this.k8Factory
+        .default()
         .secrets()
         .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
       if (!isMinioSecretCreated) {
@@ -188,7 +189,8 @@ export class NetworkCommand extends BaseCommand {
         cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
       }
 
-      const isCloudSecretCreated = await this.k8
+      const isCloudSecretCreated = await this.k8Factory
+        .default()
         .secrets()
         .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
       if (!isCloudSecretCreated) {
@@ -201,7 +203,8 @@ export class NetworkCommand extends BaseCommand {
         const backupData = {};
         const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
         backupData['saJson'] = Base64.encode(googleCredential);
-        const isBackupSecretCreated = await this.k8
+        const isBackupSecretCreated = await this.k8Factory
+          .default()
           .secrets()
           .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
         if (!isBackupSecretCreated) {
@@ -419,8 +422,8 @@ export class NetworkCommand extends BaseCommand {
     config.valuesArg = await this.prepareValuesArg(config);
     config.namespace = namespace;
 
-    if (!(await this.k8.namespaces().has(namespace))) {
-      await this.k8.namespaces().create(namespace);
+    if (!(await this.k8Factory.default().namespaces().has(namespace))) {
+      await this.k8Factory.default().namespaces().create(namespace);
     }
 
     // prepare staging keys directory
@@ -457,22 +460,25 @@ export class NetworkCommand extends BaseCommand {
     await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART);
 
     if (ctx.config.deletePvcs) {
-      const pvcs = await self.k8.pvcs().list(ctx.config.namespace, []);
+      const pvcs = await self.k8Factory.default().pvcs().list(ctx.config.namespace, []);
       task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`;
       if (pvcs) {
         for (const pvc of pvcs) {
-          await self.k8.pvcs().delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
+          await self.k8Factory
+            .default()
+            .pvcs()
+            .delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
         }
       }
     }
 
     if (ctx.config.deleteSecrets) {
       task.title = `Deleting secrets in namespace ${ctx.config.namespace}`;
-      const secrets = await self.k8.secrets().list(ctx.config.namespace);
+      const secrets = await self.k8Factory.default().secrets().list(ctx.config.namespace);
 
       if (secrets) {
         for (const secret of secrets) {
-          await self.k8.secrets().delete(ctx.config.namespace, secret.name);
+          await self.k8Factory.default().secrets().delete(ctx.config.namespace, secret.name);
         }
       }
     }
@@ -590,7 +596,8 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8
+                  await self.k8Factory
+                    .default()
                     .pods()
                     .waitForRunningPhase(
                       config.namespace,
@@ -621,7 +628,8 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8
+                  await self.k8Factory
+                    .default()
                     .pods()
                     .waitForRunningPhase(
                       config.namespace,
@@ -637,7 +645,8 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8
+                  await self.k8Factory
+                    .default()
                     .pods()
                     .waitForRunningPhase(
                       ctx.config.namespace,
@@ -666,7 +675,8 @@ export class NetworkCommand extends BaseCommand {
             subTasks.push({
               title: 'Check MinIO',
               task: async ctx =>
-                await self.k8
+                await self.k8Factory
+                  .default()
                   .pods()
                   .waitForReadyStatus(
                     ctx.config.namespace,
@@ -768,7 +778,7 @@ export class NetworkCommand extends BaseCommand {
                 networkDestroySuccess = false;
 
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
-                  self.k8.namespaces().delete(ctx.config.namespace);
+                  self.k8Factory.default().namespaces().delete(ctx.config.namespace);
                 } else {
                   // If the namespace is not being deleted,
                   // remove all components data from the remote configuration
@@ -837,7 +847,8 @@ export class NetworkCommand extends BaseCommand {
           title: 'Waiting for network pods to be running',
           task: async ctx => {
             const config = ctx.config;
-            await this.k8
+            await this.k8Factory
+              .default()
               .pods()
               .waitForRunningPhase(
                 config.namespace,
