@@ -4,7 +4,6 @@
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import path from 'path';
-import paths from 'path';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
@@ -197,7 +196,7 @@ export class Flags {
           clusterRef = Flags.KEY_COMMON;
         } else {
           clusterRef = parts[0];
-          valuesFile = paths.resolve(parts[1]);
+          valuesFile = path.resolve(parts[1]);
         }
 
         if (!valuesFiles[clusterRef]) {

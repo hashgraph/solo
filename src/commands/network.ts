@@ -436,7 +436,7 @@ export class NetworkCommand extends BaseCommand {
         await k8client.namespaces().create(namespace);
         this.logger.debug(`created namespace '${namespace}' using context: ${context}`);
       } else {
-        this.logger.debug(`namespace '${namespace}' exists using context: ${context}`);
+        this.logger.debug(`namespace '${namespace}' found using context: ${context}`);
       }
     }
   }
