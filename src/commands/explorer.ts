@@ -414,7 +414,7 @@ export class ExplorerCommand extends BaseCommand {
             };
 
             if (!(await self.k8Factory.getK8(ctx.config.clusterContext).namespaces().has(namespace))) {
-              throw new SoloError(`namespace ${namespace} does not exist`);
+              throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
             return ListrLease.newAcquireLeaseTask(lease, task);
