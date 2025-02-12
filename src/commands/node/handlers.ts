@@ -53,8 +53,8 @@ export class NodeCommandHandlers implements CommandHandlers {
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
-  public readonly contexts: string[];
-  public readonly consensusNodes: ConsensusNode[];
+  public contexts: string[];
+  public consensusNodes: ConsensusNode[];
 
   private getConfig: any;
   private prepareChartPath: any;
@@ -83,9 +83,6 @@ export class NodeCommandHandlers implements CommandHandlers {
     this.getConfig = opts.parent.getConfig.bind(opts.parent);
     this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent);
 
-    this.consensusNodes = opts.parent.getConsensusNodes();
-    this.contexts = opts.parent.getContexts();
-
     this.parent = opts.parent;
   }
 
@@ -94,6 +91,10 @@ export class NodeCommandHandlers implements CommandHandlers {
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
   static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
 
+  private init() {
+    this.consensusNodes = this.parent.getConsensusNodes();
+    this.contexts = this.parent.getContexts();
+  }
   /** ******** Task Lists **********/
 
   deletePrepareTaskList(argv: any, lease: Lease) {
@@ -742,6 +743,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async keys(argv: any) {
+    this.init();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
     const action = this.parent.commandActionBuilder(

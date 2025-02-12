@@ -159,6 +159,7 @@ export class NetworkCommand extends BaseCommand {
       // Generating new minio credentials
       const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
       minioData['config.env'] = Base64.encode(envString);
+      // TODO: @Lenin, needs to run once for each cluster
       const isMinioSecretCreated = await this.k8Factory
         .default()
         .secrets()
@@ -192,6 +193,7 @@ export class NetworkCommand extends BaseCommand {
         cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
       }
 
+      // TODO: @Lenin, needs to run once for each cluster
       const isCloudSecretCreated = await this.k8Factory
         .default()
         .secrets()
@@ -206,6 +208,8 @@ export class NetworkCommand extends BaseCommand {
         const backupData = {};
         const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
         backupData['saJson'] = Base64.encode(googleCredential);
+
+        // TODO: @Lenin, needs to run once for each cluster
         const isBackupSecretCreated = await this.k8Factory
           .default()
           .secrets()
@@ -336,7 +340,10 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
     }
 
+    // TODO @Lenin, entrypoint for setting the values files,
     if (config.valuesFile) {
+      // TODO: @Lenin, instead of adding it to the valuesArg, then create a copy of the valuesArg, one for each cluster, and append the
+      //   correct valuesFileArg to each valuesArg using the same argument structure as referenced above prepareValuesFiles
       valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
 
@@ -429,9 +436,6 @@ export class NetworkCommand extends BaseCommand {
       flags.genesisThrottlesFile.definition.defaultValue as string,
     );
 
-    config.valuesArg = await this.prepareValuesArg(config);
-    config.namespace = namespace;
-
     config.consensusNodes = this.getConsensusNodes();
     config.contexts = this.getContexts();
     if (config.nodeAliases.length === 0) {
@@ -441,6 +445,11 @@ export class NetworkCommand extends BaseCommand {
       }
     }
 
+    // TODO: @Lenin, maybe we should turn `config.valuesArg` into an object, Record<ClusterRef, valuesArg: string>
+    config.valuesArg = await this.prepareValuesArg(config);
+    config.namespace = namespace;
+
+    // TODO: @Lenin, will need to run once for each cluster
     if (!(await this.k8Factory.default().namespaces().has(namespace))) {
       await this.k8Factory.default().namespaces().create(namespace);
     }
@@ -536,8 +545,10 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check if cluster setup chart is installed',
           task: async () => {
+            // TODO @Lenin, need to use the config.contexts for each isChartInstalled call
             const isChartInstalled = await this.chartManager.isChartInstalled(null, constants.SOLO_CLUSTER_SETUP_CHART);
             if (!isChartInstalled) {
+              // TODO @Lenin, update error message
               throw new SoloError(
                 `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed. Run 'solo cluster setup'`,
               );
@@ -553,7 +564,7 @@ export class NetworkCommand extends BaseCommand {
                   title: 'Copy Gossip keys to staging',
                   task: ctx => {
                     const config = ctx.config;
-
+                    // TODO @Lenin, need to use consensusNodes instead of nodeAliases
                     this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeAliases);
                   },
                 },

@@ -27,6 +27,7 @@ import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
+import {splitFlagInput} from '../../helpers.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -102,12 +103,19 @@ export class RemoteConfigManager {
       },
     );
 
+    // temporary workaround until we can have `solo deployment add` command
+    const nodeAliases: string[] = splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
+
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(this.getNamespace().name, new Date(), this.localConfig.userEmailAddress),
       clusters,
       commandHistory: ['deployment create'],
       lastExecutedCommand: 'deployment create',
-      components: ComponentsDataWrapper.initializeEmpty(),
+      components: ComponentsDataWrapper.initializeWithNodes(
+        nodeAliases,
+        this.configManager.getFlag(flags.deploymentClusters),
+        this.getNamespace().name,
+      ),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
@@ -133,12 +141,16 @@ export class RemoteConfigManager {
   private async load(): Promise<boolean> {
     if (this.remoteConfig) return true;
 
-    const configMap = await this.getConfigMap();
-    if (!configMap) return false;
+    try {
+      const configMap = await this.getConfigMap();
 
-    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
+      if (!configMap) return false;
+      this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
 
-    return true;
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

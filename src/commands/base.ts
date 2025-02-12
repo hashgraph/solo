@@ -72,6 +72,9 @@ export abstract class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`;
   }
 
+  // TODO @Lenin, this is in the base so it will be used by everyone, which might be good because they won't have to duplicate the code
+  //  perhaps we should clone this method and have the new method return an object Record<ClusterRef, valuesFileArg>
+  //  need to support: --values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
   public prepareValuesFiles(valuesFile: string) {
     let valuesArg = '';
     if (valuesFile) {
