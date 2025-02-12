@@ -289,8 +289,6 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
-          flags.awsBucket.constName,
-          flags.awsBucketPrefix.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 

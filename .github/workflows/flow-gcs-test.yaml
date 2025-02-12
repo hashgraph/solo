@@ -34,6 +34,7 @@ jobs:
     timeout-minutes: 20
     runs-on: solo-linux-large
     strategy:
+      fail-fast: false
       matrix:
         storageType: ["gcs_only", "minio_only", "aws_only"]
     steps:

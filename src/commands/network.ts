@@ -305,6 +305,15 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
     }
 
+    if (config.awsBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.awsBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`;
+    }
+
+    if (config.awsBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`;
+    }
+
     if (config.backupBucket) {
       valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
       valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
