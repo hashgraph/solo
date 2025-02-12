@@ -16,6 +16,7 @@ import {type LeaseManager} from '../core/lease/lease_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {type LocalConfig} from '../core/config/local_config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
+import {type BaseCommand} from '../commands/base.js';
 
 export interface Opts {
   logger: SoloLogger;
@@ -33,4 +34,5 @@ export interface Opts {
   certificateManager: CertificateManager;
   localConfig: LocalConfig;
   remoteConfigManager: RemoteConfigManager;
+  parent?: BaseCommand;
 }

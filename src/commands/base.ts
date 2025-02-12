@@ -22,6 +22,10 @@ import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
 import {ConsensusNode} from '../core/model/consensus_node.js';
+import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import {Flags} from './flags.js';
+import {type Cluster} from '../core/config/remote/cluster.js';
+import {Templates} from '../core/templates.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -72,6 +76,7 @@ export abstract class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`;
   }
 
+  // FIXME @Deprecated. Use prepareValuesFilesMap instead to support multi-cluster
   public prepareValuesFiles(valuesFile: string) {
     let valuesArg = '';
     if (valuesFile) {
@@ -83,6 +88,87 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     return valuesArg;
+  }
+
+  /**
+   * Prepare the values files map for each cluster
+   *
+   * <p> Order of precedence:
+   * <ol>
+   *   <li> Chart's default values file (if chartDirectory is set) </li>
+   *   <li> Profile values file </li>
+   *   <li> User's values file </li>
+   * </ol>
+   * @param clusterRefs - the map of cluster references
+   * @param valuesFileInput - the values file input string
+   * @param chartDirectory - the chart directory
+   * @param profileValuesFile - the profile values file
+   */
+  static prepareValuesFilesMap(
+    clusterRefs: ClusterRefs,
+    chartDirectory?: string,
+    profileValuesFile?: string,
+    valuesFileInput?: string,
+  ): Record<ClusterRef, string> {
+    // initialize the map with an empty array for each cluster-ref
+    const valuesFiles: Record<ClusterRef, string> = {
+      [Flags.KEY_COMMON]: '',
+    };
+    Object.keys(clusterRefs).forEach(clusterRef => {
+      valuesFiles[clusterRef] = '';
+    });
+
+    // add the chart's default values file for each cluster-ref if chartDirectory is set
+    // this should be the first in the list of values files as it will be overridden by user's input
+    if (chartDirectory) {
+      const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      for (const clusterRef in valuesFiles) {
+        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      }
+    }
+
+    if (profileValuesFile) {
+      const parsed = Flags.parseValuesFilesInput(profileValuesFile);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([cf]) => {
+            valuesFiles[cf] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (valuesFileInput) {
+      const parsed = Flags.parseValuesFilesInput(valuesFileInput);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterRef]) => {
+            valuesFiles[clusterRef] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (Object.keys(valuesFiles).length > 1) {
+      // delete the common key if there is another cluster to use
+      delete valuesFiles[Flags.KEY_COMMON];
+    }
+
+    return valuesFiles;
   }
 
   public getConfigManager(): ConfigManager {
@@ -104,6 +190,7 @@ export abstract class BaseCommand extends ShellRunner {
     // build the dynamic class that will keep track of which properties are used
     const NewConfigClass = class {
       private usedConfigs: Map<string, number>;
+
       constructor() {
         // the map to keep track of which properties are used
         this.usedConfigs = new Map();
@@ -253,20 +340,33 @@ export abstract class BaseCommand extends ShellRunner {
    */
   public getConsensusNodes(): ConsensusNode[] {
     const consensusNodes: ConsensusNode[] = [];
+    const clusters: Record<ClusterRef, Cluster> = this.getRemoteConfigManager().clusters;
 
     // using the remoteConfigManager to get the consensus nodes
-    Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
-      consensusNodes.push(
-        new ConsensusNode(
-          node.name,
-          node.nodeId,
-          node.namespace,
-          node.cluster,
-          // use local config to get the context
-          this.getLocalConfig().clusterRefs[node.cluster],
-        ),
-      );
-    });
+    if (this.getRemoteConfigManager()?.components?.consensusNodes) {
+      Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
+        consensusNodes.push(
+          new ConsensusNode(
+            node.name,
+            node.nodeId,
+            node.namespace,
+            node.cluster,
+            // use local config to get the context
+            this.getLocalConfig().clusterRefs[node.cluster],
+            clusters[node.cluster].dnsBaseDomain,
+            clusters[node.cluster].dnsConsensusNodePattern,
+            Templates.renderConsensusNodeFullyQualifiedDomainName(
+              node.name,
+              node.nodeId,
+              node.namespace,
+              node.cluster,
+              clusters[node.cluster].dnsBaseDomain,
+              clusters[node.cluster].dnsConsensusNodePattern,
+            ),
+          ),
+        );
+      });
+    }
 
     // return the consensus nodes
     return consensusNodes;
@@ -284,5 +384,19 @@ export abstract class BaseCommand extends ShellRunner {
       }
     });
     return contexts;
+  }
+
+  /**
+   * Gets a list of distinct cluster references from the consensus nodes
+   * @returns an object of cluster references
+   */
+  public getClusterRefs(): ClusterRefs {
+    const clustersRefs: ClusterRefs = {};
+    this.getConsensusNodes().forEach(node => {
+      if (!Object.keys(clustersRefs).includes(node.cluster)) {
+        clustersRefs[node.cluster] = node.context;
+      }
+    });
+    return clustersRefs;
   }
 }

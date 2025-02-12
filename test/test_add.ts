@@ -33,7 +33,7 @@ export function testNodeAdd(
 ): void {
   const suffix = localBuildPath.substring(0, 5);
   const namespace = NamespaceName.of(`node-add${suffix}`);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
   argv[flags.stakeAmounts.name] = '1500,1';
   argv[flags.generateGossipKeys.name] = true;
@@ -72,9 +72,11 @@ export function testNodeAdd(
 
           await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
           await bootstrapResp.opts.accountManager.close();
+          /** !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TODO don't check in commented out code
           await nodeCmd.handlers.stop(argv);
           await networkCmd.destroy(argv);
           await k8Factory.default().namespaces().delete(namespace);
+              */
         });
 
         it('cache current version of private keys', async () => {

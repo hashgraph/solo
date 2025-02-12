@@ -20,14 +20,15 @@ import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
-describe('NetworkCommand', () => {
+describe('NetworkCommand', function networkCommand() {
+  this.bail(true);
   const testName = 'network-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
-  const argv = getDefaultArgv();
-  argv[flags.namespace.name] = namespace.name;
+  const argv = getDefaultArgv(namespace);
+  // argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
   argv[flags.generateGossipKeys.name] = true;
@@ -49,6 +50,7 @@ describe('NetworkCommand', () => {
   const clusterCmd = bootstrapResp.cmd.clusterCmd;
   const initCmd = bootstrapResp.cmd.initCmd;
   const nodeCmd = bootstrapResp.cmd.nodeCmd;
+  const deploymentCmd = bootstrapResp.cmd.deploymentCmd;
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
@@ -59,10 +61,18 @@ describe('NetworkCommand', () => {
   });
 
   before(async () => {
+    await k8Factory.default().namespaces().delete(namespace);
     await initCmd.init(argv);
     await clusterCmd.handlers.setup(argv);
     fs.mkdirSync(applicationEnvParentDirectory, {recursive: true});
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
+  });
+
+  it('deployment create should succeed', async () => {
+    expect(await deploymentCmd.create(argv)).to.be.true;
+    argv[flags.nodeAliasesUnparsed.name] = undefined;
+    configManager.reset();
+    configManager.update(argv);
   });
 
   it('keys should be generated', async () => {

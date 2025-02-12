@@ -16,7 +16,7 @@ import {type SoloListrTask} from '../types/index.js';
 import {type Opts} from '../types/command_types.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
@@ -35,18 +35,19 @@ export class DeploymentCommand extends BaseCommand {
       flags.quiet,
       flags.context,
       flags.namespace,
-      flags.clusterName,
+      flags.clusterRef,
       flags.userEmailAddress,
       flags.deployment,
       flags.deploymentClusters,
+      flags.nodeAliasesUnparsed,
     ];
   }
 
   private static get LIST_DEPLOYMENTS_FLAGS_LIST(): CommandFlag[] {
-    return [flags.quiet, flags.clusterName];
+    return [flags.quiet, flags.clusterRef];
   }
 
-  private async create(argv: any): Promise<boolean> {
+  public async create(argv: any): Promise<boolean> {
     const self = this;
 
     interface Config {
@@ -57,6 +58,7 @@ export class DeploymentCommand extends BaseCommand {
       namespace: NamespaceName;
       deployment: DeploymentName;
       deploymentClusters: string[];
+      nodeAliases: string[];
     }
 
     interface Context {
@@ -82,6 +84,7 @@ export class DeploymentCommand extends BaseCommand {
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
               deploymentClusters: splitFlagInput(self.configManager.getFlag<string>(flags.deploymentClusters)),
+              nodeAliases: splitFlagInput(self.configManager.getFlag<string>(flags.nodeAliasesUnparsed)),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -93,7 +96,13 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Add new deployment to local config',
           task: async (ctx, task) => {
             const {deployments} = this.localConfig;
-            const {deployment, namespace, deploymentClusters} = ctx.config;
+            const {deployment, namespace: configNamespace, deploymentClusters} = ctx.config;
+            let namespace = configNamespace;
+            if (!namespace?.name) {
+              namespace = NamespaceName.of(deployment);
+              ctx.config.namespace = namespace;
+              this.configManager.setFlag(flags.namespace, namespace);
+            }
             deployments[deployment] = {
               namespace: namespace.name,
               clusters: deploymentClusters,
@@ -183,10 +192,10 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [flags.clusterName]);
+            await self.configManager.executePrompt(task, [flags.clusterRef]);
 
             ctx.config = {
-              clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterName),
+              clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});

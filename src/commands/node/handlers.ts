@@ -42,6 +42,7 @@ import {type ComponentsDataWrapper} from '../../core/config/remote/components_da
 import {type Optional} from '../../types/index.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {Templates} from '../../core/templates.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -52,6 +53,8 @@ export class NodeCommandHandlers implements CommandHandlers {
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
+  public contexts: string[];
+  public consensusNodes: ConsensusNode[];
 
   private getConfig: any;
   private prepareChartPath: any;
@@ -79,6 +82,7 @@ export class NodeCommandHandlers implements CommandHandlers {
 
     this.getConfig = opts.parent.getConfig.bind(opts.parent);
     this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent);
+
     this.parent = opts.parent;
   }
 
@@ -87,6 +91,10 @@ export class NodeCommandHandlers implements CommandHandlers {
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
   static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
 
+  private init() {
+    this.consensusNodes = this.parent.getConsensusNodes();
+    this.contexts = this.parent.getContexts();
+  }
   /** ******** Task Lists **********/
 
   deletePrepareTaskList(argv: any, lease: Lease) {
@@ -135,7 +143,9 @@ export class NodeCommandHandlers implements CommandHandlers {
   addPrepareTasks(argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      this.validateSingleNodeState({excludedStates: []}),
+      // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
+      //  the nodeAlias based on the next available node ID + 1
+      // this.validateSingleNodeState({excludedStates: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -735,6 +745,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async keys(argv: any) {
+    this.init();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
     const action = this.parent.commandActionBuilder(

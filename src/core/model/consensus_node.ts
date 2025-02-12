@@ -9,5 +9,8 @@ export class ConsensusNode {
     public readonly namespace: string,
     public readonly cluster: string,
     public readonly context: string,
+    public readonly dnsBaseDomain: string,
+    public readonly dnsConsensusNodePattern: string,
+    public readonly fullyQualifiedDomainName: string,
   ) {}
 }

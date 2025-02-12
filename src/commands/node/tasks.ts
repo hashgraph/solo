@@ -68,6 +68,7 @@ import {ContainerRef} from '../../core/kube/resources/container/container_ref.js
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -108,6 +109,8 @@ export class NodeCommandTasks {
       throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
     if (!opts || !opts.certificateManager)
       throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
+    if (!opts || !opts.parent)
+      throw new IllegalArgumentError('An instance of parents as BaseCommand is required', opts.parent);
 
     this.accountManager = opts.accountManager;
     this.configManager = opts.configManager;
@@ -120,6 +123,7 @@ export class NodeCommandTasks {
     this.chartManager = opts.chartManager;
     this.certificateManager = opts.certificateManager;
     this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent);
+    this.parent = opts.parent;
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {
@@ -947,7 +951,7 @@ export class NodeCommandTasks {
       if (isGenesis) {
         await this.generateGenesisNetworkJson(
           ctx.config.namespace,
-          ctx.config.nodeAliases,
+          ctx.config.consensusNodes,
           ctx.config.keysDir,
           ctx.config.stagingDir,
         );
@@ -985,13 +989,13 @@ export class NodeCommandTasks {
    * Generate genesis network json file
    * @private
    * @param namespace - namespace
-   * @param nodeAliases - node aliases
+   * @param consensusNodes - consensus nodes
    * @param keysDir - keys directory
    * @param stagingDir - staging directory
    */
   private async generateGenesisNetworkJson(
     namespace: NamespaceName,
-    nodeAliases: NodeAliases,
+    consensusNodes: ConsensusNode[],
     keysDir: string,
     stagingDir: string,
   ) {
@@ -999,7 +1003,7 @@ export class NodeCommandTasks {
 
     const adminPublicKeys = splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys));
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
-      nodeAliases,
+      consensusNodes,
       this.keyManager,
       this.accountManager,
       keysDir,
@@ -1486,7 +1490,11 @@ export class NodeCommandTasks {
 
   copyNodeKeysToSecrets() {
     return new Task('Copy node keys to secrets', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      const subTasks = this.platformInstaller.copyNodeKeys(ctx.config.stagingDir, ctx.config.allNodeAliases);
+      const subTasks = this.platformInstaller.copyNodeKeys(
+        ctx.config.stagingDir,
+        ctx.config.consensusNodes,
+        ctx.config.contexts,
+      );
 
       // set up the sub-tasks for copying node keys to staging directory
       return task.newListr(subTasks, {
@@ -1818,6 +1826,8 @@ export class NodeCommandTasks {
 
       const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
       ctx.config = config;
+      config.consensusNodes = this.parent.getConsensusNodes();
+      config.contexts = this.parent.getContexts();
 
       for (const flag of allRequiredFlags) {
         if (typeof config[flag.constName] === 'undefined') {

@@ -19,6 +19,7 @@ import {resetForTest} from '../../test_container.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_data_wrapper.js';
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -179,6 +180,14 @@ describe('BaseCommand', () => {
       expect(contexts).to.be.an('array');
       expect(contexts[0]).to.equal('context1');
       expect(contexts[1]).to.equal('context2');
+    });
+
+    it('should return clusters references', () => {
+      const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
+      const clusterRefs: ClusterRefs = baseCmd.getClusterRefs();
+      Object.keys(clusterRefs).forEach(clusterRef => {
+        expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
+      });
     });
   });
 });

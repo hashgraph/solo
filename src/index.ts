@@ -93,7 +93,7 @@ export function main(argv: any) {
         configManager.reset();
       }
 
-      const clusterName = configManager.getFlag(flags.clusterName) || currentClusterName;
+      const clusterName = configManager.getFlag(flags.clusterRef) || currentClusterName;
 
       if (contextNamespace?.name) {
         configManager.setFlag(flags.namespace, contextNamespace);

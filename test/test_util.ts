@@ -50,6 +50,8 @@ import {PodRef} from '../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../src/core/kube/resources/container/container_ref.js';
 import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
+import {DeploymentCommand} from '../src/commands/deployment.js';
+import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
 
 export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
@@ -72,18 +74,21 @@ export function getTmpDir() {
 }
 
 /** Get argv with defaults */
-export function getDefaultArgv() {
+export function getDefaultArgv(namespace?: NamespaceName) {
   const argv: Record<string, any> = {};
   for (const f of flags.allFlags) {
     argv[f.name] = f.definition.defaultValue;
   }
 
-  const currentDeployment = 'deployment';
+  const currentDeployment = namespace?.name;
   const cacheDir = getTestCacheDir();
   argv.cacheDir = cacheDir;
   argv[flags.cacheDir.name] = cacheDir;
   argv.deployment = currentDeployment;
   argv[flags.deployment.name] = currentDeployment;
+  argv[flags.clusterRef.name] = 'cluster-1';
+  argv[flags.deploymentClusters.name] = ['cluster-1'];
+  argv[flags.context.name] = new K8Client(undefined).contexts().readCurrent();
   return argv;
 }
 
@@ -119,6 +124,7 @@ interface BootstrapResponse {
     networkCmd: NetworkCommand;
     nodeCmd: NodeCommand;
     accountCmd: AccountCommand;
+    deploymentCmd: DeploymentCommand;
   };
 }
 
@@ -132,6 +138,7 @@ export function bootstrapTestVariables(
   networkCmdArg: NetworkCommand | null = null,
   nodeCmdArg: NodeCommand | null = null,
   accountCmdArg: AccountCommand | null = null,
+  deploymentCmdArg: DeploymentCommand | null = null,
 ): BootstrapResponse {
   const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
   const deployment: string = argv[flags.deployment.name] || 'deployment';
@@ -174,11 +181,12 @@ export function bootstrapTestVariables(
     remoteConfigManager,
   };
 
-  const initCmd = initCmdArg || new InitCommand(opts);
-  const clusterCmd = clusterCmdArg || new ClusterCommand(opts);
-  const networkCmd = networkCmdArg || new NetworkCommand(opts);
-  const nodeCmd = nodeCmdArg || new NodeCommand(opts);
-  const accountCmd = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
+  const initCmd: InitCommand = initCmdArg || new InitCommand(opts);
+  const clusterCmd: ClusterCommand = clusterCmdArg || new ClusterCommand(opts);
+  const networkCmd: NetworkCommand = networkCmdArg || new NetworkCommand(opts);
+  const nodeCmd: NodeCommand = nodeCmdArg || new NodeCommand(opts);
+  const accountCmd: AccountCommand = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
+  const deploymentCmd: DeploymentCommand = deploymentCmdArg || new DeploymentCommand(opts);
   return {
     namespace,
     deployment,
@@ -192,6 +200,7 @@ export function bootstrapTestVariables(
       networkCmd,
       nodeCmd,
       accountCmd,
+      deploymentCmd,
     },
   };
 }
@@ -219,13 +228,14 @@ export function e2eTestSuite(
     nodeCmdArg,
     accountCmdArg,
   );
-  const namespace = bootstrapResp.namespace;
-  const initCmd = bootstrapResp.cmd.initCmd;
-  const k8Factory = bootstrapResp.opts.k8Factory;
-  const clusterCmd = bootstrapResp.cmd.clusterCmd;
-  const networkCmd = bootstrapResp.cmd.networkCmd;
-  const nodeCmd = bootstrapResp.cmd.nodeCmd;
-  const chartManager = bootstrapResp.opts.chartManager;
+  const namespace: NamespaceName = bootstrapResp.namespace;
+  const initCmd: InitCommand = bootstrapResp.cmd.initCmd;
+  const k8Factory: K8Factory = bootstrapResp.opts.k8Factory;
+  const clusterCmd: ClusterCommand = bootstrapResp.cmd.clusterCmd;
+  const networkCmd: NetworkCommand = bootstrapResp.cmd.networkCmd;
+  const nodeCmd: NodeCommand = bootstrapResp.cmd.nodeCmd;
+  const chartManager: ChartManager = bootstrapResp.opts.chartManager;
+  const deploymentCmd: DeploymentCommand = bootstrapResp.cmd.deploymentCmd;
 
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
@@ -264,11 +274,17 @@ export function e2eTestSuite(
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
+      it('should succeed with deployment create', async () => {
+        expect(await deploymentCmd.create(argv)).to.be.true;
+      });
+
       it('generate key files', async () => {
         expect(await nodeCmd.handlers.keys(argv)).to.be.true;
         expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName,
+          'consensusNodes',
+          'contexts',
         ]);
       }).timeout(Duration.ofMinutes(2).toMillis());
 
@@ -301,6 +317,8 @@ export function e2eTestSuite(
               flags.quiet.constName,
               flags.devMode.constName,
               flags.adminPublicKeys.constName,
+              'consensusNodes',
+              'contexts',
             ]);
           } catch (e) {
             nodeCmd.logger.showUserError(e);
