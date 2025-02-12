@@ -64,7 +64,7 @@ jobs:
       GH_ACCESS_PASSPHRASE: ${{ secrets.GH_ACCESS_PASSPHRASE }}
 
   e2e-tests:
-    name: E2E Tests (${{ matrix.name }})
+    name: E2E Tests (${{ matrix.e2e-test-type.name }})
     if: ${{ !cancelled() && always() }}
     uses: ./.github/workflows/zxc-e2e-test.yaml
     needs:
