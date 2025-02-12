@@ -329,8 +329,8 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (config.loadBalancerEnabled) {
-      valuesArg += ' --set "defaults.haproxy.serviceType=LoadBalancer"';
-      valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
+      valuesArg += ' --set "defaults.haproxy.service.type=LoadBalancer"';
+      valuesArg += ' --set "defaults.envoyProxy.service.type=LoadBalancer"';
     }
 
     if (config.valuesFile) {
