@@ -3,6 +3,7 @@
  */
 
 import paths from 'path';
+import path from 'path';
 import {MissingArgumentError, SoloError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
 import {type LeaseManager} from '../core/lease/lease_manager.js';
@@ -17,11 +18,12 @@ import {type Opts} from '../types/command_types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
-import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
 import {ConsensusNode} from '../core/model/consensus_node.js';
+import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import {Flags} from './flags.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -72,9 +74,7 @@ export abstract class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`;
   }
 
-  // TODO @Lenin, this is in the base so it will be used by everyone, which might be good because they won't have to duplicate the code
-  //  perhaps we should clone this method and have the new method return an object Record<ClusterRef, valuesFileArg>
-  //  need to support: --values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
+  // FIXME @Deprecated. Use prepareValuesFilesMap instead to support multi-cluster
   public prepareValuesFiles(valuesFile: string) {
     let valuesArg = '';
     if (valuesFile) {
@@ -86,6 +86,80 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     return valuesArg;
+  }
+
+  /**
+   * Prepare the values files map for each cluster
+   *
+   * <p> Order of precedence:
+   * <ol>
+   *   <li> Chart's default values file (if chartDirectory is set) </li>
+   *   <li> Profile values file </li>
+   *   <li> User's values file </li>
+   * </ol>
+   * @param contextRefs - the map of cluster references
+   * @param valuesFileInput - the values file input string
+   * @param chartDirectory - the chart directory
+   * @param profileValuesFile - the profile values file
+   */
+  static prepareValuesFilesMap(
+    contextRefs: ClusterRefs,
+    chartDirectory?: string,
+    profileValuesFile?: string,
+    valuesFileInput?: string,
+  ): Record<ClusterRef, string> {
+    // initialize the map with an empty array for each cluster-ref
+    const valuesFiles: Record<ClusterRef, string> = {};
+    Object.entries(contextRefs).forEach(([clusterRef]) => {
+      valuesFiles[clusterRef] = '';
+    });
+
+    // add the chart's default values file for each cluster-ref if chartDirectory is set
+    // this should be the first in the list of values files as it will be overridden by user's input
+    if (chartDirectory) {
+      const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      for (const clusterRef in valuesFiles) {
+        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      }
+    }
+
+    if (profileValuesFile) {
+      const parsed = Flags.parseValuesFilesInput(profileValuesFile);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([cf]) => {
+            valuesFiles[cf] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (valuesFileInput) {
+      const parsed = Flags.parseValuesFilesInput(valuesFileInput);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterRef]) => {
+            valuesFiles[clusterRef] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    return valuesFiles;
   }
 
   public getConfigManager(): ConfigManager {
@@ -107,6 +181,7 @@ export abstract class BaseCommand extends ShellRunner {
     // build the dynamic class that will keep track of which properties are used
     const NewConfigClass = class {
       private usedConfigs: Map<string, number>;
+
       constructor() {
         // the map to keep track of which properties are used
         this.usedConfigs = new Map();

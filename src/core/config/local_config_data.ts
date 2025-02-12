@@ -3,10 +3,10 @@
  */
 import {
   type ClusterRef,
-  type Context,
+  type ClusterRefs,
+  type DeploymentName,
   type EmailAddress,
   type NamespaceNameAsString,
-  type DeploymentName,
 } from './remote/types.js';
 
 export interface DeploymentStructure {
@@ -14,8 +14,6 @@ export interface DeploymentStructure {
   clusters: ClusterRef[];
   namespace: NamespaceNameAsString;
 }
-
-export type ClusterRefs = Record<ClusterRef, Context>;
 
 export type Deployments = Record<DeploymentName, DeploymentStructure>;
 

@@ -2,13 +2,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import sinon from 'sinon';
-import {describe, it, beforeEach} from 'mocha';
+import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
+import {ROOT_DIR} from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type ChartManager} from '../../../src/core/chart_manager.js';
 import {type Helm} from '../../../src/core/helm.js';
@@ -18,7 +19,6 @@ import {type LeaseManager} from '../../../src/core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {type ProfileManager} from '../../../src/core/profile_manager.js';
 import {type KeyManager} from '../../../src/core/key_manager.js';
-import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
@@ -60,6 +60,7 @@ describe('NetworkCommand unit tests', () => {
 
       opts.k8Factory = sinon.stub() as unknown as K8Factory;
       const k8Stub = sinon.stub();
+
       opts.k8Factory.default = sinon.stub().returns(k8Stub);
       opts.k8Factory.default().namespaces = sinon.stub().returns({
         has: sinon.stub().returns(true),
@@ -73,13 +74,29 @@ describe('NetworkCommand unit tests', () => {
       opts.k8Factory.default().leases = sinon.stub().returns({
         read: sinon.stub(),
       });
+      opts.k8Factory.default().logger = opts.logger;
+
+      opts.k8Factory.getK8 = sinon.stub().returns(k8Stub);
+      opts.k8Factory.getK8().namespaces = sinon.stub().returns({
+        has: sinon.stub().returns(true),
+      });
+      opts.k8Factory.getK8().configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
+      opts.k8Factory.getK8().configMaps.read = sinon.stub();
+      opts.k8Factory.getK8().pods = sinon.stub().returns({
+        waitForRunningPhase: sinon.stub(),
+        waitForReadyStatus: sinon.stub(),
+      });
+      opts.k8Factory.getK8().leases = sinon.stub().returns({
+        read: sinon.stub(),
+      });
+      opts.k8Factory.getK8().logger = opts.logger;
+
       const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
       clusterChecksStub.isMinioInstalled = sinon.stub();
       clusterChecksStub.isPrometheusInstalled = sinon.stub();
       clusterChecksStub.isCertManagerInstalled = sinon.stub();
       container.registerInstance(InjectTokens.ClusterChecks, clusterChecksStub);
 
-      opts.k8Factory.default().logger = opts.logger;
       container.registerInstance(InjectTokens.K8Factory, opts.k8Factory);
 
       opts.depManager = sinon.stub() as unknown as DependencyManager;
@@ -153,6 +170,50 @@ describe('NetworkCommand unit tests', () => {
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
       );
       expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+    });
+
+    it('Should use prepare config correctly for all clusters', async () => {
+      const common = path.join('test', 'data', 'test-values.yaml');
+      const values1 = path.join('test', 'data', 'test-values1.yaml');
+      const values2 = path.join('test', 'data', 'test-values2.yaml');
+      argv[flags.networkDeploymentValuesFile.name] = `${common},cluster-1=${values1},cluster-1=${values2}\``;
+      argv[flags.chartDirectory.name] = 'test-directory';
+      argv[flags.force.name] = true;
+
+      const task = sinon.stub();
+
+      const networkCommand = new NetworkCommand(opts);
+      const config = await networkCommand.prepareConfig(task, argv);
+
+      expect(config.valuesArgMap).to.not.empty;
+      expect(config.valuesArgMap['cluster-1']).to.not.empty;
+      expect(config.valuesArgMap['cluster-1'].indexOf('solo-deployment/values.yaml')).to.not.equal(-1);
+      expect(config.valuesArgMap['cluster-1'].indexOf('values.yaml')).to.not.equal(-1);
+      expect(config.valuesArgMap['cluster-1'].indexOf('test-values1.yaml')).to.not.equal(-1);
+      expect(config.valuesArgMap['cluster-1'].indexOf('test-values2.yaml')).to.not.equal(-1);
+      expect(config.valuesArgMap['cluster-2']).to.not.empty;
+      expect(config.valuesArgMap['cluster-2'].indexOf('solo-deployment/values.yaml')).to.not.equal(-1);
+      expect(config.valuesArgMap['cluster-2'].indexOf('values.yaml')).to.not.equal(-1);
+      expect(config.valuesArgMap['cluster-2'].indexOf('test-values1.yaml')).to.equal(-1);
+      expect(config.valuesArgMap['cluster-2'].indexOf('test-values2.yaml')).to.equal(-1);
+
+      // chart values file should precede the values file passed in the command
+      expect(config.valuesArgMap['cluster-1'].indexOf('solo-deployment/values.yaml')).to.be.lt(
+        config.valuesArgMap['cluster-1'].indexOf('test-values1.yaml'),
+      );
+      expect(config.valuesArgMap['cluster-1'].indexOf('solo-deployment/values.yaml')).to.be.lt(
+        config.valuesArgMap['cluster-1'].indexOf('test-values2.yaml'),
+      );
+
+      expect(config.valuesArgMap['cluster-1'].indexOf('values.yaml')).to.be.lt(
+        config.valuesArgMap['cluster-1'].indexOf('test-values1.yaml'),
+      );
+      expect(config.valuesArgMap['cluster-1'].indexOf('test-values1.yaml')).to.be.lt(
+        config.valuesArgMap['cluster-1'].indexOf('test-values2.yaml'),
+      );
+      expect(config.valuesArgMap['cluster-1'].indexOf('values.yaml')).to.be.lt(
+        config.valuesArgMap['cluster-1'].indexOf('test-values2.yaml'),
+      );
     });
   });
 });
