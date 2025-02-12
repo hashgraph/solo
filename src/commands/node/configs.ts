@@ -18,7 +18,6 @@ import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
-import {type NodeCommandHandlers} from './handlers.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
@@ -346,7 +345,7 @@ export const startConfigBuilder = async function (argv, ctx, task) {
   return config;
 };
 
-export const setupConfigBuilder = async function (this: NodeCommandHandlers, argv, ctx, task) {
+export const setupConfigBuilder = async function (argv, ctx, task) {
   ctx.config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
     'nodeAliases',
     'podRefs',
