@@ -157,6 +157,7 @@ export class Flags {
     definition: {
       describe: 'Cluster Reference',
       defaultValue: '',
+      type: 'string',
     },
     prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(

@@ -89,6 +89,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       }
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.clusterRef.constName,
         flags.chartDirectory.constName,
         flags.deployment.constName,
         flags.profileFile.constName,
