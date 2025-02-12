@@ -33,6 +33,7 @@ import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ConsensusNode} from '../core/model/consensus_node.js';
+import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -53,7 +54,7 @@ export interface NetworkDeployConfigClass {
   nodeAliases: NodeAliases;
   stagingDir: string;
   stagingKeysDir: string;
-  valuesArg: string;
+  valuesArgMap: Record<ClusterRef, string>;
   grpcTlsCertificatePath: string;
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
@@ -82,7 +83,6 @@ export class NetworkCommand extends BaseCommand {
   private readonly platformInstaller: PlatformInstaller;
   private readonly profileManager: ProfileManager;
   private readonly certificateManager: CertificateManager;
-  private profileValuesFile?: string;
 
   constructor(opts: Opts) {
     super(opts);
@@ -225,7 +225,63 @@ export class NetworkCommand extends BaseCommand {
     }
   }
 
-  async prepareValuesArg(config: {
+  /**
+   * Prepare values args string for each cluster-ref
+   * @param config
+   */
+  async prepareValuesArgMap(config: {
+    chartDirectory?: string;
+    app?: string;
+    nodeAliases: string[];
+    debugNodeAlias?: NodeAlias;
+    enablePrometheusSvcMonitor?: boolean;
+    releaseTag?: string;
+    persistentVolumeClaims?: string;
+    valuesFile?: string;
+    haproxyIpsParsed?: Record<NodeAlias, IP>;
+    envoyIpsParsed?: Record<NodeAlias, IP>;
+    storageType: constants.StorageType;
+    resolvedThrottlesFile: string;
+    storageAccessKey: string;
+    storageSecrets: string;
+    storageEndpoint: string;
+    storageBucket: string;
+    storageBucketPrefix: string;
+    backupBucket: string;
+    googleCredential: string;
+    loadBalancerEnabled: boolean;
+  }): Promise<Record<ClusterRef, string>> {
+    const valuesArgs: Record<ClusterRef, string> = {};
+
+    // prepare values files for each cluster
+    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
+    const profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
+    const clustersMap: ClusterRefs = this.getLocalConfig().clusterRefs;
+    const valuesFiles: Record<ClusterRef, Array<string>> = BaseCommand.prepareValuesFilesMap(
+      clustersMap,
+      config.chartDirectory,
+      config.valuesFile,
+      profileValuesFile,
+    );
+
+    // Iterate over each cluster and set values args including the values files
+    for (const clusterRef of Object.keys(valuesFiles)) {
+      let valuesArg = this.prepareValuesArg(config);
+      valuesFiles[clusterRef].forEach(valuesFile => {
+        valuesArg += ` --values ${valuesFile}`;
+      });
+
+      valuesArgs[clusterRef] = valuesArg;
+    }
+
+    return valuesArgs;
+  }
+
+  /**
+   * Prepare the values argument for the helm chart for a given config
+   * @param config
+   */
+  prepareValuesArg(config: {
     chartDirectory?: string;
     app?: string;
     nodeAliases: string[];
@@ -247,10 +303,7 @@ export class NetworkCommand extends BaseCommand {
     googleCredential: string;
     loadBalancerEnabled: boolean;
   }) {
-    let valuesArg = config.chartDirectory
-      ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
-      : '';
-
+    let valuesArg = '';
     if (config.app !== constants.HEDERA_APP_NAME) {
       const index = config.nodeAliases.length;
       for (let i = 0; i < index; i++) {
@@ -303,12 +356,6 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
     }
 
-    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
-    if (this.profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(this.profileValuesFile);
-    }
-
     valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
 
     valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
@@ -338,13 +385,6 @@ export class NetworkCommand extends BaseCommand {
     if (config.loadBalancerEnabled) {
       valuesArg += ' --set "defaults.haproxy.serviceType=LoadBalancer"';
       valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
-    }
-
-    // TODO @Lenin, entrypoint for setting the values files,
-    if (config.valuesFile) {
-      // TODO: @Lenin, instead of adding it to the valuesArg, then create a copy of the valuesArg, one for each cluster, and append the
-      //   correct valuesFileArg to each valuesArg using the same argument structure as referenced above prepareValuesFiles
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
     }
 
     this.logger.debug('Prepared helm chart values', {valuesArg});
@@ -445,8 +485,7 @@ export class NetworkCommand extends BaseCommand {
       }
     }
 
-    // TODO: @Lenin, maybe we should turn `config.valuesArg` into an object, Record<ClusterRef, valuesArg: string>
-    config.valuesArg = await this.prepareValuesArg(config);
+    config.valuesArgMap = await this.prepareValuesArgMap(config);
     config.namespace = namespace;
 
     // TODO: @Lenin, will need to run once for each cluster
@@ -602,19 +641,19 @@ export class NetworkCommand extends BaseCommand {
           title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
           task: async ctx => {
             const config = ctx.config;
-            // TODO: @Lenin, run for each cluster
-            if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
-              await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART);
-            }
+            for (const clusterRef of Object.keys(config.valuesArgMap)) {
+              if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
+                await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART);
+              }
 
-            // TODO: @Lenin, run for each cluster
-            await this.chartManager.install(
-              config.namespace,
-              constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath,
-              config.soloChartVersion,
-              config.valuesArg,
-            );
+              await this.chartManager.install(
+                config.namespace,
+                constants.SOLO_DEPLOYMENT_CHART,
+                ctx.config.chartPath,
+                config.soloChartVersion,
+                config.valuesArgMap[clusterRef],
+              );
+            }
           },
         },
         {
@@ -873,13 +912,15 @@ export class NetworkCommand extends BaseCommand {
           title: `Upgrade chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
           task: async ctx => {
             const config = ctx.config;
-            await this.chartManager.upgrade(
-              config.namespace,
-              constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath,
-              config.soloChartVersion,
-              config.valuesArg,
-            );
+            for (const clusterRef of Object.keys(config.valuesArgMap)) {
+              await this.chartManager.upgrade(
+                config.namespace,
+                constants.SOLO_DEPLOYMENT_CHART,
+                ctx.config.chartPath,
+                config.soloChartVersion,
+                config.valuesArgMap[clusterRef],
+              );
+            }
           },
         },
         {

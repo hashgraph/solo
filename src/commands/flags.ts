@@ -4,6 +4,7 @@
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import path from 'path';
+import paths from 'path';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
@@ -12,6 +13,7 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
 import {type AnyObject} from '../types/aliases.js';
+import {type ClusterRef} from '../core/config/remote/types.js';
 
 export class Flags {
   private static async prompt(
@@ -173,33 +175,50 @@ export class Flags {
     },
   };
 
+  /**
+   * Parse the values files input string that includes the cluster reference and the values file path
+   * <p>It supports input as below:
+   * <p>--values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
+   * @param input
+   */
+  static parseValuesFilesInput(input: string): Record<ClusterRef, Array<string>> {
+    const valuesFiles: Record<ClusterRef, Array<string>> = {};
+    if (input) {
+      const inputItems = input.split(',');
+      inputItems.forEach(vf => {
+        const parts = vf.split('=');
+        if (parts.length !== 2) {
+          throw new SoloError(`Values file input must be formatted as <cluster-ref>=<path>, found: ${vf}`);
+        }
+
+        const clusterRef = parts[0];
+        const valuesFile = paths.resolve(parts[1]);
+        if (!valuesFiles[clusterRef]) {
+          valuesFiles[clusterRef] = [];
+        }
+        valuesFiles[clusterRef].push(valuesFile);
+      });
+    }
+
+    return valuesFiles;
+  }
+
   static readonly valuesFile: CommandFlag = {
     constName: 'valuesFile',
     name: 'values-file',
     definition: {
-      describe: 'Comma separated chart values files',
+      describe:
+        'Comma separated chart values file paths for each cluster (e.g. cluster-1=./a/b/values1.yaml,cluster-2=./a/b/values2.yaml)',
       defaultValue: '',
       alias: 'f',
       type: 'string',
     },
     prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
-      try {
-        if (input && !fs.existsSync(input)) {
-          input = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'text',
-            default: Flags.valuesFile.definition.defaultValue,
-            message: 'Enter path to values.yaml: ',
-          });
-
-          if (!fs.existsSync(input)) {
-            throw new IllegalArgumentError('Invalid values.yaml file', input);
-          }
-        }
-
-        return input;
-      } catch (e: Error | any) {
-        throw new SoloError(`input failed: ${Flags.valuesFile.name}`, e);
+      if (input) {
+        Flags.parseValuesFilesInput(input); // validate input as early as possible by parsing it
       }
+
+      return input; // no prompt is needed for values file
     },
   };
 
@@ -345,8 +364,8 @@ export class Flags {
   };
 
   /*
-    Deploy cert manager CRDs separately from cert manager itself.  Cert manager
-    CRDs are required for cert manager to deploy successfully.
+		Deploy cert manager CRDs separately from cert manager itself.  Cert manager
+		CRDs are required for cert manager to deploy successfully.
  */
   static readonly deployCertManagerCrds: CommandFlag = {
     constName: 'deployCertManagerCrds',
