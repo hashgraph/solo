@@ -54,7 +54,12 @@ import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type ConfigBuilder, type NodeAlias, type NodeAliases, type SkipCheck} from '../../types/aliases.js';
 import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
+import {
+  type NodeDeleteConfigClass,
+  type NodeRefreshConfigClass,
+  NodeSetupConfigClass,
+  type NodeUpdateConfigClass,
+} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
@@ -68,6 +73,8 @@ import {ContainerRef} from '../../core/kube/resources/container/container_ref.js
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
+import {type SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
+import {ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -826,6 +833,234 @@ export class NodeCommandTasks {
     });
   }
 
+  //// TODO custom ------------------------
+  public identifyNetworkPodsMultiple(maxAttempts?: number) {
+    const self = this;
+    return new Task(
+      'Identify network pods',
+      (ctx: {config: NodeSetupConfigClass}, task: SoloListrTaskWrapper<{config: NodeSetupConfigClass}>) => {
+        return self.taskCheckNetworkNodePodsMultiple(ctx, task, maxAttempts);
+      },
+    );
+  }
+
+  public taskCheckNetworkNodePodsMultiple(
+    ctx: {config: NodeSetupConfigClass},
+    task: SoloListrTaskWrapper<any>,
+    maxAttempts?: number,
+  ): Listr {
+    ctx.config.podRefs = {};
+    const consensusNodes = ctx.config.consensusNodes;
+
+    const subTasks: SoloListrTask<{config: NodeSetupConfigClass}>[] = [];
+    const self = this;
+    for (const consensusNode of consensusNodes) {
+      subTasks.push({
+        title: `Check network pod: ${chalk.yellow(consensusNode.name)}`,
+        task: async ctx => {
+          try {
+            ctx.config.podRefs[consensusNode.name] = await self.checkNetworkNodePodMultiple(
+              ctx.config.namespace,
+              consensusNode,
+              maxAttempts,
+            );
+          } catch {
+            ctx.config.skipStop = true;
+          }
+        },
+      });
+    }
+
+    // setup the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true,
+      rendererOptions: {
+        collapseSubtasks: false,
+      },
+    });
+  }
+
+  async checkNetworkNodePodMultiple(
+    namespace: NamespaceName,
+    consensusNode: ConsensusNode,
+    maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
+    delay = constants.PODS_RUNNING_DELAY,
+  ) {
+    const podName = Templates.renderNetworkPodName(consensusNode.name);
+    const podRef = PodRef.of(namespace, podName);
+
+    try {
+      await this.k8Factory
+        .getK8(consensusNode.context)
+        .pods()
+        .waitForRunningPhase(
+          namespace,
+          [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
+          maxAttempts,
+          delay,
+        );
+
+      return podRef;
+    } catch (e) {
+      throw new SoloError(`no pod found for nodeAlias: ${consensusNode.name}`, e);
+    }
+  }
+
+  fetchPlatformSoftwareMultiple(): SoloListrTask<{config: NodeSetupConfigClass}> {
+    const self = this;
+    return {
+      title: 'Fetch platform software into network nodes',
+      task: (ctx, task) => {
+        const {podRefs, releaseTag, localBuildPath} = ctx.config;
+
+        if (localBuildPath !== '') {
+          return self._uploadPlatformSoftwareMultiple(ctx.config.consensusNodes, podRefs, task, localBuildPath);
+        }
+        return self._fetchPlatformSoftwareMultiple(
+          ctx.config.consensusNodes,
+          podRefs,
+          releaseTag,
+          task,
+          this.platformInstaller,
+        );
+      },
+    };
+  }
+
+  public _uploadPlatformSoftwareMultiple(
+    consensusNodes: ConsensusNode[],
+    podRefs: Record<NodeAlias, PodRef>,
+    task: SoloListrTaskWrapper<any>,
+    localBuildPath: string,
+  ) {
+    const self = this;
+    const subTasks: SoloListrTask<{config: NodeSetupConfigClass}>[] = [];
+
+    this.logger.debug('no need to fetch, use local build jar files');
+
+    const buildPathMap = new Map<NodeAlias, string>();
+    let defaultDataLibBuildPath: string;
+    const parameterPairs = localBuildPath.split(',');
+    for (const parameterPair of parameterPairs) {
+      if (parameterPair.includes('=')) {
+        const [nodeAlias, localDataLibBuildPath] = parameterPair.split('=');
+        buildPathMap.set(nodeAlias as NodeAlias, localDataLibBuildPath);
+      } else {
+        defaultDataLibBuildPath = parameterPair;
+      }
+    }
+
+    let localDataLibBuildPath: string;
+
+    for (const consensusNode of consensusNodes) {
+      const k8 = self.k8Factory.getK8(consensusNode.context);
+
+      const podRef = podRefs[consensusNode.name];
+      if (buildPathMap.has(consensusNode.name)) {
+        localDataLibBuildPath = buildPathMap.get(consensusNode.name);
+      } else {
+        localDataLibBuildPath = defaultDataLibBuildPath;
+      }
+
+      if (!fs.existsSync(localDataLibBuildPath)) {
+        throw new SoloError(`local build path does not exist: ${localDataLibBuildPath}`);
+      }
+
+      subTasks.push({
+        title: `Copy local build to Node: ${chalk.yellow(consensusNode.name)} from ${localDataLibBuildPath}`,
+        task: async () => {
+          // filter the data/config and data/keys to avoid failures due to config and secret mounts
+          const filterFunction = (path: string) => {
+            return !(path.includes('data/keys') || path.includes('data/config'));
+          };
+          await k8
+            .containers()
+            .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+            .copyTo(localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`, filterFunction);
+
+          if (self.configManager.getFlag<string>(flags.appConfig)) {
+            const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
+            for (const jsonFile of testJsonFiles) {
+              if (fs.existsSync(jsonFile)) {
+                await k8
+                  .containers()
+                  .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+                  .copyTo(jsonFile, `${constants.HEDERA_HAPI_PATH}`);
+              }
+            }
+          }
+        },
+      });
+    }
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: constants.NODE_COPY_CONCURRENT,
+      rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+    });
+  }
+
+  public _fetchPlatformSoftwareMultiple(
+    consensusNodes: ConsensusNode[],
+    podRefs: Record<NodeAlias, PodRef>,
+    releaseTag: string,
+    task: SoloListrTaskWrapper<any>,
+    platformInstaller: PlatformInstaller,
+  ) {
+    const subTasks: SoloListrTask<{config: NodeSetupConfigClass}>[] = [];
+
+    for (const consensusNode of consensusNodes) {
+      const podRef = podRefs[consensusNode.name];
+      subTasks.push({
+        title: `Update node: ${chalk.yellow(consensusNode.name)} [ platformVersion = ${releaseTag} ]`,
+        task: async () => await platformInstaller.fetchPlatform(podRef, releaseTag, consensusNode.context),
+      });
+    }
+
+    // set up the sub-tasks
+    return task.newListr(subTasks, {
+      concurrent: true, // since we download in the container directly, we want this to be in parallel across all nodes
+      rendererOptions: {
+        collapseSubtasks: false,
+      },
+    });
+  }
+
+  public setupNetworkNodesMultiple(isGenesis: boolean): SoloListrTask<{config: NodeSetupConfigClass}> {
+    return {
+      title: 'Setup network nodes',
+      task: async (ctx, task) => {
+        if (isGenesis) {
+          await this.generateGenesisNetworkJson(
+            ctx.config.namespace,
+            ctx.config.nodeAliases,
+            ctx.config.keysDir,
+            ctx.config.stagingDir,
+          );
+        }
+
+        await this.generateNodeOverridesJson(ctx.config.namespace, ctx.config.nodeAliases, ctx.config.stagingDir);
+
+        const subTasks: SoloListrTask<{config: NodeSetupConfigClass}>[] = [];
+
+        for (const consensusNode of ctx.config.consensusNodes) {
+          const podRef = ctx.config.podRefs[consensusNode.name];
+          subTasks.push({
+            title: `Node: ${chalk.yellow(consensusNode.name)}`,
+            task: () =>
+              this.platformInstaller.taskSetup(podRef, ctx.config.stagingDir, isGenesis, consensusNode.context),
+          });
+        }
+
+        // set up the sub-tasks
+        return task.newListr(subTasks, {
+          concurrent: true,
+          rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+        });
+      },
+    };
+  }
+  //// TODO custom ------------------------
+
   /** Check if the network node pod is running */
   async checkNetworkNodePod(
     namespace: NamespaceName,
@@ -912,7 +1147,7 @@ export class NodeCommandTasks {
     );
   }
 
-  identifyNetworkPods(maxAttempts = undefined) {
+  identifyNetworkPods(maxAttempts?: number) {
     const self = this;
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases, maxAttempts);

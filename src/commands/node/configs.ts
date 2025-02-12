@@ -18,6 +18,8 @@ import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type NodeCommandHandlers} from './handlers.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -344,20 +346,18 @@ export const startConfigBuilder = async function (argv, ctx, task) {
   return config;
 };
 
-export const setupConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
+export const setupConfigBuilder = async function (this: NodeCommandHandlers, argv, ctx, task) {
+  ctx.config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
     'nodeAliases',
     'podRefs',
     'namespace',
   ]) as NodeSetupConfigClass;
 
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  ctx.config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
+  ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+  ctx.config.consensusNodes = this.parent.getConsensusNodes();
 
-  await initializeSetup(config, this.k8Factory);
-
-  // set config in the context for later tasks to use
-  ctx.config = config;
+  await initializeSetup(ctx.config, this.k8Factory);
 
   return ctx.config;
 };
@@ -448,6 +448,10 @@ export interface NodeSetupConfigClass {
   releaseTag: string;
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
+  consensusNodes: ConsensusNode[];
+  skipStop?: boolean;
+  keysDir: string;
+  stagingDir: string;
   getUnusedConfigs: () => string[];
 }
 

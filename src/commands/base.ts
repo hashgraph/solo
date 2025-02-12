@@ -22,6 +22,7 @@ import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
 import {ConsensusNode} from '../core/model/consensus_node.js';
+import {type NodeAlias} from '../types/aliases.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -258,7 +259,7 @@ export abstract class BaseCommand extends ShellRunner {
     Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
       consensusNodes.push(
         new ConsensusNode(
-          node.name,
+          node.name as NodeAlias,
           node.nodeId,
           node.namespace,
           node.cluster,

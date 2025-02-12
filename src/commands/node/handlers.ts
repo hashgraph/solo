@@ -42,18 +42,19 @@ import {type ComponentsDataWrapper} from '../../core/config/remote/components_da
 import {type Optional} from '../../types/index.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {Templates} from '../../core/templates.js';
+import {type CommandFlag} from '../../types/flag_types.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
+  readonly configManager: ConfigManager;
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
-  private readonly k8Factory: K8Factory;
+  readonly k8Factory: K8Factory;
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
 
-  private getConfig: any;
+  public getConfig: (configName: string, flags: CommandFlag[], extraProperties?: string[]) => object;
   private prepareChartPath: any;
 
   public readonly parent: BaseCommand;
@@ -824,9 +825,9 @@ export class NodeCommandHandlers implements CommandHandlers {
         this.validateAllNodeStates({
           acceptedStates: [ConsensusNodeStates.INITIALIZED],
         }),
-        this.tasks.identifyNetworkPods(),
-        this.tasks.fetchPlatformSoftware('nodeAliases'),
-        this.tasks.setupNetworkNodes('nodeAliases', true),
+        this.tasks.identifyNetworkPodsMultiple(),
+        this.tasks.fetchPlatformSoftwareMultiple(),
+        this.tasks.setupNetworkNodesMultiple(true),
         this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
