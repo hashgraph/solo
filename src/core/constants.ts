@@ -6,8 +6,8 @@ import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
 import path, {dirname, normalize} from 'path';
 import {fileURLToPath} from 'url';
-import {NamespaceName} from './kube/namespace_name.js';
-import {ContainerName} from './kube/container_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {ContainerName} from './kube/resources/container/container_name.js';
 
 export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -216,6 +216,7 @@ export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TIMEOUT || 120;
 
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml';
+export const NODE_OVERRIDE_FILE = 'node-overrides.yaml';
 export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
 
 export const UPLOADER_SECRET_NAME = 'uploader-mirror-secrets';
@@ -224,8 +225,7 @@ export const BACKUP_SECRET_NAME = 'backup-uploader-secrets';
 
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',
-  GCS_AND_MINIO = 'gcs_and_minio',
-  S3_ONLY = 's3_only',
+  AWS_ONLY = 'aws_only',
   GCS_ONLY = 'gcs_only',
-  S3_AND_GCS = 's3_and_gcs',
+  AWS_AND_GCS = 'aws_and_gcs',
 }

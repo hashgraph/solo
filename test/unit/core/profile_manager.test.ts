@@ -9,7 +9,7 @@ import * as yaml from 'yaml';
 import path from 'path';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
-import {ConfigManager} from '../../../src/core/config_manager.js';
+import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {getTestCacheDir, getTmpDir} from '../../test_util.js';
 import * as version from '../../../version.js';
@@ -17,7 +17,8 @@ import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
 import {Templates} from '../../../src/core/templates.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
@@ -28,7 +29,7 @@ describe('ProfileManager', () => {
   before(() => {
     resetForTest(namespace.name);
     tmpDir = getTmpDir();
-    configManager = container.resolve(ConfigManager);
+    configManager = container.resolve(InjectTokens.ConfigManager);
     profileManager = new ProfileManager(undefined, undefined, tmpDir);
     configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4');
     configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));

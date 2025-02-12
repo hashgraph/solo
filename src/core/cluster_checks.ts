@@ -1,14 +1,16 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import * as constants from './constants.js';
-import {patchInject} from './container_helper.js';
-import {SoloLogger} from './logging.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {type K8} from './kube/k8.js';
-import {type K8Client} from './kube/k8_client.js';
-import {type IngressClass} from './kube/ingress_class.js';
+import {type K8Factory} from './kube/k8_factory.js';
+import {type Pod} from './kube/resources/pod/pod.js';
+import {type IngressClass} from './kube/resources/ingress_class/ingress_class.js';
+import {type V1Pod, type V1ConfigMap} from '@kubernetes/client-node';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 /**
  * Class to check if certain components are installed in the cluster.
@@ -16,11 +18,11 @@ import {type IngressClass} from './kube/ingress_class.js';
 @injectable()
 export class ClusterChecks {
   constructor(
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject('K8') private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
   }
 
   /**
@@ -29,14 +31,9 @@ export class ClusterChecks {
    */
   public async isCertManagerInstalled(): Promise<boolean> {
     try {
-      const pods = await (this.k8 as K8Client).kubeClient.listPodForAllNamespaces(
-        undefined,
-        undefined,
-        undefined,
-        'app=cert-manager',
-      );
+      const pods: Pod[] = await this.k8Factory.default().pods().listForAllNamespaces(['app=cert-manager']);
 
-      return pods.body.items.length > 0;
+      return pods.length > 0;
     } catch (e) {
       this.logger.error('Failed to find cert-manager:', e);
 
@@ -51,16 +48,9 @@ export class ClusterChecks {
   public async isMinioInstalled(namespace: NamespaceName): Promise<boolean> {
     try {
       // TODO DETECT THE OPERATOR
-      const pods = await (this.k8 as K8Client).kubeClient.listNamespacedPod(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'app=minio',
-      );
+      const pods: V1Pod[] = await this.k8Factory.default().pods().list(namespace, ['app=minio']);
 
-      return pods.body.items.length > 0;
+      return pods.length > 0;
     } catch (e) {
       this.logger.error('Failed to find minio:', e);
 
@@ -74,7 +64,7 @@ export class ClusterChecks {
    */
   public async isIngressControllerInstalled(): Promise<boolean> {
     try {
-      const ingressClassList: IngressClass[] = await this.k8.ingressClasses().list();
+      const ingressClassList: IngressClass[] = await this.k8Factory.default().ingressClasses().list();
 
       return ingressClassList.length > 0;
     } catch (e) {
@@ -90,14 +80,12 @@ export class ClusterChecks {
    */
   public async isRemoteConfigPresentInAnyNamespace() {
     try {
-      const configmaps = await (this.k8 as K8Client).kubeClient.listConfigMapForAllNamespaces(
-        undefined,
-        undefined,
-        undefined,
-        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
-      );
+      const configmaps: V1ConfigMap[] = await this.k8Factory
+        .default()
+        .configMaps()
+        .listForAllNamespaces([constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 
-      return configmaps.body.items.length > 0;
+      return configmaps.length > 0;
     } catch (e) {
       this.logger.error('Failed to find remote config:', e);
 
@@ -112,16 +100,12 @@ export class ClusterChecks {
    */
   public async isPrometheusInstalled(namespace: NamespaceName) {
     try {
-      const pods = await (this.k8 as K8Client).kubeClient.listNamespacedPod(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        'app.kubernetes.io/name=prometheus',
-      );
+      const pods: V1Pod[] = await this.k8Factory
+        .default()
+        .pods()
+        .list(namespace, ['app.kubernetes.io/name=prometheus']);
 
-      return pods.body.items.length > 0;
+      return pods.length > 0;
     } catch (e) {
       this.logger.error('Failed to find prometheus:', e);
 
@@ -137,16 +121,12 @@ export class ClusterChecks {
    */
   public async isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean> {
     try {
-      const configmaps = await (this.k8 as K8Client).kubeClient.listNamespacedConfigMap(
-        namespace.name,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR,
-      );
+      const configmaps: V1ConfigMap[] = await this.k8Factory
+        .default()
+        .configMaps()
+        .list(namespace, [constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 
-      return configmaps.body.items.length > 0;
+      return configmaps.length > 0;
     } catch (e) {
       this.logger.error('Failed to find remote config:', e);
 

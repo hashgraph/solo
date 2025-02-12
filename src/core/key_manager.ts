@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
 import * as constants from './constants.js';
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {Templates} from './templates.js';
 import * as helpers from './helpers.js';
 import chalk from 'chalk';
@@ -15,7 +15,8 @@ import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
 import {type ListrTask} from 'listr2';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);
@@ -50,8 +51,8 @@ export class KeyManager {
     hash: 'SHA-384',
   };
 
-  constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+  constructor(@inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger) {
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
   }
 
   /** Convert CryptoKey into PEM string */

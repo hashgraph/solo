@@ -2,14 +2,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {Listr, type ListrTask} from 'listr2';
-import {SoloError, MissingArgumentError} from '../core/errors.js';
+import {MissingArgumentError, SoloError} from '../core/errors.js';
 import * as helpers from '../core/helpers.js';
+import {getNodeAccountMap} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
@@ -17,7 +17,8 @@ import {ListrLease} from '../core/lease/listr_lease.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {type DeploymentName} from '../core/config/remote/types.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -102,7 +103,12 @@ export class RelayCommand extends BaseCommand {
       valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKey}`;
     } else {
       try {
-        const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${operatorIdUsing}`]);
+        const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+        const namespace = NamespaceName.of(this.localConfig.deployments[deploymentName].namespace);
+        const secrets = await this.k8Factory
+          .default()
+          .secrets()
+          .list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
         if (secrets.length === 0) {
           this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
           valuesArg += ` --set config.OPERATOR_KEY_MAIN=${constants.OPERATOR_KEY}`;
@@ -261,15 +267,18 @@ export class RelayCommand extends BaseCommand {
               config.chartPath,
               '',
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
-            await self.k8.waitForPods(
-              [constants.POD_PHASE_RUNNING],
-              ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
-              1,
-              constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
-              constants.RELAY_PODS_RUNNING_DELAY,
-            );
+            await self.k8Factory
+              .default()
+              .pods()
+              .waitForRunningPhase(
+                config.namespace,
+                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
+                constants.RELAY_PODS_RUNNING_DELAY,
+              );
 
             // reset nodeAlias
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
@@ -280,12 +289,15 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
             try {
-              await self.k8.waitForPodReady(
-                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
-                1,
-                constants.RELAY_PODS_READY_MAX_ATTEMPTS,
-                constants.RELAY_PODS_READY_DELAY,
-              );
+              await self.k8Factory
+                .default()
+                .pods()
+                .waitForReadyStatus(
+                  config.namespace,
+                  ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                  constants.RELAY_PODS_READY_MAX_ATTEMPTS,
+                  constants.RELAY_PODS_READY_DELAY,
+                );
             } catch (e: Error | any) {
               throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e);
             }
@@ -365,7 +377,11 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            await this.chartManager.uninstall(config.namespace, config.releaseName);
+            await this.chartManager.uninstall(
+              config.namespace,
+              config.releaseName,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
 
             this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace));
 

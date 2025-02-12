@@ -5,15 +5,16 @@ import * as constants from './constants.js';
 import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 @injectable()
 export class Helm extends ShellRunner {
   private readonly helmPath: string;
 
-  constructor(@inject('osPlatform') private readonly osPlatform?: NodeJS.Platform) {
+  constructor(@inject(InjectTokens.OsPlatform) private readonly osPlatform?: NodeJS.Platform) {
     super();
-    this.osPlatform = patchInject(osPlatform, 'osPlatform', this.constructor.name);
+    this.osPlatform = patchInject(osPlatform, InjectTokens.OsPlatform, this.constructor.name);
     this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform);
   }
 

@@ -9,14 +9,16 @@ import {e2eTestSuite, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} fr
 import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import {PodName} from '../../../src/core/kube/pod_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/pod_ref.js';
-import {ContainerRef} from '../../../src/core/kube/container_ref.js';
-import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const namespace = NamespaceName.of('node-upgrade');
 const argv = getDefaultArgv();
@@ -47,13 +49,13 @@ e2eTestSuite(
     describe('Node upgrade', async () => {
       const nodeCmd = bootstrapResp.cmd.nodeCmd;
       const accountCmd = bootstrapResp.cmd.accountCmd;
-      const k8 = bootstrapResp.opts.k8;
+      const k8Factory = bootstrapResp.opts.k8Factory;
 
       after(async function () {
         this.timeout(Duration.ofMinutes(10).toMillis());
 
-        await container.resolve(NetworkNodes).getLogs(namespace);
-        await k8.deleteNamespace(namespace);
+        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
       });
 
       it('should succeed with init command', async () => {
@@ -88,13 +90,13 @@ e2eTestSuite(
       it('network nodes version file was upgraded', async () => {
         // copy the version.txt file from the pod data/upgrade/current directory
         const tmpDir = getTmpDir();
-        const pods = await k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-        const podName = PodName.of(pods[0].metadata.name);
-        await k8.copyFrom(
-          ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER),
-          `${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`,
-          tmpDir,
-        );
+        const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
+        const podName: PodName = PodName.of(pods[0].metadata.name);
+        await k8Factory
+          .default()
+          .containers()
+          .readByRef(ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER))
+          .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
 
         // compare the version.txt
         const version = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');

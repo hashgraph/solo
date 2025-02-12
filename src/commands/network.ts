@@ -28,7 +28,10 @@ import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_compon
 import {v4 as uuidv4} from 'uuid';
 import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
+import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -62,11 +65,16 @@ export interface NetworkDeployConfigClass {
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
   storageType: constants.StorageType;
-  storageAccessKey: string;
-  storageSecrets: string;
-  storageEndpoint: string;
-  storageBucket: string;
-  storageBucketPrefix: string;
+  gcsAccessKey: string;
+  gcsSecrets: string;
+  gcsEndpoint: string;
+  gcsBucket: string;
+  gcsBucketPrefix: string;
+  awsAccessKey: string;
+  awsSecrets: string;
+  awsEndpoint: string;
+  awsBucket: string;
+  awsBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
 }
@@ -81,7 +89,7 @@ export class NetworkCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.keyManager)
       throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
     if (!opts || !opts.platformInstaller)
@@ -133,11 +141,16 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.storageAccessKey,
-      flags.storageSecrets,
-      flags.storageEndpoint,
-      flags.storageBucket,
-      flags.storageBucketPrefix,
+      flags.gcsAccessKey,
+      flags.gcsSecrets,
+      flags.gcsEndpoint,
+      flags.gcsBucket,
+      flags.gcsBucketPrefix,
+      flags.awsAccessKey,
+      flags.awsSecrets,
+      flags.awsEndpoint,
+      flags.awsBucket,
+      flags.awsBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
     ];
@@ -145,77 +158,65 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareStorageSecrets(config: NetworkDeployConfigClass) {
     try {
-      const minioAccessKey = uuidv4();
-      const minioSecretKey = uuidv4();
-      const minioData = {};
       const namespace = config.namespace;
+      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+        const minioAccessKey = uuidv4();
+        const minioSecretKey = uuidv4();
+        const minioData = {};
 
-      // Generating new minio credentials
-      const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
-      minioData['config.env'] = Base64.encode(envString);
-      const isMinioSecretCreated = await this.k8.createSecret(
-        constants.MINIO_SECRET_NAME,
-        namespace,
-        'Opaque',
-        minioData,
-        undefined,
-        true,
-      );
-      if (!isMinioSecretCreated) {
-        throw new SoloError('ailed to create new minio secret');
+        // Generating new minio credentials
+        const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+        minioData['config.env'] = Base64.encode(envString);
+        const isMinioSecretCreated = await this.k8Factory
+          .default()
+          .secrets()
+          .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+        if (!isMinioSecretCreated) {
+          throw new SoloError('ailed to create new minio secret');
+        }
       }
 
       // Generating cloud storage secrets
-      const {storageAccessKey, storageSecrets, storageEndpoint} = config;
+      const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
       const cloudData = {};
       if (
-        config.storageType === constants.StorageType.S3_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS
+        config.storageType === constants.StorageType.AWS_ONLY ||
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+        cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
       }
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS ||
-        config.storageType === constants.StorageType.GCS_AND_MINIO
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
-        cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
-      }
-      if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
+        cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
+        cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+        cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
       }
 
-      const isCloudSecretCreated = await this.k8.createSecret(
-        constants.UPLOADER_SECRET_NAME,
-        namespace,
-        'Opaque',
-        cloudData,
-        undefined,
-        true,
-      );
-      if (!isCloudSecretCreated) {
-        throw new SoloError(
-          `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
-        );
+      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+        const isCloudSecretCreated = await this.k8Factory
+          .default()
+          .secrets()
+          .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+        if (!isCloudSecretCreated) {
+          throw new SoloError(
+            `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
+          );
+        }
       }
+
       // generate backup uploader secret
       if (config.googleCredential) {
         const backupData = {};
         const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
         backupData['saJson'] = Base64.encode(googleCredential);
-        const isBackupSecretCreated = await this.k8.createSecret(
-          constants.BACKUP_SECRET_NAME,
-          namespace,
-          'Opaque',
-          backupData,
-          undefined,
-          true,
-        );
+        const isBackupSecretCreated = await this.k8Factory
+          .default()
+          .secrets()
+          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
         if (!isBackupSecretCreated) {
           throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
         }
@@ -240,11 +241,16 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    storageAccessKey: string;
-    storageSecrets: string;
-    storageEndpoint: string;
-    storageBucket: string;
-    storageBucketPrefix: string;
+    gcsAccessKey: string;
+    gcsSecrets: string;
+    gcsEndpoint: string;
+    gcsBucket: string;
+    gcsBucketPrefix: string;
+    awsAccessKey: string;
+    awsSecrets: string;
+    awsEndpoint: string;
+    awsBucket: string;
+    awsBucketPrefix: string;
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
@@ -265,24 +271,23 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (
-      config.storageType === constants.StorageType.S3_AND_GCS ||
-      config.storageType === constants.StorageType.GCS_ONLY ||
-      config.storageType === constants.StorageType.GCS_AND_MINIO
+      config.storageType === constants.StorageType.AWS_AND_GCS ||
+      config.storageType === constants.StorageType.GCS_ONLY
     ) {
       valuesArg += ' --set cloud.gcs.enabled=true';
     }
 
     if (
-      config.storageType === constants.StorageType.S3_AND_GCS ||
-      config.storageType === constants.StorageType.S3_ONLY
+      config.storageType === constants.StorageType.AWS_AND_GCS ||
+      config.storageType === constants.StorageType.AWS_ONLY
     ) {
       valuesArg += ' --set cloud.s3.enabled=true';
     }
 
     if (
       config.storageType === constants.StorageType.GCS_ONLY ||
-      config.storageType === constants.StorageType.S3_ONLY ||
-      config.storageType === constants.StorageType.S3_AND_GCS
+      config.storageType === constants.StorageType.AWS_ONLY ||
+      config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
       valuesArg += ' --set cloud.minio.enabled=false';
     }
@@ -291,13 +296,22 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ' --set cloud.generateNewSecrets=false';
     }
 
-    if (config.storageBucket) {
-      valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
-      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+    if (config.gcsBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.gcsBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`;
     }
 
-    if (config.storageBucketPrefix) {
-      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.storageBucketPrefix}`;
+    if (config.gcsBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
+    }
+
+    if (config.awsBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.awsBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`;
+    }
+
+    if (config.awsBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`;
     }
 
     if (config.backupBucket) {
@@ -338,8 +352,8 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (config.loadBalancerEnabled) {
-      valuesArg += ' --set "defaults.haproxy.serviceType=LoadBalancer"';
-      valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
+      valuesArg += ' --set "defaults.haproxy.service.type=LoadBalancer"';
+      valuesArg += ' --set "defaults.envoyProxy.service.type=LoadBalancer"';
     }
 
     if (config.valuesFile) {
@@ -379,11 +393,11 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.storageAccessKey,
-      flags.storageSecrets,
-      flags.storageEndpoint,
-      flags.storageBucket,
-      flags.storageBucketPrefix,
+      flags.gcsAccessKey,
+      flags.gcsSecrets,
+      flags.gcsEndpoint,
+      flags.gcsBucket,
+      flags.gcsBucketPrefix,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
@@ -431,8 +445,8 @@ export class NetworkCommand extends BaseCommand {
     config.valuesArg = await this.prepareValuesArg(config);
     config.namespace = namespace;
 
-    if (!(await this.k8.hasNamespace(namespace))) {
-      await this.k8.createNamespace(namespace);
+    if (!(await this.k8Factory.default().namespaces().has(namespace))) {
+      await this.k8Factory.default().namespaces().create(namespace);
     }
 
     // prepare staging keys directory
@@ -445,16 +459,8 @@ export class NetworkCommand extends BaseCommand {
       fs.mkdirSync(config.keysDir);
     }
 
-    // if storageType is set, then we need to set the storage secrets
-    if (
-      this.configManager.getFlag<string>(flags.storageType) &&
-      this.configManager.getFlag<string>(flags.storageAccessKey) &&
-      this.configManager.getFlag<string>(flags.storageSecrets) &&
-      this.configManager.getFlag<string>(flags.storageEndpoint)
-    ) {
-      this.logger.debug('Preparing storage secrets');
-      await this.prepareStorageSecrets(config);
-    }
+    this.logger.debug('Preparing storage secrets');
+    await this.prepareStorageSecrets(config);
 
     this.logger.debug('Prepared config', {
       config,
@@ -466,25 +472,32 @@ export class NetworkCommand extends BaseCommand {
   async destroyTask(ctx: any, task: any) {
     const self = this;
     task.title = `Uninstalling chart ${constants.SOLO_DEPLOYMENT_CHART}`;
-    await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART);
+    await self.chartManager.uninstall(
+      ctx.config.namespace,
+      constants.SOLO_DEPLOYMENT_CHART,
+      this.k8Factory.default().contexts().readCurrent(),
+    );
 
     if (ctx.config.deletePvcs) {
-      const pvcs = await self.k8.listPvcsByNamespace(ctx.config.namespace);
+      const pvcs = await self.k8Factory.default().pvcs().list(ctx.config.namespace, []);
       task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`;
       if (pvcs) {
         for (const pvc of pvcs) {
-          await self.k8.deletePvc(pvc, ctx.config.namespace);
+          await self.k8Factory
+            .default()
+            .pvcs()
+            .delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
         }
       }
     }
 
     if (ctx.config.deleteSecrets) {
       task.title = `Deleting secrets in namespace ${ctx.config.namespace}`;
-      const secrets = await self.k8.listSecretsByNamespace(ctx.config.namespace);
+      const secrets = await self.k8Factory.default().secrets().list(ctx.config.namespace);
 
       if (secrets) {
         for (const secret of secrets) {
-          await self.k8.deleteSecret(secret, ctx.config.namespace);
+          await self.k8Factory.default().secrets().delete(ctx.config.namespace, secret.name);
         }
       }
     }
@@ -579,7 +592,11 @@ export class NetworkCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
             if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
-              await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART);
+              await self.chartManager.uninstall(
+                config.namespace,
+                constants.SOLO_DEPLOYMENT_CHART,
+                this.k8Factory.default().contexts().readCurrent(),
+              );
             }
 
             await this.chartManager.install(
@@ -588,6 +605,7 @@ export class NetworkCommand extends BaseCommand {
               ctx.config.chartPath,
               config.soloChartVersion,
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
           },
         },
@@ -602,13 +620,15 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8Factory
+                    .default()
+                    .pods()
+                    .waitForRunningPhase(
+                      config.namespace,
+                      [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -632,13 +652,15 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    ['solo.hedera.com/type=haproxy'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8Factory
+                    .default()
+                    .pods()
+                    .waitForRunningPhase(
+                      config.namespace,
+                      ['solo.hedera.com/type=haproxy'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -647,13 +669,15 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
                 task: async () =>
-                  await self.k8.waitForPods(
-                    [constants.POD_PHASE_RUNNING],
-                    ['solo.hedera.com/type=envoy-proxy'],
-                    1,
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+                  await self.k8Factory
+                    .default()
+                    .pods()
+                    .waitForRunningPhase(
+                      ctx.config.namespace,
+                      ['solo.hedera.com/type=envoy-proxy'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    ),
               });
             }
 
@@ -674,18 +698,21 @@ export class NetworkCommand extends BaseCommand {
             // minio
             subTasks.push({
               title: 'Check MinIO',
-              task: async () =>
-                await self.k8.waitForPodReady(
-                  ['v1.min.io/tenant=minio'],
-                  1,
-                  constants.PODS_RUNNING_MAX_ATTEMPTS,
-                  constants.PODS_RUNNING_DELAY,
-                ),
+              task: async ctx =>
+                await self.k8Factory
+                  .default()
+                  .pods()
+                  .waitForReadyStatus(
+                    ctx.config.namespace,
+                    ['v1.min.io/tenant=minio'],
+                    constants.PODS_RUNNING_MAX_ATTEMPTS,
+                    constants.PODS_RUNNING_DELAY,
+                  ),
               // skip if only cloud storage is/are used
               skip: ctx =>
                 ctx.config.storageType === constants.StorageType.GCS_ONLY ||
-                ctx.config.storageType === constants.StorageType.S3_ONLY ||
-                ctx.config.storageType === constants.StorageType.S3_AND_GCS,
+                ctx.config.storageType === constants.StorageType.AWS_ONLY ||
+                ctx.config.storageType === constants.StorageType.AWS_AND_GCS,
             });
 
             // set up the subtasks
@@ -775,7 +802,7 @@ export class NetworkCommand extends BaseCommand {
                 networkDestroySuccess = false;
 
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
-                  self.k8.deleteNamespace(ctx.config.namespace);
+                  self.k8Factory.default().namespaces().delete(ctx.config.namespace);
                 } else {
                   // If the namespace is not being deleted,
                   // remove all components data from the remote configuration
@@ -837,17 +864,23 @@ export class NetworkCommand extends BaseCommand {
               ctx.config.chartPath,
               config.soloChartVersion,
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
           },
         },
         {
           title: 'Waiting for network pods to be running',
-          task: async () => {
-            await this.k8.waitForPods(
-              [constants.POD_PHASE_RUNNING],
-              ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
-              1,
-            );
+          task: async ctx => {
+            const config = ctx.config;
+            await this.k8Factory
+              .default()
+              .pods()
+              .waitForRunningPhase(
+                config.namespace,
+                ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
+                constants.PODS_RUNNING_MAX_ATTEMPTS,
+                constants.PODS_RUNNING_DELAY,
+              );
           },
         },
       ],
@@ -967,7 +1000,13 @@ export class NetworkCommand extends BaseCommand {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.add(
               nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, ConsensusNodeStates.INITIALIZED),
+              new ConsensusNodeComponent(
+                nodeAlias,
+                cluster,
+                namespace.name,
+                ConsensusNodeStates.INITIALIZED,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
+              ),
             );
 
             remoteConfig.components.add(

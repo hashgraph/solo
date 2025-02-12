@@ -18,14 +18,16 @@ import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
 import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
-import {PodName} from '../../../src/core/kube/pod_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/pod_ref.js';
-import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -48,7 +50,7 @@ argv[flags.pinger.name] = true;
 argv[flags.enableHederaExplorerTls.name] = true;
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
-    const k8 = bootstrapResp.opts.k8;
+    const k8Factory = bootstrapResp.opts.k8Factory;
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
     const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
     const downloader = new PackageDownloader(mirrorNodeCmd.logger);
@@ -65,8 +67,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());
 
-      await container.resolve(NetworkNodes).getLogs(namespace);
-      await k8.deleteNamespace(namespace);
+      await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+      await k8Factory.default().namespaces().delete(namespace);
       await accountManager.close();
 
       bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`);
@@ -91,9 +93,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
-        flags.quiet.constName,
+        flags.storageAccessKey.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
+        flags.externalDatabaseHost.constName,
+        flags.externalDatabaseOwnerUsername.constName,
+        flags.externalDatabaseOwnerPassword.constName,
+        flags.externalDatabaseReadonlyUsername.constName,
+        flags.externalDatabaseReadonlyPassword.constName,
       ]);
       expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.hederaExplorerTlsHostName.constName,
@@ -108,10 +115,17 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await accountManager.loadNodeClient(namespace);
       try {
         // find hedera explorer pod
-        const pods = await k8.getPodsByLabel(['app.kubernetes.io/component=hedera-explorer']);
+        const pods: V1Pod[] = await k8Factory
+          .default()
+          .pods()
+          .list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod = pods[0];
 
-        portForwarder = await k8.portForward(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)), 8_080, 8_080);
+        portForwarder = await k8Factory
+          .default()
+          .pods()
+          .readByRef(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)))
+          .portForward(8_080, 8_080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running
@@ -195,7 +209,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         }
         await sleep(Duration.ofSeconds(1));
         expect(receivedMessage).to.equal(testMessage);
-        await k8.stopPortForward(portForwarder);
+        await k8Factory.default().pods().readByRef(null).stopPortForward(portForwarder);
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();

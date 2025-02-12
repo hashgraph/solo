@@ -492,3 +492,32 @@ tasks:
     cmds:
       - echo "Cleaning up temporary files..."
       - rm -f /tmp/solo-${USER}-* || true
+
+  solo:external-database:
+    silent: false
+    desc: setup external database PostgreSQL with helm
+    cmds:
+      - |
+        {{.solo_bin_dir}}/helm install {{.postgres_name}} https://charts.bitnami.com/bitnami/postgresql-12.1.2.tgz \
+          --set image.tag=16.4.0 \
+          --namespace {{.postgres_database_namespace}} --create-namespace \
+          --set global.postgresql.auth.postgresPassword={{.postgres_password}} \
+          --set primary.persistence.enabled=false --set secondary.enabled=false
+      - name: "Wait for PostgreSQL pod to be ready"
+        cmd: |
+          kubectl wait --for=condition=ready pod/{{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} --timeout=160s
+      - name: "Copy init.sql inside the database pod"
+        cmd: |
+          kubectl cp ../external-database-test/scripts/init.sh \
+          {{.postgres_container_name}}:/tmp/init.sh \
+          -n {{.postgres_database_namespace}}
+      - name: "Make init.sh executable"
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} -- chmod +x /tmp/init.sh
+      - name: "Execute init.sh inside the database pod"
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} \
+          -- /bin/bash /tmp/init.sh "{{.postgres_username}}" "{{.postgres_readonly_username}}" "{{.postgres_readonly_password}}"

@@ -8,36 +8,37 @@ import 'dotenv/config';
 // eslint-disable-next-line n/no-extraneous-import
 import 'reflect-metadata';
 import {container} from 'tsyringe-neo';
-import './core/container_init.js';
 import {ListrLogger} from 'listr2';
 
 import {Flags as flags} from './commands/flags.js';
 import * as commands from './commands/index.js';
-import {DependencyManager} from './core/dependency_managers/index.js';
+import {type DependencyManager} from './core/dependency_managers/index.js';
 import * as constants from './core/constants.js';
-import {PackageDownloader} from './core/package_downloader.js';
-import {Helm} from './core/helm.js';
-import {ChartManager} from './core/chart_manager.js';
-import {ConfigManager} from './core/config_manager.js';
-import {AccountManager} from './core/account_manager.js';
-import {PlatformInstaller} from './core/platform_installer.js';
-import {KeyManager} from './core/key_manager.js';
-import {ProfileManager} from './core/profile_manager.js';
-import {LeaseManager} from './core/lease/lease_manager.js';
-import {CertificateManager} from './core/certificate_manager.js';
-import {LocalConfig} from './core/config/local_config.js';
-import {RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
+import {type PackageDownloader} from './core/package_downloader.js';
+import {type Helm} from './core/helm.js';
+import {type ChartManager} from './core/chart_manager.js';
+import {type ConfigManager} from './core/config_manager.js';
+import {type AccountManager} from './core/account_manager.js';
+import {type PlatformInstaller} from './core/platform_installer.js';
+import {type KeyManager} from './core/key_manager.js';
+import {type ProfileManager} from './core/profile_manager.js';
+import {type LeaseManager} from './core/lease/lease_manager.js';
+import {type CertificateManager} from './core/certificate_manager.js';
+import {type LocalConfig} from './core/config/local_config.js';
+import {type RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
 import * as helpers from './core/helpers.js';
-import {type K8} from './core/kube/k8.js';
+import {type K8Factory} from './core/kube/k8_factory.js';
 import {CustomProcessOutput} from './core/process_output.js';
 import {type Opts} from './types/command_types.js';
-import {SoloLogger} from './core/logging.js';
-import {Container} from './core/container_init.js';
+import {type SoloLogger} from './core/logging.js';
+import {Container} from './core/dependency_injection/container_init.js';
+import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
+import {type NamespaceName} from './core/kube/resources/namespace/namespace_name.js';
 
 export function main(argv: any) {
   Container.getInstance().init();
 
-  const logger = container.resolve(SoloLogger);
+  const logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
@@ -48,31 +49,31 @@ export function main(argv: any) {
 
   try {
     // prepare dependency manger registry
-    const downloader = container.resolve(PackageDownloader);
-    const depManager = container.resolve(DependencyManager);
-    const helm = container.resolve(Helm);
-    const chartManager = container.resolve(ChartManager);
-    const configManager = container.resolve(ConfigManager);
-    const k8 = container.resolve('K8') as K8;
-    const accountManager = container.resolve(AccountManager);
-    const platformInstaller = container.resolve(PlatformInstaller);
-    const keyManager = container.resolve(KeyManager);
-    const profileManager = container.resolve(ProfileManager);
-    const leaseManager = container.resolve(LeaseManager);
-    const certificateManager = container.resolve(CertificateManager);
-    const localConfig = container.resolve(LocalConfig);
-    const remoteConfigManager = container.resolve(RemoteConfigManager);
+    const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
+    const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
+    const helm: Helm = container.resolve(InjectTokens.Helm);
+    const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
+    const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+    const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
+    const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
+    const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
+    const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
+    const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
+    const leaseManager: LeaseManager = container.resolve(InjectTokens.LeaseManager);
+    const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
+    const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
+    const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
-    const contextNamespace = k8.contexts().readCurrentNamespace();
-    const currentClusterName = k8.clusters().readCurrent();
-    const contextName = k8.contexts().readCurrent();
+    const contextNamespace: NamespaceName = k8Factory.default().contexts().readCurrentNamespace();
+    const currentClusterName: string = k8Factory.default().clusters().readCurrent();
+    const contextName: string = k8Factory.default().contexts().readCurrent();
 
     const opts: Opts = {
       logger,
       helm,
-      k8,
+      k8Factory,
       downloader,
       platformInstaller,
       chartManager,
@@ -115,7 +116,7 @@ export function main(argv: any) {
       logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(contextName));
       logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
       logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
-      if (configManager.getFlag(flags.namespace) !== undefined) {
+      if (typeof configManager.getFlag<NamespaceName>(flags.namespace)?.name !== 'undefined') {
         logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)));
       }
       logger.showUser(chalk.cyan('**********************************************************************************'));

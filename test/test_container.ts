@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import path from 'path';
-import {Container} from '../src/core/container_init.js';
+import {Container} from '../src/core/dependency_injection/container_init.js';
 import fs from 'fs';
 import {type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import * as yaml from 'yaml';
@@ -23,7 +23,7 @@ export function resetForTest(namespace?: NamespaceNameAsString, cacheDir: string
   const parsedData = yaml.parse(localConfigData);
 
   if (namespace) {
-    parsedData.deployments[parsedData.currentDeploymentName].namespace = namespace;
+    parsedData.deployments['deployment'].namespace = namespace;
   }
 
   fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));

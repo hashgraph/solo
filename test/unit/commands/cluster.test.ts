@@ -28,7 +28,8 @@ import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import {type BaseCommand} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {type CommandFlag} from '../../../src/types/flag_types.js';
-import {K8Client} from '../../../src/core/kube/k8_client.js';
+import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
+import {K8ClientFactory} from '../../../src/core/kube/k8_client/k8_client_factory.js';
 import {type Cluster, KubeConfig} from '@kubernetes/client-node';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
@@ -44,28 +45,30 @@ import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {ClusterChecks} from '../../../src/core/cluster_checks.js';
-import {K8ClientClusters} from '../../../src/core/kube/k8_client/k8_client_clusters.js';
-import {K8ClientContexts} from '../../../src/core/kube/k8_client/k8_client_contexts.js';
+import {K8ClientClusters} from '../../../src/core/kube/k8_client/resources/cluster/k8_client_clusters.js';
+import {K8ClientContexts} from '../../../src/core/kube/k8_client/resources/context/k8_client_contexts.js';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
-const getBaseCommandOpts = () => ({
-  logger: sinon.stub(),
-  helm: sinon.stub(),
-  k8: {
-    isMinioInstalled: sinon.stub().returns(false),
-    isPrometheusInstalled: sinon.stub().returns(false),
-    isCertManagerInstalled: sinon.stub().returns(false),
-  },
-  chartManager: sinon.stub(),
-  configManager: sinon.stub(),
-  depManager: sinon.stub(),
-  localConfig: sinon.stub(),
-});
+const getBaseCommandOpts = (context: string) => {
+  const opts = {
+    logger: sandbox.createStubInstance(SoloLogger),
+    helm: sandbox.createStubInstance(Helm),
+    k8Factory: sandbox.createStubInstance(K8ClientFactory),
+    chartManager: sandbox.createStubInstance(ChartManager),
+    configManager: sandbox.createStubInstance(ConfigManager),
+    depManager: sandbox.createStubInstance(DependencyManager),
+    localConfig: sandbox.createStubInstance(LocalConfig),
+  };
+  opts.k8Factory.default.returns(new K8Client(context));
+  return opts;
+};
 
 const testName = 'cluster-cmd-unit';
 const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
+const sandbox = sinon.createSandbox();
 
 argv[flags.namespace.name] = namespace.name;
 argv[flags.deployment.name] = 'solo-e2e';
@@ -86,18 +89,27 @@ describe('ClusterCommand unit tests', () => {
   describe('Chart Install Function is called correctly', () => {
     let opts: any;
 
+    afterEach(() => {
+      sandbox.restore();
+    });
+
     beforeEach(() => {
-      opts = getBaseCommandOpts();
-      opts.logger = container.resolve(SoloLogger);
-      opts.helm = container.resolve(Helm);
-      opts.chartManager = container.resolve(ChartManager);
-      opts.helm.dependency = sinon.stub();
+      const k8Client = new K8Client(undefined);
+      const context = k8Client.contexts().readCurrent();
+      opts = getBaseCommandOpts(context);
+      opts.logger = container.resolve(InjectTokens.SoloLogger);
+      opts.helm = container.resolve(InjectTokens.Helm);
+      opts.chartManager = container.resolve(InjectTokens.ChartManager);
+      opts.helm.dependency = sandbox.stub();
 
-      opts.chartManager.isChartInstalled = sinon.stub().returns(false);
-      opts.chartManager.install = sinon.stub().returns(true);
+      opts.chartManager.isChartInstalled = sandbox.stub().returns(false);
+      opts.chartManager.install = sandbox.stub().returns(true);
 
-      opts.configManager = container.resolve(ConfigManager);
-      opts.remoteConfigManager = sinon.stub();
+      opts.configManager = container.resolve(InjectTokens.ConfigManager);
+      opts.remoteConfigManager = sandbox.stub();
+
+      opts.remoteConfigManager.currentCluster = 'solo-e2e';
+      opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
     });
 
     it('Install function is called with expected parameters', async () => {
@@ -135,7 +147,7 @@ describe('ClusterCommand unit tests', () => {
     let tasks: ClusterCommandTasks;
     let command: BaseCommand;
     let loggerStub: sinon.SinonStubbedInstance<SoloLogger>;
-    let k8Stub: sinon.SinonStubbedInstance<K8Client>;
+    let k8FactoryStub: sinon.SinonStubbedInstance<K8ClientFactory>;
     let remoteConfigManagerStub: sinon.SinonStubbedInstance<RemoteConfigManager>;
     let localConfig: LocalConfig;
     const defaultRemoteConfig = {
@@ -156,19 +168,21 @@ describe('ClusterCommand unit tests', () => {
       },
     ) => {
       const loggerStub = sandbox.createStubInstance(SoloLogger);
-      k8Stub = sandbox.createStubInstance(K8Client);
-      const k8StubContexts = sandbox.createStubInstance(K8ClientContexts);
-      k8StubContexts.list.returns(['context-1', 'context-2', 'context-3']);
-      k8Stub.contexts.returns(k8StubContexts);
+      k8FactoryStub = sandbox.createStubInstance(K8ClientFactory);
+      const k8Stub = sandbox.createStubInstance(K8Client);
+      k8FactoryStub.default.returns(k8Stub);
+      const k8ContextsStub = sandbox.createStubInstance(K8ClientContexts);
+      k8ContextsStub.list.returns(['context-1', 'context-2', 'context-3']);
+      k8Stub.contexts.returns(k8ContextsStub);
       const clusterChecksStub = sandbox.createStubInstance(ClusterChecks);
       clusterChecksStub.isMinioInstalled.returns(new Promise<boolean>(() => true));
       clusterChecksStub.isPrometheusInstalled.returns(new Promise<boolean>(() => true));
       clusterChecksStub.isCertManagerInstalled.returns(new Promise<boolean>(() => true));
 
       if (opts.testContextConnectionError) {
-        k8StubContexts.testContextConnection.resolves(false);
+        k8ContextsStub.testContextConnection.resolves(false);
       } else {
-        k8StubContexts.testContextConnection.resolves(true);
+        k8ContextsStub.testContextConnection.resolves(true);
       }
 
       const kubeConfigClusterObject = {
@@ -193,7 +207,7 @@ describe('ClusterCommand unit tests', () => {
       const k8ClustersStub = sandbox.createStubInstance(K8ClientClusters);
       k8ClustersStub.readCurrent.returns(kubeConfigClusterObject.name);
       k8Stub.clusters.returns(k8ClustersStub);
-      k8StubContexts.readCurrent.returns('context-from-kubeConfig');
+      k8ContextsStub.readCurrent.returns('context-from-kubeConfig');
 
       const configManager = sandbox.createStubInstance(ConfigManager);
 
@@ -204,7 +218,7 @@ describe('ClusterCommand unit tests', () => {
       return {
         logger: loggerStub,
         helm: sandbox.createStubInstance(Helm),
-        k8: k8Stub,
+        k8Factory: k8FactoryStub,
         chartManager: sandbox.createStubInstance(ChartManager),
         configManager,
         depManager: sandbox.createStubInstance(DependencyManager),
@@ -224,7 +238,7 @@ describe('ClusterCommand unit tests', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8);
+        tasks = new ClusterCommandTasks(command, opts.k8Factory);
 
         // @ts-expect-error - TS2554: Expected 0 arguments, but got 1.
         const taskObj = tasks.updateLocalConfig({});
@@ -276,15 +290,13 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'context-2',
         });
       });
 
-      xit('should update clusterContextMapping with provided context', async () => {
+      xit('should update clusterRefs with provided context', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -294,15 +306,13 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'provided-context',
         });
       });
 
-      xit('should update multiple clusterContextMappings with provided contexts', async () => {
+      xit('should update multiple clusterRefss with provided contexts', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -316,9 +326,7 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'cluster-3', 'cluster-4']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'provided-context-2',
           'cluster-3': 'provided-context-3',
@@ -326,7 +334,7 @@ describe('ClusterCommand unit tests', () => {
         });
       });
 
-      xit('should update multiple clusterContextMappings with default KubeConfig context if quiet=true', async () => {
+      xit('should update multiple clusterRefss with default KubeConfig context if quiet=true', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -337,16 +345,14 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'cluster-3']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'context-2',
           'cluster-3': 'context-from-kubeConfig',
         });
       });
 
-      xit('should update multiple clusterContextMappings with prompted context no value was provided', async () => {
+      xit('should update multiple clusterRefss with prompted context no value was provided', async () => {
         const remoteConfig = Object.assign({}, defaultRemoteConfig, {
           clusters: {
             'cluster-2': 'deployment',
@@ -358,9 +364,7 @@ describe('ClusterCommand unit tests', () => {
         command = await runUpdateLocalConfigTask(opts);
         localConfig = new LocalConfig(filePath);
 
-        expect(localConfig.currentDeploymentName).to.equal('deployment');
-        expect(localConfig.getCurrentDeployment().clusters).to.deep.equal(['cluster-2', 'new-cluster']);
-        expect(localConfig.clusterContextMapping).to.deep.equal({
+        expect(localConfig.clusterRefs).to.deep.equal({
           'cluster-1': 'context-1',
           'cluster-2': 'context-2',
           'new-cluster': 'context-3', // prompted value
@@ -372,7 +376,7 @@ describe('ClusterCommand unit tests', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8);
+        tasks = new ClusterCommandTasks(command, opts.k8Factory);
 
         // @ts-expect-error - TS2554: Expected 0 arguments, but got 1
         const taskObj = tasks.selectContext({});
@@ -412,21 +416,21 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('provided-context-1');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('provided-context-1');
       });
 
       it('should use local config mapping to connect to first provided cluster', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-2,cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-2');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected cluster is not found in local config mapping', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-3');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-3');
       });
 
       it('should use default kubeConfig context if selected cluster is not found in local config mapping and quiet=true', async () => {
@@ -436,21 +440,23 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-from-kubeConfig');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith(
+          'context-from-kubeConfig',
+        );
       });
 
       it('should use context from local config mapping for the first cluster from the selected deployment', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-2']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-2');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected deployment is found in local config but the context is not', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-3');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-3');
       });
 
       it('should use default context if selected deployment is found in local config but the context is not and quiet=true', async () => {
@@ -460,14 +466,16 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-from-kubeConfig');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith(
+          'context-from-kubeConfig',
+        );
       });
 
       it('should prompt for clusters and contexts if selected deployment is not found in local config', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-4']]);
 
         command = await runSelectContextTask(opts);
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-3');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-3');
       });
 
       it('should use clusters and contexts from kubeConfig if selected deployment is not found in local config and quiet=true', async () => {
@@ -477,7 +485,9 @@ describe('ClusterCommand unit tests', () => {
         ]);
 
         command = await runSelectContextTask(opts);
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-from-kubeConfig');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith(
+          'context-from-kubeConfig',
+        );
       });
 
       it('throws error when context is invalid', async () => {
@@ -499,7 +509,7 @@ describe('ClusterCommand unit tests', () => {
 
       async function runReadClustersFromRemoteConfigTask(opts) {
         command = new ClusterCommand(opts);
-        tasks = new ClusterCommandTasks(command, k8Stub);
+        tasks = new ClusterCommandTasks(command, k8FactoryStub);
         const taskObj = tasks.readClustersFromRemoteConfig({});
         taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
         taskStub.newListr = sandbox.stub();
@@ -561,9 +571,9 @@ describe('ClusterCommand unit tests', () => {
         expect(subTasks.length).to.eq(2);
         await runSubTasks(subTasks);
         expect(contextPromptStub).not.called;
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('context-2');
-        expect(command.getK8().contexts().testContextConnection).calledOnce;
-        expect(command.getK8().contexts().testContextConnection).calledWith('context-2');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('context-2');
       });
 
       it('should prompt for context when reading unknown cluster', async () => {
@@ -580,9 +590,9 @@ describe('ClusterCommand unit tests', () => {
         expect(subTasks.length).to.eq(2);
         await runSubTasks(subTasks);
         expect(contextPromptStub).calledOnce;
-        expect(command.getK8().contexts().updateCurrent).to.have.been.calledWith('prompted-context');
-        expect(command.getK8().contexts().testContextConnection).calledOnce;
-        expect(command.getK8().contexts().testContextConnection).calledWith('prompted-context');
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('prompted-context');
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('prompted-context');
       });
 
       it('should throw error for invalid prompted context', async () => {
@@ -603,8 +613,8 @@ describe('ClusterCommand unit tests', () => {
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED('prompted-context', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
-          expect(command.getK8().contexts().testContextConnection).calledOnce;
-          expect(command.getK8().contexts().testContextConnection).calledWith('prompted-context');
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('prompted-context');
         }
       });
 
@@ -632,8 +642,8 @@ describe('ClusterCommand unit tests', () => {
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH('cluster-3', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
-          expect(command.getK8().contexts().testContextConnection).calledOnce;
-          expect(command.getK8().contexts().testContextConnection).calledWith('prompted-context');
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('prompted-context');
         }
       });
     });

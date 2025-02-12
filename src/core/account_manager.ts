@@ -3,7 +3,7 @@
  */
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import {type Key} from '@hashgraph/sdk';
+import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -14,6 +14,7 @@ import {
   FileId,
   Hbar,
   HbarUnit,
+  type Key,
   KeyList,
   Logger,
   LogLevel,
@@ -21,24 +22,25 @@ import {
   Status,
   TransferTransaction,
 } from '@hashgraph/sdk';
-import {SoloError, MissingArgumentError} from './errors.js';
+import {MissingArgumentError, ResourceNotFoundError, SoloError} from './errors.js';
 import {Templates} from './templates.js';
-import {type NetworkNodeServices} from './network_node_services.js';
-import {NetworkNodeServicesBuilder} from './network_node_services.js';
+import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
-import {SoloLogger} from './logging.js';
-import {type K8} from './kube/k8.js';
+import {type SoloLogger} from './logging.js';
+import {type K8Factory} from './kube/k8_factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
-import {PodName} from './kube/pod_name.js';
-import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
-import {type NamespaceName} from './kube/namespace_name.js';
-import {PodRef} from './kube/pod_ref.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {PodRef} from './kube/resources/pod/pod_ref.js';
+import {SecretType} from './kube/resources/secret/secret_type.js';
+import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -53,11 +55,11 @@ export class AccountManager {
   public _nodeClient: Client | null;
 
   constructor(
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject('K8') private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -69,14 +71,26 @@ export class AccountManager {
    * @param namespace - the namespace that is storing the secret
    */
   async getAccountKeysFromSecret(accountId: string, namespace: NamespaceName): Promise<AccountIdWithKeyPairObject> {
-    const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId));
-    if (secret) {
-      return {
-        accountId: secret.labels['solo.hedera.com/account-id'],
-        privateKey: Base64.decode(secret.data.privateKey),
-        publicKey: Base64.decode(secret.data.publicKey),
-      };
+    try {
+      const secrets = await this.k8Factory
+        .default()
+        .secrets()
+        .list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
+
+      if (secrets.length > 0) {
+        const secret = secrets[0];
+        return {
+          accountId: secret.labels['solo.hedera.com/account-id'],
+          privateKey: Base64.decode(secret.data.privateKey),
+          publicKey: Base64.decode(secret.data.publicKey),
+        };
+      }
+    } catch (e) {
+      if (!(e instanceof ResourceNotFoundError)) {
+        throw e;
+      }
     }
+
     // if it isn't in the secrets we can load genesis key
     return {
       accountId,
@@ -134,7 +148,7 @@ export class AccountManager {
     this._nodeClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        await this.k8.stopPortForward(srv);
+        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
       }
     }
 
@@ -345,11 +359,11 @@ export class AccountManager {
 
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
-          await this.k8.portForward(
-            PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName),
-            localPort,
-            port,
-          ),
+          await this.k8Factory
+            .default()
+            .pods()
+            .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
+            .portForward(localPort, port),
         );
       }
 
@@ -418,7 +432,7 @@ export class AccountManager {
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
     try {
-      const serviceList = await this.k8.listSvcs(namespace, [labelSelector]);
+      const serviceList = await this.k8Factory.default().services().list(namespace, [labelSelector]);
 
       let nodeId = '0';
       // retrieve the list of services and build custom objects for the attributes we need
@@ -496,12 +510,18 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
+        const podList: V1Pod[] = await this.k8Factory
+          .default()
+          .pods()
+          .list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
       // get the pod name of the network node
-      const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
+      const pods: V1Pod[] = await this.k8Factory
+        .default()
+        .pods()
+        .list(namespace, ['solo.hedera.com/type=network-node']);
       for (const pod of pods) {
         // eslint-disable-next-line no-prototype-builtins
         if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
@@ -643,16 +663,29 @@ export class AccountManager {
     };
 
     try {
-      if (
-        !(await this.k8.createSecret(
-          Templates.renderAccountKeySecretName(accountId),
-          namespace,
-          'Opaque',
-          data,
-          Templates.renderAccountKeySecretLabelObject(accountId),
-          updateSecrets,
-        ))
-      ) {
+      const createdOrUpdated = updateSecrets
+        ? await this.k8Factory
+            .default()
+            .secrets()
+            .replace(
+              namespace,
+              Templates.renderAccountKeySecretName(accountId),
+              SecretType.OPAQUE,
+              data,
+              Templates.renderAccountKeySecretLabelObject(accountId),
+            )
+        : await this.k8Factory
+            .default()
+            .secrets()
+            .create(
+              namespace,
+              Templates.renderAccountKeySecretName(accountId),
+              SecretType.OPAQUE,
+              data,
+              Templates.renderAccountKeySecretLabelObject(accountId),
+            );
+
+      if (!createdOrUpdated) {
         this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
         return {
           status: REJECTED,
@@ -814,17 +847,19 @@ export class AccountManager {
     }
 
     try {
-      const accountSecretCreated = await this.k8.createSecret(
-        Templates.renderAccountKeySecretName(accountInfo.accountId),
-        namespace,
-        'Opaque',
-        {
-          privateKey: Base64.encode(accountInfo.privateKey),
-          publicKey: Base64.encode(accountInfo.publicKey),
-        },
-        Templates.renderAccountKeySecretLabelObject(accountInfo.accountId),
-        true,
-      );
+      const accountSecretCreated = await this.k8Factory
+        .default()
+        .secrets()
+        .createOrReplace(
+          namespace,
+          Templates.renderAccountKeySecretName(accountInfo.accountId),
+          SecretType.OPAQUE,
+          {
+            privateKey: Base64.encode(accountInfo.privateKey),
+            publicKey: Base64.encode(accountInfo.publicKey),
+          },
+          Templates.renderAccountKeySecretLabelObject(accountInfo.accountId),
+        );
 
       if (!accountSecretCreated) {
         this.logger.error(

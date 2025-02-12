@@ -9,7 +9,7 @@ export type Version = string;
 /// TODO - see if we can use NamespaceName and use some annotations and overrides to covert to strings
 export type NamespaceNameAsString = string;
 export type DeploymentName = string;
-export type Cluster = string;
+export type ClusterRef = string;
 export type Context = string;
 export type ComponentName = string;
 
@@ -21,7 +21,7 @@ export interface IMigration {
 
 export interface Component {
   name: ComponentName;
-  cluster: Cluster;
+  cluster: ClusterRef;
   namespace: NamespaceNameAsString;
 }
 
@@ -30,7 +30,15 @@ export interface IRelayComponent extends Component {
 }
 
 export interface IConsensusNodeComponent extends Component {
+  nodeId: number;
   state: ConsensusNodeStates;
+}
+
+export interface ICluster {
+  name: string;
+  namespace: string;
+  dnsBaseDomain: string;
+  dnsConsensusNodePattern: string;
 }
 
 export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
@@ -48,7 +56,7 @@ export type RemoteConfigCommonFlagsStruct = {
 export interface RemoteConfigDataStructure {
   metadata: RemoteConfigMetadataStructure;
   version: Version;
-  clusters: Record<Cluster, NamespaceNameAsString>;
+  clusters: Record<ClusterRef, ICluster>;
   components: ComponentsDataStructure;
   commandHistory: string[];
   lastExecutedCommand: string;

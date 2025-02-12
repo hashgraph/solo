@@ -59,7 +59,7 @@ function start_background_transactions ()
   # generate accounts as background traffic for two minutes
   # so record stream files can be kept pushing to mirror node
   cd solo
-  npm run solo-test -- account create --deployment solo-deployment --create-amount 15 > /dev/null 2>&1 &
+  npm run solo-test -- account create --deployment solo-e2e --create-amount 15 > /dev/null 2>&1 &
   cd -
 }
 
@@ -120,11 +120,8 @@ function check_importer_log()
 # then call solo account init before deploy mirror and relay node
 if [ "$1" == "account-init" ]; then
   echo "Call solo account init"
-  npm run solo-test -- account init --deployment solo-deployment
+  npm run solo-test -- account init --deployment solo-e2e
 fi
-
-task solo:mirror-node
-task solo:relay
 
 echo "Change to parent directory"
 

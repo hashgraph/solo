@@ -5,8 +5,8 @@ import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
 
 import * as fs from 'fs';
-import {LocalConfig} from '../../../../src/core/config/local_config.js';
-import {RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
+import {type LocalConfig} from '../../../../src/core/config/local_config.js';
+import {type RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
 import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
@@ -15,8 +15,9 @@ import {SoloError} from '../../../../src/core/errors.js';
 import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {type K8} from '../../../../src/core/kube/k8.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -47,7 +48,7 @@ e2eTestSuite(
   false,
   bootstrapResp => {
     describe('RemoteConfigManager', async () => {
-      let k8: K8;
+      let k8Factory: K8Factory;
 
       let localConfig: LocalConfig;
       let remoteConfigManager: RemoteConfigManager;
@@ -56,19 +57,18 @@ e2eTestSuite(
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
-        await k8.deleteNamespace(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
       });
 
       before(function () {
         this.timeout(defaultTimeout);
 
-        k8 = bootstrapResp.opts.k8;
-        localConfig = container.resolve(LocalConfig);
-        remoteConfigManager = container.resolve(RemoteConfigManager);
+        k8Factory = bootstrapResp.opts.k8Factory;
+        localConfig = container.resolve(InjectTokens.LocalConfig);
+        remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
 
         localConfig.userEmailAddress = email;
         localConfig.deployments = {[deploymentName]: {clusters: [`kind-${deploymentName}`], namespace: namespace.name}};
-        localConfig.currentDeploymentName = deploymentName;
 
         if (!fs.existsSync(testCacheDir)) {
           fs.mkdirSync(testCacheDir);

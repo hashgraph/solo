@@ -7,16 +7,17 @@ import {RemoteConfigMetadata} from './metadata.js';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import * as constants from '../../constants.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {type Cluster, type Version, type RemoteConfigDataStructure, type NamespaceNameAsString} from './types.js';
+import {type ClusterRef, type RemoteConfigDataStructure, type Version} from './types.js';
 import type * as k8s from '@kubernetes/client-node';
 import {type ToObject, type Validate} from '../../../types/index.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type RemoteConfigData} from './remote_config_data.js';
+import {Cluster} from './cluster.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';
   private _metadata: RemoteConfigMetadata;
-  private _clusters: Record<Cluster, NamespaceNameAsString>;
+  private _clusters: Record<ClusterRef, Cluster>;
   private _components: ComponentsDataWrapper;
   private _commandHistory: string[];
   private _lastExecutedCommand: string;
@@ -24,7 +25,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
 
   public constructor(data: RemoteConfigData) {
     this._metadata = data.metadata;
-    this._clusters = data.clusters;
+    this._clusters = Cluster.fromClustersMapObject(data.clusters);
     this._components = data.components;
     this._commandHistory = data.commandHistory;
     this._lastExecutedCommand = data.lastExecutedCommand ?? '';
@@ -60,11 +61,11 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     this.validate();
   }
 
-  public get clusters(): Record<Cluster, NamespaceNameAsString> {
+  public get clusters(): Record<ClusterRef, Cluster> {
     return this._clusters;
   }
 
-  public set clusters(clusters: Record<Cluster, NamespaceNameAsString>) {
+  public set clusters(clusters: Record<ClusterRef, Cluster>) {
     this._clusters = clusters;
     this.validate();
   }
@@ -132,15 +133,21 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`);
     }
 
-    Object.entries(this.clusters).forEach(([cluster, namespace]: [Cluster, NamespaceNameAsString]): void => {
-      const clusterDataString = `cluster: { name: ${cluster}, namespace: ${namespace} }`;
-
-      if (!cluster || typeof cluster !== 'string') {
-        throw new SoloError(`Invalid remote config clusters name: ${clusterDataString}`);
+    Object.entries(this.clusters).forEach(([clusterRef, cluster]: [ClusterRef, Cluster]): void => {
+      if (!clusterRef || typeof clusterRef !== 'string') {
+        throw new SoloError(`Invalid remote config cluster-ref: ${clusterRef}`);
       }
 
-      if (!namespace || typeof namespace !== 'string') {
-        throw new SoloError(`Invalid remote config clusters namespace: ${clusterDataString}`);
+      if (!cluster) {
+        throw new SoloError(`No cluster info is found for cluster-ref: ${clusterRef}`);
+      }
+
+      if (!cluster.name || typeof cluster.name !== 'string') {
+        throw new SoloError(`Invalid remote config cluster name: ${cluster.name} for cluster-ref: ${clusterRef}`);
+      }
+
+      if (!cluster.namespace || typeof cluster.namespace !== 'string') {
+        throw new SoloError(`Invalid remote config namespace: ${cluster.namespace} for cluster-ref: ${clusterRef}`);
       }
     });
   }
@@ -149,7 +156,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     return {
       metadata: this.metadata.toObject(),
       version: this.version,
-      clusters: this.clusters,
+      clusters: Cluster.toClustersMapObject(this.clusters),
       components: this.components.toObject(),
       commandHistory: this.commandHistory,
       lastExecutedCommand: this.lastExecutedCommand,

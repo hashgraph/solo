@@ -25,6 +25,7 @@ env:
   LOAD_BALANCER_FLAG: "--load-balancer true"
   ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
   ENABLE_EXPLORER_INGRESS: "--enable-ingress"
+<<<<<<< HEAD
   ENABLE_MIRROR_INGRESS: "--enable-ingress"
   TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
   # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
@@ -34,5 +35,12 @@ env:
   EXPLORER_NAME_SPACE: "explorer-name-space"
   EXPLORER_DEPLOYMENT: "explorer-deployment"
   EXPLORER_CLUSTER_CONTEXT: "{{ .CLUSTER_CONTEXT }}"
+=======
+  TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
+  # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
+#  NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=<ip-address>,node2=<ip-address>,node3=<ip-address>,node4=<ip-address> --pvcs"
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/mirror-node-values.yaml"
+  EXPLORER_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/ingress-values.yaml --hedera-explorer-static-ip 35.226.75.168"
+>>>>>>> c35c7a5f59272b1adc1511a77246989cf76e58d2
   RELAY_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/relay-values.yaml"
   SKIP_NODE_PING: 'true'

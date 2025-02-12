@@ -6,7 +6,7 @@ import {type ListrTaskWrapper} from 'listr2';
 import {type DeploymentName} from './config/remote/types.js';
 import {type ConfigManager} from './config_manager.js';
 import {Flags as flags} from '../commands/flags.js';
-import {NamespaceName} from './kube/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 
 export async function resolveNamespaceFromDeployment(
   localConfig: LocalConfig,

@@ -16,9 +16,10 @@ import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {NamespaceName} from '../core/kube/namespace_name.js';
-import {ClusterChecks} from '../core/cluster_checks.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 
@@ -125,7 +126,7 @@ export class ExplorerCommand extends BaseCommand {
       );
     }
 
-    const clusterChecks: ClusterChecks = container.resolve(ClusterChecks);
+    const clusterChecks: ClusterChecks = container.resolve(InjectTokens.ClusterChecks);
 
     if (!(await clusterChecks.isCertManagerInstalled())) {
       valuesArg += ' --set cert-manager.installCRDs=true';
@@ -182,7 +183,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            if (!(await self.k8.hasNamespace(ctx.config.namespace))) {
+            if (!(await self.k8Factory.default().namespaces().has(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
@@ -213,19 +214,25 @@ export class ExplorerCommand extends BaseCommand {
               chartPath,
               soloChartVersion,
               '  --set cert-manager.installCRDs=true',
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
             // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
-            await self.k8.waitForPodReady(
-              [
-                'app.kubernetes.io/component=webhook',
-                `app.kubernetes.io/instance=${constants.SOLO_CERT_MANAGER_CHART}`,
-              ],
-              1,
-              constants.PODS_READY_MAX_ATTEMPTS,
-              constants.PODS_READY_DELAY,
-              constants.DEFAULT_CERT_MANAGER_NAMESPACE,
-            );
+            await self.k8Factory
+              .default()
+              .pods()
+              .waitForReadyStatus(
+                constants.DEFAULT_CERT_MANAGER_NAMESPACE,
+                [
+                  'app.kubernetes.io/component=webhook',
+                  `app.kubernetes.io/instance=${constants.SOLO_CERT_MANAGER_CHART}`,
+                ],
+                constants.PODS_READY_MAX_ATTEMPTS,
+                constants.PODS_READY_DELAY,
+              );
+
+            // sleep for a few seconds to allow cert-manager to be ready
+            await new Promise(resolve => setTimeout(resolve, 10000));
 
             // sleep for a few seconds to allow cert-manager to be ready
             await new Promise(resolve => setTimeout(resolve, 10000));
@@ -236,7 +243,28 @@ export class ExplorerCommand extends BaseCommand {
               chartPath,
               soloChartVersion,
               soloCertManagerValuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
+
+            if (config.enableIngress) {
+              // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+              await this.k8Factory
+                .default()
+                .ingresses()
+                .update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                  spec: {
+                    ingressClassName: `${config.namespace}-hedera-explorer-ingress-class`,
+                  },
+                });
+
+              // to support GRPC over HTTP/2
+              await this.k8Factory
+                .default()
+                .configMaps()
+                .update(config.namespace, constants.EXPLORER_INGRESS_CONTROLLER, {
+                  'backend-protocol': 'h2',
+                });
+            }
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
         },
@@ -255,7 +283,21 @@ export class ExplorerCommand extends BaseCommand {
               constants.HEDERA_EXPLORER_CHART_URL,
               config.hederaExplorerVersion,
               exploreValuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
+
+            // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
+            // to support grpc over http/2
+            await this.k8Factory
+              .default()
+              .ingresses()
+              .update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
+                metadata: {
+                  annotations: {
+                    'haproxy-ingress.github.io/backend-protocol': 'h1',
+                  },
+                },
+              });
           },
         },
         {
@@ -282,45 +324,53 @@ export class ExplorerCommand extends BaseCommand {
               ingressControllerChartPath,
               INGRESS_CONTROLLER_VERSION,
               explorerIngressControllerValuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
             // to support grpc over http/2
-            await this.k8.patchIngress(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
+            await this.k8Factory.default().patchIngress(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
               metadata: {
                 annotations: {
                   'haproxy-ingress.github.io/backend-protocol': 'h1',
                 },
               },
             });
-            await this.k8.createIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+            await this.k8Factory
+              .default()
+              .createIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
           },
           skip: ctx => !ctx.config.enableIngress,
         },
         {
           title: 'Check explorer pod is ready',
-          task: async () => {
-            await self.k8.waitForPodReady(
-              [constants.SOLO_HEDERA_EXPLORER_LABEL],
-              1,
-              constants.PODS_READY_MAX_ATTEMPTS,
-              constants.PODS_READY_DELAY,
-            );
+          task: async ctx => {
+            await self.k8Factory
+              .default()
+              .pods()
+              .waitForReadyStatus(
+                ctx.config.namespace,
+                [constants.SOLO_HEDERA_EXPLORER_LABEL],
+                constants.PODS_READY_MAX_ATTEMPTS,
+                constants.PODS_READY_DELAY,
+              );
           },
         },
         {
           title: 'Check haproxy ingress controller pod is ready',
           task: async ctx => {
-            await self.k8.waitForPodReady(
-              [
-                'app.kubernetes.io/name=haproxy-ingress',
-                `app.kubernetes.io/instance=${constants.INGRESS_CONTROLLER_RELEASE_NAME}`,
-              ],
-              1,
-              constants.PODS_READY_MAX_ATTEMPTS,
-              constants.PODS_READY_DELAY,
-              ctx.config.namespace,
-            );
+            await self.k8Factory
+              .default()
+              .pods()
+              .waitForReadyStatus(
+                ctx.config.namespace,
+                [
+                  'app.kubernetes.io/name=haproxy-ingress',
+                  `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+                ],
+                constants.PODS_READY_MAX_ATTEMPTS,
+                constants.PODS_READY_DELAY,
+              );
           },
           skip: ctx => !ctx.config.enableIngress,
         },
@@ -377,7 +427,7 @@ export class ExplorerCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            if (!(await self.k8.hasNamespace(namespace))) {
+            if (!(await self.k8Factory.default().namespaces().has(namespace))) {
               throw new SoloError(`namespace ${namespace} does not exist`);
             }
 
@@ -396,7 +446,11 @@ export class ExplorerCommand extends BaseCommand {
         {
           title: 'Destroy explorer',
           task: async ctx => {
-            await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME);
+            await this.chartManager.uninstall(
+              ctx.config.namespace,
+              constants.HEDERA_EXPLORER_RELEASE_NAME,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
@@ -404,7 +458,7 @@ export class ExplorerCommand extends BaseCommand {
           title: 'Uninstall explorer ingress controller',
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
-            await this.k8.deleteIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME);
+            await this.k8Factory.default().deleteIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME);
           },
         },
         this.removeMirrorNodeExplorerComponents(),

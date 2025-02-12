@@ -6,7 +6,6 @@ import {type V1Lease, V1ObjectMeta, V1Secret} from '@kubernetes/client-node';
 import {Flags as flags} from '../../commands/flags.js';
 import {MissingArgumentError, SoloError} from './../errors.js';
 import {StatusCodes} from 'http-status-codes';
-import {sleep} from './../helpers.js';
 import * as constants from './../constants.js';
 import {ConfigManager} from './../config_manager.js';
 import {SoloLogger} from './../logging.js';
@@ -402,91 +401,5 @@ export class K8Client extends K8ClientBase implements K8 {
 
   public async listSvcs(namespace: NamespaceName, labels: string[]): Promise<Service[]> {
     return this.services().list(namespace, labels);
-  }
-
-  public async createIngressClass(ingressClassName: string, controllerName: string) {
-    const ingressClass = {
-      apiVersion: 'networking.k8s.io/v1',
-      kind: 'IngressClass',
-      metadata: {
-        name: ingressClassName,
-      },
-      spec: {
-        controller: controllerName,
-      },
-    };
-    try {
-      await this.networkingApi.createIngressClass(ingressClass);
-    } catch (e) {
-      this.logger.error(`Error creating IngressClass ${ingressClassName}: ${e}`);
-    }
-  }
-
-  public async deleteIngressClass(ingressClassName: string) {
-    try {
-      await this.networkingApi.deleteIngressClass(ingressClassName);
-    } catch (e) {
-      this.logger.error(`Error deleting IngressClass ${ingressClassName}: ${e}`);
-    }
-  }
-  public async patchIngress(namespace: NamespaceName, ingressName: string, patch: object) {
-    const ingressNames = [];
-    await this.networkingApi
-      .listIngressForAllNamespaces()
-      .then(response => {
-        response.body.items.forEach(ingress => {
-          const currentIngressName = ingress.metadata.name;
-          if (currentIngressName.includes(ingressName)) {
-            ingressNames.push(currentIngressName);
-          }
-        });
-      })
-      .catch(err => {
-        this.logger.error(`Error listing Ingresses: ${err}`);
-      });
-
-    for (const name of ingressNames) {
-      await this.networkingApi
-        .patchNamespacedIngress(name, namespace.name, patch, undefined, undefined, undefined, undefined, undefined, {
-          headers: {'Content-Type': 'application/strategic-merge-patch+json'},
-        })
-        .then(response => {
-          this.logger.info(`Patched Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)}`);
-        })
-        .catch(err => {
-          this.logger.error(
-            `Error patching Ingress ${name} in namespace ${namespace}, patch: ${JSON.stringify(patch)} ${err}`,
-          );
-        });
-    }
-  }
-
-  public async patchConfigMap(namespace: NamespaceName, configMapName: string, data: Record<string, string>) {
-    const patch = {
-      data: data,
-    };
-
-    const options = {
-      headers: {'Content-Type': 'application/merge-patch+json'}, // Or the appropriate content type
-    };
-
-    await this.kubeClient
-      .patchNamespacedConfigMap(
-        configMapName,
-        namespace.name,
-        patch,
-        undefined, // pretty
-        undefined, // dryRun
-        undefined, // fieldManager
-        undefined, // fieldValidation
-        undefined, // force
-        options, // Pass the options here
-      )
-      .then(response => {
-        this.logger.info(`Patched ConfigMap ${configMapName} in namespace ${namespace}`);
-      })
-      .catch(err => {
-        this.logger.error(`Error patching ConfigMap ${configMapName} in namespace ${namespace}: ${err}`);
-      });
   }
 }

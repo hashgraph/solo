@@ -7,12 +7,12 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js';
 import * as version from '../../../../version.js';
-import {PodName} from '../../../../src/core/kube/pod_name.js';
+import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
-import {PodRef} from '../../../../src/core/kube/pod_ref.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 
 const namespace = NamespaceName.of('account-mngr-e2e');
 const argv = getDefaultArgv();
@@ -38,25 +38,23 @@ e2eTestSuite(
   true,
   bootstrapResp => {
     describe('AccountManager', async () => {
-      let k8: K8;
+      let k8Factory: K8Factory;
       let accountManager: AccountManager;
 
       before(() => {
-        k8 = bootstrapResp.opts.k8;
+        k8Factory = bootstrapResp.opts.k8Factory;
         accountManager = bootstrapResp.opts.accountManager;
       });
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
 
-        await k8.deleteNamespace(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
         await accountManager.close();
       });
 
       it('should be able to stop port forwards', async () => {
         await accountManager.close();
-        const localHost = '127.0.0.1';
-
         const podName = PodName.of('minio-console'); // use a svc that is less likely to be used by other tests
         const podRef: PodRef = PodRef.of(namespace, podName);
         const podPort = 9_090;
@@ -70,7 +68,9 @@ e2eTestSuite(
 
         // ports should be opened
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
-        accountManager._portForwards.push(await k8.portForward(podRef, localPort, podPort));
+        accountManager._portForwards.push(
+          await k8Factory.default().pods().readByRef(podRef).portForward(localPort, podPort),
+        );
 
         // ports should be closed
         await accountManager.close();

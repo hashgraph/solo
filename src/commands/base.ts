@@ -9,7 +9,7 @@ import {type LeaseManager} from '../core/lease/lease_manager.js';
 import {type LocalConfig} from '../core/config/local_config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
 import {type Helm} from '../core/helm.js';
-import {type K8} from '../core/kube/k8.js';
+import {type K8Factory} from '../core/kube/k8_factory.js';
 import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
@@ -21,6 +21,7 @@ import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
+import {ConsensusNode} from '../core/model/consensus_node.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -28,7 +29,7 @@ export interface CommandHandlers {
 
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
-  protected readonly k8: K8;
+  protected readonly k8Factory: K8Factory;
   protected readonly chartManager: ChartManager;
   protected readonly configManager: ConfigManager;
   protected readonly depManager: DependencyManager;
@@ -39,7 +40,7 @@ export abstract class BaseCommand extends ShellRunner {
 
   constructor(opts: Opts) {
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
@@ -49,7 +50,7 @@ export abstract class BaseCommand extends ShellRunner {
     super();
 
     this.helm = opts.helm;
-    this.k8 = opts.k8;
+    this.k8Factory = opts.k8Factory;
     this.chartManager = opts.chartManager;
     this.configManager = opts.configManager;
     this.depManager = opts.depManager;
@@ -58,7 +59,7 @@ export abstract class BaseCommand extends ShellRunner {
     this.remoteConfigManager = opts.remoteConfigManager;
   }
 
-  async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
+  public async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
 
@@ -71,7 +72,7 @@ export abstract class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`;
   }
 
-  prepareValuesFiles(valuesFile: string) {
+  public prepareValuesFiles(valuesFile: string) {
     let valuesArg = '';
     if (valuesFile) {
       const valuesFiles = valuesFile.split(',');
@@ -84,11 +85,11 @@ export abstract class BaseCommand extends ShellRunner {
     return valuesArg;
   }
 
-  getConfigManager(): ConfigManager {
+  public getConfigManager(): ConfigManager {
     return this.configManager;
   }
 
-  getChartManager(): ChartManager {
+  public getChartManager(): ChartManager {
     return this.chartManager;
   }
 
@@ -97,7 +98,7 @@ export abstract class BaseCommand extends ShellRunner {
    * and extra properties, will keep track of which properties are used.  Call
    * getUnusedConfigs() to get an array of unused properties.
    */
-  getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
+  public getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
     const configManager = this.configManager;
 
     // build the dynamic class that will keep track of which properties are used
@@ -165,7 +166,7 @@ export abstract class BaseCommand extends ShellRunner {
     return newConfigInstance;
   }
 
-  getLeaseManager(): LeaseManager {
+  public getLeaseManager(): LeaseManager {
     return this.leaseManager;
   }
 
@@ -173,25 +174,25 @@ export abstract class BaseCommand extends ShellRunner {
    * Get the list of unused configurations that were not accessed
    * @returns an array of unused configurations
    */
-  getUnusedConfigs(configName: string): string[] {
+  public getUnusedConfigs(configName: string): string[] {
     return this._configMaps.get(configName).getUnusedConfigs();
   }
 
-  getK8() {
-    return this.k8;
+  public getK8Factory() {
+    return this.k8Factory;
   }
 
-  getLocalConfig() {
+  public getLocalConfig() {
     return this.localConfig;
   }
 
-  getRemoteConfigManager() {
+  public getRemoteConfigManager() {
     return this.remoteConfigManager;
   }
 
   abstract close(): Promise<void>;
 
-  commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
+  public commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
     return async function (argv: any, commandDef: CommandHandlers) {
       const tasks = new Listr([...actionTasks], options);
 
@@ -215,7 +216,7 @@ export abstract class BaseCommand extends ShellRunner {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  setupHomeDirectory(
+  public setupHomeDirectory(
     dirs: string[] = [
       constants.SOLO_HOME_DIR,
       constants.SOLO_LOGS_DIR,
@@ -240,9 +241,48 @@ export abstract class BaseCommand extends ShellRunner {
     return dirs;
   }
 
-  setupHomeDirectoryTask() {
+  public setupHomeDirectoryTask() {
     return new Task('Setup home directory', async () => {
       this.setupHomeDirectory();
     });
+  }
+
+  /**
+   * Get the consensus nodes from the remoteConfigManager and use the localConfig to get the context
+   * @returns an array of ConsensusNode objects
+   */
+  public getConsensusNodes(): ConsensusNode[] {
+    const consensusNodes: ConsensusNode[] = [];
+
+    // using the remoteConfigManager to get the consensus nodes
+    Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
+      consensusNodes.push(
+        new ConsensusNode(
+          node.name,
+          node.nodeId,
+          node.namespace,
+          node.cluster,
+          // use local config to get the context
+          this.getLocalConfig().clusterRefs[node.cluster],
+        ),
+      );
+    });
+
+    // return the consensus nodes
+    return consensusNodes;
+  }
+
+  /**
+   * Gets a list of distinct contexts from the consensus nodes
+   * @returns an array of context strings
+   */
+  public getContexts(): string[] {
+    const contexts: string[] = [];
+    this.getConsensusNodes().forEach(node => {
+      if (!contexts.includes(node.context)) {
+        contexts.push(node.context);
+      }
+    });
+    return contexts;
   }
 }
