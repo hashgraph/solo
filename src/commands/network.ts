@@ -491,6 +491,7 @@ export class NetworkCommand extends BaseCommand {
         'nodeAliases',
         'stagingDir',
         'stagingKeysDir',
+        'valuesArgMap',
         'resolvedThrottlesFile',
         'namespace',
         'consensusNodes',
