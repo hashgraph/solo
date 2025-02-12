@@ -351,6 +351,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.chartPath,
                       ctx.config.mirrorNodeVersion,
                       ctx.config.valuesArg,
+                      this.k8Factory.default().contexts().readCurrent(),
                     );
                   },
                 },
@@ -620,7 +621,11 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Destroy mirror-node',
           task: async ctx => {
-            await this.chartManager.uninstall(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME);
+            await this.chartManager.uninstall(
+              ctx.config.namespace,
+              constants.MIRROR_NODE_RELEASE_NAME,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },
