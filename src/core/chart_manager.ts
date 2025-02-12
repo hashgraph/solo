@@ -57,10 +57,11 @@ export class ChartManager {
    * @param kubeContext - the kube context
    */
   async getInstalledCharts(namespaceName: NamespaceName, kubeContext?: string) {
-    const namespaceArg = namespaceName ? `-n ${namespaceName.name}` : '';
+    const namespaceArg = namespaceName ? `-n ${namespaceName.name}` : '--all-namespaces';
     const contextArg = kubeContext ? `--kube-context ${kubeContext}` : '';
+
     try {
-      return await this.helm.list(` ${namespaceArg} ${contextArg}`, '--no-headers | awk \'{print $1 " [" $9"]"}\'');
+      return await this.helm.list(` ${contextArg} ${namespaceArg} --no-headers | awk '{print $1 " [" $9"]"}'`);
     } catch (e: Error | any) {
       this.logger.showUserError(e);
     }
