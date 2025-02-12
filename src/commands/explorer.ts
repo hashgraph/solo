@@ -266,7 +266,7 @@ export class ExplorerCommand extends BaseCommand {
                 });
             }
           },
-          skip: ctx => !ctx.config.enableHederaExplorerTls && !ctx.config.enableIngress,
+          skip: ctx => !ctx.config.enableHederaExplorerTls,
         },
 
         {

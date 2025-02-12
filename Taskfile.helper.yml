@@ -419,6 +419,7 @@ tasks:
     cmds:
       - task: "default"
       - task: "solo:mirror-node"
+      - task: "solo:explorer"
 
   default-with-relay:
     desc: in addition to default-with-mirror, deploy the JSON RPC relay
@@ -427,23 +428,38 @@ tasks:
     cmds:
       - task: "default"
       - task: "solo:mirror-node"
+      - task: "solo:explorer"
       - task: "solo:relay"
 
   solo:mirror-node:
     silent: true
-    desc: solo mirror-node deploy with port forward on explorer
+    desc: solo mirror-node deploy with port forward
     deps:
       - task: "init"
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
       - |
+        if [[ "{{ .use_port_forwards }}" == "true" ]];then
+          echo "Port forwarding for Mirror Node Network: grpc:5600, rest:5551"
+          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &"
+          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/mirror-rest 5551:80 > /dev/null 2>&1 &"
+          sleep 4
+        fi
+
+  solo:explorer:
+    silent: true
+    desc: solo explorer deploy with port forward on explorer
+    deps:
+      - task: "init"
+    cmds:
+      - |
         if [[ "${EXPLORER_NAME_SPACE}" != "" && "${EXPLORER_DEPLOYMENT}" != "" ]]; then
           # create deployment on different namespace
           SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create --deployment "${EXPLORER_DEPLOYMENT}" -n "${EXPLORER_NAME_SPACE}" --context ${EXPLORER_CLUSTER_CONTEXT} --email ${SOLO_EMAIL} --deployment-clusters ${EXPLORER_CLUSTER_CONTEXT} --dev
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${EXPLORER_DEPLOYMENT}" -n "${EXPLORER_NAME_SPACE}" --mirrorNamespace ${SOLO_NAMESPACE} -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${EXPLORER_DEPLOYMENT}" -n "${EXPLORER_NAME_SPACE}" --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
         else
           EXPLORER_NAME_SPACE=${SOLO_NAMESPACE}
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${SOLO_DEPLOYMENT}"     -n "${SOLO_NAMESPACE}"      --mirrorNamespace ${SOLO_NAMESPACE} -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${SOLO_DEPLOYMENT}"     -n "${SOLO_NAMESPACE}"      --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
         fi
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
@@ -451,9 +467,6 @@ tasks:
           echo "Port forwarding for Hedera Explorer: http://localhost:8080"
           explorer_svc="$(kubectl get svc -l app.kubernetes.io/component=hedera-explorer -n ${EXPLORER_NAME_SPACE} --output json | jq -r '.items[].metadata.name')"
           /bin/bash -c "nohup kubectl port-forward -n \"${EXPLORER_NAME_SPACE}\" \"svc/${explorer_svc}\" 8080:80 > /dev/null 2>&1 &"
-          echo "Port forwarding for Mirror Node Network: grpc:5600, rest:5551"
-          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &"
-          /bin/bash -c "nohup kubectl port-forward -n \"${SOLO_NAMESPACE}\" svc/mirror-rest 5551:80 > /dev/null 2>&1 &"
           sleep 4
         fi
 
@@ -467,11 +480,18 @@ tasks:
       - task: "init"
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
+
+  solo:destroy-explorer:
+    silent: true
+    desc: solo explorer destroy
+    deps:
+      - task: "init"
+    cmds:
       - |
         if [[ "${EXPLORER_NAME_SPACE}" != "" && "${EXPLORER_DEPLOYMENT}" != "" ]]; then
           SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${EXPLORER_DEPLOYMENT}" --force -q --dev || true
         else
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
+          #SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
         fi
 
   clean:
