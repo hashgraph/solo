@@ -457,7 +457,11 @@ export class NetworkCommand extends BaseCommand {
   async destroyTask(ctx: any, task: any) {
     const self = this;
     task.title = `Uninstalling chart ${constants.SOLO_DEPLOYMENT_CHART}`;
-    await self.chartManager.uninstall(ctx.config.namespace, constants.SOLO_DEPLOYMENT_CHART);
+    await self.chartManager.uninstall(
+      ctx.config.namespace,
+      constants.SOLO_DEPLOYMENT_CHART,
+      this.k8Factory.default().contexts().readCurrent(),
+    );
 
     if (ctx.config.deletePvcs) {
       const pvcs = await self.k8Factory.default().pvcs().list(ctx.config.namespace, []);
@@ -573,7 +577,11 @@ export class NetworkCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
             if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
-              await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART);
+              await self.chartManager.uninstall(
+                config.namespace,
+                constants.SOLO_DEPLOYMENT_CHART,
+                this.k8Factory.default().contexts().readCurrent(),
+              );
             }
 
             await this.chartManager.install(
@@ -582,6 +590,7 @@ export class NetworkCommand extends BaseCommand {
               ctx.config.chartPath,
               config.soloChartVersion,
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
           },
         },
@@ -840,6 +849,7 @@ export class NetworkCommand extends BaseCommand {
               ctx.config.chartPath,
               config.soloChartVersion,
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
           },
         },

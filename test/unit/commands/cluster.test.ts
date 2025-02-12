@@ -51,23 +51,24 @@ import {K8ClientClusters} from '../../../src/core/kube/k8_client/resources/clust
 import {K8ClientContexts} from '../../../src/core/kube/k8_client/resources/context/k8_client_contexts.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
-const getBaseCommandOpts = () => ({
-  logger: sinon.stub(),
-  helm: sinon.stub(),
-  k8Factory: {
-    isMinioInstalled: sinon.stub().returns(false),
-    isPrometheusInstalled: sinon.stub().returns(false),
-    isCertManagerInstalled: sinon.stub().returns(false),
-  },
-  chartManager: sinon.stub(),
-  configManager: sinon.stub(),
-  depManager: sinon.stub(),
-  localConfig: sinon.stub(),
-});
+const getBaseCommandOpts = (context: string) => {
+  const opts = {
+    logger: sandbox.createStubInstance(SoloLogger),
+    helm: sandbox.createStubInstance(Helm),
+    k8Factory: sandbox.createStubInstance(K8ClientFactory),
+    chartManager: sandbox.createStubInstance(ChartManager),
+    configManager: sandbox.createStubInstance(ConfigManager),
+    depManager: sandbox.createStubInstance(DependencyManager),
+    localConfig: sandbox.createStubInstance(LocalConfig),
+  };
+  opts.k8Factory.default.returns(new K8Client(context));
+  return opts;
+};
 
 const testName = 'cluster-cmd-unit';
 const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv();
+const sandbox = sinon.createSandbox();
 
 argv[flags.namespace.name] = namespace.name;
 argv[flags.deployment.name] = 'solo-e2e';
@@ -88,18 +89,27 @@ describe('ClusterCommand unit tests', () => {
   describe('Chart Install Function is called correctly', () => {
     let opts: any;
 
+    afterEach(() => {
+      sandbox.restore();
+    });
+
     beforeEach(() => {
-      opts = getBaseCommandOpts();
+      const k8Client = new K8Client(undefined);
+      const context = k8Client.contexts().readCurrent();
+      opts = getBaseCommandOpts(context);
       opts.logger = container.resolve(InjectTokens.SoloLogger);
       opts.helm = container.resolve(InjectTokens.Helm);
       opts.chartManager = container.resolve(InjectTokens.ChartManager);
-      opts.helm.dependency = sinon.stub();
+      opts.helm.dependency = sandbox.stub();
 
-      opts.chartManager.isChartInstalled = sinon.stub().returns(false);
-      opts.chartManager.install = sinon.stub().returns(true);
+      opts.chartManager.isChartInstalled = sandbox.stub().returns(false);
+      opts.chartManager.install = sandbox.stub().returns(true);
 
       opts.configManager = container.resolve(InjectTokens.ConfigManager);
-      opts.remoteConfigManager = sinon.stub();
+      opts.remoteConfigManager = sandbox.stub();
+
+      opts.remoteConfigManager.currentCluster = 'solo-e2e';
+      opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
     });
 
     it('Install function is called with expected parameters', async () => {

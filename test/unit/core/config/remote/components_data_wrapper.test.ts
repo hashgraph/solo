@@ -25,10 +25,19 @@ export function createComponentsDataWrapper() {
   const consensusNodeAliases = ['node1', 'node2'] as NodeAliases;
 
   const relays = {[serviceName]: new RelayComponent(name, cluster, namespace, consensusNodeAliases)};
-  const haProxies = {[serviceName]: new HaProxyComponent(name, cluster, namespace)};
+  const haProxies = {
+    [serviceName]: new HaProxyComponent(name, cluster, namespace),
+    ['serviceName2']: new HaProxyComponent('name2', 'cluster2', namespace),
+  };
   const mirrorNodes = {[serviceName]: new MirrorNodeComponent(name, cluster, namespace)};
-  const envoyProxies = {[serviceName]: new EnvoyProxyComponent(name, cluster, namespace)};
-  const consensusNodes = {[serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, 1)};
+  const envoyProxies = {
+    [serviceName]: new EnvoyProxyComponent(name, cluster, namespace),
+    ['serviceName2']: new EnvoyProxyComponent('name2', 'cluster2', namespace),
+  };
+  const consensusNodes = {
+    [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, 0),
+    ['serviceName2']: new ConsensusNodeComponent('node2', 'cluster2', namespace, state, 1),
+  };
   const mirrorNodeExplorers = {[serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace)};
 
   // @ts-ignore
@@ -119,7 +128,7 @@ describe('ComponentsDataWrapper', () => {
       namespace,
     });
 
-    expect(Object.values(componentDataWrapperObject[ComponentType.EnvoyProxy])).to.have.lengthOf(2);
+    expect(Object.values(componentDataWrapperObject[ComponentType.EnvoyProxy])).to.have.lengthOf(3);
   });
 
   it('should be able to edit component with the .edit()', () => {

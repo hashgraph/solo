@@ -17,6 +17,8 @@ import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
 import {resetForTest} from '../../test_container.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_data_wrapper.js';
+import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -121,6 +123,62 @@ describe('BaseCommand', () => {
 
       const newClassInstance4 = baseCmd.getConfig('newClassInstance4', []) as newClassInstance;
       expect(newClassInstance4.getUnusedConfigs()).to.deep.equal([]);
+    });
+  });
+
+  describe('get consensus nodes', () => {
+    before(() => {
+      const testLogger = sinon.stub();
+      const helm = sinon.stub();
+      const chartManager = sinon.stub();
+      const configManager = sinon.stub();
+      const depManager = sinon.stub();
+      const localConfig = sinon.stub() as unknown as LocalConfig;
+      localConfig.clusterRefs = {cluster: 'context1', cluster2: 'context2'};
+      const {
+        wrapper: {componentsDataWrapper},
+      } = createComponentsDataWrapper();
+
+      const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject());
+      const remoteConfigManager = sinon.stub() as unknown as RemoteConfigManager;
+      Object.defineProperty(remoteConfigManager, 'components', {
+        get: () => newComponentsDataWrapper,
+      });
+      const k8Factory = sinon.stub();
+
+      // @ts-expect-error - allow to create instance of abstract class
+      baseCmd = new BaseCommand({
+        logger: testLogger,
+        helm,
+        k8Factory,
+        chartManager,
+        configManager,
+        depManager,
+        localConfig,
+        remoteConfigManager,
+      });
+    });
+
+    it('should return consensus nodes', () => {
+      const consensusNodes = baseCmd.getConsensusNodes();
+      expect(consensusNodes).to.be.an('array');
+      expect(consensusNodes[0].context).to.equal('context1');
+      expect(consensusNodes[1].context).to.equal('context2');
+      expect(consensusNodes[0].name).to.equal('name');
+      expect(consensusNodes[1].name).to.equal('node2');
+      expect(consensusNodes[0].namespace).to.equal('namespace');
+      expect(consensusNodes[1].namespace).to.equal('namespace');
+      expect(consensusNodes[0].nodeId).to.equal(0);
+      expect(consensusNodes[1].nodeId).to.equal(1);
+      expect(consensusNodes[0].cluster).to.equal('cluster');
+      expect(consensusNodes[1].cluster).to.equal('cluster2');
+    });
+
+    it('should return contexts', () => {
+      const contexts = baseCmd.getContexts();
+      expect(contexts).to.be.an('array');
+      expect(contexts[0]).to.equal('context1');
+      expect(contexts[1]).to.equal('context2');
     });
   });
 });
