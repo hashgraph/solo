@@ -450,7 +450,14 @@ export class ClusterCommandTasks {
           parent.logger.debug(`Installing chart chartPath = ${ctx.chartPath}, version = ${version}`);
           await parent
             .getChartManager()
-            .install(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART, ctx.chartPath, version, valuesArg);
+            .install(
+              clusterSetupNamespace,
+              constants.SOLO_CLUSTER_SETUP_CHART,
+              ctx.chartPath,
+              version,
+              valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
         } catch (e: Error | unknown) {
           // if error, uninstall the chart and rethrow the error
           parent.logger.debug(
@@ -458,7 +465,13 @@ export class ClusterCommandTasks {
             e,
           );
           try {
-            await parent.getChartManager().uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
+            await parent
+              .getChartManager()
+              .uninstall(
+                clusterSetupNamespace,
+                constants.SOLO_CLUSTER_SETUP_CHART,
+                this.k8Factory.default().contexts().readCurrent(),
+              );
           } catch {
             // ignore error during uninstall since we are doing the best-effort uninstall here
           }
@@ -504,8 +517,13 @@ export class ClusterCommandTasks {
             process.exit(0);
           }
         }
-
-        await parent.getChartManager().uninstall(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART);
+        await parent
+          .getChartManager()
+          .uninstall(
+            clusterSetupNamespace,
+            constants.SOLO_CLUSTER_SETUP_CHART,
+            this.k8Factory.default().contexts().readCurrent(),
+          );
         if (argv.dev) {
           await this.showInstalledChartList(clusterSetupNamespace);
         }
