@@ -94,57 +94,49 @@ export abstract class BaseCommand extends ShellRunner {
    * <p> Order of precedence:
    * <ol>
    *   <li> Chart's default values file (if chartDirectory is set) </li>
-   *   <li> User's values file </li>
    *   <li> Profile values file </li>
+   *   <li> User's values file </li>
    * </ol>
-   * @param clustersMap - the map of cluster references
+   * @param contextRefs - the map of cluster references
    * @param valuesFileInput - the values file input string
    * @param chartDirectory - the chart directory
    * @param profileValuesFile - the profile values file
    */
   static prepareValuesFilesMap(
-    clustersMap: ClusterRefs,
+    contextRefs: ClusterRefs,
     chartDirectory?: string,
-    valuesFileInput?: string,
     profileValuesFile?: string,
-  ) {
-    // initialize the map with an empty array for each cluster that we know about
-    const valuesFiles: Record<ClusterRef, Array<string>> = {};
-    Object.entries(clustersMap).forEach(([clusterRef]) => {
-      valuesFiles[clusterRef] = [];
+    valuesFileInput?: string,
+  ): Record<ClusterRef, string> {
+    // initialize the map with an empty array for each cluster-ref
+    const valuesFiles: Record<ClusterRef, string> = {};
+    Object.entries(contextRefs).forEach(([clusterRef]) => {
+      valuesFiles[clusterRef] = '';
     });
 
-    // add the chart's default values file for each cluster if chartDirectory is set
-    // this should be the first in the list of values files as it will be overridden by the user's values file
+    // add the chart's default values file for each cluster-ref if chartDirectory is set
+    // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
       const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
-      for (const cluster in valuesFiles) {
-        valuesFiles[cluster].push(chartValuesFile); // add to the beginning of the list
+      for (const clusterRef in valuesFiles) {
+        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
       }
-    }
-
-    if (valuesFileInput) {
-      const parsed = Flags.parseValuesFilesInput(valuesFileInput);
-      Object.entries(parsed).forEach(([clusterRef, files]) => {
-        if (!valuesFiles[clusterRef]) {
-          valuesFiles[clusterRef] = [];
-        }
-
-        files.forEach(file => {
-          valuesFiles[clusterRef].push(file);
-        });
-      });
     }
 
     if (profileValuesFile) {
       const parsed = Flags.parseValuesFilesInput(profileValuesFile);
       Object.entries(parsed).forEach(([clusterRef, files]) => {
-        if (!valuesFiles[clusterRef]) {
-          valuesFiles[clusterRef] = [];
-        }
-
         files.forEach(file => {
-          valuesFiles[clusterRef].push(file);
+          valuesFiles[clusterRef] += ` --values ${file}`;
+        });
+      });
+    }
+
+    if (valuesFileInput) {
+      const parsed = Flags.parseValuesFilesInput(valuesFileInput);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        files.forEach(file => {
+          valuesFiles[clusterRef] += ` --values ${file}`;
         });
       });
     }
@@ -171,6 +163,7 @@ export abstract class BaseCommand extends ShellRunner {
     // build the dynamic class that will keep track of which properties are used
     const NewConfigClass = class {
       private usedConfigs: Map<string, number>;
+
       constructor() {
         // the map to keep track of which properties are used
         this.usedConfigs = new Map();

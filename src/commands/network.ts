@@ -33,7 +33,7 @@ import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ConsensusNode} from '../core/model/consensus_node.js';
-import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import {type ClusterRef} from '../core/config/remote/types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -157,19 +157,19 @@ export class NetworkCommand extends BaseCommand {
     minioData['config.env'] = Base64.encode(envString);
 
     // create minio secret in each cluster
-    for (const clusterRef of Object.keys(config.valuesArgMap)) {
-      this.logger.debug(`creating minio secret in cluster: ${clusterRef}`);
+    for (const context of config.contexts) {
+      this.logger.debug(`creating minio secret using context: ${context}`);
 
-      const isMinioSecretCreated = await this.k8Factory
-        .default()
+      const k8client = this.k8Factory.getK8(context);
+      const isMinioSecretCreated = await k8client
         .secrets()
         .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
 
       if (!isMinioSecretCreated) {
-        throw new SoloError(`failed to create new minio secret in cluster: ${clusterRef}`);
+        throw new SoloError(`failed to create new minio secret using context: ${context}`);
       }
 
-      this.logger.debug(`created minio secret in cluster: ${clusterRef}`);
+      this.logger.debug(`created minio secret using context: ${context}`);
     }
   }
 
@@ -203,24 +203,24 @@ export class NetworkCommand extends BaseCommand {
     }
 
     // create secret in each cluster
-    for (const clusterRef of Object.keys(config.valuesArgMap)) {
+    for (const context of config.contexts) {
       this.logger.debug(
-        `creating secret for storage credential of type '${config.storageType}' in cluster: ${clusterRef}`,
+        `creating secret for storage credential of type '${config.storageType}' using context: ${context}`,
       );
 
-      const isCloudSecretCreated = await this.k8Factory
-        .default()
+      const k8client = this.k8Factory.getK8(context);
+      const isCloudSecretCreated = await k8client
         .secrets()
         .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
 
       if (!isCloudSecretCreated) {
         throw new SoloError(
-          `failed to create secret for storage credentials of type '${config.storageType}' in cluster: ${clusterRef}`,
+          `failed to create secret for storage credentials of type '${config.storageType}' using context: ${context}`,
         );
       }
 
       this.logger.debug(
-        `created secret for storage credential of type '${config.storageType}' in cluster: ${clusterRef}`,
+        `created secret for storage credential of type '${config.storageType}' using context: ${context}`,
       );
     }
   }
@@ -233,19 +233,19 @@ export class NetworkCommand extends BaseCommand {
       backupData['saJson'] = Base64.encode(googleCredential);
 
       // create secret in each cluster
-      for (const clusterRef of Object.keys(config.valuesArgMap)) {
-        this.logger.debug(`creating secret for backup uploader in cluster: ${clusterRef}`);
+      for (const context of config.contexts) {
+        this.logger.debug(`creating secret for backup uploader using context: ${context}`);
 
-        const isBackupSecretCreated = await this.k8Factory
-          .default()
+        const k8client = this.k8Factory.getK8(context);
+        const isBackupSecretCreated = await k8client
           .secrets()
           .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
 
         if (!isBackupSecretCreated) {
-          throw new SoloError(`failed to create secret for backup uploader in cluster: ${clusterRef}`);
+          throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
         }
 
-        this.logger.debug(`created secret for backup uploader in cluster: ${clusterRef}`);
+        this.logger.debug(`created secret for backup uploader using context: ${context}`);
       }
     }
   }
@@ -290,30 +290,25 @@ export class NetworkCommand extends BaseCommand {
     googleCredential: string;
     loadBalancerEnabled: boolean;
   }): Promise<Record<ClusterRef, string>> {
-    const valuesArgs: Record<ClusterRef, string> = {};
+    const valuesArg = this.prepareValuesArg(config);
 
     // prepare values files for each cluster
+    const valuesArgMap: Record<ClusterRef, string> = {};
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
-    const clustersMap: ClusterRefs = this.getLocalConfig().clusterRefs;
-    const valuesFiles: Record<ClusterRef, Array<string>> = BaseCommand.prepareValuesFilesMap(
-      clustersMap,
+    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
+      this.getLocalConfig().clusterRefs,
       config.chartDirectory,
       config.valuesFile,
       profileValuesFile,
     );
 
-    // Iterate over each cluster and set values args including the values files
     for (const clusterRef of Object.keys(valuesFiles)) {
-      let valuesArg = this.prepareValuesArg(config);
-      valuesFiles[clusterRef].forEach(valuesFile => {
-        valuesArg += ` --values ${valuesFile}`;
-      });
-
-      valuesArgs[clusterRef] = valuesArg;
+      valuesArgMap[clusterRef] = valuesArg + valuesFiles[clusterRef];
+      this.logger.debug(`Prepared helm chart values for cluster-ref: ${clusterRef}`, {valuesArg: valuesArgMap});
     }
 
-    return valuesArgs;
+    return valuesArgMap;
   }
 
   /**
@@ -426,8 +421,23 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ' --set "defaults.envoyProxy.serviceType=LoadBalancer"';
     }
 
-    this.logger.debug('Prepared helm chart values', {valuesArg});
     return valuesArg;
+  }
+
+  async prepareNamespaces(config: NetworkDeployConfigClass) {
+    const namespace = config.namespace;
+
+    // check and create namespace in each cluster
+    for (const context of config.contexts) {
+      const k8client = this.k8Factory.getK8(context);
+      if (!(await k8client.namespaces().has(namespace))) {
+        this.logger.debug(`creating namespace '${namespace}' using context: ${context}`);
+        await k8client.namespaces().create(namespace);
+        this.logger.debug(`created namespace '${namespace}' using context: ${context}`);
+      } else {
+        this.logger.debug(`namespace '${namespace}' exists using context: ${context}`);
+      }
+    }
   }
 
   async prepareConfig(task: any, argv: any) {
@@ -525,12 +535,10 @@ export class NetworkCommand extends BaseCommand {
     }
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
-    config.namespace = namespace;
 
-    // TODO: @Lenin, will need to run once for each cluster
-    if (!(await this.k8Factory.default().namespaces().has(namespace))) {
-      await this.k8Factory.default().namespaces().create(namespace);
-    }
+    // need to prepare the namespaces before we can proceed
+    config.namespace = namespace;
+    await this.prepareNamespaces(config);
 
     // prepare staging keys directory
     if (!fs.existsSync(config.stagingKeysDir)) {
@@ -642,7 +650,6 @@ export class NetworkCommand extends BaseCommand {
                   title: 'Copy Gossip keys to staging',
                   task: ctx => {
                     const config = ctx.config;
-                    // TODO @Lenin, need to use consensusNodes instead of nodeAliases
                     this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeAliases);
                   },
                 },
@@ -995,7 +1002,11 @@ export class NetworkCommand extends BaseCommand {
     return true;
   }
 
-  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  getCommandDefinition(): {
+    command: string;
+    desc: string;
+    builder: CommandBuilder;
+  } {
     const self = this;
     return {
       command: 'network',
