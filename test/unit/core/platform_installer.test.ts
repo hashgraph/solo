@@ -8,16 +8,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
-import {PlatformInstaller} from '../../../src/core/platform_installer.js';
+import {type PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
-import {type PodName} from '../../../src/types/aliases.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {container} from 'tsyringe-neo';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('PackageInstaller', () => {
   let installer: PlatformInstaller;
 
   before(() => {
-    installer = container.resolve(PlatformInstaller);
+    installer = container.resolve(InjectTokens.PlatformInstaller);
   });
 
   describe('validatePlatformReleaseDir', () => {
@@ -77,10 +80,15 @@ describe('PackageInstaller', () => {
 
   describe('extractPlatform', () => {
     it('should fail for missing pod name', async () => {
-      await expect(installer.fetchPlatform('' as PodName, 'v0.42.5')).to.be.rejectedWith(MissingArgumentError);
+      await expect(installer.fetchPlatform(null as PodRef, 'v0.42.5')).to.be.rejectedWith(MissingArgumentError);
     });
     it('should fail for missing tag', async () => {
-      await expect(installer.fetchPlatform('network-node1-0', '')).to.be.rejectedWith(MissingArgumentError);
+      await expect(
+        installer.fetchPlatform(
+          PodRef.of(NamespaceName.of('platform-installer-test'), PodName.of('network-node1-0')),
+          '',
+        ),
+      ).to.be.rejectedWith(MissingArgumentError);
     });
   });
 

@@ -49,6 +49,11 @@ on:
         type: string
         required: false
         default: "E2E Tests Coverage Report"
+      cluster-name:
+        description: "Cluster Name:"
+        type: string
+        required: false
+        default: "solo-e2e"
 
 defaults:
   run:
@@ -176,11 +181,13 @@ jobs:
       - name: Setup E2E Tests
         run: | 
           npm link
-          ${{ env.CG_EXEC }} ./test/e2e/setup-e2e.sh
+          echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
+          ${{ env.CG_EXEC }} SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ./test/e2e/setup-e2e.sh
 
       - name: Run E2E Tests
         run: |
-          ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
+          echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
+          ${{ env.CG_EXEC }} SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} npm run ${{ inputs.npm-test-script }}
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}

@@ -48,7 +48,11 @@ echo "${GCP_SERVICE_ACCOUNT_TOKEN}" > gcp_service_account.json
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
 
-SOLO_CLUSTER_NAME=solo-e2e
+if [[ -z "${SOLO_TEST_CLUSTER}" && ${SOLO_CLUSTER_NAME} != "" ]]; then
+  SOLO_CLUSTER_NAME=solo-e2e
+else
+  SOLO_CLUSTER_NAME=${SOLO_TEST_CLUSTER}
+fi
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 

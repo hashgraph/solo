@@ -17,15 +17,16 @@ import * as https from 'https';
 import * as http from 'http';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 @injectable()
 export class PackageDownloader {
-  constructor(@inject(SoloLogger) public readonly logger?: SoloLogger) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+  constructor(@inject(InjectTokens.SoloLogger) public readonly logger?: SoloLogger) {
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
   }
 
   isValidURL(url: string) {

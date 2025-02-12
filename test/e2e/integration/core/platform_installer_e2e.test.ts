@@ -11,10 +11,13 @@ import {e2eTestSuite, getDefaultArgv, getTestCacheDir, TEST_CLUSTER, testLogger}
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
-import {NamespaceName} from '../../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
+import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
+import {ContainerRef} from '../../../../src/core/kube/resources/container/container_ref.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -43,14 +46,15 @@ e2eTestSuite(
   false,
   bootstrapResp => {
     describe('Platform Installer E2E', async () => {
-      let k8: K8;
+      let k8Factory: K8Factory;
       let accountManager: AccountManager;
       let installer: PlatformInstaller;
-      const podName = 'network-node1-0';
+      const podName = PodName.of('network-node1-0');
+      const podRef = PodRef.of(namespace, podName);
       const packageVersion = 'v0.42.5';
 
       before(() => {
-        k8 = bootstrapResp.opts.k8;
+        k8Factory = bootstrapResp.opts.k8Factory;
         accountManager = bootstrapResp.opts.accountManager;
         installer = bootstrapResp.opts.platformInstaller;
       });
@@ -58,7 +62,7 @@ e2eTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
 
-        await k8.deleteNamespace(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
         await accountManager.close();
       });
 
@@ -74,24 +78,27 @@ e2eTestSuite(
         it('should fail with invalid pod', async () => {
           try {
             // @ts-ignore
-            await installer.fetchPlatform('', packageVersion);
+            await installer.fetchPlatform(null, packageVersion);
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
-            expect(e.message).to.include('podName is required');
+            expect(e.message).to.include('podRef is required');
           }
 
           try {
             // @ts-ignore
-            await installer.fetchPlatform('INVALID', packageVersion);
+            await installer.fetchPlatform(
+              PodRef.of(NamespaceName.of('valid-namespace'), PodName.of('INVALID_POD')),
+              packageVersion,
+            );
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
-            expect(e.message).to.include('failed to extract platform code in this pod');
+            expect(e.message).to.include('must be a valid RFC-1123 DNS label');
           }
         }).timeout(defaultTimeout);
 
         it('should fail with invalid tag', async () => {
           try {
-            await installer.fetchPlatform(podName, 'INVALID');
+            await installer.fetchPlatform(podRef, 'INVALID');
             throw new Error(); // fail-safe, should not reach here
           } catch (e) {
             expect(e.message).to.include('curl: (22) The requested URL returned error: 404');
@@ -99,12 +106,12 @@ e2eTestSuite(
         }).timeout(defaultTimeout);
 
         it('should succeed with valid tag and pod', async () => {
-          expect(await installer.fetchPlatform(podName, packageVersion)).to.be.true;
-          const outputs = await k8.execContainer(
-            podName,
-            constants.ROOT_CONTAINER,
-            `ls -la ${constants.HEDERA_HAPI_PATH}`,
-          );
+          expect(await installer.fetchPlatform(podRef, packageVersion)).to.be.true;
+          const outputs = await k8Factory
+            .default()
+            .containers()
+            .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+            .execContainer(`ls -la ${constants.HEDERA_HAPI_PATH}`);
           testLogger.showUser(outputs);
         }).timeout(Duration.ofMinutes(1).toMillis());
       });

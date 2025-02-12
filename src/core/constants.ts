@@ -6,7 +6,8 @@ import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
 import path, {dirname, normalize} from 'path';
 import {fileURLToPath} from 'url';
-import {NamespaceName} from './kube/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {ContainerName} from './kube/resources/container/container_name.js';
 
 export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -20,11 +21,13 @@ export const DEFAULT_CERT_MANAGER_NAMESPACE = NamespaceName.of('cert-manager');
 export const HELM = 'helm';
 export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'));
 
-export const ROOT_CONTAINER = 'root-container';
+export const ROOT_CONTAINER = ContainerName.of('root-container');
 export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config';
 export const SOLO_REMOTE_CONFIGMAP_LABELS = {'solo.hedera.com/type': 'remote-config'};
 export const SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY = 50;
 export const SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR = 'solo.hedera.com/type=remote-config';
+export const NODE_COPY_CONCURRENT = Number(process.env.NODE_COPY_CONCURRENT) || 4;
+export const SKIP_NODE_PING = Boolean(process.env.SKIP_NODE_PING) || false;
 
 // --------------- Hedera network and node related constants --------------------------------------------------------------------
 export const HEDERA_CHAIN_ID = process.env.SOLO_CHAIN_ID || '298';
@@ -53,6 +56,7 @@ export const HEDERA_NODE_SIDECARS = [
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = NamespaceName.of('solo-setup');
 export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts';
+export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
 export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup';
 export const SOLO_DEPLOYMENT_CHART = 'solo-deployment';
 export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';
@@ -202,6 +206,7 @@ export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TIMEOUT || 120;
 
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml';
+export const NODE_OVERRIDE_FILE = 'node-overrides.yaml';
 export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
 
 export const UPLOADER_SECRET_NAME = 'uploader-mirror-secrets';

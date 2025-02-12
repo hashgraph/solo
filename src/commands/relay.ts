@@ -2,21 +2,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {Listr, type ListrTask} from 'listr2';
-import {SoloError, MissingArgumentError} from '../core/errors.js';
+import {MissingArgumentError, SoloError} from '../core/errors.js';
 import * as helpers from '../core/helpers.js';
+import {getNodeAccountMap} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap} from '../core/helpers.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
-import {type NamespaceName} from '../core/kube/namespace_name.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {type DeploymentName} from '../core/config/remote/types.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -40,7 +42,7 @@ export class RelayCommand extends BaseCommand {
     return [
       flags.chainId,
       flags.chartDirectory,
-      flags.namespace,
+      flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.operatorId,
       flags.operatorKey,
@@ -54,7 +56,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   static get DESTROY_FLAGS_LIST() {
-    return [flags.chartDirectory, flags.namespace, flags.nodeAliasesUnparsed];
+    return [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed];
   }
 
   async prepareValuesArg(
@@ -101,7 +103,12 @@ export class RelayCommand extends BaseCommand {
       valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKey}`;
     } else {
       try {
-        const secrets = await this.k8.getSecretsByLabel([`solo.hedera.com/account-id=${operatorIdUsing}`]);
+        const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+        const namespace = NamespaceName.of(this.localConfig.deployments[deploymentName].namespace);
+        const secrets = await this.k8Factory
+          .default()
+          .secrets()
+          .list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
         if (secrets.length === 0) {
           this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
           valuesArg += ` --set config.OPERATOR_KEY_MAIN=${constants.OPERATOR_KEY}`;
@@ -174,6 +181,7 @@ export class RelayCommand extends BaseCommand {
       chainId: string;
       chartDirectory: string;
       namespace: NamespaceName;
+      deployment: string;
       nodeAliasesUnparsed: string;
       operatorId: string;
       operatorKey: string;
@@ -213,6 +221,7 @@ export class RelayCommand extends BaseCommand {
               'nodeAliases',
             ]) as RelayDeployConfigClass;
 
+            ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
             ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(
@@ -258,15 +267,18 @@ export class RelayCommand extends BaseCommand {
               config.chartPath,
               '',
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
-            await self.k8.waitForPods(
-              [constants.POD_PHASE_RUNNING],
-              ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
-              1,
-              constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
-              constants.RELAY_PODS_RUNNING_DELAY,
-            );
+            await self.k8Factory
+              .default()
+              .pods()
+              .waitForRunningPhase(
+                config.namespace,
+                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
+                constants.RELAY_PODS_RUNNING_DELAY,
+              );
 
             // reset nodeAlias
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
@@ -277,12 +289,15 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
             try {
-              await self.k8.waitForPodReady(
-                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
-                1,
-                constants.RELAY_PODS_READY_MAX_ATTEMPTS,
-                constants.RELAY_PODS_READY_DELAY,
-              );
+              await self.k8Factory
+                .default()
+                .pods()
+                .waitForReadyStatus(
+                  config.namespace,
+                  ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                  constants.RELAY_PODS_READY_MAX_ATTEMPTS,
+                  constants.RELAY_PODS_READY_DELAY,
+                );
             } catch (e: Error | any) {
               throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e);
             }
@@ -315,6 +330,7 @@ export class RelayCommand extends BaseCommand {
     interface RelayDestroyConfigClass {
       chartDirectory: string;
       namespace: NamespaceName;
+      deployment: string;
       nodeAliases: NodeAliases;
       releaseName: string;
       isChartInstalled: boolean;
@@ -334,11 +350,12 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
             await self.configManager.executePrompt(task, RelayCommand.DESTROY_FLAGS_LIST);
+            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {
               chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
+              namespace: namespace,
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
               ),
@@ -360,7 +377,11 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            await this.chartManager.uninstall(config.namespace, config.releaseName);
+            await this.chartManager.uninstall(
+              config.namespace,
+              config.releaseName,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
 
             this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace));
 
@@ -422,7 +443,7 @@ export class RelayCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy JSON RPC relay',
             builder: (y: any) =>
-              flags.setCommandFlags(y, flags.chartDirectory, flags.namespace, flags.quiet, flags.nodeAliasesUnparsed),
+              flags.setCommandFlags(y, flags.chartDirectory, flags.deployment, flags.quiet, flags.nodeAliasesUnparsed),
             handler: (argv: any) => {
               self.logger.info("==== Running 'relay destroy' ===", {argv});
               self.logger.debug(argv);
@@ -451,7 +472,7 @@ export class RelayCommand extends BaseCommand {
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace, nodeAliases));
+          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace.name, nodeAliases));
         });
       },
     };

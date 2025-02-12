@@ -4,7 +4,12 @@
 import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
 import {BaseComponent} from './base_component.js';
 import {SoloError} from '../../../errors.js';
-import {type Cluster, type IConsensusNodeComponent, type ComponentName, type NamespaceNameAsString} from '../types.js';
+import {
+  type ClusterRef,
+  type ComponentName,
+  type IConsensusNodeComponent,
+  type NamespaceNameAsString,
+} from '../types.js';
 import {type ToObject} from '../../../../types/index.js';
 
 /**
@@ -19,15 +24,17 @@ export class ConsensusNodeComponent
 {
   /**
    * @param name - the name to distinguish components.
+   * @param nodeId - node id of the consensus node
    * @param cluster - associated to component
    * @param namespace - associated to component
    * @param state - of the consensus node
    */
   public constructor(
     name: ComponentName,
-    cluster: Cluster,
+    cluster: ClusterRef,
     namespace: NamespaceNameAsString,
     public readonly state: ConsensusNodeStates,
+    public readonly nodeId: number,
   ) {
     super(ComponentType.ConsensusNode, name, cluster, namespace);
 
@@ -38,8 +45,8 @@ export class ConsensusNodeComponent
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: IConsensusNodeComponent): ConsensusNodeComponent {
-    const {name, cluster, namespace, state} = component;
-    return new ConsensusNodeComponent(name, cluster, namespace, state);
+    const {name, cluster, namespace, state, nodeId} = component;
+    return new ConsensusNodeComponent(name, cluster, namespace, state, nodeId);
   }
 
   public validate(): void {
@@ -48,12 +55,21 @@ export class ConsensusNodeComponent
     if (!Object.values(ConsensusNodeStates).includes(this.state)) {
       throw new SoloError(`Invalid consensus node state: ${this.state}`);
     }
+
+    if (typeof this.nodeId !== 'number') {
+      throw new SoloError(`Invalid node id. It must be a number: ${this.nodeId}`);
+    }
+
+    if (this.nodeId < 0) {
+      throw new SoloError(`Invalid node id. It cannot be negative: ${this.nodeId}`);
+    }
   }
 
   public toObject(): IConsensusNodeComponent {
     return {
       ...super.toObject(),
       state: this.state,
+      nodeId: this.nodeId,
     };
   }
 }

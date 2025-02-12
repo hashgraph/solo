@@ -12,17 +12,18 @@ import {readFile, writeFile} from 'fs/promises';
 import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {ConfigManager} from './config_manager.js';
+import {type ConfigManager} from './config_manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
 import {type SemVer} from 'semver';
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
 import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
 import * as versions from '../../version.js';
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 @injectable()
 export class ProfileManager {
@@ -34,13 +35,13 @@ export class ProfileManager {
   private profileFile: Optional<string>;
 
   constructor(
-    @inject(SoloLogger) logger?: SoloLogger,
-    @inject(ConfigManager) configManager?: ConfigManager,
-    @inject('cacheDir') cacheDir?: DirPath,
+    @inject(InjectTokens.SoloLogger) logger?: SoloLogger,
+    @inject(InjectTokens.ConfigManager) configManager?: ConfigManager,
+    @inject(InjectTokens.CacheDir) cacheDir?: DirPath,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
-    this.cacheDir = path.resolve(patchInject(cacheDir, 'cacheDir', this.constructor.name));
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.cacheDir = path.resolve(patchInject(cacheDir, InjectTokens.CacheDir, this.constructor.name));
 
     this.profiles = new Map();
   }

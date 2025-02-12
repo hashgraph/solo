@@ -23,11 +23,14 @@ import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER,
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {type K8} from '../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type NodeCommand} from '../../../src/commands/node/index.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
+import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -48,7 +51,7 @@ argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('AccountCommand', async () => {
     let accountCmd: AccountCommand;
-    let k8: K8;
+    let k8Factory: K8Factory;
     let accountManager: AccountManager;
     let configManager: ConfigManager;
     let nodeCmd: NodeCommand;
@@ -56,7 +59,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     before(() => {
       accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
       bootstrapResp.cmd.accountCmd = accountCmd;
-      k8 = bootstrapResp.opts.k8;
+      k8Factory = bootstrapResp.opts.k8Factory;
       accountManager = bootstrapResp.opts.accountManager;
       configManager = bootstrapResp.opts.configManager;
       nodeCmd = bootstrapResp.cmd.nodeCmd;
@@ -65,8 +68,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());
 
-      await k8.getNodeLogs(namespace);
-      await k8.deleteNamespace(namespace);
+      await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+      await k8Factory.default().namespaces().delete(namespace);
       await accountManager.close();
       await nodeCmd.close();
     });
@@ -74,12 +77,15 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     describe('node proxies should be UP', () => {
       for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
         it(`proxy should be UP: ${nodeAlias} `, async () => {
-          await k8.waitForPodReady(
-            [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
-            1,
-            300,
-            Duration.ofSeconds(2).toMillis(),
-          );
+          await k8Factory
+            .default()
+            .pods()
+            .waitForReadyStatus(
+              namespace,
+              [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
+              300,
+              Duration.ofSeconds(2).toMillis(),
+            );
         }).timeout(Duration.ofSeconds(30).toMillis());
       }
     });

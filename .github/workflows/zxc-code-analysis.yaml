@@ -104,7 +104,7 @@ on:
         description: "E2E Node Add - Separate commands Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-add-separate-commands"
+        default: "e2e-node-add-separate"
       e2e-node-update-test-subdir:
         description: "E2E Node Update Test Subdirectory:"
         type: string
@@ -114,7 +114,7 @@ on:
         description: "E2E Node Update - Separate commands Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-update-separate-commands"
+        default: "e2e-node-update-separate"
       e2e-node-delete-test-subdir:
         description: "E2E Node Delete Test Subdirectory:"
         type: string
@@ -124,7 +124,7 @@ on:
         description: "E2E Node Delete - Separate commands Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-delete-separate-commands"
+        default: "e2e-node-delete-separate"
       e2e-node-upgrade-test-subdir:
         description: "E2E Node Upgrade Test Subdirectory:"
         type: string
@@ -134,7 +134,7 @@ on:
         description: "E2E Node Upgrade - Separate commands Test Subdirectory:"
         type: string
         required: false
-        default: "e2e-node-upgrade-separate-commands"
+        default: "e2e-node-upgrade-separate"
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory:"
         type: string

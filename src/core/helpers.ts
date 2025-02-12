@@ -371,3 +371,13 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
     throw new SoloError(`Invalid JSON data in file: ${filePath}`);
   }
 }
+
+export function populateHelmArgs(valuesMapping: Record<string, string | boolean | number>): string {
+  let valuesArg = '';
+
+  for (const [key, value] of Object.entries(valuesMapping)) {
+    valuesArg += ` --set ${key}=${value}`;
+  }
+
+  return valuesArg;
+}

@@ -1,6 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
+
 /**
  * @include DNS_1123_LABEL
  * @param value - the string to check

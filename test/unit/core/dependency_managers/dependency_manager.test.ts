@@ -4,16 +4,17 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {DependencyManager} from '../../../../src/core/dependency_managers/index.js';
+import {type DependencyManager} from '../../../../src/core/dependency_managers/index.js';
 import {container} from 'tsyringe-neo';
-import {resetTestContainer} from '../../../test_container.js';
+import {resetForTest} from '../../../test_container.js';
+import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('DependencyManager', () => {
-  let depManager;
+  let depManager: DependencyManager;
 
   before(() => {
-    resetTestContainer();
-    depManager = container.resolve(DependencyManager);
+    resetForTest();
+    depManager = container.resolve(InjectTokens.DependencyManager);
   });
 
   describe('checkDependency', () => {

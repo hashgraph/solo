@@ -29,6 +29,7 @@ env:
   SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
   SOLO_CLUSTER_NAME: solo-cluster
   MIRROR_RELEASE_NAME: mirror
+  SOLO_EMAIL: john@doe.com
 
 tasks:
   init:
@@ -53,6 +54,7 @@ tasks:
         - node_identifiers
         - run_build_file
         - SOLO_NAMESPACE
+        - SOLO_DEPLOYMENT
         - SOLO_CLUSTER_SETUP_NAMESPACE
         - SOLO_CLUSTER_RELEASE_NAME
         - SOLO_NETWORK_SIZE
@@ -66,6 +68,7 @@ tasks:
       - echo "SOLO_CHART_VERSION=${SOLO_CHART_VERSION}"
       - echo "CONSENSUS_NODE_VERSION=${CONSENSUS_NODE_VERSION}"
       - echo "SOLO_NAMESPACE=${SOLO_NAMESPACE}"
+      - echo "SOLO_DEPLOYMENT=${SOLO_DEPLOYMENT}"
       - echo "SOLO_CLUSTER_RELEASE_NAME=${SOLO_CLUSTER_RELEASE_NAME}"
       - echo "nodes={{ .nodes }}"
       - echo "node_identifiers={{ .node_identifiers }}"
@@ -79,9 +82,11 @@ tasks:
       - echo "SOLO_CHARTS_DIR_FLAG=${SOLO_CHARTS_DIR_FLAG}"
       - echo "LOAD_BALANCER_FLAG=${LOAD_BALANCER_FLAG}"
       - echo "ENABLE_EXPLORER_TLS_FLAG=${ENABLE_EXPLORER_TLS_FLAG}"
+      - echo "ENABLE_EXPLORER_INGRESS=${ENABLE_EXPLORER_INGRESS}"
       - echo "CLUSTER_TLS_FLAGS=${CLUSTER_TLS_FLAGS}"
       - echo "NETWORK_DEPLOY_EXTRA_FLAGS=${NETWORK_DEPLOY_EXTRA_FLAGS}"
       - echo "MIRROR_NODE_DEPLOY_EXTRA_FLAGS=${MIRROR_NODE_DEPLOY_EXTRA_FLAGS}"
+      - echo "EXPLORER_DEPLOY_EXTRA_FLAGS=${EXPLORER_DEPLOY_EXTRA_FLAGS}"
       - touch {{ .var_check_file }}
 
   readme:
@@ -90,6 +95,7 @@ tasks:
       - echo "This is a custom network configuration for the Hedera Hashgraph Solo network."
       - echo "The network is configured to have {{ .SOLO_NETWORK_SIZE }} nodes."
       - echo "The network is deployed in the namespace {{ .SOLO_NAMESPACE }}."
+      - echo "The local deployment name is {{ .SOLO_DEPLOYMENT }}."
       - echo "The cluster is deployed in the namespace {{ .SOLO_CLUSTER_SETUP_NAMESPACE }}."
       - echo "Use command 'task default' to deploy the network."
       - echo "Use command 'task destroy' to destroy the network."
@@ -153,6 +159,14 @@ tasks:
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- init --dev
 
+  solo:deployment:create:
+    silent: true
+    internal: true
+    deps:
+      - task: "init"
+    cmds:
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context kind-${SOLO_CLUSTER_NAME} --email {{ .SOLO_EMAIL }} --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" --dev
+
   solo:keys:
     silent: true
     internal: true
@@ -185,7 +199,7 @@ tasks:
         if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
           export SOLO_CHART_FLAG='--solo-chart-version ${SOLO_CHART_VERSION}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${LOAD_BALANCER_FLAG} ${NETWORK_DEPLOY_EXTRA_FLAGS} -q --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${LOAD_BALANCER_FLAG} ${NETWORK_DEPLOY_EXTRA_FLAGS} -q --dev
       - task: "solo:node:setup"
 
   solo:node:setup:
@@ -198,7 +212,7 @@ tasks:
         if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
           export CONSENSUS_NODE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q --dev
 
   solo:network:destroy:
     silent: true
@@ -206,7 +220,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network destroy --namespace "${SOLO_NAMESPACE}" --delete-pvcs --delete-secrets --force -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network destroy --deployment  "${SOLO_DEPLOYMENT}" --delete-pvcs --delete-secrets --force -q --dev
 
   solo:node:start:
     silent: true
@@ -218,7 +232,7 @@ tasks:
         if [[ "${DEBUG_NODE_ALIAS}" != "" ]]; then
           export DEBUG_NODE_FLAG="--debug-node-alias {{ .DEBUG_NODE_ALIAS }}"
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }} --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }} --dev
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Port forwarding for Hedera Network Node: grpc:50211"
@@ -233,14 +247,14 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node stop --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} -q {{ .CLI_ARGS }} --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node stop --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q {{ .CLI_ARGS }} --dev
 
   solo:relay:
     silent: true
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy -n "${SOLO_NAMESPACE}" -i node1 ${RELAY_NODE_DEPLOY_EXTRA_FLAGS} -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy --deployment "${SOLO_DEPLOYMENT}" -i node1 ${RELAY_NODE_DEPLOY_EXTRA_FLAGS} -q --dev
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera JSON RPC Relay"
@@ -287,10 +301,10 @@ tasks:
 
   solo:freeze:restart:
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node prepare-upgrade --namespace "${SOLO_NAMESPACE}" -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node freeze-upgrade --namespace "${SOLO_NAMESPACE}" -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node stop --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node prepare-upgrade --deployment  "${SOLO_DEPLOYMENT}" -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node freeze-upgrade --deployment  "${SOLO_DEPLOYMENT}" -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node stop --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node start --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
 
   cluster:create:
     silent: true
@@ -360,7 +374,7 @@ tasks:
   solo:node:logs:
     silent: true
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node logs --namespace "${SOLO_NAMESPACE}" --node-aliases {{.node_identifiers}} -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node logs --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
 
   start:
     desc: solo node start
@@ -420,8 +434,8 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --namespace "${SOLO_NAMESPACE}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer deploy --namespace "${SOLO_NAMESPACE}" -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} --pinger -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer deploy --deployment  "${SOLO_DEPLOYMENT}" -s ${SOLO_CLUSTER_SETUP_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
@@ -443,8 +457,8 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --namespace "${SOLO_NAMESPACE}" --force -q --dev || true
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --namespace "${SOLO_NAMESPACE}" --force -q --dev || true
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
 
   clean:
     desc: destroy, then remove cache directory, logs directory, config, and port forwards
@@ -464,3 +478,32 @@ tasks:
     cmds:
       - echo "Cleaning up temporary files..."
       - rm -f /tmp/solo-${USER}-* || true
+
+  solo:external-database:
+    silent: false
+    desc: setup external database PostgreSQL with helm
+    cmds:
+      - |
+        {{.solo_bin_dir}}/helm install {{.postgres_name}} https://charts.bitnami.com/bitnami/postgresql-12.1.2.tgz \
+          --set image.tag=16.4.0 \
+          --namespace {{.postgres_database_namespace}} --create-namespace \
+          --set global.postgresql.auth.postgresPassword={{.postgres_password}} \
+          --set primary.persistence.enabled=false --set secondary.enabled=false
+      - name: "Wait for PostgreSQL pod to be ready"
+        cmd: |
+          kubectl wait --for=condition=ready pod/{{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} --timeout=160s
+      - name: "Copy init.sql inside the database pod"
+        cmd: |
+          kubectl cp ../external-database-test/scripts/init.sh \
+          {{.postgres_container_name}}:/tmp/init.sh \
+          -n {{.postgres_database_namespace}}
+      - name: "Make init.sh executable"
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} -- chmod +x /tmp/init.sh
+      - name: "Execute init.sh inside the database pod"
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} \
+          -n {{.postgres_database_namespace}} \
+          -- /bin/bash /tmp/init.sh "{{.postgres_username}}" "{{.postgres_readonly_username}}" "{{.postgres_readonly_password}}"

@@ -23,7 +23,7 @@ import * as constants from '../../core/constants.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type LeaseManager} from '../../core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError, SoloError} from '../../core/errors.js';
@@ -40,14 +40,15 @@ import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
-import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
+import {Templates} from '../../core/templates.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
   private readonly configManager: ConfigManager;
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
-  private readonly k8: K8;
+  private readonly k8Factory: K8Factory;
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
@@ -63,7 +64,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
     if (!opts || !opts.tasks) throw new Error('An instance of NodeCommandTasks is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.platformInstaller)
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
 
@@ -71,7 +72,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     this.tasks = opts.tasks;
     this.accountManager = opts.accountManager;
     this.configManager = opts.configManager;
-    this.k8 = opts.k8;
+    this.k8Factory = opts.k8Factory;
     this.platformInstaller = opts.platformInstaller;
     this.leaseManager = opts.leaseManager;
     this.remoteConfigManager = opts.remoteConfigManager;
@@ -121,7 +122,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.populateServiceMap(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -172,7 +173,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
       this.tasks.downloadLastState(),
       this.tasks.uploadStateToNewNode(),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -217,7 +218,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.killNodesAndUpdateConfigMap(),
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -716,7 +717,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         this.tasks.identifyNetworkPods(),
         this.tasks.dumpNetworkNodesSaveState(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        this.tasks.setupNetworkNodes('nodeAliases'),
+        this.tasks.setupNetworkNodes('nodeAliases', true),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
@@ -825,8 +826,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        // TODO: change to isGenesis: true once we are ready to use genesis-network.json: this.tasks.setupNetworkNodes('nodeAliases', true),
-        this.tasks.setupNetworkNodes('nodeAliases', false),
+        this.tasks.setupNetworkNodes('nodeAliases', true),
         this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
@@ -863,7 +863,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    */
   public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
-      config: {namespace: NamespaceNameAsString; nodeAliases: NodeAliases};
+      config: {namespace: NamespaceName; nodeAliases: NodeAliases};
     }
 
     return {
@@ -877,7 +877,16 @@ export class NodeCommandHandlers implements CommandHandlers {
           const cluster = this.remoteConfigManager.currentCluster;
 
           for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.edit(nodeAlias, new ConsensusNodeComponent(nodeAlias, cluster, namespace, state));
+            remoteConfig.components.edit(
+              nodeAlias,
+              new ConsensusNodeComponent(
+                nodeAlias,
+                cluster,
+                namespace.name,
+                state,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
+              ),
+            );
           }
         });
       },
@@ -975,23 +984,24 @@ export class NodeCommandHandlers implements CommandHandlers {
     let nodeComponent: ConsensusNodeComponent;
     try {
       nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
-    } catch (e) {
+    } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }
 
-    if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
-
-    if (excludedStates && excludedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
+    // TODO: Enable once the states have been mapped
+    // if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
+    //
+    // if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
 
     return nodeComponent.state;
   }

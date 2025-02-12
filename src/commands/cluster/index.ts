@@ -19,7 +19,11 @@ export class ClusterCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.handlers = new ClusterCommandHandlers(this, new ClusterCommandTasks(this, this.k8), this.remoteConfigManager);
+    this.handlers = new ClusterCommandHandlers(
+      this,
+      new ClusterCommandTasks(this, this.k8Factory),
+      this.remoteConfigManager,
+    );
   }
 
   getCommandDefinition() {
@@ -36,7 +40,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'connect',
               },
-              ContextFlags.USE_FLAGS,
+              ContextFlags.CONNECT_FLAGS,
             ),
           )
           .command(

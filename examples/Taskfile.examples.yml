@@ -21,6 +21,7 @@ tasks:
     cmds:
       - task: "solo:init"
       - task: "solo:cluster:setup"
+      - task: "solo:deployment:create"
       - task: "solo:keys"
       - task: "solo:network:deploy"
 

@@ -9,26 +9,27 @@ import * as yaml from 'yaml';
 import path from 'path';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
-import {ConfigManager} from '../../../src/core/config_manager.js';
+import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {getTestCacheDir, getTmpDir} from '../../test_util.js';
 import * as version from '../../../version.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
-import {resetTestContainer} from '../../test_container.js';
+import {resetForTest} from '../../test_container.js';
 import {Templates} from '../../../src/core/templates.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
-
+  const namespace = NamespaceName.of('test-namespace');
   const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
   let stagingDir = '';
 
   before(() => {
-    resetTestContainer();
+    resetForTest(namespace.name);
     tmpDir = getTmpDir();
-    configManager = container.resolve(ConfigManager);
+    configManager = container.resolve(InjectTokens.ConfigManager);
     profileManager = new ProfileManager(undefined, undefined, tmpDir);
     configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4');
     configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
@@ -197,7 +198,6 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node3', '0.0.5');
       const destPath = path.join(tmpDir, 'staging');
       fs.mkdirSync(destPath, {recursive: true});
-      const namespace = NamespaceName.of('test-namespace');
       profileManager.prepareConfigTxt(namespace, nodeAccountMap, destPath, version.HEDERA_PLATFORM_VERSION);
 
       // expect that the config.txt file was created and exists

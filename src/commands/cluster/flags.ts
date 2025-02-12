@@ -32,11 +32,12 @@ export const RESET_FLAGS = {
   optionalFlags: [flags.clusterName, flags.clusterSetupNamespace, flags.force, flags.quiet],
 };
 
-export const USE_FLAGS = {
+export const CONNECT_FLAGS = {
   requiredFlags: [],
   requiredFlagsWithDisabledPrompt: [],
   optionalFlags: [
     flags.devMode,
+    flags.deployment,
     flags.quiet,
     flags.clusterName,
     flags.context,

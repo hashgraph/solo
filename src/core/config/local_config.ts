@@ -6,23 +6,24 @@ import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
 import {
-  type ClusterContextMapping,
+  type ClusterRefs,
   type Deployments,
   type DeploymentStructure,
   type LocalConfigData,
 } from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {SoloLogger} from '../logging.js';
-import {IsClusterContextMapping, IsDeployments} from '../validator_decorators.js';
-import {ConfigManager} from '../config_manager.js';
+import {type SoloLogger} from '../logging.js';
+import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
+import {type ConfigManager} from '../config_manager.js';
 import {type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../container_helper.js';
+import {patchInject} from '../dependency_injection/container_helper.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
@@ -45,32 +46,26 @@ export class LocalConfig implements LocalConfigData {
   })
   public deployments: Deployments;
 
-  @IsString({
-    message: ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST,
-  })
-  @IsNotEmpty()
-  currentDeploymentName: DeploymentName;
-
-  @IsClusterContextMapping({
+  @IsClusterRefs({
     message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
   })
   @IsNotEmpty()
-  public clusterContextMapping: ClusterContextMapping = {};
+  public clusterRefs: ClusterRefs = {};
 
   private readonly skipPromptTask: boolean = false;
 
   public constructor(
-    @inject('localConfigFilePath') private readonly filePath?: string,
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(InjectTokens.LocalConfigFilePath) private readonly filePath?: string,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.filePath = patchInject(filePath, 'localConfigFilePath', this.constructor.name);
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.filePath = patchInject(filePath, InjectTokens.LocalConfigFilePath, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
 
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 
-    const allowedKeys = ['userEmailAddress', 'deployments', 'currentDeploymentName', 'clusterContextMapping'];
+    const allowedKeys = ['userEmailAddress', 'deployments', 'clusterRefs'];
     if (this.configFileExists()) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const parsedConfig = yaml.parse(fileContent);
@@ -99,11 +94,6 @@ export class LocalConfig implements LocalConfigData {
         throw new SoloError(ErrorMessages.LOCAL_CONFIG_GENERIC);
       }
     }
-
-    // Custom validations:
-    if (!this.deployments[this.currentDeploymentName]) {
-      throw new SoloError(ErrorMessages.LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST);
-    }
   }
 
   public setUserEmailAddress(emailAddress: EmailAddress): this {
@@ -118,20 +108,10 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
-  public setCurrentDeployment(deploymentName: DeploymentName): this {
-    this.currentDeploymentName = deploymentName;
+  public setClusterRefs(clusterRefs: ClusterRefs): this {
+    this.clusterRefs = clusterRefs;
     this.validate();
     return this;
-  }
-
-  public setClusterContextMapping(clusterContextMapping: ClusterContextMapping): this {
-    this.clusterContextMapping = clusterContextMapping;
-    this.validate();
-    return this;
-  }
-
-  public getCurrentDeployment(): DeploymentStructure {
-    return this.deployments[this.currentDeploymentName];
   }
 
   public configFileExists(): boolean {
@@ -142,15 +122,14 @@ export class LocalConfig implements LocalConfigData {
     const yamlContent = yaml.stringify({
       userEmailAddress: this.userEmailAddress,
       deployments: this.deployments,
-      currentDeploymentName: this.currentDeploymentName,
-      clusterContextMapping: this.clusterContextMapping,
+      clusterRefs: this.clusterRefs,
     });
     await fs.promises.writeFile(this.filePath, yamlContent);
 
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
 
-  public promptLocalConfigTask(k8: K8): SoloListrTask<any> {
+  public promptLocalConfigTask(k8Factory: K8Factory): SoloListrTask<any> {
     const self = this;
 
     return {
@@ -163,8 +142,8 @@ export class LocalConfig implements LocalConfigData {
 
         const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
         const contexts = self.configManager.getFlag<string>(flags.context);
-        const deploymentName: DeploymentName = self.configManager.getFlag<NamespaceName>(flags.namespace)
-          .name as string;
+        const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
+        const namespace = self.configManager.getFlag<NamespaceName>(flags.namespace);
         let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
         let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
 
@@ -174,48 +153,51 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
         }
 
-        if (!deploymentName) throw new SoloError('Namespace was not specified');
+        if (!deploymentName) throw new SoloError('Deployment name was not specified');
 
         if (!deploymentClusters) {
           if (isQuiet) {
-            deploymentClusters = k8.getCurrentClusterName();
+            deploymentClusters = k8Factory.default().clusters().readCurrent();
           } else {
             deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
           }
           self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
-        const parsedClusters = splitFlagInput(deploymentClusters);
+        const parsedClusterRefs = splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
-          [deploymentName]: {clusters: parsedClusters},
+          [deploymentName]: {
+            clusters: parsedClusterRefs,
+            namespace: namespace.name,
+          },
         };
 
         const parsedContexts = splitFlagInput(contexts);
 
-        if (parsedContexts.length < parsedClusters.length) {
+        if (parsedContexts.length < parsedClusterRefs.length) {
           if (!isQuiet) {
             const promptedContexts: string[] = [];
-            for (const cluster of parsedClusters) {
-              const kubeContexts = k8.getContextNames();
-              const context: string = await flags.context.prompt(task, kubeContexts, cluster);
-              self.clusterContextMapping[cluster] = context;
+            for (const clusterRef of parsedClusterRefs) {
+              const kubeContexts = k8Factory.default().contexts().list();
+              const context: string = await flags.context.prompt(task, kubeContexts, clusterRef);
+              self.clusterRefs[clusterRef] = context;
               promptedContexts.push(context);
 
               self.configManager.setFlag(flags.context, context);
             }
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
-            const context = k8.getCurrentContext();
-            for (const cluster of parsedClusters) {
-              self.clusterContextMapping[cluster] = context;
+            const context = k8Factory.default().contexts().readCurrent();
+            for (const clusterRef of parsedClusterRefs) {
+              self.clusterRefs[clusterRef] = context;
             }
             self.configManager.setFlag(flags.context, context);
           }
         } else {
-          for (let i = 0; i < parsedClusters.length; i++) {
-            const cluster = parsedClusters[i];
-            self.clusterContextMapping[cluster] = parsedContexts[i];
+          for (let i = 0; i < parsedClusterRefs.length; i++) {
+            const clusterRef = parsedClusterRefs[i];
+            self.clusterRefs[clusterRef] = parsedContexts[i];
 
             self.configManager.setFlag(flags.context, parsedContexts[i]);
           }
@@ -223,7 +205,6 @@ export class LocalConfig implements LocalConfigData {
 
         self.userEmailAddress = userEmailAddress;
         self.deployments = deployments;
-        self.currentDeploymentName = deploymentName;
 
         self.validate();
         await self.write();

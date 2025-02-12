@@ -96,6 +96,8 @@ jobs:
           sudo apt-get install gettext-base
 
       - name: Update docs/content/User/StepByStepGuide.md
+        env:
+          SOLO_TEST_CLUSTER: "solo-update-readme-${{ github.run_id }}-${{ github.run_attempt }}"
         run: |
           set -xeo pipefail
           npm install
