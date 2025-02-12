@@ -65,11 +65,16 @@ export interface NetworkDeployConfigClass {
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
   storageType: constants.StorageType;
-  storageAccessKey: string;
-  storageSecrets: string;
-  storageEndpoint: string;
-  storageBucket: string;
-  storageBucketPrefix: string;
+  gcsAccessKey: string;
+  gcsSecrets: string;
+  gcsEndpoint: string;
+  gcsBucket: string;
+  gcsBucketPrefix: string;
+  awsAccessKey: string;
+  awsSecrets: string;
+  awsEndpoint: string;
+  awsBucket: string;
+  awsBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
 }
@@ -136,11 +141,16 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.storageAccessKey,
-      flags.storageSecrets,
-      flags.storageEndpoint,
-      flags.storageBucket,
-      flags.storageBucketPrefix,
+      flags.gcsAccessKey,
+      flags.gcsSecrets,
+      flags.gcsEndpoint,
+      flags.gcsBucket,
+      flags.gcsBucketPrefix,
+      flags.awsAccessKey,
+      flags.awsSecrets,
+      flags.awsEndpoint,
+      flags.awsBucket,
+      flags.awsBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
     ];
@@ -148,56 +158,56 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareStorageSecrets(config: NetworkDeployConfigClass) {
     try {
-      const minioAccessKey = uuidv4();
-      const minioSecretKey = uuidv4();
-      const minioData = {};
       const namespace = config.namespace;
+      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+        const minioAccessKey = uuidv4();
+        const minioSecretKey = uuidv4();
+        const minioData = {};
 
-      // Generating new minio credentials
-      const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
-      minioData['config.env'] = Base64.encode(envString);
-      const isMinioSecretCreated = await this.k8Factory
-        .default()
-        .secrets()
-        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
-      if (!isMinioSecretCreated) {
-        throw new SoloError('ailed to create new minio secret');
+        // Generating new minio credentials
+        const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+        minioData['config.env'] = Base64.encode(envString);
+        const isMinioSecretCreated = await this.k8Factory
+          .default()
+          .secrets()
+          .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+        if (!isMinioSecretCreated) {
+          throw new SoloError('ailed to create new minio secret');
+        }
       }
 
       // Generating cloud storage secrets
-      const {storageAccessKey, storageSecrets, storageEndpoint} = config;
+      const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
       const cloudData = {};
       if (
-        config.storageType === constants.StorageType.S3_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS
+        config.storageType === constants.StorageType.AWS_ONLY ||
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
+        cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
+        cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+        cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
       }
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS ||
-        config.storageType === constants.StorageType.GCS_AND_MINIO
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
-        cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
-      }
-      if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
+        cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
+        cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+        cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
       }
 
-      const isCloudSecretCreated = await this.k8Factory
-        .default()
-        .secrets()
-        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
-      if (!isCloudSecretCreated) {
-        throw new SoloError(
-          `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
-        );
+      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+        const isCloudSecretCreated = await this.k8Factory
+          .default()
+          .secrets()
+          .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+        if (!isCloudSecretCreated) {
+          throw new SoloError(
+            `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
+          );
+        }
       }
+
       // generate backup uploader secret
       if (config.googleCredential) {
         const backupData = {};
@@ -231,11 +241,16 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    storageAccessKey: string;
-    storageSecrets: string;
-    storageEndpoint: string;
-    storageBucket: string;
-    storageBucketPrefix: string;
+    gcsAccessKey: string;
+    gcsSecrets: string;
+    gcsEndpoint: string;
+    gcsBucket: string;
+    gcsBucketPrefix: string;
+    awsAccessKey: string;
+    awsSecrets: string;
+    awsEndpoint: string;
+    awsBucket: string;
+    awsBucketPrefix: string;
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
@@ -256,24 +271,23 @@ export class NetworkCommand extends BaseCommand {
     }
 
     if (
-      config.storageType === constants.StorageType.S3_AND_GCS ||
-      config.storageType === constants.StorageType.GCS_ONLY ||
-      config.storageType === constants.StorageType.GCS_AND_MINIO
+      config.storageType === constants.StorageType.AWS_AND_GCS ||
+      config.storageType === constants.StorageType.GCS_ONLY
     ) {
       valuesArg += ' --set cloud.gcs.enabled=true';
     }
 
     if (
-      config.storageType === constants.StorageType.S3_AND_GCS ||
-      config.storageType === constants.StorageType.S3_ONLY
+      config.storageType === constants.StorageType.AWS_AND_GCS ||
+      config.storageType === constants.StorageType.AWS_ONLY
     ) {
       valuesArg += ' --set cloud.s3.enabled=true';
     }
 
     if (
       config.storageType === constants.StorageType.GCS_ONLY ||
-      config.storageType === constants.StorageType.S3_ONLY ||
-      config.storageType === constants.StorageType.S3_AND_GCS
+      config.storageType === constants.StorageType.AWS_ONLY ||
+      config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
       valuesArg += ' --set cloud.minio.enabled=false';
     }
@@ -282,13 +296,22 @@ export class NetworkCommand extends BaseCommand {
       valuesArg += ' --set cloud.generateNewSecrets=false';
     }
 
-    if (config.storageBucket) {
-      valuesArg += ` --set cloud.buckets.streamBucket=${config.storageBucket}`;
-      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.storageBucket}`;
+    if (config.gcsBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.gcsBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`;
     }
 
-    if (config.storageBucketPrefix) {
-      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.storageBucketPrefix}`;
+    if (config.gcsBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
+    }
+
+    if (config.awsBucket) {
+      valuesArg += ` --set cloud.buckets.streamBucket=${config.awsBucket}`;
+      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`;
+    }
+
+    if (config.awsBucketPrefix) {
+      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`;
     }
 
     if (config.backupBucket) {
@@ -370,11 +393,11 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.storageAccessKey,
-      flags.storageSecrets,
-      flags.storageEndpoint,
-      flags.storageBucket,
-      flags.storageBucketPrefix,
+      flags.gcsAccessKey,
+      flags.gcsSecrets,
+      flags.gcsEndpoint,
+      flags.gcsBucket,
+      flags.gcsBucketPrefix,
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
@@ -436,16 +459,8 @@ export class NetworkCommand extends BaseCommand {
       fs.mkdirSync(config.keysDir);
     }
 
-    // if storageType is set, then we need to set the storage secrets
-    if (
-      this.configManager.getFlag<string>(flags.storageType) &&
-      this.configManager.getFlag<string>(flags.storageAccessKey) &&
-      this.configManager.getFlag<string>(flags.storageSecrets) &&
-      this.configManager.getFlag<string>(flags.storageEndpoint)
-    ) {
-      this.logger.debug('Preparing storage secrets');
-      await this.prepareStorageSecrets(config);
-    }
+    this.logger.debug('Preparing storage secrets');
+    await this.prepareStorageSecrets(config);
 
     this.logger.debug('Prepared config', {
       config,
@@ -696,8 +711,8 @@ export class NetworkCommand extends BaseCommand {
               // skip if only cloud storage is/are used
               skip: ctx =>
                 ctx.config.storageType === constants.StorageType.GCS_ONLY ||
-                ctx.config.storageType === constants.StorageType.S3_ONLY ||
-                ctx.config.storageType === constants.StorageType.S3_AND_GCS,
+                ctx.config.storageType === constants.StorageType.AWS_ONLY ||
+                ctx.config.storageType === constants.StorageType.AWS_AND_GCS,
             });
 
             // set up the subtasks
