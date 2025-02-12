@@ -346,17 +346,20 @@ export const startConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const setupConfigBuilder = async function (argv, ctx, task) {
-  ctx.config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
+  const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
     'nodeAliases',
     'podRefs',
     'namespace',
   ]) as NodeSetupConfigClass;
 
-  ctx.config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
-  ctx.config.consensusNodes = this.parent.getConsensusNodes();
+  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
+  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  config.consensusNodes = this.parent.getConsensusNodes();
 
-  await initializeSetup(ctx.config, this.k8Factory);
+  await initializeSetup(config, this.k8Factory);
+
+  // set config in the context for later tasks to use
+  ctx.config = config;
 
   return ctx.config;
 };

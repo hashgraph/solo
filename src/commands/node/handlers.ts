@@ -46,10 +46,10 @@ import {type CommandFlag} from '../../types/flag_types.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
-  readonly configManager: ConfigManager;
+  private readonly configManager: ConfigManager;
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
-  readonly k8Factory: K8Factory;
+  private readonly k8Factory: K8Factory;
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
