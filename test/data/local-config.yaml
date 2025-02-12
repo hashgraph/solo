@@ -4,7 +4,6 @@ deployments:
     clusters:
       - cluster-1
     namespace: solo-e2e
-currentDeploymentName: deployment
-clusterContextMapping:
+clusterRefs:
   cluster-1: context-1
   cluster-2: context-2

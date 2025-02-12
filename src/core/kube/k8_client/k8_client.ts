@@ -3,10 +3,6 @@
  */
 import * as k8s from '@kubernetes/client-node';
 import {SoloError} from '../../errors.js';
-import {type ConfigManager} from '../../config_manager.js';
-import {type SoloLogger} from '../../logging.js';
-import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../dependency_injection/container_helper.js';
 import {type K8} from '../k8.js';
 import {type Namespaces} from '../resources/namespace/namespaces.js';
 import {K8ClientClusters} from '../k8_client/resources/cluster/k8_client_clusters.js';
@@ -32,7 +28,6 @@ import {type Secrets} from '../resources/secret/secrets.js';
 import {K8ClientSecrets} from '../k8_client/resources/secret/k8_client_secrets.js';
 import {type Ingresses} from '../resources/ingress/ingresses.js';
 import {K8ClientIngresses} from './resources/ingress/k8_client_ingresses.js';
-import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -40,11 +35,10 @@ import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
  * Note: Take care if the same instance is used for parallel execution, as the behaviour may be unpredictable.
  * For parallel execution, create separate instances by invoking clone()
  */
-@injectable()
 export class K8Client implements K8 {
   private kubeConfig!: k8s.KubeConfig;
-  kubeClient!: k8s.CoreV1Api;
-  private coordinationApiClient: k8s.CoordinationV1Api;
+  private kubeClient!: k8s.CoreV1Api;
+  private coordinationApiClient!: k8s.CoordinationV1Api;
   private networkingApi!: k8s.NetworkingV1Api;
 
   private k8Leases: Leases;
@@ -60,20 +54,17 @@ export class K8Client implements K8 {
   private k8Secrets: Secrets;
   private k8Ingresses: Ingresses;
 
-  constructor(
-    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
-    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
-  ) {
-    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
-    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-
-    this.init();
+  /**
+   * Create a new k8Factory client for the given context, if context is undefined it will use the current context in kubeconfig
+   * @param context - The context to create the k8Factory client for
+   */
+  constructor(private readonly context: string) {
+    this.init(this.context);
   }
 
   // TODO make private, but first we need to require a cluster to be set and address the test cases using this
-  init(): K8 {
-    this.kubeConfig = new k8s.KubeConfig();
-    this.kubeConfig.loadFromDefault();
+  init(context: string = undefined): K8 {
+    this.kubeConfig = this.getKubeConfig(context);
 
     if (!this.kubeConfig.getCurrentContext()) {
       throw new SoloError('No active kubernetes context found. ' + 'Please set current kubernetes context.');
@@ -100,7 +91,24 @@ export class K8Client implements K8 {
     this.k8Secrets = new K8ClientSecrets(this.kubeClient);
     this.k8Ingresses = new K8ClientIngresses(this.networkingApi);
 
-    return this; // to enable chaining
+    return this;
+  }
+
+  private getKubeConfig(context: string): k8s.KubeConfig {
+    const kubeConfig = new k8s.KubeConfig();
+    kubeConfig.loadFromDefault();
+
+    if (context) {
+      const kubeConfigContext: k8s.Context = kubeConfig.getContextObject(context);
+
+      if (!kubeConfigContext) {
+        throw new SoloError(`No kube config context found with name ${context}`);
+      }
+
+      kubeConfig.setCurrentContext(context);
+    }
+
+    return kubeConfig;
   }
 
   public namespaces(): Namespaces {

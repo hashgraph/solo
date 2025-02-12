@@ -8,7 +8,7 @@ import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
 import {type ConfigManager} from './config_manager.js';
-import {type K8} from './kube/k8.js';
+import {type K8Factory} from './kube/k8_factory.js';
 import {type SoloLogger} from './logging.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {type NodeAlias} from '../types/aliases.js';
@@ -24,11 +24,11 @@ import {InjectTokens} from './dependency_injection/inject_tokens.js';
 @injectable()
 export class CertificateManager {
   constructor(
-    @inject(InjectTokens.K8) private readonly k8?: K8,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
     @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
@@ -80,7 +80,10 @@ export class CertificateManager {
       const namespace = this.getNamespace();
       const labels = Templates.renderGrpcTlsCertificatesSecretLabelObject(nodeAlias, type);
 
-      const isSecretCreated = await this.k8.secrets().createOrReplace(namespace, name, SecretType.OPAQUE, data, labels);
+      const isSecretCreated = await this.k8Factory
+        .default()
+        .secrets()
+        .createOrReplace(namespace, name, SecretType.OPAQUE, data, labels);
       if (!isSecretCreated) {
         throw new SoloError(`failed to create secret for TLS certificates for node '${nodeAlias}'`);
       }

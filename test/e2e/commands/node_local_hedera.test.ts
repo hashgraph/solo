@@ -7,7 +7,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../test_util.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
-import {type K8} from '../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
@@ -32,7 +32,7 @@ argv[flags.clusterName.name] = TEST_CLUSTER;
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 argv[flags.quiet.name] = true;
 
-let hederaK8: K8;
+let k8Factory: K8Factory;
 console.log('Starting local build for Hedera app');
 argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data';
 argv[flags.namespace.name] = LOCAL_HEDERA.name;
@@ -58,7 +58,7 @@ e2eTestSuite(
         nodeCmd = bootstrapResp.cmd.nodeCmd;
         accountCmd = bootstrapResp.cmd.accountCmd;
         accountManager = bootstrapResp.manager.accountManager;
-        hederaK8 = bootstrapResp.opts.k8;
+        k8Factory = bootstrapResp.opts.k8Factory;
       });
 
       it('save the state and restart the node with saved state', async () => {
@@ -105,7 +105,7 @@ e2eTestSuite(
       it('get the logs and delete the namespace', async () => {
         await accountManager.close();
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(LOCAL_HEDERA);
-        await hederaK8.namespaces().delete(LOCAL_HEDERA);
+        await k8Factory.default().namespaces().delete(LOCAL_HEDERA);
       }).timeout(Duration.ofMinutes(10).toMillis());
     });
   },

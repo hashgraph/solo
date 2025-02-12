@@ -506,4 +506,4 @@ tasks:
         cmd: |
           kubectl exec -it {{.postgres_container_name}} \
           -n {{.postgres_database_namespace}} \
-          -- /bin/bash /tmp/init.sh "{{.postgres_username}}" "{{.postgres_password}}"
+          -- /bin/bash /tmp/init.sh "{{.postgres_username}}" "{{.postgres_readonly_username}}" "{{.postgres_readonly_password}}"

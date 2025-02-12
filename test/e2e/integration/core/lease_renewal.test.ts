@@ -4,7 +4,7 @@
 import {it, describe, before, after} from 'mocha';
 import {type ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
@@ -22,27 +22,34 @@ const leaseDuration = 4;
 describe('LeaseRenewalService', async () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-  const k8: K8 = container.resolve(InjectTokens.K8) as K8;
+  const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory) as K8Factory;
   const renewalService: LeaseRenewalService = container.resolve(InjectTokens.LeaseRenewalService);
   const testNamespace = NamespaceName.of('lease-renewal-e2e');
 
   before(async function () {
     this.timeout(defaultTimeout);
-    if (await k8.namespaces().has(testNamespace)) {
-      await k8.namespaces().delete(testNamespace);
+    if (await k8Factory.default().namespaces().has(testNamespace)) {
+      await k8Factory.default().namespaces().delete(testNamespace);
       await sleep(Duration.ofSeconds(5));
     }
 
-    await k8.namespaces().create(testNamespace);
+    await k8Factory.default().namespaces().create(testNamespace);
   });
 
   after(async function () {
     this.timeout(defaultTimeout);
-    await k8.namespaces().delete(testNamespace);
+    await k8Factory.default().namespaces().delete(testNamespace);
   });
 
   it('acquired leases should be scheduled', async () => {
-    const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+    const lease = new IntervalLease(
+      k8Factory,
+      renewalService,
+      LeaseHolder.default(),
+      testNamespace,
+      null,
+      leaseDuration,
+    );
     await lease.acquire();
     expect(lease.scheduleId).to.not.be.null;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true;
@@ -55,7 +62,14 @@ describe('LeaseRenewalService', async () => {
   it('acquired leases should be renewed', async function () {
     this.timeout(defaultTimeout);
 
-    const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+    const lease = new IntervalLease(
+      k8Factory,
+      renewalService,
+      LeaseHolder.default(),
+      testNamespace,
+      null,
+      leaseDuration,
+    );
     await lease.acquire();
     expect(lease.scheduleId).to.not.be.null;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true;
@@ -88,7 +102,14 @@ describe('LeaseRenewalService', async () => {
   it('acquired leases with cancelled schedules should not be renewed', async function () {
     this.timeout(defaultTimeout);
 
-    const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+    const lease = new IntervalLease(
+      k8Factory,
+      renewalService,
+      LeaseHolder.default(),
+      testNamespace,
+      null,
+      leaseDuration,
+    );
     await lease.acquire();
     expect(lease.scheduleId).to.not.be.null;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true;
@@ -97,7 +118,7 @@ describe('LeaseRenewalService', async () => {
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.false;
 
     // @ts-ignore
-    let remoteObject: V1Lease = await lease.retrieveLease(k8);
+    let remoteObject: V1Lease = await lease.retrieveLease(k8Factory);
     expect(remoteObject).to.not.be.null;
     expect(remoteObject?.spec?.renewTime).to.be.undefined;
     expect(remoteObject?.spec?.acquireTime).to.not.be.undefined;

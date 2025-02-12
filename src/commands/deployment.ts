@@ -9,7 +9,7 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type DeploymentName, type NamespaceNameAsString, type Cluster} from '../core/config/remote/types.js';
+import {type DeploymentName, type NamespaceNameAsString, type ClusterRef} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
@@ -27,7 +27,7 @@ export class DeploymentCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.tasks = new ClusterCommandTasks(this, this.k8);
+    this.tasks = new ClusterCommandTasks(this, this.k8Factory);
   }
 
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
@@ -88,7 +88,7 @@ export class DeploymentCommand extends BaseCommand {
           },
         },
         this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(self.k8),
+        this.localConfig.promptLocalConfigTask(self.k8Factory),
         {
           title: 'Add new deployment to local config',
           task: async (ctx, task) => {
@@ -107,7 +107,7 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Validate context',
           task: async (ctx, task) => {
             ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
-            const availableContexts = self.k8.contexts().list();
+            const availableContexts = self.k8Factory.default().contexts().list();
 
             if (availableContexts.includes(ctx.config.context)) {
               task.title += chalk.green(`- validated context ${ctx.config.context}`);
@@ -126,13 +126,13 @@ export class DeploymentCommand extends BaseCommand {
             const subTasks: SoloListrTask<Context>[] = [];
 
             for (const cluster of self.localConfig.deployments[ctx.config.deployment].clusters) {
-              const context = self.localConfig.clusterContextMapping?.[cluster];
+              const context = self.localConfig.clusterRefs?.[cluster];
               if (!context) continue;
 
               subTasks.push({
                 title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
                 task: async (_, task) => {
-                  if (!(await self.k8.contexts().testContextConnection(context))) {
+                  if (!(await self.k8Factory.default().contexts().testContextConnection(context))) {
                     task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
 
                     throw new SoloError(`Cluster connection failed for: ${cluster}`);
@@ -168,7 +168,7 @@ export class DeploymentCommand extends BaseCommand {
     const self = this;
 
     interface Config {
-      clusterName: Cluster;
+      clusterName: ClusterRef;
     }
 
     interface Context {
@@ -186,7 +186,7 @@ export class DeploymentCommand extends BaseCommand {
             await self.configManager.executePrompt(task, [flags.clusterName]);
 
             ctx.config = {
-              clusterName: self.configManager.getFlag<Cluster>(flags.clusterName),
+              clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterName),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -197,11 +197,11 @@ export class DeploymentCommand extends BaseCommand {
           task: async ctx => {
             const clusterName = ctx.config.clusterName;
 
-            const context = self.localConfig.clusterContextMapping[clusterName];
+            const context = self.localConfig.clusterRefs[clusterName];
 
-            self.k8.contexts().updateCurrent(context);
+            self.k8Factory.default().contexts().updateCurrent(context);
 
-            const namespaces = await self.k8.namespaces().list();
+            const namespaces = await self.k8Factory.default().namespaces().list();
             const namespacesWithRemoteConfigs: NamespaceNameAsString[] = [];
 
             for (const namespace of namespaces) {

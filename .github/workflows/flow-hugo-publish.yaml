@@ -68,7 +68,7 @@ jobs:
           egress-policy: audit
 
       - name: Setup Hugo
-        uses: step-security/actions-hugo@8b2a237efc0653848b74551acf66bb9ddd5fa02e # v3.0.0
+        uses: step-security/actions-hugo@b99dc9a4cddce1866ff2c3682c01aeb27b4d91f0 # v3.0.1
         with:
           hugo-version: '0.124.1'
 

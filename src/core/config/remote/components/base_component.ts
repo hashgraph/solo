@@ -3,7 +3,7 @@
  */
 import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors.js';
-import {type Cluster, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
+import {type ClusterRef, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
 
 /**
@@ -20,7 +20,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
   protected constructor(
     public readonly type: ComponentType,
     public readonly name: ComponentName,
-    public readonly cluster: Cluster,
+    public readonly cluster: ClusterRef,
     public readonly namespace: NamespaceNameAsString,
   ) {}
 

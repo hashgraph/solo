@@ -9,7 +9,7 @@ import {e2eTestSuite, getDefaultArgv, TEST_CLUSTER} from '../../../test_util.js'
 import * as version from '../../../../version.js';
 import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../../../../src/core/account_manager.js';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
@@ -38,18 +38,18 @@ e2eTestSuite(
   true,
   bootstrapResp => {
     describe('AccountManager', async () => {
-      let k8: K8;
+      let k8Factory: K8Factory;
       let accountManager: AccountManager;
 
       before(() => {
-        k8 = bootstrapResp.opts.k8;
+        k8Factory = bootstrapResp.opts.k8Factory;
         accountManager = bootstrapResp.opts.accountManager;
       });
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
 
-        await k8.namespaces().delete(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
         await accountManager.close();
       });
 
@@ -68,7 +68,9 @@ e2eTestSuite(
 
         // ports should be opened
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
-        accountManager._portForwards.push(await k8.pods().readByRef(podRef).portForward(localPort, podPort));
+        accountManager._portForwards.push(
+          await k8Factory.default().pods().readByRef(podRef).portForward(localPort, podPort),
+        );
 
         // ports should be closed
         await accountManager.close();
