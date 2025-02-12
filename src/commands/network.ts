@@ -149,75 +149,114 @@ export class NetworkCommand extends BaseCommand {
     ];
   }
 
-  async prepareStorageSecrets(config: NetworkDeployConfigClass) {
-    try {
-      const minioAccessKey = uuidv4();
-      const minioSecretKey = uuidv4();
-      const minioData = {};
-      const namespace = config.namespace;
+  async prepareMinioSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
+    // Generating new minio credentials
+    const minioData = {};
+    const namespace = config.namespace;
+    const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+    minioData['config.env'] = Base64.encode(envString);
 
-      // Generating new minio credentials
-      const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
-      minioData['config.env'] = Base64.encode(envString);
-      // TODO: @Lenin, needs to run once for each cluster
+    // create minio secret in each cluster
+    for (const clusterRef of Object.keys(config.valuesArgMap)) {
+      this.logger.debug(`creating minio secret in cluster: ${clusterRef}`);
+
       const isMinioSecretCreated = await this.k8Factory
         .default()
         .secrets()
         .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+
       if (!isMinioSecretCreated) {
-        throw new SoloError('ailed to create new minio secret');
+        throw new SoloError(`failed to create new minio secret in cluster: ${clusterRef}`);
       }
 
-      // Generating cloud storage secrets
-      const {storageAccessKey, storageSecrets, storageEndpoint} = config;
-      const cloudData = {};
-      if (
-        config.storageType === constants.StorageType.S3_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS
-      ) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
-      }
-      if (
-        config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS ||
-        config.storageType === constants.StorageType.GCS_AND_MINIO
-      ) {
-        cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
-        cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
-        cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
-      }
-      if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
-      }
+      this.logger.debug(`created minio secret in cluster: ${clusterRef}`);
+    }
+  }
 
-      // TODO: @Lenin, needs to run once for each cluster
+  async prepareStreamUploaderSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
+    // Generating cloud storage secrets
+    const {storageAccessKey, storageSecrets, storageEndpoint, namespace} = config;
+    const cloudData = {};
+
+    if (
+      config.storageType === constants.StorageType.S3_ONLY ||
+      config.storageType === constants.StorageType.S3_AND_GCS
+    ) {
+      cloudData['S3_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+      cloudData['S3_SECRET_KEY'] = Base64.encode(storageSecrets);
+      cloudData['S3_ENDPOINT'] = Base64.encode(storageEndpoint);
+    }
+
+    if (
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.S3_AND_GCS ||
+      config.storageType === constants.StorageType.GCS_AND_MINIO
+    ) {
+      cloudData['GCS_ACCESS_KEY'] = Base64.encode(storageAccessKey);
+      cloudData['GCS_SECRET_KEY'] = Base64.encode(storageSecrets);
+      cloudData['GCS_ENDPOINT'] = Base64.encode(storageEndpoint);
+    }
+
+    if (config.storageType === constants.StorageType.GCS_AND_MINIO) {
+      cloudData['S3_ACCESS_KEY'] = Base64.encode(minioAccessKey);
+      cloudData['S3_SECRET_KEY'] = Base64.encode(minioSecretKey);
+    }
+
+    // create secret in each cluster
+    for (const clusterRef of Object.keys(config.valuesArgMap)) {
+      this.logger.debug(
+        `creating secret for storage credential of type '${config.storageType}' in cluster: ${clusterRef}`,
+      );
+
       const isCloudSecretCreated = await this.k8Factory
         .default()
         .secrets()
         .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+
       if (!isCloudSecretCreated) {
         throw new SoloError(
-          `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
+          `failed to create secret for storage credentials of type '${config.storageType}' in cluster: ${clusterRef}`,
         );
       }
-      // generate backup uploader secret
-      if (config.googleCredential) {
-        const backupData = {};
-        const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
-        backupData['saJson'] = Base64.encode(googleCredential);
 
-        // TODO: @Lenin, needs to run once for each cluster
+      this.logger.debug(
+        `created secret for storage credential of type '${config.storageType}' in cluster: ${clusterRef}`,
+      );
+    }
+  }
+
+  async prepareBackupUploaderSecrets(config: NetworkDeployConfigClass) {
+    if (config.googleCredential) {
+      const backupData = {};
+      const namespace = config.namespace;
+      const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
+      backupData['saJson'] = Base64.encode(googleCredential);
+
+      // create secret in each cluster
+      for (const clusterRef of Object.keys(config.valuesArgMap)) {
+        this.logger.debug(`creating secret for backup uploader in cluster: ${clusterRef}`);
+
         const isBackupSecretCreated = await this.k8Factory
           .default()
           .secrets()
           .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
+
         if (!isBackupSecretCreated) {
-          throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
+          throw new SoloError(`failed to create secret for backup uploader in cluster: ${clusterRef}`);
         }
+
+        this.logger.debug(`created secret for backup uploader in cluster: ${clusterRef}`);
       }
+    }
+  }
+
+  async prepareStorageSecrets(config: NetworkDeployConfigClass) {
+    try {
+      const minioAccessKey = uuidv4();
+      const minioSecretKey = uuidv4();
+      await this.prepareMinioSecrets(config, minioAccessKey, minioSecretKey);
+      await this.prepareStreamUploaderSecrets(config, minioAccessKey, minioSecretKey);
+      await this.prepareBackupUploaderSecrets(config);
     } catch (e: Error | any) {
       const errorMessage = 'failed to create Kubernetes storage secret ';
       this.logger.error(errorMessage, e);
