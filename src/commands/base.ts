@@ -22,6 +22,7 @@ import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
 import {ConsensusNode} from '../core/model/consensus_node.js';
+import {type ClusterRefs} from '../core/config/local_config_data.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -284,5 +285,19 @@ export abstract class BaseCommand extends ShellRunner {
       }
     });
     return contexts;
+  }
+
+  /**
+   * Gets a list of distinct cluster references from the consensus nodes
+   * @returns an object of cluster references
+   */
+  public getClusterRefs(): ClusterRefs {
+    const clustersRefs: ClusterRefs = {};
+    this.getConsensusNodes().forEach(node => {
+      if (!Object.keys(clustersRefs).includes(node.cluster)) {
+        clustersRefs[node.cluster] = node.context;
+      }
+    });
+    return clustersRefs;
   }
 }
