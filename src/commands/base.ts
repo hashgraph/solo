@@ -126,18 +126,36 @@ export abstract class BaseCommand extends ShellRunner {
     if (profileValuesFile) {
       const parsed = Flags.parseValuesFilesInput(profileValuesFile);
       Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
         files.forEach(file => {
-          valuesFiles[clusterRef] += ` --values ${file}`;
+          vf += ` --values ${file}`;
         });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([cf]) => {
+            valuesFiles[cf] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
       });
     }
 
     if (valuesFileInput) {
       const parsed = Flags.parseValuesFilesInput(valuesFileInput);
       Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
         files.forEach(file => {
-          valuesFiles[clusterRef] += ` --values ${file}`;
+          vf += ` --values ${file}`;
         });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterRef]) => {
+            valuesFiles[clusterRef] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
       });
     }
 

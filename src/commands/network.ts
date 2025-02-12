@@ -54,6 +54,7 @@ export interface NetworkDeployConfigClass {
   nodeAliases: NodeAliases;
   stagingDir: string;
   stagingKeysDir: string;
+  valuesFile: string;
   valuesArgMap: Record<ClusterRef, string>;
   grpcTlsCertificatePath: string;
   grpcWebTlsCertificatePath: string;
@@ -131,7 +132,7 @@ export class NetworkCommand extends BaseCommand {
       flags.quiet,
       flags.releaseTag,
       flags.settingTxt,
-      flags.valuesFile,
+      flags.networkDeploymentValuesFile,
       flags.grpcTlsCertificatePath,
       flags.grpcWebTlsCertificatePath,
       flags.grpcTlsKeyPath,
@@ -299,8 +300,8 @@ export class NetworkCommand extends BaseCommand {
     const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
       this.getLocalConfig().clusterRefs,
       config.chartDirectory,
-      config.valuesFile,
       profileValuesFile,
+      config.valuesFile,
     );
 
     for (const clusterRef of Object.keys(valuesFiles)) {
@@ -490,7 +491,6 @@ export class NetworkCommand extends BaseCommand {
         'nodeAliases',
         'stagingDir',
         'stagingKeysDir',
-        'valuesArg',
         'resolvedThrottlesFile',
         'namespace',
         'consensusNodes',

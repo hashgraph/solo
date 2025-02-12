@@ -176,7 +176,7 @@ describe('NetworkCommand unit tests', () => {
       const common = path.join('test', 'data', 'test-values.yaml');
       const values1 = path.join('test', 'data', 'test-values1.yaml');
       const values2 = path.join('test', 'data', 'test-values2.yaml');
-      argv[flags.valuesFile.name] = `${common},cluster-1=${values1},cluster-1=${values2}\``;
+      argv[flags.networkDeploymentValuesFile.name] = `${common},cluster-1=${values1},cluster-1=${values2}\``;
       argv[flags.chartDirectory.name] = 'test-directory';
       argv[flags.force.name] = true;
 

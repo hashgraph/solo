@@ -16,6 +16,8 @@ import {type AnyObject} from '../types/aliases.js';
 import {type ClusterRef} from '../core/config/remote/types.js';
 
 export class Flags {
+  public static KEY_COMMON = '_COMMON_';
+
   private static async prompt(
     type: string,
     task: ListrTaskWrapper<any, any, any>,
@@ -185,14 +187,19 @@ export class Flags {
     const valuesFiles: Record<ClusterRef, Array<string>> = {};
     if (input) {
       const inputItems = input.split(',');
-      inputItems.forEach(vf => {
-        const parts = vf.split('=');
+      inputItems.forEach(v => {
+        const parts = v.split('=');
+
+        let clusterRef = '';
+        let valuesFile = '';
         if (parts.length !== 2) {
-          throw new SoloError(`Values file input must be formatted as <cluster-ref>=<path>, found: ${vf}`);
+          valuesFile = path.resolve(v);
+          clusterRef = Flags.KEY_COMMON;
+        } else {
+          clusterRef = parts[0];
+          valuesFile = paths.resolve(parts[1]);
         }
 
-        const clusterRef = parts[0];
-        const valuesFile = paths.resolve(parts[1]);
         if (!valuesFiles[clusterRef]) {
           valuesFiles[clusterRef] = [];
         }
@@ -207,8 +214,22 @@ export class Flags {
     constName: 'valuesFile',
     name: 'values-file',
     definition: {
+      describe: 'Comma separated chart values file',
+      defaultValue: '',
+      alias: 'f',
+      type: 'string',
+    },
+    prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return input; // no prompt is needed for values file
+    },
+  };
+
+  static readonly networkDeploymentValuesFile: CommandFlag = {
+    constName: 'valuesFile',
+    name: 'values-file',
+    definition: {
       describe:
-        'Comma separated chart values file paths for each cluster (e.g. cluster-1=./a/b/values1.yaml,cluster-2=./a/b/values2.yaml)',
+        'Comma separated chart values file paths for each cluster (e.g. values.yaml,cluster-1=./a/b/values1.yaml,cluster-2=./a/b/values2.yaml)',
       defaultValue: '',
       alias: 'f',
       type: 'string',
@@ -1944,6 +1965,7 @@ export class Flags {
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
     Flags.namespace,
+    Flags.networkDeploymentValuesFile,
     Flags.newAccountNumber,
     Flags.newAdminKey,
     Flags.nodeAlias,
