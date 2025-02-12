@@ -18,6 +18,7 @@ import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -334,9 +335,13 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
 export const startConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
+  config.consensusNodes = this.parent.getConsensusNodes();
 
-  if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
-    throw new SoloError(`namespace ${config.namespace} does not exist`);
+  for (const consensusNode of config.consensusNodes) {
+    const k8 = helpers.getK8FromContext(this.k8Factory, consensusNode.context);
+    if (!(await k8.namespaces().has(config.namespace))) {
+      throw new SoloError(`namespace ${config.namespace} does not exist`);
+    }
   }
 
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -397,6 +402,7 @@ export interface NodeKeysConfigClass {
 export interface NodeStartConfigClass {
   app: string;
   cacheDir: string;
+  consensusNodes: ConsensusNode[];
   debugNodeAlias: NodeAlias;
   namespace: NamespaceName;
   deployment: string;

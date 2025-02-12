@@ -426,16 +426,18 @@ export class NodeCommandTasks {
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
-        task: async ctx =>
-          await this.k8Factory
-            .default()
+        task: async ctx => {
+          const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
+          const k8 = helpers.getK8FromContext(this.k8Factory, context);
+          await k8
             .pods()
             .waitForReadyStatus(
               ctx.config.namespace,
               [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
               constants.NETWORK_PROXY_MAX_ATTEMPTS,
               constants.NETWORK_PROXY_DELAY,
-            ),
+            );
+        },
       });
     }
 
@@ -859,7 +861,7 @@ export class NodeCommandTasks {
     return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
       config.existingNodeAliases = [];
-      config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace);
+      config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace, config.conesnsusNodes);
       for (const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeAlias);
       }
@@ -878,25 +880,21 @@ export class NodeCommandTasks {
         const zipFile = config.stateFile;
         self.logger.debug(`zip file: ${zipFile}`);
         for (const nodeAlias of ctx.config.nodeAliases) {
+          const context = helpers.extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
+          const k8 = helpers.getK8FromContext(this.k8Factory, context);
           const podRef = ctx.config.podRefs[nodeAlias];
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
           self.logger.debug(`Uploading state files to pod ${podRef.name}`);
-          await self.k8Factory
-            .default()
-            .containers()
-            .readByRef(containerRef)
-            .copyTo(zipFile, `${constants.HEDERA_HAPI_PATH}/data`);
+          await k8.containers().readByRef(containerRef).copyTo(zipFile, `${constants.HEDERA_HAPI_PATH}/data`);
 
           self.logger.info(
             `Deleting the previous state files in pod ${podRef.name} directory ${constants.HEDERA_HAPI_PATH}/data/saved`,
           );
-          await self.k8Factory
-            .default()
+          await k8
             .containers()
             .readByRef(containerRef)
             .execContainer(['rm', '-rf', `${constants.HEDERA_HAPI_PATH}/data/saved/*`]);
-          await self.k8Factory
-            .default()
+          await k8
             .containers()
             .readByRef(containerRef)
             .execContainer([
@@ -1043,9 +1041,7 @@ export class NodeCommandTasks {
     return new Task('Starting nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
       const nodeAliases = config[nodeAliasesProperty];
-
       const subTasks = [];
-      // ctx.config.allNodeAliases = ctx.config.existingNodeAliases
 
       for (const nodeAlias of nodeAliases) {
         const podRef = config.podRefs[nodeAlias];
@@ -1053,11 +1049,9 @@ export class NodeCommandTasks {
         subTasks.push({
           title: `Start node: ${chalk.yellow(nodeAlias)}`,
           task: async () => {
-            await this.k8Factory
-              .default()
-              .containers()
-              .readByRef(containerRef)
-              .execContainer(['systemctl', 'restart', 'network-node']);
+            const context = helpers.extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
+            const k8 = helpers.getK8FromContext(this.k8Factory, context);
+            await k8.containers().readByRef(containerRef).execContainer(['systemctl', 'restart', 'network-node']);
           },
         });
       }
