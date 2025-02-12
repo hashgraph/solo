@@ -602,10 +602,12 @@ export class NetworkCommand extends BaseCommand {
           title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
           task: async ctx => {
             const config = ctx.config;
+            // TODO: @Lenin, run for each cluster
             if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
               await self.chartManager.uninstall(config.namespace, constants.SOLO_DEPLOYMENT_CHART);
             }
 
+            // TODO: @Lenin, run for each cluster
             await this.chartManager.install(
               config.namespace,
               constants.SOLO_DEPLOYMENT_CHART,
@@ -622,9 +624,11 @@ export class NetworkCommand extends BaseCommand {
             const config = ctx.config;
 
             // nodes
+            // TODO: @Lenin, needs to use config.consensusNodes
             for (const nodeAlias of config.nodeAliases) {
               subTasks.push({
                 title: `Check Node: ${chalk.yellow(nodeAlias)}`,
+                // TODO: @Lenin, needs to use config.consensusNodes for both node name and context
                 task: async () =>
                   await self.k8Factory
                     .default()
@@ -654,9 +658,11 @@ export class NetworkCommand extends BaseCommand {
             const config = ctx.config;
 
             // HAProxy
+            // TODO: @Lenin, needs to use config.consensusNodes
             for (const nodeAlias of config.nodeAliases) {
               subTasks.push({
                 title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
+                // TODO: @Lenin, needs to use config.consensusNodes for both node name and context
                 task: async () =>
                   await self.k8Factory
                     .default()
@@ -671,9 +677,11 @@ export class NetworkCommand extends BaseCommand {
             }
 
             // Envoy Proxy
+            // TODO: @Lenin, needs to use config.consensusNodes
             for (const nodeAlias of config.nodeAliases) {
               subTasks.push({
                 title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
+                // TODO: @Lenin, needs to use config.consensusNodes for both node name and context
                 task: async () =>
                   await self.k8Factory
                     .default()
@@ -704,6 +712,7 @@ export class NetworkCommand extends BaseCommand {
             // minio
             subTasks.push({
               title: 'Check MinIO',
+              // TODO: @Lenin, needs to run for each cluster
               task: async ctx =>
                 await self.k8Factory
                   .default()
@@ -1001,6 +1010,7 @@ export class NetworkCommand extends BaseCommand {
         } = ctx;
         const cluster = this.remoteConfigManager.currentCluster;
 
+        // TODO: @Lenin, we can update this to use config.consensusNodes and provide the correct cluster per node
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.add(

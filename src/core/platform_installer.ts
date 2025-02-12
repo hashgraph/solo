@@ -168,6 +168,7 @@ export class PlatformInstaller {
         data[fileName] = Base64.encode(fileContents);
       }
 
+      // TODO: @Lenin, will need to run for each cluster
       const secretCreated = await this.k8Factory
         .default()
         .secrets()
@@ -213,7 +214,7 @@ export class PlatformInstaller {
           data[fileName] = Base64.encode(fileContents);
         }
       }
-
+      // TODO: @Lenin, will need to run for each cluster
       const secretCreated = await this.k8Factory
         .default()
         .secrets()
