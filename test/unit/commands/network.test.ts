@@ -30,6 +30,7 @@ import {resetForTest} from '../../test_container.js';
 import {type ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/resources/config_map/k8_client_config_maps.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 
 const testName = 'network-cmd-unit';
 const argv = getDefaultArgv();
@@ -64,6 +65,9 @@ describe('NetworkCommand unit tests', () => {
       opts.k8Factory.default().namespaces = sinon.stub().returns({
         has: sinon.stub().returns(true),
       });
+      opts.k8Factory.default().contexts = sinon.stub().returns({
+        readCurrent: sinon.stub().returns(new K8Client(undefined).contexts().readCurrent()),
+      });
       opts.k8Factory.default().configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
       opts.k8Factory.default().configMaps.read = sinon.stub();
       opts.k8Factory.default().pods = sinon.stub().returns({
@@ -73,6 +77,11 @@ describe('NetworkCommand unit tests', () => {
       opts.k8Factory.default().leases = sinon.stub().returns({
         read: sinon.stub(),
       });
+      opts.k8Factory.default().clusters = sinon.stub().returns({
+        list: sinon.stub().returns([{name: 'solo-e2e'}]),
+      });
+      opts.k8Factory.default().clusters().readCurrent = sinon.stub().returns('solo-e2e');
+
       const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
       clusterChecksStub.isMinioInstalled = sinon.stub();
       clusterChecksStub.isPrometheusInstalled = sinon.stub();
@@ -114,6 +123,8 @@ describe('NetworkCommand unit tests', () => {
 
       opts.remoteConfigManager = container.resolve<RemoteConfigManager>(InjectTokens.RemoteConfigManager);
       opts.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
+
+      opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
 
       opts.leaseManager = container.resolve<LeaseManager>(InjectTokens.LeaseManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);

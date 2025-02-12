@@ -267,6 +267,7 @@ export class RelayCommand extends BaseCommand {
               config.chartPath,
               '',
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
             await self.k8Factory
@@ -376,7 +377,11 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            await this.chartManager.uninstall(config.namespace, config.releaseName);
+            await this.chartManager.uninstall(
+              config.namespace,
+              config.releaseName,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
 
             this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace));
 

@@ -222,6 +222,7 @@ export class ExplorerCommand extends BaseCommand {
                 chartPath,
                 soloChartVersion,
                 '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
+                this.k8Factory.default().contexts().readCurrent(),
               );
             }
 
@@ -248,6 +249,7 @@ export class ExplorerCommand extends BaseCommand {
               chartPath,
               soloChartVersion,
               soloChartSetupValuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
             if (config.enableIngress) {
@@ -287,6 +289,7 @@ export class ExplorerCommand extends BaseCommand {
               constants.HEDERA_EXPLORER_CHART_URL,
               config.hederaExplorerVersion,
               exploreValuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
@@ -407,7 +410,11 @@ export class ExplorerCommand extends BaseCommand {
         {
           title: 'Destroy explorer',
           task: async ctx => {
-            await this.chartManager.uninstall(ctx.config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME);
+            await this.chartManager.uninstall(
+              ctx.config.namespace,
+              constants.HEDERA_EXPLORER_RELEASE_NAME,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
           },
           skip: ctx => !ctx.config.isChartInstalled,
         },

@@ -1609,6 +1609,7 @@ export class NodeCommandTasks {
           ctx.config.chartPath,
           config.soloChartVersion,
           valuesArg,
+          this.k8Factory.default().contexts().readCurrent(),
         );
       },
       skip,
