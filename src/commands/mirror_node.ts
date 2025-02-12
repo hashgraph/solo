@@ -33,7 +33,6 @@ import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
-  deployment: string;
   namespace: NamespaceName;
   profileFile: string;
   profileName: string;
@@ -565,7 +564,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      const message = `Error deploying node: ${e.stack}`;
+      const message = `Error deploying node: ${e.message}`;
       self.logger.error(message, e);
       throw new SoloError(message, e);
     } finally {

@@ -25,7 +25,6 @@ interface ExplorerDeployConfigClass {
   chartDirectory: string;
   clusterRef: string;
   clusterContext: string;
-  deployment: string;
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
   hederaExplorerTlsHostName: string;
@@ -190,7 +189,6 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config = this.getConfig(ExplorerCommand.DEPLOY_CONFIGS_NAME, ExplorerCommand.DEPLOY_FLAGS_LIST, [
               'valuesArg',
-              'clusterContext',
             ]) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
@@ -400,7 +398,6 @@ export class ExplorerCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            // check if flag clusterRef defined
             const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
             const clusterContext = clusterRef
               ? this.getLocalConfig().clusterRefs[clusterRef]
