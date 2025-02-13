@@ -42,6 +42,7 @@ import {type ComponentsDataWrapper} from '../../core/config/remote/components_da
 import {type Optional} from '../../types/index.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {Templates} from '../../core/templates.js';
+import {type CommandFlag} from '../../types/flag_types.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
@@ -53,7 +54,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
 
-  private getConfig: any;
+  public getConfig: (configName: string, flags: CommandFlag[], extraProperties?: string[]) => object;
   private prepareChartPath: any;
 
   public readonly parent: BaseCommand;

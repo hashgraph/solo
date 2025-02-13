@@ -93,6 +93,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.storageAccessKey.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
         flags.externalDatabaseHost.constName,
