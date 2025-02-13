@@ -15,6 +15,8 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
+import {type ConsensusNode} from './model/consensus_node.js';
+import {type Optional} from '../types/index.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -380,4 +382,19 @@ export function populateHelmArgs(valuesMapping: Record<string, string | boolean 
   }
 
   return valuesArg;
+}
+
+/**
+ * @param nodeAlias
+ * @param consensusNodes
+ * @returns context of the node
+ */
+export function extractContextFromConsensusNodes(
+  nodeAlias: NodeAlias,
+  consensusNodes?: ConsensusNode[],
+): Optional<string> {
+  if (!consensusNodes) return undefined;
+  if (!consensusNodes.length) return undefined;
+  const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
+  return consensusNode ? consensusNode.context : undefined;
 }
