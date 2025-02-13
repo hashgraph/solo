@@ -162,10 +162,6 @@ export class NetworkCommand extends BaseCommand {
   }
 
   async prepareMinioSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
-    if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      return;
-    }
-
     // Generating new minio credentials
     const minioData = {};
     const namespace = config.namespace;
@@ -190,10 +186,6 @@ export class NetworkCommand extends BaseCommand {
   }
 
   async prepareStreamUploaderSecrets(config: NetworkDeployConfigClass) {
-    if (config.storageType === constants.StorageType.MINIO_ONLY) {
-      return;
-    }
-
     const namespace = config.namespace;
 
     // Generating cloud storage secrets
@@ -266,11 +258,10 @@ export class NetworkCommand extends BaseCommand {
 
   async prepareStorageSecrets(config: NetworkDeployConfigClass) {
     try {
-      if (config.storageType === constants.StorageType.MINIO_ONLY) {
+      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
         const minioAccessKey = uuidv4();
         const minioSecretKey = uuidv4();
         await this.prepareMinioSecrets(config, minioAccessKey, minioSecretKey);
-      } else {
         await this.prepareStreamUploaderSecrets(config);
       }
 
