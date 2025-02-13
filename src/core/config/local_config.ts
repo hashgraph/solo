@@ -178,10 +178,10 @@ export class LocalConfig implements LocalConfigData {
         if (parsedContexts.length < parsedClusterRefs.length) {
           if (!isQuiet) {
             const promptedContexts: string[] = [];
-            for (const clusterRef of parsedClusterRefs) {
+            for (const clusterName of parsedClusterRefs) {
               const kubeContexts = k8Factory.default().contexts().list();
-              const context: string = await flags.context.prompt(task, kubeContexts, clusterRef);
-              self.clusterRefs[clusterRef] = context;
+              const context: string = await flags.context.prompt(task, kubeContexts, clusterName);
+              self.clusterRefs[clusterName] = context;
               promptedContexts.push(context);
 
               self.configManager.setFlag(flags.context, context);
@@ -189,15 +189,15 @@ export class LocalConfig implements LocalConfigData {
             self.configManager.setFlag(flags.context, promptedContexts.join(','));
           } else {
             const context = k8Factory.default().contexts().readCurrent();
-            for (const clusterRef of parsedClusterRefs) {
-              self.clusterRefs[clusterRef] = context;
+            for (const clusterName of parsedClusterRefs) {
+              self.clusterRefs[clusterName] = context;
             }
             self.configManager.setFlag(flags.context, context);
           }
         } else {
           for (let i = 0; i < parsedClusterRefs.length; i++) {
-            const clusterRef = parsedClusterRefs[i];
-            self.clusterRefs[clusterRef] = parsedContexts[i];
+            const clusterName = parsedClusterRefs[i];
+            self.clusterRefs[clusterName] = parsedContexts[i];
 
             self.configManager.setFlag(flags.context, parsedContexts[i]);
           }

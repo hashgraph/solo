@@ -219,7 +219,7 @@ export class RemoteConfigManager {
   }
 
   public async createAndValidate(
-    clusterRef: ClusterRef,
+    clusterName: ClusterRef,
     context: Context,
     namespace: NamespaceNameAsString,
     argv: AnyObject,
