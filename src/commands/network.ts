@@ -797,12 +797,18 @@ export class NetworkCommand extends BaseCommand {
           title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
           task: async ctx => {
             const config = ctx.config;
-            for (const clusterRef of Object.keys(config.valuesArgMap)) {
-              if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
+            for (const clusterRef of Object.keys(config.clusterRefs)) {
+              if (
+                await self.chartManager.isChartInstalled(
+                  config.namespace,
+                  constants.SOLO_DEPLOYMENT_CHART,
+                  config.clusterRefs[clusterRef],
+                )
+              ) {
                 await self.chartManager.uninstall(
                   config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
-                  this.k8Factory.default().contexts().readCurrent(),
+                  this.k8Factory.getK8(config.clusterRefs[clusterRef]).contexts().readCurrent(),
                 );
               }
 
@@ -812,7 +818,7 @@ export class NetworkCommand extends BaseCommand {
                 ctx.config.chartPath,
                 config.soloChartVersion,
                 config.valuesArgMap[clusterRef],
-                this.k8Factory.default().contexts().readCurrent(),
+                config.clusterRefs[clusterRef],
               );
             }
           },
