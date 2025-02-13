@@ -392,13 +392,13 @@ export function populateHelmArgs(valuesMapping: Record<string, string | boolean 
  * @returns context of the node
  */
 export function extractContextFromConsensusNodes(
-  nodeAlias: NodeAlias,
-  consensusNodes?: ConsensusNode[],
+    nodeAlias: NodeAlias,
+    consensusNodes?: ConsensusNode[],
 ): Optional<string> {
-  if (!consensusNodes) return undefined;
-  if (!consensusNodes.length) return undefined;
-  const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
-  return consensusNode ? consensusNode.context : undefined;
+    if (!consensusNodes) return undefined;
+    if (!consensusNodes.length) return undefined;
+    const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
+    return consensusNode ? consensusNode.context : undefined;
 }
 
 export function getK8FromContext(k8Factory: K8Factory, context?: Context) {

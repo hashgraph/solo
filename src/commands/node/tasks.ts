@@ -54,7 +54,12 @@ import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type ConfigBuilder, type NodeAlias, type NodeAliases, type SkipCheck} from '../../types/aliases.js';
 import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
+import {
+  type NodeDeleteConfigClass,
+  type NodeRefreshConfigClass,
+  type NodeSetupConfigClass,
+  type NodeUpdateConfigClass,
+} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
@@ -68,6 +73,8 @@ import {ContainerRef} from '../../core/kube/resources/container/container_ref.js
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
+import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -196,6 +203,7 @@ export class NodeCommandTasks {
     podRefs: Record<NodeAlias, PodRef>,
     task: ListrTaskWrapper<any, any, any>,
     localBuildPath: string,
+    consensusNodes: Optional<ConsensusNode[]>,
   ) {
     const subTasks = [];
 
@@ -216,6 +224,7 @@ export class NodeCommandTasks {
     let localDataLibBuildPath: string;
     for (const nodeAlias of nodeAliases) {
       const podRef = podRefs[nodeAlias];
+      const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
       if (buildPathMap.has(nodeAlias)) {
         localDataLibBuildPath = buildPathMap.get(nodeAlias);
       } else {
@@ -227,6 +236,9 @@ export class NodeCommandTasks {
       }
 
       const self = this;
+
+      const k8 = context ? self.k8Factory.getK8(context) : self.k8Factory.default();
+
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
@@ -234,8 +246,7 @@ export class NodeCommandTasks {
           const filterFunction = (path, stat) => {
             return !(path.includes('data/keys') || path.includes('data/config'));
           };
-          await self.k8Factory
-            .default()
+          await k8
             .containers()
             .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
             .copyTo(localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`, filterFunction);
@@ -243,8 +254,7 @@ export class NodeCommandTasks {
             const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
             for (const jsonFile of testJsonFiles) {
               if (fs.existsSync(jsonFile)) {
-                await self.k8Factory
-                  .default()
+                await k8
                   .containers()
                   .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
                   .copyTo(jsonFile, `${constants.HEDERA_HAPI_PATH}`);
@@ -267,13 +277,15 @@ export class NodeCommandTasks {
     releaseTag: string,
     task: ListrTaskWrapper<any, any, any>,
     platformInstaller: PlatformInstaller,
+    consensusNodes?: Optional<ConsensusNode[]>,
   ) {
     const subTasks = [];
     for (const nodeAlias of nodeAliases) {
+      const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
       const podRef = podRefs[nodeAlias];
       subTasks.push({
         title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag} ]`,
-        task: async () => await platformInstaller.fetchPlatform(podRef, releaseTag),
+        task: async () => await platformInstaller.fetchPlatform(podRef, releaseTag, context),
       });
     }
 
@@ -799,10 +811,12 @@ export class NodeCommandTasks {
     if (!ctx.config) ctx.config = {};
 
     ctx.config.podRefs = {};
+    const consensusNodes: Optional<ConsensusNode[]> = ctx.config.consensusNodes;
 
     const subTasks = [];
     const self = this;
     for (const nodeAlias of nodeAliases) {
+      const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
       subTasks.push({
         title: `Check network pod: ${chalk.yellow(nodeAlias)}`,
         task: async (ctx: any) => {
@@ -811,6 +825,8 @@ export class NodeCommandTasks {
               ctx.config.namespace,
               nodeAlias,
               maxAttempts,
+              undefined,
+              context,
             );
           } catch (_) {
             ctx.config.skipStop = true;
@@ -834,14 +850,16 @@ export class NodeCommandTasks {
     nodeAlias: NodeAlias,
     maxAttempts = constants.PODS_RUNNING_MAX_ATTEMPTS,
     delay = constants.PODS_RUNNING_DELAY,
+    context?: Optional<string>,
   ) {
     nodeAlias = nodeAlias.trim() as NodeAlias;
     const podName = Templates.renderNetworkPodName(nodeAlias);
     const podRef = PodRef.of(namespace, podName);
 
     try {
-      await this.k8Factory
-        .default()
+      const k8 = context ? this.k8Factory.getK8(context) : this.k8Factory.default();
+
+      await k8
         .pods()
         .waitForRunningPhase(
           namespace,
@@ -910,7 +928,7 @@ export class NodeCommandTasks {
     );
   }
 
-  identifyNetworkPods(maxAttempts = undefined) {
+  identifyNetworkPods(maxAttempts?: number) {
     const self = this;
     return new Task('Identify network pods', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       return self.taskCheckNetworkNodePods(ctx, task, ctx.config.nodeAliases, maxAttempts);
@@ -922,10 +940,22 @@ export class NodeCommandTasks {
     return new Task('Fetch platform software into network nodes', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const {podRefs, releaseTag, localBuildPath} = ctx.config;
 
-      if (localBuildPath !== '') {
-        return self._uploadPlatformSoftware(ctx.config[aliasesField], podRefs, task, localBuildPath);
-      }
-      return self._fetchPlatformSoftware(ctx.config[aliasesField], podRefs, releaseTag, task, this.platformInstaller);
+      return localBuildPath !== ''
+        ? self._uploadPlatformSoftware(
+            ctx.config[aliasesField],
+            podRefs,
+            task,
+            localBuildPath,
+            ctx.config.consensusNodes,
+          )
+        : self._fetchPlatformSoftware(
+            ctx.config[aliasesField],
+            podRefs,
+            releaseTag,
+            task,
+            this.platformInstaller,
+            ctx.config.consensusNodes,
+          );
     });
   }
 
@@ -953,12 +983,14 @@ export class NodeCommandTasks {
 
       await this.generateNodeOverridesJson(ctx.config.namespace, ctx.config.nodeAliases, ctx.config.stagingDir);
 
+      const consensusNodes = ctx.config.consensusNodes;
       const subTasks = [];
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
         const podRef = ctx.config.podRefs[nodeAlias];
+        const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
-          task: () => this.platformInstaller.taskSetup(podRef, ctx.config.stagingDir, isGenesis),
+          task: () => this.platformInstaller.taskSetup(podRef, ctx.config.stagingDir, isGenesis, context),
         });
       }
 
