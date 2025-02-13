@@ -18,7 +18,7 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 
 const testName = 'relay-cmd-e2e';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';

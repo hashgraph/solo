@@ -66,7 +66,7 @@ const getBaseCommandOpts = (context: string) => {
 
 const testName = 'cluster-cmd-unit';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 const sandbox = sinon.createSandbox();
 
 argv[flags.namespace.name] = namespace.name;

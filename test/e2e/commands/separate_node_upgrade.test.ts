@@ -21,7 +21,7 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const namespace = NamespaceName.of('node-upgrade');
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
@@ -77,7 +77,7 @@ e2eTestSuite(
         const argvPrepare = Object.assign({}, argv);
         argvPrepare[flags.upgradeZipFile.name] = zipFile;
         argvPrepare[flags.outputDir.name] = tempDir;
-        const argvExecute = Object.assign({}, getDefaultArgv());
+        const argvExecute = Object.assign({}, getDefaultArgv(namespace));
         argvExecute[flags.inputDir.name] = tempDir;
 
         await nodeCmd.handlers.upgradePrepare(argvPrepare);

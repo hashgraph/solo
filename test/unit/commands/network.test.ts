@@ -32,9 +32,11 @@ import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/resource
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 
 const testName = 'network-cmd-unit';
-const argv = getDefaultArgv();
+const namespace = NamespaceName.of(testName);
+const argv = getDefaultArgv(namespace);
 
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';

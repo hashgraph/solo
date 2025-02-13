@@ -31,7 +31,7 @@ import {InjectTokens} from '../../src/core/dependency_injection/inject_tokens.js
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = releaseTag;
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';

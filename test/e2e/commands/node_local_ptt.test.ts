@@ -13,8 +13,8 @@ import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
-const LOCAL_PTT = NamespaceName.of('local-ptt-app');
-const argv = getDefaultArgv();
+const namespace = NamespaceName.of('local-ptt-app');
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
@@ -28,11 +28,11 @@ argv[flags.localBuildPath.name] =
 argv[flags.app.name] = 'PlatformTestingTool.jar';
 argv[flags.appConfig.name] =
   '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json';
-argv[flags.namespace.name] = LOCAL_PTT.name;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = LOCAL_HEDERA_PLATFORM_VERSION;
 
 e2eTestSuite(
-  LOCAL_PTT.name,
+  namespace.name,
   argv,
   undefined,
   undefined,
@@ -50,8 +50,8 @@ e2eTestSuite(
       });
 
       it('get the logs and delete the namespace', async () => {
-        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(LOCAL_PTT);
-        await k8Factory.default().namespaces().delete(LOCAL_PTT);
+        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
       }).timeout(Duration.ofMinutes(2).toMillis());
     });
   },

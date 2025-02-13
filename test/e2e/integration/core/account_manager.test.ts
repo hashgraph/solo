@@ -15,7 +15,7 @@ import {NamespaceName} from '../../../../src/core/kube/resources/namespace/names
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 
 const namespace = NamespaceName.of('account-mngr-e2e');
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
 argv[flags.deployment.name] = 'deployment';
 argv[flags.nodeAliasesUnparsed.name] = 'node1';

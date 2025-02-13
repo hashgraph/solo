@@ -22,7 +22,7 @@ import {ContainerRef} from '../../../../src/core/kube/resources/container/contai
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = NamespaceName.of('pkg-installer-e2e');
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
 argv[flags.namespace.name] = namespace.name;

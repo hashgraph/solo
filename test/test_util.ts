@@ -74,13 +74,13 @@ export function getTmpDir() {
 }
 
 /** Get argv with defaults */
-export function getDefaultArgv(namespace?: NamespaceName) {
+export function getDefaultArgv(namespace: NamespaceName) {
   const argv: Record<string, any> = {};
   for (const f of flags.allFlags) {
     argv[f.name] = f.definition.defaultValue;
   }
 
-  const currentDeployment = namespace?.name;
+  const currentDeployment = `${argv[flags.deployment.name] || namespace?.name || argv[flags.namespace.name]}-deployment`;
   const cacheDir = getTestCacheDir();
   argv.cacheDir = cacheDir;
   argv[flags.cacheDir.name] = cacheDir;

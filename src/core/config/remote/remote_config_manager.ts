@@ -227,7 +227,7 @@ export class RemoteConfigManager {
 
     const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
 
-    const currentCommand = argv._.join(' ');
+    const currentCommand = argv._?.join(' ');
     const commandArguments = flags.stringifyArgv(argv);
 
     self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
