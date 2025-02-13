@@ -460,7 +460,6 @@ export class NetworkCommand extends BaseCommand {
       clusterRef =>
         (valuesArgs[clusterRef] +=
           ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"` +
-          ' --set cloud.s3.enabled=true' +
           ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`),
     );
 
