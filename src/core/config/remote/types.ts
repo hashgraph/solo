@@ -67,5 +67,6 @@ export interface RemoteConfigMetadataStructure {
   name: NamespaceNameAsString;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;
+  soloVersion: Version;
   migration?: IMigration;
 }

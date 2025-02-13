@@ -103,7 +103,12 @@ export class RemoteConfigManager {
     );
 
     this.remoteConfig = new RemoteConfigDataWrapper({
-      metadata: new RemoteConfigMetadata(this.getNamespace().name, new Date(), this.localConfig.userEmailAddress),
+      metadata: new RemoteConfigMetadata(
+        this.getNamespace().name,
+        new Date(),
+        this.localConfig.userEmailAddress,
+        process.env.npm_package_version,
+      ),
       clusters,
       commandHistory: ['deployment create'],
       lastExecutedCommand: 'deployment create',
