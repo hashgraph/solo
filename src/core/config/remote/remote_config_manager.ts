@@ -27,6 +27,7 @@ import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
+import * as helpers from '../../helpers.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -107,7 +108,7 @@ export class RemoteConfigManager {
         this.getNamespace().name,
         new Date(),
         this.localConfig.userEmailAddress,
-        process.env.npm_package_version,
+        helpers.getSoloVersion(),
       ),
       clusters,
       commandHistory: ['deployment create'],

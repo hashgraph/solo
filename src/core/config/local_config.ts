@@ -13,7 +13,7 @@ import {type ConfigManager} from '../config_manager.js';
 import {type DeploymentName, type EmailAddress, type Version} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8Factory} from '../kube/k8_factory.js';
-import {splitFlagInput} from '../helpers.js';
+import * as helpers from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
 import {type SoloListrTask} from '../../types/index.js';
@@ -170,7 +170,7 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
-        const parsedClusterRefs = splitFlagInput(deploymentClusters);
+        const parsedClusterRefs = helpers.splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
           [deploymentName]: {
@@ -179,7 +179,7 @@ export class LocalConfig implements LocalConfigData {
           },
         };
 
-        const parsedContexts = splitFlagInput(contexts);
+        const parsedContexts = helpers.splitFlagInput(contexts);
 
         if (parsedContexts.length < parsedClusterRefs.length) {
           if (!isQuiet) {
@@ -211,7 +211,7 @@ export class LocalConfig implements LocalConfigData {
 
         self.userEmailAddress = userEmailAddress;
         self.deployments = deployments;
-        self.soloVersion = process.env.npm_package_version;
+        self.soloVersion = helpers.getSoloVersion();
 
         self.validate();
         await self.write();

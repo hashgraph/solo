@@ -150,7 +150,7 @@ describe('LocalConfig', () => {
       localConfig.setSoloVersion(invalidSoloVersion);
       expect.fail('expected an error to be thrown');
     } catch (error) {
-      expect(error).to.be.instanceOf(TypeError);
+      expect(error).to.be.instanceOf(SoloError);
     }
 
     invalidSoloVersion = '';
@@ -158,7 +158,7 @@ describe('LocalConfig', () => {
       localConfig.setSoloVersion(invalidSoloVersion);
       expect.fail('expected an error to be thrown');
     } catch (error) {
-      expect(error).to.be.instanceOf(TypeError);
+      expect(error).to.be.instanceOf(SoloError);
     }
   });
 
