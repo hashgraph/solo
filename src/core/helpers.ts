@@ -18,6 +18,7 @@ import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
+import {fileURLToPath} from 'url';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -404,6 +405,9 @@ export function getSoloVersion(): Version {
   if (process.env.npm_package_version) {
     return process.env.npm_package_version;
   }
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
 
   const packageJsonPath = path.resolve(__dirname, '../../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
