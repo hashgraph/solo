@@ -31,7 +31,7 @@ export class LocalConfig implements LocalConfigData {
   userEmailAddress: EmailAddress;
 
   @IsString({message: ErrorMessages.LOCAL_CONFIG_INVALID_SOLO_VERSION})
-  @IsNotEmpty({ message: ErrorMessages.LOCAL_CONFIG_INVALID_SOLO_VERSION })
+  @IsNotEmpty({message: ErrorMessages.LOCAL_CONFIG_INVALID_SOLO_VERSION})
   soloVersion: Version;
 
   // The string is the name of the deployment, will be used as the namespace,
