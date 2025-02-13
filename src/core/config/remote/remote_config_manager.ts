@@ -11,7 +11,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8Factory} from '../../kube/k8_factory.js';
-import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString, Version} from './types.js';
+import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString, type Version} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
