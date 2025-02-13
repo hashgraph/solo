@@ -67,5 +67,11 @@ export interface RemoteConfigMetadataStructure {
   name: NamespaceNameAsString;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;
+  soloVersion: Version;
+  soloChartVersion: Version;
+  hederaPlatformVersion: Version;
+  hederaMirrorNodeChartVersion: Version;
+  hederaExplorerChartVersion: Version;
+  hederaJsonRpcRelayChartVersion: Version;
   migration?: IMigration;
 }
