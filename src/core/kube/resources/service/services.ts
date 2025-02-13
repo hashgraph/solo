@@ -4,7 +4,7 @@
 import {type NamespaceName} from '../namespace/namespace_name.js';
 import {type Service} from './service.js';
 import {type ServiceRef} from './service_ref.js';
-import type {ClusterRef} from '../../../config/remote/types.js';
+import {type ClusterRef} from '../../../config/remote/types.js';
 
 export interface Services {
   /**

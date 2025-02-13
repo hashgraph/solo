@@ -75,7 +75,7 @@ import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
 import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
-import type {DeploymentName} from '../../core/config/remote/types.js';
+import {type DeploymentName} from '../../core/config/remote/types.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
