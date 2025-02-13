@@ -17,6 +17,8 @@ import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
+import {type K8Factory} from './kube/k8_factory.js';
+import {type Context} from './config/remote/types.js';
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -397,4 +399,8 @@ export function extractContextFromConsensusNodes(
   if (!consensusNodes.length) return undefined;
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
+}
+
+export function getK8FromContext(k8Factory: K8Factory, context?: Context) {
+  return context ? k8Factory.getK8(context) : k8Factory.default();
 }

@@ -148,8 +148,12 @@ export class RelayCommand extends BaseCommand {
     const networkIds = {};
 
     const accountMap = getNodeAccountMap(nodeAliases);
-
-    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace);
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(
+      namespace,
+      this.getClusterRefs(),
+      deploymentName,
+    );
     nodeAliases.forEach(nodeAlias => {
       const haProxyClusterIp = networkNodeServicesMap.get(nodeAlias).haProxyClusterIp;
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeAlias).haProxyGrpcPort;

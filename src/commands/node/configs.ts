@@ -258,7 +258,11 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   const treasuryAccountPrivateKey = treasuryAccount.privateKey;
   config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
-  config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace);
+  config.serviceMap = await this.accountManager.getNodeServiceMap(
+    config.namespace,
+    this.parent.getClusterRefs(),
+    config.deployment,
+  );
 
   return config;
 };
@@ -335,9 +339,13 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
 export const startConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
+  config.consensusNodes = this.parent.getConsensusNodes();
 
-  if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
-    throw new SoloError(`namespace ${config.namespace} does not exist`);
+  for (const consensusNode of config.consensusNodes) {
+    const k8 = helpers.getK8FromContext(this.k8Factory, consensusNode.context);
+    if (!(await k8.namespaces().has(config.namespace))) {
+      throw new SoloError(`namespace ${config.namespace} does not exist`);
+    }
   }
 
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -399,6 +407,7 @@ export interface NodeKeysConfigClass {
 export interface NodeStartConfigClass {
   app: string;
   cacheDir: string;
+  consensusNodes: ConsensusNode[];
   debugNodeAlias: NodeAlias;
   namespace: NamespaceName;
   deployment: string;

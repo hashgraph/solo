@@ -23,6 +23,10 @@ import fs from 'fs';
 import {Task} from '../core/task.js';
 import {ConsensusNode} from '../core/model/consensus_node.js';
 import {type NodeAlias} from '../types/aliases.js';
+import {type ClusterRefs} from '../core/config/local_config_data.js';
+import {type ClusterRef} from '../core/config/remote/types.js';
+import {type Cluster} from '../core/config/remote/cluster.js';
+import {Templates} from '../core/templates.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -254,6 +258,7 @@ export abstract class BaseCommand extends ShellRunner {
    */
   public getConsensusNodes(): ConsensusNode[] {
     const consensusNodes: ConsensusNode[] = [];
+    const clusters: Record<ClusterRef, Cluster> = this.getRemoteConfigManager().clusters;
 
     try {
       if (!this.getRemoteConfigManager()?.components?.consensusNodes) return [];
@@ -262,18 +267,30 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     // using the remoteConfigManager to get the consensus nodes
-    Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
-      consensusNodes.push(
-        new ConsensusNode(
-          node.name as NodeAlias,
-          node.nodeId,
-          node.namespace,
-          node.cluster,
-          // use local config to get the context
-          this.getLocalConfig().clusterRefs[node.cluster],
-        ),
-      );
-    });
+    if (this.getRemoteConfigManager()?.components?.consensusNodes) {
+      Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
+        consensusNodes.push(
+          new ConsensusNode(
+            node.name,
+            node.nodeId,
+            node.namespace,
+            node.cluster,
+            // use local config to get the context
+            this.getLocalConfig().clusterRefs[node.cluster],
+            clusters[node.cluster].dnsBaseDomain,
+            clusters[node.cluster].dnsConsensusNodePattern,
+            Templates.renderConsensusNodeFullyQualifiedDomainName(
+              node.name,
+              node.nodeId,
+              node.namespace,
+              node.cluster,
+              clusters[node.cluster].dnsBaseDomain,
+              clusters[node.cluster].dnsConsensusNodePattern,
+            ),
+          ),
+        );
+      });
+    }
 
     // return the consensus nodes
     return consensusNodes;
@@ -291,5 +308,19 @@ export abstract class BaseCommand extends ShellRunner {
       }
     });
     return contexts;
+  }
+
+  /**
+   * Gets a list of distinct cluster references from the consensus nodes
+   * @returns an object of cluster references
+   */
+  public getClusterRefs(): ClusterRefs {
+    const clustersRefs: ClusterRefs = {};
+    this.getConsensusNodes().forEach(node => {
+      if (!Object.keys(clustersRefs).includes(node.cluster)) {
+        clustersRefs[node.cluster] = node.context;
+      }
+    });
+    return clustersRefs;
   }
 }
