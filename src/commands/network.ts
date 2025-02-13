@@ -25,12 +25,15 @@ import {ConsensusNodeComponent} from '../core/config/remote/components/consensus
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
+import {v4 as uuidv4} from 'uuid';
 import {type SoloListrTask} from '../types/index.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ConsensusNode} from '../core/model/consensus_node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import {Base64} from 'js-base64';
+import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -159,7 +162,126 @@ export class NetworkCommand extends BaseCommand {
     ];
   }
 
-  async prepareStorageSecrets(config: NetworkDeployConfigClass) {}
+  async prepareMinioSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
+    if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+      return;
+    }
+
+    // Generating new minio credentials
+    const minioData = {};
+    const namespace = config.namespace;
+    const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+    minioData['config.env'] = Base64.encode(envString);
+
+    // create minio secret in each cluster
+    for (const context of config.contexts) {
+      this.logger.debug(`creating minio secret using context: ${context}`);
+
+      const isMinioSecretCreated = await this.k8Factory
+        .getK8(context)
+        .secrets()
+        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+
+      if (!isMinioSecretCreated) {
+        throw new SoloError(`failed to create new minio secret using context: ${context}`);
+      }
+
+      this.logger.debug(`created minio secret using context: ${context}`);
+    }
+  }
+
+  async prepareStreamUploaderSecrets(config: NetworkDeployConfigClass) {
+    if (config.storageType === constants.StorageType.MINIO_ONLY) {
+      return;
+    }
+
+    const namespace = config.namespace;
+
+    // Generating cloud storage secrets
+    const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
+    const cloudData = {};
+    if (
+      config.storageType === constants.StorageType.AWS_ONLY ||
+      config.storageType === constants.StorageType.AWS_AND_GCS
+    ) {
+      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
+      cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+      cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
+    }
+    if (
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.AWS_AND_GCS
+    ) {
+      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
+      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+      cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
+    }
+
+    // create secret in each cluster
+    for (const context of config.contexts) {
+      this.logger.debug(
+        `creating secret for storage credential of type '${config.storageType}' using context: ${context}`,
+      );
+
+      const isCloudSecretCreated = await this.k8Factory
+        .getK8(context)
+        .secrets()
+        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+
+      if (!isCloudSecretCreated) {
+        throw new SoloError(
+          `failed to create secret for storage credentials of type '${config.storageType}' using context: ${context}`,
+        );
+      }
+
+      this.logger.debug(
+        `created secret for storage credential of type '${config.storageType}' using context: ${context}`,
+      );
+    }
+  }
+
+  async prepareBackupUploaderSecrets(config: NetworkDeployConfigClass) {
+    if (config.googleCredential) {
+      const backupData = {};
+      const namespace = config.namespace;
+      const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
+      backupData['saJson'] = Base64.encode(googleCredential);
+
+      // create secret in each cluster
+      for (const context of config.contexts) {
+        this.logger.debug(`creating secret for backup uploader using context: ${context}`);
+
+        const k8client = this.k8Factory.getK8(context);
+        const isBackupSecretCreated = await k8client
+          .secrets()
+          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
+
+        if (!isBackupSecretCreated) {
+          throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
+        }
+
+        this.logger.debug(`created secret for backup uploader using context: ${context}`);
+      }
+    }
+  }
+
+  async prepareStorageSecrets(config: NetworkDeployConfigClass) {
+    try {
+      if (config.storageType === constants.StorageType.MINIO_ONLY) {
+        const minioAccessKey = uuidv4();
+        const minioSecretKey = uuidv4();
+        await this.prepareMinioSecrets(config, minioAccessKey, minioSecretKey);
+      } else {
+        await this.prepareStreamUploaderSecrets(config);
+      }
+
+      await this.prepareBackupUploaderSecrets(config);
+    } catch (e: Error | any) {
+      const errorMessage = 'failed to create Kubernetes storage secret ';
+      this.logger.error(errorMessage, e);
+      throw new SoloError(errorMessage, e);
+    }
+  }
 
   /**
    * Prepare values args string for each cluster-ref
