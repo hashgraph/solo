@@ -432,6 +432,8 @@ export class AccountManager {
   }
 
   /**
+   * TODO: Take from other branch once it's been migrated to use multi-cluster
+   *
    * Gets a Map of the Hedera node services and the attributes needed, throws a SoloError if anything fails
    * @param namespace - the namespace of the solo network deployment
    * @returns a map of the network node services
