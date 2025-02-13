@@ -5,6 +5,7 @@
 import {type NodeAlias} from '../types/aliases.js';
 import {type PodName} from './kube/resources/pod/pod_name.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type ClusterRef, type Context, type DeploymentName} from './config/remote/types.js';
 
 export class NetworkNodeServices {
   public readonly nodeAlias: NodeAlias;
@@ -62,6 +63,9 @@ export class NetworkNodeServices {
 
 export class NetworkNodeServicesBuilder {
   public namespace?: NamespaceName;
+  public clusterRef?: ClusterRef;
+  public context?: Context;
+  public deployment?: DeploymentName;
   public nodeId?: string | number;
   public haProxyName?: string;
   public accountId?: string;
@@ -88,6 +92,21 @@ export class NetworkNodeServicesBuilder {
 
   withNamespace(namespace: NamespaceName) {
     this.namespace = namespace;
+    return this;
+  }
+
+  withClusterRef(clusterRef: ClusterRef) {
+    this.clusterRef = clusterRef;
+    return this;
+  }
+
+  withContext(context: Context) {
+    this.context = context;
+    return this;
+  }
+
+  withDeployment(deployment: DeploymentName) {
+    this.deployment = deployment;
     return this;
   }
 

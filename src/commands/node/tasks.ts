@@ -75,6 +75,7 @@ import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
 import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import type {DeploymentName} from '../../core/config/remote/types.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -127,6 +128,7 @@ export class NodeCommandTasks {
     this.chartManager = opts.chartManager;
     this.certificateManager = opts.certificateManager;
     this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent);
+    this.parent = opts.parent;
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {
@@ -879,7 +881,8 @@ export class NodeCommandTasks {
     return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
       config.existingNodeAliases = [];
-      config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace, config.conesnsusNodes);
+      const clusterRefs = this.parent.getClusterRefs();
+      config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace, clusterRefs, config.deployment);
       for (const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeAlias);
       }
@@ -961,7 +964,11 @@ export class NodeCommandTasks {
 
   populateServiceMap() {
     return new Task('Populate serviceMap', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(ctx.config.namespace);
+      ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
+        ctx.config.namespace,
+        this.parent.getClusterRefs(),
+        ctx.config.deployment,
+      );
       ctx.config.podRefs[ctx.config.nodeAlias] = PodRef.of(
         ctx.config.namespace,
         ctx.config.serviceMap.get(ctx.config.nodeAlias).nodePodName,
@@ -1003,7 +1010,12 @@ export class NodeCommandTasks {
   }
 
   private async generateNodeOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
-    const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
+      namespace,
+      this.parent.getClusterRefs(),
+      deploymentName,
+    );
 
     const nodeOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
@@ -1025,7 +1037,12 @@ export class NodeCommandTasks {
     keysDir: string,
     stagingDir: string,
   ) {
-    const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(namespace);
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
+      namespace,
+      this.parent.getClusterRefs(),
+      deploymentName,
+    );
 
     const adminPublicKeys = splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys));
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
@@ -1531,7 +1548,11 @@ export class NodeCommandTasks {
         const config = ctx.config;
 
         if (!config.serviceMap) {
-          config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace);
+          config.serviceMap = await self.accountManager.getNodeServiceMap(
+            config.namespace,
+            this.parent.getClusterRefs(),
+            config.deployment,
+          );
         }
 
         let maxNodeId = 0;
@@ -1653,15 +1674,24 @@ export class NodeCommandTasks {
       'Kill nodes to pick up updated configMaps',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
+        const clusterRefs = this.parent.getClusterRefs();
         // the updated node will have a new pod ID if its account ID changed which is a label
-        config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace);
+        config.serviceMap = await this.accountManager.getNodeServiceMap(
+          config.namespace,
+          clusterRefs,
+          config.deployment,
+        );
 
         for (const service of config.serviceMap.values()) {
           await this.k8Factory.default().pods().readByRef(PodRef.of(config.namespace, service.nodePodName)).killPod();
         }
 
         // again, the pod names will change after the pods are killed
-        config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace);
+        config.serviceMap = await this.accountManager.getNodeServiceMap(
+          config.namespace,
+          clusterRefs,
+          config.deployment,
+        );
 
         config.podRefs = {};
         for (const service of config.serviceMap.values()) {

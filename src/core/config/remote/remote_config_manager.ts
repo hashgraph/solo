@@ -63,7 +63,14 @@ export class RemoteConfigManager {
 
   /** @returns the components data wrapper cloned */
   public get components(): ComponentsDataWrapper {
-    return this.remoteConfig.components.clone();
+    return this.remoteConfig?.components?.clone();
+  }
+
+  /**
+   * @returns the remote configuration data's clusters cloned
+   */
+  public get clusters(): Record<ClusterRef, Cluster> {
+    return Object.assign({}, this.remoteConfig?.clusters);
   }
 
   /* ---------- Readers and Modifiers ---------- */

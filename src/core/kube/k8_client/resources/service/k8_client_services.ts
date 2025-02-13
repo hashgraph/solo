@@ -15,13 +15,20 @@ import {type ServiceStatus} from '../../../resources/service/service_status.js';
 import {type ServiceRef} from '../../../resources/service/service_ref.js';
 import {SoloError} from '../../../../errors.js';
 import {type IncomingMessage} from 'http';
+import {type ClusterRef} from '../../../../config/remote/types.js';
 
 export class K8ClientServices extends K8ClientBase implements Services {
   public constructor(private readonly kubeClient: CoreV1Api) {
     super();
   }
 
-  public async list(namespace: NamespaceName, labels?: string[]): Promise<Service[]> {
+  public async list(
+    namespace: NamespaceName,
+    labels?: string[],
+    clusterRef?: ClusterRef,
+    context?: string,
+    deployment?: string,
+  ): Promise<Service[]> {
     const labelSelector: string = labels ? labels.join(',') : undefined;
     const serviceList = await this.kubeClient.listNamespacedService(
       namespace.name,
@@ -33,18 +40,24 @@ export class K8ClientServices extends K8ClientBase implements Services {
     );
     KubeApiResponse.check(serviceList.response, ResourceOperation.LIST, ResourceType.SERVICE, namespace, '');
     return serviceList.body.items.map((svc: V1Service) => {
-      return this.wrapService(namespace, svc);
+      return this.wrapService(namespace, svc, clusterRef, context, deployment);
     });
   }
 
-  public async read(namespace: NamespaceName, name: string): Promise<Service> {
+  public async read(
+    namespace: NamespaceName,
+    name: string,
+    clusterRef?: ClusterRef,
+    context?: string,
+    deployment?: string,
+  ): Promise<Service> {
     const svc = await this.readV1Service(namespace, name);
 
     if (!svc) {
       return null;
     }
 
-    return this.wrapService(namespace, svc);
+    return this.wrapService(namespace, svc, clusterRef, context, deployment);
   }
 
   private async readV1Service(namespace: NamespaceName, name: string): Promise<V1Service> {
@@ -53,8 +66,21 @@ export class K8ClientServices extends K8ClientBase implements Services {
     return body as V1Service;
   }
 
-  private wrapService(namespace: NamespaceName, svc: V1Service): Service {
-    return new K8ClientService(this.wrapObjectMeta(svc.metadata), svc.spec as ServiceSpec, svc.status as ServiceStatus);
+  private wrapService(
+    namespace: NamespaceName,
+    svc: V1Service,
+    clusterRef?: ClusterRef,
+    context?: string,
+    deployment?: string,
+  ): Service {
+    return new K8ClientService(
+      this.wrapObjectMeta(svc.metadata),
+      svc.spec as ServiceSpec,
+      svc.status as ServiceStatus,
+      clusterRef,
+      context,
+      deployment,
+    );
   }
 
   public async create(
@@ -62,6 +88,9 @@ export class K8ClientServices extends K8ClientBase implements Services {
     labels: Record<string, string>,
     servicePort: number,
     podTargetPort: number,
+    clusterRef?: ClusterRef,
+    context?: string,
+    deployment?: string,
   ): Promise<Service> {
     const v1SvcMetadata = new V1ObjectMeta();
     v1SvcMetadata.name = serviceRef.name.toString();
@@ -94,6 +123,6 @@ export class K8ClientServices extends K8ClientBase implements Services {
       serviceRef.name.toString(),
     );
 
-    return this.wrapService(serviceRef.namespace, result.body);
+    return this.wrapService(serviceRef.namespace, result.body, clusterRef, context, deployment);
   }
 }

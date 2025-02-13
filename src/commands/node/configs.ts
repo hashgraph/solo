@@ -258,7 +258,11 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   const treasuryAccountPrivateKey = treasuryAccount.privateKey;
   config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
-  config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace);
+  config.serviceMap = await this.accountManager.getNodeServiceMap(
+    config.namespace,
+    this.parent.getClusterRefs(),
+    config.deployment,
+  );
 
   return config;
 };

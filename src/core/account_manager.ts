@@ -41,6 +41,9 @@ import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type ClusterRef} from './config/remote/types.js';
+import {type Service} from './kube/resources/service/service.js';
+import {type ClusterRefs} from './config/local_config_data.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -195,11 +198,11 @@ export class AccountManager {
    * @param namespace - the namespace of the network
    * @param skipNodeAlias - the node alias to skip
    */
-  async refreshNodeClient(namespace: NamespaceName, skipNodeAlias?: NodeAlias) {
+  async refreshNodeClient(namespace: NamespaceName, skipNodeAlias?: NodeAlias, clusterRefs?: ClusterRefs) {
     try {
       await this.close();
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
-      const networkNodeServicesMap = await this.getNodeServiceMap(namespace);
+      const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs);
 
       this._nodeClient = await this._getNodeClient(
         namespace,
@@ -424,114 +427,135 @@ export class AccountManager {
   /**
    * Gets a Map of the Hedera node services and the attributes needed, throws a SoloError if anything fails
    * @param namespace - the namespace of the solo network deployment
+   * @param clusterRefs - the cluster references to use
+   * @param deployment - the deployment to use
    * @returns a map of the network node services
    */
-  async getNodeServiceMap(namespace: NamespaceName) {
+  async getNodeServiceMap(namespace: NamespaceName, clusterRefs?: ClusterRefs, deployment?: string) {
     const labelSelector = 'solo.hedera.com/node-name';
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
     try {
-      const serviceList = await this.k8Factory.default().services().list(namespace, [labelSelector]);
+      const services: Record<ClusterRef, Service[]> = {};
+
+      for (const [clusterRef, context] of Object.entries(clusterRefs)) {
+        const serviceList: Service[] = await this.k8Factory
+          .getK8(context)
+          .services()
+          .list(namespace, [labelSelector], clusterRef, context, deployment);
+        services[clusterRef] = serviceList;
+      }
 
       let nodeId = '0';
       // retrieve the list of services and build custom objects for the attributes we need
-      for (const service of serviceList) {
-        let serviceBuilder = new NetworkNodeServicesBuilder(
-          service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
-        );
-
-        if (serviceBuilderMap.has(serviceBuilder.key())) {
-          serviceBuilder = serviceBuilderMap.get(serviceBuilder.key()) as NetworkNodeServicesBuilder;
-        } else {
-          serviceBuilder = new NetworkNodeServicesBuilder(
+      for (const [clusterRef, serviceList] of Object.entries(services)) {
+        for (const service of serviceList) {
+          let serviceBuilder = new NetworkNodeServicesBuilder(
             service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
           );
-          serviceBuilder.withNamespace(namespace);
-        }
 
-        const serviceType = service.metadata.labels['solo.hedera.com/type'];
-        switch (serviceType) {
-          // solo.hedera.com/type: envoy-proxy-svc
-          case 'envoy-proxy-svc':
-            serviceBuilder
-              .withEnvoyProxyName(service.metadata!.name as string)
-              .withEnvoyProxyClusterIp(service.spec!.clusterIP as string)
-              .withEnvoyProxyLoadBalancerIp(
-                service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
-              )
-              .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port);
-            break;
-          // solo.hedera.com/type: haproxy-svc
-          case 'haproxy-svc':
-            serviceBuilder
-              .withHaProxyAppSelector(service.spec!.selector!.app)
-              .withHaProxyName(service.metadata!.name as string)
-              .withHaProxyClusterIp(service.spec!.clusterIP as string)
-              // @ts-ignore
-              .withHaProxyLoadBalancerIp(
-                service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
-              )
-              .withHaProxyGrpcPort(
-                service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port,
-              )
-              .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port);
-            break;
-          // solo.hedera.com/type: network-node-svc
-          case 'network-node-svc':
-            if (
-              service.metadata!.labels!['solo.hedera.com/node-id'] !== '' &&
-              isNumeric(service.metadata!.labels!['solo.hedera.com/node-id'])
-            ) {
-              nodeId = service.metadata!.labels!['solo.hedera.com/node-id'];
-            } else {
-              nodeId = `${Templates.nodeIdFromNodeAlias(service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias)}`;
-              this.logger.warn(
-                `received an incorrect node id of ${service.metadata!.labels!['solo.hedera.com/node-id']} for ` +
-                  `${service.metadata.labels['solo.hedera.com/node-name']}`,
-              );
-            }
+          if (serviceBuilderMap.has(serviceBuilder.key())) {
+            serviceBuilder = serviceBuilderMap.get(serviceBuilder.key()) as NetworkNodeServicesBuilder;
+          } else {
+            serviceBuilder = new NetworkNodeServicesBuilder(
+              service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
+            );
+            serviceBuilder.withNamespace(namespace);
+            serviceBuilder.withClusterRef(clusterRef);
+            serviceBuilder.withContext(clusterRefs[clusterRef]);
+            serviceBuilder.withDeployment(deployment);
+          }
 
-            serviceBuilder
-              .withNodeId(nodeId)
-              .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
-              .withNodeServiceName(service.metadata!.name as string)
-              .withNodeServiceClusterIp(service.spec!.clusterIP as string)
-              .withNodeServiceLoadBalancerIp(
-                service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
-              )
-              .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
-              .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
-              .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
-            break;
+          const serviceType = service.metadata.labels['solo.hedera.com/type'];
+          switch (serviceType) {
+            // solo.hedera.com/type: envoy-proxy-svc
+            case 'envoy-proxy-svc':
+              serviceBuilder
+                .withEnvoyProxyName(service.metadata!.name as string)
+                .withEnvoyProxyClusterIp(service.spec!.clusterIP as string)
+                .withEnvoyProxyLoadBalancerIp(
+                  service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
+                )
+                .withEnvoyProxyGrpcWebPort(
+                  service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port,
+                );
+              break;
+            // solo.hedera.com/type: haproxy-svc
+            case 'haproxy-svc':
+              serviceBuilder
+                .withHaProxyAppSelector(service.spec!.selector!.app)
+                .withHaProxyName(service.metadata!.name as string)
+                .withHaProxyClusterIp(service.spec!.clusterIP as string)
+                // @ts-ignore
+                .withHaProxyLoadBalancerIp(
+                  service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
+                )
+                .withHaProxyGrpcPort(
+                  service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port,
+                )
+                .withHaProxyGrpcsPort(
+                  service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port,
+                );
+              break;
+            // solo.hedera.com/type: network-node-svc
+            case 'network-node-svc':
+              if (
+                service.metadata!.labels!['solo.hedera.com/node-id'] !== '' &&
+                isNumeric(service.metadata!.labels!['solo.hedera.com/node-id'])
+              ) {
+                nodeId = service.metadata!.labels!['solo.hedera.com/node-id'];
+              } else {
+                nodeId = `${Templates.nodeIdFromNodeAlias(service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias)}`;
+                this.logger.warn(
+                  `received an incorrect node id of ${service.metadata!.labels!['solo.hedera.com/node-id']} for ` +
+                    `${service.metadata.labels['solo.hedera.com/node-name']}`,
+                );
+              }
+
+              serviceBuilder
+                .withNodeId(nodeId)
+                .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
+                .withNodeServiceName(service.metadata!.name as string)
+                .withNodeServiceClusterIp(service.spec!.clusterIP as string)
+                .withNodeServiceLoadBalancerIp(
+                  service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
+                )
+                .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
+                .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
+                .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
+              break;
+          }
+          serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder);
         }
-        serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder);
       }
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
         const podList: V1Pod[] = await this.k8Factory
-          .default()
+          .getK8(serviceBuilder.context)
           .pods()
           .list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
-      // get the pod name of the network node
-      const pods: V1Pod[] = await this.k8Factory
-        .default()
-        .pods()
-        .list(namespace, ['solo.hedera.com/type=network-node']);
-      for (const pod of pods) {
-        // eslint-disable-next-line no-prototype-builtins
-        if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
-          // TODO Review why this fixes issue
-          continue;
+      for (const [clusterRef, context] of Object.entries(clusterRefs)) {
+        // get the pod name of the network node
+        const pods: V1Pod[] = await this.k8Factory
+          .getK8(context)
+          .pods()
+          .list(namespace, ['solo.hedera.com/type=network-node']);
+        for (const pod of pods) {
+          // eslint-disable-next-line no-prototype-builtins
+          if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
+            // TODO Review why this fixes issue
+            continue;
+          }
+          const podName = PodName.of(pod.metadata!.name);
+          const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
+          const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
+          serviceBuilder.withNodePodName(podName);
         }
-        const podName = PodName.of(pod.metadata!.name);
-        const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
-        const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
-        serviceBuilder.withNodePodName(podName);
       }
 
       const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
