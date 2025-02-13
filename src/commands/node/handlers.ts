@@ -41,7 +41,6 @@ import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {Templates} from '../../core/templates.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
@@ -95,6 +94,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     this.consensusNodes = this.parent.getConsensusNodes();
     this.contexts = this.parent.getContexts();
   }
+
   /** ******** Task Lists **********/
 
   deletePrepareTaskList(argv: any, lease: Lease) {
@@ -874,7 +874,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    */
   public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
-      config: {namespace: NamespaceName; nodeAliases: NodeAliases};
+      config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
 
     return {
@@ -883,19 +883,18 @@ export class NodeCommandHandlers implements CommandHandlers {
       task: async (ctx: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {
-            config: {namespace, nodeAliases},
+            config: {namespace},
           } = ctx;
-          const cluster = this.remoteConfigManager.currentCluster;
 
-          for (const nodeAlias of nodeAliases) {
+          for (const consensusNode of ctx.config.consensusNodes) {
             remoteConfig.components.edit(
-              nodeAlias,
+              consensusNode.name,
               new ConsensusNodeComponent(
-                nodeAlias,
-                cluster,
+                consensusNode.name,
+                consensusNode.cluster,
                 namespace.name,
                 state,
-                Templates.nodeIdFromNodeAlias(nodeAlias),
+                consensusNode.nodeId,
               ),
             );
           }
