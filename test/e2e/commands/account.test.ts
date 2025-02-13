@@ -31,6 +31,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import * as helpers from '../../../src/core/helpers.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -111,9 +112,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           await accountManager.close();
         });
 
-        it('Genesis key should have been updated', async () => {
-          const keys = await accountManager.getAccountKeys(constants.TREASURY_ACCOUNT_ID);
-          expect(keys[0].toString()).not.to.equal(genesisKey.toString());
+        it('Node admin key should have been updated', async () => {
+          const nodeAliases = helpers.parseNodeAliases(argv[flags.nodeAliasesUnparsed.name]);
+          for (const nodeAlias of nodeAliases) {
+            const nodeAccountString = `${constants.HEDERA_NODE_ACCOUNT_ID_START.realm}.${constants.HEDERA_NODE_ACCOUNT_ID_START.shard}.${nodeAlias}`;
+            const keys = await accountManager.getAccountKeys(nodeAccountString);
+            expect(keys[0].toString()).not.to.equal(genesisKey.toString());
+          }
         });
 
         for (const [start, end] of testSystemAccounts) {
