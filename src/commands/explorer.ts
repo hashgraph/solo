@@ -23,7 +23,7 @@ import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
-  clusterRef: string;
+  clusterName: string;
   clusterContext: string;
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
@@ -65,7 +65,7 @@ export class ExplorerCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
-      flags.clusterRef,
+      flags.clusterName,
       flags.enableIngress,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
@@ -192,8 +192,8 @@ export class ExplorerCommand extends BaseCommand {
             ]) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
-            ctx.config.clusterContext = ctx.config.clusterRef
-              ? this.getLocalConfig().clusterRefs[ctx.config.clusterRef]
+            ctx.config.clusterContext = ctx.config.clusterName
+              ? this.getLocalConfig().clusterRefs[ctx.config.clusterName]
               : this.k8Factory.default().contexts().readCurrent();
 
             if (!(await self.k8Factory.getK8(ctx.config.clusterContext).namespaces().has(ctx.config.namespace))) {
@@ -398,9 +398,9 @@ export class ExplorerCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
-            const clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+            const clusterName = this.configManager.getFlag<string>(flags.clusterName) as string;
+            const clusterContext = clusterName
+              ? this.getLocalConfig().clusterRefs[clusterName]
               : this.k8Factory.default().contexts().readCurrent();
 
             ctx.config = {
@@ -487,7 +487,7 @@ export class ExplorerCommand extends BaseCommand {
               flags.setCommandFlags(
                 y,
                 flags.chartDirectory,
-                flags.clusterRef,
+                flags.clusterName,
                 flags.force,
                 flags.quiet,
                 flags.deployment,

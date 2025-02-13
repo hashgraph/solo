@@ -85,7 +85,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
   static get DEPLOY_FLAGS_LIST() {
     return [
-      flags.clusterRef,
+      flags.clusterName,
       flags.chartDirectory,
       flags.deployment,
       flags.profileFile,
@@ -246,9 +246,9 @@ export class MirrorNodeCommand extends BaseCommand {
             // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
-            ctx.config.clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+            const clusterName = this.configManager.getFlag<string>(flags.clusterName) as string;
+            ctx.config.clusterContext = clusterName
+              ? this.getLocalConfig().clusterRefs[clusterName]
               : this.k8Factory.default().contexts().readCurrent();
 
             await self.accountManager.loadNodeClient(ctx.config.namespace);
@@ -610,9 +610,9 @@ export class MirrorNodeCommand extends BaseCommand {
 
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-            const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
-            const clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+            const clusterName = this.configManager.getFlag<string>(flags.clusterName) as string;
+            const clusterContext = clusterName
+              ? this.getLocalConfig().clusterRefs[clusterName]
               : this.k8Factory.default().contexts().readCurrent();
 
             if (!(await self.k8Factory.getK8(clusterContext).namespaces().has(namespace))) {
@@ -723,7 +723,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.setCommandFlags(
                 y,
                 flags.chartDirectory,
-                flags.clusterRef,
+                flags.clusterName,
                 flags.force,
                 flags.quiet,
                 flags.deployment,

@@ -42,7 +42,7 @@ export class RelayCommand extends BaseCommand {
     return [
       flags.chainId,
       flags.chartDirectory,
-      flags.clusterRef,
+      flags.clusterName,
       flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.operatorId,
@@ -181,7 +181,7 @@ export class RelayCommand extends BaseCommand {
     interface RelayDeployConfigClass {
       chainId: string;
       chartDirectory: string;
-      clusterRef: string;
+      clusterName: string;
       namespace: NamespaceName;
       deployment: string;
       nodeAliasesUnparsed: string;

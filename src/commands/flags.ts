@@ -151,26 +151,6 @@ export class Flags {
     },
   };
 
-  static readonly clusterRef: CommandFlag = {
-    constName: 'clusterRef',
-    name: 'cluster-ref',
-    definition: {
-      describe: 'Cluster Reference',
-      defaultValue: '',
-      type: 'string',
-    },
-    prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
-      return await Flags.promptText(
-        task,
-        input,
-        '',
-        'Enter cluster reference name: ',
-        'cluster reference cannot be empty',
-        Flags.clusterRef.name,
-      );
-    },
-  };
-
   static readonly namespace: CommandFlag = {
     constName: 'namespace',
     name: 'namespace',
@@ -2017,7 +1997,6 @@ export class Flags {
     Flags.chartDirectory,
     Flags.clusterName,
     Flags.clusterSetupNamespace,
-    Flags.clusterRef,
     Flags.context,
     Flags.createAmount,
     Flags.debugNodeAlias,
