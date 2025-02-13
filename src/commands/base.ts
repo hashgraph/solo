@@ -3,7 +3,6 @@
  */
 
 import paths from 'path';
-import path from 'path';
 import {MissingArgumentError, SoloError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
 import {type LeaseManager} from '../core/lease/lease_manager.js';
@@ -17,6 +16,7 @@ import {type DependencyManager} from '../core/dependency_managers/index.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
+import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
@@ -32,6 +32,7 @@ import {type KeyManager} from '../core/key_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
+import {type NodeAlias} from '../types/aliases.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -367,6 +368,12 @@ export abstract class BaseCommand extends ShellRunner {
     const consensusNodes: ConsensusNode[] = [];
     const clusters: Record<ClusterRef, Cluster> = this.getRemoteConfigManager().clusters;
 
+    try {
+      if (!this.getRemoteConfigManager()?.components?.consensusNodes) return [];
+    } catch {
+      return [];
+    }
+
     // using the remoteConfigManager to get the consensus nodes
     if (this.getRemoteConfigManager()?.components?.consensusNodes) {
       Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
@@ -381,7 +388,7 @@ export abstract class BaseCommand extends ShellRunner {
             clusters[node.cluster].dnsBaseDomain,
             clusters[node.cluster].dnsConsensusNodePattern,
             Templates.renderConsensusNodeFullyQualifiedDomainName(
-              node.name,
+              node.name as NodeAlias,
               node.nodeId,
               node.namespace,
               node.cluster,

@@ -393,6 +393,7 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  config.consensusNodes = this.parent.getConsensusNodes();
 
   await initializeSetup(config, this.k8Factory);
 
@@ -498,6 +499,10 @@ export interface NodeSetupConfigClass {
   releaseTag: string;
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
+  consensusNodes: ConsensusNode[];
+  skipStop?: boolean;
+  keysDir: string;
+  stagingDir: string;
   getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
