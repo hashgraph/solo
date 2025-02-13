@@ -273,6 +273,7 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace);
 
   config.consensusNodes = this.parent.getConsensusNodes();
+  config.contexts = this.parent.getContexts();
 
   return config;
 };

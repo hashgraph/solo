@@ -41,7 +41,6 @@ import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {Templates} from '../../core/templates.js';
 import {type CommandFlag} from '../../types/flag_types.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
 

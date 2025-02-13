@@ -54,12 +54,7 @@ import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type ConfigBuilder, type NodeAlias, type NodeAliases, type SkipCheck} from '../../types/aliases.js';
 import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import {
-  type NodeDeleteConfigClass,
-  type NodeRefreshConfigClass,
-  type NodeSetupConfigClass,
-  type NodeUpdateConfigClass,
-} from './configs.js';
+import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
@@ -73,8 +68,8 @@ import {ContainerRef} from '../../core/kube/resources/container/container_ref.js
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
-import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
-import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import {type Optional} from '../../types/index.js';
+import {ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -992,7 +987,11 @@ export class NodeCommandTasks {
       const subTasks = [];
       for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
         const podRef = ctx.config.podRefs[nodeAlias];
-        const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
+        let context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
+        // temporary, bridge for node add
+        if (!context) {
+          context = this.k8Factory.default().contexts().readCurrent();
+        }
         subTasks.push({
           title: `Node: ${chalk.yellow(nodeAlias)}`,
           task: () => this.platformInstaller.taskSetup(podRef, ctx.config.stagingDir, isGenesis, context),
@@ -1406,7 +1405,7 @@ export class NodeCommandTasks {
         }
 
         endpoints = [
-          `${Templates.renderFullyQualifiedNetworkPodName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+          `${helpers.getInternalIp(config.releaseTag, config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
           `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`,
         ];
       } else {
@@ -1521,6 +1520,30 @@ export class NodeCommandTasks {
 
   copyNodeKeysToSecrets() {
     return new Task('Copy node keys to secrets', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      // TODO - temporary solution until we add multi-cluster support for node-add
+      // if the consensusNodes does not contain the nodeAlias then add it
+      if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
+        ctx.config.consensusNodes.push(
+          new ConsensusNode(
+            ctx.config.nodeAlias,
+            Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
+            ctx.config.namespace.name,
+            ctx.config.consensusNodes[0].cluster,
+            ctx.config.consensusNodes[0].context,
+            'cluster.local',
+            'network-${nodeAlias}-svc.${namespace}.svc',
+            Templates.renderConsensusNodeFullyQualifiedDomainName(
+              ctx.config.nodeAlias as NodeAlias,
+              Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
+              ctx.config.namespace,
+              ctx.config.consensusNodes[0].cluster,
+              'cluster.local',
+              'network-${nodeAlias}-svc.${namespace}.svc',
+            ),
+          ),
+        );
+      }
+
       const subTasks = this.platformInstaller.copyNodeKeys(
         ctx.config.stagingDir,
         ctx.config.consensusNodes,

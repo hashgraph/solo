@@ -303,7 +303,7 @@ export class PlatformInstaller {
         },
         {
           title: 'Set file permissions',
-          task: async () => await self.setPlatformDirPermissions(podRef),
+          task: async () => await self.setPlatformDirPermissions(podRef, context),
         },
       ],
       {

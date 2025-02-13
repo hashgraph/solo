@@ -48,4 +48,5 @@ export interface NodeAddConfigClass {
   envoyIps: string;
   getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
+  contexts: ConsensusNode[];
 }

@@ -486,34 +486,11 @@ export class ProfileManager {
 
       let nodeSeq = 0;
       for (const consensusNode of consensusNodes) {
-        let internalIP: string;
-
-        //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
-
-        // for versions that satisfy 0.59.x
-        if (semver.satisfies(releaseVersion, '^0.59.0', {includePrerelease: true})) {
-          internalIP = '127.0.0.1';
-        }
-
-        // versions less than 0.59.0
-        else if (
-          semver.lt(
-            releaseVersion,
-            '0.59.0',
-            // @ts-expect-error TS2353: Object literal may only specify known properties
-            {includePrerelease: true},
-          )
-        ) {
-          internalIP = Templates.renderFullyQualifiedNetworkPodName(
-            NamespaceName.of(consensusNode.namespace),
-            consensusNode.name as NodeAlias,
-          );
-        }
-
-        // versions greater than 0.59.0
-        else {
-          internalIP = '127.0.0.1';
-        }
+        const internalIP: string = helpers.getInternalIp(
+          releaseVersion,
+          NamespaceName.of(consensusNode.namespace),
+          consensusNode.name as NodeAlias,
+        );
 
         const externalIP = consensusNode.fullyQualifiedDomainName;
         const account = nodeAccountMap.get(consensusNode.name as NodeAlias);
