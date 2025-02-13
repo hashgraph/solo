@@ -41,7 +41,7 @@ import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type ClusterRef} from './config/remote/types.js';
+import {type ClusterRef, type DeploymentName} from './config/remote/types.js';
 import {type Service} from './kube/resources/service/service.js';
 import {type ClusterRefs} from './config/local_config_data.js';
 
@@ -164,7 +164,7 @@ export class AccountManager {
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
    */
-  async loadNodeClient(namespace: NamespaceName) {
+  async loadNodeClient(namespace: NamespaceName, clusterRefs?: ClusterRefs, deployment?: DeploymentName) {
     try {
       this.logger.debug(
         `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
@@ -173,7 +173,7 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace);
+        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
@@ -181,7 +181,7 @@ export class AccountManager {
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace);
+          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment);
         }
       }
 
@@ -198,11 +198,16 @@ export class AccountManager {
    * @param namespace - the namespace of the network
    * @param skipNodeAlias - the node alias to skip
    */
-  async refreshNodeClient(namespace: NamespaceName, skipNodeAlias?: NodeAlias, clusterRefs?: ClusterRefs) {
+  async refreshNodeClient(
+    namespace: NamespaceName,
+    skipNodeAlias?: NodeAlias,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+  ) {
     try {
       await this.close();
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
-      const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs);
+      const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs, deployment);
 
       this._nodeClient = await this._getNodeClient(
         namespace,

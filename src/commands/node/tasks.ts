@@ -538,7 +538,8 @@ export class NodeCommandTasks {
     stakeAmount: number = HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
   ) {
     try {
-      await this.accountManager.loadNodeClient(namespace);
+      const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+      await this.accountManager.loadNodeClient(namespace, this.parent.getClusterRefs(), deploymentName);
       const client = this.accountManager._nodeClient;
       const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace);
       const treasuryPrivateKey = PrivateKey.fromStringED25519(treasuryKey.privateKey);
@@ -1193,7 +1194,12 @@ export class NodeCommandTasks {
           }
       }
 
-      config.nodeClient = await self.accountManager.refreshNodeClient(config.namespace, skipNodeAlias);
+      config.nodeClient = await self.accountManager.refreshNodeClient(
+        config.namespace,
+        skipNodeAlias,
+        this.parent.getClusterRefs(),
+        this.configManager.getFlag<DeploymentName>(flags.deployment),
+      );
 
       // send some write transactions to invoke the handler that will trigger the stake weight recalculate
       for (const nodeAlias of accountMap.keys()) {
@@ -1238,7 +1244,12 @@ export class NodeCommandTasks {
   stakeNewNode() {
     const self = this;
     return new Task('Stake new node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      await self.accountManager.refreshNodeClient(ctx.config.namespace, ctx.config.nodeAlias);
+      await self.accountManager.refreshNodeClient(
+        ctx.config.namespace,
+        ctx.config.nodeAlias,
+        this.parent.getClusterRefs(),
+        this.configManager.getFlag<DeploymentName>(flags.deployment),
+      );
       await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias);
     });
   }
@@ -1471,7 +1482,12 @@ export class NodeCommandTasks {
       self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
 
       if (config.existingNodeAliases.length > 1) {
-        config.nodeClient = await self.accountManager.refreshNodeClient(config.namespace, config.nodeAlias);
+        config.nodeClient = await self.accountManager.refreshNodeClient(
+          config.namespace,
+          config.nodeAlias,
+          this.parent.getClusterRefs(),
+          this.configManager.getFlag<DeploymentName>(flags.deployment),
+        );
       }
 
       try {
