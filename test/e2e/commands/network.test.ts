@@ -108,6 +108,12 @@ describe('NetworkCommand', function networkCommand() {
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
+        flags.gcsAccessKey.constName,
+        flags.gcsSecrets.constName,
+        flags.gcsEndpoint.constName,
+        flags.awsAccessKey.constName,
+        flags.awsSecrets.constName,
+        flags.awsEndpoint.constName,
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);
