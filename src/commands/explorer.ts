@@ -329,16 +329,20 @@ export class ExplorerCommand extends BaseCommand {
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
             // to support grpc over http/2
-            await this.k8Factory.default().patchIngress(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
-              metadata: {
-                annotations: {
-                  'haproxy-ingress.github.io/backend-protocol': 'h1',
-                },
-              },
-            });
             await this.k8Factory
               .default()
-              .createIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+              .ingresses()
+              .update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
+                metadata: {
+                  annotations: {
+                    'haproxy-ingress.github.io/backend-protocol': 'h1',
+                  },
+                },
+              });
+            await this.k8Factory
+              .default()
+              .ingressClasses()
+              .create(constants.EXPLORER_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
           },
           skip: ctx => !ctx.config.enableIngress,
         },
@@ -458,7 +462,7 @@ export class ExplorerCommand extends BaseCommand {
           title: 'Uninstall explorer ingress controller',
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
-            await this.k8Factory.default().deleteIngressClass(constants.EXPLORER_INGRESS_CLASS_NAME);
+            await this.k8Factory.default().ingressClasses().delete(constants.EXPLORER_INGRESS_CLASS_NAME);
           },
         },
         this.removeMirrorNodeExplorerComponents(),

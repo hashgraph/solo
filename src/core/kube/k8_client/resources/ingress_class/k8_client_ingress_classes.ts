@@ -26,4 +26,30 @@ export class K8ClientIngressClasses implements IngressClasses {
       throw new SoloError('Failed to list IngressClasses:', e);
     }
   }
+
+  public async create(ingressClassName: string, controllerName: string) {
+    const ingressClass = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'IngressClass',
+      metadata: {
+        name: ingressClassName,
+      },
+      spec: {
+        controller: controllerName,
+      },
+    };
+    try {
+      await this.networkingApi.createIngressClass(ingressClass);
+    } catch (e) {
+      throw new SoloError(`Error creating IngressClass ${ingressClassName}: ${e}`);
+    }
+  }
+
+  public async delete(ingressClassName: string) {
+    try {
+      await this.networkingApi.deleteIngressClass(ingressClassName);
+    } catch (e) {
+      throw new SoloError(`Error deleting IngressClass ${ingressClassName}: ${e}`);
+    }
+  }
 }

@@ -397,7 +397,8 @@ export class MirrorNodeCommand extends BaseCommand {
                       // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
                       await this.k8Factory
                         .default()
-                        .patchIngress(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                        .ingresses()
+                        .update(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
                           spec: {
                             ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
                           },
@@ -406,13 +407,15 @@ export class MirrorNodeCommand extends BaseCommand {
                       // to support GRPC over HTTP/2
                       await this.k8Factory
                         .default()
-                        .patchConfigMap(ctx.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
+                        .configMaps()
+                        .update(ctx.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
                           'backend-protocol': 'h2',
                         });
 
                       await this.k8Factory
                         .default()
-                        .createIngressClass(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+                        .ingressClasses()
+                        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
                     }
                   },
                 },
@@ -715,7 +718,7 @@ export class MirrorNodeCommand extends BaseCommand {
           title: 'Uninstall mirror ingress controller',
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
-            await this.k8Factory.default().deleteIngressClass(constants.MIRROR_INGRESS_CLASS_NAME);
+            await this.k8Factory.default().ingressClasses().delete(constants.MIRROR_INGRESS_CLASS_NAME);
           },
         },
         this.removeMirrorNodeComponents(),
