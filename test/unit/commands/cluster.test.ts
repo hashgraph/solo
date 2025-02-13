@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import sinon from 'sinon';
-import {describe, it, beforeEach} from 'mocha';
+import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
@@ -16,16 +16,16 @@ import {
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
+import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {Helm} from '../../../src/core/helm.js';
-import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
 import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
-import {type BaseCommand} from '../../../src/commands/base.js';
+import {type BaseCommand, type Opts} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {type CommandFlag} from '../../../src/types/flag_types.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
@@ -40,7 +40,6 @@ import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
-import {type Opts} from '../../../src/types/command_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
@@ -160,7 +159,6 @@ describe('ClusterCommand unit tests', () => {
     const getBaseCommandOpts = (
       sandbox: sinon.SinonSandbox,
       remoteConfig: any = {},
-
       // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
       stubbedFlags: Record<CommandFlag, any>[] = [],
       opts: any = {

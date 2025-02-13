@@ -3,6 +3,7 @@
  */
 
 import paths from 'path';
+import path from 'path';
 import {MissingArgumentError, SoloError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
 import {type LeaseManager} from '../core/lease/lease_manager.js';
@@ -13,11 +14,9 @@ import {type K8Factory} from '../core/kube/k8_factory.js';
 import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
-import {type Opts} from '../types/command_types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
-import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
@@ -26,9 +25,35 @@ import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js'
 import {Flags} from './flags.js';
 import {type Cluster} from '../core/config/remote/cluster.js';
 import {Templates} from '../core/templates.js';
+import {type SoloLogger} from '../core/logging.js';
+import {type PackageDownloader} from '../core/package_downloader.js';
+import {type PlatformInstaller} from '../core/platform_installer.js';
+import {type KeyManager} from '../core/key_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
+import {type CertificateManager} from '../core/certificate_manager.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
+}
+
+export interface Opts {
+  logger: SoloLogger;
+  helm: Helm;
+  k8Factory: K8Factory;
+  downloader: PackageDownloader;
+  platformInstaller: PlatformInstaller;
+  chartManager: ChartManager;
+  configManager: ConfigManager;
+  depManager: DependencyManager;
+  keyManager: KeyManager;
+  accountManager: AccountManager;
+  profileManager: ProfileManager;
+  leaseManager: LeaseManager;
+  certificateManager: CertificateManager;
+  localConfig: LocalConfig;
+  remoteConfigManager: RemoteConfigManager;
+  parent?: BaseCommand;
 }
 
 export abstract class BaseCommand extends ShellRunner {

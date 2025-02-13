@@ -3,7 +3,7 @@
  */
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import chalk from 'chalk';
@@ -13,7 +13,6 @@ import {type DeploymentName, type NamespaceNameAsString, type ClusterRef} from '
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
-import {type Opts} from '../types/command_types.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
