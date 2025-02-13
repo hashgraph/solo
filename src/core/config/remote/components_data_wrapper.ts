@@ -19,7 +19,6 @@ import {
   type NamespaceNameAsString,
 } from './types.js';
 import {type ToObject, type Validate} from '../../../types/index.js';
-import * as cluster from 'node:cluster';
 
 /**
  * Represent the components in the remote config and handles:
