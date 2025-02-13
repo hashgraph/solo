@@ -4,7 +4,7 @@
 import 'chai-as-promised';
 
 import {expect} from 'chai';
-import {describe, it, after, before} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 
 import fs from 'fs';
 import os from 'os';
@@ -17,6 +17,7 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {type DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
+import * as constants from '../src/core/constants.js';
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
@@ -34,7 +35,6 @@ import {type LeaseManager} from '../src/core/lease/lease_manager.js';
 import {type CertificateManager} from '../src/core/certificate_manager.js';
 import {type LocalConfig} from '../src/core/config/local_config.js';
 import {type RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
-import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';
 import {type ConfigManager} from '../src/core/config_manager.js';
 import {type Helm} from '../src/core/helm.js';
@@ -305,6 +305,12 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
+          flags.gcsAccessKey.constName,
+          flags.gcsSecrets.constName,
+          flags.gcsEndpoint.constName,
+          flags.awsAccessKey.constName,
+          flags.awsSecrets.constName,
+          flags.awsEndpoint.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 
@@ -317,7 +323,6 @@ export function e2eTestSuite(
               flags.quiet.constName,
               flags.devMode.constName,
               flags.adminPublicKeys.constName,
-              'consensusNodes',
               'contexts',
             ]);
           } catch (e) {
