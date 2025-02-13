@@ -4,7 +4,7 @@
 import * as x509 from '@peculiar/x509';
 import os from 'os';
 import path from 'path';
-import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {DataValidationError, IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import {type IP, type NodeAlias, type NodeId} from '../types/aliases.js';
@@ -272,6 +272,7 @@ export class Templates {
     Object.entries(searchReplace).forEach(([search, replace]) => {
       dnsConsensusNodePattern = dnsConsensusNodePattern.replace(search, replace);
     });
+
     return `${dnsConsensusNodePattern}.${dnsBaseDomain}`;
   }
 }

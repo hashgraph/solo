@@ -44,7 +44,7 @@ describe('ProfileManager', () => {
       context: 'solo-cluster',
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
-      fullyQualifiedDomainName: 'network-node2-svc.teest-namespace.svc.cluster.local',
+      fullyQualifiedDomainName: 'network-node2-svc.test-namespace.svc.cluster.local',
     },
     {
       name: 'node3',
@@ -54,7 +54,7 @@ describe('ProfileManager', () => {
       context: 'solo-cluster',
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
-      fullyQualifiedDomainName: 'network-node3-svc.teest-namespace.svc.cluster.local',
+      fullyQualifiedDomainName: 'network-node3-svc.test-namespace.svc.cluster.local',
     },
   ];
   let stagingDir = '';
