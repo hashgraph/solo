@@ -33,6 +33,7 @@ import {type ConsensusNode} from '../core/model/consensus_node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {StorageType} from '../core/constants.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -306,7 +307,7 @@ export class NetworkCommand extends BaseCommand {
     clusterRefs: ClusterRefs;
     consensusNodes: ConsensusNode[];
   }): Promise<Record<ClusterRef, string>> {
-    const valuesArg = this.prepareValuesArg(config);
+    const valuesArgs: Record<ClusterRef, string> = this.prepareValuesArg(config);
 
     // prepare values files for each cluster
     const valuesArgMap: Record<ClusterRef, string> = {};
@@ -320,7 +321,7 @@ export class NetworkCommand extends BaseCommand {
     );
 
     for (const clusterRef of Object.keys(valuesFiles)) {
-      valuesArgMap[clusterRef] = valuesArg + valuesFiles[clusterRef];
+      valuesArgMap[clusterRef] = valuesArgs[clusterRef] + valuesFiles[clusterRef];
       this.logger.debug(`Prepared helm chart values for cluster-ref: ${clusterRef}`, {valuesArg: valuesArgMap});
     }
 
@@ -334,7 +335,7 @@ export class NetworkCommand extends BaseCommand {
   prepareValuesArg(config: {
     chartDirectory?: string;
     app?: string;
-    nodeAliases: string[];
+    consensusNodes: ConsensusNode[];
     debugNodeAlias?: NodeAlias;
     enablePrometheusSvcMonitor?: boolean;
     releaseTag?: string;
@@ -357,32 +358,52 @@ export class NetworkCommand extends BaseCommand {
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
-  }) {
-    let valuesArg = '';
-    if (config.app !== constants.HEDERA_APP_NAME) {
-      const index = config.nodeAliases.length;
-      // TODO @Jeromy, this values arg needs to be cluster specific or it will cause network deploy issues
-      for (let i = 0; i < index; i++) {
-        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`;
-        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].value=com.swirlds.platform.Browser"`;
+  }): Record<ClusterRef, string> {
+    const valuesArgs: Record<ClusterRef, string> = {};
+    const clusterRefs: ClusterRef[] = [];
+    let extraEnvIndex = 0;
+
+    // initialize the valueArgs
+    for (const consensusNode of config.consensusNodes) {
+      // add the cluster to the list of clusters
+      if (!clusterRefs[consensusNode.cluster]) clusterRefs.push(consensusNode.cluster);
+
+      // set the extraEnv settings on the nodes for running with a local build or tool
+      if (config.app !== constants.HEDERA_APP_NAME) {
+        extraEnvIndex = 1; // used to add the debug options when using a tool or local build of hedera
+        let valuesArg: string = valuesArgs[consensusNode.cluster] ?? '';
+        valuesArg += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`;
+        valuesArg += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].value=com.swirlds.platform.Browser"`;
+        valuesArgs[consensusNode.cluster] = valuesArg;
+      } else {
+        // make sure each cluster has an empty string for the valuesArg
+        valuesArgs[consensusNode.cluster] = '';
       }
-      valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias, 1);
-    } else {
-      valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);
     }
+
+    // add debug options to the debug node
+    config.consensusNodes.filter(consensusNode => {
+      if (consensusNode.name === config.debugNodeAlias) {
+        config.consensusNodes[consensusNode.cluster] = addDebugOptions(
+          config.consensusNodes[consensusNode.cluster],
+          config.debugNodeAlias,
+          extraEnvIndex,
+        );
+      }
+    });
 
     if (
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.GCS_ONLY
     ) {
-      valuesArg += ' --set cloud.gcs.enabled=true';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.gcs.enabled=true'));
     }
 
     if (
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.AWS_ONLY
     ) {
-      valuesArg += ' --set cloud.s3.enabled=true';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.s3.enabled=true'));
     }
 
     if (
@@ -390,68 +411,118 @@ export class NetworkCommand extends BaseCommand {
       config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      valuesArg += ' --set cloud.minio.enabled=false';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.minio.enabled=false'));
     }
 
     if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      valuesArg += ' --set cloud.generateNewSecrets=false';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.generateNewSecrets=false'));
     }
 
     if (config.gcsBucket) {
-      valuesArg += ` --set cloud.buckets.streamBucket=${config.gcsBucket}`;
-      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ` --set cloud.buckets.streamBucket=${config.gcsBucket}` +
+            ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`),
+      );
     }
 
     if (config.gcsBucketPrefix) {
-      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
+      clusterRefs.forEach(
+        clusterRef => (valuesArgs[clusterRef] += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`),
+      );
     }
 
     if (config.awsBucket) {
-      valuesArg += ` --set cloud.buckets.streamBucket=${config.awsBucket}`;
-      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ` --set cloud.buckets.streamBucket=${config.awsBucket}` +
+            ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`),
+      );
     }
 
     if (config.awsBucketPrefix) {
-      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`;
+      clusterRefs.forEach(
+        clusterRef => (valuesArgs[clusterRef] += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`),
+      );
     }
 
     if (config.backupBucket) {
-      valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
-      valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ' --set defaults.sidecars.backupUploader.enabled=true' +
+            ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`),
+      );
     }
 
-    valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
-
-    valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
+    clusterRefs.forEach(
+      clusterRef =>
+        (valuesArgs[clusterRef] +=
+          ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"` +
+          ' --set cloud.s3.enabled=true' +
+          ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`),
+    );
 
     // Iterate over each node and set static IPs for HAProxy
-    if (config.haproxyIpsParsed) {
-      config.nodeAliases.forEach((nodeAlias, index) => {
-        const ip = config.haproxyIpsParsed?.[nodeAlias];
-
-        if (ip) valuesArg += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
-      });
-    }
+    this.addArgForEachRecord(
+      config.haproxyIpsParsed,
+      config.consensusNodes,
+      valuesArgs,
+      ' --set "hedera.nodes[${nodeId}].haproxyStaticIP=${recordValue}"',
+    );
 
     // Iterate over each node and set static IPs for Envoy Proxy
-    if (config.envoyIpsParsed) {
-      config.nodeAliases.forEach((nodeAlias, index) => {
-        const ip = config.envoyIpsParsed?.[nodeAlias];
-
-        if (ip) valuesArg += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
-      });
-    }
+    this.addArgForEachRecord(
+      config.envoyIpsParsed,
+      config.consensusNodes,
+      valuesArgs,
+      ' --set "hedera.nodes[${nodeId}].envoyProxyStaticIP=${recordValue}"',
+    );
 
     if (config.resolvedThrottlesFile) {
-      valuesArg += ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`),
+      );
     }
 
     if (config.loadBalancerEnabled) {
-      valuesArg += ' --set "defaults.haproxy.service.type=LoadBalancer"';
-      valuesArg += ' --set "defaults.envoyProxy.service.type=LoadBalancer"';
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ' --set "defaults.haproxy.service.type=LoadBalancer"' +
+            ' --set "defaults.envoyProxy.service.type=LoadBalancer"'),
+      );
     }
 
-    return valuesArg;
+    return valuesArgs;
+  }
+
+  /**
+   * Adds the template string to the argument for each record
+   * @param records - the records to iterate over
+   * @param consensusNodes - the consensus nodes to iterate over
+   * @param valuesArgs - the values arguments to add to
+   * @param templateString - the template string to add
+   * @private
+   */
+  private addArgForEachRecord(
+    records: Record<NodeAlias, string>,
+    consensusNodes: ConsensusNode[],
+    valuesArgs: Record<ClusterRef, string>,
+    templateString: string,
+  ) {
+    if (records) {
+      consensusNodes.forEach(consensusNode => {
+        if (records[consensusNode.name]) {
+          const newTemplateString = templateString.replace('${nodeId}', consensusNode.nodeId.toString());
+          valuesArgs[consensusNode.cluster] += newTemplateString.replace('${recordValue}', records[consensusNode.name]);
+        }
+      });
+    }
   }
 
   async prepareNamespaces(config: NetworkDeployConfigClass) {
