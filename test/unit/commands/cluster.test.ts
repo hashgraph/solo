@@ -16,11 +16,11 @@ import {
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
-import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config_manager.js';
 import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart_manager.js';
 import {Helm} from '../../../src/core/helm.js';
+import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';

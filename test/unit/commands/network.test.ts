@@ -9,7 +9,6 @@ import {getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../t
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
-import {ROOT_DIR} from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type ChartManager} from '../../../src/core/chart_manager.js';
 import {type Helm} from '../../../src/core/helm.js';
@@ -19,6 +18,7 @@ import {type LeaseManager} from '../../../src/core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {type ProfileManager} from '../../../src/core/profile_manager.js';
 import {type KeyManager} from '../../../src/core/key_manager.js';
+import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLease} from '../../../src/core/lease/listr_lease.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
