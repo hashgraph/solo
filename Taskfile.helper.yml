@@ -165,7 +165,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context kind-${SOLO_CLUSTER_NAME} --email {{ .SOLO_EMAIL }} --deployment-clusters kind-${SOLO_CLUSTER_NAME} --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context kind-${SOLO_CLUSTER_NAME} --email {{ .SOLO_EMAIL }} --deployment-clusters kind-${SOLO_CLUSTER_NAME} --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} --dev
 
   solo:keys:
     silent: true
