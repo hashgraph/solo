@@ -11,7 +11,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8Factory} from '../../kube/k8_factory.js';
-import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString} from './types.js';
+import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString, Version} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
@@ -219,9 +219,63 @@ export class RemoteConfigManager {
 
     self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
 
+    self.populateVersionsInMetadata(argv);
+
     await self.remoteConfig.flags.handleFlags(argv);
 
     await self.save();
+  }
+
+  private populateVersionsInMetadata(argv: AnyObject) {
+    const command: string = argv._[0];
+    const subcommand: string = argv._?.[1];
+
+    const isCommandUsingSoloChartVersionFlag =
+      (command === 'network' && subcommand === 'deploy') ||
+      (command === 'network' && subcommand === 'refresh') ||
+      (command === 'node' && subcommand === 'update') ||
+      (command === 'node' && subcommand === 'update-execute') ||
+      (command === 'node' && subcommand === 'add') ||
+      (command === 'node' && subcommand === 'add-execute') ||
+      (command === 'node' && subcommand === 'delete') ||
+      (command === 'node' && subcommand === 'delete-execute');
+
+    if (argv[flags.soloChartVersion.constName]) {
+      this.remoteConfig.metadata.soloChartVersion = argv[flags.soloChartVersion.constName] as Version;
+    } else if (isCommandUsingSoloChartVersionFlag) {
+      this.remoteConfig.metadata.soloChartVersion = flags.soloChartVersion.definition.defaultValue as Version;
+    }
+
+    const isCommandUsingReleaseTagVersionFlag =
+      (command === 'node' && subcommand !== 'keys' && subcommand !== 'logs' && subcommand !== 'states') ||
+      (command === 'network' && subcommand === 'deploy');
+
+    if (argv[flags.releaseTag.constName]) {
+      this.remoteConfig.metadata.hederaPlatformVersion = argv[flags.releaseTag.constName] as Version;
+    } else if (isCommandUsingReleaseTagVersionFlag) {
+      this.remoteConfig.metadata.hederaPlatformVersion = flags.releaseTag.definition.defaultValue as Version;
+    }
+
+    if (argv[flags.mirrorNodeVersion.constName]) {
+      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = argv[flags.mirrorNodeVersion.constName] as Version;
+    } else if (command === 'mirror-node' && subcommand === 'deploy') {
+      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = flags.mirrorNodeVersion.definition
+        .defaultValue as Version;
+    }
+
+    if (argv[flags.hederaExplorerVersion.constName]) {
+      this.remoteConfig.metadata.hederaExplorerChartVersion = argv[flags.hederaExplorerVersion.constName] as Version;
+    } else if (command === 'explorer' && subcommand === 'deploy') {
+      this.remoteConfig.metadata.hederaExplorerChartVersion = flags.hederaExplorerVersion.definition
+        .defaultValue as Version;
+    }
+
+    if (argv[flags.relayReleaseTag.constName]) {
+      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = argv[flags.relayReleaseTag.constName] as Version;
+    } else if (command === 'relay' && subcommand === 'deploy') {
+      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = flags.relayReleaseTag.definition
+        .defaultValue as Version;
+    }
   }
 
   public async createAndValidate(

@@ -20,7 +20,7 @@ export function createMetadata() {
   const migration = new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0');
 
   return {
-    metadata: new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, soloVersion, migration),
+    metadata: new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, soloVersion, '', '', '', '', '', migration),
     values: {name, lastUpdatedAt, lastUpdateBy, migration, soloVersion},
     migration,
   };
@@ -61,6 +61,11 @@ describe('RemoteConfigMetadata', () => {
       lastUpdatedAt,
       lastUpdateBy,
       soloVersion,
+      soloChartVersion: '',
+      hederaPlatformVersion: '',
+      hederaMirrorNodeChartVersion: '',
+      hederaExplorerChartVersion: '',
+      hederaJsonRpcRelayChartVersion: '',
     });
 
     expect(newMetadata.toObject()).to.deep.equal(metadata.toObject());
@@ -130,11 +135,10 @@ describe('RemoteConfigMetadata', () => {
     });
 
     it('should not be able to create new instance of the class with invalid migration', () => {
-      // @ts-ignore
-      expect(() => new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, soloVersion, {})).to.throw(
-        SoloError,
-        `Invalid migration: ${{}}`,
-      );
+      expect(
+        // @ts-ignore
+        () => new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, soloVersion, '', '', '', '', '', {}),
+      ).to.throw(SoloError, `Invalid migration: ${{}}`);
     });
   });
 });

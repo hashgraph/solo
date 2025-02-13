@@ -22,23 +22,20 @@ import {type Optional, type ToObject, type Validate} from '../../../types/index.
 export class RemoteConfigMetadata
   implements RemoteConfigMetadataStructure, Validate, ToObject<RemoteConfigMetadataStructure>
 {
-  private readonly _name: NamespaceNameAsString;
-  private readonly _lastUpdatedAt: Date;
-  private readonly _lastUpdateBy: EmailAddress;
-  private readonly _soloVersion: Version;
   private _migration?: Migration;
 
   public constructor(
-    name: NamespaceNameAsString,
-    lastUpdatedAt: Date,
-    lastUpdateBy: EmailAddress,
-    soloVersion: Version,
+    public readonly name: NamespaceNameAsString,
+    public readonly lastUpdatedAt: Date,
+    public readonly lastUpdateBy: EmailAddress,
+    public readonly soloVersion: Version,
+    public soloChartVersion: Version = '',
+    public hederaPlatformVersion: Version = '',
+    public hederaMirrorNodeChartVersion: Version = '',
+    public hederaExplorerChartVersion: Version = '',
+    public hederaJsonRpcRelayChartVersion: Version = '',
     migration?: Migration,
   ) {
-    this._name = name;
-    this._lastUpdatedAt = lastUpdatedAt;
-    this._lastUpdateBy = lastUpdateBy;
-    this._soloVersion = soloVersion;
     this._migration = migration;
     this.validate();
   }
@@ -51,26 +48,6 @@ export class RemoteConfigMetadata
   }
 
   /* -------- Getters -------- */
-
-  /** Retrieves the namespace */
-  public get name(): NamespaceNameAsString {
-    return this._name;
-  }
-
-  /** Retrieves the date when the remote config metadata was last updated */
-  public get lastUpdatedAt(): Date {
-    return this._lastUpdatedAt;
-  }
-
-  /** Retrieves the email of the user who last updated the remote config metadata */
-  public get lastUpdateBy(): EmailAddress {
-    return this._lastUpdateBy;
-  }
-
-  /** Retrieves the version of solo */
-  public get soloVersion(): Version {
-    return this._soloVersion;
-  }
 
   /** Retrieves the migration if such exists */
   public get migration(): Optional<Migration> {
@@ -95,6 +72,11 @@ export class RemoteConfigMetadata
       new Date(metadata.lastUpdatedAt),
       metadata.lastUpdateBy,
       metadata.soloVersion,
+      metadata.soloChartVersion,
+      metadata.hederaPlatformVersion,
+      metadata.hederaMirrorNodeChartVersion,
+      metadata.hederaExplorerChartVersion,
+      metadata.hederaJsonRpcRelayChartVersion,
       migration,
     );
   }
@@ -126,6 +108,11 @@ export class RemoteConfigMetadata
       name: this.name,
       lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),
       lastUpdateBy: this.lastUpdateBy,
+      soloChartVersion: this.soloChartVersion,
+      hederaPlatformVersion: this.hederaPlatformVersion,
+      hederaMirrorNodeChartVersion: this.hederaMirrorNodeChartVersion,
+      hederaExplorerChartVersion: this.hederaExplorerChartVersion,
+      hederaJsonRpcRelayChartVersion: this.hederaJsonRpcRelayChartVersion,
       soloVersion: this.soloVersion,
     } as RemoteConfigMetadataStructure;
 
