@@ -33,7 +33,6 @@ import {type ConsensusNode} from '../core/model/consensus_node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
-import {StorageType} from '../core/constants.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
