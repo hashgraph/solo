@@ -1,23 +1,18 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
+import {IsEmail, IsNotEmpty, IsObject, validateSync} from 'class-validator';
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import {
-  type ClusterRefs,
-  type Deployments,
-  type DeploymentStructure,
-  type LocalConfigData,
-} from './local_config_data.js';
+import {type ClusterRefs, type Deployments, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
 import {type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type K8Factory} from '../kube/k8_factory.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
@@ -27,28 +22,17 @@ import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
-  @IsEmail(
-    {},
-    {
-      message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL,
-    },
-  )
+  @IsEmail({}, {message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL})
   userEmailAddress: EmailAddress;
 
   // The string is the name of the deployment, will be used as the namespace,
   // so it needs to be available in all targeted clusters
-  @IsDeployments({
-    message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT,
-  })
+  @IsDeployments({message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT})
   @IsNotEmpty()
-  @IsObject({
-    message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT,
-  })
+  @IsObject({message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT})
   public deployments: Deployments;
 
-  @IsClusterRefs({
-    message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
-  })
+  @IsClusterRefs({message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT})
   @IsNotEmpty()
   public clusterRefs: ClusterRefs = {};
 
