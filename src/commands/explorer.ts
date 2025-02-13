@@ -285,19 +285,6 @@ export class ExplorerCommand extends BaseCommand {
               exploreValuesArg,
               this.k8Factory.default().contexts().readCurrent(),
             );
-
-            // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
-            // to support grpc over http/2
-            await this.k8Factory
-              .default()
-              .ingresses()
-              .update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
-                metadata: {
-                  annotations: {
-                    'haproxy-ingress.github.io/backend-protocol': 'h1',
-                  },
-                },
-              });
           },
         },
         {
@@ -369,8 +356,8 @@ export class ExplorerCommand extends BaseCommand {
               .waitForReadyStatus(
                 ctx.config.namespace,
                 [
-                  'app.kubernetes.io/name=haproxy-ingress',
-                  `app.kubernetes.io/instance=${constants.SOLO_CLUSTER_SETUP_CHART}`,
+                  `app.kubernetes.io/name=${constants.INGRESS_CONTROLLER_RELEASE_NAME}`,
+                  `app.kubernetes.io/instance=${constants.INGRESS_CONTROLLER_RELEASE_NAME}`,
                 ],
                 constants.PODS_READY_MAX_ATTEMPTS,
                 constants.PODS_READY_DELAY,
