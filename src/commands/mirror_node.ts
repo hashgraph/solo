@@ -133,14 +133,18 @@ export class MirrorNodeCommand extends BaseCommand {
     }
 
     let storageType = '';
-    if (config.storageType && config.storageAccessKey && config.storageSecrets && config.storageEndpoint) {
+    if (
+      config.storageType !== constants.StorageType.MINIO_ONLY &&
+      config.storageAccessKey &&
+      config.storageSecrets &&
+      config.storageEndpoint
+    ) {
       if (
         config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.S3_AND_GCS ||
-        config.storageType === constants.StorageType.GCS_AND_MINIO
+        config.storageType === constants.StorageType.AWS_AND_GCS
       ) {
         storageType = 'gcp';
-      } else if (config.storageType === constants.StorageType.S3_ONLY) {
+      } else if (config.storageType === constants.StorageType.AWS_ONLY) {
         storageType = 's3';
       } else {
         throw new IllegalArgumentError(`Invalid cloud storage type: ${config.storageType}`);

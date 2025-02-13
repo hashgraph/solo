@@ -18,6 +18,7 @@ import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -353,6 +354,7 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  config.consensusNodes = this.parent.getConsensusNodes();
 
   await initializeSetup(config, this.k8Factory);
 
@@ -448,6 +450,10 @@ export interface NodeSetupConfigClass {
   releaseTag: string;
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
+  consensusNodes: ConsensusNode[];
+  skipStop?: boolean;
+  keysDir: string;
+  stagingDir: string;
   getUnusedConfigs: () => string[];
 }
 
