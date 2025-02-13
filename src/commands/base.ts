@@ -256,6 +256,12 @@ export abstract class BaseCommand extends ShellRunner {
   public getConsensusNodes(): ConsensusNode[] {
     const consensusNodes: ConsensusNode[] = [];
 
+    try {
+      if (!this.getRemoteConfigManager()?.components?.consensusNodes) return [];
+    } catch {
+      return [];
+    }
+
     // using the remoteConfigManager to get the consensus nodes
     Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
       consensusNodes.push(
