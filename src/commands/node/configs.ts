@@ -504,7 +504,6 @@ export interface NodeSetupConfigClass {
   keysDir: string;
   stagingDir: string;
   getUnusedConfigs: () => string[];
-  consensusNodes: ConsensusNode[];
   contexts: string[];
 }
 

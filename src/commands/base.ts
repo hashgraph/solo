@@ -379,7 +379,7 @@ export abstract class BaseCommand extends ShellRunner {
       Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
         consensusNodes.push(
           new ConsensusNode(
-            node.name,
+            node.name as NodeAlias,
             node.nodeId,
             node.namespace,
             node.cluster,
