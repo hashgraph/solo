@@ -70,6 +70,7 @@ import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
 import {type Optional} from '../../types/index.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
+import {type K8} from '../../core/kube/k8.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -196,6 +197,33 @@ export class NodeCommandTasks {
     }
   }
 
+  private async copyLocalBuildPathToNode(
+    k8: K8,
+    podRef: PodRef,
+    configManager: ConfigManager,
+    localDataLibBuildPath: string,
+  ) {
+    const filterFunction = (path: string | string[], stat: any) => {
+      return !(path.includes('data/keys') || path.includes('data/config'));
+    };
+
+    await k8
+      .containers()
+      .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+      .copyTo(localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`, filterFunction);
+    if (configManager.getFlag<string>(flags.appConfig)) {
+      const testJsonFiles: string[] = configManager.getFlag<string>(flags.appConfig)!.split(',');
+      for (const jsonFile of testJsonFiles) {
+        if (fs.existsSync(jsonFile)) {
+          await k8
+            .containers()
+            .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
+            .copyTo(jsonFile, `${constants.HEDERA_HAPI_PATH}`);
+        }
+      }
+    }
+  }
+
   _uploadPlatformSoftware(
     nodeAliases: NodeAliases,
     podRefs: Record<NodeAlias, PodRef>,
@@ -220,6 +248,7 @@ export class NodeCommandTasks {
     }
 
     let localDataLibBuildPath: string;
+
     for (const nodeAlias of nodeAliases) {
       const podRef = podRefs[nodeAlias];
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
@@ -240,24 +269,20 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
-          // filter the data/config and data/keys to avoid failures due to config and secret mounts
-          const filterFunction = (path, stat) => {
-            return !(path.includes('data/keys') || path.includes('data/config'));
-          };
-          await k8
-            .containers()
-            .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
-            .copyTo(localDataLibBuildPath, `${constants.HEDERA_HAPI_PATH}`, filterFunction);
-          if (self.configManager.getFlag<string>(flags.appConfig)) {
-            const testJsonFiles: string[] = this.configManager.getFlag<string>(flags.appConfig)!.split(',');
-            for (const jsonFile of testJsonFiles) {
-              if (fs.existsSync(jsonFile)) {
-                await k8
-                  .containers()
-                  .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
-                  .copyTo(jsonFile, `${constants.HEDERA_HAPI_PATH}`);
-              }
+          // retry copying the build to the node to handle edge cases during performance testing
+          let error: Error | null = null;
+          let i = 0;
+          for (; i < constants.LOCAL_BUILD_COPY_RETRY; i++) {
+            error = null;
+            try {
+              // filter the data/config and data/keys to avoid failures due to config and secret mounts
+              await self.copyLocalBuildPathToNode(k8, podRef, self.configManager, localDataLibBuildPath);
+            } catch (e) {
+              error = e;
             }
+          }
+          if (error) {
+            throw new SoloError(`Error in copying local build to node: ${error.message}`, error);
           }
         },
       });

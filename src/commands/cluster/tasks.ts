@@ -273,6 +273,11 @@ export class ClusterCommandTasks {
         let selectedContext: string;
         let selectedCluster: string;
 
+        // TODO - BEGIN... added this because it was confusing why we have both clusterRef and deploymentClusters
+        if (clusters?.length === 0) {
+          clusters = splitFlagInput(configManager.getFlag<string>(flags.deploymentClusters));
+        }
+
         // If one or more contexts are provided, use the first one
         if (contexts.length) {
           selectedContext = contexts[0];

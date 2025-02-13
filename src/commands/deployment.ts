@@ -52,12 +52,13 @@ export class DeploymentCommand extends BaseCommand {
     interface Config {
       quiet: boolean;
       context: string;
-      clusterName: string;
       clusters: string[];
       namespace: NamespaceName;
       deployment: DeploymentName;
       deploymentClusters: string[];
       nodeAliases: string[];
+      clusterRef: ClusterRef;
+      email: string;
     }
 
     interface Context {
@@ -84,6 +85,9 @@ export class DeploymentCommand extends BaseCommand {
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
               deploymentClusters: splitFlagInput(self.configManager.getFlag<string>(flags.deploymentClusters)),
               nodeAliases: splitFlagInput(self.configManager.getFlag<string>(flags.nodeAliasesUnparsed)),
+              clusterRef: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
+              context: self.configManager.getFlag<string>(flags.context),
+              email: self.configManager.getFlag<string>(flags.userEmailAddress),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});

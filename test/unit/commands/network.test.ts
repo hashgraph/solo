@@ -157,17 +157,22 @@ describe('NetworkCommand unit tests', () => {
     });
 
     it('Install function is called with expected parameters', async () => {
-      const networkCommand = new NetworkCommand(opts);
-      sinon.stub(networkCommand, 'getConsensusNodes').returns([]);
-      sinon.stub(networkCommand, 'getContexts').returns([]);
-      await networkCommand.deploy(argv);
+      try {
+        const networkCommand = new NetworkCommand(opts);
+        sinon.stub(networkCommand, 'getConsensusNodes').returns([]);
+        sinon.stub(networkCommand, 'getContexts').returns(['context1']);
+        sinon.stub(networkCommand, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
+        await networkCommand.deploy(argv);
 
-      expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
-      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-      expect(opts.chartManager.install.args[0][2]).to.equal(
-        constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
-      );
-      expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+        expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
+        expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+        expect(opts.chartManager.install.args[0][2]).to.equal(
+          constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
+        );
+        expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+      } finally {
+        sinon.restore();
+      }
     });
 
     it('Should use local chart directory', async () => {
@@ -177,6 +182,7 @@ describe('NetworkCommand unit tests', () => {
 
         sinon.stub(NetworkCommand.prototype, 'getConsensusNodes').returns([]);
         sinon.stub(NetworkCommand.prototype, 'getContexts').returns([]);
+        sinon.stub(NetworkCommand.prototype, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
         await networkCommand.deploy(argv);
         expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);

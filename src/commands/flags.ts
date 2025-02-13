@@ -123,13 +123,13 @@ export class Flags {
       alias: 'c',
       type: 'string',
     },
-    prompt: async function promptClusterName(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
         task,
         input,
         Flags.clusterRef.definition.defaultValue,
-        'Enter cluster name: ',
-        'cluster name cannot be empty',
+        'Enter cluster reference: ',
+        'cluster reference cannot be empty',
         Flags.clusterRef.name,
       );
     },
