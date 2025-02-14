@@ -39,7 +39,7 @@ for i in {1..2}; do
   fi
 
   helm upgrade --install metallb metallb/metallb \
-    --namespace metallb-system --create-namespace \
+    --namespace metallb-system --create-namespace --atomic --wait \
     --set speaker.frr.enabled=true
 
   kubectl apply -f "${SCRIPT_PATH}/metallb-cluster-${i}.yaml"
