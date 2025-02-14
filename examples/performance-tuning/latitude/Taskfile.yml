@@ -8,7 +8,7 @@ vars:
 env:
   SOLO_NETWORK_SIZE: 10
   SOLO_NAMESPACE: %SOLO_NAMESPACE%
-  SOLO_CHART_VERSION: 0.43.1
+  SOLO_CHART_VERSION: 0.44.0
   CONSENSUS_NODE_VERSION: v0.59.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
   SETTINGS_FLAG: "--settings-txt {{.USER_WORKING_DIR}}/settings.txt"
