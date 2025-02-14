@@ -91,9 +91,9 @@ e2eTestSuite(
   bootstrapResp => {
     describe('before Dual Cluster RelayCommand test', async () => {
       it('should create a remote config configmap in the clusters', async () => {
-        const clusters: string[] = splitFlagInput(argv[flags.clusterRef.name]);
-        for (const clusterRef of clusters) {
-          const k8 = bootstrapResp.opts.k8Factory.getK8(clusterRef);
+        const contexts: string[] = splitFlagInput(argv[flags.context.name]);
+        for (const context of contexts) {
+          const k8 = bootstrapResp.opts.k8Factory.getK8(context);
 
           const data: Record<string, string> = {};
 
