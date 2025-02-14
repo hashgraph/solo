@@ -89,9 +89,7 @@ e2eTestSuite(
           flags.quiet.constName,
           flags.localBuildPath.constName,
           flags.force.constName,
-          'consensusNodes',
           'nodeClient',
-          'consensusNodes',
           'contexts',
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
