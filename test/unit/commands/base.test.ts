@@ -19,7 +19,7 @@ import {resetForTest} from '../../test_container.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_data_wrapper.js';
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
-import {type ClusterRef} from '../../../src/core/config/remote/types.js';
+import {type ClusterRefs, type ClusterRef} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
 
 describe('BaseCommand', () => {
@@ -146,15 +146,14 @@ describe('BaseCommand', () => {
       Object.defineProperty(remoteConfigManager, 'components', {
         get: () => newComponentsDataWrapper,
       });
-
-      const map1: Record<ClusterRef, Cluster> = {
-        cluster: new Cluster('cluster', 'namespace1', 'cluster1.world', 'network1.svc'),
-        cluster2: new Cluster('cluster2', 'namespace2', 'cluster2.world', 'network2.svc'),
-      };
+      const clusters = {};
+      const cluster = new Cluster('cluster', 'namespace', undefined, undefined);
+      clusters[cluster.name] = cluster;
+      const cluster2 = new Cluster('cluster2', 'namespace', undefined, undefined);
+      clusters[cluster2.name] = cluster2;
       Object.defineProperty(remoteConfigManager, 'clusters', {
-        get: () => map1,
+        get: () => clusters,
       });
-
       const k8Factory = sinon.stub();
 
       // @ts-expect-error - allow to create instance of abstract class
@@ -168,10 +167,6 @@ describe('BaseCommand', () => {
         localConfig,
         remoteConfigManager,
       });
-    });
-
-    after(() => {
-      sandbox.restore();
     });
 
     it('should return consensus nodes', () => {
@@ -194,6 +189,14 @@ describe('BaseCommand', () => {
       expect(contexts).to.be.an('array');
       expect(contexts[0]).to.equal('context1');
       expect(contexts[1]).to.equal('context2');
+    });
+
+    it('should return clusters references', () => {
+      const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
+      const clusterRefs: ClusterRefs = baseCmd.getClusterRefs();
+      Object.keys(clusterRefs).forEach(clusterRef => {
+        expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
+      });
     });
   });
 });

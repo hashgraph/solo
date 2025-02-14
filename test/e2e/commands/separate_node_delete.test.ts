@@ -29,7 +29,7 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 
 const namespace = NamespaceName.of('node-delete-separate');
 const nodeAlias = 'node1' as NodeAlias;
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.nodeAlias.name] = nodeAlias;
 argv[flags.stakeAmounts.name] = '1,1000';
@@ -45,7 +45,7 @@ const tempDir = 'contextDir';
 const argvPrepare = Object.assign({}, argv);
 argvPrepare[flags.outputDir.name] = tempDir;
 
-const argvExecute = getDefaultArgv();
+const argvExecute = getDefaultArgv(namespace);
 argvExecute[flags.inputDir.name] = tempDir;
 
 e2eTestSuite(

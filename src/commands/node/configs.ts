@@ -57,6 +57,8 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
     'nodeClient',
     'freezeAdminPrivateKey',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodePrepareUpgradeConfigClass;
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
@@ -76,6 +78,8 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
     'existingNodeAliases',
     'serviceMap',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodeDownloadGeneratedFilesConfigClass;
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
@@ -95,6 +99,8 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
     'stagingDir',
     'stagingKeysDir',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodeUpgradeConfigClass;
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
@@ -134,6 +140,8 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
     'stagingKeysDir',
     'treasuryKey',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodeUpdateConfigClass;
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
@@ -179,6 +187,8 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
     'stagingKeysDir',
     'treasuryKey',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodeDeleteConfigClass;
 
   config.curDate = new Date();
@@ -226,6 +236,8 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
     'stagingKeysDir',
     'treasuryKey',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodeAddConfigClass;
 
   ctx.adminKey = argv[flags.adminKey.name]
@@ -264,6 +276,9 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
     config.deployment,
   );
 
+  config.consensusNodes = this.parent.getConsensusNodes();
+  config.contexts = this.parent.getContexts();
+
   return config;
 };
 
@@ -273,6 +288,8 @@ export const logsConfigBuilder = async function (argv, ctx, task) {
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
     deployment: this.configManager.getFlag(flags.deployment),
+    consensusNodes: this.parent.getConsensusNodes(),
+    contexts: this.parent.getContexts(),
   } as NodeLogsConfigClass;
   ctx.config = config;
   return config;
@@ -284,6 +301,8 @@ export const statesConfigBuilder = async function (argv, ctx, task) {
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
     deployment: this.configManager.getFlag(flags.deployment),
+    consensusNodes: this.parent.getConsensusNodes(),
+    contexts: this.parent.getContexts(),
   };
   ctx.config = config;
   return config;
@@ -294,6 +313,8 @@ export const refreshConfigBuilder = async function (argv, ctx, task) {
     'nodeAliases',
     'podRefs',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodeRefreshConfigClass;
 
   ctx.config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
@@ -305,14 +326,24 @@ export const refreshConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const keysConfigBuilder = function (argv, ctx, task) {
-  const config = this.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
+  const config: NodeKeysConfigClass = this.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
     'curDate',
     'keysDir',
     'nodeAliases',
+    'consensusNodes',
+    'contexts',
   ]) as NodeKeysConfigClass;
 
   config.curDate = new Date();
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  if (config.nodeAliases.length === 0) {
+    config.nodeAliases = this.consensusNodes.map((node: {name: string}) => {
+      return node.name;
+    });
+    if (config.nodeAliases.length === 0) {
+      throw new SoloError('no node aliases provided via flags or RemoteConfig');
+    }
+  }
   config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys');
 
   if (!fs.existsSync(config.keysDir)) {
@@ -327,6 +358,8 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
     nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
     nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
     deployment: this.configManager.getFlag(flags.deployment),
+    consensusNodes: this.parent.getConsensusNodes(),
+    contexts: this.parent.getContexts(),
   };
 
   if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
@@ -337,7 +370,12 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const startConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
+  const config = this.getConfig(START_CONFIGS_NAME, argv.flags, [
+    'nodeAliases',
+    'namespace',
+    'consensusNodes',
+    'contexts',
+  ]) as NodeStartConfigClass;
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.consensusNodes = this.parent.getConsensusNodes();
 
@@ -358,6 +396,8 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
     'nodeAliases',
     'podRefs',
     'namespace',
+    'consensusNodes',
+    'contexts',
   ]) as NodeSetupConfigClass;
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
@@ -376,6 +416,8 @@ export interface NodeLogsConfigClass {
   namespace: NamespaceName;
   deployment: string;
   nodeAliases: string[];
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 export interface NodeRefreshConfigClass {
@@ -390,6 +432,8 @@ export interface NodeRefreshConfigClass {
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
   getUnusedConfigs: () => string[];
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 export interface NodeKeysConfigClass {
@@ -402,6 +446,8 @@ export interface NodeKeysConfigClass {
   keysDir: string;
   nodeAliases: NodeAliases;
   getUnusedConfigs: () => string[];
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 export interface NodeStartConfigClass {
@@ -415,6 +461,8 @@ export interface NodeStartConfigClass {
   stagingDir: string;
   podRefs: Record<NodeAlias, PodRef>;
   nodeAliasesUnparsed: string;
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 export interface NodeDeleteConfigClass {
@@ -444,6 +492,8 @@ export interface NodeDeleteConfigClass {
   treasuryKey: PrivateKey;
   getUnusedConfigs: () => string[];
   curDate: Date;
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 export interface NodeSetupConfigClass {
@@ -464,6 +514,7 @@ export interface NodeSetupConfigClass {
   keysDir: string;
   stagingDir: string;
   getUnusedConfigs: () => string[];
+  contexts: string[];
 }
 
 export interface NodeUpgradeConfigClass {
@@ -492,6 +543,8 @@ export interface NodeUpgradeConfigClass {
   treasuryKey: PrivateKey;
   getUnusedConfigs: () => string[];
   curDate: Date;
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 export interface NodeUpdateConfigClass {
@@ -529,6 +582,8 @@ export interface NodeUpdateConfigClass {
   treasuryKey: PrivateKey;
   getUnusedConfigs: () => string[];
   curDate: Date;
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 interface NodePrepareUpgradeConfigClass {
@@ -539,6 +594,8 @@ interface NodePrepareUpgradeConfigClass {
   freezeAdminPrivateKey: string;
   nodeClient: any;
   getUnusedConfigs: () => string[];
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }
 
 interface NodeDownloadGeneratedFilesConfigClass {
@@ -552,4 +609,6 @@ interface NodeDownloadGeneratedFilesConfigClass {
   existingNodeAliases: NodeAliases[];
   allNodeAliases: NodeAliases[];
   serviceMap: Map<string, NetworkNodeServices>;
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
 }

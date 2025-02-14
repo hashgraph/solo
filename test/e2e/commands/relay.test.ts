@@ -18,13 +18,13 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 
 const testName = 'relay-cmd-e2e';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.force.name] = true;
 argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue;

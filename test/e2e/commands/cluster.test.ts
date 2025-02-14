@@ -32,14 +32,14 @@ describe('ClusterCommand', () => {
 
   const testName = 'cluster-cmd-e2e';
   const namespace = NamespaceName.of(testName);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
   argv[flags.generateGossipKeys.name] = true;
   argv[flags.generateTlsKeys.name] = true;
-  argv[flags.clusterName.name] = TEST_CLUSTER;
+  argv[flags.clusterRef.name] = TEST_CLUSTER;
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
   argv[flags.force.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts

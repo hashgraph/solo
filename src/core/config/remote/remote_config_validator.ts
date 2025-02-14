@@ -9,6 +9,7 @@ import {type ComponentsDataWrapper} from './components_data_wrapper.js';
 import {type BaseComponent} from './components/base_component.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {type V1Pod} from '@kubernetes/client-node';
+import {ConsensusNodeStates} from './enumerations.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -119,6 +120,7 @@ export class RemoteConfigValidator {
   ): Promise<void>[] {
     return Object.values(components.consensusNodes).map(async component => {
       try {
+        if (component.state === ConsensusNodeStates.REQUESTED) return;
         const pods: V1Pod[] = await k8Factory
           .default()
           .pods()

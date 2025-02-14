@@ -1,23 +1,18 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
+import {IsEmail, IsNotEmpty, IsObject, validateSync} from 'class-validator';
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import {
-  type ClusterRefs,
-  type Deployments,
-  type DeploymentStructure,
-  type LocalConfigData,
-} from './local_config_data.js';
+import {type Deployments, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
-import {type DeploymentName, type EmailAddress} from './remote/types.js';
+import {type ClusterRefs, type DeploymentName, type EmailAddress} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type K8Factory} from '../kube/k8_factory.js';
 import {splitFlagInput} from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
