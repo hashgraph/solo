@@ -30,12 +30,16 @@ helm repo add metallb https://metallb.github.io/metallb
 
 for i in {1..2}; do
   kind create cluster -n "${SOLO_CLUSTER_NAME}-c${i}" --image "${KIND_IMAGE}" --config "${SCRIPT_PATH}/kind-cluster-${i}.yaml" || exit 1
-  helm upgrade --install metrics-server metrics-server/metrics-server \
-    --namespace kube-system --wait --atomic \
-    --set "args[0]=--kubelet-insecure-tls"
+
+  # Deploy the metrics-server if not running in CI
+  if [[ -z "${CI}" ]]; then
+    helm upgrade --install metrics-server metrics-server/metrics-server \
+      --namespace kube-system \
+      --set "args[0]=--kubelet-insecure-tls"
+  fi
 
   helm upgrade --install metallb metallb/metallb \
-    --namespace metallb-system --create-namespace --wait --atomic \
+    --namespace metallb-system --create-namespace \
     --set speaker.frr.enabled=true
 
   kubectl apply -f "${SCRIPT_PATH}/metallb-cluster-${i}.yaml"
