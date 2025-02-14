@@ -42,8 +42,8 @@ export class RelayCommand extends BaseCommand {
     return [
       flags.chainId,
       flags.chartDirectory,
-      flags.deployment,
       flags.clusterRef,
+      flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.operatorId,
       flags.operatorKey,
