@@ -19,7 +19,7 @@ import {resetForTest} from '../../test_container.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_data_wrapper.js';
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
-import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
+import {type ClusterRefs, type ClusterRef} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
 
 describe('BaseCommand', () => {

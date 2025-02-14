@@ -19,6 +19,7 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import {type DeploymentName} from '../../core/config/remote/types.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -64,7 +65,11 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
   await initializeSetup(config, this.k8Factory);
-  config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+  config.nodeClient = await this.accountManager.loadNodeClient(
+    config.namespace,
+    this.parent.getClusterRefs(),
+    config.deployment,
+  );
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
@@ -119,7 +124,11 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
     constants.SOLO_DEPLOYMENT_CHART,
   );
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -160,7 +169,11 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   );
 
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -207,7 +220,11 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   );
 
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -260,7 +277,11 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   );
 
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -270,7 +291,11 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   const treasuryAccountPrivateKey = treasuryAccount.privateKey;
   config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
-  config.serviceMap = await this.accountManager.getNodeServiceMap(config.namespace);
+  config.serviceMap = await this.accountManager.getNodeServiceMap(
+    config.namespace,
+    this.parent.getClusterRefs(),
+    config.deployment,
+  );
 
   config.consensusNodes = this.parent.getConsensusNodes();
   config.contexts = this.parent.getContexts();
@@ -373,9 +398,13 @@ export const startConfigBuilder = async function (argv, ctx, task) {
     'contexts',
   ]) as NodeStartConfigClass;
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
+  config.consensusNodes = this.parent.getConsensusNodes();
 
-  if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
-    throw new SoloError(`namespace ${config.namespace} does not exist`);
+  for (const consensusNode of config.consensusNodes) {
+    const k8 = this.k8Factory.getK8(consensusNode.context);
+    if (!(await k8.namespaces().has(config.namespace))) {
+      throw new SoloError(`namespace ${config.namespace} does not exist`);
+    }
   }
 
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
@@ -445,6 +474,7 @@ export interface NodeKeysConfigClass {
 export interface NodeStartConfigClass {
   app: string;
   cacheDir: string;
+  consensusNodes: ConsensusNode[];
   debugNodeAlias: NodeAlias;
   namespace: NamespaceName;
   deployment: string;
@@ -452,7 +482,6 @@ export interface NodeStartConfigClass {
   stagingDir: string;
   podRefs: Record<NodeAlias, PodRef>;
   nodeAliasesUnparsed: string;
-  consensusNodes: ConsensusNode[];
   contexts: string[];
 }
 

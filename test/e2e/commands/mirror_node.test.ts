@@ -28,6 +28,7 @@ import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -112,7 +113,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     }).timeout(Duration.ofMinutes(10).toMillis());
 
     it('mirror node API should be running', async () => {
-      await accountManager.loadNodeClient(namespace);
+      const clusterRefs: ClusterRefs = mirrorNodeCmd.getClusterRefs();
+      await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
       try {
         // find hedera explorer pod
         const pods: V1Pod[] = await k8Factory
