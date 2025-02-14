@@ -401,7 +401,7 @@ export const startConfigBuilder = async function (argv, ctx, task) {
   config.consensusNodes = this.parent.getConsensusNodes();
 
   for (const consensusNode of config.consensusNodes) {
-    const k8 = helpers.getK8FromContext(this.k8Factory, consensusNode.context);
+    const k8 = this.k8Factory.getK8(consensusNode.context);
     if (!(await k8.namespaces().has(config.namespace))) {
       throw new SoloError(`namespace ${config.namespace} does not exist`);
     }

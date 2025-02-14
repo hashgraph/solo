@@ -431,7 +431,3 @@ export function extractContextFromConsensusNodes(
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
 }
-
-export function getK8FromContext(k8Factory: K8Factory, context?: Context) {
-  return context ? k8Factory.getK8(context) : k8Factory.default();
-}

@@ -8,6 +8,9 @@ import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type ClusterRef, type Context, type DeploymentName} from './config/remote/types.js';
 
 export class NetworkNodeServices {
+  public readonly clusterRef?: ClusterRef;
+  public readonly context?: Context;
+  public readonly deployment?: DeploymentName;
   public readonly nodeAlias: NodeAlias;
   public readonly namespace: NamespaceName;
   public readonly nodeId: string | number;
@@ -32,6 +35,9 @@ export class NetworkNodeServices {
   public readonly envoyProxyGrpcWebPort: number;
 
   constructor(builder: NetworkNodeServicesBuilder) {
+    this.clusterRef = builder.clusterRef;
+    this.context = builder.context;
+    this.deployment = builder.deployment;
     this.nodeAlias = builder.nodeAlias;
     this.namespace = builder.namespace;
     this.nodeId = builder.nodeId;

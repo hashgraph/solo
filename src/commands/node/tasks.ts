@@ -464,7 +464,7 @@ export class NodeCommandTasks {
         title: `Check proxy for node: ${chalk.yellow(nodeAlias)}`,
         task: async ctx => {
           const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
-          const k8 = helpers.getK8FromContext(this.k8Factory, context);
+          const k8 = this.k8Factory.getK8(context);
           await k8
             .pods()
             .waitForReadyStatus(
@@ -925,7 +925,7 @@ export class NodeCommandTasks {
         self.logger.debug(`zip file: ${zipFile}`);
         for (const nodeAlias of ctx.config.nodeAliases) {
           const context = helpers.extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
-          const k8 = helpers.getK8FromContext(this.k8Factory, context);
+          const k8 = this.k8Factory.getK8(context);
           const podRef = ctx.config.podRefs[nodeAlias];
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
           self.logger.debug(`Uploading state files to pod ${podRef.name}`);
@@ -1126,7 +1126,7 @@ export class NodeCommandTasks {
           title: `Start node: ${chalk.yellow(nodeAlias)}`,
           task: async () => {
             const context = helpers.extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
-            const k8 = helpers.getK8FromContext(this.k8Factory, context);
+            const k8 = this.k8Factory.getK8(context);
             await k8.containers().readByRef(containerRef).execContainer(['systemctl', 'restart', 'network-node']);
           },
         });
