@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before, afterEach} from 'mocha';
+import {after, afterEach, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../src/commands/flags.js';
@@ -31,13 +31,13 @@ import {InjectTokens} from '../../src/core/dependency_injection/inject_tokens.js
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = releaseTag;
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
   argv[flags.generateGossipKeys.name] = true;
   argv[flags.generateTlsKeys.name] = true;
-  argv[flags.clusterName.name] = TEST_CLUSTER;
+  argv[flags.clusterRef.name] = TEST_CLUSTER;
   argv[flags.devMode.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
@@ -150,6 +150,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
                 flags.devMode.constName,
                 flags.quiet.constName,
+                'contexts',
               ]);
             } catch (e) {
               nodeCmd.logger.showUserError(e);

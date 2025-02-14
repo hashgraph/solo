@@ -15,6 +15,7 @@ import {type NetworkNodeServices} from '../network_node_services.js';
 import {SoloError} from '../errors.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account_manager.js';
+import {type ConsensusNode} from '../model/consensus_node.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -24,7 +25,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   public readonly rosters: Record<NodeAlias, GenesisNetworkRosterEntryDataWrapper> = {};
   private readonly initializationPromise: Promise<void>;
   private constructor(
-    private readonly nodeAliases: NodeAliases,
+    private readonly consensusNodes: ConsensusNode[],
     private readonly keyManager: KeyManager,
     private readonly accountManager: AccountManager,
     private readonly keysDir: string,
@@ -32,15 +33,15 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     adminPublicKeyMap: Map<NodeAlias, string>,
   ) {
     this.initializationPromise = (async () => {
-      nodeAliases.forEach(nodeAlias => {
+      consensusNodes.forEach(consensusNode => {
         let adminPubKey: PublicKey;
-        const accountId = AccountId.fromString(networkNodeServiceMap.get(nodeAlias).accountId);
-        const namespace = networkNodeServiceMap.get(nodeAlias).namespace;
+        const accountId = AccountId.fromString(networkNodeServiceMap.get(consensusNode.name).accountId);
+        const namespace = networkNodeServiceMap.get(consensusNode.name).namespace;
 
-        if (adminPublicKeyMap.has(nodeAlias)) {
+        if (adminPublicKeyMap.has(consensusNode.name as NodeAlias)) {
           try {
-            if (PublicKey.fromStringED25519(adminPublicKeyMap[nodeAlias])) {
-              adminPubKey = adminPublicKeyMap[nodeAlias];
+            if (PublicKey.fromStringED25519(adminPublicKeyMap[consensusNode.name])) {
+              adminPubKey = adminPublicKeyMap[consensusNode.name];
             }
           } catch {
             // Ignore error
@@ -55,35 +56,33 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         }
 
         const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
-          +networkNodeServiceMap.get(nodeAlias).nodeId,
+          +networkNodeServiceMap.get(consensusNode.name).nodeId,
           adminPubKey,
-          nodeAlias,
+          consensusNode.name,
         );
-        this.nodes[nodeAlias] = nodeDataWrapper;
+        this.nodes[consensusNode.name] = nodeDataWrapper;
         nodeDataWrapper.accountId = accountId;
 
         const rosterDataWrapper = new GenesisNetworkRosterEntryDataWrapper(
-          +networkNodeServiceMap.get(nodeAlias).nodeId,
+          +networkNodeServiceMap.get(consensusNode.name).nodeId,
         );
-        this.rosters[nodeAlias] = rosterDataWrapper;
-        rosterDataWrapper.weight = this.nodes[nodeAlias].weight = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
+        this.rosters[consensusNode.name] = rosterDataWrapper;
+        rosterDataWrapper.weight = this.nodes[consensusNode.name].weight = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
 
         const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
-        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
+        const externalIP = consensusNode.fullyQualifiedDomainName;
         // Add gossip endpoints
         nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
         rosterDataWrapper.addGossipEndpoint(externalIP, externalPort);
 
-        const haProxyFqdn = Templates.renderFullyQualifiedHaProxyName(nodeAlias, namespace);
-
         // Add service endpoints
-        nodeDataWrapper.addServiceEndpoint(haProxyFqdn, constants.GRPC_PORT);
+        nodeDataWrapper.addServiceEndpoint(consensusNode.fullyQualifiedDomainName, constants.GRPC_PORT);
       });
     })();
   }
 
   public static async initialize(
-    nodeAliases: NodeAliases,
+    consensusNodes: ConsensusNode[],
     keyManager: KeyManager,
     accountManager: AccountManager,
     keysDir: string,
@@ -96,17 +95,17 @@ export class GenesisNetworkDataConstructor implements ToJSON {
       adminPublicKeys.length === 1 && adminPublicKeys[0] === flags.adminPublicKeys.definition.defaultValue;
     // If admin keys are passed and if it is not the default value from flags then validate and build the adminPublicKeyMap
     if (adminPublicKeys.length > 0 && !adminPublicKeyIsDefaultValue) {
-      if (adminPublicKeys.length !== nodeAliases.length) {
+      if (adminPublicKeys.length !== consensusNodes.length) {
         throw new SoloError('Provide a comma separated list of DER encoded ED25519 public keys for each node');
       }
 
       adminPublicKeys.forEach((key, i) => {
-        adminPublicKeyMap[nodeAliases[i]] = key;
+        adminPublicKeyMap[consensusNodes[i].name] = key;
       });
     }
 
     const instance = new GenesisNetworkDataConstructor(
-      nodeAliases,
+      consensusNodes,
       keyManager,
       accountManager,
       keysDir,
@@ -125,17 +124,17 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   private async load() {
     await this.initializationPromise;
     await Promise.all(
-      this.nodeAliases.map(async nodeAlias => {
-        const signingCertFile = Templates.renderGossipPemPublicKeyFile(nodeAlias);
+      this.consensusNodes.map(async consensusNode => {
+        const signingCertFile = Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias);
         const signingCertFullPath = path.join(this.keysDir, signingCertFile);
         const derCertificate = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
 
         //* Assign the DER formatted certificate
-        this.rosters[nodeAlias].gossipCaCertificate = this.nodes[nodeAlias].gossipCaCertificate =
+        this.rosters[consensusNode.name].gossipCaCertificate = this.nodes[consensusNode.name].gossipCaCertificate =
           Buffer.from(derCertificate).toString('base64');
 
         //* Generate the SHA-384 hash
-        this.nodes[nodeAlias].grpcCertificateHash = '';
+        this.nodes[consensusNode.name].grpcCertificateHash = '';
       }),
     );
   }

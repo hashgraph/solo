@@ -12,8 +12,11 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
 import {type AnyObject} from '../types/aliases.js';
+import {type ClusterRef} from '../core/config/remote/types.js';
 
 export class Flags {
+  public static KEY_COMMON = '_COMMON_';
+
   private static async prompt(
     type: string,
     task: ListrTaskWrapper<any, any, any>,
@@ -110,22 +113,24 @@ export class Flags {
   };
 
   // list of common flags across commands. command specific flags are defined in the command's module.
-  static readonly clusterName: CommandFlag = {
-    constName: 'clusterName',
-    name: 'cluster-name',
+  static readonly clusterRef: CommandFlag = {
+    constName: 'clusterRef',
+    name: 'cluster-ref',
     definition: {
-      describe: 'Cluster name',
+      describe:
+        'The cluster reference that will be used for referencing the Kubernetes cluster and stored in the local and ' +
+        'remote configuration for the deployment.  For commands that take multiple clusters they can be separated by commas.',
       alias: 'c',
       type: 'string',
     },
-    prompt: async function promptClusterName(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.clusterName.definition.defaultValue,
-        'Enter cluster name: ',
-        'cluster name cannot be empty',
-        Flags.clusterName.name,
+        Flags.clusterRef.definition.defaultValue,
+        'Enter cluster reference: ',
+        'cluster reference cannot be empty',
+        Flags.clusterRef.name,
       );
     },
   };
@@ -171,33 +176,69 @@ export class Flags {
     },
   };
 
+  /**
+   * Parse the values files input string that includes the cluster reference and the values file path
+   * <p>It supports input as below:
+   * <p>--values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
+   * @param input
+   */
+  static parseValuesFilesInput(input: string): Record<ClusterRef, Array<string>> {
+    const valuesFiles: Record<ClusterRef, Array<string>> = {};
+    if (input) {
+      const inputItems = input.split(',');
+      inputItems.forEach(v => {
+        const parts = v.split('=');
+
+        let clusterRef = '';
+        let valuesFile = '';
+        if (parts.length !== 2) {
+          valuesFile = path.resolve(v);
+          clusterRef = Flags.KEY_COMMON;
+        } else {
+          clusterRef = parts[0];
+          valuesFile = path.resolve(parts[1]);
+        }
+
+        if (!valuesFiles[clusterRef]) {
+          valuesFiles[clusterRef] = [];
+        }
+        valuesFiles[clusterRef].push(valuesFile);
+      });
+    }
+
+    return valuesFiles;
+  }
+
   static readonly valuesFile: CommandFlag = {
     constName: 'valuesFile',
     name: 'values-file',
     definition: {
-      describe: 'Comma separated chart values files',
+      describe: 'Comma separated chart values file',
       defaultValue: '',
       alias: 'f',
       type: 'string',
     },
     prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
-      try {
-        if (input && !fs.existsSync(input)) {
-          input = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'text',
-            default: Flags.valuesFile.definition.defaultValue,
-            message: 'Enter path to values.yaml: ',
-          });
+      return input; // no prompt is needed for values file
+    },
+  };
 
-          if (!fs.existsSync(input)) {
-            throw new IllegalArgumentError('Invalid values.yaml file', input);
-          }
-        }
-
-        return input;
-      } catch (e: Error | any) {
-        throw new SoloError(`input failed: ${Flags.valuesFile.name}`, e);
+  static readonly networkDeploymentValuesFile: CommandFlag = {
+    constName: 'valuesFile',
+    name: 'values-file',
+    definition: {
+      describe:
+        'Comma separated chart values file paths for each cluster (e.g. values.yaml,cluster-1=./a/b/values1.yaml,cluster-2=./a/b/values2.yaml)',
+      defaultValue: '',
+      alias: 'f',
+      type: 'string',
+    },
+    prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+      if (input) {
+        Flags.parseValuesFilesInput(input); // validate input as early as possible by parsing it
       }
+
+      return input; // no prompt is needed for values file
     },
   };
 
@@ -343,8 +384,8 @@ export class Flags {
   };
 
   /*
-    Deploy cert manager CRDs separately from cert manager itself.  Cert manager
-    CRDs are required for cert manager to deploy successfully.
+		Deploy cert manager CRDs separately from cert manager itself.  Cert manager
+		CRDs are required for cert manager to deploy successfully.
  */
   static readonly deployCertManagerCrds: CommandFlag = {
     constName: 'deployCertManagerCrds',
@@ -1995,7 +2036,7 @@ export class Flags {
     Flags.cacheDir,
     Flags.chainId,
     Flags.chartDirectory,
-    Flags.clusterName,
+    Flags.clusterRef,
     Flags.clusterSetupNamespace,
     Flags.context,
     Flags.createAmount,
@@ -2041,6 +2082,7 @@ export class Flags {
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
     Flags.namespace,
+    Flags.networkDeploymentValuesFile,
     Flags.newAccountNumber,
     Flags.newAdminKey,
     Flags.nodeAlias,

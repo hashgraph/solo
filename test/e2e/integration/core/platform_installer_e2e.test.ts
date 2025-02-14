@@ -22,12 +22,12 @@ import {ContainerRef} from '../../../../src/core/kube/resources/container/contai
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = NamespaceName.of('pkg-installer-e2e');
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
 argv[flags.namespace.name] = namespace.name;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
