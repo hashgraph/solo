@@ -5,7 +5,7 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
@@ -19,19 +19,20 @@ import {type PlatformInstaller} from '../core/platform_installer.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {v4 as uuidv4} from 'uuid';
-import * as Base64 from 'js-base64';
 import {type SoloListrTask} from '../types/index.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
+import {type ConsensusNode} from '../core/model/consensus_node.js';
+import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import {Base64} from 'js-base64';
+import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -52,7 +53,8 @@ export interface NetworkDeployConfigClass {
   nodeAliases: NodeAliases;
   stagingDir: string;
   stagingKeysDir: string;
-  valuesArg: string;
+  valuesFile: string;
+  valuesArgMap: Record<ClusterRef, string>;
   grpcTlsCertificatePath: string;
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
@@ -77,6 +79,9 @@ export interface NetworkDeployConfigClass {
   awsBucketPrefix: string;
   backupBucket: string;
   googleCredential: string;
+  consensusNodes: ConsensusNode[];
+  contexts: string[];
+  clusterRefs: ClusterRefs;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -133,7 +138,7 @@ export class NetworkCommand extends BaseCommand {
       flags.quiet,
       flags.releaseTag,
       flags.settingTxt,
-      flags.valuesFile,
+      flags.networkDeploymentValuesFile,
       flags.grpcTlsCertificatePath,
       flags.grpcWebTlsCertificatePath,
       flags.grpcTlsKeyPath,
@@ -156,71 +161,111 @@ export class NetworkCommand extends BaseCommand {
     ];
   }
 
+  async prepareMinioSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
+    // Generating new minio credentials
+    const minioData = {};
+    const namespace = config.namespace;
+    const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
+    minioData['config.env'] = Base64.encode(envString);
+
+    // create minio secret in each cluster
+    for (const context of config.contexts) {
+      this.logger.debug(`creating minio secret using context: ${context}`);
+
+      const isMinioSecretCreated = await this.k8Factory
+        .getK8(context)
+        .secrets()
+        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+
+      if (!isMinioSecretCreated) {
+        throw new SoloError(`failed to create new minio secret using context: ${context}`);
+      }
+
+      this.logger.debug(`created minio secret using context: ${context}`);
+    }
+  }
+
+  async prepareStreamUploaderSecrets(config: NetworkDeployConfigClass) {
+    const namespace = config.namespace;
+
+    // Generating cloud storage secrets
+    const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
+    const cloudData = {};
+    if (
+      config.storageType === constants.StorageType.AWS_ONLY ||
+      config.storageType === constants.StorageType.AWS_AND_GCS
+    ) {
+      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
+      cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+      cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
+    }
+    if (
+      config.storageType === constants.StorageType.GCS_ONLY ||
+      config.storageType === constants.StorageType.AWS_AND_GCS
+    ) {
+      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
+      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+      cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
+    }
+
+    // create secret in each cluster
+    for (const context of config.contexts) {
+      this.logger.debug(
+        `creating secret for storage credential of type '${config.storageType}' using context: ${context}`,
+      );
+
+      const isCloudSecretCreated = await this.k8Factory
+        .getK8(context)
+        .secrets()
+        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+
+      if (!isCloudSecretCreated) {
+        throw new SoloError(
+          `failed to create secret for storage credentials of type '${config.storageType}' using context: ${context}`,
+        );
+      }
+
+      this.logger.debug(
+        `created secret for storage credential of type '${config.storageType}' using context: ${context}`,
+      );
+    }
+  }
+
+  async prepareBackupUploaderSecrets(config: NetworkDeployConfigClass) {
+    if (config.googleCredential) {
+      const backupData = {};
+      const namespace = config.namespace;
+      const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
+      backupData['saJson'] = Base64.encode(googleCredential);
+
+      // create secret in each cluster
+      for (const context of config.contexts) {
+        this.logger.debug(`creating secret for backup uploader using context: ${context}`);
+
+        const k8client = this.k8Factory.getK8(context);
+        const isBackupSecretCreated = await k8client
+          .secrets()
+          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
+
+        if (!isBackupSecretCreated) {
+          throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
+        }
+
+        this.logger.debug(`created secret for backup uploader using context: ${context}`);
+      }
+    }
+  }
+
   async prepareStorageSecrets(config: NetworkDeployConfigClass) {
     try {
-      const namespace = config.namespace;
       if (config.storageType !== constants.StorageType.MINIO_ONLY) {
         const minioAccessKey = uuidv4();
         const minioSecretKey = uuidv4();
-        const minioData = {};
-
-        // Generating new minio credentials
-        const envString = `MINIO_ROOT_USER=${minioAccessKey}\nMINIO_ROOT_PASSWORD=${minioSecretKey}`;
-        minioData['config.env'] = Base64.encode(envString);
-        const isMinioSecretCreated = await this.k8Factory
-          .default()
-          .secrets()
-          .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
-        if (!isMinioSecretCreated) {
-          throw new SoloError('ailed to create new minio secret');
-        }
+        await this.prepareMinioSecrets(config, minioAccessKey, minioSecretKey);
+        await this.prepareStreamUploaderSecrets(config);
       }
 
-      // Generating cloud storage secrets
-      const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
-      const cloudData = {};
-      if (
-        config.storageType === constants.StorageType.AWS_ONLY ||
-        config.storageType === constants.StorageType.AWS_AND_GCS
-      ) {
-        cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
-        cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
-        cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
-      }
-      if (
-        config.storageType === constants.StorageType.GCS_ONLY ||
-        config.storageType === constants.StorageType.AWS_AND_GCS
-      ) {
-        cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
-        cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
-        cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
-      }
-
-      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-        const isCloudSecretCreated = await this.k8Factory
-          .default()
-          .secrets()
-          .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
-        if (!isCloudSecretCreated) {
-          throw new SoloError(
-            `failed to create Kubernetes secret for storage credentials of type '${config.storageType}'`,
-          );
-        }
-      }
-
-      // generate backup uploader secret
-      if (config.googleCredential) {
-        const backupData = {};
-        const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
-        backupData['saJson'] = Base64.encode(googleCredential);
-        const isBackupSecretCreated = await this.k8Factory
-          .default()
-          .secrets()
-          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
-        if (!isBackupSecretCreated) {
-          throw new SoloError(`failed to create Kubernetes secret for backup uploader of type '${config.storageType}'`);
-        }
-      }
+      await this.prepareBackupUploaderSecrets(config);
     } catch (e: Error | any) {
       const errorMessage = 'failed to create Kubernetes storage secret ';
       this.logger.error(errorMessage, e);
@@ -228,7 +273,11 @@ export class NetworkCommand extends BaseCommand {
     }
   }
 
-  async prepareValuesArg(config: {
+  /**
+   * Prepare values args string for each cluster-ref
+   * @param config
+   */
+  async prepareValuesArgMap(config: {
     chartDirectory?: string;
     app?: string;
     nodeAliases: string[];
@@ -254,34 +303,106 @@ export class NetworkCommand extends BaseCommand {
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
-  }) {
-    let valuesArg = config.chartDirectory
-      ? `-f ${path.join(config.chartDirectory, 'solo-deployment', 'values.yaml')}`
-      : '';
+    clusterRefs: ClusterRefs;
+    consensusNodes: ConsensusNode[];
+  }): Promise<Record<ClusterRef, string>> {
+    const valuesArgs: Record<ClusterRef, string> = this.prepareValuesArg(config);
 
-    if (config.app !== constants.HEDERA_APP_NAME) {
-      const index = config.nodeAliases.length;
-      for (let i = 0; i < index; i++) {
-        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`;
-        valuesArg += ` --set "hedera.nodes[${i}].root.extraEnv[0].value=com.swirlds.platform.Browser"`;
-      }
-      valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias, 1);
-    } else {
-      valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);
+    // prepare values files for each cluster
+    const valuesArgMap: Record<ClusterRef, string> = {};
+    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
+    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
+      config.clusterRefs,
+      config.chartDirectory,
+      this.profileValuesFile,
+      config.valuesFile,
+    );
+
+    for (const clusterRef of Object.keys(valuesFiles)) {
+      valuesArgMap[clusterRef] = valuesArgs[clusterRef] + valuesFiles[clusterRef];
+      this.logger.debug(`Prepared helm chart values for cluster-ref: ${clusterRef}`, {valuesArg: valuesArgMap});
     }
+
+    return valuesArgMap;
+  }
+
+  /**
+   * Prepare the values argument for the helm chart for a given config
+   * @param config
+   */
+  prepareValuesArg(config: {
+    chartDirectory?: string;
+    app?: string;
+    consensusNodes: ConsensusNode[];
+    debugNodeAlias?: NodeAlias;
+    enablePrometheusSvcMonitor?: boolean;
+    releaseTag?: string;
+    persistentVolumeClaims?: string;
+    valuesFile?: string;
+    haproxyIpsParsed?: Record<NodeAlias, IP>;
+    envoyIpsParsed?: Record<NodeAlias, IP>;
+    storageType: constants.StorageType;
+    resolvedThrottlesFile: string;
+    gcsAccessKey: string;
+    gcsSecrets: string;
+    gcsEndpoint: string;
+    gcsBucket: string;
+    gcsBucketPrefix: string;
+    awsAccessKey: string;
+    awsSecrets: string;
+    awsEndpoint: string;
+    awsBucket: string;
+    awsBucketPrefix: string;
+    backupBucket: string;
+    googleCredential: string;
+    loadBalancerEnabled: boolean;
+  }): Record<ClusterRef, string> {
+    const valuesArgs: Record<ClusterRef, string> = {};
+    const clusterRefs: ClusterRef[] = [];
+    let extraEnvIndex = 0;
+
+    // initialize the valueArgs
+    for (const consensusNode of config.consensusNodes) {
+      // add the cluster to the list of clusters
+      if (!clusterRefs[consensusNode.cluster]) clusterRefs.push(consensusNode.cluster);
+
+      // set the extraEnv settings on the nodes for running with a local build or tool
+      if (config.app !== constants.HEDERA_APP_NAME) {
+        extraEnvIndex = 1; // used to add the debug options when using a tool or local build of hedera
+        let valuesArg: string = valuesArgs[consensusNode.cluster] ?? '';
+        valuesArg += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`;
+        valuesArg += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].value=com.swirlds.platform.Browser"`;
+        valuesArgs[consensusNode.cluster] = valuesArg;
+      } else {
+        // make sure each cluster has an empty string for the valuesArg
+        valuesArgs[consensusNode.cluster] = '';
+      }
+    }
+
+    // add debug options to the debug node
+    config.consensusNodes.filter(consensusNode => {
+      if (consensusNode.name === config.debugNodeAlias) {
+        config.consensusNodes[consensusNode.cluster] = addDebugOptions(
+          config.consensusNodes[consensusNode.cluster],
+          config.debugNodeAlias,
+          extraEnvIndex,
+        );
+      }
+    });
 
     if (
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.GCS_ONLY
     ) {
-      valuesArg += ' --set cloud.gcs.enabled=true';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.gcs.enabled=true'));
     }
 
     if (
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.AWS_ONLY
     ) {
-      valuesArg += ' --set cloud.s3.enabled=true';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.s3.enabled=true'));
     }
 
     if (
@@ -289,79 +410,133 @@ export class NetworkCommand extends BaseCommand {
       config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      valuesArg += ' --set cloud.minio.enabled=false';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.minio.enabled=false'));
     }
 
     if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      valuesArg += ' --set cloud.generateNewSecrets=false';
+      clusterRefs.forEach(clusterRef => (valuesArgs[clusterRef] += ' --set cloud.generateNewSecrets=false'));
     }
 
     if (config.gcsBucket) {
-      valuesArg += ` --set cloud.buckets.streamBucket=${config.gcsBucket}`;
-      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ` --set cloud.buckets.streamBucket=${config.gcsBucket}` +
+            ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`),
+      );
     }
 
     if (config.gcsBucketPrefix) {
-      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
+      clusterRefs.forEach(
+        clusterRef => (valuesArgs[clusterRef] += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`),
+      );
     }
 
     if (config.awsBucket) {
-      valuesArg += ` --set cloud.buckets.streamBucket=${config.awsBucket}`;
-      valuesArg += ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ` --set cloud.buckets.streamBucket=${config.awsBucket}` +
+            ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`),
+      );
     }
 
     if (config.awsBucketPrefix) {
-      valuesArg += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`;
+      clusterRefs.forEach(
+        clusterRef => (valuesArgs[clusterRef] += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`),
+      );
     }
 
     if (config.backupBucket) {
-      valuesArg += ' --set defaults.sidecars.backupUploader.enabled=true';
-      valuesArg += ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ' --set defaults.sidecars.backupUploader.enabled=true' +
+            ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`),
+      );
     }
 
-    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName);
-    if (this.profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(this.profileValuesFile);
-    }
-
-    valuesArg += ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"`;
-
-    valuesArg += ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
+    clusterRefs.forEach(
+      clusterRef =>
+        (valuesArgs[clusterRef] +=
+          ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"` +
+          ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`),
+    );
 
     // Iterate over each node and set static IPs for HAProxy
-    if (config.haproxyIpsParsed) {
-      config.nodeAliases.forEach((nodeAlias, index) => {
-        const ip = config.haproxyIpsParsed?.[nodeAlias];
-
-        if (ip) valuesArg += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
-      });
-    }
+    this.addArgForEachRecord(
+      config.haproxyIpsParsed,
+      config.consensusNodes,
+      valuesArgs,
+      ' --set "hedera.nodes[${nodeId}].haproxyStaticIP=${recordValue}"',
+    );
 
     // Iterate over each node and set static IPs for Envoy Proxy
-    if (config.envoyIpsParsed) {
-      config.nodeAliases.forEach((nodeAlias, index) => {
-        const ip = config.envoyIpsParsed?.[nodeAlias];
-
-        if (ip) valuesArg += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
-      });
-    }
+    this.addArgForEachRecord(
+      config.envoyIpsParsed,
+      config.consensusNodes,
+      valuesArgs,
+      ' --set "hedera.nodes[${nodeId}].envoyProxyStaticIP=${recordValue}"',
+    );
 
     if (config.resolvedThrottlesFile) {
-      valuesArg += ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`),
+      );
     }
 
     if (config.loadBalancerEnabled) {
-      valuesArg += ' --set "defaults.haproxy.service.type=LoadBalancer"';
-      valuesArg += ' --set "defaults.envoyProxy.service.type=LoadBalancer"';
+      clusterRefs.forEach(
+        clusterRef =>
+          (valuesArgs[clusterRef] +=
+            ' --set "defaults.haproxy.service.type=LoadBalancer"' +
+            ' --set "defaults.envoyProxy.service.type=LoadBalancer"'),
+      );
     }
 
-    if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
-    }
+    return valuesArgs;
+  }
 
-    this.logger.debug('Prepared helm chart values', {valuesArg});
-    return valuesArg;
+  /**
+   * Adds the template string to the argument for each record
+   * @param records - the records to iterate over
+   * @param consensusNodes - the consensus nodes to iterate over
+   * @param valuesArgs - the values arguments to add to
+   * @param templateString - the template string to add
+   * @private
+   */
+  private addArgForEachRecord(
+    records: Record<NodeAlias, string>,
+    consensusNodes: ConsensusNode[],
+    valuesArgs: Record<ClusterRef, string>,
+    templateString: string,
+  ) {
+    if (records) {
+      consensusNodes.forEach(consensusNode => {
+        if (records[consensusNode.name]) {
+          const newTemplateString = templateString.replace('${nodeId}', consensusNode.nodeId.toString());
+          valuesArgs[consensusNode.cluster] += newTemplateString.replace('${recordValue}', records[consensusNode.name]);
+        }
+      });
+    }
+  }
+
+  async prepareNamespaces(config: NetworkDeployConfigClass) {
+    const namespace = config.namespace;
+
+    // check and create namespace in each cluster
+    for (const context of config.contexts) {
+      const k8client = this.k8Factory.getK8(context);
+      if (!(await k8client.namespaces().has(namespace))) {
+        this.logger.debug(`creating namespace '${namespace}' using context: ${context}`);
+        await k8client.namespaces().create(namespace);
+        this.logger.debug(`created namespace '${namespace}' using context: ${context}`);
+      } else {
+        this.logger.debug(`namespace '${namespace}' found using context: ${context}`);
+      }
+    }
   }
 
   async prepareConfig(task: any, argv: any) {
@@ -382,6 +557,7 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeAlias,
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
+      flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
       flags.profileName,
       flags.profileFile,
@@ -401,19 +577,30 @@ export class NetworkCommand extends BaseCommand {
     ]);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
-    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    let namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    if (!namespace) {
+      namespace = NamespaceName.of(this.configManager.getFlag<string>(flags.deployment));
+    }
+    this.configManager.setFlag(flags.namespace, namespace);
 
     // create a config object for subsequent steps
-    const config = this.getConfig(NetworkCommand.DEPLOY_CONFIGS_NAME, NetworkCommand.DEPLOY_FLAGS_LIST, [
-      'chartPath',
-      'keysDir',
-      'nodeAliases',
-      'stagingDir',
-      'stagingKeysDir',
-      'valuesArg',
-      'resolvedThrottlesFile',
-      'namespace',
-    ]) as NetworkDeployConfigClass;
+    const config: NetworkDeployConfigClass = this.getConfig(
+      NetworkCommand.DEPLOY_CONFIGS_NAME,
+      NetworkCommand.DEPLOY_FLAGS_LIST,
+      [
+        'chartPath',
+        'keysDir',
+        'nodeAliases',
+        'stagingDir',
+        'stagingKeysDir',
+        'valuesArgMap',
+        'resolvedThrottlesFile',
+        'namespace',
+        'consensusNodes',
+        'contexts',
+        'clusterRefs',
+      ],
+    ) as NetworkDeployConfigClass;
 
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
 
@@ -442,12 +629,22 @@ export class NetworkCommand extends BaseCommand {
       flags.genesisThrottlesFile.definition.defaultValue as string,
     );
 
-    config.valuesArg = await this.prepareValuesArg(config);
-    config.namespace = namespace;
-
-    if (!(await this.k8Factory.default().namespaces().has(namespace))) {
-      await this.k8Factory.default().namespaces().create(namespace);
+    config.consensusNodes = this.getConsensusNodes();
+    config.contexts = this.getContexts();
+    config.clusterRefs = this.getClusterRefs();
+    if (config.nodeAliases.length === 0) {
+      config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
+      if (config.nodeAliases.length === 0) {
+        throw new SoloError('no node aliases provided via flags or RemoteConfig');
+      }
+      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
     }
+
+    config.valuesArgMap = await this.prepareValuesArgMap(config);
+
+    // need to prepare the namespaces before we can proceed
+    config.namespace = namespace;
+    await this.prepareNamespaces(config);
 
     // prepare staging keys directory
     if (!fs.existsSync(config.stagingKeysDir)) {
@@ -535,12 +732,18 @@ export class NetworkCommand extends BaseCommand {
         },
         {
           title: 'Check if cluster setup chart is installed',
-          task: async () => {
-            const isChartInstalled = await this.chartManager.isChartInstalled(null, constants.SOLO_CLUSTER_SETUP_CHART);
-            if (!isChartInstalled) {
-              throw new SoloError(
-                `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed. Run 'solo cluster setup'`,
+          task: async ctx => {
+            for (const context of ctx.config.contexts) {
+              const isChartInstalled = await this.chartManager.isChartInstalled(
+                null,
+                constants.SOLO_CLUSTER_SETUP_CHART,
+                context,
               );
+              if (!isChartInstalled) {
+                throw new SoloError(
+                  `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed for cluster: ${context}. Run 'solo cluster setup'`,
+                );
+              }
             }
           },
         },
@@ -553,7 +756,6 @@ export class NetworkCommand extends BaseCommand {
                   title: 'Copy Gossip keys to staging',
                   task: ctx => {
                     const config = ctx.config;
-
                     this.keyManager.copyGossipKeysToStaging(config.keysDir, config.stagingKeysDir, config.nodeAliases);
                   },
                 },
@@ -581,32 +783,43 @@ export class NetworkCommand extends BaseCommand {
             const config = ctx.config;
 
             // set up the subtasks
-            return parentTask.newListr(self.platformInstaller.copyNodeKeys(config.stagingDir, config.nodeAliases), {
-              concurrent: true,
-              rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-            });
+            return parentTask.newListr(
+              self.platformInstaller.copyNodeKeys(config.stagingDir, config.consensusNodes, config.contexts),
+              {
+                concurrent: true,
+                rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+              },
+            );
           },
         },
         {
           title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
           task: async ctx => {
             const config = ctx.config;
-            if (await self.chartManager.isChartInstalled(config.namespace, constants.SOLO_DEPLOYMENT_CHART)) {
-              await self.chartManager.uninstall(
+            for (const clusterRef of Object.keys(config.clusterRefs)) {
+              if (
+                await self.chartManager.isChartInstalled(
+                  config.namespace,
+                  constants.SOLO_DEPLOYMENT_CHART,
+                  config.clusterRefs[clusterRef],
+                )
+              ) {
+                await self.chartManager.uninstall(
+                  config.namespace,
+                  constants.SOLO_DEPLOYMENT_CHART,
+                  this.k8Factory.getK8(config.clusterRefs[clusterRef]).contexts().readCurrent(),
+                );
+              }
+
+              await this.chartManager.install(
                 config.namespace,
                 constants.SOLO_DEPLOYMENT_CHART,
-                this.k8Factory.default().contexts().readCurrent(),
+                ctx.config.chartPath,
+                config.soloChartVersion,
+                config.valuesArgMap[clusterRef],
+                config.clusterRefs[clusterRef],
               );
             }
-
-            await this.chartManager.install(
-              config.namespace,
-              constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath,
-              config.soloChartVersion,
-              config.valuesArg,
-              this.k8Factory.default().contexts().readCurrent(),
-            );
           },
         },
         {
@@ -616,16 +829,16 @@ export class NetworkCommand extends BaseCommand {
             const config = ctx.config;
 
             // nodes
-            for (const nodeAlias of config.nodeAliases) {
+            for (const consensusNode of config.consensusNodes) {
               subTasks.push({
-                title: `Check Node: ${chalk.yellow(nodeAlias)}`,
+                title: `Check Node: ${chalk.yellow(consensusNode.name)}, Cluster: ${chalk.yellow(consensusNode.cluster)}`,
                 task: async () =>
                   await self.k8Factory
-                    .default()
+                    .getK8(consensusNode.context)
                     .pods()
                     .waitForRunningPhase(
                       config.namespace,
-                      [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'],
+                      [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
                       constants.PODS_RUNNING_MAX_ATTEMPTS,
                       constants.PODS_RUNNING_DELAY,
                     ),
@@ -648,12 +861,12 @@ export class NetworkCommand extends BaseCommand {
             const config = ctx.config;
 
             // HAProxy
-            for (const nodeAlias of config.nodeAliases) {
+            for (const consensusNode of config.consensusNodes) {
               subTasks.push({
-                title: `Check HAProxy for: ${chalk.yellow(nodeAlias)}`,
+                title: `Check HAProxy for: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
                 task: async () =>
                   await self.k8Factory
-                    .default()
+                    .getK8(consensusNode.context)
                     .pods()
                     .waitForRunningPhase(
                       config.namespace,
@@ -665,12 +878,12 @@ export class NetworkCommand extends BaseCommand {
             }
 
             // Envoy Proxy
-            for (const nodeAlias of config.nodeAliases) {
+            for (const consensusNode of config.consensusNodes) {
               subTasks.push({
-                title: `Check Envoy Proxy for: ${chalk.yellow(nodeAlias)}`,
+                title: `Check Envoy Proxy for: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
                 task: async () =>
                   await self.k8Factory
-                    .default()
+                    .getK8(consensusNode.context)
                     .pods()
                     .waitForRunningPhase(
                       ctx.config.namespace,
@@ -698,16 +911,19 @@ export class NetworkCommand extends BaseCommand {
             // minio
             subTasks.push({
               title: 'Check MinIO',
-              task: async ctx =>
-                await self.k8Factory
-                  .default()
-                  .pods()
-                  .waitForReadyStatus(
-                    ctx.config.namespace,
-                    ['v1.min.io/tenant=minio'],
-                    constants.PODS_RUNNING_MAX_ATTEMPTS,
-                    constants.PODS_RUNNING_DELAY,
-                  ),
+              task: async ctx => {
+                for (const context of ctx.config.contexts) {
+                  await self.k8Factory
+                    .getK8(context)
+                    .pods()
+                    .waitForReadyStatus(
+                      ctx.config.namespace,
+                      ['v1.min.io/tenant=minio'],
+                      constants.PODS_RUNNING_MAX_ATTEMPTS,
+                      constants.PODS_RUNNING_DELAY,
+                    );
+                }
+              },
               // skip if only cloud storage is/are used
               skip: ctx =>
                 ctx.config.storageType === constants.StorageType.GCS_ONLY ||
@@ -858,14 +1074,16 @@ export class NetworkCommand extends BaseCommand {
           title: `Upgrade chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
           task: async ctx => {
             const config = ctx.config;
-            await this.chartManager.upgrade(
-              config.namespace,
-              constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath,
-              config.soloChartVersion,
-              config.valuesArg,
-              this.k8Factory.default().contexts().readCurrent(),
-            );
+            for (const clusterRef of Object.keys(config.valuesArgMap)) {
+              await this.chartManager.upgrade(
+                config.namespace,
+                constants.SOLO_DEPLOYMENT_CHART,
+                ctx.config.chartPath,
+                config.soloChartVersion,
+                config.valuesArgMap[clusterRef],
+                this.k8Factory.default().contexts().readCurrent(),
+              );
+            }
           },
         },
         {
@@ -901,7 +1119,11 @@ export class NetworkCommand extends BaseCommand {
     return true;
   }
 
-  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  getCommandDefinition(): {
+    command: string;
+    desc: string;
+    builder: CommandBuilder;
+  } {
     const self = this;
     return {
       command: 'network',
@@ -992,31 +1214,30 @@ export class NetworkCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (ctx): Promise<void> => {
         const {
-          config: {namespace, nodeAliases},
+          config: {namespace},
         } = ctx;
-        const cluster = this.remoteConfigManager.currentCluster;
 
         await this.remoteConfigManager.modify(async remoteConfig => {
-          for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.add(
-              nodeAlias,
+          for (const consensusNode of ctx.config.consensusNodes) {
+            remoteConfig.components.edit(
+              consensusNode.name,
               new ConsensusNodeComponent(
-                nodeAlias,
-                cluster,
+                consensusNode.name,
+                consensusNode.cluster,
                 namespace.name,
-                ConsensusNodeStates.INITIALIZED,
-                Templates.nodeIdFromNodeAlias(nodeAlias),
+                ConsensusNodeStates.REQUESTED,
+                consensusNode.nodeId,
               ),
             );
 
             remoteConfig.components.add(
-              `envoy-proxy-${nodeAlias}`,
-              new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, cluster, namespace.name),
+              `envoy-proxy-${consensusNode.name}`,
+              new EnvoyProxyComponent(`envoy-proxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
             );
 
             remoteConfig.components.add(
-              `haproxy-${nodeAlias}`,
-              new HaProxyComponent(`haproxy-${nodeAlias}`, cluster, namespace.name),
+              `haproxy-${consensusNode.name}`,
+              new HaProxyComponent(`haproxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
             );
           }
         });

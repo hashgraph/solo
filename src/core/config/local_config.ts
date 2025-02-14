@@ -5,12 +5,12 @@ import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-valid
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import {type ClusterRefs, type Deployments, type LocalConfigData} from './local_config_data.js';
+import {type Deployments, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
-import {type DeploymentName, type EmailAddress, type Version} from './remote/types.js';
+import {type DeploymentName, type EmailAddress, type Version, type ClusterRefs} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
 import {type K8Factory} from '../kube/k8_factory.js';
 import * as helpers from '../helpers.js';

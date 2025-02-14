@@ -7,13 +7,12 @@ import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/err
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {PodName} from '../core/kube/resources/pod/pod_name.js';
-import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';

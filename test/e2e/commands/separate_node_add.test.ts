@@ -23,7 +23,7 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-add-separated');
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.stakeAmounts.name] = '1500,1';
 argv[flags.generateGossipKeys.name] = true;
@@ -42,7 +42,7 @@ const tempDir = 'contextDir';
 argvPrepare[flags.outputDir.name] = tempDir;
 argvPrepare[flags.outputDir.constName] = tempDir;
 
-const argvExecute = getDefaultArgv();
+const argvExecute = getDefaultArgv(namespace);
 argvExecute[flags.inputDir.name] = tempDir;
 argvExecute[flags.inputDir.constName] = tempDir;
 

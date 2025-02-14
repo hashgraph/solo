@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {ComponentType} from './enumerations.js';
+import {ComponentType, ConsensusNodeStates} from './enumerations.js';
 import {SoloError} from '../../errors.js';
 import {BaseComponent} from './components/base_component.js';
 import {RelayComponent} from './components/relay_component.js';
@@ -16,6 +16,7 @@ import {
   type IConsensusNodeComponent,
   type IRelayComponent,
   type ComponentName,
+  type NamespaceNameAsString,
 } from './types.js';
 import {type ToObject, type Validate} from '../../../types/index.js';
 
@@ -228,6 +229,32 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   /** Used to create an empty instance used to keep the constructor private */
   public static initializeEmpty(): ComponentsDataWrapper {
     return new ComponentsDataWrapper();
+  }
+
+  public static initializeWithNodes(
+    nodeAliases: string[],
+    cluster: string,
+    namespace: NamespaceNameAsString,
+  ): ComponentsDataWrapper {
+    const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
+    nodeAliases.forEach((alias, index) => {
+      consensusNodeComponents[alias] = new ConsensusNodeComponent(
+        alias,
+        cluster,
+        namespace,
+        ConsensusNodeStates.REQUESTED,
+        index,
+      );
+    });
+    const componentDataWrapper = new ComponentsDataWrapper(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      consensusNodeComponents,
+      undefined,
+    );
+    return componentDataWrapper;
   }
 
   /** checks if component exists in the respective group */

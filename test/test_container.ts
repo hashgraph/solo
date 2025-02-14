@@ -6,6 +6,7 @@ import {Container} from '../src/core/dependency_injection/container_init.js';
 import fs from 'fs';
 import {type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import * as yaml from 'yaml';
+import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
 
 const cacheDirectory = path.join('test', 'data', 'tmp');
 
@@ -26,6 +27,9 @@ export function resetForTest(namespace?: NamespaceNameAsString, cacheDir: string
     parsedData.deployments['deployment'].namespace = namespace;
   }
 
-  fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
+  // need to init the container prior to using K8Client for dependency injection to work
   resetTestContainer(cacheDir);
+
+  parsedData.clusterRefs['cluster-1'] = new K8Client(undefined).contexts().readCurrent();
+  fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
 }

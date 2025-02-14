@@ -5,11 +5,10 @@
 import {IllegalArgumentError} from '../../core/errors.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {YargsCommand} from '../../core/yargs_command.js';
-import {BaseCommand} from './../base.js';
+import {BaseCommand, type Opts} from './../base.js';
 import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
-import {type Opts} from '../../types/command_types.js';
 
 /**
  * Defines the core functionalities of 'node' command

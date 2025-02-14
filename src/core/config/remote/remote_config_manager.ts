@@ -64,7 +64,14 @@ export class RemoteConfigManager {
 
   /** @returns the components data wrapper cloned */
   public get components(): ComponentsDataWrapper {
-    return this.remoteConfig.components.clone();
+    return this.remoteConfig?.components?.clone();
+  }
+
+  /**
+   * @returns the remote configuration data's clusters cloned
+   */
+  public get clusters(): Record<ClusterRef, Cluster> {
+    return Object.assign({}, this.remoteConfig?.clusters);
   }
 
   /* ---------- Readers and Modifiers ---------- */
@@ -103,6 +110,9 @@ export class RemoteConfigManager {
       },
     );
 
+    // temporary workaround until we can have `solo deployment add` command
+    const nodeAliases: string[] = helpers.splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
+
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(
         this.getNamespace().name,
@@ -113,7 +123,11 @@ export class RemoteConfigManager {
       clusters,
       commandHistory: ['deployment create'],
       lastExecutedCommand: 'deployment create',
-      components: ComponentsDataWrapper.initializeEmpty(),
+      components: ComponentsDataWrapper.initializeWithNodes(
+        nodeAliases,
+        this.configManager.getFlag(flags.deploymentClusters),
+        this.getNamespace().name,
+      ),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
@@ -139,12 +153,18 @@ export class RemoteConfigManager {
   private async load(): Promise<boolean> {
     if (this.remoteConfig) return true;
 
-    const configMap = await this.getConfigMap();
-    if (!configMap) return false;
+    try {
+      const configMap = await this.getConfigMap();
 
-    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
+      if (configMap) {
+        this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
+        return true;
+      }
 
-    return true;
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -214,7 +234,7 @@ export class RemoteConfigManager {
 
     const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
 
-    const currentCommand = argv._.join(' ');
+    const currentCommand = argv._?.join(' ');
     const commandArguments = flags.stringifyArgv(argv);
 
     self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
