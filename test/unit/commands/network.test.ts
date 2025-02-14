@@ -215,7 +215,7 @@ describe('NetworkCommand unit tests', () => {
 
         expect(config.valuesArgMap).to.not.empty;
         expect(config.valuesArgMap['cluster']).to.not.empty;
-        expect(config.valuesArgMap['cluster'].indexOf('solo-deployment/values.yaml')).to.not.equal(-1);
+        expect(config.valuesArgMap['cluster'].indexOf(path.join('solo-deployment', 'values.yaml'))).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('values.yaml')).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('test-values1.yaml')).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('test-values2.yaml')).to.not.equal(-1);
