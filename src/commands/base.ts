@@ -330,11 +330,11 @@ export abstract class BaseCommand extends ShellRunner {
    * @param dirs a list of directories that need to be created in sequence
    */
   public setupHomeDirectory(dirs: string[] = []) {
-    if (dirs?.length === 0) {
+    if (!dirs || dirs?.length === 0) {
       dirs = [
         constants.SOLO_HOME_DIR,
         constants.SOLO_LOGS_DIR,
-        this.configManager.getFlag<string>(Flags.cacheDir),
+        this.configManager.getFlag<string>(Flags.cacheDir) || constants.SOLO_CACHE_DIR,
         constants.SOLO_VALUES_DIR,
       ];
     }
