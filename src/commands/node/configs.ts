@@ -461,7 +461,6 @@ export interface NodeStartConfigClass {
   stagingDir: string;
   podRefs: Record<NodeAlias, PodRef>;
   nodeAliasesUnparsed: string;
-  consensusNodes: ConsensusNode[];
   contexts: string[];
 }
 

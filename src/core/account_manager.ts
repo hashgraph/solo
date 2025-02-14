@@ -41,9 +41,8 @@ import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type ClusterRef, type DeploymentName} from './config/remote/types.js';
+import {type ClusterRef, type DeploymentName, type ClusterRefs} from './config/remote/types.js';
 import {type Service} from './kube/resources/service/service.js';
-import {type ClusterRefs} from './config/local_config_data.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';

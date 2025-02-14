@@ -33,10 +33,6 @@ import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {type NodeAlias} from '../types/aliases.js';
-import {type ClusterRefs} from '../core/config/local_config_data.js';
-import {type ClusterRef} from '../core/config/remote/types.js';
-import {type Cluster} from '../core/config/remote/cluster.js';
-import {Templates} from '../core/templates.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
