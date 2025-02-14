@@ -6,11 +6,10 @@ import {Listr} from 'listr2';
 import {SoloError, MissingArgumentError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
@@ -23,6 +22,8 @@ import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
+  clusterRef: string;
+  clusterContext: string;
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
   hederaExplorerTlsHostName: string;
@@ -63,6 +64,7 @@ export class ExplorerCommand extends BaseCommand {
   static get DEPLOY_FLAGS_LIST() {
     return [
       flags.chartDirectory,
+      flags.clusterRef,
       flags.enableIngress,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
@@ -189,8 +191,11 @@ export class ExplorerCommand extends BaseCommand {
             ]) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
+            ctx.config.clusterContext = ctx.config.clusterRef
+              ? this.getLocalConfig().clusterRefs[ctx.config.clusterRef]
+              : this.k8Factory.default().contexts().readCurrent();
 
-            if (!(await self.k8Factory.default().namespaces().has(ctx.config.namespace))) {
+            if (!(await self.k8Factory.getK8(ctx.config.clusterContext).namespaces().has(ctx.config.namespace))) {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
@@ -222,13 +227,13 @@ export class ExplorerCommand extends BaseCommand {
                 chartPath,
                 soloChartVersion,
                 '  --set cloud.certManager.enabled=true --set cert-manager.installCRDs=true',
-                this.k8Factory.default().contexts().readCurrent(),
+                ctx.config.clusterContext,
               );
             }
 
             // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
             await self.k8Factory
-              .default()
+              .getK8(ctx.config.clusterContext)
               .pods()
               .waitForReadyStatus(
                 constants.DEFAULT_CERT_MANAGER_NAMESPACE,
@@ -249,13 +254,13 @@ export class ExplorerCommand extends BaseCommand {
               chartPath,
               soloChartVersion,
               soloChartSetupValuesArg,
-              this.k8Factory.default().contexts().readCurrent(),
+              ctx.config.clusterContext,
             );
 
             if (config.enableIngress) {
               // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
               await this.k8Factory
-                .default()
+                .getK8(ctx.config.clusterContext)
                 .ingresses()
                 .update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
                   spec: {
@@ -265,7 +270,7 @@ export class ExplorerCommand extends BaseCommand {
 
               // to support GRPC over HTTP/2
               await this.k8Factory
-                .default()
+                .getK8(ctx.config.clusterContext)
                 .configMaps()
                 .update(clusterSetupNamespace, constants.SOLO_CLUSTER_SETUP_CHART + '-haproxy-ingress', {
                   'backend-protocol': 'h2',
@@ -289,13 +294,13 @@ export class ExplorerCommand extends BaseCommand {
               constants.HEDERA_EXPLORER_CHART_URL,
               config.hederaExplorerVersion,
               exploreValuesArg,
-              this.k8Factory.default().contexts().readCurrent(),
+              ctx.config.clusterContext,
             );
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
             // to support grpc over http/2
             await this.k8Factory
-              .default()
+              .getK8(ctx.config.clusterContext)
               .ingresses()
               .update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
                 metadata: {
@@ -310,7 +315,7 @@ export class ExplorerCommand extends BaseCommand {
           title: 'Check explorer pod is ready',
           task: async ctx => {
             await self.k8Factory
-              .default()
+              .getK8(ctx.config.clusterContext)
               .pods()
               .waitForReadyStatus(
                 ctx.config.namespace,
@@ -322,9 +327,9 @@ export class ExplorerCommand extends BaseCommand {
         },
         {
           title: 'Check haproxy ingress controller pod is ready',
-          task: async () => {
+          task: async ctx => {
             await self.k8Factory
-              .default()
+              .getK8(ctx.config.clusterContext)
               .pods()
               .waitForReadyStatus(
                 constants.SOLO_SETUP_NAMESPACE,
@@ -366,6 +371,7 @@ export class ExplorerCommand extends BaseCommand {
 
     interface Context {
       config: {
+        clusterContext: string;
         namespace: NamespaceName;
         isChartInstalled: boolean;
       };
@@ -391,17 +397,24 @@ export class ExplorerCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            if (!(await self.k8Factory.default().namespaces().has(namespace))) {
-              throw new SoloError(`namespace ${namespace} does not exist`);
-            }
+            const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
+            const clusterContext = clusterRef
+              ? this.getLocalConfig().clusterRefs[clusterRef]
+              : this.k8Factory.default().contexts().readCurrent();
 
             ctx.config = {
               namespace,
+              clusterContext,
               isChartInstalled: await this.chartManager.isChartInstalled(
                 namespace,
                 constants.HEDERA_EXPLORER_RELEASE_NAME,
+                clusterContext,
               ),
             };
+
+            if (!(await self.k8Factory.getK8(ctx.config.clusterContext).namespaces().has(namespace))) {
+              throw new SoloError(`namespace ${namespace.name} does not exist`);
+            }
 
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
@@ -413,7 +426,7 @@ export class ExplorerCommand extends BaseCommand {
             await this.chartManager.uninstall(
               ctx.config.namespace,
               constants.HEDERA_EXPLORER_RELEASE_NAME,
-              this.k8Factory.default().contexts().readCurrent(),
+              ctx.config.clusterContext,
             );
           },
           skip: ctx => !ctx.config.isChartInstalled,
@@ -469,7 +482,15 @@ export class ExplorerCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy explorer',
-            builder: y => flags.setCommandFlags(y, flags.chartDirectory, flags.force, flags.quiet, flags.deployment),
+            builder: y =>
+              flags.setCommandFlags(
+                y,
+                flags.chartDirectory,
+                flags.clusterRef,
+                flags.force,
+                flags.quiet,
+                flags.deployment,
+              ),
             handler: argv => {
               self.logger.info('==== Running explorer destroy ===');
               self.logger.info(argv);

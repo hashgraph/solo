@@ -9,9 +9,11 @@ export type Version = string;
 /// TODO - see if we can use NamespaceName and use some annotations and overrides to covert to strings
 export type NamespaceNameAsString = string;
 export type DeploymentName = string;
-export type ClusterRef = string;
 export type Context = string;
 export type ComponentName = string;
+
+export type ClusterRef = string;
+export type ClusterRefs = Record<ClusterRef, Context>;
 
 export interface IMigration {
   migratedAt: Date;
@@ -37,6 +39,7 @@ export interface IConsensusNodeComponent extends Component {
 export interface ICluster {
   name: string;
   namespace: string;
+  deployment: DeploymentName;
   dnsBaseDomain: string;
   dnsConsensusNodePattern: string;
 }
@@ -64,8 +67,15 @@ export interface RemoteConfigDataStructure {
 }
 
 export interface RemoteConfigMetadataStructure {
-  name: NamespaceNameAsString;
+  namespace: NamespaceNameAsString;
+  deploymentName: DeploymentName;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;
+  soloVersion: Version;
+  soloChartVersion: Version;
+  hederaPlatformVersion: Version;
+  hederaMirrorNodeChartVersion: Version;
+  hederaExplorerChartVersion: Version;
+  hederaJsonRpcRelayChartVersion: Version;
   migration?: IMigration;
 }

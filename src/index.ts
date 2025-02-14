@@ -29,11 +29,11 @@ import {type RemoteConfigManager} from './core/config/remote/remote_config_manag
 import * as helpers from './core/helpers.js';
 import {type K8Factory} from './core/kube/k8_factory.js';
 import {CustomProcessOutput} from './core/process_output.js';
-import {type Opts} from './types/command_types.js';
 import {type SoloLogger} from './core/logging.js';
 import {Container} from './core/dependency_injection/container_init.js';
 import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
 import {type NamespaceName} from './core/kube/resources/namespace/namespace_name.js';
+import {type Opts} from './commands/base.js';
 
 export function main(argv: any) {
   Container.getInstance().init();
@@ -42,7 +42,7 @@ export function main(argv: any) {
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
-    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.packageVersion()));
+    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
     logger.showUser(chalk.cyan('**********************************************************************************'));
     process.exit(0);
   }
@@ -93,7 +93,7 @@ export function main(argv: any) {
         configManager.reset();
       }
 
-      const clusterName = configManager.getFlag(flags.clusterName) || currentClusterName;
+      const clusterName = configManager.getFlag(flags.clusterRef) || currentClusterName;
 
       if (contextNamespace?.name) {
         configManager.setFlag(flags.namespace, contextNamespace);

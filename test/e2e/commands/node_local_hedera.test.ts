@@ -20,14 +20,14 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import net from 'net';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
-const LOCAL_HEDERA = NamespaceName.of('local-hedera-app');
-const argv = getDefaultArgv();
+const namespace = NamespaceName.of('local-hedera-app');
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 argv[flags.quiet.name] = true;
@@ -35,11 +35,11 @@ argv[flags.quiet.name] = true;
 let k8Factory: K8Factory;
 console.log('Starting local build for Hedera app');
 argv[flags.localBuildPath.name] = 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data';
-argv[flags.namespace.name] = LOCAL_HEDERA.name;
+argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = LOCAL_HEDERA_PLATFORM_VERSION;
 
 e2eTestSuite(
-  LOCAL_HEDERA.name,
+  namespace.name,
   argv,
   undefined,
   undefined,
@@ -63,7 +63,8 @@ e2eTestSuite(
 
       it('save the state and restart the node with saved state', async () => {
         // create an account so later we can verify its balance after restart
-        await accountManager.loadNodeClient(LOCAL_HEDERA);
+        const clusterRefs: ClusterRefs = nodeCmd.getClusterRefs();
+        await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
         const privateKey = PrivateKey.generate();
         // get random integer between 100 and 1000
         const amount = Math.floor(Math.random() * (1000 - 100) + 100);
@@ -90,11 +91,11 @@ e2eTestSuite(
         await nodeCmd.handlers.stop(argv);
         await nodeCmd.handlers.states(argv);
 
-        argv[flags.stateFile.name] = path.join(SOLO_LOGS_DIR, LOCAL_HEDERA.name, 'network-node1-0-state.zip');
+        argv[flags.stateFile.name] = path.join(SOLO_LOGS_DIR, namespace.name, 'network-node1-0-state.zip');
         await nodeCmd.handlers.start(argv);
 
         // check balance of accountInfo.accountId
-        await accountManager.loadNodeClient(LOCAL_HEDERA);
+        await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
         const balance = await new AccountBalanceQuery()
           .setAccountId(accountInfo.accountId)
           .execute(accountManager._nodeClient);
@@ -104,8 +105,8 @@ e2eTestSuite(
 
       it('get the logs and delete the namespace', async () => {
         await accountManager.close();
-        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(LOCAL_HEDERA);
-        await k8Factory.default().namespaces().delete(LOCAL_HEDERA);
+        await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+        await k8Factory.default().namespaces().delete(namespace);
       }).timeout(Duration.ofMinutes(10).toMillis());
     });
   },

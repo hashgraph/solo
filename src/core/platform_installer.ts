@@ -14,16 +14,17 @@ import * as Base64 from 'js-base64';
 import chalk from 'chalk';
 
 import {type SoloLogger} from './logging.js';
-import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type NodeAlias} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency_injection/container_helper.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type PodRef} from './kube/resources/pod/pod_ref.js';
 import {ContainerRef} from './kube/resources/container/container_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type ConsensusNode} from './model/consensus_node.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -99,7 +100,7 @@ export class PlatformInstaller {
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
       const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
 
-      const k8Containers = context ? this.k8Factory.getK8(context).containers() : this.k8Factory.default().containers();
+      const k8Containers = this.k8Factory.getK8(context).containers();
 
       await k8Containers.readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
       await k8Containers.readByRef(containerRef).execContainer([extractScript, tag]);
@@ -138,9 +139,7 @@ export class PlatformInstaller {
           throw new SoloError(`file does not exist: ${srcPath}`);
         }
 
-        const k8Containers = context
-          ? this.k8Factory.getK8(context).containers()
-          : this.k8Factory.default().containers();
+        const k8Containers = this.k8Factory.getK8(context).containers();
 
         if (!(await k8Containers.readByRef(containerRef).hasDir(destDir))) {
           await k8Containers.readByRef(containerRef).mkdir(destDir);
@@ -159,20 +158,24 @@ export class PlatformInstaller {
     }
   }
 
-  async copyGossipKeys(nodeAlias: NodeAlias, stagingDir: string, nodeAliases: NodeAliases) {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
+  async copyGossipKeys(consensusNode: ConsensusNode, stagingDir: string, consensusNodes: ConsensusNode[]) {
+    if (!consensusNode) throw new MissingArgumentError('consensusNode is required');
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required');
-    if (!nodeAliases || nodeAliases.length <= 0) throw new MissingArgumentError('nodeAliases cannot be empty');
+    if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
 
     try {
       const srcFiles = [];
 
       // copy private keys for the node
-      srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(nodeAlias)));
+      srcFiles.push(
+        path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(consensusNode.name as NodeAlias)),
+      );
 
       // copy all public keys for all nodes
-      nodeAliases.forEach(nodeAlias => {
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(nodeAlias)));
+      consensusNodes.forEach(consensusNode => {
+        srcFiles.push(
+          path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias)),
+        );
       });
 
       const data = {};
@@ -184,42 +187,41 @@ export class PlatformInstaller {
       }
 
       const secretCreated = await this.k8Factory
-        .default()
+        .getK8(consensusNode.context)
         .secrets()
         .createOrReplace(
-          this._getNamespace(),
-          Templates.renderGossipKeySecretName(nodeAlias),
+          NamespaceName.of(consensusNode.namespace),
+          Templates.renderGossipKeySecretName(consensusNode.name as NodeAlias),
           SecretType.OPAQUE,
           data,
-          Templates.renderGossipKeySecretLabelObject(nodeAlias),
+          Templates.renderGossipKeySecretLabelObject(consensusNode.name as NodeAlias),
         );
 
       if (!secretCreated) {
-        throw new SoloError(`failed to create secret for gossip keys for node '${nodeAlias}'`);
+        throw new SoloError(`failed to create secret for gossip keys for node '${consensusNode.name}'`);
       }
     } catch (e: Error | any) {
-      this.logger.error(
-        `failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`,
-        e,
-      );
-      throw new SoloError(
-        `failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(nodeAlias)}': ${e.message}`,
-        e,
-      );
+      const message = `failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(consensusNode.name as NodeAlias)}': ${e.message}`;
+      this.logger.error(message, e);
+      throw new SoloError(message, e);
     }
   }
 
-  async copyTLSKeys(nodeAliases: NodeAliases, stagingDir: string) {
-    if (!nodeAliases || nodeAliases.length <= 0) throw new MissingArgumentError('nodeAliases cannot be empty');
+  async copyTLSKeys(consensusNodes: ConsensusNode[], stagingDir: string, contexts: string[]) {
+    if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
     if (!stagingDir) throw new MissingArgumentError('stagingDir is required');
 
     try {
       const data = {};
 
-      for (const nodeAlias of nodeAliases) {
+      for (const consensusNode of consensusNodes) {
         const srcFiles = [];
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(nodeAlias)));
-        srcFiles.push(path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(nodeAlias)));
+        srcFiles.push(
+          path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(consensusNode.name as NodeAlias)),
+        );
+        srcFiles.push(
+          path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(consensusNode.name as NodeAlias)),
+        );
 
         for (const srcFile of srcFiles) {
           const fileContents = fs.readFileSync(srcFile);
@@ -229,13 +231,15 @@ export class PlatformInstaller {
         }
       }
 
-      const secretCreated = await this.k8Factory
-        .default()
-        .secrets()
-        .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data, undefined);
+      for (const context of contexts) {
+        const secretCreated = await this.k8Factory
+          .getK8(context)
+          .secrets()
+          .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data, undefined);
 
-      if (!secretCreated) {
-        throw new SoloError('failed to create secret for TLS keys');
+        if (!secretCreated) {
+          throw new SoloError('failed to create secret for TLS keys');
+        }
       }
     } catch (e: Error | any) {
       this.logger.error('failed to copy TLS keys to secret', e);
@@ -257,7 +261,7 @@ export class PlatformInstaller {
 
     const recursiveFlag = recursive ? '-R' : '';
 
-    const k8Containers = context ? this.k8Factory.getK8(context).containers() : this.k8Factory.default().containers();
+    const k8Containers = this.k8Factory.getK8(context).containers();
 
     await k8Containers
       .readByRef(containerRef)
@@ -297,7 +301,7 @@ export class PlatformInstaller {
         },
         {
           title: 'Set file permissions',
-          task: async () => await self.setPlatformDirPermissions(podRef),
+          task: async () => await self.setPlatformDirPermissions(podRef, context),
         },
       ],
       {
@@ -338,25 +342,26 @@ export class PlatformInstaller {
    * <li>${staging}/keys/hedera-<nodeAlias>.crt: gRPC TLS cert for a node</li>
    *
    * @param stagingDir staging directory path
-   * @param nodeAliases list of node ids
+   * @param consensusNodes list of consensus nodes
+   * @param contexts list of k8s contexts
    */
-  copyNodeKeys(stagingDir: string, nodeAliases: NodeAliases) {
+  copyNodeKeys(stagingDir: string, consensusNodes: ConsensusNode[], contexts: string[]) {
     const self = this;
     const subTasks = [];
     subTasks.push({
       title: 'Copy TLS keys',
-      task: async () => await self.copyTLSKeys(nodeAliases, stagingDir),
+      task: async () => await self.copyTLSKeys(consensusNodes, stagingDir, contexts),
     });
 
-    for (const nodeAlias of nodeAliases) {
+    for (const consensusNode of consensusNodes) {
       subTasks.push({
-        title: `Node: ${chalk.yellow(nodeAlias)}`,
+        title: `Node: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.context)}`,
         task: () =>
           new Listr(
             [
               {
                 title: 'Copy Gossip keys',
-                task: async () => await self.copyGossipKeys(nodeAlias, stagingDir, nodeAliases),
+                task: async () => await self.copyGossipKeys(consensusNode, stagingDir, consensusNodes),
               },
             ],
             {
