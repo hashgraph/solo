@@ -80,7 +80,8 @@ export function getDefaultArgv(namespace: NamespaceName) {
     argv[f.name] = f.definition.defaultValue;
   }
 
-  const currentDeployment = `${argv[flags.deployment.name] || namespace?.name || argv[flags.namespace.name]}-deployment`;
+  const currentDeployment =
+    argv[flags.deployment.name] || `${namespace?.name || argv[flags.namespace.name]}-deployment`;
   const cacheDir = getTestCacheDir();
   argv.cacheDir = cacheDir;
   argv[flags.cacheDir.name] = cacheDir;
@@ -141,7 +142,7 @@ export function bootstrapTestVariables(
   deploymentCmdArg: DeploymentCommand | null = null,
 ): BootstrapResponse {
   const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
-  const deployment: string = argv[flags.deployment.name] || 'deployment';
+  const deployment: string = argv[flags.deployment.name] || `${namespace.name}-deployment`;
   const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
   resetForTest(namespace.name, cacheDir);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);

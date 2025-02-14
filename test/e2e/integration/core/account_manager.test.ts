@@ -17,7 +17,7 @@ import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 const namespace = NamespaceName.of('account-mngr-e2e');
 const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
-argv[flags.deployment.name] = 'deployment';
+argv[flags.deployment.name] = `${namespace.name}-deployment`;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;

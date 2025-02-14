@@ -70,7 +70,7 @@ const argv = getDefaultArgv(namespace);
 const sandbox = sinon.createSandbox();
 
 argv[flags.namespace.name] = namespace.name;
-argv[flags.deployment.name] = 'solo-e2e';
+argv[flags.deployment.name] = `${namespace.name}-deployment`;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
