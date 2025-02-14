@@ -22,7 +22,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {type AnyObject, type NodeAlias} from '../../../types/aliases.js';
+import {type AnyObject} from '../../../types/aliases.js';
 import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
@@ -113,10 +113,7 @@ export class RemoteConfigManager {
     );
 
     // temporary workaround until we can have `solo deployment add` command
-    const nodeAliasesByCluster: Record<ClusterRef, NodeAlias[]> = helpers.getNodeAliasesByClusterFromNodeAliasesFlag(
-      this.configManager.getFlag(flags.nodeAliasesUnparsed),
-      Object.keys(clusters),
-    );
+    const nodeAliases: string[] = helpers.splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
 
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(
@@ -129,7 +126,11 @@ export class RemoteConfigManager {
       clusters,
       commandHistory: ['deployment create'],
       lastExecutedCommand: 'deployment create',
-      components: ComponentsDataWrapper.initializeWithNodes(nodeAliasesByCluster, this.getNamespace().name),
+      components: ComponentsDataWrapper.initializeWithNodes(
+        nodeAliases,
+        this.configManager.getFlag(flags.deploymentClusters),
+        this.getNamespace().name,
+      ),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
