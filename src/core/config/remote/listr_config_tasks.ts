@@ -41,15 +41,15 @@ export class ListrRemoteConfig {
    */
   public static createRemoteConfig(
     command: BaseCommand,
-    clusterName: ClusterRef,
+    clusterRef: ClusterRef,
     context: Context,
     namespace: NamespaceName,
     argv: AnyObject,
   ): SoloListrTask<any> {
     return {
-      title: `Create remote config in cluster: ${chalk.cyan(clusterName)}`,
+      title: `Create remote config in cluster: ${chalk.cyan(clusterRef)}`,
       task: async (): Promise<void> => {
-        await command.getRemoteConfigManager().createAndValidate(clusterName, context, namespace.name, argv);
+        await command.getRemoteConfigManager().createAndValidate(clusterRef, context, namespace.name, argv);
       },
     };
   }
@@ -66,12 +66,12 @@ export class ListrRemoteConfig {
       task: async (ctx, task) => {
         const subTasks: SoloListrTask<Context>[] = [];
 
-        for (const clusterName of command.localConfig.deployments[ctx.config.deployment].clusters) {
-          const context = command.localConfig.clusterRefs?.[clusterName];
+        for (const clusterRef of command.localConfig.deployments[ctx.config.deployment].clusters) {
+          const context = command.localConfig.clusterRefs?.[clusterRef];
           if (!context) continue;
 
           subTasks.push(
-            ListrRemoteConfig.createRemoteConfig(command, clusterName, context, ctx.config.namespace, argv),
+            ListrRemoteConfig.createRemoteConfig(command, clusterRef, context, ctx.config.namespace, argv),
           );
         }
 

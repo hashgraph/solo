@@ -38,7 +38,7 @@ argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1'; // use a single node to reduce resource during e2e tests
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.force.name] = true;
 argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue;
@@ -89,7 +89,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       }
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.clusterName.constName,
+        flags.clusterRef.constName,
         flags.chartDirectory.constName,
         flags.deployment.constName,
         flags.profileFile.constName,

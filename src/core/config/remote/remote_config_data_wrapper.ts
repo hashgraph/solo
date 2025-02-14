@@ -133,21 +133,21 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`);
     }
 
-    Object.entries(this.clusters).forEach(([clusterName, cluster]: [ClusterRef, Cluster]): void => {
-      if (!clusterName || typeof clusterName !== 'string') {
-        throw new SoloError(`Invalid remote config cluster-ref: ${clusterName}`);
+    Object.entries(this.clusters).forEach(([clusterRef, cluster]: [ClusterRef, Cluster]): void => {
+      if (!clusterRef || typeof clusterRef !== 'string') {
+        throw new SoloError(`Invalid remote config cluster-ref: ${clusterRef}`);
       }
 
       if (!cluster) {
-        throw new SoloError(`No cluster info is found for cluster-ref: ${clusterName}`);
+        throw new SoloError(`No cluster info is found for cluster-ref: ${clusterRef}`);
       }
 
       if (!cluster.name || typeof cluster.name !== 'string') {
-        throw new SoloError(`Invalid remote config cluster name: ${cluster.name} for cluster-ref: ${clusterName}`);
+        throw new SoloError(`Invalid remote config cluster name: ${cluster.name} for cluster-ref: ${clusterRef}`);
       }
 
       if (!cluster.namespace || typeof cluster.namespace !== 'string') {
-        throw new SoloError(`Invalid remote config namespace: ${cluster.namespace} for cluster-ref: ${clusterName}`);
+        throw new SoloError(`Invalid remote config namespace: ${cluster.namespace} for cluster-ref: ${clusterRef}`);
       }
     });
   }
