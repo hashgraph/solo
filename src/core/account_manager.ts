@@ -169,8 +169,14 @@ export class AccountManager {
    * @param namespace - the namespace of the network
    * @param clusterRefs
    * @param deployment
+   * @param context
    */
-  async loadNodeClient(namespace: NamespaceName, clusterRefs?: ClusterRefs, deployment?: DeploymentName) {
+  async loadNodeClient(
+    namespace: NamespaceName,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+    context?: Optional<string>,
+  ) {
     try {
       this.logger.debug(
         `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
@@ -179,7 +185,7 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment);
+        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
@@ -187,7 +193,7 @@ export class AccountManager {
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment);
+          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context);
         }
       }
 
@@ -203,16 +209,21 @@ export class AccountManager {
    * loads and initializes the Node Client, throws a SoloError if anything fails
    * @param namespace - the namespace of the network
    * @param skipNodeAlias - the node alias to skip
+   * @param [clusterRefs]
+   * @param [deployment]
+   * @param [context]
    */
   async refreshNodeClient(
     namespace: NamespaceName,
     skipNodeAlias?: NodeAlias,
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
+    context?: Optional<string>,
   ) {
     try {
       await this.close();
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
+
+      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace, context);
       const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs, deployment);
 
       this._nodeClient = await this._getNodeClient(
@@ -545,7 +556,7 @@ export class AccountManager {
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
-      for (const [clusterRef, context] of Object.entries(clusterRefs)) {
+      for (const [_, context] of Object.entries(clusterRefs)) {
         // get the pod name of the network node
         const pods: V1Pod[] = await this.k8Factory
           .getK8(context)

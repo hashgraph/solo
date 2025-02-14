@@ -261,6 +261,7 @@ export class RelayCommand extends BaseCommand {
               ctx.config.namespace,
               self.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
+              ctx.config.context,
             );
             config.valuesArg = await self.prepareValuesArg(
               config.valuesFile,
