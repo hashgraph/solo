@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before, afterEach} from 'mocha';
+import {after, afterEach, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../src/commands/flags.js';
@@ -150,7 +150,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
                 flags.devMode.constName,
                 flags.quiet.constName,
-                flags.context.constName,
+                'contexts',
               ]);
             } catch (e) {
               nodeCmd.logger.showUserError(e);

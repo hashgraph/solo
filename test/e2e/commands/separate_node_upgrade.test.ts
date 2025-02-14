@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after} from 'mocha';
+import {after, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
@@ -90,6 +90,8 @@ e2eTestSuite(
           flags.localBuildPath.constName,
           flags.force.constName,
           'nodeClient',
+          'consensusNodes',
+          'contexts',
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 
