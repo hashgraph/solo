@@ -54,12 +54,7 @@ import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type ConfigBuilder, type NodeAlias, type NodeAliases, type SkipCheck} from '../../types/aliases.js';
 import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import {
-  type NodeDeleteConfigClass,
-  type NodeRefreshConfigClass,
-  type NodeSetupConfigClass,
-  type NodeUpdateConfigClass,
-} from './configs.js';
+import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
@@ -73,8 +68,9 @@ import {ContainerRef} from '../../core/kube/resources/container/container_ref.js
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
-import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
+import {type Optional} from '../../types/index.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import * as Base64 from 'js-base64';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -593,9 +589,24 @@ export class NodeCommandTasks {
   }
 
   loadAdminKey() {
-    return new Task('Load node admin key', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Load node admin key', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
-      config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+      if (ctx.config.nodeAlias) {
+        try {
+          // load nodeAdminKey form k8s if exist
+          const keyFromK8 = await this.k8Factory
+            .default()
+            .secrets()
+            .read(config.namespace, Templates.renderNodeAdminKeyName(config.nodeAlias));
+          const privateKey = Base64.decode(keyFromK8.data.privateKey);
+          config.adminKey = PrivateKey.fromStringED25519(privateKey);
+        } catch (e: Error | any) {
+          this.logger.debug(`Error in loading node admin key: ${e.message}, use default key`);
+          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+        }
+      } else {
+        config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+      }
     });
   }
 

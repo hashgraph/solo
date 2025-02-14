@@ -18,6 +18,9 @@ import {Duration} from '../core/time/duration.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import * as helpers from '../core/helpers.js';
 import {Templates} from '../core/templates.js';
+import {sleep} from '../core/helpers.js';
+import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import * as Base64 from 'js-base64';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -264,7 +267,26 @@ export class AccountCommand extends BaseCommand {
                         const signedTx = await nodeUpdateTx.sign(adminKey);
                         const txResp = await signedTx.execute(nodeClient);
                         const nodeUpdateReceipt = await txResp.getReceipt(nodeClient);
+
                         self.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()} for node ${nodeAlias}`);
+
+                        // save new key in k8s secret
+                        const data = {
+                          privateKey: Base64.encode(newPrivateKey.toString()),
+                          publicKey: Base64.encode(newPrivateKey.publicKey.toString()),
+                        };
+                        await this.k8Factory
+                          .default()
+                          .secrets()
+                          .create(
+                            ctx.config.namespace,
+                            Templates.renderNodeAdminKeyName(nodeAlias),
+                            SecretType.OPAQUE,
+                            data,
+                            {
+                              'solo.hedera.com/node-admin-key': 'true',
+                            },
+                          );
                       } catch (e) {
                         throw new SoloError(`Error updating admin key for node ${nodeAlias}: ${e.message}`, e);
                       }

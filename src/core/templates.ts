@@ -46,6 +46,10 @@ export class Templates {
     return `hedera-${nodeAlias}.crt`;
   }
 
+  public static renderNodeAdminKeyName(nodeAlias: NodeAlias): string {
+    return `${nodeAlias}-admin`;
+  }
+
   public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix = ''): string {
     const parts = [prefix, nodeAlias];
     if (suffix) parts.push(suffix);
