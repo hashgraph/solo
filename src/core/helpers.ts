@@ -21,8 +21,6 @@ import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {type K8Factory} from './kube/k8_factory.js';
-import {type Context} from './config/remote/types.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
