@@ -29,7 +29,7 @@ import path from 'path';
 
 import {type SoloLogger} from './logging.js';
 import {type K8Factory} from './kube/k8_factory.js';
-import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
+import {type AccountIdWithKeyPairObject, type ExtendedNetServer, type Optional} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
@@ -68,14 +68,17 @@ export class AccountManager {
   /**
    * Gets the account keys from the Kubernetes secret from which it is stored
    * @param accountId - the account ID for which we want its keys
-   * @param namespace - the namespace that is storing the secret
+   * @param namespace - the namespace storing the secret
+   * @param [context]
    */
-  async getAccountKeysFromSecret(accountId: string, namespace: NamespaceName): Promise<AccountIdWithKeyPairObject> {
+  async getAccountKeysFromSecret(
+    accountId: string,
+    namespace: NamespaceName,
+    context?: Optional<string>,
+  ): Promise<AccountIdWithKeyPairObject> {
     try {
-      const secrets = await this.k8Factory
-        .default()
-        .secrets()
-        .list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
+      const k8 = this.k8Factory.getK8(context);
+      const secrets = await k8.secrets().list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
 
       if (secrets.length > 0) {
         const secret = secrets[0];
@@ -104,10 +107,11 @@ export class AccountManager {
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, ed25519PrivateKey, publicKey
    * @param namespace - the namespace that the secret is in
+   * @param [context]
    */
-  async getTreasuryAccountKeys(namespace: NamespaceName) {
+  async getTreasuryAccountKeys(namespace: NamespaceName, context?: Optional<string>) {
     // check to see if the treasure account is in the secrets
-    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace);
+    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace, context);
   }
 
   /**
@@ -160,8 +164,9 @@ export class AccountManager {
   /**
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
+   * @param [context]
    */
-  async loadNodeClient(namespace: NamespaceName) {
+  async loadNodeClient(namespace: NamespaceName, context?: Optional<string>) {
     try {
       this.logger.debug(
         `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
@@ -170,7 +175,7 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace);
+        await this.refreshNodeClient(namespace, undefined, context);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
@@ -178,7 +183,7 @@ export class AccountManager {
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace);
+          await this.refreshNodeClient(namespace, undefined, context);
         }
       }
 
@@ -194,11 +199,12 @@ export class AccountManager {
    * loads and initializes the Node Client, throws a SoloError if anything fails
    * @param namespace - the namespace of the network
    * @param skipNodeAlias - the node alias to skip
+   * @param [context]
    */
-  async refreshNodeClient(namespace: NamespaceName, skipNodeAlias?: NodeAlias) {
+  async refreshNodeClient(namespace: NamespaceName, skipNodeAlias?: NodeAlias, context?: Optional<string>) {
     try {
       await this.close();
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
+      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace, context);
       const networkNodeServicesMap = await this.getNodeServiceMap(namespace);
 
       this._nodeClient = await this._getNodeClient(
@@ -422,6 +428,8 @@ export class AccountManager {
   }
 
   /**
+   * TODO: Take from other branch once it's been migrated to use multi-cluster
+   *
    * Gets a Map of the Hedera node services and the attributes needed, throws a SoloError if anything fails
    * @param namespace - the namespace of the solo network deployment
    * @returns a map of the network node services
