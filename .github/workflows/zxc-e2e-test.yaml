@@ -132,8 +132,10 @@ jobs:
 
       - name: Install wget
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
+          if ! command -v wget >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y wget
+          fi
 
       - name: Setup Kind
         uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
@@ -182,12 +184,12 @@ jobs:
         run: | 
           npm link
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
-          ${{ env.CG_EXEC }} SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ./test/e2e/dual-cluster/setup-dual-e2e.sh
+          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} ./test/e2e/dual-cluster/setup-dual-e2e.sh
 
       - name: Run E2E Tests
         run: |
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
-          ${{ env.CG_EXEC }} SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} npm run ${{ inputs.npm-test-script }}
+          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
       - name: Sleep on Failure
         if: ${{ failure() }}
