@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before, afterEach} from 'mocha';
+import {after, afterEach, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../src/commands/flags.js';
@@ -31,7 +31,7 @@ import {InjectTokens} from '../../src/core/dependency_injection/inject_tokens.js
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = releaseTag;
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
@@ -150,6 +150,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
                 flags.devMode.constName,
                 flags.quiet.constName,
+                'contexts',
               ]);
             } catch (e) {
               nodeCmd.logger.showUserError(e);

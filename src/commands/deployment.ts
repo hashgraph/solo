@@ -3,17 +3,16 @@
  */
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type DeploymentName, type NamespaceNameAsString, type ClusterRef} from '../core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
-import {type Opts} from '../types/command_types.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
@@ -39,6 +38,7 @@ export class DeploymentCommand extends BaseCommand {
       flags.userEmailAddress,
       flags.deployment,
       flags.deploymentClusters,
+      flags.nodeAliasesUnparsed,
     ];
   }
 
@@ -46,17 +46,19 @@ export class DeploymentCommand extends BaseCommand {
     return [flags.quiet, flags.clusterRef];
   }
 
-  private async create(argv: any): Promise<boolean> {
+  public async create(argv: any): Promise<boolean> {
     const self = this;
 
     interface Config {
       quiet: boolean;
       context: string;
-      clusterName: string;
       clusters: string[];
       namespace: NamespaceName;
       deployment: DeploymentName;
       deploymentClusters: string[];
+      nodeAliases: string[];
+      clusterRef: ClusterRef;
+      email: string;
     }
 
     interface Context {
@@ -82,6 +84,10 @@ export class DeploymentCommand extends BaseCommand {
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
               deploymentClusters: splitFlagInput(self.configManager.getFlag<string>(flags.deploymentClusters)),
+              nodeAliases: splitFlagInput(self.configManager.getFlag<string>(flags.nodeAliasesUnparsed)),
+              clusterRef: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
+              context: self.configManager.getFlag<string>(flags.context),
+              email: self.configManager.getFlag<string>(flags.userEmailAddress),
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -93,9 +99,9 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Add new deployment to local config',
           task: async (ctx, task) => {
             const {deployments} = this.localConfig;
-            const {deployment, namespace, deploymentClusters} = ctx.config;
+            const {deployment, namespace: configNamespace, deploymentClusters} = ctx.config;
             deployments[deployment] = {
-              namespace: namespace.name,
+              namespace: configNamespace.name,
               clusters: deploymentClusters,
             };
             this.localConfig.setDeployments(deployments);

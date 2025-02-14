@@ -32,7 +32,7 @@ describe('ClusterCommand', () => {
 
   const testName = 'cluster-cmd-e2e';
   const namespace = NamespaceName.of(testName);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;

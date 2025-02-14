@@ -23,11 +23,11 @@ const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = NamespaceName.of('remote-config-manager-e2e');
 const deploymentName = 'deployment';
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
 argv[flags.namespace.name] = namespace.name;
-argv[flags.deployment.name] = deploymentName;
+argv[flags.deployment.name] = `${namespace.name}-deployment`;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
@@ -53,7 +53,7 @@ e2eTestSuite(
       let localConfig: LocalConfig;
       let remoteConfigManager: RemoteConfigManager;
 
-      const email = 'john@gmail.com';
+      const email = 'joe@doe.com';
 
       after(async function () {
         this.timeout(Duration.ofMinutes(3).toMillis());
@@ -75,7 +75,8 @@ e2eTestSuite(
         }
       });
 
-      it('Attempting to load and save without existing remote config should fail', async () => {
+      // TODO - we now create a remote config in the e2e test suite, so this test is no longer valid
+      xit('Attempting to load and save without existing remote config should fail', async () => {
         // @ts-ignore
         expect(await remoteConfigManager.load()).to.equal(false);
 
@@ -86,11 +87,13 @@ e2eTestSuite(
         );
       });
 
-      it('isLoaded() should return false if config is not loaded', async () => {
+      // TODO - we now create a remote config in the e2e test suite, so this test is no longer valid
+      xit('isLoaded() should return false if config is not loaded', async () => {
         expect(remoteConfigManager.isLoaded()).to.not.be.ok;
       });
 
-      it('isLoaded() should return true if config is loaded', async () => {
+      // TODO - we now create a remote config in the e2e test suite, so this test is no longer valid
+      xit('isLoaded() should return true if config is loaded', async () => {
         // @ts-ignore
         await remoteConfigManager.create();
 

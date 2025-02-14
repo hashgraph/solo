@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import chalk from 'chalk';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
@@ -10,7 +10,6 @@ import * as constants from '../core/constants.js';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {sleep} from '../core/helpers.js';

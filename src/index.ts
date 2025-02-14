@@ -29,11 +29,11 @@ import {type RemoteConfigManager} from './core/config/remote/remote_config_manag
 import * as helpers from './core/helpers.js';
 import {type K8Factory} from './core/kube/k8_factory.js';
 import {CustomProcessOutput} from './core/process_output.js';
-import {type Opts} from './types/command_types.js';
 import {type SoloLogger} from './core/logging.js';
 import {Container} from './core/dependency_injection/container_init.js';
 import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
 import {type NamespaceName} from './core/kube/resources/namespace/namespace_name.js';
+import {type Opts} from './commands/base.js';
 
 export function main(argv: any) {
   Container.getInstance().init();

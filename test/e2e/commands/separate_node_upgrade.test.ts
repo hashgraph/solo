@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after} from 'mocha';
+import {after, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
@@ -21,7 +21,7 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const namespace = NamespaceName.of('node-upgrade');
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
@@ -77,7 +77,7 @@ e2eTestSuite(
         const argvPrepare = Object.assign({}, argv);
         argvPrepare[flags.upgradeZipFile.name] = zipFile;
         argvPrepare[flags.outputDir.name] = tempDir;
-        const argvExecute = Object.assign({}, getDefaultArgv());
+        const argvExecute = Object.assign({}, getDefaultArgv(namespace));
         argvExecute[flags.inputDir.name] = tempDir;
 
         await nodeCmd.handlers.upgradePrepare(argvPrepare);
@@ -90,6 +90,8 @@ e2eTestSuite(
           flags.localBuildPath.constName,
           flags.force.constName,
           'nodeClient',
+          'consensusNodes',
+          'contexts',
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 
