@@ -18,6 +18,8 @@ import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
+import {type Version} from './config/remote/types.js';
+import {fileURLToPath} from 'url';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type K8Factory} from './kube/k8_factory.js';
 import {type Context} from './config/remote/types.js';
@@ -80,21 +82,6 @@ export function splitFlagInput(input: string, separator = ',') {
  */
 export function cloneArray<T>(arr: T[]): T[] {
   return JSON.parse(JSON.stringify(arr));
-}
-
-/** load package.json */
-export function loadPackageJSON(): any {
-  try {
-    const raw = fs.readFileSync(path.join(ROOT_DIR, 'package.json'));
-    return JSON.parse(raw.toString());
-  } catch (e: Error | any) {
-    throw new SoloError('failed to load package.json', e);
-  }
-}
-
-export function packageVersion(): string {
-  const packageJson = loadPackageJSON();
-  return packageJson.version;
 }
 
 export function getTmpDir() {
@@ -430,4 +417,17 @@ export function extractContextFromConsensusNodes(
   if (!consensusNodes.length) return undefined;
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
+}
+
+export function getSoloVersion(): Version {
+  if (process.env.npm_package_version) {
+    return process.env.npm_package_version;
+  }
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  const packageJsonPath = path.resolve(__dirname, '../../package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+  return packageJson.version;
 }

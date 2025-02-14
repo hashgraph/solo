@@ -35,7 +35,7 @@ export class ConfigManager {
   reset() {
     this.config = {
       flags: {},
-      version: helpers.packageVersion(),
+      version: helpers.getSoloVersion(),
       updatedAt: new Date().toISOString(),
     };
   }

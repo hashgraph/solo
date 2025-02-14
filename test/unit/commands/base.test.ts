@@ -147,9 +147,9 @@ describe('BaseCommand', () => {
         get: () => newComponentsDataWrapper,
       });
       const clusters = {};
-      const cluster = new Cluster('cluster', 'namespace', undefined, undefined);
+      const cluster = new Cluster('cluster', 'namespace', 'deployment', undefined, undefined);
       clusters[cluster.name] = cluster;
-      const cluster2 = new Cluster('cluster2', 'namespace', undefined, undefined);
+      const cluster2 = new Cluster('cluster2', 'namespace', 'deployment', undefined, undefined);
       clusters[cluster2.name] = cluster2;
       Object.defineProperty(remoteConfigManager, 'clusters', {
         get: () => clusters,

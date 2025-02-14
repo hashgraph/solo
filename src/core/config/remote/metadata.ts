@@ -5,6 +5,7 @@ import {Migration} from './migration.js';
 import {SoloError} from '../../errors.js';
 import * as k8s from '@kubernetes/client-node';
 import {
+  type DeploymentName,
   type EmailAddress,
   type NamespaceNameAsString,
   type RemoteConfigMetadataStructure,
@@ -22,20 +23,21 @@ import {type Optional, type ToObject, type Validate} from '../../../types/index.
 export class RemoteConfigMetadata
   implements RemoteConfigMetadataStructure, Validate, ToObject<RemoteConfigMetadataStructure>
 {
-  private readonly _name: NamespaceNameAsString;
-  private readonly _lastUpdatedAt: Date;
-  private readonly _lastUpdateBy: EmailAddress;
   private _migration?: Migration;
 
   public constructor(
-    name: NamespaceNameAsString,
-    lastUpdatedAt: Date,
-    lastUpdateBy: EmailAddress,
+    public readonly namespace: NamespaceNameAsString,
+    public readonly deploymentName: DeploymentName,
+    public readonly lastUpdatedAt: Date,
+    public readonly lastUpdateBy: EmailAddress,
+    public readonly soloVersion: Version,
+    public soloChartVersion: Version = '',
+    public hederaPlatformVersion: Version = '',
+    public hederaMirrorNodeChartVersion: Version = '',
+    public hederaExplorerChartVersion: Version = '',
+    public hederaJsonRpcRelayChartVersion: Version = '',
     migration?: Migration,
   ) {
-    this._name = name;
-    this._lastUpdatedAt = lastUpdatedAt;
-    this._lastUpdateBy = lastUpdateBy;
     this._migration = migration;
     this.validate();
   }
@@ -49,21 +51,6 @@ export class RemoteConfigMetadata
 
   /* -------- Getters -------- */
 
-  /** Retrieves the namespace */
-  public get name(): NamespaceNameAsString {
-    return this._name;
-  }
-
-  /** Retrieves the date when the remote config metadata was last updated */
-  public get lastUpdatedAt(): Date {
-    return this._lastUpdatedAt;
-  }
-
-  /** Retrieves the email of the user who last updated the remote config metadata */
-  public get lastUpdateBy(): EmailAddress {
-    return this._lastUpdateBy;
-  }
-
   /** Retrieves the migration if such exists */
   public get migration(): Optional<Migration> {
     return this._migration;
@@ -71,7 +58,7 @@ export class RemoteConfigMetadata
 
   /* -------- Utilities -------- */
 
-  /** Handles conversion from plain object to instance */
+  /** Handles conversion from a plain object to instance */
   public static fromObject(metadata: RemoteConfigMetadataStructure): RemoteConfigMetadata {
     let migration: Optional<Migration> = undefined;
 
@@ -82,12 +69,32 @@ export class RemoteConfigMetadata
       migration = new Migration(new Date(migratedAt), migratedBy, fromVersion);
     }
 
-    return new RemoteConfigMetadata(metadata.name, new Date(metadata.lastUpdatedAt), metadata.lastUpdateBy, migration);
+    return new RemoteConfigMetadata(
+      metadata.namespace,
+      metadata.deploymentName,
+      new Date(metadata.lastUpdatedAt),
+      metadata.lastUpdateBy,
+      metadata.soloVersion,
+      metadata.soloChartVersion,
+      metadata.hederaPlatformVersion,
+      metadata.hederaMirrorNodeChartVersion,
+      metadata.hederaExplorerChartVersion,
+      metadata.hederaJsonRpcRelayChartVersion,
+      migration,
+    );
   }
 
   public validate(): void {
-    if (!this.name || !(typeof this.name === 'string')) {
-      throw new SoloError(`Invalid name: ${this.name}, is type string: ${typeof this.name === 'string'}`);
+    if (!this.namespace || !(typeof this.namespace === 'string')) {
+      throw new SoloError(
+        `Invalid namespace: ${this.namespace}, is type string: ${typeof this.namespace === 'string'}`,
+      );
+    }
+
+    if (!this.deploymentName || !(typeof this.deploymentName === 'string')) {
+      throw new SoloError(
+        `Invalid deploymentName: ${this.deploymentName}, is type string: ${typeof this.deploymentName === 'string'}`,
+      );
     }
 
     if (!(this.lastUpdatedAt instanceof Date)) {
@@ -98,6 +105,10 @@ export class RemoteConfigMetadata
       throw new SoloError(`Invalid lastUpdateBy: ${this.lastUpdateBy}`);
     }
 
+    if (!this.soloVersion || typeof this.soloVersion !== 'string') {
+      throw new SoloError(`Invalid soloVersion: ${this.soloVersion}`);
+    }
+
     if (this.migration && !(this.migration instanceof Migration)) {
       throw new SoloError(`Invalid migration: ${this.migration}`);
     }
@@ -105,9 +116,16 @@ export class RemoteConfigMetadata
 
   public toObject(): RemoteConfigMetadataStructure {
     const data = {
-      name: this.name,
+      namespace: this.namespace,
+      deploymentName: this.deploymentName,
       lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),
       lastUpdateBy: this.lastUpdateBy,
+      soloChartVersion: this.soloChartVersion,
+      hederaPlatformVersion: this.hederaPlatformVersion,
+      hederaMirrorNodeChartVersion: this.hederaMirrorNodeChartVersion,
+      hederaExplorerChartVersion: this.hederaExplorerChartVersion,
+      hederaJsonRpcRelayChartVersion: this.hederaJsonRpcRelayChartVersion,
+      soloVersion: this.soloVersion,
     } as RemoteConfigMetadataStructure;
 
     if (this.migration) data.migration = this.migration.toObject() as any;

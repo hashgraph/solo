@@ -490,6 +490,7 @@ async function addKeyHashToMap(
 
 export const testLocalConfigData = {
   userEmailAddress: 'john.doe@example.com',
+  soloVersion: '1.0.0',
   deployments: {
     deployment: {
       clusters: ['cluster-1'],

@@ -151,7 +151,7 @@ describe('ClusterCommand unit tests', () => {
     let localConfig: LocalConfig;
     const defaultRemoteConfig = {
       metadata: {
-        name: 'solo-e2e',
+        namespace: 'solo-e2e',
       },
       clusters: {},
     };

@@ -125,7 +125,7 @@ export class ClusterCommandTasks {
         const localDeployments = localConfig.deployments;
         const remoteClusterList: string[] = [];
         let deploymentName;
-        const remoteNamespace = remoteConfig.metadata.name;
+        const remoteNamespace = remoteConfig.metadata.namespace;
         for (const deployment in localConfig.deployments) {
           if (localConfig.deployments[deployment].namespace === remoteNamespace) {
             deploymentName = deployment;

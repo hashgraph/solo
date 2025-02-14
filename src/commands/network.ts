@@ -539,12 +539,11 @@ export class NetworkCommand extends BaseCommand {
     }
   }
 
-  async prepareConfig(task: any, argv: any) {
+  async prepareConfig(task: any, argv: any, promptForNodeAliases: boolean = false) {
     this.configManager.update(argv);
     this.logger.debug('Updated config with argv', {config: this.configManager.config});
 
-    // disable the prompts that we don't want to prompt the user for
-    flags.disablePrompts([
+    const flagsWithDisabledPrompts = [
       flags.apiPermissionProperties,
       flags.app,
       flags.applicationEnv,
@@ -557,7 +556,6 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeAlias,
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
-      flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
       flags.profileName,
       flags.profileFile,
@@ -574,7 +572,12 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
-    ]);
+    ];
+
+    if (promptForNodeAliases) flagsWithDisabledPrompts.push(flags.nodeAliasesUnparsed);
+
+    // disable the prompts that we don't want to prompt the user for
+    flags.disablePrompts(flagsWithDisabledPrompts);
 
     await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
     let namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
@@ -714,7 +717,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
-            ctx.config = await self.prepareConfig(task, argv);
+            ctx.config = await self.prepareConfig(task, argv, true);
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
