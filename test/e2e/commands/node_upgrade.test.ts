@@ -21,7 +21,7 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
 const namespace = NamespaceName.of('node-upgrade');
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
@@ -84,6 +84,7 @@ e2eTestSuite(
           flags.quiet.constName,
           flags.localBuildPath.constName,
           flags.force.constName,
+          'contexts',
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 

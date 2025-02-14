@@ -9,9 +9,11 @@ export type Version = string;
 /// TODO - see if we can use NamespaceName and use some annotations and overrides to covert to strings
 export type NamespaceNameAsString = string;
 export type DeploymentName = string;
-export type ClusterRef = string;
 export type Context = string;
 export type ComponentName = string;
+
+export type ClusterRef = string;
+export type ClusterRefs = Record<ClusterRef, Context>;
 
 export interface IMigration {
   migratedAt: Date;

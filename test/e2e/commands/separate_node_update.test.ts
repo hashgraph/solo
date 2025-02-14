@@ -32,7 +32,7 @@ const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update-separate');
 const updateNodeId = 'node2';
 const newAccountId = '0.0.7';
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
 argv[flags.nodeAlias.name] = updateNodeId;
 
@@ -111,7 +111,7 @@ e2eTestSuite(
         const argvPrepare = Object.assign({}, argv);
         argvPrepare[flags.outputDir.name] = tempDir;
 
-        const argvExecute = Object.assign({}, getDefaultArgv());
+        const argvExecute = Object.assign({}, getDefaultArgv(namespace));
         argvExecute[flags.inputDir.name] = tempDir;
 
         await nodeCmd.handlers.updatePrepare(argvPrepare);

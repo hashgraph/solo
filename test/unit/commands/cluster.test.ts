@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import sinon from 'sinon';
-import {describe, it, beforeEach} from 'mocha';
+import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
@@ -25,7 +25,7 @@ import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
 import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
-import {type BaseCommand} from '../../../src/commands/base.js';
+import {type BaseCommand, type Opts} from '../../../src/commands/base.js';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {type CommandFlag} from '../../../src/types/flag_types.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
@@ -40,7 +40,6 @@ import {PlatformInstaller} from '../../../src/core/platform_installer.js';
 import {ProfileManager} from '../../../src/core/profile_manager.js';
 import {LeaseManager} from '../../../src/core/lease/lease_manager.js';
 import {CertificateManager} from '../../../src/core/certificate_manager.js';
-import {type Opts} from '../../../src/types/command_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {stringify} from 'yaml';
@@ -67,16 +66,16 @@ const getBaseCommandOpts = (context: string) => {
 
 const testName = 'cluster-cmd-unit';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 const sandbox = sinon.createSandbox();
 
 argv[flags.namespace.name] = namespace.name;
-argv[flags.deployment.name] = 'solo-e2e';
+argv[flags.deployment.name] = `${namespace.name}-deployment`;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.force.name] = true;
 argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
@@ -160,7 +159,6 @@ describe('ClusterCommand unit tests', () => {
     const getBaseCommandOpts = (
       sandbox: sinon.SinonSandbox,
       remoteConfig: any = {},
-
       // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
       stubbedFlags: Record<CommandFlag, any>[] = [],
       opts: any = {
@@ -265,7 +263,7 @@ describe('ClusterCommand unit tests', () => {
             resolve('deployment-3');
           });
         });
-        clusterNamePromptStub = sandbox.stub(flags.clusterName, 'prompt').callsFake(() => {
+        clusterNamePromptStub = sandbox.stub(flags.clusterRef, 'prompt').callsFake(() => {
           return new Promise(resolve => {
             resolve('cluster-3');
           });
@@ -396,7 +394,7 @@ describe('ClusterCommand unit tests', () => {
             resolve('deployment-3');
           });
         });
-        clusterNamePromptStub = sandbox.stub(flags.clusterName, 'prompt').callsFake(() => {
+        clusterNamePromptStub = sandbox.stub(flags.clusterRef, 'prompt').callsFake(() => {
           return new Promise(resolve => {
             resolve('cluster-3');
           });
@@ -420,14 +418,14 @@ describe('ClusterCommand unit tests', () => {
       });
 
       it('should use local config mapping to connect to first provided cluster', async () => {
-        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-2,cluster-3']]);
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterRef, 'cluster-2,cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected cluster is not found in local config mapping', async () => {
-        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterName, 'cluster-3']]);
+        const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterRef, 'cluster-3']]);
 
         command = await runSelectContextTask(opts); // @ts-ignore
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-3');
@@ -435,7 +433,7 @@ describe('ClusterCommand unit tests', () => {
 
       it('should use default kubeConfig context if selected cluster is not found in local config mapping and quiet=true', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [
-          [flags.clusterName, 'unknown-cluster'],
+          [flags.clusterRef, 'unknown-cluster'],
           [flags.quiet, true],
         ]);
 

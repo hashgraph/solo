@@ -33,7 +33,7 @@ export function testNodeAdd(
 ): void {
   const suffix = localBuildPath.substring(0, 5);
   const namespace = NamespaceName.of(`node-add${suffix}`);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
   argv[flags.stakeAmounts.name] = '1500,1';
   argv[flags.generateGossipKeys.name] = true;
