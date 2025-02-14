@@ -19,7 +19,7 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
-import type {DeploymentName} from '../../core/config/remote/types.js';
+import {type DeploymentName} from '../../core/config/remote/types.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';

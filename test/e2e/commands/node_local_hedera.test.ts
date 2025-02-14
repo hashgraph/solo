@@ -20,7 +20,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import type {ClusterRefs} from '../../../src/core/config/remote/types.js';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
 const namespace = NamespaceName.of('local-hedera-app');
 const argv = getDefaultArgv(namespace);
