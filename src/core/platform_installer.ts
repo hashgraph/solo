@@ -100,7 +100,7 @@ export class PlatformInstaller {
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
       const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
 
-      const k8Containers = context ? this.k8Factory.getK8(context).containers() : this.k8Factory.default().containers();
+      const k8Containers = this.k8Factory.getK8(context).containers();
 
       await k8Containers.readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
       await k8Containers.readByRef(containerRef).execContainer([extractScript, tag]);
@@ -263,7 +263,7 @@ export class PlatformInstaller {
 
     const recursiveFlag = recursive ? '-R' : '';
 
-    const k8Containers = context ? this.k8Factory.getK8(context).containers() : this.k8Factory.default().containers();
+    const k8Containers = this.k8Factory.getK8(context).containers();
 
     await k8Containers
       .readByRef(containerRef)

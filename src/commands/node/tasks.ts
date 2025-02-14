@@ -264,7 +264,7 @@ export class NodeCommandTasks {
 
       const self = this;
 
-      const k8 = context ? self.k8Factory.getK8(context) : self.k8Factory.default();
+      const k8 = self.k8Factory.getK8(context);
 
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
@@ -878,7 +878,7 @@ export class NodeCommandTasks {
     const podRef = PodRef.of(namespace, podName);
 
     try {
-      const k8 = context ? this.k8Factory.getK8(context) : this.k8Factory.default();
+      const k8 = this.k8Factory.getK8(context);
 
       await k8
         .pods()

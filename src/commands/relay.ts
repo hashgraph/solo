@@ -108,7 +108,7 @@ export class RelayCommand extends BaseCommand {
         const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
         const namespace = NamespaceName.of(this.localConfig.deployments[deploymentName].namespace);
 
-        const k8 = context ? this.k8Factory.getK8(context) : this.k8Factory.default();
+        const k8 = this.k8Factory.getK8(context);
         const secrets = await k8.secrets().list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
         if (secrets.length === 0) {
           this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
@@ -272,7 +272,7 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            const k8 = config.context ? self.k8Factory.getK8(config.context) : self.k8Factory.default();
+            const k8 = self.k8Factory.getK8(config.context);
             const kubeContext = k8.contexts().readCurrent();
 
             await self.chartManager.install(
@@ -301,7 +301,7 @@ export class RelayCommand extends BaseCommand {
           title: 'Check relay is ready',
           task: async ctx => {
             const config = ctx.config;
-            const k8 = config.context ? self.k8Factory.getK8(config.context) : self.k8Factory.default();
+            const k8 = self.k8Factory.getK8(config.context);
             try {
               await k8
                 .pods()

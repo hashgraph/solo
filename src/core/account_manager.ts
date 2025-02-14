@@ -77,7 +77,7 @@ export class AccountManager {
     context?: Optional<string>,
   ): Promise<AccountIdWithKeyPairObject> {
     try {
-      const k8 = context ? this.k8Factory.getK8(context) : this.k8Factory.default();
+      const k8 = this.k8Factory.getK8(context);
       const secrets = await k8.secrets().list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
 
       if (secrets.length > 0) {
