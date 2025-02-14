@@ -42,7 +42,7 @@ export function main(argv: any) {
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
-    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.packageVersion()));
+    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
     logger.showUser(chalk.cyan('**********************************************************************************'));
     process.exit(0);
   }

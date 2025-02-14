@@ -28,6 +28,7 @@ import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag_types.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
+import {type DeploymentName} from '../core/config/remote/types.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -243,7 +244,11 @@ export class MirrorNodeCommand extends BaseCommand {
             // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+            );
 
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
@@ -459,8 +464,20 @@ export class MirrorNodeCommand extends BaseCommand {
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const fees = await this.accountManager.getFileContents(namespace, feesFileIdNum);
-                    const exchangeRates = await this.accountManager.getFileContents(namespace, exchangeRatesFileIdNum);
+                    const clusterRefs = this.getClusterRefs();
+                    const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
+                    const fees = await this.accountManager.getFileContents(
+                      namespace,
+                      feesFileIdNum,
+                      clusterRefs,
+                      deployment,
+                    );
+                    const exchangeRates = await this.accountManager.getFileContents(
+                      namespace,
+                      exchangeRatesFileIdNum,
+                      clusterRefs,
+                      deployment,
+                    );
 
                     const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id,
                                                                               transaction_type)
@@ -616,7 +633,11 @@ export class MirrorNodeCommand extends BaseCommand {
               isChartInstalled,
             };
 
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+            );
 
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
