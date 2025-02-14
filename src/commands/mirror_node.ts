@@ -212,6 +212,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             // disable the prompts that we don't want to prompt the user for
             flags.disablePrompts([
+              flags.clusterRef,
               flags.valuesFile,
               flags.mirrorNodeVersion,
               flags.pinger,
