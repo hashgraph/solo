@@ -1225,7 +1225,7 @@ export class NetworkCommand extends BaseCommand {
                 consensusNode.name,
                 consensusNode.cluster,
                 namespace.name,
-                ConsensusNodeStates.INITIALIZED,
+                ConsensusNodeStates.REQUESTED,
                 consensusNode.nodeId,
               ),
             );

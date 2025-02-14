@@ -20,6 +20,7 @@ export enum ComponentType {
  * {@link ConsensusNodeComponent}
  */
 export enum ConsensusNodeStates {
+  REQUESTED = 'requested',
   INITIALIZED = 'initialized',
   SETUP = 'setup',
   STARTED = 'started',

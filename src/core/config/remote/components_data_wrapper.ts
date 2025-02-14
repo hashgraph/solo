@@ -242,7 +242,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
         alias,
         cluster,
         namespace,
-        ConsensusNodeStates.INITIALIZED,
+        ConsensusNodeStates.REQUESTED,
         index,
       );
     });
