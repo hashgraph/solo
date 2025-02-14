@@ -17,6 +17,7 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {type DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
+import * as constants from '../src/core/constants.js';
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
@@ -34,7 +35,6 @@ import {type LeaseManager} from '../src/core/lease/lease_manager.js';
 import {type CertificateManager} from '../src/core/certificate_manager.js';
 import {type LocalConfig} from '../src/core/config/local_config.js';
 import {type RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
-import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';
 import {type ConfigManager} from '../src/core/config_manager.js';
 import {type Helm} from '../src/core/helm.js';
@@ -87,9 +87,10 @@ export function getDefaultArgv(namespace: NamespaceName) {
   argv[flags.cacheDir.name] = cacheDir;
   argv.deployment = currentDeployment;
   argv[flags.deployment.name] = currentDeployment;
-  argv[flags.clusterRef.name] = 'cluster-1';
-  argv[flags.deploymentClusters.name] = ['cluster-1'];
-  argv[flags.context.name] = new K8Client(undefined).contexts().readCurrent();
+  const clusterRef = argv[flags.clusterRef.name] || 'cluster-1';
+  argv[flags.clusterRef.name] = clusterRef;
+  argv[flags.deploymentClusters.name] = argv[flags.deploymentClusters.name] || [clusterRef];
+  argv[flags.context.name] = argv[flags.context.name] || new K8Client(undefined).contexts().readCurrent();
   return argv;
 }
 
