@@ -151,10 +151,12 @@ export class RemoteConfigManager {
     try {
       const configMap = await this.getConfigMap();
 
-      if (!configMap) return false;
-      this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
+      if (configMap) {
+        this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
+        return true;
+      }
 
-      return true;
+      return false;
     } catch {
       return false;
     }
