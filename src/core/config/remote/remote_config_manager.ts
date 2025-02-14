@@ -250,7 +250,7 @@ export class RemoteConfigManager {
   }
 
   private populateVersionsInMetadata(argv: AnyObject) {
-    const command: string = argv._[0];
+    const command: string = argv._?.[0];
     const subcommand: string = argv._?.[1];
 
     const isCommandUsingSoloChartVersionFlag =
