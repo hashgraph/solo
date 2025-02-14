@@ -20,6 +20,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
 const namespace = NamespaceName.of('local-hedera-app');
 const argv = getDefaultArgv(namespace);
@@ -62,7 +63,8 @@ e2eTestSuite(
 
       it('save the state and restart the node with saved state', async () => {
         // create an account so later we can verify its balance after restart
-        await accountManager.loadNodeClient(namespace);
+        const clusterRefs: ClusterRefs = nodeCmd.getClusterRefs();
+        await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
         const privateKey = PrivateKey.generate();
         // get random integer between 100 and 1000
         const amount = Math.floor(Math.random() * (1000 - 100) + 100);
@@ -93,7 +95,7 @@ e2eTestSuite(
         await nodeCmd.handlers.start(argv);
 
         // check balance of accountInfo.accountId
-        await accountManager.loadNodeClient(namespace);
+        await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
         const balance = await new AccountBalanceQuery()
           .setAccountId(accountInfo.accountId)
           .execute(accountManager._nodeClient);

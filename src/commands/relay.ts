@@ -147,8 +147,12 @@ export class RelayCommand extends BaseCommand {
     const networkIds = {};
 
     const accountMap = getNodeAccountMap(nodeAliases);
-
-    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace);
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(
+      namespace,
+      this.getClusterRefs(),
+      deploymentName,
+    );
     nodeAliases.forEach(nodeAlias => {
       const haProxyClusterIp = networkNodeServicesMap.get(nodeAlias).haProxyClusterIp;
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeAlias).haProxyGrpcPort;
@@ -242,7 +246,11 @@ export class RelayCommand extends BaseCommand {
               constants.JSON_RPC_RELAY_CHART,
               constants.JSON_RPC_RELAY_CHART,
             );
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+            );
             config.valuesArg = await self.prepareValuesArg(
               config.valuesFile,
               config.nodeAliases,

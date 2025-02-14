@@ -78,7 +78,11 @@ e2eTestSuite(
 
       it('cache current version of private keys', async () => {
         // @ts-ignore
-        existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(namespace);
+        existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(
+          namespace,
+          nodeCmd.getClusterRefs(),
+          argv[flags.deployment.name],
+        );
         existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
           existingServiceMap,
           k8Factory,
