@@ -139,9 +139,7 @@ export class PlatformInstaller {
           throw new SoloError(`file does not exist: ${srcPath}`);
         }
 
-        const k8Containers = context
-          ? this.k8Factory.getK8(context).containers()
-          : this.k8Factory.default().containers();
+        const k8Containers = this.k8Factory.getK8(context).containers();
 
         if (!(await k8Containers.readByRef(containerRef).hasDir(destDir))) {
           await k8Containers.readByRef(containerRef).mkdir(destDir);
