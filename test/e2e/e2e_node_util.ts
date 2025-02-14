@@ -150,6 +150,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
                 flags.devMode.constName,
                 flags.quiet.constName,
+                flags.context.constName,
               ]);
             } catch (e) {
               nodeCmd.logger.showUserError(e);
