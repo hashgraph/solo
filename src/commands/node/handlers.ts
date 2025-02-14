@@ -242,7 +242,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   upgradePrepareTasks(argv, lease: Lease) {
     return [
       this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
-      this.validateSingleNodeState({excludedStates: []}),
+      this.validateAllNodeStates({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
