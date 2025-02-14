@@ -174,7 +174,6 @@ tasks:
         if [[ "${CLUSTER_REF}" == "" ]]; then
           export CLUSTER_REF=kind-{{ .SOLO_CLUSTER_NAME }}
         fi
-        kind-${SOLO_CLUSTER_NAME}
         SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context {{ .CONTEXT }} --email {{ .SOLO_EMAIL }} --deployment-clusters {{ .CLUSTER_REF }} --cluster-ref {{ .CLUSTER_REF }} --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} --dev
 
   solo:keys:
