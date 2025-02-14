@@ -73,32 +73,6 @@ export function splitFlagInput(input: string, separator = ',') {
     .filter(Boolean);
 }
 
-export function getNodeAliasesByClusterFromNodeAliasesFlag(
-  flagValue: string,
-  clusterRefs: ClusterRef[],
-): Record<ClusterRef, NodeAlias[]> {
-  const nodeAliasesByCluster: Record<ClusterRef, NodeAlias[]> = {};
-  clusterRefs.forEach(cluster => {
-    nodeAliasesByCluster[cluster] = [];
-  });
-
-  const parameterPairs: string[] = splitFlagInput(flagValue);
-  for (const parameterPair of parameterPairs) {
-    if (parameterPair.includes('=')) {
-      const [cluster, nodeAlias] = splitFlagInput(parameterPair, '=');
-      if (nodeAliasesByCluster[cluster]) {
-        nodeAliasesByCluster[cluster].push(nodeAlias as NodeAlias);
-      } else {
-        clusterRefs.forEach(cluster => {
-          nodeAliasesByCluster[cluster].push(nodeAlias as NodeAlias);
-        });
-      }
-    }
-  }
-
-  return nodeAliasesByCluster;
-}
-
 /**
  * @param arr - The array to be cloned
  * @returns a new array with the same elements as the input array
