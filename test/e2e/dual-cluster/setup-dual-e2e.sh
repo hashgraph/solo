@@ -17,7 +17,15 @@ elif [[ -z "${SOLO_CLUSTER_NAME}" ]]; then
   SOLO_CLUSTER_NAME="solo-e2e"
 fi
 
-for i in {1..2}; do
+if [[ -z "${SOLO_CLUSTER_DUALITY}" ]]; then
+  SOLO_CLUSTER_DUALITY=2
+elif [[ "${SOLO_CLUSTER_DUALITY}" -lt 1 ]]; then
+  SOLO_CLUSTER_DUALITY=1
+elif [[ "${SOLO_CLUSTER_DUALITY}" -gt 2 ]]; then
+  SOLO_CLUSTER_DUALITY=2
+fi
+
+for i in $(seq 1 "${SOLO_CLUSTER_DUALITY}"); do
   kind delete cluster -n "${SOLO_CLUSTER_NAME}-c${i}" || true
 done
 
@@ -28,7 +36,7 @@ docker network create kind --scope local --subnet 172.19.0.0/16 --driver bridge
 helm repo add metrics-server https://kubernetes-sigs.github.io/metrics-server/
 helm repo add metallb https://metallb.github.io/metallb
 
-for i in {1..2}; do
+for i in $(seq 1 "${SOLO_CLUSTER_DUALITY}"); do
   kind create cluster -n "${SOLO_CLUSTER_NAME}-c${i}" --image "${KIND_IMAGE}" --config "${SCRIPT_PATH}/kind-cluster-${i}.yaml" || exit 1
 
   # Deploy the metrics-server if not running in CI
@@ -63,7 +71,7 @@ SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 npm run build
 npm run solo -- init || exit 1 # cache args for subsequent commands
 
-for i in {1..2}; do
+for i in $(seq 1 "${SOLO_CLUSTER_DUALITY}"); do
   kubectl config use-context "kind-${SOLO_CLUSTER_NAME}-c${i}"
   npm run solo -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" || exit 1
   helm list --all-namespaces

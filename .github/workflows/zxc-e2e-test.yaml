@@ -70,6 +70,7 @@ permissions:
 env:
   #CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
   CG_EXEC: "ionice -c 2 -n 2 nice -n 19"
+  SOLO_CLUSTER_DUALITY: 1
 
 jobs:
   e2e-test:
@@ -175,6 +176,13 @@ jobs:
         with:
           cache-read-only: false
 
+      - name: Create Diagnostic Script
+        env:
+          WRITE_DIAG_SCRIPT: ${{ github.workspace }}/.github/workflows/script/write_diag_script.sh
+        run: |
+          sudo chmod +x "${WRITE_DIAG_SCRIPT}"
+          ${WRITE_DIAG_SCRIPT}
+
       - name: Build Hedera code locally
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         run: |
@@ -196,9 +204,9 @@ jobs:
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
           SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
-      - name: Sleep on Failure
-        if: ${{ failure() }}
-        run: sleep 3600
+#      - name: Sleep on Failure
+#        if: ${{ failure() }}
+#        run: sleep 3600
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
