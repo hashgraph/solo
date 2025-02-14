@@ -72,6 +72,7 @@ import {type Optional} from '../../types/index.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
+import {Base64} from 'js-base64';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
