@@ -366,8 +366,14 @@ export function balanceQueryShouldSucceed(
 ) {
   it('Balance query should succeed', async () => {
     try {
+      const argv = getDefaultArgv(namespace);
       expect(accountManager._nodeClient).to.be.null;
-      await accountManager.refreshNodeClient(namespace, skipNodeAlias);
+      await accountManager.refreshNodeClient(
+        namespace,
+        skipNodeAlias,
+        cmd.getClusterRefs(),
+        argv[flags.deployment.name],
+      );
       expect(accountManager._nodeClient).not.to.be.null;
 
       const balance = await new AccountBalanceQuery()
@@ -391,7 +397,13 @@ export function accountCreationShouldSucceed(
 ) {
   it('Account creation should succeed', async () => {
     try {
-      await accountManager.refreshNodeClient(namespace, skipNodeAlias);
+      const argv = getDefaultArgv(namespace);
+      await accountManager.refreshNodeClient(
+        namespace,
+        skipNodeAlias,
+        nodeCmd.getClusterRefs(),
+        argv[flags.deployment.name],
+      );
       expect(accountManager._nodeClient).not.to.be.null;
       const privateKey = PrivateKey.generate();
       const amount = 100;
@@ -478,6 +490,7 @@ async function addKeyHashToMap(
 
 export const testLocalConfigData = {
   userEmailAddress: 'john.doe@example.com',
+  soloVersion: '1.0.0',
   deployments: {
     deployment: {
       clusters: ['cluster-1'],

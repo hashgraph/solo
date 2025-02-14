@@ -103,7 +103,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
         });
 
         after(async function () {
@@ -280,7 +281,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
           const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
           expect(accountAliasInfo).not.to.be.null;
         } catch (e) {
@@ -306,7 +308,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('Create new account', async () => {
         try {
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
           const privateKey = PrivateKey.generate();
           const amount = 100;
 

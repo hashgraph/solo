@@ -1,4 +1,5 @@
 userEmailAddress: joe@doe.com
+soloVersion: '0.0.0'
 deployments:
   deployment:
     clusters:
