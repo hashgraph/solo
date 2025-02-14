@@ -113,6 +113,8 @@ describe('RemoteConfigDataWrapper', async () => {
 
     expect(() => (dataWrapper.clusters = {null: null})).to.throw(SoloError);
     expect(() => (dataWrapper.clusters = {namespace: null})).to.throw(SoloError);
-    expect(() => (dataWrapper.clusters = {null: new Cluster('cluster', 'namespace')})).to.throw(SoloError);
+    expect(() => (dataWrapper.clusters = {null: new Cluster('cluster', 'namespace', 'deployment')})).to.throw(
+      SoloError,
+    );
   });
 });
