@@ -82,21 +82,6 @@ export function cloneArray<T>(arr: T[]): T[] {
   return JSON.parse(JSON.stringify(arr));
 }
 
-/** load package.json */
-export function loadPackageJSON(): any {
-  try {
-    const raw = fs.readFileSync(path.join(ROOT_DIR, 'package.json'));
-    return JSON.parse(raw.toString());
-  } catch (e: Error | any) {
-    throw new SoloError('failed to load package.json', e);
-  }
-}
-
-export function packageVersion(): string {
-  const packageJson = loadPackageJSON();
-  return packageJson.version;
-}
-
 export function getTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'));
 }
