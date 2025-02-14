@@ -104,9 +104,11 @@ export class RemoteConfigManager {
     const clusters: Record<ClusterRef, Cluster> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
-      ([, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
+      ([deployment, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
         const namespace = deploymentStructure.namespace.toString();
-        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = new Cluster(cluster, namespace)));
+        deploymentStructure.clusters.forEach(
+          cluster => (clusters[cluster] = new Cluster(cluster, namespace, deployment)),
+        );
       },
     );
 
@@ -116,6 +118,7 @@ export class RemoteConfigManager {
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(
         this.getNamespace().name,
+        this.configManager.getFlag<DeploymentName>(flags.deployment),
         new Date(),
         this.localConfig.userEmailAddress,
         helpers.getSoloVersion(),

@@ -5,6 +5,7 @@ import {Migration} from './migration.js';
 import {SoloError} from '../../errors.js';
 import * as k8s from '@kubernetes/client-node';
 import {
+  type DeploymentName,
   type EmailAddress,
   type NamespaceNameAsString,
   type RemoteConfigMetadataStructure,
@@ -25,7 +26,8 @@ export class RemoteConfigMetadata
   private _migration?: Migration;
 
   public constructor(
-    public readonly name: NamespaceNameAsString,
+    public readonly namespace: NamespaceNameAsString,
+    public readonly deploymentName: DeploymentName,
     public readonly lastUpdatedAt: Date,
     public readonly lastUpdateBy: EmailAddress,
     public readonly soloVersion: Version,
@@ -68,7 +70,8 @@ export class RemoteConfigMetadata
     }
 
     return new RemoteConfigMetadata(
-      metadata.name,
+      metadata.namespace,
+      metadata.deploymentName,
       new Date(metadata.lastUpdatedAt),
       metadata.lastUpdateBy,
       metadata.soloVersion,
@@ -82,8 +85,16 @@ export class RemoteConfigMetadata
   }
 
   public validate(): void {
-    if (!this.name || !(typeof this.name === 'string')) {
-      throw new SoloError(`Invalid name: ${this.name}, is type string: ${typeof this.name === 'string'}`);
+    if (!this.namespace || !(typeof this.namespace === 'string')) {
+      throw new SoloError(
+        `Invalid namespace: ${this.namespace}, is type string: ${typeof this.namespace === 'string'}`,
+      );
+    }
+
+    if (!this.deploymentName || !(typeof this.deploymentName === 'string')) {
+      throw new SoloError(
+        `Invalid deploymentName: ${this.deploymentName}, is type string: ${typeof this.deploymentName === 'string'}`,
+      );
     }
 
     if (!(this.lastUpdatedAt instanceof Date)) {
@@ -105,7 +116,8 @@ export class RemoteConfigMetadata
 
   public toObject(): RemoteConfigMetadataStructure {
     const data = {
-      name: this.name,
+      namespace: this.namespace,
+      deploymentName: this.deploymentName,
       lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),
       lastUpdateBy: this.lastUpdateBy,
       soloChartVersion: this.soloChartVersion,

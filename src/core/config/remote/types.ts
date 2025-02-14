@@ -39,6 +39,7 @@ export interface IConsensusNodeComponent extends Component {
 export interface ICluster {
   name: string;
   namespace: string;
+  deployment: DeploymentName;
   dnsBaseDomain: string;
   dnsConsensusNodePattern: string;
 }
@@ -66,7 +67,8 @@ export interface RemoteConfigDataStructure {
 }
 
 export interface RemoteConfigMetadataStructure {
-  name: NamespaceNameAsString;
+  namespace: NamespaceNameAsString;
+  deploymentName: DeploymentName;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;
   soloVersion: Version;

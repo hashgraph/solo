@@ -13,15 +13,45 @@ import {
 } from '../../../../../src/core/config/remote/types.js';
 
 export function createMetadata() {
-  const name: NamespaceNameAsString = 'namespace';
+  const namespace: NamespaceNameAsString = 'namespace';
+  const deploymentName = 'kind-namespace';
   const lastUpdatedAt: Date = new Date();
   const lastUpdateBy: EmailAddress = 'test@test.test';
   const soloVersion: Version = '0.0.1';
   const migration = new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0');
+  const soloChartVersion = '';
+  const hederaPlatformVersion = '';
+  const hederaMirrorNodeChartVersion = '';
+  const hederaExplorerChartVersion = '';
+  const hederaJsonRpcRelayChartVersion = '';
 
   return {
-    metadata: new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, soloVersion, '', '', '', '', '', migration),
-    values: {name, lastUpdatedAt, lastUpdateBy, migration, soloVersion},
+    metadata: new RemoteConfigMetadata(
+      namespace,
+      deploymentName,
+      lastUpdatedAt,
+      lastUpdateBy,
+      soloVersion,
+      '',
+      '',
+      '',
+      '',
+      '',
+      migration,
+    ),
+    values: {
+      namespace,
+      deploymentName,
+      lastUpdatedAt,
+      lastUpdateBy,
+      migration,
+      soloVersion,
+      soloChartVersion,
+      hederaPlatformVersion,
+      hederaMirrorNodeChartVersion,
+      hederaExplorerChartVersion,
+      hederaJsonRpcRelayChartVersion,
+    },
     migration,
   };
 }
@@ -35,14 +65,31 @@ describe('RemoteConfigMetadata', () => {
     const {
       metadata,
       migration,
-      values: {name, lastUpdatedAt, lastUpdateBy, soloVersion},
+      values: {
+        namespace,
+        deploymentName,
+        lastUpdatedAt,
+        lastUpdateBy,
+        soloVersion,
+        soloChartVersion,
+        hederaPlatformVersion,
+        hederaMirrorNodeChartVersion,
+        hederaExplorerChartVersion,
+        hederaJsonRpcRelayChartVersion,
+      },
     } = createMetadata();
 
     expect(metadata.toObject()).to.deep.equal({
-      name,
+      namespace,
+      deploymentName,
       lastUpdatedAt,
       lastUpdateBy,
       soloVersion,
+      soloChartVersion,
+      hederaPlatformVersion,
+      hederaMirrorNodeChartVersion,
+      hederaExplorerChartVersion,
+      hederaJsonRpcRelayChartVersion,
       migration: migration.toObject(),
     });
   });
@@ -50,14 +97,15 @@ describe('RemoteConfigMetadata', () => {
   it('should successfully create instance using fromObject', () => {
     const {
       metadata,
-      values: {name, lastUpdatedAt, lastUpdateBy, soloVersion},
+      values: {namespace, deploymentName, lastUpdatedAt, lastUpdateBy, soloVersion},
     } = createMetadata();
 
     // @ts-ignore
     delete metadata._migration;
 
     const newMetadata = RemoteConfigMetadata.fromObject({
-      name,
+      namespace,
+      deploymentName,
       lastUpdatedAt,
       lastUpdateBy,
       soloVersion,
@@ -89,32 +137,32 @@ describe('RemoteConfigMetadata', () => {
 
   describe('Values', () => {
     const {
-      values: {name, lastUpdatedAt, lastUpdateBy, soloVersion},
+      values: {namespace, deploymentName, lastUpdatedAt, lastUpdateBy, soloVersion},
     } = createMetadata();
 
     it('should not be able to create new instance of the class with invalid name', () => {
       // @ts-ignore
-      expect(() => new RemoteConfigMetadata(null, lastUpdatedAt, lastUpdateBy, soloVersion)).to.throw(
+      expect(() => new RemoteConfigMetadata(null, deploymentName, lastUpdatedAt, lastUpdateBy, soloVersion)).to.throw(
         SoloError,
-        `Invalid name: ${null}`,
+        `Invalid namespace: ${null}`,
       );
 
       // @ts-ignore
-      expect(() => new RemoteConfigMetadata(1, lastUpdatedAt, lastUpdateBy, soloVersion)).to.throw(
+      expect(() => new RemoteConfigMetadata(1, deploymentName, lastUpdatedAt, lastUpdateBy, soloVersion)).to.throw(
         SoloError,
-        `Invalid name: ${1}`,
+        `Invalid namespace: ${1}`,
       );
     });
 
     it('should not be able to create new instance of the class with invalid lastUpdatedAt', () => {
       // @ts-ignore
-      expect(() => new RemoteConfigMetadata(name, null, lastUpdateBy, soloVersion)).to.throw(
+      expect(() => new RemoteConfigMetadata(namespace, deploymentName, null, lastUpdateBy, soloVersion)).to.throw(
         SoloError,
         `Invalid lastUpdatedAt: ${null}`,
       );
 
       // @ts-ignore
-      expect(() => new RemoteConfigMetadata(name, 1, lastUpdateBy, soloVersion)).to.throw(
+      expect(() => new RemoteConfigMetadata(namespace, deploymentName, 1, lastUpdateBy, soloVersion)).to.throw(
         SoloError,
         `Invalid lastUpdatedAt: ${1}`,
       );
@@ -122,13 +170,13 @@ describe('RemoteConfigMetadata', () => {
 
     it('should not be able to create new instance of the class with invalid lastUpdateBy', () => {
       // @ts-ignore
-      expect(() => new RemoteConfigMetadata(name, lastUpdatedAt, null, soloVersion)).to.throw(
+      expect(() => new RemoteConfigMetadata(namespace, deploymentName, lastUpdatedAt, null, soloVersion)).to.throw(
         SoloError,
         `Invalid lastUpdateBy: ${null}`,
       );
 
       // @ts-ignore
-      expect(() => new RemoteConfigMetadata(name, lastUpdatedAt, 1, soloVersion)).to.throw(
+      expect(() => new RemoteConfigMetadata(namespace, deploymentName, lastUpdatedAt, 1, soloVersion)).to.throw(
         SoloError,
         `Invalid lastUpdateBy: ${1}`,
       );
@@ -136,8 +184,21 @@ describe('RemoteConfigMetadata', () => {
 
     it('should not be able to create new instance of the class with invalid migration', () => {
       expect(
-        // @ts-ignore
-        () => new RemoteConfigMetadata(name, lastUpdatedAt, lastUpdateBy, soloVersion, '', '', '', '', '', {}),
+        () =>
+          new RemoteConfigMetadata(
+            namespace,
+            deploymentName,
+            lastUpdatedAt,
+            lastUpdateBy,
+            soloVersion,
+            '',
+            '',
+            '',
+            '',
+            '',
+            // @ts-ignore
+            {},
+          ),
       ).to.throw(SoloError, `Invalid migration: ${{}}`);
     });
   });
