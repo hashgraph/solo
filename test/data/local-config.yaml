@@ -1,6 +1,11 @@
 userEmailAddress: joe@doe.com
 soloVersion: '0.0.0'
 deployments:
+  relay-deployment:
+    clusters:
+      - e2e-cluster-1
+      - e2e-cluster-2
+    namespace: dual-cluster-relay-cmd-e2e
   deployment:
     clusters:
       - cluster-1

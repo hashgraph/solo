@@ -94,8 +94,64 @@ e2eTestSuite(
         const contexts: string[] = splitFlagInput(argv[flags.context.name]);
         for (const context of contexts) {
           const k8 = bootstrapResp.opts.k8Factory.getK8(context);
+          if (await k8.namespaces().has(namespace)) {
+            await k8.namespaces().delete(namespace);
+          }
+          await k8.namespaces().create(namespace);
 
-          const data: Record<string, string> = {};
+          const data: Record<string, string> = {
+            'remote-config-data': `
+  metadata:
+    namespace: dual-cluster-relay-cmd-e2e
+    deploymentName: relay-deployment
+    lastUpdatedAt: 2025-02-14T22:10:13.586000Z
+    lastUpdateBy: john@doe.com
+    soloChartVersion: ""
+    hederaPlatformVersion: ""
+    hederaMirrorNodeChartVersion: ""
+    hederaExplorerChartVersion: ""
+    hederaJsonRpcRelayChartVersion: ""
+    soloVersion: 0.34.0
+  version: 1.0.0
+  clusters:
+    e2e-cluster-1:
+      name: e2e-cluster-1
+      namespace: dual-cluster-relay-cmd-e2e
+      deployment: relay-deployment
+      dnsBaseDomain: cluster.local
+      dnsConsensusNodePattern: network-\${nodeAlias}-svc.\${namespace}.svc
+    e2e-cluster-2:
+      name: e2e-cluster-2
+      namespace: dual-cluster-relay-cmd-e2e
+      deployment: relay-deployment
+      dnsBaseDomain: cluster.local
+      dnsConsensusNodePattern: network-\${nodeAlias}-svc.\${namespace}.svc
+    components:
+    relays: {}
+    haProxies: {}
+    mirrorNodes: {}
+    envoyProxies: {}
+    consensusNodes:
+      node1:
+        name: node1
+        cluster: e2e-cluster-1
+        namespace: dual-cluster-relay-cmd-e2e
+        state: requested
+        nodeId: 0
+      node2:
+        name: node2
+        cluster: e2e-cluster-2
+        namespace: dual-cluster-relay-cmd-e2e
+        state: requested
+        nodeId: 1
+    mirrorNodeExplorers: {}
+  commandHistory:
+      - deployment create
+  lastExecutedCommand: deployment create
+  flags:
+    nodeAliasesUnparsed: node1,node2
+`,
+          };
 
           await k8
             .configMaps()
