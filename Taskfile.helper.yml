@@ -69,7 +69,9 @@ tasks:
       - echo "CONSENSUS_NODE_VERSION=${CONSENSUS_NODE_VERSION}"
       - echo "SOLO_NAMESPACE=${SOLO_NAMESPACE}"
       - echo "SOLO_DEPLOYMENT=${SOLO_DEPLOYMENT}"
+      - echo "CLUSTER_REF=${CLUSTER_REF}"
       - echo "SOLO_CLUSTER_RELEASE_NAME=${SOLO_CLUSTER_RELEASE_NAME}"
+      - echo "CONTEXT=${CONTEXT}"
       - echo "nodes={{ .nodes }}"
       - echo "node_identifiers={{ .node_identifiers }}"
       - echo "use_port_forwards={{ .use_port_forwards }}"
@@ -165,7 +167,14 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context kind-${SOLO_CLUSTER_NAME} --email {{ .SOLO_EMAIL }} --deployment-clusters kind-${SOLO_CLUSTER_NAME} --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} --dev
+      - |
+        if [[ "${CONTEXT}" == "" ]]; then
+          export CONTEXT=kind-{{ .SOLO_CLUSTER_NAME }}
+        fi
+        if [[ "${CLUSTER_REF}" == "" ]]; then
+          export CLUSTER_REF=kind-{{ .SOLO_CLUSTER_NAME }}
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context {{ .CONTEXT }} --email {{ .SOLO_EMAIL }} --deployment-clusters {{ .CLUSTER_REF }} --cluster-ref {{ .CLUSTER_REF }} --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} --dev
 
   solo:keys:
     silent: true
