@@ -121,7 +121,7 @@
     "mocha-each": "^2.0.1",
     "mocha-junit-reporter": "^2.2.1",
     "mocha-multi-reporters": "^1.5.1",
-    "prettier": "^3.5.0",
+    "prettier": "^3.5.1",
     "remark-cli": "^12.0.1",
     "remark-frontmatter": "^5.0.0",
     "remark-lint-list-item-indent": "^4.0.1",
