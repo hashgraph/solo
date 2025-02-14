@@ -40,7 +40,7 @@ const argv = getDefaultArgv(namespace);
 
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
-argv[flags.deployment.name] = `${namespace.name}-deployment`;
+argv[flags.deployment.name] = 'deployment';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterRef.name] = TEST_CLUSTER;
