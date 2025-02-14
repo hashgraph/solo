@@ -9,13 +9,13 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type DeploymentName, type NamespaceNameAsString, type ClusterRef} from '../core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
@@ -100,14 +100,8 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             const {deployments} = this.localConfig;
             const {deployment, namespace: configNamespace, deploymentClusters} = ctx.config;
-            let namespace = configNamespace;
-            if (!namespace?.name) {
-              namespace = NamespaceName.of(deployment);
-              ctx.config.namespace = namespace;
-              this.configManager.setFlag(flags.namespace, namespace);
-            }
             deployments[deployment] = {
-              namespace: namespace.name,
+              namespace: configNamespace.name,
               clusters: deploymentClusters,
             };
             this.localConfig.setDeployments(deployments);
