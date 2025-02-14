@@ -33,7 +33,7 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import * as helpers from '../../../src/core/helpers.js';
 import {Templates} from '../../../src/core/templates.js';
-import * as Base64 from "js-base64";
+import * as Base64 from 'js-base64';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
