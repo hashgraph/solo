@@ -9,7 +9,7 @@ import {type DependencyManager} from '../../../../src/core/dependency_managers/i
 import {type Helm} from '../../../../src/core/helm.js';
 import {type ChartManager} from '../../../../src/core/chart_manager.js';
 import {type ConfigManager} from '../../../../src/core/config_manager.js';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {K8Client} from '../../../../src/core/kube/k8_client/k8_client.js';
 import {LocalConfig} from '../../../../src/core/config/local_config.js';
 import {type KeyManager} from '../../../../src/core/key_manager.js';
@@ -30,7 +30,7 @@ describe('InitCommand', () => {
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
 
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-  let k8: K8;
+  let k8Factory: K8Factory;
   let localConfig: LocalConfig;
 
   const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
@@ -44,7 +44,7 @@ describe('InitCommand', () => {
   before(() => {
     sandbox = sinon.createSandbox();
     sandbox.stub(K8Client.prototype, 'init').callsFake(() => this);
-    k8 = container.resolve(InjectTokens.K8);
+    k8Factory = container.resolve(InjectTokens.K8Factory);
     localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
     remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     leaseManager = container.resolve(InjectTokens.LeaseManager);
@@ -53,7 +53,7 @@ describe('InitCommand', () => {
     initCmd = new InitCommand({
       logger: testLogger,
       helm,
-      k8,
+      k8Factory,
       chartManager,
       configManager,
       depManager,

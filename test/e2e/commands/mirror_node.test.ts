@@ -50,7 +50,7 @@ argv[flags.pinger.name] = true;
 argv[flags.enableHederaExplorerTls.name] = true;
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
-    const k8 = bootstrapResp.opts.k8;
+    const k8Factory = bootstrapResp.opts.k8Factory;
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
     const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
     const downloader = new PackageDownloader(mirrorNodeCmd.logger);
@@ -68,7 +68,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       this.timeout(Duration.ofMinutes(3).toMillis());
 
       await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-      await k8.namespaces().delete(namespace);
+      await k8Factory.default().namespaces().delete(namespace);
       await accountManager.close();
 
       bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`);
@@ -93,11 +93,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
+        flags.storageAccessKey.constName,
         flags.storageSecrets.constName,
         flags.storageEndpoint.constName,
         flags.externalDatabaseHost.constName,
         flags.externalDatabaseOwnerUsername.constName,
         flags.externalDatabaseOwnerPassword.constName,
+        flags.externalDatabaseReadonlyUsername.constName,
+        flags.externalDatabaseReadonlyPassword.constName,
       ]);
       expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.hederaExplorerTlsHostName.constName,
@@ -112,10 +115,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await accountManager.loadNodeClient(namespace);
       try {
         // find hedera explorer pod
-        const pods: V1Pod[] = await k8.pods().list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
+        const pods: V1Pod[] = await k8Factory
+          .default()
+          .pods()
+          .list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod = pods[0];
 
-        portForwarder = await k8
+        portForwarder = await k8Factory
+          .default()
           .pods()
           .readByRef(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)))
           .portForward(8_080, 8_080);
@@ -202,7 +209,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         }
         await sleep(Duration.ofSeconds(1));
         expect(receivedMessage).to.equal(testMessage);
-        await k8.pods().readByRef(null).stopPortForward(portForwarder);
+        await k8Factory.default().pods().readByRef(null).stopPortForward(portForwarder);
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();

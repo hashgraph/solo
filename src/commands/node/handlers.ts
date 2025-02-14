@@ -23,7 +23,7 @@ import * as constants from '../../core/constants.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type LeaseManager} from '../../core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError, SoloError} from '../../core/errors.js';
@@ -40,20 +40,21 @@ import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
-import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
+import {Templates} from '../../core/templates.js';
+import {type CommandFlag} from '../../types/flag_types.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
   private readonly configManager: ConfigManager;
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
-  private readonly k8: K8;
+  private readonly k8Factory: K8Factory;
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
 
-  private getConfig: any;
+  public getConfig: (configName: string, flags: CommandFlag[], extraProperties?: string[]) => object;
   private prepareChartPath: any;
 
   public readonly parent: BaseCommand;
@@ -64,7 +65,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
     if (!opts || !opts.tasks) throw new Error('An instance of NodeCommandTasks is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.platformInstaller)
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
 
@@ -72,7 +73,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     this.tasks = opts.tasks;
     this.accountManager = opts.accountManager;
     this.configManager = opts.configManager;
-    this.k8 = opts.k8;
+    this.k8Factory = opts.k8Factory;
     this.platformInstaller = opts.platformInstaller;
     this.leaseManager = opts.leaseManager;
     this.remoteConfigManager = opts.remoteConfigManager;
@@ -879,7 +880,13 @@ export class NodeCommandHandlers implements CommandHandlers {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.edit(
               nodeAlias,
-              new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, state),
+              new ConsensusNodeComponent(
+                nodeAlias,
+                cluster,
+                namespace.name,
+                state,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
+              ),
             );
           }
         });

@@ -17,6 +17,8 @@ import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -29,13 +31,13 @@ export const KEYS_CONFIGS_NAME = 'keyConfigs';
 export const SETUP_CONFIGS_NAME = 'setupConfigs';
 export const START_CONFIGS_NAME = 'startConfigs';
 
-const initializeSetup = async (config, k8) => {
+const initializeSetup = async (config: any, k8Factory: K8Factory) => {
   // compute other config parameters
   config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
   config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
   config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
 
-  if (!(await k8.namespaces().has(config.namespace))) {
+  if (!(await k8Factory.default().namespaces().has(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
   }
 
@@ -59,7 +61,7 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
-  await initializeSetup(config, this.k8);
+  await initializeSetup(config, this.k8Factory);
   config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -78,7 +80,7 @@ export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, ta
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.existingNodeAliases = [];
-  await initializeSetup(config, this.k8);
+  await initializeSetup(config, this.k8Factory);
 
   return config;
 };
@@ -100,7 +102,7 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
   config.existingNodeAliases = [];
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
 
-  await initializeSetup(config, this.k8);
+  await initializeSetup(config, this.k8Factory);
 
   // set config in the context for later tasks to use
   ctx.config = config;
@@ -138,7 +140,7 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   config.curDate = new Date();
   config.existingNodeAliases = [];
 
-  await initializeSetup(config, this.k8);
+  await initializeSetup(config, this.k8Factory);
 
   // set config in the context for later tasks to use
   ctx.config = config;
@@ -183,7 +185,7 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   config.existingNodeAliases = [];
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
-  await initializeSetup(config, this.k8);
+  await initializeSetup(config, this.k8Factory);
 
   // set config in the context for later tasks to use
   ctx.config = config;
@@ -234,7 +236,7 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   config.curDate = new Date();
   config.existingNodeAliases = [];
 
-  await initializeSetup(config, this.k8);
+  await initializeSetup(config, this.k8Factory);
 
   // set config in the context for later tasks to use
   ctx.config = config;
@@ -293,7 +295,7 @@ export const refreshConfigBuilder = async function (argv, ctx, task) {
   ctx.config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
 
-  await initializeSetup(ctx.config, this.k8);
+  await initializeSetup(ctx.config, this.k8Factory);
 
   return ctx.config;
 };
@@ -323,7 +325,7 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
     deployment: this.configManager.getFlag(flags.deployment),
   };
 
-  if (!(await this.k8.namespaces().has(ctx.config.namespace))) {
+  if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
     throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
   }
 
@@ -334,7 +336,7 @@ export const startConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(START_CONFIGS_NAME, argv.flags, ['nodeAliases', 'namespace']) as NodeStartConfigClass;
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
-  if (!(await this.k8.namespaces().has(config.namespace))) {
+  if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
     throw new SoloError(`namespace ${config.namespace} does not exist`);
   }
 
@@ -352,8 +354,9 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  config.consensusNodes = this.parent.getConsensusNodes();
 
-  await initializeSetup(config, this.k8);
+  await initializeSetup(config, this.k8Factory);
 
   // set config in the context for later tasks to use
   ctx.config = config;
@@ -447,6 +450,10 @@ export interface NodeSetupConfigClass {
   releaseTag: string;
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
+  consensusNodes: ConsensusNode[];
+  skipStop?: boolean;
+  keysDir: string;
+  stagingDir: string;
   getUnusedConfigs: () => string[];
 }
 

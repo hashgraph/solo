@@ -5,13 +5,13 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
 import * as yaml from 'yaml';
-import {RemoteConfigDataWrapper} from '../../../../src/core/config/remote/remote_config_data_wrapper.js';
+import {RemoteConfigDataWrapper} from '../../../../../src/core/config/remote/remote_config_data_wrapper.js';
 import {createMetadata} from './metadata.test.js';
 import {createComponentsDataWrapper} from './components_data_wrapper.test.js';
-import {SoloError} from '../../../../src/core/errors.js';
-import * as constants from '../../../../src/core/constants.js';
-import {CommonFlagsDataWrapper} from '../../../../src/core/config/remote/common_flags_data_wrapper.js';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
+import {SoloError} from '../../../../../src/core/errors.js';
+import * as constants from '../../../../../src/core/constants.js';
+import {CommonFlagsDataWrapper} from '../../../../../src/core/config/remote/common_flags_data_wrapper.js';
+import {Cluster} from '../../../../../src/core/config/remote/cluster.js';
 
 const configManagerMock = {
   update: (...args: any) => true,
@@ -113,6 +113,6 @@ describe('RemoteConfigDataWrapper', async () => {
 
     expect(() => (dataWrapper.clusters = {null: null})).to.throw(SoloError);
     expect(() => (dataWrapper.clusters = {namespace: null})).to.throw(SoloError);
-    expect(() => (dataWrapper.clusters = {null: 'namespace'})).to.throw(SoloError);
+    expect(() => (dataWrapper.clusters = {null: new Cluster('cluster', 'namespace')})).to.throw(SoloError);
   });
 });

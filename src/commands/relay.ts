@@ -105,7 +105,10 @@ export class RelayCommand extends BaseCommand {
       try {
         const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
         const namespace = NamespaceName.of(this.localConfig.deployments[deploymentName].namespace);
-        const secrets = await this.k8.secrets().list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
+        const secrets = await this.k8Factory
+          .default()
+          .secrets()
+          .list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
         if (secrets.length === 0) {
           this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
           valuesArg += ` --set config.OPERATOR_KEY_MAIN=${constants.OPERATOR_KEY}`;
@@ -264,9 +267,11 @@ export class RelayCommand extends BaseCommand {
               config.chartPath,
               '',
               config.valuesArg,
+              this.k8Factory.default().contexts().readCurrent(),
             );
 
-            await self.k8
+            await self.k8Factory
+              .default()
               .pods()
               .waitForRunningPhase(
                 config.namespace,
@@ -284,7 +289,8 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
             try {
-              await self.k8
+              await self.k8Factory
+                .default()
                 .pods()
                 .waitForReadyStatus(
                   config.namespace,
@@ -371,7 +377,11 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            await this.chartManager.uninstall(config.namespace, config.releaseName);
+            await this.chartManager.uninstall(
+              config.namespace,
+              config.releaseName,
+              this.k8Factory.default().contexts().readCurrent(),
+            );
 
             this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace));
 

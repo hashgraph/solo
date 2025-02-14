@@ -26,23 +26,23 @@ import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
 import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {ContainerName} from '../../../../src/core/kube/resources/container/container_name.js';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
 
   let configManager: ConfigManager;
-  let k8: K8;
+  let k8Factory: K8Factory;
 
   before(async () => {
     configManager = container.resolve(InjectTokens.ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
-    k8 = container.resolve(InjectTokens.K8);
-    await k8.namespaces().create(namespace);
+    k8Factory = container.resolve(InjectTokens.K8Factory);
+    await k8Factory.default().namespaces().create(namespace);
   });
 
   after(async () => {
-    await k8.namespaces().delete(namespace);
+    await k8Factory.default().namespaces().delete(namespace);
   });
 
   const cluster = 'cluster';
@@ -63,13 +63,22 @@ describe('RemoteConfigValidator', () => {
     {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name)},
     {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name)},
     {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace.name)},
-    {[nodeAlias]: new ConsensusNodeComponent(nodeAlias, cluster, namespace.name, state)},
+    {
+      [nodeAlias]: new ConsensusNodeComponent(
+        nodeAlias,
+        cluster,
+        namespace.name,
+        state,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
+      ),
+    },
     {[mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(mirrorNodeExplorerName, cluster, namespace.name)},
   );
 
   async function createPod(name: string, labels: Record<string, string>) {
     try {
-      await k8
+      await k8Factory
+        .default()
         .pods()
         .create(
           PodRef.of(namespace, PodName.of(name)),
@@ -89,7 +98,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8));
+        await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8Factory));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -101,7 +110,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(relayName, {[key]: value});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8));
+      await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8Factory));
     });
   });
 
@@ -109,7 +118,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8));
+        await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -120,7 +129,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(haProxyName, {app: haProxyName});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8));
+      await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory));
     });
   });
 
@@ -128,7 +137,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8));
+        await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -141,7 +150,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(mirrorNodeName, {[key1]: value1, [key2]: value2});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8));
+      await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory));
     });
   });
 
@@ -149,7 +158,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8));
+        await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -160,7 +169,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(envoyProxyName, {app: envoyProxyName});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8));
+      await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory));
     });
   });
 
@@ -168,7 +177,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8));
+        await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -179,7 +188,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(nodeAlias, {app: `network-${nodeAlias}`});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8));
+      await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory));
     });
   });
 
@@ -187,7 +196,7 @@ describe('RemoteConfigValidator', () => {
     it('should fail if component is not present', async () => {
       try {
         // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8));
+        await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -199,7 +208,7 @@ describe('RemoteConfigValidator', () => {
       await createPod(mirrorNodeExplorerName, {[key]: value});
 
       // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8));
+      await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory));
     });
   });
 });

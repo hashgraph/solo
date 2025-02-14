@@ -26,7 +26,7 @@ import {type SoloLogger} from '../src/core/logging.js';
 import {type BaseCommand} from '../src/commands/base.js';
 import {type NodeAlias} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
-import {type K8} from '../src/core/kube/k8.js';
+import {type K8Factory} from '../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../src/core/account_manager.js';
 import {type PlatformInstaller} from '../src/core/platform_installer.js';
 import {type ProfileManager} from '../src/core/profile_manager.js';
@@ -78,7 +78,7 @@ export function getDefaultArgv() {
     argv[f.name] = f.definition.defaultValue;
   }
 
-  const currentDeployment = testLocalConfigData.currentDeploymentName;
+  const currentDeployment = 'deployment';
   const cacheDir = getTestCacheDir();
   argv.cacheDir = cacheDir;
   argv[flags.cacheDir.name] = cacheDir;
@@ -90,7 +90,7 @@ export function getDefaultArgv() {
 interface TestOpts {
   logger: SoloLogger;
   helm: Helm;
-  k8: K8;
+  k8Factory: K8Factory;
   chartManager: ChartManager;
   configManager: ConfigManager;
   downloader: PackageDownloader;
@@ -126,7 +126,7 @@ interface BootstrapResponse {
 export function bootstrapTestVariables(
   testName: string,
   argv: any,
-  k8Arg: K8 | null = null,
+  k8FactoryArg: K8Factory | null = null,
   initCmdArg: InitCommand | null = null,
   clusterCmdArg: ClusterCommand | null = null,
   networkCmdArg: NetworkCommand | null = null,
@@ -145,7 +145,7 @@ export function bootstrapTestVariables(
   const helm: Helm = container.resolve(InjectTokens.Helm);
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
   const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
-  const k8: K8 = k8Arg || container.resolve(InjectTokens.K8);
+  const k8Factory: K8Factory = k8FactoryArg || container.resolve(InjectTokens.K8Factory);
   const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
   const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
   const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
@@ -158,7 +158,7 @@ export function bootstrapTestVariables(
   const opts: TestOpts = {
     logger: testLogger,
     helm,
-    k8,
+    k8Factory,
     chartManager,
     configManager,
     downloader,
@@ -200,7 +200,7 @@ export function bootstrapTestVariables(
 export function e2eTestSuite(
   testName: string,
   argv: Record<any, any>,
-  k8Arg: K8 | null = null,
+  k8FactoryArg: K8Factory | null = null,
   initCmdArg: InitCommand | null = null,
   clusterCmdArg: ClusterCommand | null = null,
   networkCmdArg: NetworkCommand | null = null,
@@ -212,7 +212,7 @@ export function e2eTestSuite(
   const bootstrapResp = bootstrapTestVariables(
     testName,
     argv,
-    k8Arg,
+    k8FactoryArg,
     initCmdArg,
     clusterCmdArg,
     networkCmdArg,
@@ -221,7 +221,7 @@ export function e2eTestSuite(
   );
   const namespace = bootstrapResp.namespace;
   const initCmd = bootstrapResp.cmd.initCmd;
-  const k8 = bootstrapResp.opts.k8;
+  const k8Factory = bootstrapResp.opts.k8Factory;
   const clusterCmd = bootstrapResp.cmd.clusterCmd;
   const networkCmd = bootstrapResp.cmd.networkCmd;
   const nodeCmd = bootstrapResp.cmd.nodeCmd;
@@ -248,10 +248,10 @@ export function e2eTestSuite(
       it('should cleanup previous deployment', async () => {
         await initCmd.init(argv);
 
-        if (await k8.namespaces().has(namespace)) {
-          await k8.namespaces().delete(namespace);
+        if (await k8Factory.default().namespaces().has(namespace)) {
+          await k8Factory.default().namespaces().delete(namespace);
 
-          while (await k8.namespaces().has(namespace)) {
+          while (await k8Factory.default().namespaces().has(namespace)) {
             testLogger.debug(`Namespace ${namespace} still exist. Waiting...`);
             await sleep(Duration.ofSeconds(2));
           }
@@ -289,10 +289,6 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
-          flags.storageAccessKey.constName,
-          flags.storageSecrets.constName,
-          flags.storageEndpoint.constName,
-          flags.googleCredential.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 
@@ -401,7 +397,7 @@ export function accountCreationShouldSucceed(
 
 export async function getNodeAliasesPrivateKeysHash(
   networkNodeServicesMap: Map<NodeAlias, NetworkNodeServices>,
-  k8: K8,
+  k8Factory: K8Factory,
   destDir: string,
 ) {
   const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys');
@@ -416,7 +412,7 @@ export async function getNodeAliasesPrivateKeysHash(
     }
     await addKeyHashToMap(
       networkNodeServices.namespace,
-      k8,
+      k8Factory,
       nodeAlias,
       dataKeysDir,
       uniqueNodeDestDir,
@@ -425,7 +421,7 @@ export async function getNodeAliasesPrivateKeysHash(
     );
     await addKeyHashToMap(
       networkNodeServices.namespace,
-      k8,
+      k8Factory,
       nodeAlias,
       tlsKeysDir,
       uniqueNodeDestDir,
@@ -439,14 +435,15 @@ export async function getNodeAliasesPrivateKeysHash(
 
 async function addKeyHashToMap(
   namespace: NamespaceName,
-  k8: K8,
+  k8Factory: K8Factory,
   nodeAlias: NodeAlias,
   keyDir: string,
   uniqueNodeDestDir: string,
   keyHashMap: Map<string, string>,
   privateKeyFileName: string,
 ) {
-  await k8
+  await k8Factory
+    .default()
     .containers()
     .readByRef(ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER))
     .copyFrom(path.join(keyDir, privateKeyFileName), uniqueNodeDestDir);
@@ -471,8 +468,7 @@ export const testLocalConfigData = {
       namespace: 'solo-3',
     },
   },
-  currentDeploymentName: 'deployment',
-  clusterContextMapping: {
+  clusterRefs: {
     'cluster-1': 'context-1',
     'cluster-2': 'context-2',
   },

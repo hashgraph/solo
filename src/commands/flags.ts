@@ -1567,6 +1567,8 @@ export class Flags {
     prompt: undefined,
   };
 
+  //* ----------------- External Mirror Node PostgreSQL Database Related Flags ------------------ *//
+
   static readonly externalDatabaseHost: CommandFlag = {
     constName: 'externalDatabaseHost',
     name: 'external-database-host',
@@ -1627,6 +1629,49 @@ export class Flags {
       );
     },
   };
+
+  static readonly externalDatabaseReadonlyUsername: CommandFlag = {
+    constName: 'externalDatabaseReadonlyUsername',
+    name: 'external-database-read-username',
+    definition: {
+      describe: `Use to provide the external database readonly user's username if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseReadonlyUsername.definition.defaultValue,
+        'Enter username of the external database readonly user',
+        null,
+        Flags.externalDatabaseReadonlyUsername.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseReadonlyPassword: CommandFlag = {
+    constName: 'externalDatabaseReadonlyPassword',
+    name: 'external-database-read-password',
+    definition: {
+      describe: `Use to provide the external database readonly user's password if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseReadonlyPassword.definition.defaultValue,
+        'Enter password of the external database readonly user',
+        null,
+        Flags.externalDatabaseReadonlyPassword.name,
+      );
+    },
+  };
+
+  //* ------------------------------------------------------------------------------------------- *//
 
   static readonly grpcTlsKeyPath: CommandFlag = {
     constName: 'grpcTlsKeyPath',
@@ -1718,66 +1763,125 @@ export class Flags {
     definition: {
       defaultValue: constants.StorageType.MINIO_ONLY,
       describe:
-        'storage type for saving stream files, available options are minio_only, gcs_and_minio, s3_only, gcs_only, s3_and_gcs',
+        'storage type for saving stream files, available options are minio_only, aws_only, gcs_only, aws_and_gcs',
       type: 'StorageType',
     },
     prompt: undefined,
   };
 
-  static readonly storageAccessKey: CommandFlag = {
-    constName: 'storageAccessKey',
-    name: 'storage-access-key',
+  static readonly gcsAccessKey: CommandFlag = {
+    constName: 'gcsAccessKey',
+    name: 'gcs-access-key',
     definition: {
       defaultValue: '',
-      describe: 'storage access key',
+      describe: 'gcs storage access key',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageSecrets: CommandFlag = {
-    constName: 'storageSecrets',
-    name: 'storage-secrets',
+  static readonly gcsSecrets: CommandFlag = {
+    constName: 'gcsSecrets',
+    name: 'gcs-secrets',
     definition: {
       defaultValue: '',
-      describe: 'storage secret key',
+      describe: 'gcs storage secret key',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageEndpoint: CommandFlag = {
-    constName: 'storageEndpoint',
-    name: 'storage-endpoint',
+  static readonly gcsEndpoint: CommandFlag = {
+    constName: 'gcsEndpoint',
+    name: 'gcs-endpoint',
     definition: {
       defaultValue: '',
-      describe: 'storage endpoint URL',
+      describe: 'gcs storage endpoint URL',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageBucket: CommandFlag = {
-    constName: 'storageBucket',
-    name: 'storage-bucket',
+  static readonly gcsBucket: CommandFlag = {
+    constName: 'gcsBucket',
+    name: 'gcs-bucket',
     definition: {
       defaultValue: '',
-      describe: 'name of storage bucket',
+      describe: 'name of gcs storage bucket',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageBucketPrefix: CommandFlag = {
-    constName: 'storageBucketPrefix',
-    name: 'storage-bucket-prefix',
+  static readonly gcsBucketPrefix: CommandFlag = {
+    constName: 'gcsBucketPrefix',
+    name: 'gcs-bucket-prefix',
     definition: {
       defaultValue: '',
-      describe: 'path prefix of storage bucket',
+      describe: 'path prefix of google storage bucket',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsAccessKey: CommandFlag = {
+    constName: 'awsAccessKey',
+    name: 'aws-access-key',
+    definition: {
+      defaultValue: '',
+      describe: 'aws storage access key',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsSecrets: CommandFlag = {
+    constName: 'awsSecrets',
+    name: 'aws-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'aws storage secret key',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsEndpoint: CommandFlag = {
+    constName: 'awsEndpoint',
+    name: 'aws-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'aws storage endpoint URL',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsBucket: CommandFlag = {
+    constName: 'awsBucket',
+    name: 'aws-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of aws storage bucket',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsBucketPrefix: CommandFlag = {
+    constName: 'awsBucketPrefix',
+    name: 'aws-bucket-prefix',
+    definition: {
+      defaultValue: '',
+      describe: 'path prefix of aws storage bucket',
       type: 'string',
     },
     prompt: undefined,
@@ -1803,6 +1907,65 @@ export class Flags {
       describe: 'path of google credential file in json format',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageAccessKey: CommandFlag = {
+    constName: 'storageAccessKey',
+    name: 'storage-access-key',
+    definition: {
+      defaultValue: '',
+      describe: 'storage access key for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageSecrets: CommandFlag = {
+    constName: 'storageSecrets',
+    name: 'storage-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'storage secret key for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageEndpoint: CommandFlag = {
+    constName: 'storageEndpoint',
+    name: 'storage-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'storage endpoint URL for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucket: CommandFlag = {
+    constName: 'storageBucket',
+    name: 'storage-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of storage bucket for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucketPrefix: CommandFlag = {
+    constName: 'storageBucketPrefix',
+    name: 'storage-bucket-prefix',
+    definition: {
+      defaultValue: '',
+      describe: 'path prefix of storage bucket mirror node importer',
+      type: 'string',
     },
     prompt: undefined,
   };
@@ -1900,6 +2063,16 @@ export class Flags {
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
+    Flags.gcsAccessKey,
+    Flags.gcsSecrets,
+    Flags.gcsEndpoint,
+    Flags.gcsBucket,
+    Flags.gcsBucketPrefix,
+    Flags.awsAccessKey,
+    Flags.awsSecrets,
+    Flags.awsEndpoint,
+    Flags.awsBucket,
+    Flags.awsBucketPrefix,
     Flags.storageAccessKey,
     Flags.storageSecrets,
     Flags.storageEndpoint,
@@ -1918,6 +2091,8 @@ export class Flags {
     Flags.externalDatabaseHost,
     Flags.externalDatabaseOwnerUsername,
     Flags.externalDatabaseOwnerPassword,
+    Flags.externalDatabaseReadonlyUsername,
+    Flags.externalDatabaseReadonlyPassword,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

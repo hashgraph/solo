@@ -4,16 +4,16 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components_data_wrapper.js';
-import {HaProxyComponent} from '../../../../src/core/config/remote/components/ha_proxy_component.js';
-import {MirrorNodeComponent} from '../../../../src/core/config/remote/components/mirror_node_component.js';
-import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
-import {ConsensusNodeComponent} from '../../../../src/core/config/remote/components/consensus_node_component.js';
-import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
-import {RelayComponent} from '../../../../src/core/config/remote/components/relay_component.js';
-import {ComponentType, ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
-import {SoloError} from '../../../../src/core/errors.js';
-import {type NodeAliases} from '../../../../src/types/aliases.js';
+import {ComponentsDataWrapper} from '../../../../../src/core/config/remote/components_data_wrapper.js';
+import {HaProxyComponent} from '../../../../../src/core/config/remote/components/ha_proxy_component.js';
+import {MirrorNodeComponent} from '../../../../../src/core/config/remote/components/mirror_node_component.js';
+import {EnvoyProxyComponent} from '../../../../../src/core/config/remote/components/envoy_proxy_component.js';
+import {ConsensusNodeComponent} from '../../../../../src/core/config/remote/components/consensus_node_component.js';
+import {MirrorNodeExplorerComponent} from '../../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
+import {RelayComponent} from '../../../../../src/core/config/remote/components/relay_component.js';
+import {ComponentType, ConsensusNodeStates} from '../../../../../src/core/config/remote/enumerations.js';
+import {SoloError} from '../../../../../src/core/errors.js';
+import {type NodeAliases} from '../../../../../src/types/aliases.js';
 
 export function createComponentsDataWrapper() {
   const serviceName = 'serviceName';
@@ -25,10 +25,19 @@ export function createComponentsDataWrapper() {
   const consensusNodeAliases = ['node1', 'node2'] as NodeAliases;
 
   const relays = {[serviceName]: new RelayComponent(name, cluster, namespace, consensusNodeAliases)};
-  const haProxies = {[serviceName]: new HaProxyComponent(name, cluster, namespace)};
+  const haProxies = {
+    [serviceName]: new HaProxyComponent(name, cluster, namespace),
+    ['serviceName2']: new HaProxyComponent('name2', 'cluster2', namespace),
+  };
   const mirrorNodes = {[serviceName]: new MirrorNodeComponent(name, cluster, namespace)};
-  const envoyProxies = {[serviceName]: new EnvoyProxyComponent(name, cluster, namespace)};
-  const consensusNodes = {[serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state)};
+  const envoyProxies = {
+    [serviceName]: new EnvoyProxyComponent(name, cluster, namespace),
+    ['serviceName2']: new EnvoyProxyComponent('name2', 'cluster2', namespace),
+  };
+  const consensusNodes = {
+    [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, 0),
+    ['serviceName2']: new ConsensusNodeComponent('node2', 'cluster2', namespace, state, 1),
+  };
   const mirrorNodeExplorers = {[serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace)};
 
   // @ts-ignore
@@ -41,14 +50,14 @@ export function createComponentsDataWrapper() {
     mirrorNodeExplorers,
   );
   /*
-  ? The class after calling the toObject() method
-  * RELAY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' consensusNodeAliases: ['node1', 'node2'] } },
-  * HAPROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-  * MIRROR_NODE: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-  * ENVOY_PROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-  * CONSENSUS_NODE: { serviceName: { state: 'started', name: 'name', cluster: 'cluster', namespace: 'namespace'} },
-  * MIRROR_NODE_EXPLORER: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-  */
+    ? The class after calling the toObject() method
+    * RELAY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' consensusNodeAliases: ['node1', 'node2'] } },
+    * HAPROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+    * MIRROR_NODE: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+    * ENVOY_PROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+    * CONSENSUS_NODE: { serviceName: { state: 'started', name: 'name', cluster: 'cluster', namespace: 'namespace'} },
+    * MIRROR_NODE_EXPLORER: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
+    */
   return {
     values: {name, cluster, namespace, state, consensusNodeAliases},
     components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays},
@@ -119,7 +128,7 @@ describe('ComponentsDataWrapper', () => {
       namespace,
     });
 
-    expect(Object.values(componentDataWrapperObject[ComponentType.EnvoyProxy])).to.have.lengthOf(2);
+    expect(Object.values(componentDataWrapperObject[ComponentType.EnvoyProxy])).to.have.lengthOf(3);
   });
 
   it('should be able to edit component with the .edit()', () => {

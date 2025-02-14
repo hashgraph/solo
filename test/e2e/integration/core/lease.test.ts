@@ -4,7 +4,7 @@
 import {it, describe, before, after} from 'mocha';
 import {type ConfigManager} from '../../../../src/core/config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
-import {type K8} from '../../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
@@ -22,30 +22,37 @@ const leaseDuration = 4;
 describe('Lease', async () => {
   const testLogger = logging.NewLogger('debug', true);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-  const k8: K8 = container.resolve(InjectTokens.K8);
+  const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
   const testNamespace = NamespaceName.of('lease-e2e');
   const renewalService = new NoopLeaseRenewalService();
 
   before(async function () {
     this.timeout(defaultTimeout);
-    if (await k8.namespaces().has(testNamespace)) {
-      await k8.namespaces().delete(testNamespace);
+    if (await k8Factory.default().namespaces().has(testNamespace)) {
+      await k8Factory.default().namespaces().delete(testNamespace);
       await sleep(Duration.ofSeconds(5));
     }
 
-    await k8.namespaces().create(testNamespace);
+    await k8Factory.default().namespaces().create(testNamespace);
   });
 
   after(async function () {
     this.timeout(defaultTimeout);
-    await k8.namespaces().delete(testNamespace);
+    await k8Factory.default().namespaces().delete(testNamespace);
   });
 
   describe('acquire and release', async function () {
     this.timeout(defaultTimeout);
 
     it('non-expired lease', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       await lease.acquire();
       expect(await lease.isAcquired()).to.be.true;
@@ -55,9 +62,16 @@ describe('Lease', async () => {
     });
 
     it('non-expired lease held by another user should not be released', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
       const newLease = new IntervalLease(
-        k8,
+        k8Factory,
         renewalService,
         LeaseHolder.of('other'),
         testNamespace,
@@ -79,9 +93,16 @@ describe('Lease', async () => {
     });
 
     it('expired lease held by another user should be released', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
       const newLease = new IntervalLease(
-        k8,
+        k8Factory,
         renewalService,
         LeaseHolder.of('other'),
         testNamespace,
@@ -103,7 +124,14 @@ describe('Lease', async () => {
     });
 
     it('expired lease should be released', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       await lease.acquire();
       expect(await lease.isAcquired()).to.be.true;
@@ -122,7 +150,14 @@ describe('Lease', async () => {
     this.timeout(defaultTimeout);
 
     it('non-expired lease', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       expect(await lease.tryAcquire()).to.be.true;
       expect(await lease.isAcquired()).to.be.true;
@@ -134,9 +169,16 @@ describe('Lease', async () => {
     });
 
     it('non-expired lease held by another user should not be released', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
       const newLease = new IntervalLease(
-        k8,
+        k8Factory,
         renewalService,
         LeaseHolder.of('other'),
         testNamespace,
@@ -158,9 +200,16 @@ describe('Lease', async () => {
     });
 
     it('expired lease held by another user should be released', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
       const newLease = new IntervalLease(
-        k8,
+        k8Factory,
         renewalService,
         LeaseHolder.of('other'),
         testNamespace,
@@ -182,7 +231,14 @@ describe('Lease', async () => {
     });
 
     it('expired lease should be released', async () => {
-      const lease = new IntervalLease(k8, renewalService, LeaseHolder.default(), testNamespace, null, leaseDuration);
+      const lease = new IntervalLease(
+        k8Factory,
+        renewalService,
+        LeaseHolder.default(),
+        testNamespace,
+        null,
+        leaseDuration,
+      );
 
       expect(await lease.tryAcquire()).to.be.true;
       expect(await lease.isAcquired()).to.be.true;

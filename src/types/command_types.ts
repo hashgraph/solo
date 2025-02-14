@@ -3,7 +3,7 @@
  */
 import {type SoloLogger} from '../core/logging.js';
 import {type Helm} from '../core/helm.js';
-import {type K8} from '../core/kube/k8.js';
+import {type K8Factory} from '../core/kube/k8_factory.js';
 import {type PackageDownloader} from '../core/package_downloader.js';
 import {type PlatformInstaller} from '../core/platform_installer.js';
 import {type ChartManager} from '../core/chart_manager.js';
@@ -20,7 +20,7 @@ import {type RemoteConfigManager} from '../core/config/remote/remote_config_mana
 export interface Opts {
   logger: SoloLogger;
   helm: Helm;
-  k8: K8;
+  k8Factory: K8Factory;
   downloader: PackageDownloader;
   platformInstaller: PlatformInstaller;
   chartManager: ChartManager;

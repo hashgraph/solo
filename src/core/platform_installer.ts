@@ -7,7 +7,7 @@ import * as path from 'path';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {type ConfigManager} from './config_manager.js';
-import {type K8} from '../core/kube/k8.js';
+import {type K8Factory} from '../core/kube/k8_factory.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
@@ -30,11 +30,11 @@ import {InjectTokens} from './dependency_injection/inject_tokens.js';
 export class PlatformInstaller {
   constructor(
     @inject(InjectTokens.SoloLogger) private logger?: SoloLogger,
-    @inject(InjectTokens.K8) private k8?: K8,
+    @inject(InjectTokens.K8Factory) private k8Factory?: K8Factory,
     @inject(InjectTokens.ConfigManager) private configManager?: ConfigManager,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
 
@@ -84,7 +84,7 @@ export class PlatformInstaller {
   }
 
   /** Fetch and extract platform code into the container */
-  async fetchPlatform(podRef: PodRef, tag: string) {
+  async fetchPlatform(podRef: PodRef, tag: string, context?: string) {
     if (!podRef) throw new MissingArgumentError('podRef is required');
     if (!tag) throw new MissingArgumentError('tag is required');
 
@@ -98,10 +98,14 @@ export class PlatformInstaller {
 
       const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
       const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
-      await this.k8.containers().readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
-      await this.k8.containers().readByRef(containerRef).execContainer([extractScript, tag]);
+
+      const k8Containers = context ? this.k8Factory.getK8(context).containers() : this.k8Factory.default().containers();
+
+      await k8Containers.readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
+      await k8Containers.readByRef(containerRef).execContainer([extractScript, tag]);
+
       return true;
-    } catch (e: Error | any) {
+    } catch (e) {
       const message = `failed to extract platform code in this pod '${podRef.name}': ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
@@ -114,9 +118,16 @@ export class PlatformInstaller {
    * @param srcFiles - list of source files
    * @param destDir - destination directory
    * @param [container] - name of the container
-   * @returns a list of pathso of the copied files insider the container
+   * @param [context]
+   * @returns a list of paths of the copied files insider the container
    */
-  async copyFiles(podRef: PodRef, srcFiles: string[], destDir: string, container = constants.ROOT_CONTAINER) {
+  async copyFiles(
+    podRef: PodRef,
+    srcFiles: string[],
+    destDir: string,
+    container = constants.ROOT_CONTAINER,
+    context?: string,
+  ) {
     try {
       const containerRef = ContainerRef.of(podRef, container);
       const copiedFiles: string[] = [];
@@ -127,19 +138,23 @@ export class PlatformInstaller {
           throw new SoloError(`file does not exist: ${srcPath}`);
         }
 
-        if (!(await this.k8.containers().readByRef(containerRef).hasDir(destDir))) {
-          await this.k8.containers().readByRef(containerRef).mkdir(destDir);
+        const k8Containers = context
+          ? this.k8Factory.getK8(context).containers()
+          : this.k8Factory.default().containers();
+
+        if (!(await k8Containers.readByRef(containerRef).hasDir(destDir))) {
+          await k8Containers.readByRef(containerRef).mkdir(destDir);
         }
 
         this.logger.debug(`Copying file into ${podRef.name}: ${srcPath} -> ${destDir}`);
-        await this.k8.containers().readByRef(containerRef).copyTo(srcPath, destDir);
+        await k8Containers.readByRef(containerRef).copyTo(srcPath, destDir);
 
         const fileName = path.basename(srcPath);
         copiedFiles.push(path.join(destDir, fileName));
       }
 
       return copiedFiles;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`failed to copy files to pod '${podRef.name}': ${e.message}`, e);
     }
   }
@@ -168,7 +183,8 @@ export class PlatformInstaller {
         data[fileName] = Base64.encode(fileContents);
       }
 
-      const secretCreated = await this.k8
+      const secretCreated = await this.k8Factory
+        .default()
         .secrets()
         .createOrReplace(
           this._getNamespace(),
@@ -213,7 +229,8 @@ export class PlatformInstaller {
         }
       }
 
-      const secretCreated = await this.k8
+      const secretCreated = await this.k8Factory
+        .default()
         .secrets()
         .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data, undefined);
 
@@ -232,25 +249,27 @@ export class PlatformInstaller {
     mode = '0755',
     recursive = true,
     container = constants.ROOT_CONTAINER,
+    context?: string,
   ) {
     if (!podRef) throw new MissingArgumentError('podRef is required');
     if (!destPath) throw new MissingArgumentError('destPath is required');
     const containerRef = ContainerRef.of(podRef, container);
 
     const recursiveFlag = recursive ? '-R' : '';
-    await this.k8
-      .containers()
+
+    const k8Containers = context ? this.k8Factory.getK8(context).containers() : this.k8Factory.default().containers();
+
+    await k8Containers
       .readByRef(containerRef)
       .execContainer(['bash', '-c', `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`]);
-    await this.k8
-      .containers()
+    await k8Containers
       .readByRef(containerRef)
       .execContainer(['bash', '-c', `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`]);
 
     return true;
   }
 
-  async setPlatformDirPermissions(podRef: PodRef) {
+  async setPlatformDirPermissions(podRef: PodRef, context?: string) {
     const self = this;
     if (!podRef) throw new MissingArgumentError('podRef is required');
 
@@ -258,23 +277,23 @@ export class PlatformInstaller {
       const destPaths = [constants.HEDERA_HAPI_PATH, constants.HEDERA_HGCAPP_DIR];
 
       for (const destPath of destPaths) {
-        await self.setPathPermission(podRef, destPath);
+        await self.setPathPermission(podRef, destPath, undefined, undefined, undefined, context);
       }
 
       return true;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`failed to set permission in '${podRef.name}'`, e);
     }
   }
 
   /** Return a list of task to perform node directory setup */
-  taskSetup(podRef: PodRef, stagingDir: string, isGenesis: boolean) {
+  taskSetup(podRef: PodRef, stagingDir: string, isGenesis: boolean, context?: string) {
     const self = this;
     return new Listr(
       [
         {
           title: 'Copy configuration files',
-          task: async () => await self.copyConfigurationFiles(stagingDir, podRef, isGenesis),
+          task: async () => await self.copyConfigurationFiles(stagingDir, podRef, isGenesis, context),
         },
         {
           title: 'Set file permissions',
@@ -297,14 +316,14 @@ export class PlatformInstaller {
    * @param isGenesis - true if this is `solo node setup` and we are at genesis
    * @private
    */
-  private async copyConfigurationFiles(stagingDir: string, podRef: PodRef, isGenesis: boolean) {
+  private async copyConfigurationFiles(stagingDir: string, podRef: PodRef, isGenesis: boolean, context?: string) {
     if (isGenesis) {
       const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
-      await this.copyFiles(podRef, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`);
+      await this.copyFiles(podRef, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
     }
 
     const nodeOverridesYaml = [path.join(stagingDir, constants.NODE_OVERRIDE_FILE)];
-    await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`);
+    await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
   }
 
   /**

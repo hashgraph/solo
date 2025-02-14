@@ -3,7 +3,7 @@
  */
 import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
-import jest from 'jest-mock';
+import sinon from 'sinon';
 
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
@@ -17,12 +17,14 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 
 describe('Certificate Manager', () => {
   const argv = {};
-  // @ts-ignore
-  const k8InitSpy = jest.spyOn(K8Client.prototype, 'init').mockImplementation(() => {});
-  const k8CreateSecretSpy = jest.spyOn(K8ClientSecrets.prototype, 'create').mockResolvedValue(true);
+
+  const k8InitSpy = new K8Client(undefined);
+
   let certificateManager: CertificateManager;
 
   before(() => {
+    sinon.stub(K8Client.prototype, 'init').returns(k8InitSpy);
+    sinon.stub(K8ClientSecrets.prototype, 'create').resolves(true);
     resetForTest();
     argv[flags.namespace.name] = 'namespace';
     const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
@@ -31,8 +33,7 @@ describe('Certificate Manager', () => {
   });
 
   after(() => {
-    k8InitSpy.mockRestore();
-    k8CreateSecretSpy.mockRestore();
+    sinon.restore();
   });
 
   it('should throw if and error if nodeAlias is not provided', async () => {

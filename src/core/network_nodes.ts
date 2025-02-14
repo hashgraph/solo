@@ -13,7 +13,7 @@ import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type SoloLogger} from './logging.js';
-import {type K8} from './kube/k8.js';
+import {type K8Factory} from './kube/k8_factory.js';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
@@ -25,10 +25,10 @@ import {InjectTokens} from './dependency_injection/inject_tokens.js';
 export class NetworkNodes {
   constructor(
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
-    @inject(InjectTokens.K8) private readonly k8?: K8,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, InjectTokens.K8, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
   }
 
   /**
@@ -37,7 +37,7 @@ export class NetworkNodes {
    * @returns a promise that resolves when the logs are downloaded
    */
   public async getLogs(namespace: NamespaceName) {
-    const pods: V1Pod[] = await this.k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+    const pods: V1Pod[] = await this.k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
 
     const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
 
@@ -59,9 +59,10 @@ export class NetworkNodes {
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       const scriptName = 'support-zip.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.k8.containers().readByRef(containerRef).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
+      await this.k8Factory.default().containers().readByRef(containerRef).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
       await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
-      await this.k8
+      await this.k8Factory
+        .default()
         .containers()
         .readByRef(containerRef)
         .execContainer([
@@ -69,12 +70,18 @@ export class NetworkNodes {
           '-c',
           `sync ${HEDERA_HAPI_PATH} && sudo chown hedera:hedera ${HEDERA_HAPI_PATH}/${scriptName}`,
         ]);
-      await this.k8
+      await this.k8Factory
+        .default()
         .containers()
         .readByRef(containerRef)
         .execContainer(['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
-      await this.k8.containers().readByRef(containerRef).execContainer(`${HEDERA_HAPI_PATH}/${scriptName}`);
-      await this.k8
+      await this.k8Factory
+        .default()
+        .containers()
+        .readByRef(containerRef)
+        .execContainer(`${HEDERA_HAPI_PATH}/${scriptName}`);
+      await this.k8Factory
+        .default()
         .containers()
         .readByRef(containerRef)
         .copyFrom(`${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
@@ -93,7 +100,8 @@ export class NetworkNodes {
    * @returns a promise that resolves when the state files are downloaded
    */
   public async getStatesFromPod(namespace: NamespaceName, nodeAlias: string) {
-    const pods: V1Pod[] = await this.k8
+    const pods: V1Pod[] = await this.k8Factory
+      .default()
       .pods()
       .list(namespace, [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node']);
 
@@ -115,8 +123,9 @@ export class NetworkNodes {
       }
       const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-      await this.k8.containers().readByRef(containerRef).execContainer(zipCommand);
-      await this.k8
+      await this.k8Factory.default().containers().readByRef(containerRef).execContainer(zipCommand);
+      await this.k8Factory
+        .default()
         .containers()
         .readByRef(containerRef)
         .copyFrom(`${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
