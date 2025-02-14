@@ -219,6 +219,8 @@ export function e2eTestSuite(
   accountCmdArg: AccountCommand | null = null,
   startNodes = true,
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
+  deploymentCreate: boolean = true,
+  beforeAllCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ) {
   const bootstrapResp = bootstrapTestVariables(
     testName,
@@ -238,6 +240,10 @@ export function e2eTestSuite(
   const nodeCmd: NodeCommand = bootstrapResp.cmd.nodeCmd;
   const chartManager: ChartManager = bootstrapResp.opts.chartManager;
   const deploymentCmd: DeploymentCommand = bootstrapResp.cmd.deploymentCmd;
+
+  describe(`Before ${testName}`, () => {
+    beforeAllCallBack(bootstrapResp);
+  });
 
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
@@ -277,7 +283,9 @@ export function e2eTestSuite(
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('should succeed with deployment create', async () => {
-        expect(await deploymentCmd.create(argv)).to.be.true;
+        if (deploymentCreate) {
+          expect(await deploymentCmd.create(argv)).to.be.true;
+        }
       });
 
       it('generate key files', async () => {
