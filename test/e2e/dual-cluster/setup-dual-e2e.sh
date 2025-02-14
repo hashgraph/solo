@@ -21,7 +21,7 @@ for i in {1..2}; do
   kind delete cluster -n "${SOLO_CLUSTER_NAME}-c${i}" || true
 done
 
-docker network rm kind
+docker network rm -f kind || true
 docker network create kind --scope local --subnet 172.19.0.0/16 --driver bridge
 
 # Setup Helm Repos
@@ -40,7 +40,10 @@ for i in {1..2}; do
 
   kubectl apply -f "${SCRIPT_PATH}/metallb-cluster-${i}.yaml"
 
-  "${CLUSTER_DIAGNOSTICS_PATH}"/deploy.sh
+  # Deploy the diagnostics container if not running in CI
+  if [[ -z "${CI}" ]]; then
+    "${CLUSTER_DIAGNOSTICS_PATH}"/deploy.sh
+  fi
 done
 
 # **********************************************************************************************************************
@@ -52,9 +55,15 @@ done
 # Init and deploy a network for e2e tests in (test/e2e/core)
 # -d ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
-# SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
-# npm run build
-#npm run solo -- init || exit 1 # cache args for subsequent commands
-#npm run solo -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" || exit 1
-#helm list --all-namespaces
-#sleep 10 # give time for solo-setup to finish deploying
+SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
+npm run build
+npm run solo -- init || exit 1 # cache args for subsequent commands
+
+for i in {1..2}; do
+  kubectl config use-context "kind-${SOLO_CLUSTER_NAME}-c${i}"
+  npm run solo -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" || exit 1
+  helm list --all-namespaces
+done
+
+kubectl config use-context "kind-${SOLO_CLUSTER_NAME}-c1"
+sleep 10 # give time for solo-setup to finish deploying
