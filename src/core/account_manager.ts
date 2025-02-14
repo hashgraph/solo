@@ -162,6 +162,8 @@ export class AccountManager {
   /**
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
+   * @param clusterRefs
+   * @param deployment
    */
   async loadNodeClient(namespace: NamespaceName, clusterRefs?: ClusterRefs, deployment?: DeploymentName) {
     try {
@@ -956,8 +958,13 @@ export class AccountManager {
     return Base64.encode(addressBookBytes);
   }
 
-  async getFileContents(namespace: NamespaceName, fileNum: number) {
-    await this.loadNodeClient(namespace);
+  async getFileContents(
+    namespace: NamespaceName,
+    fileNum: number,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+  ) {
+    await this.loadNodeClient(namespace, clusterRefs, deployment);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);

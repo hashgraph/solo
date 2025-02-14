@@ -19,6 +19,7 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import type {DeploymentName} from '../../core/config/remote/types.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -64,7 +65,11 @@ export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
   config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
 
   await initializeSetup(config, this.k8Factory);
-  config.nodeClient = await this.accountManager.loadNodeClient(config.namespace);
+  config.nodeClient = await this.accountManager.loadNodeClient(
+    config.namespace,
+    this.parent.getClusterRefs(),
+    config.deployment,
+  );
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
   config.freezeAdminPrivateKey = accountKeys.privateKey;
@@ -119,7 +124,11 @@ export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadN
     constants.SOLO_DEPLOYMENT_CHART,
   );
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -160,7 +169,11 @@ export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   );
 
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -207,7 +220,11 @@ export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNo
   );
 
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
@@ -260,7 +277,11 @@ export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeC
   );
 
   if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(ctx.config.namespace);
+    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+      ctx.config.namespace,
+      this.parent.getClusterRefs(),
+      config.deployment,
+    );
   }
 
   const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
