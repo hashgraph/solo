@@ -5,10 +5,11 @@ includes:
     flatten: true
 vars:
   solo_home_override_dir: "%HOME%/.solo"
+  use_port_forwards: "false"
 env:
   SOLO_NETWORK_SIZE: 10
   SOLO_NAMESPACE: %SOLO_NAMESPACE%
-  SOLO_DEPLOYMENT: {{.SOLO_NAMESPACE}}-test
+  SOLO_DEPLOYMENT: %SOLO_NAMESPACE%-test
   SOLO_CHART_VERSION: 0.44.0
   CONSENSUS_NODE_VERSION: v0.59.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
@@ -18,4 +19,5 @@ env:
   APPLICATION_PROPERTIES_FLAG: "--application-properties {{.USER_WORKING_DIR}}/application.properties"
   HEDERA_SERVICES_ROOT: "%HEDERA_SERVICES_ROOT%"
   LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
+  LOAD_BALANCER_FLAG: "--load-balancer true"
   NODE_COPY_CONCURRENT: 1
