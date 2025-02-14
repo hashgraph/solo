@@ -5,20 +5,15 @@ import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-valid
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import {
-  type ClusterRefs,
-  type Deployments,
-  type DeploymentStructure,
-  type LocalConfigData,
-} from './local_config_data.js';
+import {type Deployments, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
-import {type DeploymentName, type EmailAddress} from './remote/types.js';
+import {type DeploymentName, type EmailAddress, type Version, type ClusterRefs} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
-import {splitFlagInput} from '../helpers.js';
+import {type K8Factory} from '../kube/k8_factory.js';
+import * as helpers from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
 import {type SoloListrTask} from '../../types/index.js';
@@ -34,6 +29,10 @@ export class LocalConfig implements LocalConfigData {
     },
   )
   userEmailAddress: EmailAddress;
+
+  @IsString({message: ErrorMessages.LOCAL_CONFIG_INVALID_SOLO_VERSION})
+  @IsNotEmpty({message: ErrorMessages.LOCAL_CONFIG_INVALID_SOLO_VERSION})
+  soloVersion: Version;
 
   // The string is the name of the deployment, will be used as the namespace,
   // so it needs to be available in all targeted clusters
@@ -65,7 +64,7 @@ export class LocalConfig implements LocalConfigData {
 
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 
-    const allowedKeys = ['userEmailAddress', 'deployments', 'clusterRefs'];
+    const allowedKeys = ['userEmailAddress', 'deployments', 'clusterRefs', 'soloVersion'];
     if (this.configFileExists()) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const parsedConfig = yaml.parse(fileContent);
@@ -114,6 +113,12 @@ export class LocalConfig implements LocalConfigData {
     return this;
   }
 
+  public setSoloVersion(version: Version): this {
+    this.soloVersion = version;
+    this.validate();
+    return this;
+  }
+
   public configFileExists(): boolean {
     return fs.existsSync(this.filePath);
   }
@@ -123,6 +128,7 @@ export class LocalConfig implements LocalConfigData {
       userEmailAddress: this.userEmailAddress,
       deployments: this.deployments,
       clusterRefs: this.clusterRefs,
+      soloVersion: this.soloVersion,
     });
     await fs.promises.writeFile(this.filePath, yamlContent);
 
@@ -164,7 +170,7 @@ export class LocalConfig implements LocalConfigData {
           self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
         }
 
-        const parsedClusterRefs = splitFlagInput(deploymentClusters);
+        const parsedClusterRefs = helpers.splitFlagInput(deploymentClusters);
 
         const deployments: Deployments = {
           [deploymentName]: {
@@ -173,7 +179,7 @@ export class LocalConfig implements LocalConfigData {
           },
         };
 
-        const parsedContexts = splitFlagInput(contexts);
+        const parsedContexts = helpers.splitFlagInput(contexts);
 
         if (parsedContexts.length < parsedClusterRefs.length) {
           if (!isQuiet) {
@@ -205,6 +211,7 @@ export class LocalConfig implements LocalConfigData {
 
         self.userEmailAddress = userEmailAddress;
         self.deployments = deployments;
+        self.soloVersion = helpers.getSoloVersion();
 
         self.validate();
         await self.write();

@@ -28,7 +28,7 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 
 const namespace = NamespaceName.of('node-delete');
 const deleteNodeAlias = 'node1';
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.nodeAlias.name] = deleteNodeAlias;
 argv[flags.stakeAmounts.name] = '1,1000';

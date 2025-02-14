@@ -32,7 +32,7 @@ const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update');
 const updateNodeId = 'node2';
 const newAccountId = '0.0.7';
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
 argv[flags.nodeAlias.name] = updateNodeId;
 
@@ -76,7 +76,11 @@ e2eTestSuite(
       });
 
       it('cache current version of private keys', async () => {
-        existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
+        existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
+          namespace,
+          nodeCmd.getClusterRefs(),
+          argv[flags.deployment.name],
+        );
         existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
           existingServiceMap,
           k8Factory,

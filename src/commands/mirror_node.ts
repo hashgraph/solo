@@ -7,13 +7,12 @@ import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/err
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {PodName} from '../core/kube/resources/pod/pod_name.js';
-import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
@@ -29,6 +28,7 @@ import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag_types.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
+import {type DeploymentName} from '../core/config/remote/types.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -251,8 +251,12 @@ export class MirrorNodeCommand extends BaseCommand {
               ? this.getLocalConfig().clusterRefs[clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
-
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+              ctx.config.clusterContext,
+            );
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
               const networkPods = await this.k8Factory
@@ -467,8 +471,20 @@ export class MirrorNodeCommand extends BaseCommand {
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const fees = await this.accountManager.getFileContents(namespace, feesFileIdNum);
-                    const exchangeRates = await this.accountManager.getFileContents(namespace, exchangeRatesFileIdNum);
+                    const clusterRefs = this.getClusterRefs();
+                    const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
+                    const fees = await this.accountManager.getFileContents(
+                      namespace,
+                      feesFileIdNum,
+                      clusterRefs,
+                      deployment,
+                    );
+                    const exchangeRates = await this.accountManager.getFileContents(
+                      namespace,
+                      exchangeRatesFileIdNum,
+                      clusterRefs,
+                      deployment,
+                    );
 
                     const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id,
                                                                               transaction_type)
@@ -630,8 +646,12 @@ export class MirrorNodeCommand extends BaseCommand {
               isChartInstalled,
             };
 
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
-
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+              ctx.config.clusterContext,
+            );
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },

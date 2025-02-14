@@ -37,13 +37,13 @@ const defaultTimeout = Duration.ofSeconds(20).toMillis();
 const testName = 'account-cmd-e2e';
 const namespace: NamespaceName = NamespaceName.of(testName);
 const testSystemAccounts = [[3, 5]];
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
@@ -103,7 +103,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
         });
 
         after(async function () {
@@ -280,7 +281,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
           const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
           expect(accountAliasInfo).not.to.be.null;
         } catch (e) {
@@ -306,7 +308,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('Create new account', async () => {
         try {
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
           const privateKey = PrivateKey.generate();
           const amount = 100;
 

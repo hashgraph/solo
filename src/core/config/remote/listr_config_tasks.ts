@@ -70,9 +70,7 @@ export class ListrRemoteConfig {
           const context = command.localConfig.clusterRefs?.[clusterRef];
           if (!context) continue;
 
-          subTasks.push(
-            ListrRemoteConfig.createRemoteConfig(command, clusterRef, context, ctx.config.namespace, argv),
-          );
+          subTasks.push(ListrRemoteConfig.createRemoteConfig(command, clusterRef, context, ctx.config.namespace, argv));
         }
 
         return task.newListr(subTasks, {

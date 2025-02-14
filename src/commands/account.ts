@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import chalk from 'chalk';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
@@ -10,13 +10,13 @@ import * as constants from '../core/constants.js';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder} from '../types/aliases.js';
 import {sleep} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {type DeploymentName} from '../core/config/remote/types.js';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -179,7 +179,11 @@ export class AccountCommand extends BaseCommand {
 
             self.logger.debug('Initialized config', {config});
 
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+            );
           },
         },
         {
@@ -346,7 +350,11 @@ export class AccountCommand extends BaseCommand {
 
             self.logger.debug('Initialized config', {config});
 
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+            );
 
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
@@ -422,7 +430,11 @@ export class AccountCommand extends BaseCommand {
             // set config in the context for later tasks to use
             ctx.config = config;
 
-            await self.accountManager.loadNodeClient(config.namespace);
+            await self.accountManager.loadNodeClient(
+              config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+            );
 
             self.logger.debug('Initialized config', {config});
           },
@@ -504,7 +516,11 @@ export class AccountCommand extends BaseCommand {
             // set config in the context for later tasks to use
             ctx.config = config;
 
-            await self.accountManager.loadNodeClient(config.namespace);
+            await self.accountManager.loadNodeClient(
+              config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+            );
 
             self.logger.debug('Initialized config', {config});
           },

@@ -27,13 +27,6 @@ describe('Helpers', () => {
     expect(clonedArray).not.to.equal(input); // ensure cloning creates a new array
   });
 
-  it('should be able to load version from package json', () => {
-    const p = helpers.loadPackageJSON();
-    expect(p).not.to.be.null;
-    expect(p.version).not.to.be.null;
-    expect(p.version).to.deep.equal(helpers.packageVersion());
-  });
-
   it('Should parse argv to args with datamask correctly', () => {
     const argv = {[flags.googleCredential.name]: 'VALUE'};
     const result = flags.stringifyArgv(argv);

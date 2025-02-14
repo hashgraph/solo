@@ -69,7 +69,8 @@ permissions:
 
 env:
   #CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
-  CG_EXEC: ""
+  CG_EXEC: "ionice -c 2 -n 2 nice -n 19"
+  SOLO_CLUSTER_DUALITY: 1
 
 jobs:
   e2e-test:
@@ -132,18 +133,25 @@ jobs:
 
       - name: Install wget
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget
+          if ! command -v wget >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y wget
+          fi
 
       - name: Setup Kind
         uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
         with:
           install_only: true
-          node_image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
-          version: v0.21.0
-          kubectl_version: v1.28.6
+          node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
+          version: v0.26.0
+          kubectl_version: v1.31.4
           verbosity: 3
           wait: 120s
+
+      - name: Setup Helm
+        uses: azure/setup-helm@fe7b79cd5ee1e45176fcad797de68ecaf3ca4814 # v4.2.0
+        with:
+          version: "v3.17.1" # helm version
 
       - name: Install Dependencies
         id: npm-deps
@@ -153,7 +161,7 @@ jobs:
         run: npm run build
 
       - name: Pull Kind Docker Image
-        run: docker image pull kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+        run: docker image pull kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
 
       - name: Setup Java
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
@@ -167,6 +175,13 @@ jobs:
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
         with:
           cache-read-only: false
+
+      - name: Create Diagnostic Script
+        env:
+          WRITE_DIAG_SCRIPT: ${{ github.workspace }}/.github/workflows/script/write_diag_script.sh
+        run: |
+          sudo chmod +x "${WRITE_DIAG_SCRIPT}"
+          ${WRITE_DIAG_SCRIPT}
 
       - name: Build Hedera code locally
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
@@ -182,12 +197,16 @@ jobs:
         run: | 
           npm link
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
-          ${{ env.CG_EXEC }} SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ./test/e2e/setup-e2e.sh
+          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} ./test/e2e/dual-cluster/setup-dual-e2e.sh
 
       - name: Run E2E Tests
         run: |
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
-          ${{ env.CG_EXEC }} SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} npm run ${{ inputs.npm-test-script }}
+          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
+
+#      - name: Sleep on Failure
+#        if: ${{ failure() }}
+#        run: sleep 3600
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
