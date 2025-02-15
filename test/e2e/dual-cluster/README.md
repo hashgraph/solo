@@ -1,20 +1,25 @@
 # Local Dual Cluster Testing
+
 This document describes how to test the dual cluster setup locally.
 
 ## Prerequisites
-- Make sure you give your Docker sufficient resources
-  - ? CPUs 
-  - ? GB RAM
-  - ? GB Swap
-  - ? GB Disk Space
-- If you are tight on resources you might want to make sure that no other Kind clusters are running or anything that is resource heavy on your machine.
+
+* Make sure you give your Docker sufficient resources
+  * ? CPUs
+  * ? GB RAM
+  * ? GB Swap
+  * ? GB Disk Space
+* If you are tight on resources you might want to make sure that no other Kind clusters are running or anything that is resource heavy on your machine.
 
 ## Calling
+
 ```bash
 # from your Solo root directory run:
 ./test/e2e/dual-cluster/setup-dual-e2e.sh
 ```
+
 Output:
+
 ```bash
 SOLO_CHARTS_DIR:
 Deleting cluster "solo-e2e-c1" ...
@@ -180,28 +185,38 @@ metrics-server    	kube-system   	1       	2025-02-14 16:05:07.217358 +0000 UTC	
 solo-cluster-setup	solo-setup    	1       	2025-02-14 16:05:58.114619 +0000 UTC	deployed	solo-cluster-setup-0.44.0	0.44.0
 Switched to context "kind-solo-e2e-c1".
 ```
+
 ## Diagnostics
+
 The `./diagnostics/cluster/deploy.sh` deploys a `cluster-diagnostics` deployment (and its pod) with a service that has its external IP exposed.  It is deployed to both clusters, runs Ubuntu, and has most diagnostic software installed.  After ran you can shell into the pod and use the container to run your own troubleshooting commands for verifying network connectivity between the two clusters or DNS resolution, etc.
 
 Calling
+
 ```bash
 # from your Solo root directory run:
 $ ./test/e2e/dual-cluster/diagnostics/cluster/deploy.sh
 ```
+
 Output:
+
 ```bash
 namespace/cluster-diagnostics unchanged
 configmap/cluster-diagnostics-cm unchanged
 service/cluster-diagnostics-svc unchanged
 deployment.apps/cluster-diagnostics unchanged
 ```
+
 ## Cleanup
+
 Calling
+
 ```bash
 # from your Solo root directory run:
 kind delete clusters cluster1 cluster2
 ```
+
 Output:
+
 ```bash
 Deleted clusters: ["cluster1" "cluster2"]
 ```

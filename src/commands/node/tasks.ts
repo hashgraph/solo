@@ -68,10 +68,11 @@ import {ContainerRef} from '../../core/kube/resources/container/container_ref.js
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import * as helpers from '../../core/helpers.js';
-import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
+import {type Optional} from '../../types/index.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
+import {Base64} from 'js-base64';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -620,9 +621,24 @@ export class NodeCommandTasks {
   }
 
   loadAdminKey() {
-    return new Task('Load node admin key', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return new Task('Load node admin key', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
-      config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+      if (ctx.config.nodeAlias) {
+        try {
+          // load nodeAdminKey form k8s if exist
+          const keyFromK8 = await this.k8Factory
+            .default()
+            .secrets()
+            .read(config.namespace, Templates.renderNodeAdminKeyName(config.nodeAlias));
+          const privateKey = Base64.decode(keyFromK8.data.privateKey);
+          config.adminKey = PrivateKey.fromStringED25519(privateKey);
+        } catch (e: Error | any) {
+          this.logger.debug(`Error in loading node admin key: ${e.message}, use default key`);
+          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+        }
+      } else {
+        config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+      }
     });
   }
 

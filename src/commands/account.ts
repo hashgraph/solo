@@ -7,16 +7,20 @@ import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
+import * as helpers from '../core/helpers.js';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
-import {type AccountId, AccountInfo, HbarUnit, PrivateKey} from '@hashgraph/sdk';
+import {type AccountId, AccountInfo, HbarUnit, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {type CommandBuilder} from '../types/aliases.js';
-import {sleep} from '../core/helpers.js';
+import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../core/config/remote/types.js';
+import {Templates} from '../core/templates.js';
+import {sleep} from '../core/helpers.js';
+import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {Base64} from 'js-base64';
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -151,6 +155,7 @@ export class AccountCommand extends BaseCommand {
     interface Context {
       config: {
         namespace: NamespaceName;
+        nodeAliases: NodeAliases;
       };
       updateSecrets: boolean;
       accountsBatchedSet: number[][];
@@ -168,16 +173,17 @@ export class AccountCommand extends BaseCommand {
           task: async (ctx, task) => {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-            const config = {namespace};
 
             if (!(await this.k8Factory.default().namespaces().has(namespace))) {
               throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
-            // set config in the context for later tasks to use
-            ctx.config = config;
+            ctx.config = {
+              namespace: namespace,
+              nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+            };
 
-            self.logger.debug('Initialized config', {config});
+            self.logger.debug('Initialized config', ctx.config);
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
@@ -246,6 +252,55 @@ export class AccountCommand extends BaseCommand {
                         collapseSubtasks: false,
                       },
                     });
+                  },
+                },
+                {
+                  title: 'Update node admin key',
+                  task: async ctx => {
+                    const adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+                    for (const nodeAlias of ctx.config.nodeAliases) {
+                      const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
+                      const nodeClient = await self.accountManager.refreshNodeClient(
+                        ctx.config.namespace,
+                        nodeAlias,
+                        self.getClusterRefs(),
+                        this.configManager.getFlag<DeploymentName>(flags.deployment),
+                      );
+
+                      try {
+                        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
+                        const newPrivateKey = PrivateKey.generateED25519();
+
+                        nodeUpdateTx = nodeUpdateTx.setAdminKey(newPrivateKey.publicKey);
+                        nodeUpdateTx = nodeUpdateTx.freezeWith(nodeClient);
+                        nodeUpdateTx = await nodeUpdateTx.sign(newPrivateKey);
+                        const signedTx = await nodeUpdateTx.sign(adminKey);
+                        const txResp = await signedTx.execute(nodeClient);
+                        const nodeUpdateReceipt = await txResp.getReceipt(nodeClient);
+
+                        self.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()} for node ${nodeAlias}`);
+
+                        // save new key in k8s secret
+                        const data = {
+                          privateKey: Base64.encode(newPrivateKey.toString()),
+                          publicKey: Base64.encode(newPrivateKey.publicKey.toString()),
+                        };
+                        await this.k8Factory
+                          .default()
+                          .secrets()
+                          .create(
+                            ctx.config.namespace,
+                            Templates.renderNodeAdminKeyName(nodeAlias),
+                            SecretType.OPAQUE,
+                            data,
+                            {
+                              'solo.hedera.com/node-admin-key': 'true',
+                            },
+                          );
+                      } catch (e) {
+                        throw new SoloError(`Error updating admin key for node ${nodeAlias}: ${e.message}`, e);
+                      }
+                    }
                   },
                 },
                 {
@@ -565,7 +620,7 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'init',
             desc: 'Initialize system accounts with new keys',
-            builder: (y: any) => flags.setCommandFlags(y, flags.deployment),
+            builder: (y: any) => flags.setCommandFlags(y, flags.deployment, flags.nodeAliasesUnparsed),
             handler: (argv: any) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);

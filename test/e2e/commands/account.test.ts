@@ -31,6 +31,9 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import * as helpers from '../../../src/core/helpers.js';
+import {Templates} from '../../../src/core/templates.js';
+import * as Base64 from 'js-base64';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -40,7 +43,7 @@ const testSystemAccounts = [[3, 5]];
 const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterRef.name] = TEST_CLUSTER;
@@ -110,6 +113,19 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         after(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
           await accountManager.close();
+        });
+
+        it('Node admin key should have been updated, not eqaul to genesis key', async () => {
+          const nodeAliases = helpers.parseNodeAliases(argv[flags.nodeAliasesUnparsed.name]);
+          for (const nodeAlias of nodeAliases) {
+            const keyFromK8 = await k8Factory
+              .default()
+              .secrets()
+              .read(namespace, Templates.renderNodeAdminKeyName(nodeAlias));
+            const privateKey = Base64.decode(keyFromK8.data.privateKey);
+
+            expect(privateKey.toString()).not.to.equal(genesisKey.toString());
+          }
         });
 
         for (const [start, end] of testSystemAccounts) {
