@@ -492,7 +492,8 @@ export class NetworkCommand extends BaseCommand {
         clusterRef =>
           (valuesArgs[clusterRef] +=
             ' --set "defaults.haproxy.service.type=LoadBalancer"' +
-            ' --set "defaults.envoyProxy.service.type=LoadBalancer"'),
+            ' --set "defaults.envoyProxy.service.type=LoadBalancer"' +
+            ' --set "defaults.consensus.service.type=LoadBalancer"'),
       );
     }
 
