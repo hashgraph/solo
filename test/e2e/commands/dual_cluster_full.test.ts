@@ -192,6 +192,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     resetForTest();
   });
 
+  // TODO after all test are done delete the namespace for the next test
+
   it(`${testName}: solo init`, async () => {
     main(soloInitArgv());
   });
@@ -256,6 +258,12 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // TODO network deploy
   it(`${testName}: network deploy`, async () => {
     main(soloNetworkDeployArgv(deployment, namespace));
+    const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
+    for (const context of contexts) {
+      const k8 = k8Factory.getK8(context);
+      expect(await k8.namespaces().has(namespace), `namespace ${namespace} should exist in ${context}`).to.be.true;
+      expect(await k8.pods().list(namespace, ['solo.hedera.com/type=network-node'])).to.have.lengthOf(1);
+    }
   });
 
   // TODO node setup
