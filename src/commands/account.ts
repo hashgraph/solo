@@ -174,7 +174,7 @@ export class AccountCommand extends BaseCommand {
               contexts: this.getContexts(),
             };
 
-            if (!(await this.k8Factory.default().namespaces().has(config.namespace))) {
+            if (!(await this.k8Factory.getK8(config.contexts[0]).namespaces().has(config.namespace))) {
               throw new SoloError(`namespace ${config.namespace.name} does not exist`);
             }
 
