@@ -183,6 +183,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   const nodeAliasesUnparsed = 'node1,node2';
   const nodeAliasesWithClusterRefsUnparsed = 'e2e-cluster-1=node1,e2e-cluster-2=node2';
 
+  // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
     fs.rmSync(getTestCacheDir(), {recursive: true, force: true});
   });
