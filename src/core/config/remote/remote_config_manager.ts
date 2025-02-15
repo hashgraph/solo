@@ -28,6 +28,7 @@ import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
 import * as helpers from '../../helpers.js';
+import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -114,10 +115,11 @@ export class RemoteConfigManager {
 
     // temporary workaround until we can have `solo deployment add` command
     const nodeAliases: string[] = helpers.splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
+    const namespace = await this.getNamespace();
 
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(
-        this.getNamespace().name,
+        namespace.name,
         this.configManager.getFlag<DeploymentName>(flags.deployment),
         new Date(),
         this.localConfig.userEmailAddress,
@@ -129,7 +131,7 @@ export class RemoteConfigManager {
       components: ComponentsDataWrapper.initializeWithNodes(
         nodeAliases,
         this.configManager.getFlag(flags.deploymentClusters),
-        this.getNamespace().name,
+        namespace.name,
       ),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
@@ -214,7 +216,7 @@ export class RemoteConfigManager {
   public async loadAndValidate(argv: {_: string[]} & AnyObject) {
     const self = this;
     try {
-      self.setDefaultNamespaceIfNotSet();
+      await self.setDefaultNamespaceIfNotSet(argv);
       self.setDefaultContextIfNotSet();
     } catch (e) {
       self.logger.showUser(chalk.red(e.message));
@@ -356,10 +358,10 @@ export class RemoteConfigManager {
       return await this.k8Factory
         .default()
         .configMaps()
-        .read(this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
-    } catch (error: any) {
-      if (!(error instanceof ResourceNotFoundError)) {
-        throw new SoloError('Failed to read remote config from cluster', error);
+        .read(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
+    } catch (e) {
+      if (!(e instanceof ResourceNotFoundError)) {
+        throw new SoloError('Failed to read remote config from cluster', e);
       }
 
       return null;
@@ -373,7 +375,7 @@ export class RemoteConfigManager {
     await this.k8Factory
       .default()
       .configMaps()
-      .create(this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
+      .create(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
         'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
       });
   }
@@ -383,19 +385,32 @@ export class RemoteConfigManager {
     await this.k8Factory
       .default()
       .configMaps()
-      .replace(this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
-        'remote-config-data': yaml.stringify(this.remoteConfig.toObject() as any),
-      });
+      .replace(
+        await this.getNamespace(),
+        constants.SOLO_REMOTE_CONFIGMAP_NAME,
+        constants.SOLO_REMOTE_CONFIGMAP_LABELS,
+        {
+          'remote-config-data': yaml.stringify(this.remoteConfig.toObject() as any),
+        },
+      );
   }
 
-  private setDefaultNamespaceIfNotSet(): void {
+  private async setDefaultNamespaceIfNotSet(argv: AnyObject): Promise<void> {
     if (this.configManager.hasFlag(flags.namespace)) return;
 
     // TODO: Current quick fix for commands where namespace is not passed
-    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
-    const currentDeployment = this.localConfig.deployments[deploymentName];
+    let deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    let currentDeployment = this.localConfig.deployments[deploymentName];
 
-    if (!this.localConfig?.deployments[deploymentName]) {
+    if (!deploymentName) {
+      deploymentName = await promptTheUserForDeployment(this.configManager);
+      currentDeployment = this.localConfig.deployments[deploymentName];
+      // TODO: Fix once we have the DataManager,
+      //       without this the user will be prompted a second time for the deployment
+      argv[flags.deployment.constName] = deploymentName;
+    }
+
+    if (!currentDeployment) {
       this.logger.error('Selected deployment name is not set in local config', this.localConfig);
       throw new SoloError('Selected deployment name is not set in local config');
     }
@@ -403,6 +418,7 @@ export class RemoteConfigManager {
     const namespace = currentDeployment.namespace;
 
     this.configManager.setFlag(flags.namespace, namespace);
+    argv[flags.namespace.constName] = namespace;
   }
 
   private setDefaultContextIfNotSet(): void {
@@ -424,7 +440,8 @@ export class RemoteConfigManager {
    * Retrieves the namespace value from the configuration manager's flags.
    * @returns string - The namespace value if set.
    */
-  private getNamespace(): NamespaceName {
+  private async getNamespace(): Promise<NamespaceName> {
+    await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
