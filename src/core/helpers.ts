@@ -8,7 +8,6 @@ import util from 'util';
 import * as semver from 'semver';
 import {SoloError} from './errors.js';
 import {Templates} from './templates.js';
-import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
@@ -20,7 +19,8 @@ import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type K8} from './kube/k8.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -49,6 +49,46 @@ export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: Name
   }
 
   return internalIp;
+}
+
+export async function getExternalAddress(
+  consensusNode: ConsensusNode,
+  k8: K8,
+  useLoadBalancer: boolean,
+): Promise<string> {
+  if (useLoadBalancer) {
+    return resolveLoadBalancerAddress(consensusNode, k8);
+  }
+
+  return consensusNode.fullyQualifiedDomainName;
+}
+
+async function resolveLoadBalancerAddress(consensusNode: ConsensusNode, k8: K8): Promise<string> {
+  const ns = NamespaceName.of(consensusNode.namespace);
+  const serviceList = await k8
+    .services()
+    .list(ns, [`solo.hedera.com/node-id=${consensusNode.nodeId}`, 'solo.hedera.com/type=haproxy-svc']);
+
+  if (serviceList && serviceList.length > 0) {
+    const svc = serviceList[0];
+
+    if (!svc.metadata.name.startsWith('haproxy')) {
+      throw new SoloError(`Service found is not a haproxy service: ${svc.metadata.name}`);
+    }
+
+    if (svc.status?.loadBalancer?.ingress && svc.status.loadBalancer.ingress.length > 0) {
+      for (let i = 0; i < svc.status.loadBalancer.ingress.length; i++) {
+        const ingress = svc.status.loadBalancer.ingress[i];
+        if (ingress.hostname) {
+          return ingress.hostname;
+        } else if (ingress.ip) {
+          return ingress.ip;
+        }
+      }
+    }
+  }
+
+  return consensusNode.fullyQualifiedDomainName;
 }
 
 export function sleep(duration: Duration) {

@@ -825,6 +825,9 @@ export class NetworkCommand extends BaseCommand {
             }
           },
         },
+        //TODO(Lenin): Add check task for haproxy service to be created and load balancer to be assigned (if load balancer is enabled)
+        //TODO(Lenin): Add task to regenerate config.txt / genesis-network.json and perform a helm upgrade (if load balancer is enabled)
+        //TODO(Lenin): Test using a KinD cluster created via `SOLO_CLUSTER_DUALITY=1 test/e2e/dual-cluster/setup-dual-e2e.sh`
         {
           title: 'Check node pods are running',
           task: (ctx, task) => {
