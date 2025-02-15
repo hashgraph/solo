@@ -148,6 +148,30 @@ function soloNetworkDeployArgv(deployment: string, namespace: NamespaceName): an
   return argv;
 }
 
+function soloNodeSetupArgv(deployment: string): any {
+  const argv = newArgv();
+  argv.push('node');
+  argv.push('setup');
+  argv.push(optionFromFlag(Flags.cacheDir));
+  argv.push(getTestCacheDir());
+  argv.push(optionFromFlag(Flags.devMode));
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argv.push(optionFromFlag(Flags.quiet));
+  return argv;
+}
+
+function soloNodeStartArgv(deployment: string) {
+  const argv = newArgv();
+  argv.push('node');
+  argv.push('start');
+  argv.push(optionFromFlag(Flags.devMode));
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argv.push(optionFromFlag(Flags.quiet));
+  return argv;
+}
+
 describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): Promise<void> {
   this.bail(true);
   const testName: string = 'dual-cluster-full';
@@ -230,7 +254,15 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   });
 
   // TODO node setup
+  it(`${testName}: node setup`, async () => {
+    main(soloNodeSetupArgv(deployment));
+  });
+
   // TODO node start
+  it(`${testName}: node start`, async () => {
+    main(soloNodeStartArgv(deployment));
+  });
+
   // TODO mirror node deploy
   // TODO explorer deploy
   // TODO json rpc relay deploy
