@@ -260,7 +260,13 @@ export class AccountCommand extends BaseCommand {
                     const adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
                     for (const nodeAlias of ctx.config.nodeAliases) {
                       const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
-                      const nodeClient = await self.accountManager.refreshNodeClient(ctx.config.namespace, nodeAlias);
+                      const nodeClient = await self.accountManager.refreshNodeClient(
+                        ctx.config.namespace,
+                        nodeAlias,
+                        self.getClusterRefs(),
+                        this.configManager.getFlag<DeploymentName>(flags.deployment),
+                      );
+
                       try {
                         let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
                         const newPrivateKey = PrivateKey.generateED25519();
