@@ -418,7 +418,7 @@ export class RemoteConfigManager {
     const namespace = currentDeployment.namespace;
 
     this.configManager.setFlag(flags.namespace, namespace);
-    argv[flags.namespace.constName] = namespace;
+    argv[flags.namespace.name] = namespace;
   }
 
   private setDefaultContextIfNotSet(): void {
