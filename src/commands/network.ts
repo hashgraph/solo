@@ -130,6 +130,8 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeAlias,
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
+      // TODO remove namespace once remote config gets it from local config
+      flags.namespace,
       flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
@@ -556,6 +558,8 @@ export class NetworkCommand extends BaseCommand {
       flags.debugNodeAlias,
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
+      // TODO remove namespace once remote config gets it from local config
+      flags.namespace,
       flags.persistentVolumeClaims,
       flags.profileName,
       flags.profileFile,

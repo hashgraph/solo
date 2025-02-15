@@ -8,7 +8,6 @@ import util from 'util';
 import * as semver from 'semver';
 import {SoloError} from './errors.js';
 import {Templates} from './templates.js';
-import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
@@ -18,7 +17,7 @@ import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
-import {type Version} from './config/remote/types.js';
+import {type ClusterRef, type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 

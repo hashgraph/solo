@@ -425,6 +425,7 @@ export class RemoteConfigManager {
    * @returns string - The namespace value if set.
    */
   private getNamespace(): NamespaceName {
+    // TODO: this should get the namespace from the local config using the deployment name
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
