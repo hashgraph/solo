@@ -18,6 +18,7 @@ import {type CommandFlag} from '../../../src/types/flag_types.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {expect} from 'chai';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
+import fs from 'fs';
 
 function newArgv(): string[] {
   return ['${PATH}/node', '${SOLO_ROOT}/solo.ts'];
@@ -181,6 +182,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   const contexts: string[] = ['kind-solo-e2e-c1', 'kind-solo-e2e-c2'];
   const nodeAliasesUnparsed = 'node1,node2';
   const nodeAliasesWithClusterRefsUnparsed = 'e2e-cluster-1=node1,e2e-cluster-2=node2';
+
+  before(async () => {
+    fs.rmSync(getTestCacheDir(), {recursive: true, force: true});
+  });
 
   beforeEach(async () => {
     // TODO switch to only resetting the test containers and not using the test version of the local config
