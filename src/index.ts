@@ -95,8 +95,8 @@ export function main(argv: any) {
 
       const clusterName = configManager.getFlag(flags.clusterRef) || currentClusterName;
 
-      if (contextNamespace?.name) {
-        configManager.setFlag(flags.namespace, contextNamespace);
+      if (!configManager.getFlag(flags.namespace)) {
+        configManager.setFlag(flags.namespace, contextNamespace?.name);
       }
 
       // apply precedence for flags

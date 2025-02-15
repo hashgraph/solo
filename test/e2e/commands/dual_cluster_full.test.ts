@@ -131,6 +131,23 @@ async function manuallyCreateRemoteConfigConfigMap(
   }
 }
 
+function soloNetworkDeployArgv(deployment: string, namespace: NamespaceName): any {
+  const argv = newArgv();
+  argv.push('network');
+  argv.push('deploy');
+  argv.push(optionFromFlag(Flags.cacheDir));
+  argv.push(getTestCacheDir());
+  argv.push(optionFromFlag(Flags.devMode));
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argv.push(optionFromFlag(Flags.quiet));
+  // TOD add solo chart directory
+  // TODO remove once the remote config manager is updated to pull the namespace from the local config
+  argv.push(optionFromFlag(Flags.namespace));
+  argv.push(namespace.name);
+  return argv;
+}
+
 describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): Promise<void> {
   this.bail(true);
   const testName: string = 'dual-cluster-full';
@@ -208,6 +225,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   });
 
   // TODO network deploy
+  it(`${testName}: network deploy`, async () => {
+    main(soloNetworkDeployArgv(deployment, namespace));
+  });
+
   // TODO node setup
   // TODO node start
   // TODO mirror node deploy
