@@ -10,7 +10,6 @@ import * as constants from '../constants.js';
 import {Helm} from '../helm.js';
 import {ChartManager} from '../chart_manager.js';
 import {ConfigManager} from '../config_manager.js';
-import {K8Client} from '../kube/k8_client/k8_client.js';
 import {AccountManager} from '../account_manager.js';
 import {PlatformInstaller} from '../platform_installer.js';
 import {KeyManager} from '../key_manager.js';
