@@ -22,11 +22,11 @@ import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tok
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = NamespaceName.of('remote-config-manager-e2e');
-const deploymentName = 'deployment';
 const argv = getDefaultArgv(namespace);
 const testCacheDir = getTestCacheDir();
 argv[flags.cacheDir.name] = testCacheDir;
 argv[flags.namespace.name] = namespace.name;
+const deploymentName = `${namespace.name}-deployment`;
 argv[flags.deployment.name] = `${namespace.name}-deployment`;
 argv[flags.nodeAliasesUnparsed.name] = 'node1';
 argv[flags.clusterRef.name] = TEST_CLUSTER;
