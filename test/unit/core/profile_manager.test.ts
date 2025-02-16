@@ -273,12 +273,17 @@ describe('ProfileManager', () => {
       }
     });
 
-    it('should fail when destPath does not exist', () => {
+    it('should fail when destPath does not exist', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       nodeAccountMap.set('node1', '0.0.3');
       const destPath = path.join(tmpDir, 'missing-directory');
       try {
-        profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, destPath, version.HEDERA_PLATFORM_VERSION);
+        await profileManager.prepareConfigTxt(
+          nodeAccountMap,
+          consensusNodes,
+          destPath,
+          version.HEDERA_PLATFORM_VERSION,
+        );
       } catch (e) {
         expect(e.message).to.contain('config destPath does not exist');
         expect(e.message).to.contain(destPath);
