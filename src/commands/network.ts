@@ -33,6 +33,7 @@ import {type ConsensusNode} from '../core/model/consensus_node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {Duration} from '../core/time/duration.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -492,7 +493,8 @@ export class NetworkCommand extends BaseCommand {
         clusterRef =>
           (valuesArgs[clusterRef] +=
             ' --set "defaults.haproxy.service.type=LoadBalancer"' +
-            ' --set "defaults.envoyProxy.service.type=LoadBalancer"'),
+            ' --set "defaults.envoyProxy.service.type=LoadBalancer"' +
+            ' --set "defaults.consensus.service.type=LoadBalancer"'),
       );
     }
 
@@ -823,6 +825,85 @@ export class NetworkCommand extends BaseCommand {
                 config.clusterRefs[clusterRef],
               );
             }
+          },
+        },
+        {
+          title: 'Check for load balancer',
+          skip: ctx => ctx.config.loadBalancerEnabled === false,
+          task: (ctx, task) => {
+            const subTasks: any[] = [];
+            const config = ctx.config;
+
+            //Add check for network node service to be created and load balancer to be assigned (if load balancer is enabled)
+            for (const consensusNode of config.consensusNodes) {
+              subTasks.push({
+                title: `Load balancer is assigned for: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
+                task: async () => {
+                  let attempts = 0;
+                  let svc = null;
+
+                  while (attempts < 30) {
+                    svc = await self.k8Factory
+                      .getK8(consensusNode.context)
+                      .services()
+                      .list(config.namespace, [
+                        `solo.hedera.com/node-id=${consensusNode.nodeId},solo.hedera.com/type=network-node-svc`,
+                      ]);
+
+                    if (svc && svc.length > 0 && svc[0].status.loadBalancer.ingress.length > 0) {
+                      return;
+                    }
+
+                    attempts++;
+                    await helpers.sleep(Duration.ofSeconds(2));
+                  }
+                },
+              });
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: true,
+              rendererOptions: {
+                collapseSubtasks: false,
+              },
+            });
+          },
+        },
+        {
+          title: 'Redeploy chart with external IP address config',
+          skip: ctx => ctx.config.loadBalancerEnabled === false,
+          task: async (ctx, task) => {
+            // Update the valuesArgMap with the external IP addresses
+            // This regenerates the config.txt and genesis-network.json files with the external IP addresses
+            ctx.config.valuesArgMap = await this.prepareValuesArgMap(ctx.config);
+
+            // Perform a helm upgrade for each cluster
+            const subTasks: any[] = [];
+            const config = ctx.config;
+            for (const clusterRef of Object.keys(config.clusterRefs)) {
+              subTasks.push({
+                title: `Upgrade chart for cluster: ${chalk.yellow(clusterRef)}`,
+                task: async () => {
+                  await this.chartManager.upgrade(
+                    config.namespace,
+                    constants.SOLO_DEPLOYMENT_CHART,
+                    ctx.config.chartPath,
+                    config.soloChartVersion,
+                    config.valuesArgMap[clusterRef],
+                    config.clusterRefs[clusterRef],
+                  );
+                },
+              });
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: true,
+              rendererOptions: {
+                collapseSubtasks: false,
+              },
+            });
           },
         },
         {
