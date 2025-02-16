@@ -39,6 +39,7 @@ import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import * as helpers from '../../core/helpers.js';
 import {
   addDebugOptions,
   getNodeAccountMap,
@@ -67,7 +68,6 @@ import {PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../core/kube/resources/container/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
-import * as helpers from '../../core/helpers.js';
 import {type Optional} from '../../types/index.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
@@ -562,7 +562,12 @@ export class NodeCommandTasks {
   ) {
     try {
       const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
-      await this.accountManager.loadNodeClient(namespace, this.parent.getClusterRefs(), deploymentName);
+      await this.accountManager.loadNodeClient(
+        namespace,
+        this.parent.getClusterRefs(),
+        deploymentName,
+        this.configManager.getFlag<boolean>(flags.forcePortForward),
+      );
       const client = this.accountManager._nodeClient;
       const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace);
       const treasuryPrivateKey = PrivateKey.fromStringED25519(treasuryKey.privateKey);

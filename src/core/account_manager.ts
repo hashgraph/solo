@@ -41,7 +41,7 @@ import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type ClusterRef, type DeploymentName, type ClusterRefs} from './config/remote/types.js';
+import {type ClusterRefs, type DeploymentName} from './config/remote/types.js';
 import {type Service} from './kube/resources/service/service.js';
 import {SoloService} from './model/solo_service.js';
 
@@ -55,6 +55,7 @@ const REJECTED = 'rejected';
 @injectable()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
+  private _forcePortForward: boolean = false;
   public _nodeClient: Client | null;
 
   constructor(
@@ -167,14 +168,16 @@ export class AccountManager {
   /**
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
-   * @param clusterRefs
-   * @param deployment
-   * @param context
+   * @param clusterRefs - the cluster references to use
+   * @param deployment - k8 deployment name
+   * @param context - k8 context name
+   * @param forcePortForward - whether to force the port forward
    */
   async loadNodeClient(
     namespace: NamespaceName,
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
+    forcePortForward?: boolean,
     context?: Optional<string>,
   ) {
     try {
@@ -185,7 +188,7 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context);
+        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
@@ -212,6 +215,7 @@ export class AccountManager {
    * @param [clusterRefs]
    * @param [deployment]
    * @param [context]
+   * @param forcePortForward - whether to force the port forward
    */
   async refreshNodeClient(
     namespace: NamespaceName,
@@ -219,9 +223,13 @@ export class AccountManager {
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
     context?: Optional<string>,
+    forcePortForward?: boolean,
   ) {
     try {
       await this.close();
+      if (forcePortForward !== undefined) {
+        this._forcePortForward = forcePortForward;
+      }
 
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace, context);
       const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs, deployment);
@@ -249,7 +257,7 @@ export class AccountManager {
    * @returns whether to use the local host port forward
    */
   private shouldUseLocalHostPortForward(networkNodeServices: NetworkNodeServices) {
-    return !networkNodeServices.haProxyLoadBalancerIp;
+    return this._forcePortForward || !networkNodeServices.haProxyLoadBalancerIp;
   }
 
   /**
@@ -974,8 +982,9 @@ export class AccountManager {
     fileNum: number,
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
+    forcePortForward?: boolean,
   ) {
-    await this.loadNodeClient(namespace, clusterRefs, deployment);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);

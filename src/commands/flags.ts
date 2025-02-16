@@ -112,6 +112,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly forcePortForward: CommandFlag = {
+    constName: 'forcePortForward',
+    name: 'force-port-forward',
+    definition: {
+      describe: 'Force port forward to access the network services',
+      defaultValue: true, // always use local port-forwarding by default
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
   // list of common flags across commands. command specific flags are defined in the command's module.
   static readonly clusterRef: CommandFlag = {
     constName: 'clusterRef',
@@ -2059,6 +2070,7 @@ export class Flags {
     Flags.enableTimeout,
     Flags.endpointType,
     Flags.envoyIps,
+    Flags.forcePortForward,
     Flags.generateEcdsaKey,
     Flags.generateGossipKeys,
     Flags.generateTlsKeys,

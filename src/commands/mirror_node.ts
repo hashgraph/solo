@@ -256,6 +256,7 @@ export class MirrorNodeCommand extends BaseCommand {
               ctx.config.namespace,
               self.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
+              self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
             );
             if (ctx.config.pinger) {
@@ -479,23 +480,25 @@ export class MirrorNodeCommand extends BaseCommand {
                       feesFileIdNum,
                       clusterRefs,
                       deployment,
+                      this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
                     const exchangeRates = await this.accountManager.getFileContents(
                       namespace,
                       exchangeRatesFileIdNum,
                       clusterRefs,
                       deployment,
+                      this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
 
                     const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id,
-                                                                              transaction_type)
-                                                 VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'},
-                                                         ${feesFileIdNum}, 17);`;
+                                                                          transaction_type)
+                                             VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'},
+                                                     ${feesFileIdNum}, 17);`;
                     const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp,
-                                                                                       entity_id, transaction_type)
-                                                          VALUES (decode('${exchangeRates}', 'hex'), ${
-                                                            timestamp + '000001'
-                                                          }, ${exchangeRatesFileIdNum}, 17);`;
+                                                                                   entity_id, transaction_type)
+                                                      VALUES (decode('${exchangeRates}', 'hex'), ${
+                                                        timestamp + '000001'
+                                                      }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
                     // When useExternalDatabase flag is enabled, the query is not executed,
@@ -651,6 +654,7 @@ export class MirrorNodeCommand extends BaseCommand {
               ctx.config.namespace,
               self.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
+              self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
             );
             return ListrLease.newAcquireLeaseTask(lease, task);
