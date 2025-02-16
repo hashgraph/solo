@@ -593,6 +593,7 @@ export class AccountManager {
    * @param currentSet - the accounts to update
    * @param updateSecrets - whether to delete the secret prior to creating a new secret
    * @param resultTracker - an object to keep track of the results from the accounts that are being updated
+   * @param contexts
    * @returns the updated resultTracker object
    */
   async updateSpecialAccountsKeys(
@@ -604,6 +605,7 @@ export class AccountManager {
       rejectedCount: number;
       fulfilledCount: number;
     },
+    contexts: string[],
   ) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY);
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
@@ -618,6 +620,7 @@ export class AccountManager {
           AccountId.fromString(`${realm}.${shard}.${accountNum}`),
           genesisKey,
           updateSecrets,
+          contexts,
         ),
       );
     }
@@ -657,7 +660,8 @@ export class AccountManager {
    * @param namespace - the namespace of the nodes network
    * @param accountId - the account that will get its keys updated
    * @param genesisKey - the genesis key to compare against
-   * @param updateSecrets - whether to delete the secret prior to creating a new secret
+   * @param updateSecrets - whether to delete the secret before creating a new secret
+   * @param [contexts]
    * @returns the result of the call
    */
   async updateAccountKeys(
@@ -665,11 +669,12 @@ export class AccountManager {
     accountId: AccountId,
     genesisKey: PrivateKey,
     updateSecrets: boolean,
+    contexts?: string[],
   ): Promise<{value: string; status: string} | {reason: string; value: string; status: string}> {
     let keys: Key[];
     try {
       keys = await this.getAccountKeys(accountId);
-    } catch (e: Error | any) {
+    } catch (e) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`);
       return {
         status: REJECTED,
@@ -704,37 +709,35 @@ export class AccountManager {
     };
 
     try {
-      const createdOrUpdated = updateSecrets
-        ? await this.k8Factory
-            .default()
-            .secrets()
-            .replace(
-              namespace,
-              Templates.renderAccountKeySecretName(accountId),
-              SecretType.OPAQUE,
-              data,
-              Templates.renderAccountKeySecretLabelObject(accountId),
-            )
-        : await this.k8Factory
-            .default()
-            .secrets()
-            .create(
-              namespace,
-              Templates.renderAccountKeySecretName(accountId),
-              SecretType.OPAQUE,
-              data,
-              Templates.renderAccountKeySecretLabelObject(accountId),
-            );
+      for (const context of contexts) {
+        const secretName = Templates.renderAccountKeySecretName(accountId);
+        const secretLabels = Templates.renderAccountKeySecretLabelObject(accountId);
+        const secretType = SecretType.OPAQUE;
 
-      if (!createdOrUpdated) {
-        this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
-        return {
-          status: REJECTED,
-          reason: REASON_FAILED_TO_CREATE_K8S_S_KEY,
-          value: accountId.toString(),
-        };
+        let createdOrUpdated: boolean;
+
+        if (updateSecrets) {
+          createdOrUpdated = await this.k8Factory
+            .getK8(context)
+            .secrets()
+            .replace(namespace, secretName, secretType, data, secretLabels);
+        } else {
+          createdOrUpdated = await this.k8Factory
+            .getK8(context)
+            .secrets()
+            .create(namespace, secretName, secretType, data, secretLabels);
+        }
+
+        if (!createdOrUpdated) {
+          this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
+          return {
+            status: REJECTED,
+            reason: REASON_FAILED_TO_CREATE_K8S_S_KEY,
+            value: accountId.toString(),
+          };
+        }
       }
-    } catch (e: Error | any) {
+    } catch (e) {
       this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${e.toString()}`);
       return {
         status: REJECTED,
