@@ -144,23 +144,21 @@ export function main(argv: any) {
       return argv;
     };
 
-    return (
-      yargs(hideBin(argv))
-        .scriptName('')
-        .usage('Usage:\n  solo <command> [options]')
-        .alias('h', 'help')
-        .alias('v', 'version')
-        // @ts-ignore
-        .command(commands.Initialize(opts))
-        .strict()
-        // @ts-ignore
-        .option(flags.devMode.name, flags.devMode.definition)
-        .wrap(120)
-        .demand(1, 'Select a command')
-        // @ts-ignore
-        .middleware([processArguments, loadRemoteConfig], false) // applyBeforeValidate = false as otherwise middleware is called twice
-        .parse()
-    );
+    const rootCmd = yargs(hideBin(argv))
+      .scriptName('')
+      .usage('Usage:\n  solo <command> [options]')
+      .alias('h', 'help')
+      .alias('v', 'version')
+      // @ts-ignore
+      .command(commands.Initialize(opts))
+      .strict()
+      .demand(1, 'Select a command')
+      // @ts-ignore
+      .middleware([processArguments, loadRemoteConfig], false); // applyBeforeValidate = false as otherwise middleware is called twice
+
+    // set root level flags
+    flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
+    return rootCmd.parse();
   } catch (e: Error | any) {
     logger.showUserError(e);
     process.exit(1);

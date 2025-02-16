@@ -24,6 +24,7 @@ import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
 const namespace = NamespaceName.of('local-hedera-app');
 const argv = getDefaultArgv(namespace);
+argv[flags.forcePortForward.name] = true;
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
@@ -64,7 +65,12 @@ e2eTestSuite(
       it('save the state and restart the node with saved state', async () => {
         // create an account so later we can verify its balance after restart
         const clusterRefs: ClusterRefs = nodeCmd.getClusterRefs();
-        await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+        await accountManager.loadNodeClient(
+          namespace,
+          clusterRefs,
+          argv[flags.deployment.name],
+          argv[flags.forcePortForward.name],
+        );
         const privateKey = PrivateKey.generate();
         // get random integer between 100 and 1000
         const amount = Math.floor(Math.random() * (1000 - 100) + 100);
@@ -95,7 +101,12 @@ e2eTestSuite(
         await nodeCmd.handlers.start(argv);
 
         // check balance of accountInfo.accountId
-        await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+        await accountManager.loadNodeClient(
+          namespace,
+          clusterRefs,
+          argv[flags.deployment.name],
+          argv[flags.forcePortForward.name],
+        );
         const balance = await new AccountBalanceQuery()
           .setAccountId(accountInfo.accountId)
           .execute(accountManager._nodeClient);

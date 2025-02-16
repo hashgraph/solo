@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before, afterEach} from 'mocha';
+import {after, afterEach, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
@@ -35,6 +35,7 @@ const namespace = NamespaceName.of(testName);
 const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
+argv[flags.forcePortForward.name] = true;
 
 argv[flags.nodeAliasesUnparsed.name] = 'node1'; // use a single node to reduce resource during e2e tests
 argv[flags.generateGossipKeys.name] = true;
@@ -115,7 +116,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     it('mirror node API should be running', async () => {
       const clusterRefs: ClusterRefs = mirrorNodeCmd.getClusterRefs();
-      await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+      await accountManager.loadNodeClient(
+        namespace,
+        clusterRefs,
+        argv[flags.deployment.name],
+        argv[flags.forcePortForward.name],
+      );
       try {
         // find hedera explorer pod
         const pods: V1Pod[] = await k8Factory

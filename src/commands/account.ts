@@ -7,8 +7,9 @@ import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
-import * as helpers from '../core/helpers.js';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
+import * as helpers from '../core/helpers.js';
+import {sleep} from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -18,7 +19,6 @@ import {Duration} from '../core/time/duration.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../core/config/remote/types.js';
 import {Templates} from '../core/templates.js';
-import {sleep} from '../core/helpers.js';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Base64} from 'js-base64';
 
@@ -189,6 +189,7 @@ export class AccountCommand extends BaseCommand {
               ctx.config.namespace,
               self.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
+              self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
           },
         },
@@ -409,6 +410,7 @@ export class AccountCommand extends BaseCommand {
               ctx.config.namespace,
               self.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
+              self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
 
             return ListrLease.newAcquireLeaseTask(lease, task);
@@ -489,6 +491,7 @@ export class AccountCommand extends BaseCommand {
               config.namespace,
               self.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
+              self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
 
             self.logger.debug('Initialized config', {config});
@@ -575,6 +578,7 @@ export class AccountCommand extends BaseCommand {
               config.namespace,
               self.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
+              self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
 
             self.logger.debug('Initialized config', {config});
