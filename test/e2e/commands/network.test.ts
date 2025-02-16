@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {bootstrapTestVariables, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
@@ -37,6 +37,7 @@ describe('NetworkCommand', function networkCommand() {
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
   argv[flags.force.name] = true;
   argv[flags.applicationEnv.name] = applicationEnvFilePath;
+  argv[flags.loadBalancerEnabled.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
   argv[flags.quiet.name] = true;

@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {
@@ -41,6 +41,7 @@ const testName = 'account-cmd-e2e';
 const namespace: NamespaceName = NamespaceName.of(testName);
 const testSystemAccounts = [[3, 5]];
 const argv = getDefaultArgv(namespace);
+argv[flags.forcePortForward.name] = true;
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
@@ -48,8 +49,11 @@ argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
 argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
+argv[flags.loadBalancerEnabled.name] = true;
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
+// enable load balancer for e2e tests
+argv[flags.loadBalancerEnabled.name] = true;
 
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('AccountCommand', async () => {
@@ -107,7 +111,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
           const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
         });
 
         after(async function () {
@@ -298,7 +307,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           );
 
           const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
           const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
           expect(accountAliasInfo).not.to.be.null;
         } catch (e) {
@@ -325,7 +339,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('Create new account', async () => {
         try {
           const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
           const privateKey = PrivateKey.generate();
           const amount = 100;
 
