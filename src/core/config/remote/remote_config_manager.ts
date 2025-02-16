@@ -265,8 +265,8 @@ export class RemoteConfigManager {
       (command === 'node' && subcommand === 'delete') ||
       (command === 'node' && subcommand === 'delete-execute');
 
-    if (argv[flags.soloChartVersion.constName]) {
-      this.remoteConfig.metadata.soloChartVersion = argv[flags.soloChartVersion.constName] as Version;
+    if (argv[flags.soloChartVersion.name]) {
+      this.remoteConfig.metadata.soloChartVersion = argv[flags.soloChartVersion.name] as Version;
     } else if (isCommandUsingSoloChartVersionFlag) {
       this.remoteConfig.metadata.soloChartVersion = flags.soloChartVersion.definition.defaultValue as Version;
     }
@@ -275,28 +275,28 @@ export class RemoteConfigManager {
       (command === 'node' && subcommand !== 'keys' && subcommand !== 'logs' && subcommand !== 'states') ||
       (command === 'network' && subcommand === 'deploy');
 
-    if (argv[flags.releaseTag.constName]) {
-      this.remoteConfig.metadata.hederaPlatformVersion = argv[flags.releaseTag.constName] as Version;
+    if (argv[flags.releaseTag.name]) {
+      this.remoteConfig.metadata.hederaPlatformVersion = argv[flags.releaseTag.name] as Version;
     } else if (isCommandUsingReleaseTagVersionFlag) {
       this.remoteConfig.metadata.hederaPlatformVersion = flags.releaseTag.definition.defaultValue as Version;
     }
 
-    if (argv[flags.mirrorNodeVersion.constName]) {
-      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = argv[flags.mirrorNodeVersion.constName] as Version;
+    if (argv[flags.mirrorNodeVersion.name]) {
+      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = argv[flags.mirrorNodeVersion.name] as Version;
     } else if (command === 'mirror-node' && subcommand === 'deploy') {
       this.remoteConfig.metadata.hederaMirrorNodeChartVersion = flags.mirrorNodeVersion.definition
         .defaultValue as Version;
     }
 
-    if (argv[flags.hederaExplorerVersion.constName]) {
-      this.remoteConfig.metadata.hederaExplorerChartVersion = argv[flags.hederaExplorerVersion.constName] as Version;
+    if (argv[flags.hederaExplorerVersion.name]) {
+      this.remoteConfig.metadata.hederaExplorerChartVersion = argv[flags.hederaExplorerVersion.name] as Version;
     } else if (command === 'explorer' && subcommand === 'deploy') {
       this.remoteConfig.metadata.hederaExplorerChartVersion = flags.hederaExplorerVersion.definition
         .defaultValue as Version;
     }
 
-    if (argv[flags.relayReleaseTag.constName]) {
-      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = argv[flags.relayReleaseTag.constName] as Version;
+    if (argv[flags.relayReleaseTag.name]) {
+      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = argv[flags.relayReleaseTag.name] as Version;
     } else if (command === 'relay' && subcommand === 'deploy') {
       this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = flags.relayReleaseTag.definition
         .defaultValue as Version;
@@ -407,7 +407,7 @@ export class RemoteConfigManager {
       currentDeployment = this.localConfig.deployments[deploymentName];
       // TODO: Fix once we have the DataManager,
       //       without this the user will be prompted a second time for the deployment
-      argv[flags.deployment.constName] = deploymentName;
+      argv[flags.deployment.name] = deploymentName;
     }
 
     if (!currentDeployment) {
