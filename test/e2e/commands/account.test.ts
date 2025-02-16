@@ -41,6 +41,7 @@ const testName = 'account-cmd-e2e';
 const namespace: NamespaceName = NamespaceName.of(testName);
 const testSystemAccounts = [[3, 5]];
 const argv = getDefaultArgv(namespace);
+argv[flags.forcePortForward.name] = true;
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
 argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
@@ -107,7 +108,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
           const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
         });
 
         after(async function () {
@@ -298,7 +304,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           );
 
           const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
           const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
           expect(accountAliasInfo).not.to.be.null;
         } catch (e) {
@@ -325,7 +336,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       it('Create new account', async () => {
         try {
           const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
           const privateKey = PrivateKey.generate();
           const amount = 100;
 
