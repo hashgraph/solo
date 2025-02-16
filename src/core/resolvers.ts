@@ -17,6 +17,13 @@ export async function resolveNamespaceFromDeployment(
 ): Promise<NamespaceName> {
   await promptTheUserForDeployment(configManager, task);
   const deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);
+
+  if (!localConfig.deployments.hasOwnProperty(deploymentName)) {
+    throw new SoloError(
+      `deployment ${deploymentName}, is missing from deployments: ${JSON.stringify(localConfig.deployments)}`,
+    );
+  }
+
   return NamespaceName.of(localConfig.deployments[deploymentName].namespace);
 }
 
