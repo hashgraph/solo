@@ -441,8 +441,7 @@ export class RemoteConfigManager {
    * @returns string - The namespace value if set.
    */
   private async getNamespace(): Promise<NamespaceName> {
-    await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
-    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
+    const ns = await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }
