@@ -847,8 +847,7 @@ export class NetworkCommand extends BaseCommand {
                       .getK8(consensusNode.context)
                       .services()
                       .list(config.namespace, [
-                        `solo.hedera.com/node-id=${consensusNode.nodeId}`,
-                        'solo.hedera.com/type=network-node-svc',
+                        `solo.hedera.com/node-id=${consensusNode.nodeId},solo.hedera.com/type=network-node-svc`,
                       ]);
 
                     if (svc && svc.length > 0 && svc[0].status.loadBalancer.ingress.length > 0) {
@@ -886,13 +885,7 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Upgrade chart for cluster: ${chalk.yellow(clusterRef)}`,
                 task: async () => {
-                  await self.chartManager.uninstall(
-                    config.namespace,
-                    constants.SOLO_DEPLOYMENT_CHART,
-                    this.k8Factory.getK8(config.clusterRefs[clusterRef]).contexts().readCurrent(),
-                  );
-
-                  await this.chartManager.install(
+                  await this.chartManager.upgrade(
                     config.namespace,
                     constants.SOLO_DEPLOYMENT_CHART,
                     ctx.config.chartPath,

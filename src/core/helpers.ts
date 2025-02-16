@@ -67,7 +67,7 @@ async function resolveLoadBalancerAddress(consensusNode: ConsensusNode, k8: K8):
   const ns = NamespaceName.of(consensusNode.namespace);
   const serviceList = await k8
     .services()
-    .list(ns, [`solo.hedera.com/node-id=${consensusNode.nodeId}`, 'solo.hedera.com/type=network-node-svc']);
+    .list(ns, [`solo.hedera.com/node-id=${consensusNode.nodeId},solo.hedera.com/type=network-node-svc`]);
 
   if (serviceList && serviceList.length > 0) {
     const svc = serviceList[0];
