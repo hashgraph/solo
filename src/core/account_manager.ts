@@ -393,7 +393,7 @@ export class AccountManager {
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
           await this.k8Factory
-            .default()
+            .getK8(networkNodeService.context)
             .pods()
             .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
             .portForward(localPort, port),
