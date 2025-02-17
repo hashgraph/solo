@@ -850,13 +850,14 @@ export class NetworkCommand extends BaseCommand {
                         `solo.hedera.com/node-id=${consensusNode.nodeId},solo.hedera.com/type=network-node-svc`,
                       ]);
 
-                    if (svc && svc.length > 0 && svc[0].status.loadBalancer.ingress.length > 0) {
+                    if (svc && svc.length > 0 && svc[0].status?.loadBalancer?.ingress?.length > 0) {
                       return;
                     }
 
                     attempts++;
                     await helpers.sleep(Duration.ofSeconds(2));
                   }
+                  throw new SoloError('Load balancer not found');
                 },
               });
             }
