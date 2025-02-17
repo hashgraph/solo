@@ -26,26 +26,13 @@ export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: Name
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
   let internalIp = '';
 
-  // for versions that satisfy 0.59.x
-  if (semver.satisfies(releaseVersion, '^0.59.0', {includePrerelease: true})) {
+  // for versions that satisfy 0.58.5+
+  if (semver.gte(releaseVersion, '0.58.5')) {
     internalIp = '127.0.0.1';
   }
-
-  // versions less than 0.59.0
-  else if (
-    semver.lt(
-      releaseVersion,
-      '0.59.0',
-      // @ts-expect-error TS2353: Object literal may only specify known properties
-      {includePrerelease: true},
-    )
-  ) {
-    internalIp = Templates.renderFullyQualifiedNetworkPodName(namespaceName, nodeAlias);
-  }
-
-  // versions greater than 0.59.0
+  // versions less than 0.58.5
   else {
-    internalIp = '127.0.0.1';
+    internalIp = Templates.renderFullyQualifiedNetworkPodName(namespaceName, nodeAlias);
   }
 
   return internalIp;
