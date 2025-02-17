@@ -559,6 +559,7 @@ export class NodeCommandTasks {
     accountId: string,
     nodeAlias: NodeAlias,
     stakeAmount: number = HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
+    context?: string,
   ) {
     try {
       const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
@@ -567,6 +568,7 @@ export class NodeCommandTasks {
         this.parent.getClusterRefs(),
         deploymentName,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
+        context,
       );
       const client = this.accountManager._nodeClient;
       const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace);
@@ -1268,11 +1270,12 @@ export class NodeCommandTasks {
         let nodeIndex = 0;
         for (const nodeAlias of ctx.config.nodeAliases) {
           const accountId = accountMap.get(nodeAlias);
+          const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
           const stakeAmount =
             stakeAmountParsed.length > 0 ? stakeAmountParsed[nodeIndex] : HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
           subTasks.push({
             title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
-            task: async () => await self._addStake(ctx.config.namespace, accountId, nodeAlias, +stakeAmount),
+            task: async () => await self._addStake(ctx.config.namespace, accountId, nodeAlias, +stakeAmount, context),
           });
           nodeIndex++;
         }
@@ -1291,13 +1294,16 @@ export class NodeCommandTasks {
   stakeNewNode() {
     const self = this;
     return new Task('Stake new node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const context = helpers.extractContextFromConsensusNodes(ctx.config.nodeAlias, ctx.config.consensusNodes);
       await self.accountManager.refreshNodeClient(
         ctx.config.namespace,
         ctx.config.nodeAlias,
         this.parent.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
+        context,
+        this.configManager.getFlag<boolean>(flags.forcePortForward),
       );
-      await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias);
+      await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias, undefined, context);
     });
   }
 
