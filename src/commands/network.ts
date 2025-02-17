@@ -851,7 +851,12 @@ export class NetworkCommand extends BaseCommand {
                       ]);
 
                     if (svc && svc.length > 0 && svc[0].status?.loadBalancer?.ingress?.length > 0) {
-                      return;
+                      for (let i = 0; i < svc.status.loadBalancer.ingress.length; i++) {
+                        const ingress = svc.status.loadBalancer.ingress[i];
+                        if (ingress.hostname || ingress.ip) {
+                          return;
+                        }
+                      }
                     }
 
                     attempts++;
