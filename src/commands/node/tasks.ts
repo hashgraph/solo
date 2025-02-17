@@ -1750,7 +1750,7 @@ export class NodeCommandTasks {
               ctx.config.chartPath,
               config.soloChartVersion,
               valuesArgs[clusterRef],
-              this.k8Factory.default().contexts().readCurrent(),
+              this.k8Factory.getK8(this.parent.getLocalConfig().clusterRefs[clusterRef]).contexts().readCurrent(),
             );
           }),
         );
