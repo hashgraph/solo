@@ -316,7 +316,7 @@ export class NodeCommandTasks {
 
     // set up the sub-tasks
     return task.newListr(subTasks, {
-      concurrent: false, // since we download in the container directly, we want this to be in parallel across all nodes
+      concurrent: true, // since we download in the container directly, we want this to be in parallel across all nodes
       rendererOptions: {
         collapseSubtasks: false,
       },
