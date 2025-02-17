@@ -384,8 +384,8 @@ export class NetworkCommand extends BaseCommand {
     // add debug options to the debug node
     config.consensusNodes.filter(consensusNode => {
       if (consensusNode.name === config.debugNodeAlias) {
-        config.consensusNodes[consensusNode.cluster] = addDebugOptions(
-          config.consensusNodes[consensusNode.cluster],
+        valuesArgs[consensusNode.cluster] = addDebugOptions(
+          valuesArgs[consensusNode.cluster],
           config.debugNodeAlias,
           extraEnvIndex,
         );
@@ -831,7 +831,7 @@ export class NetworkCommand extends BaseCommand {
           title: 'Check for load balancer',
           skip: ctx => ctx.config.loadBalancerEnabled === false,
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             //Add check for network node service to be created and load balancer to be assigned (if load balancer is enabled)
@@ -879,7 +879,7 @@ export class NetworkCommand extends BaseCommand {
             ctx.config.valuesArgMap = await this.prepareValuesArgMap(ctx.config);
 
             // Perform a helm upgrade for each cluster
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
             for (const clusterRef of Object.keys(config.clusterRefs)) {
               subTasks.push({
@@ -909,7 +909,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check node pods are running',
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             // nodes
@@ -941,7 +941,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check proxy pods are running',
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             // HAProxy
@@ -990,7 +990,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check auxiliary pods are ready',
           task: (_, task) => {
-            const subTasks = [];
+            const subTasks: SoloListrTask<Context>[] = [];
 
             // minio
             subTasks.push({
@@ -1034,7 +1034,7 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
     } finally {
       await lease.release();

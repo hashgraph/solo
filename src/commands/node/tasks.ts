@@ -68,8 +68,8 @@ import {PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../core/kube/resources/container/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
-import {type Optional} from '../../types/index.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type Optional, type SoloListrTask} from '../../types/index.js';
+import {type ClusterRef, type DeploymentName} from '../../core/config/remote/types.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
@@ -1630,18 +1630,28 @@ export class NodeCommandTasks {
     });
   }
 
-  updateChartWithConfigMap(title: string, transactionType: NodeSubcommandType, skip: SkipCheck | boolean = false) {
+  updateChartWithConfigMap(
+    title: string,
+    transactionType: NodeSubcommandType,
+    skip: SkipCheck | boolean = false,
+  ): SoloListrTask<any> {
     const self = this;
-    return new Task(
+    return {
       title,
-      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      task: async ctx => {
         // Prepare parameter and update the network node chart
         const config = ctx.config;
+
+        const consensusNodes = this.parent.getConsensusNodes();
+        const valuesArgs: Record<ClusterRef, string> = {};
+        consensusNodes.forEach(node => (valuesArgs[node.cluster] = ''));
+
+        const clusterRefs = this.parent.getClusterRefs();
 
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace,
-            this.parent.getClusterRefs(),
+            clusterRefs,
             config.deployment,
           );
         }
@@ -1655,8 +1665,10 @@ export class NodeCommandTasks {
         const nodeId = maxNodeId + 1;
         const index = config.existingNodeAliases.length;
 
-        let valuesArg = '';
         for (let i = 0; i < index; i++) {
+          const consensusNode = consensusNodes.find(node => node.nodeId === nodeId);
+
+          let valuesArg = '';
           if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
             // for the case of updating node
             // use new account number for this node id
@@ -1667,11 +1679,17 @@ export class NodeCommandTasks {
           } else if (transactionType === NodeSubcommandType.DELETE && i === nodeId) {
             valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           }
+
+          valuesArg[consensusNode.cluster] = valuesArg;
         }
 
         // for the case of adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
-          valuesArg += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}" --set "hedera.nodes[${index}].name=${ctx.newNode.name}" --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
+          const consensusNode = consensusNodes.find(node => node.nodeId === index);
+
+          valuesArgs[consensusNode.cluster] += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"`;
+          valuesArgs[consensusNode.cluster] += ` --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
+          valuesArgs[consensusNode.cluster] += ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
 
           if (config.haproxyIps) {
             config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -1683,19 +1701,24 @@ export class NodeCommandTasks {
 
           const nodeAlias: NodeAlias = config.nodeAlias;
           const nodeIndexInValues = Templates.nodeIdFromNodeAlias(nodeAlias);
+          const consensusNodeInValues = consensusNodes.find(node => node.name === nodeAlias);
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
             const ip: string = config.haproxyIpsParsed?.[nodeAlias];
-
-            if (ip) valuesArg += ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
+            if (ip) {
+              valuesArgs[consensusNodeInValues.cluster] +=
+                ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
+            }
           }
 
           // Set static IPs for Envoy Proxy
           if (config.envoyIpsParsed) {
             const ip: string = config.envoyIpsParsed?.[nodeAlias];
-
-            if (ip) valuesArg += ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
+            if (ip) {
+              valuesArgs[consensusNodeInValues.cluster] +=
+                ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
+            }
           }
         }
 
@@ -1703,23 +1726,37 @@ export class NodeCommandTasks {
           path.join(config.stagingDir, 'config.txt'),
           path.join(config.stagingDir, 'templates', 'application.properties'),
         );
+
         if (profileValuesFile) {
-          valuesArg += self.prepareValuesFiles(profileValuesFile);
+          Object.keys(clusterRefs).forEach(
+            clusterRef => (valuesArgs[clusterRef] += self.prepareValuesFiles(profileValuesFile)),
+          );
         }
 
-        valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);
+        consensusNodes.filter(consensusNode => {
+          if (consensusNode.name === config.debugNodeAlias) {
+            consensusNodes[consensusNode.cluster] = addDebugOptions(
+              valuesArgs[consensusNode.cluster],
+              config.debugNodeAlias,
+            );
+          }
+        });
 
-        await self.chartManager.upgrade(
-          config.namespace,
-          constants.SOLO_DEPLOYMENT_CHART,
-          ctx.config.chartPath,
-          config.soloChartVersion,
-          valuesArg,
-          this.k8Factory.default().contexts().readCurrent(),
+        await Promise.all(
+          Object.keys(config.clusterRefs).map(clusterRef => {
+            return self.chartManager.upgrade(
+              config.namespace,
+              constants.SOLO_DEPLOYMENT_CHART,
+              ctx.config.chartPath,
+              config.soloChartVersion,
+              valuesArgs[clusterRef],
+              this.k8Factory.default().contexts().readCurrent(),
+            );
+          }),
         );
       },
       skip,
-    );
+    };
   }
 
   saveContextData(argv: any, targetFile: string, parser: any) {
