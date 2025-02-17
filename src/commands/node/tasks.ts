@@ -1680,7 +1680,7 @@ export class NodeCommandTasks {
             valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           }
 
-          valuesArg[consensusNode.cluster] = valuesArg;
+          valuesArgs[consensusNode.cluster] = valuesArg;
         }
 
         // for the case of adding a new node
