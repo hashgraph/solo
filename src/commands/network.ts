@@ -384,8 +384,8 @@ export class NetworkCommand extends BaseCommand {
     // add debug options to the debug node
     config.consensusNodes.filter(consensusNode => {
       if (consensusNode.name === config.debugNodeAlias) {
-        config.consensusNodes[consensusNode.cluster] = addDebugOptions(
-          config.consensusNodes[consensusNode.cluster],
+        valuesArgs[consensusNode.cluster] = addDebugOptions(
+          valuesArgs[consensusNode.cluster],
           config.debugNodeAlias,
           extraEnvIndex,
         );
