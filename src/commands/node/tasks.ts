@@ -343,6 +343,7 @@ export class NodeCommandTasks {
           ? 'Please attach JVM debugger now.  Sleeping for 1 hour, hit ctrl-c once debugging is complete.'
           : '';
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`;
+      const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
 
       const subTask = async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         if (enableDebugger) {
@@ -355,6 +356,10 @@ export class NodeCommandTasks {
           title,
           i,
           status,
+          undefined,
+          undefined,
+          undefined,
+          context,
         );
       };
 
@@ -379,6 +384,7 @@ export class NodeCommandTasks {
     maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
     delay = constants.NETWORK_NODE_ACTIVE_DELAY,
     timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT,
+    context?: string,
   ): Promise<PodRef> {
     nodeAlias = nodeAlias.trim() as NodeAlias;
     const podName = Templates.renderNetworkPodName(nodeAlias);
@@ -397,7 +403,7 @@ export class NodeCommandTasks {
 
       try {
         const response = await this.k8Factory
-          .default()
+          .getK8(context)
           .containers()
           .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
           .execContainer([
