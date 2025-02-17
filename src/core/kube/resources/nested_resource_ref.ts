@@ -33,6 +33,6 @@ export abstract class NestedResourceRef<P extends ResourceRef<any>, T extends Re
    * @returns The nested resource reference as a string.
    */
   public toString(): string {
-    return `{parentRef: ${this.parentRef.toString()}, name: ${this.name}}`;
+    return `{parentRef: ${this.parentRef}, name: ${this.name}}`;
   }
 }
