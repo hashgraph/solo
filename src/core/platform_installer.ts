@@ -92,7 +92,7 @@ export class PlatformInstaller {
     try {
       const scriptName = 'extract-platform.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyFiles(podRef, [sourcePath], constants.HEDERA_USER_HOME_DIR);
+      await this.copyFiles(podRef, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
 
       // wait a few seconds before calling the script to avoid "No such file" error
       await sleep(Duration.ofSeconds(2));
