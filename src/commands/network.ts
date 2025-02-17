@@ -852,8 +852,8 @@ export class NetworkCommand extends BaseCommand {
 
                     if (svc && svc.length > 0 && svc[0].status?.loadBalancer?.ingress?.length > 0) {
                       let shouldContinue = false;
-                      for (let i = 0; i < svc.status.loadBalancer.ingress.length; i++) {
-                        const ingress = svc.status.loadBalancer.ingress[i];
+                      for (let i = 0; i < svc[0].status.loadBalancer.ingress.length; i++) {
+                        const ingress = svc[0].status.loadBalancer.ingress[i];
                         if (!ingress.hostname && !ingress.ip) {
                           shouldContinue = true; // try again if there is neither a hostname nor an ip
                           break;
