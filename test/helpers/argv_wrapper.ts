@@ -50,7 +50,8 @@ export class Argv {
     }
 
     const currentDeployment =
-      argv.getArg<string>(flags.deployment) || `${namespace?.name || argv.getArg(flags.namespace)}-deployment`;
+      argv.getArg<string>(flags.deployment) ||
+      `${namespace?.name || argv.getArg<NamespaceName>(flags.namespace)}-deployment`;
     const cacheDir = getTestCacheDir();
     argv.cacheDir = cacheDir;
     argv.setArg(flags.cacheDir, cacheDir);

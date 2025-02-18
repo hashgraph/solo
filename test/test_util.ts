@@ -129,6 +129,7 @@ export function bootstrapTestVariables(
   const namespace: NamespaceName = NamespaceName.of(
     argv.getArg<NamespaceNameAsString>(flags.namespace) || 'bootstrap-ns',
   );
+
   const deployment: string = argv.getArg<DeploymentName>(flags.deployment) || `${namespace.name}-deployment`;
   const cacheDir: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDir(testName);
   resetForTest(namespace.name, cacheDir);
