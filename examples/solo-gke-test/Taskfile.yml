@@ -7,7 +7,7 @@ vars:
   solo_home_override_dir: "/Users/user/.solo-gke-test"
   use_port_forwards: "false"
 env:
-  SOLO_NETWORK_SIZE: 2
+  SOLO_NETWORK_SIZE: 4
   SOLO_NAMESPACE: solo-gke-test
   SOLO_DEPLOYMENT: solo-deployment-gke-test
   CLUSTER_CONTEXT: "gke_hashsphere-staging_us-central1_jeromy-sphere-load-test-us-central"
