@@ -27,6 +27,7 @@ export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: Name
   let internalIp = '';
 
   // for versions that satisfy 0.58.5+
+  // @ts-expect-error TS2353: Object literal may only specify known properties
   if (semver.gte(releaseVersion, '0.58.5', {includePrerelease: true})) {
     internalIp = '127.0.0.1';
   }
