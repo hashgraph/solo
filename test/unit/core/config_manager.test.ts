@@ -10,6 +10,7 @@ import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
 import {testLogger} from '../../test_util.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 describe('ConfigManager', () => {
   describe('update values using argv', () => {
@@ -24,57 +25,57 @@ describe('ConfigManager', () => {
 
     it('should update string flag value', () => {
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-      const argv = {};
-      argv[flags.releaseTag.name] = 'v0.42.5';
+      const argv = Argv.initializeEmpty();
+      argv.setArg(flags.releaseTag, 'v0.42.5');
 
-      cm.update(argv);
-      expect(cm.getFlag(flags.releaseTag)).to.equal(argv[flags.releaseTag.name]);
+      cm.update(argv.build());
+      expect(cm.getFlag(flags.releaseTag)).to.equal(argv.getArg<string>(flags.releaseTag));
 
       // ensure non-string values are converted to string
       cm.reset();
-      argv[flags.releaseTag.name] = true;
-      cm.update(argv);
-      expect(cm.getFlag(flags.releaseTag)).not.to.equal(argv[flags.releaseTag.name]);
-      expect(cm.getFlag(flags.releaseTag)).to.equal(`${argv[flags.releaseTag.name]}`);
+      argv.setArg(flags.releaseTag, true);
+      cm.update(argv.build());
+      expect(cm.getFlag(flags.releaseTag)).not.to.equal(argv.getArg<string>(flags.releaseTag));
+      expect(cm.getFlag(flags.releaseTag)).to.equal(`${argv.getArg<string>(flags.releaseTag)}`);
     });
 
     it('should update number flag value', () => {
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-      const argv = {};
-      argv[flags.replicaCount.name] = 1;
+      const argv = Argv.initializeEmpty();
+      argv.setArg(flags.replicaCount, 1);
 
-      cm.update(argv);
-      expect(cm.getFlag(flags.replicaCount)).to.deep.equal(argv[flags.replicaCount.name]);
+      cm.update(argv.build());
+      expect(cm.getFlag(flags.replicaCount)).to.deep.equal(argv.getArg<string>(flags.replicaCount));
 
       // ensure string values are converted to integer
       cm.reset();
-      argv[flags.replicaCount.name] = '1';
-      cm.update(argv);
-      expect(cm.getFlag(flags.replicaCount)).not.to.deep.equal(argv[flags.replicaCount.name]);
-      expect(cm.getFlag(flags.replicaCount)).to.deep.equal(Number.parseInt(argv[flags.replicaCount.name]));
+      argv.setArg(flags.replicaCount, '1');
+      cm.update(argv.build());
+      expect(cm.getFlag(flags.replicaCount)).not.to.deep.equal(argv.getArg<number>(flags.replicaCount));
+      expect(cm.getFlag(flags.replicaCount)).to.deep.equal(Number.parseInt(argv.getArg<string>(flags.replicaCount)));
     });
 
     it('should update boolean flag value', () => {
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
 
       // boolean values should work
-      const argv = {};
-      argv[flags.devMode.name] = true;
-      cm.update(argv);
-      expect(cm.getFlag(flags.devMode)).to.equal(argv[flags.devMode.name]);
+      const argv = Argv.initializeEmpty();
+      argv.setArg(flags.devMode, true);
+      cm.update(argv.build());
+      expect(cm.getFlag(flags.devMode)).to.equal(argv.getArg<boolean>(flags.devMode));
 
       // ensure string "false" is converted to boolean
       cm.reset();
-      argv[flags.devMode.name] = 'false';
-      cm.update(argv);
-      expect(cm.getFlag(flags.devMode)).not.to.equal(argv[flags.devMode.name]);
+      argv.setArg(flags.devMode, 'false');
+      cm.update(argv.build());
+      expect(cm.getFlag(flags.devMode)).not.to.equal(argv.getArg<boolean>(flags.devMode));
       expect(cm.getFlag(flags.devMode)).to.equal(false);
 
       // ensure string "true" is converted to boolean
       cm.reset();
-      argv[flags.devMode.name] = 'true';
-      cm.update(argv);
-      expect(cm.getFlag(flags.devMode)).not.to.equal(argv[flags.devMode.name]);
+      argv.setArg(flags.devMode, 'true');
+      cm.update(argv.build());
+      expect(cm.getFlag(flags.devMode)).not.to.equal(argv.getArg<boolean>(flags.devMode));
       expect(cm.getFlag(flags.devMode)).to.equal(true);
     });
   });
@@ -90,10 +91,10 @@ describe('ConfigManager', () => {
       cm.setFlag(flags.devMode, false);
       expect(cm.getFlag(flags.devMode)).not.to.be.ok;
 
-      const argv = {};
-      argv[flags.devMode.name] = true; // devMode flag is set in argv but cached config has it
+      const argv = Argv.initializeEmpty();
+      argv.setArg(flags.devMode, true); // devMode flag is set in argv but cached config has it
 
-      const argv2 = cm.applyPrecedence(argv as any, aliases);
+      const argv2 = cm.applyPrecedence(argv.build() as any, aliases);
       expect(cm.getFlag(flags.devMode)).to.not.be.ok; // shouldn't have changed the config yet
       expect(argv2[flags.devMode.name]).to.be.ok; // retain the value
     });
@@ -104,8 +105,8 @@ describe('ConfigManager', () => {
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
       expect(cm.hasFlag(flags.devMode)).not.to.be.ok; // shouldn't have set
 
-      const argv = {}; // devMode flag is not set in argv and cached config doesn't have it either
-      const argv2 = cm.applyPrecedence(argv as any, aliases);
+      const argv = Argv.initializeEmpty(); // devMode flag is not set in argv and cached config doesn't have it either
+      const argv2 = cm.applyPrecedence(argv.build() as any, aliases);
       expect(cm.hasFlag(flags.devMode)).to.not.be.ok; // shouldn't have set
       expect(argv2[flags.devMode.name]).to.not.be.ok; // should have set from the default
     });
