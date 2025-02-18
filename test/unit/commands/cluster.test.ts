@@ -7,7 +7,6 @@ import {expect} from 'chai';
 
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {
-  getDefaultArgv,
   getTestCacheDir,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
@@ -49,6 +48,7 @@ import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {K8ClientClusters} from '../../../src/core/kube/k8_client/resources/cluster/k8_client_clusters.js';
 import {K8ClientContexts} from '../../../src/core/kube/k8_client/resources/context/k8_client_contexts.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -66,19 +66,19 @@ const getBaseCommandOpts = (context: string) => {
 
 const testName = 'cluster-cmd-unit';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv(namespace);
+const argv = Argv.getDefaultArgv(namespace);
 const sandbox = sinon.createSandbox();
 
-argv[flags.namespace.name] = namespace.name;
-argv[flags.deployment.name] = `${namespace.name}-deployment`;
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
-argv[flags.generateGossipKeys.name] = true;
-argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterRef.name] = TEST_CLUSTER;
-argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
-argv[flags.force.name] = true;
-argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
+argv.setArg(flags.namespace, namespace.name);
+argv.setArg(flags.deployment, `${namespace.name}-deployment`);
+argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.nodeAliasesUnparsed, 'node1');
+argv.setArg(flags.generateGossipKeys, true);
+argv.setArg(flags.generateTlsKeys, true);
+argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.force, true);
+argv.setArg(flags.clusterSetupNamespace, constants.SOLO_SETUP_NAMESPACE.name);
 
 describe('ClusterCommand unit tests', () => {
   before(() => {
@@ -113,7 +113,7 @@ describe('ClusterCommand unit tests', () => {
 
     it('Install function is called with expected parameters', async () => {
       const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.handlers.setup(argv);
+      await clusterCommand.handlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
@@ -124,11 +124,11 @@ describe('ClusterCommand unit tests', () => {
     });
 
     it('Should use local chart directory', async () => {
-      argv[flags.chartDirectory.name] = 'test-directory';
-      argv[flags.force.name] = true;
+      argv.setArg(flags.chartDirectory, 'test-directory');
+      argv.setArg(flags.force, true);
 
       const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.handlers.setup(argv);
+      await clusterCommand.handlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
