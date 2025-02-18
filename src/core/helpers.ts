@@ -27,7 +27,7 @@ export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: Name
   let internalIp = '';
 
   // for versions that satisfy 0.58.5+
-  if (semver.gte(releaseVersion, '0.58.5')) {
+  if (semver.gte(releaseVersion, '0.58.5', {includePrerelease: true})) {
     internalIp = '127.0.0.1';
   }
   // versions less than 0.58.5
