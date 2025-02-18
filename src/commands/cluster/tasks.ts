@@ -125,7 +125,7 @@ export class ClusterCommandTasks {
         const localDeployments = localConfig.deployments;
         const remoteClusterList: string[] = [];
         let deploymentName;
-        const remoteNamespace = remoteConfig.metadata.name;
+        const remoteNamespace = remoteConfig.metadata.namespace;
         for (const deployment in localConfig.deployments) {
           if (localConfig.deployments[deployment].namespace === remoteNamespace) {
             deploymentName = deployment;
@@ -253,12 +253,17 @@ export class ClusterCommandTasks {
         const configManager = this.parent.getConfigManager();
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
         const deploymentName: string = configManager.getFlag<DeploymentName>(flags.deployment);
-        let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterName));
+        let clusters = splitFlagInput(configManager.getFlag<string>(flags.clusterRef));
         const contexts = splitFlagInput(configManager.getFlag<string>(flags.context));
         const namespace = configManager.getFlag<NamespaceName>(flags.namespace);
         const localConfig = this.parent.getLocalConfig();
         let selectedContext: string;
         let selectedCluster: string;
+
+        // TODO - BEGIN... added this because it was confusing why we have both clusterRef and deploymentClusters
+        if (clusters?.length === 0) {
+          clusters = splitFlagInput(configManager.getFlag<string>(flags.deploymentClusters));
+        }
 
         // If one or more contexts are provided, use the first one
         if (contexts.length) {
@@ -306,7 +311,7 @@ export class ClusterCommandTasks {
 
             // Prompt user for clusters and contexts
             else {
-              const promptedClusters = await flags.clusterName.prompt(task, '');
+              const promptedClusters = await flags.clusterRef.prompt(task, '');
               clusters = splitFlagInput(promptedClusters);
 
               for (const cluster of clusters) {

@@ -15,7 +15,7 @@ export const SETUP_FLAGS = {
   requiredFlagsWithDisabledPrompt: [],
   optionalFlags: [
     flags.chartDirectory,
-    flags.clusterName,
+    flags.clusterRef,
     flags.clusterSetupNamespace,
     flags.deployMinio,
     flags.deployPrometheusStack,
@@ -27,7 +27,7 @@ export const SETUP_FLAGS = {
 export const RESET_FLAGS = {
   requiredFlags: [],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [flags.clusterName, flags.clusterSetupNamespace, flags.force, flags.quiet],
+  optionalFlags: [flags.clusterRef, flags.clusterSetupNamespace, flags.force, flags.quiet],
 };
 
 export const CONNECT_FLAGS = {
@@ -37,7 +37,7 @@ export const CONNECT_FLAGS = {
     flags.devMode,
     flags.deployment,
     flags.quiet,
-    flags.clusterName,
+    flags.clusterRef,
     flags.context,
     flags.namespace,
     flags.userEmailAddress,

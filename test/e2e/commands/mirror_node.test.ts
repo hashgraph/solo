@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before, afterEach} from 'mocha';
+import {after, afterEach, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
@@ -28,17 +28,19 @@ import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
+argv[flags.forcePortForward.name] = true;
 
 argv[flags.nodeAliasesUnparsed.name] = 'node1'; // use a single node to reduce resource during e2e tests
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
 argv[flags.force.name] = true;
 argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue;
@@ -89,6 +91,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       }
 
       expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.clusterRef.constName,
         flags.chartDirectory.constName,
         flags.deployment.constName,
         flags.profileFile.constName,
@@ -112,7 +115,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     }).timeout(Duration.ofMinutes(10).toMillis());
 
     it('mirror node API should be running', async () => {
-      await accountManager.loadNodeClient(namespace);
+      const clusterRefs: ClusterRefs = mirrorNodeCmd.getClusterRefs();
+      await accountManager.loadNodeClient(
+        namespace,
+        clusterRefs,
+        argv[flags.deployment.name],
+        argv[flags.forcePortForward.name],
+      );
       try {
         // find hedera explorer pod
         const pods: V1Pod[] = await k8Factory

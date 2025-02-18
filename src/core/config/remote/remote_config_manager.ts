@@ -11,7 +11,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8Factory} from '../../kube/k8_factory.js';
-import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString} from './types.js';
+import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString, type Version} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
@@ -27,6 +27,7 @@ import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
+import * as helpers from '../../helpers.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -63,7 +64,14 @@ export class RemoteConfigManager {
 
   /** @returns the components data wrapper cloned */
   public get components(): ComponentsDataWrapper {
-    return this.remoteConfig.components.clone();
+    return this.remoteConfig?.components?.clone();
+  }
+
+  /**
+   * @returns the remote configuration data's clusters cloned
+   */
+  public get clusters(): Record<ClusterRef, Cluster> {
+    return Object.assign({}, this.remoteConfig?.clusters);
   }
 
   /* ---------- Readers and Modifiers ---------- */
@@ -96,18 +104,33 @@ export class RemoteConfigManager {
     const clusters: Record<ClusterRef, Cluster> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
-      ([, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
+      ([deployment, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
         const namespace = deploymentStructure.namespace.toString();
-        deploymentStructure.clusters.forEach(cluster => (clusters[cluster] = new Cluster(cluster, namespace)));
+        deploymentStructure.clusters.forEach(
+          cluster => (clusters[cluster] = new Cluster(cluster, namespace, deployment)),
+        );
       },
     );
 
+    // temporary workaround until we can have `solo deployment add` command
+    const nodeAliases: string[] = helpers.splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
+
     this.remoteConfig = new RemoteConfigDataWrapper({
-      metadata: new RemoteConfigMetadata(this.getNamespace().name, new Date(), this.localConfig.userEmailAddress),
+      metadata: new RemoteConfigMetadata(
+        this.getNamespace().name,
+        this.configManager.getFlag<DeploymentName>(flags.deployment),
+        new Date(),
+        this.localConfig.userEmailAddress,
+        helpers.getSoloVersion(),
+      ),
       clusters,
       commandHistory: ['deployment create'],
       lastExecutedCommand: 'deployment create',
-      components: ComponentsDataWrapper.initializeEmpty(),
+      components: ComponentsDataWrapper.initializeWithNodes(
+        nodeAliases,
+        this.configManager.getFlag(flags.deploymentClusters),
+        this.getNamespace().name,
+      ),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
@@ -133,12 +156,18 @@ export class RemoteConfigManager {
   private async load(): Promise<boolean> {
     if (this.remoteConfig) return true;
 
-    const configMap = await this.getConfigMap();
-    if (!configMap) return false;
+    try {
+      const configMap = await this.getConfigMap();
 
-    this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
+      if (configMap) {
+        this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
+        return true;
+      }
 
-    return true;
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -152,6 +181,7 @@ export class RemoteConfigManager {
         this.configManager.getFlag(flags.namespace),
         this.remoteConfig.components,
         this.k8Factory,
+        this.localConfig,
       );
     } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8Factory.default().clusters().readCurrent()));
@@ -204,18 +234,73 @@ export class RemoteConfigManager {
       this.configManager.getFlag(flags.namespace),
       self.remoteConfig.components,
       self.k8Factory,
+      this.localConfig,
     );
 
     const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
 
-    const currentCommand = argv._.join(' ');
+    const currentCommand = argv._?.join(' ');
     const commandArguments = flags.stringifyArgv(argv);
 
     self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
 
+    self.populateVersionsInMetadata(argv);
+
     await self.remoteConfig.flags.handleFlags(argv);
 
     await self.save();
+  }
+
+  private populateVersionsInMetadata(argv: AnyObject) {
+    const command: string = argv._?.[0];
+    const subcommand: string = argv._?.[1];
+
+    const isCommandUsingSoloChartVersionFlag =
+      (command === 'network' && subcommand === 'deploy') ||
+      (command === 'network' && subcommand === 'refresh') ||
+      (command === 'node' && subcommand === 'update') ||
+      (command === 'node' && subcommand === 'update-execute') ||
+      (command === 'node' && subcommand === 'add') ||
+      (command === 'node' && subcommand === 'add-execute') ||
+      (command === 'node' && subcommand === 'delete') ||
+      (command === 'node' && subcommand === 'delete-execute');
+
+    if (argv[flags.soloChartVersion.constName]) {
+      this.remoteConfig.metadata.soloChartVersion = argv[flags.soloChartVersion.constName] as Version;
+    } else if (isCommandUsingSoloChartVersionFlag) {
+      this.remoteConfig.metadata.soloChartVersion = flags.soloChartVersion.definition.defaultValue as Version;
+    }
+
+    const isCommandUsingReleaseTagVersionFlag =
+      (command === 'node' && subcommand !== 'keys' && subcommand !== 'logs' && subcommand !== 'states') ||
+      (command === 'network' && subcommand === 'deploy');
+
+    if (argv[flags.releaseTag.constName]) {
+      this.remoteConfig.metadata.hederaPlatformVersion = argv[flags.releaseTag.constName] as Version;
+    } else if (isCommandUsingReleaseTagVersionFlag) {
+      this.remoteConfig.metadata.hederaPlatformVersion = flags.releaseTag.definition.defaultValue as Version;
+    }
+
+    if (argv[flags.mirrorNodeVersion.constName]) {
+      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = argv[flags.mirrorNodeVersion.constName] as Version;
+    } else if (command === 'mirror-node' && subcommand === 'deploy') {
+      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = flags.mirrorNodeVersion.definition
+        .defaultValue as Version;
+    }
+
+    if (argv[flags.hederaExplorerVersion.constName]) {
+      this.remoteConfig.metadata.hederaExplorerChartVersion = argv[flags.hederaExplorerVersion.constName] as Version;
+    } else if (command === 'explorer' && subcommand === 'deploy') {
+      this.remoteConfig.metadata.hederaExplorerChartVersion = flags.hederaExplorerVersion.definition
+        .defaultValue as Version;
+    }
+
+    if (argv[flags.relayReleaseTag.constName]) {
+      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = argv[flags.relayReleaseTag.constName] as Version;
+    } else if (command === 'relay' && subcommand === 'deploy') {
+      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = flags.relayReleaseTag.definition
+        .defaultValue as Version;
+    }
   }
 
   public async createAndValidate(
@@ -274,7 +359,7 @@ export class RemoteConfigManager {
         .default()
         .configMaps()
         .read(this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
-    } catch (error: any) {
+    } catch (error) {
       if (!(error instanceof ResourceNotFoundError)) {
         throw new SoloError('Failed to read remote config from cluster', error);
       }

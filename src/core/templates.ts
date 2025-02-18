@@ -4,7 +4,7 @@
 import * as x509 from '@peculiar/x509';
 import os from 'os';
 import path from 'path';
-import {DataValidationError, SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {DataValidationError, IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import {type IP, type NodeAlias, type NodeId} from '../types/aliases.js';
@@ -12,6 +12,7 @@ import {PodName} from './kube/resources/pod/pod_name.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type ClusterRef, type NamespaceNameAsString} from './config/remote/types.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -44,6 +45,10 @@ export class Templates {
 
   public static renderTLSPemPublicKeyFile(nodeAlias: NodeAlias): string {
     return `hedera-${nodeAlias}.crt`;
+  }
+
+  public static renderNodeAdminKeyName(nodeAlias: NodeAlias): string {
+    return `${nodeAlias}-admin`;
   }
 
   public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix = ''): string {
@@ -236,5 +241,42 @@ export class Templates {
     });
 
     return mapping;
+  }
+
+  /**
+   * Renders the fully qualified domain name for a consensus node. We support the following variables for templating
+   * in the dnsConsensusNodePattern: ${nodeAlias}, ${nodeId}, ${namespace}, ${cluster}
+   *
+   * The end result will be `${dnsConsensusNodePattern}.${dnsBaseDomain}`.
+   * For example, if the dnsConsensusNodePattern is `network-${nodeAlias}-svc.${namespace}.svc` and the dnsBaseDomain is `cluster.local`,
+   * the fully qualified domain name will be `network-${nodeAlias}-svc.${namespace}.svc.cluster.local`.
+   * @param nodeAlias - the alias of the consensus node
+   * @param nodeId - the id of the consensus node
+   * @param namespace - the namespace of the consensus node
+   * @param cluster - the cluster of the consensus node
+   * @param dnsBaseDomain - the base domain of the cluster
+   * @param dnsConsensusNodePattern - the pattern to use for the consensus node
+   */
+  // TODO @Lenin, needs testing
+  static renderConsensusNodeFullyQualifiedDomainName(
+    nodeAlias: string,
+    nodeId: number,
+    namespace: NamespaceNameAsString,
+    cluster: ClusterRef,
+    dnsBaseDomain: string,
+    dnsConsensusNodePattern: string,
+  ) {
+    const searchReplace = {
+      '${nodeAlias}': nodeAlias,
+      '${nodeId}': nodeId.toString(),
+      '${namespace}': namespace,
+      '${cluster}': cluster,
+    };
+
+    Object.entries(searchReplace).forEach(([search, replace]) => {
+      dnsConsensusNodePattern = dnsConsensusNodePattern.replace(search, replace);
+    });
+
+    return `${dnsConsensusNodePattern}.${dnsBaseDomain}`;
   }
 }

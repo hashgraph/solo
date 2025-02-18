@@ -8,17 +8,17 @@ import {getNodeAccountMap} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
-import {BaseCommand} from './base.js';
+import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
-import {type Opts} from '../types/command_types.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {type DeploymentName} from '../core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
+import {type Optional} from '../types/index.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -42,6 +42,7 @@ export class RelayCommand extends BaseCommand {
     return [
       flags.chainId,
       flags.chartDirectory,
+      flags.clusterRef,
       flags.deployment,
       flags.nodeAliasesUnparsed,
       flags.operatorId,
@@ -68,6 +69,7 @@ export class RelayCommand extends BaseCommand {
     operatorID: string,
     operatorKey: string,
     namespace: NamespaceName,
+    context?: Optional<string>,
   ) {
     let valuesArg = '';
 
@@ -105,10 +107,9 @@ export class RelayCommand extends BaseCommand {
       try {
         const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
         const namespace = NamespaceName.of(this.localConfig.deployments[deploymentName].namespace);
-        const secrets = await this.k8Factory
-          .default()
-          .secrets()
-          .list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
+
+        const k8 = this.k8Factory.getK8(context);
+        const secrets = await k8.secrets().list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
         if (secrets.length === 0) {
           this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
           valuesArg += ` --set config.OPERATOR_KEY_MAIN=${constants.OPERATOR_KEY}`;
@@ -117,7 +118,7 @@ export class RelayCommand extends BaseCommand {
           const operatorKeyFromK8 = Base64.decode(secrets[0].data.privateKey);
           valuesArg += ` --set config.OPERATOR_KEY_MAIN=${operatorKeyFromK8}`;
         }
-      } catch (e: Error | any) {
+      } catch (e) {
         throw new SoloError(`Error getting operator key: ${e.message}`, e);
       }
     }
@@ -148,8 +149,12 @@ export class RelayCommand extends BaseCommand {
     const networkIds = {};
 
     const accountMap = getNodeAccountMap(nodeAliases);
-
-    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(namespace);
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(
+      namespace,
+      this.getClusterRefs(),
+      deploymentName,
+    );
     nodeAliases.forEach(nodeAlias => {
       const haProxyClusterIp = networkNodeServicesMap.get(nodeAlias).haProxyClusterIp;
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeAlias).haProxyGrpcPort;
@@ -195,6 +200,8 @@ export class RelayCommand extends BaseCommand {
       nodeAliases: NodeAliases;
       releaseName: string;
       valuesArg: string;
+      clusterRef: Optional<ClusterRef>;
+      context: Optional<string>;
       getUnusedConfigs: () => string[];
     }
 
@@ -212,7 +219,7 @@ export class RelayCommand extends BaseCommand {
 
             self.configManager.update(argv);
 
-            flags.disablePrompts([flags.operatorId, flags.operatorKey]);
+            flags.disablePrompts([flags.operatorId, flags.operatorKey, flags.clusterRef]);
 
             await self.configManager.executePrompt(task, RelayCommand.DEPLOY_FLAGS_LIST);
 
@@ -224,9 +231,16 @@ export class RelayCommand extends BaseCommand {
             ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
+
+            if (ctx.config.clusterRef) {
+              const context = self.getClusterRefs()[ctx.config.clusterRef];
+              if (context) ctx.config.context = context;
+            }
+
             ctx.config.isChartInstalled = await self.chartManager.isChartInstalled(
               ctx.config.namespace,
               ctx.config.releaseName,
+              ctx.config.context,
             );
 
             self.logger.debug('Initialized config', {config: ctx.config});
@@ -243,7 +257,13 @@ export class RelayCommand extends BaseCommand {
               constants.JSON_RPC_RELAY_CHART,
               constants.JSON_RPC_RELAY_CHART,
             );
-            await self.accountManager.loadNodeClient(ctx.config.namespace);
+            await self.accountManager.loadNodeClient(
+              ctx.config.namespace,
+              self.getClusterRefs(),
+              self.configManager.getFlag<DeploymentName>(flags.deployment),
+              self.configManager.getFlag<boolean>(flags.forcePortForward),
+              ctx.config.context,
+            );
             config.valuesArg = await self.prepareValuesArg(
               config.valuesFile,
               config.nodeAliases,
@@ -253,6 +273,7 @@ export class RelayCommand extends BaseCommand {
               config.operatorId,
               config.operatorKey,
               config.namespace,
+              config.context,
             );
           },
         },
@@ -261,17 +282,19 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
+            const k8 = self.k8Factory.getK8(config.context);
+            const kubeContext = k8.contexts().readCurrent();
+
             await self.chartManager.install(
               config.namespace,
               config.releaseName,
               config.chartPath,
               '',
               config.valuesArg,
-              this.k8Factory.default().contexts().readCurrent(),
+              kubeContext,
             );
 
-            await self.k8Factory
-              .default()
+            await k8
               .pods()
               .waitForRunningPhase(
                 config.namespace,
@@ -288,9 +311,9 @@ export class RelayCommand extends BaseCommand {
           title: 'Check relay is ready',
           task: async ctx => {
             const config = ctx.config;
+            const k8 = self.k8Factory.getK8(config.context);
             try {
-              await self.k8Factory
-                .default()
+              await k8
                 .pods()
                 .waitForReadyStatus(
                   config.namespace,
@@ -298,7 +321,7 @@ export class RelayCommand extends BaseCommand {
                   constants.RELAY_PODS_READY_MAX_ATTEMPTS,
                   constants.RELAY_PODS_READY_DELAY,
                 );
-            } catch (e: Error | any) {
+            } catch (e) {
               throw new SoloError(`Relay ${config.releaseName} is not ready: ${e.message}`, e);
             }
           },
@@ -313,7 +336,7 @@ export class RelayCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError('Error installing relays', e);
     } finally {
       await lease.release();

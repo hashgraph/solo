@@ -33,7 +33,7 @@ export function testNodeAdd(
 ): void {
   const suffix = localBuildPath.substring(0, 5);
   const namespace = NamespaceName.of(`node-add${suffix}`);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
   argv[flags.stakeAmounts.name] = '1500,1';
   argv[flags.generateGossipKeys.name] = true;
@@ -78,7 +78,11 @@ export function testNodeAdd(
         });
 
         it('cache current version of private keys', async () => {
-          existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
+          existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
+            namespace,
+            nodeCmd.getClusterRefs(),
+            argv[flags.deployment.name],
+          );
           existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
             existingServiceMap,
             k8Factory,

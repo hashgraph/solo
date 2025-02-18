@@ -69,7 +69,9 @@ tasks:
       - echo "CONSENSUS_NODE_VERSION=${CONSENSUS_NODE_VERSION}"
       - echo "SOLO_NAMESPACE=${SOLO_NAMESPACE}"
       - echo "SOLO_DEPLOYMENT=${SOLO_DEPLOYMENT}"
+      - echo "CLUSTER_REF=${CLUSTER_REF}"
       - echo "SOLO_CLUSTER_RELEASE_NAME=${SOLO_CLUSTER_RELEASE_NAME}"
+      - echo "CONTEXT=${CONTEXT}"
       - echo "nodes={{ .nodes }}"
       - echo "node_identifiers={{ .node_identifiers }}"
       - echo "use_port_forwards={{ .use_port_forwards }}"
@@ -166,7 +168,18 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context ${CLUSTER_CONTEXT} --email {{ .SOLO_EMAIL }} --deployment-clusters ${CLUSTER_CONTEXT} --deployment "${SOLO_DEPLOYMENT}" --dev
+      - |
+        if [[ "${CONTEXT}" != "" ]]; then
+          echo "CONTEXT=${CONTEXT}"
+        else
+          export CONTEXT="kind-${SOLO_CLUSTER_NAME}"
+        fi
+        if [[ "${CLUSTER_REF}" != "" ]]; then
+          echo "CLUSTER_REF=${CLUSTER_REF}"
+        else
+          export CLUSTER_REF="kind-${SOLO_CLUSTER_NAME}"
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context ${CLUSTER_CONTEXT} --email {{ .SOLO_EMAIL }} --deployment-clusters ${CLUSTER_CONTEXT} --deployment "${SOLO_DEPLOYMENT}" --dev
 
   solo:keys:
     silent: true
@@ -198,7 +211,7 @@ tasks:
           export CONSENSUS_NODE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
         if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
-          export SOLO_CHART_FLAG='--solo-chart-version ${SOLO_CHART_VERSION}'
+          export SOLO_CHART_FLAG="--solo-chart-version ${SOLO_CHART_VERSION}"
         fi
         SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- network deploy --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${LOAD_BALANCER_FLAG} ${NETWORK_DEPLOY_EXTRA_FLAGS} -q --dev
       - task: "solo:node:setup"
@@ -459,7 +472,7 @@ tasks:
           SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${EXPLORER_DEPLOYMENT}" -n "${EXPLORER_NAME_SPACE}" --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
         else
           EXPLORER_NAME_SPACE=${SOLO_NAMESPACE}
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${SOLO_DEPLOYMENT}"     -n "${SOLO_NAMESPACE}"      --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo --   explorer deploy --deployment "${SOLO_DEPLOYMENT}"  --cluster-ref kind-${SOLO_CLUSTER_NAME} --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
         fi
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
@@ -479,7 +492,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node destroy --deployment  "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --force -q --dev || true
 
   solo:destroy-explorer:
     silent: true
@@ -489,9 +502,9 @@ tasks:
     cmds:
       - |
         if [[ "${EXPLORER_NAME_SPACE}" != "" && "${EXPLORER_DEPLOYMENT}" != "" ]]; then
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${EXPLORER_DEPLOYMENT}" --force -q --dev || true
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${EXPLORER_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --force -q --dev || true
         else
-          #SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --force -q --dev || true
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --force -q --dev || true
         fi
 
   clean:

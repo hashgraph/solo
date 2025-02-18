@@ -138,6 +138,30 @@ describe('LocalConfig', () => {
     }
   });
 
+  it('should set soloVersion', async () => {
+    const validSoloVersion = '0.0.1';
+    localConfig.setSoloVersion(validSoloVersion);
+    expect(localConfig.soloVersion).to.eq(validSoloVersion);
+  });
+
+  it('invalidSoloVersion not set invalid soloVersion', async () => {
+    let invalidSoloVersion = null;
+    try {
+      localConfig.setSoloVersion(invalidSoloVersion);
+      expect.fail('expected an error to be thrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(SoloError);
+    }
+
+    invalidSoloVersion = '';
+    try {
+      localConfig.setSoloVersion(invalidSoloVersion);
+      expect.fail('expected an error to be thrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(SoloError);
+    }
+  });
+
   it('should throw an error if file path is not set', async () => {
     try {
       new LocalConfig('');

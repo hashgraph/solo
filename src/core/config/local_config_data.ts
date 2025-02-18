@@ -3,10 +3,11 @@
  */
 import {
   type ClusterRef,
-  type Context,
+  type ClusterRefs,
+  type DeploymentName,
   type EmailAddress,
   type NamespaceNameAsString,
-  type DeploymentName,
+  type Version,
 } from './remote/types.js';
 
 export interface DeploymentStructure {
@@ -14,8 +15,6 @@ export interface DeploymentStructure {
   clusters: ClusterRef[];
   namespace: NamespaceNameAsString;
 }
-
-export type ClusterRefs = Record<ClusterRef, Context>;
 
 export type Deployments = Record<DeploymentName, DeploymentStructure>;
 
@@ -28,4 +27,7 @@ export interface LocalConfigData {
 
   // Every cluster must have a kubectl context associated to it, which is used to establish a connection.
   clusterRefs: ClusterRefs;
+
+  // Solo CLI version
+  soloVersion: Version;
 }

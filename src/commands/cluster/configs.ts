@@ -68,7 +68,7 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
   this.parent.getConfigManager().update(argv);
 
   ctx.config = {
-    clusterName: this.parent.getConfigManager().getFlag(flags.clusterName) as string,
+    clusterName: this.parent.getConfigManager().getFlag(flags.clusterRef) as string,
     clusterSetupNamespace: this.parent.getConfigManager().getFlag(flags.clusterSetupNamespace) as string,
   } as ClusterResetConfigClass;
 

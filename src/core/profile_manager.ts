@@ -22,14 +22,17 @@ import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency_injection/container_helper.js';
 import * as versions from '../../version.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type ConsensusNode} from './model/consensus_node.js';
+import {type K8Factory} from './kube/k8_factory.js';
 
 @injectable()
 export class ProfileManager {
   private readonly logger: SoloLogger;
   private readonly configManager: ConfigManager;
   private readonly cacheDir: DirPath;
+  private readonly k8Factory: K8Factory;
 
   private profiles: Map<string, AnyObject>;
   private profileFile: Optional<string>;
@@ -38,10 +41,12 @@ export class ProfileManager {
     @inject(InjectTokens.SoloLogger) logger?: SoloLogger,
     @inject(InjectTokens.ConfigManager) configManager?: ConfigManager,
     @inject(InjectTokens.CacheDir) cacheDir?: DirPath,
+    @inject(InjectTokens.K8Factory) k8Factory?: K8Factory,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.cacheDir = path.resolve(patchInject(cacheDir, InjectTokens.CacheDir, this.constructor.name));
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
 
     this.profiles = new Map();
   }
@@ -173,7 +178,12 @@ export class ProfileManager {
     }
   }
 
-  resourcesForConsensusPod(profile: AnyObject, nodeAliases: NodeAliases, yamlRoot: AnyObject): AnyObject {
+  async resourcesForConsensusPod(
+    profile: AnyObject,
+    consensusNodes: ConsensusNode[],
+    nodeAliases: NodeAliases,
+    yamlRoot: AnyObject,
+  ): Promise<AnyObject> {
     if (!profile) throw new MissingArgumentError('profile is required');
 
     const accountMap = getNodeAccountMap(nodeAliases);
@@ -194,13 +204,14 @@ export class ProfileManager {
       fs.mkdirSync(stagingDir, {recursive: true});
     }
 
-    const configTxtPath = this.prepareConfigTxt(
-      this.configManager.getFlag(flags.namespace),
+    const configTxtPath = await this.prepareConfigTxt(
       accountMap,
+      consensusNodes,
       stagingDir,
       this.configManager.getFlag(flags.releaseTag),
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId),
+      this.configManager.getFlag(flags.loadBalancerEnabled),
     );
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
@@ -303,10 +314,10 @@ export class ProfileManager {
   /**
    * Prepare a values file for Solo Helm chart
    * @param profileName - resource profile name
-   * @param genesisNetworkData - reference to the constructor
+   * @param consensusNodes - the list of consensus nodes
    * @returns return the full path to the values file
    */
-  public async prepareValuesForSoloChart(profileName: string) {
+  public async prepareValuesForSoloChart(profileName: string, consensusNodes: ConsensusNode[]) {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName);
 
@@ -315,7 +326,7 @@ export class ProfileManager {
 
     // generate the YAML
     const yamlRoot = {};
-    this.resourcesForConsensusPod(profile, nodeAliases, yamlRoot);
+    await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot);
     this.resourcesForHaProxyPod(profile, yamlRoot);
     this.resourcesForEnvoyProxyPod(profile, yamlRoot);
     this.resourcesForMinioTenantPod(profile, yamlRoot);
@@ -438,22 +449,23 @@ export class ProfileManager {
 
   /**
    * Prepares config.txt file for the node
-   * @param namespace - namespace where the network is deployed
    * @param nodeAccountMap - the map of node aliases to account IDs
+   * @param consensusNodes - the list of consensus nodes
    * @param destPath - path to the destination directory to write the config.txt file
    * @param releaseTagOverride - release tag override
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
-   * @param genesisNetworkData
+   * @param [loadBalancerEnabled] - whether the load balancer is enabled (flag is not set by default)
    * @returns the config.txt file path
    */
-  prepareConfigTxt(
-    namespace: NamespaceName,
+  async prepareConfigTxt(
     nodeAccountMap: Map<NodeAlias, string>,
+    consensusNodes: ConsensusNode[],
     destPath: string,
     releaseTagOverride: string,
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
+    loadBalancerEnabled: boolean = false,
   ) {
     let releaseTag = releaseTagOverride;
     if (!nodeAccountMap || nodeAccountMap.size === 0) {
@@ -464,6 +476,11 @@ export class ProfileManager {
 
     if (!fs.existsSync(destPath)) {
       throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath);
+    }
+
+    const configFilePath = path.join(destPath, 'config.txt');
+    if (fs.existsSync(configFilePath)) {
+      fs.unlinkSync(configFilePath);
     }
 
     // init variables
@@ -480,38 +497,24 @@ export class ProfileManager {
       configLines.push(`app, ${appName}`);
 
       let nodeSeq = 0;
-      for (const nodeAlias of nodeAccountMap.keys()) {
-        let internalIP: string;
+      for (const consensusNode of consensusNodes) {
+        const internalIP: string = helpers.getInternalIp(
+          releaseVersion,
+          NamespaceName.of(consensusNode.namespace),
+          consensusNode.name as NodeAlias,
+        );
 
-        //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
+        // const externalIP = consensusNode.fullyQualifiedDomainName;
+        const externalIP = await helpers.getExternalAddress(
+          consensusNode,
+          this.k8Factory.getK8(consensusNode.context),
+          loadBalancerEnabled,
+        );
 
-        // for versions that satisfy 0.59.x
-        if (semver.satisfies(releaseVersion, '^0.59.0', {includePrerelease: true})) {
-          internalIP = '127.0.0.1';
-        }
-
-        // versions less than 0.59.0
-        else if (
-          semver.lt(
-            releaseVersion,
-            '0.59.0',
-            // @ts-expect-error TS2353: Object literal may only specify known properties
-            {includePrerelease: true},
-          )
-        ) {
-          internalIP = Templates.renderFullyQualifiedNetworkPodName(namespace, nodeAlias);
-        }
-
-        // versions greater than 0.59.0
-        else {
-          internalIP = '127.0.0.1';
-        }
-
-        const externalIP = Templates.renderFullyQualifiedNetworkSvcName(namespace, nodeAlias);
-        const account = nodeAccountMap.get(nodeAlias);
+        const account = nodeAccountMap.get(consensusNode.name as NodeAlias);
 
         configLines.push(
-          `address, ${nodeSeq}, ${nodeSeq}, ${nodeAlias}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`,
+          `address, ${nodeSeq}, ${nodeSeq}, ${consensusNode.name}, ${nodeStakeAmount}, ${internalIP}, ${internalPort}, ${externalIP}, ${externalPort}, ${account}`,
         );
 
         nodeSeq += 1;
@@ -522,9 +525,7 @@ export class ProfileManager {
         configLines.push(`nextNodeId, ${nodeSeq}`);
       }
 
-      const configFilePath = path.join(destPath, 'config.txt');
       fs.writeFileSync(configFilePath, configLines.join('\n'));
-
       return configFilePath;
     } catch (e: Error | unknown) {
       throw new SoloError(

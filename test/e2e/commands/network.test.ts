@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {bootstrapTestVariables, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
@@ -20,13 +20,14 @@ import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
-describe('NetworkCommand', () => {
+describe('NetworkCommand', function networkCommand() {
+  this.bail(true);
   const testName = 'network-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
@@ -36,6 +37,7 @@ describe('NetworkCommand', () => {
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
   argv[flags.force.name] = true;
   argv[flags.applicationEnv.name] = applicationEnvFilePath;
+  argv[flags.loadBalancerEnabled.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
   argv[flags.quiet.name] = true;
@@ -49,6 +51,7 @@ describe('NetworkCommand', () => {
   const clusterCmd = bootstrapResp.cmd.clusterCmd;
   const initCmd = bootstrapResp.cmd.initCmd;
   const nodeCmd = bootstrapResp.cmd.nodeCmd;
+  const deploymentCmd = bootstrapResp.cmd.deploymentCmd;
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
@@ -59,10 +62,18 @@ describe('NetworkCommand', () => {
   });
 
   before(async () => {
+    await k8Factory.default().namespaces().delete(namespace);
     await initCmd.init(argv);
     await clusterCmd.handlers.setup(argv);
     fs.mkdirSync(applicationEnvParentDirectory, {recursive: true});
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
+  });
+
+  it('deployment create should succeed', async () => {
+    expect(await deploymentCmd.create(argv)).to.be.true;
+    argv[flags.nodeAliasesUnparsed.name] = undefined;
+    configManager.reset();
+    configManager.update(argv);
   });
 
   it('keys should be generated', async () => {
@@ -98,6 +109,12 @@ describe('NetworkCommand', () => {
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
+        flags.gcsAccessKey.constName,
+        flags.gcsSecrets.constName,
+        flags.gcsEndpoint.constName,
+        flags.awsAccessKey.constName,
+        flags.awsSecrets.constName,
+        flags.awsEndpoint.constName,
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);

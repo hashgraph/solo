@@ -221,9 +221,9 @@ export const REFRESH_FLAGS = {
 };
 
 export const KEYS_FLAGS = {
-  requiredFlags: [flags.cacheDir, flags.generateGossipKeys, flags.generateTlsKeys, flags.nodeAliasesUnparsed],
+  requiredFlags: [flags.cacheDir, flags.generateGossipKeys, flags.generateTlsKeys, flags.deployment],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [flags.devMode, flags.quiet],
+  optionalFlags: [flags.devMode, flags.quiet, flags.nodeAliasesUnparsed],
 };
 
 export const STOP_FLAGS = {
