@@ -7,7 +7,6 @@ env:
   SOLO_NETWORK_SIZE: 2
   SOLO_NAMESPACE: solo-e2e
   SOLO_DEPLOYMENT: solo-deployment
-  CLUSTER_CONTEXT: kind-{{ .SOLO_CLUSTER_NAME }}
   # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: v0.58.0
   HEDERA_SERVICES_ROOT: "/Users/user/source/hedera-services"
