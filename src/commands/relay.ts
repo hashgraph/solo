@@ -385,6 +385,7 @@ export class RelayCommand extends BaseCommand {
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
               ),
+              clusterRef: self.configManager.getFlag<string>(flags.clusterRef) as string,
             } as RelayDestroyConfigClass;
 
             if (ctx.config.clusterRef) {
