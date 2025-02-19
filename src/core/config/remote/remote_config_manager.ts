@@ -183,6 +183,7 @@ export class RemoteConfigManager {
         this.configManager.getFlag(flags.namespace),
         this.remoteConfig.components,
         this.k8Factory,
+        this.localConfig,
       );
     } catch {
       throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8Factory.default().clusters().readCurrent()));
@@ -235,6 +236,7 @@ export class RemoteConfigManager {
       this.configManager.getFlag(flags.namespace),
       self.remoteConfig.components,
       self.k8Factory,
+      this.localConfig,
     );
 
     const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;

@@ -384,8 +384,8 @@ export class NetworkCommand extends BaseCommand {
     // add debug options to the debug node
     config.consensusNodes.filter(consensusNode => {
       if (consensusNode.name === config.debugNodeAlias) {
-        config.consensusNodes[consensusNode.cluster] = addDebugOptions(
-          config.consensusNodes[consensusNode.cluster],
+        valuesArgs[consensusNode.cluster] = addDebugOptions(
+          valuesArgs[consensusNode.cluster],
           config.debugNodeAlias,
           extraEnvIndex,
         );
@@ -850,13 +850,25 @@ export class NetworkCommand extends BaseCommand {
                         `solo.hedera.com/node-id=${consensusNode.nodeId},solo.hedera.com/type=network-node-svc`,
                       ]);
 
-                    if (svc && svc.length > 0 && svc[0].status.loadBalancer.ingress.length > 0) {
+                    if (svc && svc.length > 0 && svc[0].status?.loadBalancer?.ingress?.length > 0) {
+                      let shouldContinue = false;
+                      for (let i = 0; i < svc[0].status.loadBalancer.ingress.length; i++) {
+                        const ingress = svc[0].status.loadBalancer.ingress[i];
+                        if (!ingress.hostname && !ingress.ip) {
+                          shouldContinue = true; // try again if there is neither a hostname nor an ip
+                          break;
+                        }
+                      }
+                      if (shouldContinue) {
+                        continue;
+                      }
                       return;
                     }
 
                     attempts++;
                     await helpers.sleep(Duration.ofSeconds(2));
                   }
+                  throw new SoloError('Load balancer not found');
                 },
               });
             }
