@@ -3,14 +3,14 @@
  */
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type V1Lease} from '@kubernetes/client-node';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {StatusCodes} from 'http-status-codes';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -40,7 +40,7 @@ export class IntervalLease implements Lease {
   private _scheduleId: number | null = null;
 
   /**
-   * @param client - Injected kubernetes client need by the methods to create, renew, and delete leases.
+   * @param k8Factory - Injected kubernetes K8Factory need by the methods to create, renew, and delete leases.
    * @param renewalService - Injected lease renewal service need to support automatic (background) lease renewals.
    * @param leaseHolder - The holder of the lease.
    * @param namespace - The namespace in which the lease is to be acquired.
@@ -48,14 +48,14 @@ export class IntervalLease implements Lease {
    * @param durationSeconds - The duration in seconds for which the lease is to be held; if not provided, the default value is used.
    */
   public constructor(
-    readonly client: K8,
+    readonly k8Factory: K8Factory,
     readonly renewalService: LeaseRenewalService,
     leaseHolder: LeaseHolder,
     namespace: NamespaceName,
     leaseName: string | null = null,
     durationSeconds: number | null = null,
   ) {
-    if (!client) throw new MissingArgumentError('client is required');
+    if (!k8Factory) throw new MissingArgumentError('k8Factory is required');
     if (!renewalService) throw new MissingArgumentError('renewalService is required');
     if (!leaseHolder) throw new MissingArgumentError('_leaseHolder is required');
     if (!namespace) throw new MissingArgumentError('_namespace is required');
@@ -282,7 +282,7 @@ export class IntervalLease implements Lease {
    */
   private async retrieveLease(): Promise<V1Lease> {
     try {
-      return await this.client.readNamespacedLease(this.leaseName, this.namespace);
+      return await this.k8Factory.default().leases().read(this.namespace, this.leaseName);
     } catch (e: any) {
       if (!(e instanceof SoloError)) {
         throw new LeaseAcquisitionError(
@@ -311,14 +311,12 @@ export class IntervalLease implements Lease {
   private async createOrRenewLease(lease: V1Lease): Promise<void> {
     try {
       if (!lease) {
-        await this.client.createNamespacedLease(
-          this.namespace,
-          this.leaseName,
-          this.leaseHolder.toJson(),
-          this.durationSeconds,
-        );
+        await this.k8Factory
+          .default()
+          .leases()
+          .create(this.namespace, this.leaseName, this.leaseHolder.toJson(), this.durationSeconds);
       } else {
-        await this.client.renewNamespaceLease(this.leaseName, this.namespace, lease);
+        await this.k8Factory.default().leases().renew(this.namespace, this.leaseName, lease);
       }
 
       if (!this.scheduleId) {
@@ -339,7 +337,7 @@ export class IntervalLease implements Lease {
    */
   private async transferLease(lease: V1Lease): Promise<void> {
     try {
-      await this.client.transferNamespaceLease(lease, this.leaseHolder.toJson());
+      await this.k8Factory.default().leases().transfer(lease, this.leaseHolder.toJson());
 
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);
@@ -357,7 +355,7 @@ export class IntervalLease implements Lease {
    */
   private async deleteLease(): Promise<void> {
     try {
-      await this.client.deleteNamespacedLease(this.leaseName, this.namespace);
+      await this.k8Factory.default().leases().delete(this.namespace, this.leaseName);
     } catch (e: any) {
       throw new LeaseRelinquishmentError(
         `failed to delete the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,

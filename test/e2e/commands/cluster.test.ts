@@ -12,7 +12,7 @@ import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 
 import {NamespaceNameInvalidError} from '../../../src/core/kube/errors/namespace_name_invalid_error.js';
 
@@ -32,21 +32,21 @@ describe('ClusterCommand', () => {
 
   const testName = 'cluster-cmd-e2e';
   const namespace = NamespaceName.of(testName);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
   argv[flags.generateGossipKeys.name] = true;
   argv[flags.generateTlsKeys.name] = true;
-  argv[flags.clusterName.name] = TEST_CLUSTER;
+  argv[flags.clusterRef.name] = TEST_CLUSTER;
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
   argv[flags.force.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
   const bootstrapResp = bootstrapTestVariables(testName, argv);
-  const k8 = bootstrapResp.opts.k8;
+  const k8Factory = bootstrapResp.opts.k8Factory;
   const configManager = bootstrapResp.opts.configManager;
   const chartManager = bootstrapResp.opts.chartManager;
 
@@ -55,7 +55,7 @@ describe('ClusterCommand', () => {
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await k8.deleteNamespace(namespace);
+    await k8Factory.default().namespaces().delete(namespace);
     argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
     configManager.update(argv);
     await clusterCmd.handlers.setup(argv); // restore solo-cluster-setup for other e2e tests to leverage

@@ -5,11 +5,10 @@
 import {IllegalArgumentError} from '../../core/errors.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {YargsCommand} from '../../core/yargs_command.js';
-import {BaseCommand} from './../base.js';
+import {BaseCommand, type Opts} from './../base.js';
 import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
 import {NodeCommandHandlers} from './handlers.js';
-import {type Opts} from '../../types/command_types.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -46,7 +45,7 @@ export class NodeCommand extends BaseCommand {
       logger: opts.logger,
       platformInstaller: opts.platformInstaller,
       profileManager: opts.profileManager,
-      k8: opts.k8,
+      k8Factory: opts.k8Factory,
       keyManager: opts.keyManager,
       chartManager: opts.chartManager,
       certificateManager: opts.certificateManager,
@@ -58,7 +57,7 @@ export class NodeCommand extends BaseCommand {
       configManager: opts.configManager,
       platformInstaller: opts.platformInstaller,
       logger: opts.logger,
-      k8: opts.k8,
+      k8Factory: opts.k8Factory,
       tasks: this.tasks,
       parent: this,
       leaseManager: opts.leaseManager,
@@ -69,13 +68,14 @@ export class NodeCommand extends BaseCommand {
   /**
    * stops and closes the port forwards
    * - calls the accountManager.close()
-   * - for all portForwards, calls k8.stopPortForward(srv)
+   * - for all portForwards, calls k8Factory.default().pods().readByRef(null).stopPortForward(srv)
    */
   async close() {
     await this.accountManager.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        await this.k8.stopPortForward(srv);
+        // pass null to readByRef because it isn't needed for stopPortForward()
+        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
       }
     }
 

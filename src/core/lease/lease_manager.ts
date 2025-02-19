@@ -2,16 +2,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {Flags as flags} from '../../commands/flags.js';
-import {ConfigManager} from '../config_manager.js';
-import {type K8} from '../../core/kube/k8.js';
-import {SoloLogger} from '../logging.js';
+import {type ConfigManager} from '../config_manager.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type SoloLogger} from '../logging.js';
 import {type Lease, type LeaseRenewalService} from './lease.js';
 import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../container_helper.js';
-import {type NamespaceName} from '../kube/namespace_name.js';
+import {patchInject} from '../dependency_injection/container_helper.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 /**
  * Manages the acquisition and renewal of leases.
@@ -23,19 +24,19 @@ export class LeaseManager {
    *
    * @param _renewalService - the lease renewal service.
    * @param _logger - the logger.
-   * @param k8 - the Kubernetes client.
+   * @param k8Factory - the Kubernetes client.
    * @param configManager - the configuration manager.
    */
   constructor(
-    @inject('LeaseRenewalService') private readonly _renewalService?: LeaseRenewalService,
-    @inject(SoloLogger) private readonly _logger?: SoloLogger,
-    @inject('K8') private readonly k8?: K8,
-    @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(InjectTokens.LeaseRenewalService) private readonly _renewalService?: LeaseRenewalService,
+    @inject(InjectTokens.SoloLogger) private readonly _logger?: SoloLogger,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
+    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this._renewalService = patchInject(_renewalService, 'LeaseRenewalService', this.constructor.name);
-    this._logger = patchInject(_logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this._renewalService = patchInject(_renewalService, InjectTokens.LeaseRenewalService, this.constructor.name);
+    this._logger = patchInject(_logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
 
   /**
@@ -44,7 +45,12 @@ export class LeaseManager {
    * @returns a new lease instance.
    */
   public async create(): Promise<Lease> {
-    return new IntervalLease(this.k8, this._renewalService, LeaseHolder.default(), await this.currentNamespace());
+    return new IntervalLease(
+      this.k8Factory,
+      this._renewalService,
+      LeaseHolder.default(),
+      await this.currentNamespace(),
+    );
   }
 
   /**
@@ -80,10 +86,10 @@ export class LeaseManager {
     }
     const namespace = deploymentNamespace ? deploymentNamespace : clusterSetupNamespace;
 
-    if (!(await this.k8.hasNamespace(namespace))) {
-      await this.k8.createNamespace(namespace);
+    if (!(await this.k8Factory.default().namespaces().has(namespace))) {
+      await this.k8Factory.default().namespaces().create(namespace);
 
-      if (!(await this.k8.hasNamespace(namespace))) {
+      if (!(await this.k8Factory.default().namespaces().has(namespace))) {
         throw new LeaseAcquisitionError(`failed to create the '${namespace}' namespace`);
       }
     }

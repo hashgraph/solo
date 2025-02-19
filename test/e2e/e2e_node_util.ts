@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before, afterEach} from 'mocha';
+import {after, afterEach, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../src/commands/flags.js';
@@ -17,24 +17,27 @@ import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {ConfigManager} from '../../src/core/config_manager.js';
-import {type K8} from '../../src/core/kube/k8.js';
+import {type ConfigManager} from '../../src/core/config_manager.js';
+import {type K8Factory} from '../../src/core/kube/k8_factory.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../src/core/kube/namespace_name.js';
-import {PodName} from '../../src/core/kube/pod_name.js';
-import {PodRef} from '../../src/core/kube/pod_ref.js';
+import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodName} from '../../src/core/kube/resources/pod/pod_name.js';
+import {PodRef} from '../../src/core/kube/resources/pod/pod_ref.js';
+import {type NetworkNodes} from '../../src/core/network_nodes.js';
+import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from '../../src/core/dependency_injection/inject_tokens.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = releaseTag;
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2,node3';
   argv[flags.generateGossipKeys.name] = true;
   argv[flags.generateTlsKeys.name] = true;
-  argv[flags.clusterName.name] = TEST_CLUSTER;
+  argv[flags.clusterRef.name] = TEST_CLUSTER;
   argv[flags.devMode.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
@@ -55,7 +58,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
       describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, async () => {
         const accountManager = bootstrapResp.opts.accountManager;
-        const k8 = bootstrapResp.opts.k8;
+        const k8Factory = bootstrapResp.opts.k8Factory;
         const nodeCmd = bootstrapResp.cmd.nodeCmd;
 
         afterEach(async function () {
@@ -68,8 +71,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await k8.getNodeLogs(namespace);
-          await k8.deleteNamespace(namespace);
+          await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+          await k8Factory.default().namespaces().delete(namespace);
         });
 
         describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}]`, () => {
@@ -80,7 +83,10 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
             try {
               const labels = ['app=haproxy-node1', 'solo.hedera.com/type=haproxy'];
-              const readyPods = await k8.waitForPodReady(labels, 1, 300, 1000);
+              const readyPods: V1Pod[] = await k8Factory
+                .default()
+                .pods()
+                .waitForReadyStatus(namespace, labels, 300, 1000);
               expect(readyPods).to.not.be.null;
               expect(readyPods).to.not.be.undefined;
               expect(readyPods.length).to.be.greaterThan(0);
@@ -99,9 +105,9 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           before(async function () {
             this.timeout(Duration.ofMinutes(2).toMillis());
 
-            const podName = await nodeRefreshTestSetup(argv, testName, k8, nodeAlias);
+            const podName = await nodeRefreshTestSetup(argv, testName, k8Factory, nodeAlias);
             if (mode === 'kill') {
-              await k8.killPod(PodRef.of(namespace, podName));
+              await k8Factory.default().pods().readByRef(PodRef.of(namespace, podName)).killPod();
             } else if (mode === 'stop') {
               expect(await nodeCmd.handlers.stop(argv)).to.be.true;
               await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs
@@ -125,7 +131,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           it(`${nodeAlias} should be running`, async () => {
             try {
               // @ts-ignore to access tasks which is a private property
-              expect((await nodeCmd.tasks.checkNetworkNodePod(namespace, nodeAlias)).podName.name).to.equal(
+              expect((await nodeCmd.tasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
                 `network-${nodeAlias}-0`,
               );
             } catch (e) {
@@ -144,6 +150,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
                 flags.devMode.constName,
                 flags.quiet.constName,
+                'contexts',
               ]);
             } catch (e) {
               nodeCmd.logger.showUserError(e);
@@ -178,12 +185,23 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           }).timeout(defaultTimeout);
         }
 
-        async function nodeRefreshTestSetup(argv: Record<any, any>, testName: string, k8: K8, nodeAliases: string) {
+        async function nodeRefreshTestSetup(
+          argv: Record<any, any>,
+          testName: string,
+          k8Factory: K8Factory,
+          nodeAliases: string,
+        ) {
           argv[flags.nodeAliasesUnparsed.name] = nodeAliases;
-          const configManager = container.resolve(ConfigManager);
+          const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
           configManager.update(argv);
 
-          const podArray = await k8.getPodsByLabel([`app=network-${nodeAliases}`, 'solo.hedera.com/type=network-node']);
+          const podArray = await k8Factory
+            .default()
+            .pods()
+            .list(configManager.getFlag(flags.namespace), [
+              `app=network-${nodeAliases}`,
+              'solo.hedera.com/type=network-node',
+            ]);
 
           if (podArray.length > 0) {
             const podName = PodName.of(podArray[0].metadata.name);

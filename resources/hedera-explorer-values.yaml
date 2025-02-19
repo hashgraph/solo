@@ -6,7 +6,7 @@ ingress:
         - path: /
           pathType: Prefix
   tls:
-    - secretName: ca-secret-hedera-explorer
+    - secretName: ca-secret-hiero-explorer
       hosts:
         - '{{ index .Values.ingress.hosts 0 "host" }}'
 labels:

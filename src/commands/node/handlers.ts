@@ -23,7 +23,7 @@ import * as constants from '../../core/constants.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type LeaseManager} from '../../core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {IllegalArgumentError, SoloError} from '../../core/errors.js';
@@ -40,19 +40,23 @@ import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
 import {type Optional} from '../../types/index.js';
-import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
+import {type CommandFlag} from '../../types/flag_types.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 
 export class NodeCommandHandlers implements CommandHandlers {
   private readonly accountManager: AccountManager;
   private readonly configManager: ConfigManager;
   private readonly platformInstaller: PlatformInstaller;
   private readonly logger: SoloLogger;
-  private readonly k8: K8;
+  private readonly k8Factory: K8Factory;
   private readonly tasks: NodeCommandTasks;
   private readonly leaseManager: LeaseManager;
   public readonly remoteConfigManager: RemoteConfigManager;
+  public contexts: string[];
+  public consensusNodes: ConsensusNode[];
 
-  private getConfig: any;
+  public getConfig: (configName: string, flags: CommandFlag[], extraProperties?: string[]) => object;
   private prepareChartPath: any;
 
   public readonly parent: BaseCommand;
@@ -63,7 +67,7 @@ export class NodeCommandHandlers implements CommandHandlers {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
     if (!opts || !opts.tasks) throw new Error('An instance of NodeCommandTasks is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.platformInstaller)
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
 
@@ -71,13 +75,14 @@ export class NodeCommandHandlers implements CommandHandlers {
     this.tasks = opts.tasks;
     this.accountManager = opts.accountManager;
     this.configManager = opts.configManager;
-    this.k8 = opts.k8;
+    this.k8Factory = opts.k8Factory;
     this.platformInstaller = opts.platformInstaller;
     this.leaseManager = opts.leaseManager;
     this.remoteConfigManager = opts.remoteConfigManager;
 
     this.getConfig = opts.parent.getConfig.bind(opts.parent);
     this.prepareChartPath = opts.parent.prepareChartPath.bind(opts.parent);
+
     this.parent = opts.parent;
   }
 
@@ -85,6 +90,11 @@ export class NodeCommandHandlers implements CommandHandlers {
   static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
   static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
   static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
+
+  private init() {
+    this.consensusNodes = this.parent.getConsensusNodes();
+    this.contexts = this.parent.getContexts();
+  }
 
   /** ******** Task Lists **********/
 
@@ -121,7 +131,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.populateServiceMap(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -134,7 +144,9 @@ export class NodeCommandHandlers implements CommandHandlers {
   addPrepareTasks(argv: any, lease: Lease) {
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
-      this.validateSingleNodeState({excludedStates: []}),
+      // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
+      //  the nodeAlias based on the next available node ID + 1
+      // this.validateSingleNodeState({excludedStates: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -172,7 +184,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
       this.tasks.downloadLastState(),
       this.tasks.uploadStateToNewNode(),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -217,7 +229,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.killNodesAndUpdateConfigMap(),
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
-      this.tasks.setupNetworkNodes('allNodeAliases'),
+      this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
@@ -230,7 +242,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   upgradePrepareTasks(argv, lease: Lease) {
     return [
       this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
-      this.validateSingleNodeState({excludedStates: []}),
+      this.validateAllNodeStates({excludedStates: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -716,7 +728,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         this.tasks.identifyNetworkPods(),
         this.tasks.dumpNetworkNodesSaveState(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        this.tasks.setupNetworkNodes('nodeAliases'),
+        this.tasks.setupNetworkNodes('nodeAliases', true),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
@@ -734,6 +746,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async keys(argv: any) {
+    this.init();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -825,8 +838,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        // TODO: change to isGenesis: true once we are ready to use genesis-network.json: this.tasks.setupNetworkNodes('nodeAliases', true),
-        this.tasks.setupNetworkNodes('nodeAliases', false),
+        this.tasks.setupNetworkNodes('nodeAliases', true),
         this.changeAllNodeStates(ConsensusNodeStates.SETUP),
       ],
       {
@@ -863,7 +875,7 @@ export class NodeCommandHandlers implements CommandHandlers {
    */
   public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
     interface Context {
-      config: {namespace: NamespaceNameAsString; nodeAliases: NodeAliases};
+      config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
 
     return {
@@ -872,12 +884,20 @@ export class NodeCommandHandlers implements CommandHandlers {
       task: async (ctx: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {
-            config: {namespace, nodeAliases},
+            config: {namespace},
           } = ctx;
-          const cluster = this.remoteConfigManager.currentCluster;
 
-          for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.edit(nodeAlias, new ConsensusNodeComponent(nodeAlias, cluster, namespace, state));
+          for (const consensusNode of ctx.config.consensusNodes) {
+            remoteConfig.components.edit(
+              consensusNode.name,
+              new ConsensusNodeComponent(
+                consensusNode.name,
+                consensusNode.cluster,
+                namespace.name,
+                state,
+                consensusNode.nodeId,
+              ),
+            );
           }
         });
       },
@@ -975,23 +995,24 @@ export class NodeCommandHandlers implements CommandHandlers {
     let nodeComponent: ConsensusNodeComponent;
     try {
       nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
-    } catch (e) {
+    } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }
 
-    if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
-
-    if (excludedStates && excludedStates.includes(nodeComponent.state)) {
-      const errorMessageData =
-        `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
-
-      throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
-    }
+    // TODO: Enable once the states have been mapped
+    // if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
+    //
+    // if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+    //   const errorMessageData =
+    //     `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //
+    //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
+    // }
 
     return nodeComponent.state;
   }

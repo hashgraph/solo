@@ -9,11 +9,10 @@ import {type LeaseManager} from '../core/lease/lease_manager.js';
 import {type LocalConfig} from '../core/config/local_config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
 import {type Helm} from '../core/helm.js';
-import {type K8} from '../core/kube/k8.js';
+import {type K8Factory} from '../core/kube/k8_factory.js';
 import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
-import {type Opts} from '../types/command_types.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type Lease} from '../core/lease/lease.js';
 import {Listr} from 'listr2';
@@ -21,14 +20,46 @@ import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
+import {ConsensusNode} from '../core/model/consensus_node.js';
+import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import {Flags} from './flags.js';
+import {type Cluster} from '../core/config/remote/cluster.js';
+import {Templates} from '../core/templates.js';
+import {type SoloLogger} from '../core/logging.js';
+import {type PackageDownloader} from '../core/package_downloader.js';
+import {type PlatformInstaller} from '../core/platform_installer.js';
+import {type KeyManager} from '../core/key_manager.js';
+import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile_manager.js';
+import {type CertificateManager} from '../core/certificate_manager.js';
+import {type NodeAlias} from '../types/aliases.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
 }
 
+export interface Opts {
+  logger: SoloLogger;
+  helm: Helm;
+  k8Factory: K8Factory;
+  downloader: PackageDownloader;
+  platformInstaller: PlatformInstaller;
+  chartManager: ChartManager;
+  configManager: ConfigManager;
+  depManager: DependencyManager;
+  keyManager: KeyManager;
+  accountManager: AccountManager;
+  profileManager: ProfileManager;
+  leaseManager: LeaseManager;
+  certificateManager: CertificateManager;
+  localConfig: LocalConfig;
+  remoteConfigManager: RemoteConfigManager;
+  parent?: BaseCommand;
+}
+
 export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
-  protected readonly k8: K8;
+  protected readonly k8Factory: K8Factory;
   protected readonly chartManager: ChartManager;
   protected readonly configManager: ConfigManager;
   protected readonly depManager: DependencyManager;
@@ -39,7 +70,7 @@ export abstract class BaseCommand extends ShellRunner {
 
   constructor(opts: Opts) {
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
-    if (!opts || !opts.k8) throw new Error('An instance of core/K8 is required');
+    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
@@ -49,7 +80,7 @@ export abstract class BaseCommand extends ShellRunner {
     super();
 
     this.helm = opts.helm;
-    this.k8 = opts.k8;
+    this.k8Factory = opts.k8Factory;
     this.chartManager = opts.chartManager;
     this.configManager = opts.configManager;
     this.depManager = opts.depManager;
@@ -58,7 +89,7 @@ export abstract class BaseCommand extends ShellRunner {
     this.remoteConfigManager = opts.remoteConfigManager;
   }
 
-  async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
+  public async prepareChartPath(chartDir: string, chartRepo: string, chartReleaseName: string) {
     if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
     if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
 
@@ -71,7 +102,8 @@ export abstract class BaseCommand extends ShellRunner {
     return `${chartRepo}/${chartReleaseName}`;
   }
 
-  prepareValuesFiles(valuesFile: string) {
+  // FIXME @Deprecated. Use prepareValuesFilesMap instead to support multi-cluster
+  public prepareValuesFiles(valuesFile: string) {
     let valuesArg = '';
     if (valuesFile) {
       const valuesFiles = valuesFile.split(',');
@@ -84,11 +116,92 @@ export abstract class BaseCommand extends ShellRunner {
     return valuesArg;
   }
 
-  getConfigManager(): ConfigManager {
+  /**
+   * Prepare the values files map for each cluster
+   *
+   * <p> Order of precedence:
+   * <ol>
+   *   <li> Chart's default values file (if chartDirectory is set) </li>
+   *   <li> Profile values file </li>
+   *   <li> User's values file </li>
+   * </ol>
+   * @param clusterRefs - the map of cluster references
+   * @param valuesFileInput - the values file input string
+   * @param chartDirectory - the chart directory
+   * @param profileValuesFile - the profile values file
+   */
+  static prepareValuesFilesMap(
+    clusterRefs: ClusterRefs,
+    chartDirectory?: string,
+    profileValuesFile?: string,
+    valuesFileInput?: string,
+  ): Record<ClusterRef, string> {
+    // initialize the map with an empty array for each cluster-ref
+    const valuesFiles: Record<ClusterRef, string> = {
+      [Flags.KEY_COMMON]: '',
+    };
+    Object.keys(clusterRefs).forEach(clusterRef => {
+      valuesFiles[clusterRef] = '';
+    });
+
+    // add the chart's default values file for each cluster-ref if chartDirectory is set
+    // this should be the first in the list of values files as it will be overridden by user's input
+    if (chartDirectory) {
+      const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      for (const clusterRef in valuesFiles) {
+        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      }
+    }
+
+    if (profileValuesFile) {
+      const parsed = Flags.parseValuesFilesInput(profileValuesFile);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([cf]) => {
+            valuesFiles[cf] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (valuesFileInput) {
+      const parsed = Flags.parseValuesFilesInput(valuesFileInput);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterRef]) => {
+            valuesFiles[clusterRef] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (Object.keys(valuesFiles).length > 1) {
+      // delete the common key if there is another cluster to use
+      delete valuesFiles[Flags.KEY_COMMON];
+    }
+
+    return valuesFiles;
+  }
+
+  public getConfigManager(): ConfigManager {
     return this.configManager;
   }
 
-  getChartManager(): ChartManager {
+  public getChartManager(): ChartManager {
     return this.chartManager;
   }
 
@@ -97,12 +210,13 @@ export abstract class BaseCommand extends ShellRunner {
    * and extra properties, will keep track of which properties are used.  Call
    * getUnusedConfigs() to get an array of unused properties.
    */
-  getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
+  public getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
     const configManager = this.configManager;
 
     // build the dynamic class that will keep track of which properties are used
     const NewConfigClass = class {
       private usedConfigs: Map<string, number>;
+
       constructor() {
         // the map to keep track of which properties are used
         this.usedConfigs = new Map();
@@ -165,7 +279,7 @@ export abstract class BaseCommand extends ShellRunner {
     return newConfigInstance;
   }
 
-  getLeaseManager(): LeaseManager {
+  public getLeaseManager(): LeaseManager {
     return this.leaseManager;
   }
 
@@ -173,25 +287,25 @@ export abstract class BaseCommand extends ShellRunner {
    * Get the list of unused configurations that were not accessed
    * @returns an array of unused configurations
    */
-  getUnusedConfigs(configName: string): string[] {
+  public getUnusedConfigs(configName: string): string[] {
     return this._configMaps.get(configName).getUnusedConfigs();
   }
 
-  getK8() {
-    return this.k8;
+  public getK8Factory() {
+    return this.k8Factory;
   }
 
-  getLocalConfig() {
+  public getLocalConfig() {
     return this.localConfig;
   }
 
-  getRemoteConfigManager() {
+  public getRemoteConfigManager() {
     return this.remoteConfigManager;
   }
 
   abstract close(): Promise<void>;
 
-  commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
+  public commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
     return async function (argv: any, commandDef: CommandHandlers) {
       const tasks = new Listr([...actionTasks], options);
 
@@ -215,7 +329,7 @@ export abstract class BaseCommand extends ShellRunner {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  setupHomeDirectory(
+  public setupHomeDirectory(
     dirs: string[] = [
       constants.SOLO_HOME_DIR,
       constants.SOLO_LOGS_DIR,
@@ -240,9 +354,81 @@ export abstract class BaseCommand extends ShellRunner {
     return dirs;
   }
 
-  setupHomeDirectoryTask() {
+  public setupHomeDirectoryTask() {
     return new Task('Setup home directory', async () => {
       this.setupHomeDirectory();
     });
+  }
+
+  /**
+   * Get the consensus nodes from the remoteConfigManager and use the localConfig to get the context
+   * @returns an array of ConsensusNode objects
+   */
+  public getConsensusNodes(): ConsensusNode[] {
+    const consensusNodes: ConsensusNode[] = [];
+    const clusters: Record<ClusterRef, Cluster> = this.getRemoteConfigManager().clusters;
+
+    try {
+      if (!this.getRemoteConfigManager()?.components?.consensusNodes) return [];
+    } catch {
+      return [];
+    }
+
+    // using the remoteConfigManager to get the consensus nodes
+    if (this.getRemoteConfigManager()?.components?.consensusNodes) {
+      Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
+        consensusNodes.push(
+          new ConsensusNode(
+            node.name as NodeAlias,
+            node.nodeId,
+            node.namespace,
+            node.cluster,
+            // use local config to get the context
+            this.getLocalConfig().clusterRefs[node.cluster],
+            clusters[node.cluster].dnsBaseDomain,
+            clusters[node.cluster].dnsConsensusNodePattern,
+            Templates.renderConsensusNodeFullyQualifiedDomainName(
+              node.name as NodeAlias,
+              node.nodeId,
+              node.namespace,
+              node.cluster,
+              clusters[node.cluster].dnsBaseDomain,
+              clusters[node.cluster].dnsConsensusNodePattern,
+            ),
+          ),
+        );
+      });
+    }
+
+    // return the consensus nodes
+    return consensusNodes;
+  }
+
+  /**
+   * Gets a list of distinct contexts from the consensus nodes
+   * @returns an array of context strings
+   */
+  public getContexts(): string[] {
+    const contexts: string[] = [];
+    this.getConsensusNodes().forEach(node => {
+      if (!contexts.includes(node.context)) {
+        contexts.push(node.context);
+      }
+    });
+    return contexts;
+  }
+
+  /**
+   * Gets a list of distinct cluster references from the consensus nodes
+   * @returns an object of cluster references
+   */
+  public getClusterRefs(): ClusterRefs {
+    const clustersRefs: ClusterRefs = {};
+    this.getConsensusNodes().forEach(node => {
+      if (!Object.keys(clustersRefs).includes(node.cluster)) {
+        clustersRefs[node.cluster] = node.context;
+      }
+    });
+    return clustersRefs;
   }
 }

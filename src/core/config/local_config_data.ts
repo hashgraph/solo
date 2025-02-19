@@ -1,14 +1,20 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type Cluster, type Context, type DeploymentName, type EmailAddress} from './remote/types.js';
+import {
+  type ClusterRef,
+  type ClusterRefs,
+  type DeploymentName,
+  type EmailAddress,
+  type NamespaceNameAsString,
+  type Version,
+} from './remote/types.js';
 
 export interface DeploymentStructure {
   // A list of clusters on which the deployment is deployed
-  clusters: Cluster[];
+  clusters: ClusterRef[];
+  namespace: NamespaceNameAsString;
 }
-
-export type ClusterContextMapping = Record<Cluster, Context>;
 
 export type Deployments = Record<DeploymentName, DeploymentStructure>;
 
@@ -19,9 +25,9 @@ export interface LocalConfigData {
   // A list of all deployments
   deployments: Deployments;
 
-  // The currently selected deployment
-  currentDeploymentName: DeploymentName;
-
   // Every cluster must have a kubectl context associated to it, which is used to establish a connection.
-  clusterContextMapping: ClusterContextMapping;
+  clusterRefs: ClusterRefs;
+
+  // Solo CLI version
+  soloVersion: Version;
 }

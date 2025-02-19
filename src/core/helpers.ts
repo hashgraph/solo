@@ -5,6 +5,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
+import * as semver from 'semver';
 import {SoloError} from './errors.js';
 import {Templates} from './templates.js';
 import {ROOT_DIR} from './constants.js';
@@ -15,6 +16,40 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
+import {type ConsensusNode} from './model/consensus_node.js';
+import {type Optional} from '../types/index.js';
+import {type Version} from './config/remote/types.js';
+import {fileURLToPath} from 'url';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+
+export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
+  //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
+  let internalIp = '';
+
+  // for versions that satisfy 0.59.x
+  if (semver.satisfies(releaseVersion, '^0.59.0', {includePrerelease: true})) {
+    internalIp = '127.0.0.1';
+  }
+
+  // versions less than 0.59.0
+  else if (
+    semver.lt(
+      releaseVersion,
+      '0.59.0',
+      // @ts-expect-error TS2353: Object literal may only specify known properties
+      {includePrerelease: true},
+    )
+  ) {
+    internalIp = Templates.renderFullyQualifiedNetworkPodName(namespaceName, nodeAlias);
+  }
+
+  // versions greater than 0.59.0
+  else {
+    internalIp = '127.0.0.1';
+  }
+
+  return internalIp;
+}
 
 export function sleep(duration: Duration) {
   return new Promise<void>(resolve => {
@@ -45,21 +80,6 @@ export function splitFlagInput(input: string, separator = ',') {
  */
 export function cloneArray<T>(arr: T[]): T[] {
   return JSON.parse(JSON.stringify(arr));
-}
-
-/** load package.json */
-export function loadPackageJSON(): any {
-  try {
-    const raw = fs.readFileSync(path.join(ROOT_DIR, 'package.json'));
-    return JSON.parse(raw.toString());
-  } catch (e: Error | any) {
-    throw new SoloError('failed to load package.json', e);
-  }
-}
-
-export function packageVersion(): string {
-  const packageJson = loadPackageJSON();
-  return packageJson.version;
 }
 
 export function getTmpDir() {
@@ -370,4 +390,42 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
 
     throw new SoloError(`Invalid JSON data in file: ${filePath}`);
   }
+}
+
+export function populateHelmArgs(valuesMapping: Record<string, string | boolean | number>): string {
+  let valuesArg = '';
+
+  for (const [key, value] of Object.entries(valuesMapping)) {
+    valuesArg += ` --set ${key}=${value}`;
+  }
+
+  return valuesArg;
+}
+
+/**
+ * @param nodeAlias
+ * @param consensusNodes
+ * @returns context of the node
+ */
+export function extractContextFromConsensusNodes(
+  nodeAlias: NodeAlias,
+  consensusNodes?: ConsensusNode[],
+): Optional<string> {
+  if (!consensusNodes) return undefined;
+  if (!consensusNodes.length) return undefined;
+  const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
+  return consensusNode ? consensusNode.context : undefined;
+}
+
+export function getSoloVersion(): Version {
+  if (process.env.npm_package_version) {
+    return process.env.npm_package_version;
+  }
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
+  const packageJsonPath = path.resolve(__dirname, '../../package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+  return packageJson.version;
 }

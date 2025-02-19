@@ -5,11 +5,12 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
-import {ChartManager} from '../../../../src/core/chart_manager.js';
+import {type ChartManager} from '../../../../src/core/chart_manager.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 
 describe('ChartManager', () => {
-  const chartManager = container.resolve(ChartManager);
+  const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
 
   it('should be able to list installed charts', async () => {
     const ns = constants.SOLO_SETUP_NAMESPACE;
