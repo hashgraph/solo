@@ -1754,18 +1754,29 @@ export class NodeCommandTasks {
           }
         });
 
-        await Promise.all(
-          Object.keys(config.clusterRefs).map(clusterRef => {
-            return self.chartManager.upgrade(
-              config.namespace,
-              constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath,
-              config.soloChartVersion,
-              valuesArgs[clusterRef],
-              this.k8Factory.getK8(this.parent.getLocalConfig().clusterRefs[clusterRef]).contexts().readCurrent(),
-            );
-          }),
-        );
+        if (config.clusterRefs) {
+          await Promise.all(
+            Object.keys(config.clusterRefs).map(clusterRef => {
+              return self.chartManager.upgrade(
+                config.namespace,
+                constants.SOLO_DEPLOYMENT_CHART,
+                ctx.config.chartPath,
+                config.soloChartVersion,
+                valuesArgs[clusterRef],
+                this.k8Factory.getK8(this.parent.getLocalConfig().clusterRefs[clusterRef]).contexts().readCurrent(),
+              );
+            }),
+          );
+        } else {
+          await self.chartManager.upgrade(
+            config.namespace,
+            constants.SOLO_DEPLOYMENT_CHART,
+            ctx.config.chartPath,
+            config.soloChartVersion,
+            valuesArgs[this.parent.getK8Factory().default().clusters().readCurrent()],
+            this.k8Factory.default().contexts().readCurrent(),
+          );
+        }
       },
       skip,
     };
