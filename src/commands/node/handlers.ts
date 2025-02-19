@@ -99,6 +99,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   /** ******** Task Lists **********/
 
   deletePrepareTaskList(argv: any, lease: Lease) {
+    // TODO: Done
     return [
       this.tasks.initialize(argv, deleteConfigBuilder.bind(this), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -110,6 +111,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   deleteSubmitTransactionsTaskList(argv: any) {
+    // TODO: DONE
     return [
       this.tasks.sendNodeDeleteTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -118,6 +120,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   deleteExecuteTaskList(argv: any) {
+    // TODO: DONE
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
@@ -142,6 +145,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   addPrepareTasks(argv: any, lease: Lease) {
+    // TODO: DONE
     return [
       this.tasks.initialize(argv, addConfigBuilder.bind(this), lease),
       // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
@@ -163,6 +167,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   addSubmitTransactionsTasks(argv: any) {
+    // TODO: DONE
     return [
       this.tasks.sendNodeCreateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -171,6 +176,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   addExecuteTasks(argv: any) {
+    // TODO: DONE
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
@@ -196,6 +202,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   updatePrepareTasks(argv, lease: Lease) {
+    // TODO: DONE
     return [
       this.tasks.initialize(argv, updateConfigBuilder.bind(this), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -207,6 +214,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   updateSubmitTransactionsTasks(argv) {
+    // TODO: DONE
     return [
       this.tasks.sendNodeUpdateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -215,6 +223,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   updateExecuteTasks(argv) {
+    // TODO: DONE
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
@@ -240,6 +249,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   upgradePrepareTasks(argv, lease: Lease) {
+    // TODO: DONE
     return [
       this.tasks.initialize(argv, upgradeConfigBuilder.bind(this), lease),
       this.validateAllNodeStates({excludedStates: []}),
@@ -251,10 +261,12 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   upgradeSubmitTransactionsTasks(argv) {
+    // TODO: DONE
     return [this.tasks.sendPrepareUpgradeTransaction(), this.tasks.sendFreezeUpgradeTransaction()];
   }
 
   upgradeExecuteTasks(argv) {
+    // TODO: DONE
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeUpgradeFiles(),
@@ -270,6 +282,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   /** ******** Handlers **********/
 
   async prepareUpgrade(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -293,6 +306,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async freezeUpgrade(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -314,6 +328,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async downloadGeneratedFiles(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -337,6 +352,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async update(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -360,6 +376,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async updatePrepare(argv) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
 
@@ -381,6 +398,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async updateSubmitTransactions(argv) {
+    // TODO: DONE
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS);
     const action = this.parent.commandActionBuilder(
@@ -402,6 +420,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async updateExecute(argv) {
+    // TODO: DONE
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
     const action = this.parent.commandActionBuilder(
@@ -423,6 +442,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async upgradePrepare(argv) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
     const action = this.parent.commandActionBuilder(
@@ -442,6 +462,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async upgradeSubmitTransactions(argv) {
+    // TODO: DONE
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_SUBMIT_TRANSACTIONS_FLAGS);
     const action = this.parent.commandActionBuilder(
@@ -463,6 +484,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async upgradeExecute(argv) {
+    // TODO: DONE
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
     const action = this.parent.commandActionBuilder(
@@ -484,6 +506,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async upgrade(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
     const lease = await this.leaseManager.create();
     const action = this.parent.commandActionBuilder(
@@ -505,6 +528,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async delete(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS);
     const lease = await this.leaseManager.create();
     const action = this.parent.commandActionBuilder(
@@ -526,6 +550,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async deletePrepare(argv: any) {
+    // TODO
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_PREPARE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -548,6 +573,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async deleteSubmitTransactions(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_SUBMIT_TRANSACTIONS_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -571,6 +597,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async deleteExecute(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_EXECUTE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -594,6 +621,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async add(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -613,6 +641,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async addPrepare(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_PREPARE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -635,6 +664,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async addSubmitTransactions(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_SUBMIT_TRANSACTIONS_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -658,6 +688,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async addExecute(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_EXECUTE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -682,6 +713,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async logs(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
     const action = this.parent.commandActionBuilder(
       [this.tasks.initialize(argv, logsConfigBuilder.bind(this), null), this.tasks.getNodeLogsAndConfigs()],
@@ -698,6 +730,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async states(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STATES_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -715,6 +748,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async refresh(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.REFRESH_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -746,6 +780,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async keys(argv: any) {
+    // TODO: DONE
     this.init();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
@@ -769,6 +804,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async stop(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -796,6 +832,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async start(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -805,7 +842,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         this.tasks.initialize(argv, startConfigBuilder.bind(this), lease),
         this.validateAllNodeStates({acceptedStates: [ConsensusNodeStates.SETUP]}),
         this.tasks.identifyExistingNodes(),
-        this.tasks.uploadStateFiles((ctx: any) => ctx.config.stateFile.length === 0),
+        this.tasks.uploadStateFiles(ctx => ctx.config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
@@ -826,6 +863,7 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async setup(argv: any) {
+    // TODO: DONE
     argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -971,11 +1009,10 @@ export class NodeCommandHandlers implements CommandHandlers {
 
         task.title += ` ${nodeAlias}`;
 
-        const components = this.remoteConfigManager.components;
-
-        const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
-
-        task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
+        // TODO: Disabled for now until the node's state mapping is completed
+        // const components = this.remoteConfigManager.components;
+        // const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+        // task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
       },
     };
   }

@@ -474,7 +474,6 @@ export interface NodeKeysConfigClass {
 export interface NodeStartConfigClass {
   app: string;
   cacheDir: string;
-  consensusNodes: ConsensusNode[];
   debugNodeAlias: NodeAlias;
   namespace: NamespaceName;
   deployment: string;
@@ -482,6 +481,7 @@ export interface NodeStartConfigClass {
   stagingDir: string;
   podRefs: Record<NodeAlias, PodRef>;
   nodeAliasesUnparsed: string;
+  consensusNodes: ConsensusNode[];
   contexts: string[];
 }
 
@@ -529,11 +529,11 @@ export interface NodeSetupConfigClass {
   releaseTag: string;
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
-  consensusNodes: ConsensusNode[];
   skipStop?: boolean;
   keysDir: string;
   stagingDir: string;
   getUnusedConfigs: () => string[];
+  consensusNodes: ConsensusNode[];
   contexts: string[];
 }
 
