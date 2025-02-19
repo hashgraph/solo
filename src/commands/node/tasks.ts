@@ -309,7 +309,7 @@ export class NodeCommandTasks {
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
       const podRef = podRefs[nodeAlias];
       subTasks.push({
-        title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag} ]`,
+        title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag}, context = ${context} ]`,
         task: async () => await platformInstaller.fetchPlatform(podRef, releaseTag, context),
       });
     }
