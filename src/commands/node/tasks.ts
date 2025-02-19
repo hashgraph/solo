@@ -1692,10 +1692,13 @@ export class NodeCommandTasks {
         // for the case of adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const consensusNode = consensusNodes.find(node => node.nodeId === index);
+          const cluster = consensusNode
+            ? consensusNode.cluster
+            : this.parent.getK8Factory().default().clusters().readCurrent();
 
-          valuesArgs[consensusNode.cluster] += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"`;
-          valuesArgs[consensusNode.cluster] += ` --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
-          valuesArgs[consensusNode.cluster] += ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
+          valuesArgs[cluster] += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"`;
+          valuesArgs[cluster] += ` --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
+          valuesArgs[cluster] += ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
 
           if (config.haproxyIps) {
             config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -1708,12 +1711,15 @@ export class NodeCommandTasks {
           const nodeAlias: NodeAlias = config.nodeAlias;
           const nodeIndexInValues = Templates.nodeIdFromNodeAlias(nodeAlias);
           const consensusNodeInValues = consensusNodes.find(node => node.name === nodeAlias);
+          const clusterForConsensusNodeInValues = consensusNodeInValues
+            ? consensusNodeInValues.cluster
+            : this.parent.getK8Factory().default().clusters().readCurrent();
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
             const ip: string = config.haproxyIpsParsed?.[nodeAlias];
             if (ip) {
-              valuesArgs[consensusNodeInValues.cluster] +=
+              valuesArgs[clusterForConsensusNodeInValues] +=
                 ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
             }
           }
@@ -1722,7 +1728,7 @@ export class NodeCommandTasks {
           if (config.envoyIpsParsed) {
             const ip: string = config.envoyIpsParsed?.[nodeAlias];
             if (ip) {
-              valuesArgs[consensusNodeInValues.cluster] +=
+              valuesArgs[clusterForConsensusNodeInValues] +=
                 ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
             }
           }
