@@ -1646,7 +1646,12 @@ export class NodeCommandTasks {
 
         const consensusNodes = this.parent.getConsensusNodes();
         const valuesArgs: Record<ClusterRef, string> = {};
-        consensusNodes.forEach(node => (valuesArgs[node.cluster] = ''));
+
+        if (consensusNodes.length) {
+          consensusNodes.forEach(node => (valuesArgs[node.cluster] = ''));
+        } else {
+          valuesArgs[this.parent.getK8Factory().default().clusters().readCurrent()] = '';
+        }
 
         const clusterRefs = this.parent.getClusterRefs();
 
@@ -1696,9 +1701,10 @@ export class NodeCommandTasks {
             ? consensusNode.cluster
             : this.parent.getK8Factory().default().clusters().readCurrent();
 
-          valuesArgs[cluster] += ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"`;
-          valuesArgs[cluster] += ` --set "hedera.nodes[${index}].name=${ctx.newNode.name}"`;
-          valuesArgs[cluster] += ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
+          valuesArgs[cluster] +=
+            ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
+            ` --set "hedera.nodes[${index}].name=${ctx.newNode.name}"` +
+            ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
 
           if (config.haproxyIps) {
             config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -1740,23 +1746,33 @@ export class NodeCommandTasks {
         );
 
         if (profileValuesFile) {
-          Object.keys(clusterRefs).forEach(
-            clusterRef => (valuesArgs[clusterRef] += self.prepareValuesFiles(profileValuesFile)),
-          );
+          if (clusterRefs) {
+            Object.keys(clusterRefs).forEach(
+              clusterRef => (valuesArgs[clusterRef] += self.prepareValuesFiles(profileValuesFile)),
+            );
+          } else {
+            const clusterRef = this.parent.getK8Factory().default().clusters().readCurrent();
+            valuesArgs[clusterRef] += self.prepareValuesFiles(profileValuesFile);
+          }
         }
 
-        consensusNodes.filter(consensusNode => {
-          if (consensusNode.name === config.debugNodeAlias) {
-            consensusNodes[consensusNode.cluster] = addDebugOptions(
-              valuesArgs[consensusNode.cluster],
-              config.debugNodeAlias,
-            );
-          }
-        });
+        if (consensusNodes.length) {
+          consensusNodes.filter(consensusNode => {
+            if (consensusNode.name === config.debugNodeAlias) {
+              consensusNodes[consensusNode.cluster] = addDebugOptions(
+                valuesArgs[consensusNode.cluster],
+                config.debugNodeAlias,
+              );
+            }
+          });
+        } else {
+          const clusterRef = this.parent.getK8Factory().default().clusters().readCurrent();
+          valuesArgs[clusterRef] = addDebugOptions(valuesArgs[clusterRef], config.debugNodeAlias);
+        }
 
-        if (config.clusterRefs) {
+        if (clusterRefs) {
           await Promise.all(
-            Object.keys(config.clusterRefs).map(clusterRef => {
+            Object.keys(clusterRefs).map(clusterRef => {
               return self.chartManager.upgrade(
                 config.namespace,
                 constants.SOLO_DEPLOYMENT_CHART,
