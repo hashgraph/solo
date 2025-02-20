@@ -34,6 +34,8 @@ import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js'
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Duration} from '../core/time/duration.js';
+import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
+import {PodName} from '../core/kube/resources/pod/pod_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -905,6 +907,17 @@ export class NetworkCommand extends BaseCommand {
                     config.valuesArgMap[clusterRef],
                     config.clusterRefs[clusterRef],
                   );
+
+                  const context = config.clusterRefs[clusterRef];
+                  const pods = await this.k8Factory
+                    .getK8(context)
+                    .pods()
+                    .list(ctx.config.namespace, ['solo.hedera.com/type=network-node']);
+
+                  for (const pod of pods) {
+                    const podRef = PodRef.of(ctx.config.namespace, PodName.of(pod.metadata.name));
+                    await this.k8Factory.getK8(context).pods().readByRef(podRef).killPod();
+                  }
                 },
               });
             }
