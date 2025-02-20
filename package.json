@@ -69,7 +69,7 @@
     "stream-buffers": "^3.0.3",
     "tar": "^7.4.3",
     "tsyringe-neo": "^5.1.0",
-    "uuid": "^11.0.5",
+    "uuid": "^11.1.0",
     "validator": "^13.12.0",
     "winston": "^3.17.0",
     "ws": "^8.18.0",
