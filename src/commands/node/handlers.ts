@@ -177,6 +177,7 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.copyNodeKeysToSecrets(),
       this.tasks.getNodeLogsAndConfigs(),
+      this.tasks.addNewConsensusNodeToRemoteConfig(),
       this.tasks.updateChartWithConfigMap('Deploy new network node', NodeSubcommandType.ADD),
       this.tasks.killNodes(),
       this.tasks.checkNodePodsAreRunning(),
@@ -526,7 +527,6 @@ export class NodeCommandHandlers implements CommandHandlers {
   }
 
   async deletePrepare(argv: any) {
-    // TODO
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_PREPARE_FLAGS);
 
     const lease = await this.leaseManager.create();

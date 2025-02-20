@@ -75,13 +75,15 @@ import {ContainerRef} from '../../core/kube/resources/container/container_ref.js
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask} from '../../types/index.js';
-import {type ClusterRef, type DeploymentName} from '../../core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
+import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
+import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -1633,7 +1635,7 @@ export class NodeCommandTasks {
         // Prepare parameter and update the network node chart
         const config = ctx.config;
 
-        const consensusNodes = this.parent.getConsensusNodes();
+        const consensusNodes = ctx.config.consensusNodes;
         const valuesArgs: Record<ClusterRef, string> = {};
 
         if (consensusNodes.length) {
@@ -1680,7 +1682,7 @@ export class NodeCommandTasks {
             ? consensusNode.cluster
             : this.parent.getK8Factory().default().clusters().readCurrent();
 
-          valuesArgs[cluster] = valuesArg;
+          valuesArgs[cluster] += valuesArg;
         }
 
         // for the case of adding a new node
@@ -2074,8 +2076,11 @@ export class NodeCommandTasks {
     return {
       title: 'Add new node to remote config',
       task: async (ctx, task) => {
-        if (!ctx.newNode) throw new SoloError('TODO: The newNode is not found');
         const nodeAlias = ctx.config.nodeAlias;
+        // TODO: Discuss how the user should provide the clusterRef
+        const clusterRef = this.k8Factory.default().clusters().readCurrent();
+        const namespace: NamespaceNameAsString = ctx.config.namespace.name;
+
         task.title += `: ${nodeAlias}`;
 
         await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
@@ -2083,12 +2088,21 @@ export class NodeCommandTasks {
             nodeAlias,
             new ConsensusNodeComponent(
               nodeAlias,
-              // TODO: Discuss how the user should provide the clusterRef
-              this.k8Factory.default().clusters().readCurrent(),
-              ctx.config.namespace.name,
+              clusterRef,
+              namespace,
               ConsensusNodeStates.STARTED,
               Templates.nodeIdFromNodeAlias(nodeAlias),
             ),
+          );
+
+          remoteConfig.components.add(
+            `envoy-proxy-${nodeAlias}`,
+            new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterRef, namespace),
+          );
+
+          remoteConfig.components.add(
+            `haproxy-${nodeAlias}`,
+            new HaProxyComponent(`haproxy-${nodeAlias}`, clusterRef, namespace),
           );
         });
 
