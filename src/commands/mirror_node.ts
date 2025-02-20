@@ -11,7 +11,7 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
-import {type CommandBuilder} from '../types/aliases.js';
+import {type CommandBuilder, type NodeAlias} from '../types/aliases.js';
 import {PodName} from '../core/kube/resources/pod/pod_name.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -29,6 +29,7 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
+import {extractContextFromConsensusNodes} from '../core/helpers.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -355,7 +356,20 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Prepare address book',
                   task: async ctx => {
-                    ctx.addressBook = await self.accountManager.prepareAddressBookBase64();
+                    const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
+                    const portForward = this.configManager.getFlag<boolean>(flags.forcePortForward);
+                    const consensusNodes = this.getConsensusNodes();
+                    const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
+                    const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
+                    ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
+                      ctx.config.namespace,
+                      this.getClusterRefs(),
+                      deployment,
+                      this.configManager.getFlag(flags.operatorId),
+                      this.configManager.getFlag(flags.operatorKey),
+                      portForward,
+                      context,
+                    );
                     ctx.config.valuesArg += ` --set "importer.addressBook=${ctx.addressBook}"`;
                   },
                 },

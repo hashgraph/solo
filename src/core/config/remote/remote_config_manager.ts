@@ -37,6 +37,7 @@ import {Cluster} from './cluster.js';
 import * as helpers from '../../helpers.js';
 import {ConsensusNode} from '../../model/consensus_node.js';
 import {Templates} from '../../templates.js';
+import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -123,10 +124,11 @@ export class RemoteConfigManager {
 
     // temporary workaround until we can have `solo deployment add` command
     const nodeAliases: string[] = helpers.splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
+    const namespace = await this.getNamespace();
 
     this.remoteConfig = new RemoteConfigDataWrapper({
       metadata: new RemoteConfigMetadata(
-        this.getNamespace().name,
+        namespace.name,
         this.configManager.getFlag<DeploymentName>(flags.deployment),
         new Date(),
         this.localConfig.userEmailAddress,
@@ -138,7 +140,7 @@ export class RemoteConfigManager {
       components: ComponentsDataWrapper.initializeWithNodes(
         nodeAliases,
         this.configManager.getFlag(flags.deploymentClusters),
-        this.getNamespace().name,
+        namespace.name,
       ),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
@@ -224,7 +226,7 @@ export class RemoteConfigManager {
   public async loadAndValidate(argv: {_: string[]} & AnyObject) {
     const self = this;
     try {
-      self.setDefaultNamespaceIfNotSet();
+      await self.setDefaultNamespaceIfNotSet(argv);
       self.setDefaultContextIfNotSet();
     } catch (e) {
       self.logger.showUser(chalk.red(e.message));
@@ -274,8 +276,8 @@ export class RemoteConfigManager {
       (command === 'node' && subcommand === 'delete') ||
       (command === 'node' && subcommand === 'delete-execute');
 
-    if (argv[flags.soloChartVersion.constName]) {
-      this.remoteConfig.metadata.soloChartVersion = argv[flags.soloChartVersion.constName] as Version;
+    if (argv[flags.soloChartVersion.name]) {
+      this.remoteConfig.metadata.soloChartVersion = argv[flags.soloChartVersion.name] as Version;
     } else if (isCommandUsingSoloChartVersionFlag) {
       this.remoteConfig.metadata.soloChartVersion = flags.soloChartVersion.definition.defaultValue as Version;
     }
@@ -284,28 +286,28 @@ export class RemoteConfigManager {
       (command === 'node' && subcommand !== 'keys' && subcommand !== 'logs' && subcommand !== 'states') ||
       (command === 'network' && subcommand === 'deploy');
 
-    if (argv[flags.releaseTag.constName]) {
-      this.remoteConfig.metadata.hederaPlatformVersion = argv[flags.releaseTag.constName] as Version;
+    if (argv[flags.releaseTag.name]) {
+      this.remoteConfig.metadata.hederaPlatformVersion = argv[flags.releaseTag.name] as Version;
     } else if (isCommandUsingReleaseTagVersionFlag) {
       this.remoteConfig.metadata.hederaPlatformVersion = flags.releaseTag.definition.defaultValue as Version;
     }
 
-    if (argv[flags.mirrorNodeVersion.constName]) {
-      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = argv[flags.mirrorNodeVersion.constName] as Version;
+    if (argv[flags.mirrorNodeVersion.name]) {
+      this.remoteConfig.metadata.hederaMirrorNodeChartVersion = argv[flags.mirrorNodeVersion.name] as Version;
     } else if (command === 'mirror-node' && subcommand === 'deploy') {
       this.remoteConfig.metadata.hederaMirrorNodeChartVersion = flags.mirrorNodeVersion.definition
         .defaultValue as Version;
     }
 
-    if (argv[flags.hederaExplorerVersion.constName]) {
-      this.remoteConfig.metadata.hederaExplorerChartVersion = argv[flags.hederaExplorerVersion.constName] as Version;
+    if (argv[flags.hederaExplorerVersion.name]) {
+      this.remoteConfig.metadata.hederaExplorerChartVersion = argv[flags.hederaExplorerVersion.name] as Version;
     } else if (command === 'explorer' && subcommand === 'deploy') {
       this.remoteConfig.metadata.hederaExplorerChartVersion = flags.hederaExplorerVersion.definition
         .defaultValue as Version;
     }
 
-    if (argv[flags.relayReleaseTag.constName]) {
-      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = argv[flags.relayReleaseTag.constName] as Version;
+    if (argv[flags.relayReleaseTag.name]) {
+      this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = argv[flags.relayReleaseTag.name] as Version;
     } else if (command === 'relay' && subcommand === 'deploy') {
       this.remoteConfig.metadata.hederaJsonRpcRelayChartVersion = flags.relayReleaseTag.definition
         .defaultValue as Version;
@@ -367,10 +369,10 @@ export class RemoteConfigManager {
       return await this.k8Factory
         .default()
         .configMaps()
-        .read(this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
-    } catch (error) {
-      if (!(error instanceof ResourceNotFoundError)) {
-        throw new SoloError('Failed to read remote config from cluster', error);
+        .read(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
+    } catch (e) {
+      if (!(e instanceof ResourceNotFoundError)) {
+        throw new SoloError('Failed to read remote config from cluster', e);
       }
 
       return null;
@@ -384,7 +386,7 @@ export class RemoteConfigManager {
     await this.k8Factory
       .default()
       .configMaps()
-      .create(this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
+      .create(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
         'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
       });
   }
@@ -392,10 +394,10 @@ export class RemoteConfigManager {
   /** Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data. */
   private async replaceConfigMap(): Promise<void> {
     const contexts = this.getContexts();
+    const namespace = await this.getNamespace();
 
     await Promise.all(
       contexts.map(context => {
-        const namespace = this.getNamespace();
         const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
         const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
         const data = {
@@ -406,14 +408,23 @@ export class RemoteConfigManager {
       }),
     );
   }
-  private setDefaultNamespaceIfNotSet(): void {
+
+  private async setDefaultNamespaceIfNotSet(argv: AnyObject): Promise<void> {
     if (this.configManager.hasFlag(flags.namespace)) return;
 
     // TODO: Current quick fix for commands where namespace is not passed
-    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
-    const currentDeployment = this.localConfig.deployments[deploymentName];
+    let deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    let currentDeployment = this.localConfig.deployments[deploymentName];
 
-    if (!this.localConfig?.deployments[deploymentName]) {
+    if (!deploymentName) {
+      deploymentName = await promptTheUserForDeployment(this.configManager);
+      currentDeployment = this.localConfig.deployments[deploymentName];
+      // TODO: Fix once we have the DataManager,
+      //       without this the user will be prompted a second time for the deployment
+      argv[flags.deployment.name] = deploymentName;
+    }
+
+    if (!currentDeployment) {
       this.logger.error('Selected deployment name is not set in local config', this.localConfig);
       throw new SoloError('Selected deployment name is not set in local config');
     }
@@ -421,6 +432,7 @@ export class RemoteConfigManager {
     const namespace = currentDeployment.namespace;
 
     this.configManager.setFlag(flags.namespace, namespace);
+    argv[flags.namespace.name] = namespace;
   }
 
   private setDefaultContextIfNotSet(): void {
@@ -442,8 +454,8 @@ export class RemoteConfigManager {
    * Retrieves the namespace value from the configuration manager's flags.
    * @returns string - The namespace value if set.
    */
-  private getNamespace(): NamespaceName {
-    const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
+  private async getNamespace(): Promise<NamespaceName> {
+    const ns = await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
   }
