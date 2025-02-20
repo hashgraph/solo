@@ -103,6 +103,7 @@ export default [
           ignores: ['fs.cpSync', 'CryptoKey', 'fetch'],
         },
       ],
+      'no-prototype-builtins': 'off',
     },
   },
   {
