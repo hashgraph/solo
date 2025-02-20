@@ -76,7 +76,7 @@ import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName} from '../../core/config/remote/types.js';
-import {ConsensusNode} from '../../core/model/consensus_node.js';
+import {type ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
