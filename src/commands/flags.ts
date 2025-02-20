@@ -895,7 +895,7 @@ export class Flags {
     name: 'application-properties',
     definition: {
       describe: 'application.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
+      defaultValue: path.join('templates', 'application.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -908,7 +908,7 @@ export class Flags {
       describe:
         'the application.env file for the node provides environment variables to the solo-container' +
         ' to be used when the hedera platform is started',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.env'),
+      defaultValue: path.join('templates', 'application.env'),
       type: 'string',
     },
     prompt: undefined,
@@ -919,7 +919,7 @@ export class Flags {
     name: 'api-permission-properties',
     definition: {
       describe: 'api-permission.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
+      defaultValue: path.join('templates', 'api-permission.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -930,7 +930,7 @@ export class Flags {
     name: 'bootstrap-properties',
     definition: {
       describe: 'bootstrap.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
+      defaultValue: path.join('templates', 'bootstrap.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -952,7 +952,7 @@ export class Flags {
     name: 'settings-txt',
     definition: {
       describe: 'settings.txt file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
+      defaultValue: path.join('templates', 'settings.txt'),
       type: 'string',
     },
     prompt: undefined,
@@ -1064,7 +1064,7 @@ export class Flags {
     name: 'log4j2-xml',
     definition: {
       describe: 'log4j2.xml file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
+      defaultValue: path.join('templates', 'log4j2.xml'),
       type: 'string',
     },
     prompt: undefined,
