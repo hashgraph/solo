@@ -21,6 +21,8 @@ First, use the following command to set up the environment variables:
 export SOLO_CLUSTER_NAME=solo
 export SOLO_NAMESPACE=solo
 export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
+export SOLO_DEVELOPMENT=solo-deployment
+
 ```
 
 Then run the following command to set the kubectl context to the new cluster:
@@ -125,6 +127,17 @@ $SOLO_CLUSTER_SETUP_OUTPUT
 ```
 
 In a separate terminal, you may run `k9s` to view the pod status.
+
+* Create a solo deployment
+```
+solo deployment create -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
+```
+* 
+* Example output
+
+```
+$SOLO_DEPLOYMENT_CREATE_OUTPUT
+```
 
 * Deploy helm chart with Hedera network components
 
