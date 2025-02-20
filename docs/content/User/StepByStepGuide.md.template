@@ -132,7 +132,7 @@ In a separate terminal, you may run `k9s` to view the pod status.
 ```
 solo deployment create -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
 ```
-* 
+
 * Example output
 
 ```
