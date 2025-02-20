@@ -162,6 +162,42 @@ export class NetworkCommand extends BaseCommand {
     ];
   }
 
+  private waitForNetworkPods() {
+    const self = this;
+    return {
+      title: 'Check node pods are running',
+      task: (ctx, task) => {
+        const subTasks: any[] = [];
+        const config = ctx.config;
+
+        // nodes
+        for (const consensusNode of config.consensusNodes) {
+          subTasks.push({
+            title: `Check Node: ${chalk.yellow(consensusNode.name)}, Cluster: ${chalk.yellow(consensusNode.cluster)}`,
+            task: async () =>
+              await self.k8Factory
+                .getK8(consensusNode.context)
+                .pods()
+                .waitForRunningPhase(
+                  config.namespace,
+                  [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
+                  constants.PODS_RUNNING_MAX_ATTEMPTS,
+                  constants.PODS_RUNNING_DELAY,
+                ),
+          });
+        }
+
+        // set up the sub-tasks
+        return task.newListr(subTasks, {
+          concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+          rendererOptions: {
+            collapseSubtasks: false,
+          },
+        });
+      },
+    };
+  }
+
   async prepareMinioSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
     // Generating new minio credentials
     const minioData = {};
@@ -918,38 +954,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
-        {
-          title: 'Check node pods are running',
-          task: (ctx, task) => {
-            const subTasks: any[] = [];
-            const config = ctx.config;
-
-            // nodes
-            for (const consensusNode of config.consensusNodes) {
-              subTasks.push({
-                title: `Check Node: ${chalk.yellow(consensusNode.name)}, Cluster: ${chalk.yellow(consensusNode.cluster)}`,
-                task: async () =>
-                  await self.k8Factory
-                    .getK8(consensusNode.context)
-                    .pods()
-                    .waitForRunningPhase(
-                      config.namespace,
-                      [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
-                      constants.PODS_RUNNING_MAX_ATTEMPTS,
-                      constants.PODS_RUNNING_DELAY,
-                    ),
-              });
-            }
-
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false,
-              },
-            });
-          },
-        },
+        self.waitForNetworkPods(),
         {
           title: 'Check proxy pods are running',
           task: (ctx, task) => {
@@ -1177,26 +1182,12 @@ export class NetworkCommand extends BaseCommand {
                 ctx.config.chartPath,
                 config.soloChartVersion,
                 config.valuesArgMap[clusterRef],
-                this.k8Factory.default().contexts().readCurrent(),
+                config.clusterRefs[clusterRef],
               );
             }
           },
         },
-        {
-          title: 'Waiting for network pods to be running',
-          task: async ctx => {
-            const config = ctx.config;
-            await this.k8Factory
-              .default()
-              .pods()
-              .waitForRunningPhase(
-                config.namespace,
-                ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
-                constants.PODS_RUNNING_MAX_ATTEMPTS,
-                constants.PODS_RUNNING_DELAY,
-              );
-          },
-        },
+        self.waitForNetworkPods(),
       ],
       {
         concurrent: false,
