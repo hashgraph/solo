@@ -1766,17 +1766,13 @@ export class NodeCommandTasks {
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
         // Update charts
-        await Promise.all(
-          Object.keys(clusterRefs).map(clusterRef =>
-            self.chartManager.upgrade(
-              config.namespace,
-              constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath,
-              config.soloChartVersion,
-              valuesArgMap[clusterRef],
-              this.parent.getLocalConfig().clusterRefs[clusterRef],
-            ),
-          ),
+        self.chartManager.upgrade(
+          config.namespace,
+          constants.SOLO_DEPLOYMENT_CHART,
+          ctx.config.chartPath,
+          config.soloChartVersion,
+          valuesArgMap[clusterRef],
+          this.parent.getLocalConfig().clusterRefs[clusterRef],
         );
       },
       skip,
