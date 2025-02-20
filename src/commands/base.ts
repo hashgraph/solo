@@ -385,15 +385,15 @@ export abstract class BaseCommand extends ShellRunner {
             node.cluster,
             // use local config to get the context
             this.getLocalConfig().clusterRefs[node.cluster],
-            clusters[node.cluster].dnsBaseDomain,
-            clusters[node.cluster].dnsConsensusNodePattern,
+            clusters[node.cluster].dnsBaseDomain ?? '',
+            clusters[node.cluster].dnsConsensusNodePattern ?? '',
             Templates.renderConsensusNodeFullyQualifiedDomainName(
               node.name as NodeAlias,
               node.nodeId,
               node.namespace,
               node.cluster,
-              clusters[node.cluster].dnsBaseDomain,
-              clusters[node.cluster].dnsConsensusNodePattern,
+              clusters[node.cluster]?.dnsBaseDomain ?? '',
+              clusters[node.cluster]?.dnsConsensusNodePattern ?? '',
             ),
           ),
         );
