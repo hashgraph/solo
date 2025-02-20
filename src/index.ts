@@ -138,8 +138,7 @@ export function main(argv: any) {
         (command === 'deployment' && subCommand === 'list');
 
       if (command === 'node' && subCommand === 'keys') {
-        // @ts-expect-error - temporarily disabling the remote config validation logic until it supports multiple clusters
-        await remoteConfigManager.load();
+        await remoteConfigManager.loadAndValidate(argv, false);
       }
 
       if (!skip) {

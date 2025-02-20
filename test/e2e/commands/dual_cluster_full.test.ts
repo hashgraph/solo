@@ -49,11 +49,9 @@ function soloNodeKeysArgv(deployment: DeploymentName, nodeAliasesUnparsed: strin
   argv.push(deployment);
   argv.push(optionFromFlag(Flags.generateGossipKeys));
   argv.push(optionFromFlag(Flags.generateTlsKeys));
+  // TODO remove once solo node keys pulls the node aliases from the remote config
   argv.push(optionFromFlag(Flags.nodeAliasesUnparsed));
   argv.push(nodeAliasesUnparsed);
-  // TODO remove once the remote config manager is updated to pull the namespace from the local config
-  argv.push(optionFromFlag(Flags.namespace));
-  argv.push(namespace.name);
   return argv;
 }
 
@@ -227,6 +225,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   //   8. Argument `--num-consensus-nodes` is only valid if the deployment is in a pre-genesis state.
   //   9. Fail if `--num-consensus-nodes` is specified for a deployment that is not in a pre-genesis state.
   //   10. Fail if `--num-consensus-nodes` is not specified for a deployment that is in a pre-genesis state.
+  //   11. Saves the Remote Config to the ConfigMap in the namespace of the deployment for each cluster-ref added
 
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster1 --enable-cert-manager
   //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-${nodeAlias}-svc.${namespace}.svc
@@ -255,7 +254,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // TODO cluster setup (for right now this is being done by the `setup-dual-e2e.sh` script)
 
   it(`${testName}: node keys`, async () => {
-    main(soloNodeKeysArgv(deployment, nodeAliasesUnparsed, namespace));
+    // TODO we shouldn't have to pass the nodeAliasesUnparsed
+    main(soloNodeKeysArgv(deployment, nodeAliasesUnparsed, undefined));
   });
 
   // TODO network deploy

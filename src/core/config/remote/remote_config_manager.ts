@@ -178,7 +178,7 @@ export class RemoteConfigManager {
       }
 
       return false;
-    } catch {
+    } catch (e) {
       return false;
     }
   }
@@ -224,8 +224,9 @@ export class RemoteConfigManager {
    * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
    *
    * @param argv - arguments containing command input for historical reference.
+   * @param validate - whether to validate the remote configuration.
    */
-  public async loadAndValidate(argv: {_: string[]} & AnyObject) {
+  public async loadAndValidate(argv: {_: string[]} & AnyObject, validate: boolean = true) {
     const self = this;
     try {
       await self.setDefaultNamespaceIfNotSet(argv);
@@ -241,6 +242,10 @@ export class RemoteConfigManager {
       // TODO see if this should be disabled to make it an optional feature
       return;
       // throw new SoloError('Failed to load remote config')
+    }
+
+    if (!validate) {
+      return;
     }
 
     await RemoteConfigValidator.validateComponents(
@@ -373,10 +378,7 @@ export class RemoteConfigManager {
       namespace = await this.getNamespace();
     }
     if (!context) {
-      const contexts: string[] = this.getContexts();
-      if (contexts.length > 0) {
-        context = contexts[0];
-      }
+      context = this.getContextForFirstCluster();
     }
 
     try {
@@ -534,5 +536,15 @@ export class RemoteConfigManager {
       acc[node.cluster] ||= node.context;
       return acc;
     }, {} as ClusterRefs);
+  }
+
+  private getContextForFirstCluster() {
+    const contexts = this.getContexts();
+    if (contexts.length > 0) {
+      return contexts[0];
+    }
+    const cluster =
+      this.localConfig.deployments[this.configManager.getFlag<DeploymentName>(flags.deployment)].clusters[0];
+    return this.localConfig.clusterRefs[cluster];
   }
 }
