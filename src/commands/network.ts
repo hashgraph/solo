@@ -883,7 +883,7 @@ export class NetworkCommand extends BaseCommand {
                 await self.chartManager.uninstall(
                   config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
-                  this.k8Factory.getK8(config.clusterRefs[clusterRef]).contexts().readCurrent(),
+                  config.clusterRefs[clusterRef],
                 );
               }
 

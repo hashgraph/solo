@@ -1752,7 +1752,7 @@ export class NodeCommandTasks {
           );
 
           for (const clusterRef of Object.keys(valuesFiles)) {
-            valuesArgMap[clusterRef] += valuesArgMap[clusterRef] + valuesFiles[clusterRef];
+            valuesArgMap[clusterRef] += valuesFiles[clusterRef];
             this.logger.debug(`Prepared helm chart values for cluster-ref: ${clusterRef}`, {valuesArg: valuesArgMap});
           }
         }
@@ -1763,7 +1763,7 @@ export class NodeCommandTasks {
           ? consensusNode.cluster
           : this.parent.getK8Factory().default().clusters().readCurrent();
 
-        valuesArgMap[clusterRef] += addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
+        valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
         // Update charts
         await Promise.all(
@@ -1774,7 +1774,7 @@ export class NodeCommandTasks {
               ctx.config.chartPath,
               config.soloChartVersion,
               valuesArgMap[clusterRef],
-              this.k8Factory.getK8(this.parent.getLocalConfig().clusterRefs[clusterRef]).contexts().readCurrent(),
+              this.parent.getLocalConfig().clusterRefs[clusterRef],
             ),
           ),
         );
