@@ -84,6 +84,7 @@ import {ConsensusNodeComponent} from '../../core/config/remote/components/consen
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
+import {NodeCommand} from './index.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -96,8 +97,6 @@ export class NodeCommandTasks {
   private readonly parent: BaseCommand;
   private readonly chartManager: ChartManager;
   private readonly certificateManager: CertificateManager;
-
-  private readonly prepareValuesFiles: any;
 
   constructor(opts: {
     logger: SoloLogger;
@@ -137,7 +136,6 @@ export class NodeCommandTasks {
     this.keyManager = opts.keyManager;
     this.chartManager = opts.chartManager;
     this.certificateManager = opts.certificateManager;
-    this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent);
     this.parent = opts.parent;
   }
 
@@ -1635,16 +1633,21 @@ export class NodeCommandTasks {
         // Prepare parameter and update the network node chart
         const config = ctx.config;
 
-        const consensusNodes = ctx.config.consensusNodes;
-        const valuesArgs: Record<ClusterRef, string> = {};
+        const consensusNodes = ctx.config.consensusNodes as ConsensusNode[];
+        const valuesArgMap: Record<ClusterRef, string> = {};
 
+        // Make sure valuesArgMap is initialized with empty strings
         if (consensusNodes.length) {
-          consensusNodes.forEach(node => (valuesArgs[node.cluster] = ''));
+          consensusNodes.forEach(node => (valuesArgMap[node.cluster] = ''));
         } else {
-          valuesArgs[this.parent.getK8Factory().default().clusters().readCurrent()] = '';
+          valuesArgMap[this.parent.getK8Factory().default().clusters().readCurrent()] = '';
         }
 
-        const clusterRefs = this.parent.getClusterRefs();
+        const clusterRefs = this.parent.getClusterRefs() ?? {};
+        if (!Object.keys(clusterRefs).length) {
+          const clusterRef = this.parent.getK8Factory().default().clusters().readCurrent();
+          clusterRefs[clusterRef] = this.parent.getLocalConfig().clusterRefs[clusterRef];
+        }
 
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
@@ -1663,36 +1666,38 @@ export class NodeCommandTasks {
         const nodeId = maxNodeId + 1;
         const index = config.existingNodeAliases.length;
 
+        // On Update and Delete
         for (let i = 0; i < index; i++) {
-          const consensusNode = consensusNodes.find(node => node.nodeId === nodeId);
+          if (transactionType === NodeSubcommandType.ADD) continue; // Do nothing on 'node add'
 
-          let valuesArg = '';
+          const consensusNode = consensusNodes.find(node => node.nodeId === i);
+          const clusterRef = consensusNode
+            ? consensusNode.cluster
+            : this.parent.getK8Factory().default().clusters().readCurrent();
+
           if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
             // for the case of updating node
             // use new account number for this node id
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
+            valuesArgMap[clusterRef] +=
+              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) {
             // for the case of deleting node
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
+            valuesArgMap[clusterRef] +=
+              ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType === NodeSubcommandType.DELETE && i === nodeId) {
-            valuesArg += ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
+            valuesArgMap[clusterRef] +=
+              ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           }
-
-          const cluster = consensusNode
-            ? consensusNode.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
-
-          valuesArgs[cluster] += valuesArg;
         }
 
-        // for the case of adding a new node
+        // When adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const consensusNode = consensusNodes.find(node => node.nodeId === index);
-          const cluster = consensusNode
+          const clusterRef = consensusNode
             ? consensusNode.cluster
             : this.parent.getK8Factory().default().clusters().readCurrent();
 
-          valuesArgs[cluster] +=
+          valuesArgMap[clusterRef] +=
             ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
             ` --set "hedera.nodes[${index}].name=${ctx.newNode.name}"` +
             ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
@@ -1715,8 +1720,9 @@ export class NodeCommandTasks {
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
             const ip: string = config.haproxyIpsParsed?.[nodeAlias];
+
             if (ip) {
-              valuesArgs[clusterForConsensusNodeInValues] +=
+              valuesArgMap[clusterForConsensusNodeInValues] +=
                 ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
             }
           }
@@ -1724,64 +1730,55 @@ export class NodeCommandTasks {
           // Set static IPs for Envoy Proxy
           if (config.envoyIpsParsed) {
             const ip: string = config.envoyIpsParsed?.[nodeAlias];
+
             if (ip) {
-              valuesArgs[clusterForConsensusNodeInValues] +=
+              valuesArgMap[clusterForConsensusNodeInValues] +=
                 ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
             }
           }
         }
 
+        // Add profile values files
         const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
           path.join(config.stagingDir, 'config.txt'),
           path.join(config.stagingDir, 'templates', 'application.properties'),
         );
 
         if (profileValuesFile) {
-          if (clusterRefs) {
-            Object.keys(clusterRefs).forEach(
-              clusterRef => (valuesArgs[clusterRef] += self.prepareValuesFiles(profileValuesFile)),
-            );
-          } else {
-            const clusterRef = this.parent.getK8Factory().default().clusters().readCurrent();
-            valuesArgs[clusterRef] += self.prepareValuesFiles(profileValuesFile);
+          const valuesFiles: Record<ClusterRef, string> = NodeCommand.prepareValuesFilesMap(
+            config.clusterRefs,
+            config.chartDirectory,
+            profileValuesFile,
+            config.valuesFile,
+          );
+
+          for (const clusterRef of Object.keys(valuesFiles)) {
+            valuesArgMap[clusterRef] += valuesArgMap[clusterRef] + valuesFiles[clusterRef];
+            this.logger.debug(`Prepared helm chart values for cluster-ref: ${clusterRef}`, {valuesArg: valuesArgMap});
           }
         }
 
-        if (consensusNodes.length) {
-          consensusNodes.filter(consensusNode => {
-            if (consensusNode.name === config.debugNodeAlias) {
-              consensusNodes[consensusNode.cluster] = addDebugOptions(
-                valuesArgs[consensusNode.cluster],
-                config.debugNodeAlias,
-              );
-            }
-          });
-        } else {
-          const clusterRef = this.parent.getK8Factory().default().clusters().readCurrent();
-          valuesArgs[clusterRef] = addDebugOptions(valuesArgs[clusterRef], config.debugNodeAlias);
-        }
+        // Add Debug options
+        const consensusNode = consensusNodes.find(node => node.name === config.debugNodeAlias);
+        const clusterRef = consensusNode
+          ? consensusNode.cluster
+          : this.parent.getK8Factory().default().clusters().readCurrent();
 
-        if (clusterRefs) {
-          for (const clusterRef of Object.keys(clusterRefs)) {
-            await self.chartManager.upgrade(
+        valuesArgMap[clusterRef] += addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
+
+        // Update charts
+        await Promise.all(
+          Object.keys(clusterRefs).map(clusterRef =>
+            self.chartManager.upgrade(
               config.namespace,
               constants.SOLO_DEPLOYMENT_CHART,
               ctx.config.chartPath,
               config.soloChartVersion,
-              valuesArgs[clusterRef],
+              valuesArgMap[clusterRef],
               this.k8Factory.getK8(this.parent.getLocalConfig().clusterRefs[clusterRef]).contexts().readCurrent(),
-            );
-          }
-        } else {
-          await self.chartManager.upgrade(
-            config.namespace,
-            constants.SOLO_DEPLOYMENT_CHART,
-            ctx.config.chartPath,
-            config.soloChartVersion,
-            valuesArgs[this.parent.getK8Factory().default().clusters().readCurrent()],
-            this.k8Factory.default().contexts().readCurrent(),
-          );
-        }
+            ),
+          ),
+        );
       },
       skip,
     };
