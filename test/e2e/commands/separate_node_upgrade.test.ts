@@ -90,7 +90,6 @@ e2eTestSuite(
           flags.localBuildPath.constName,
           flags.force.constName,
           'nodeClient',
-          'contexts',
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());
 

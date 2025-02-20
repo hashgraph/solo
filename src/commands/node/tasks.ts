@@ -42,7 +42,6 @@ import crypto from 'crypto';
 import * as helpers from '../../core/helpers.js';
 import {
   addDebugOptions,
-  extractContextFromConsensusNodes,
   getNodeAccountMap,
   prepareEndpoints,
   renameAndCopyFile,
@@ -81,6 +80,8 @@ import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
+import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -1594,30 +1595,6 @@ export class NodeCommandTasks {
 
   copyNodeKeysToSecrets() {
     return new Task('Copy node keys to secrets', (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      // TODO - temporary solution until we add multi-cluster support for node-add
-      //   if the consensusNodes does not contain the nodeAlias then add it
-      if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
-        ctx.config.consensusNodes.push(
-          new ConsensusNode(
-            ctx.config.nodeAlias,
-            Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
-            ctx.config.namespace.name,
-            ctx.config.consensusNodes[0].cluster,
-            ctx.config.consensusNodes[0].context,
-            'cluster.local',
-            'network-${nodeAlias}-svc.${namespace}.svc',
-            Templates.renderConsensusNodeFullyQualifiedDomainName(
-              ctx.config.nodeAlias as NodeAlias,
-              Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
-              ctx.config.namespace,
-              ctx.config.consensusNodes[0].cluster,
-              'cluster.local',
-              'network-${nodeAlias}-svc.${namespace}.svc',
-            ),
-          ),
-        );
-      }
-
       const subTasks = this.platformInstaller.copyNodeKeys(
         ctx.config.stagingDir,
         ctx.config.consensusNodes,
@@ -2076,5 +2053,35 @@ export class NodeCommandTasks {
         return ListrLease.newAcquireLeaseTask(lease, task);
       }
     });
+  }
+
+  public addNewConsensusNodeToRemoteConfig(): SoloListrTask<{
+    newNode: {accountId: string; name: string};
+    config: NodeAddConfigClass;
+  }> {
+    return {
+      title: 'Add new node to remote config',
+      task: async (ctx, task) => {
+        if (!ctx.newNode) throw new SoloError('TODO: The newNode is not found');
+        const nodeAlias = ctx.config.nodeAlias;
+        task.title += `: ${nodeAlias}`;
+
+        await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+          remoteConfig.components.add(
+            nodeAlias,
+            new ConsensusNodeComponent(
+              nodeAlias,
+              // TODO: Discuss how the user should provide the clusterRef
+              this.k8Factory.default().clusters().readCurrent(),
+              ctx.config.namespace.name,
+              ConsensusNodeStates.STARTED,
+              Templates.nodeIdFromNodeAlias(nodeAlias),
+            ),
+          );
+        });
+
+        ctx.config.consensusNodes = this.parent.getConsensusNodes();
+      },
+    };
   }
 }
