@@ -3,10 +3,10 @@
 User can deploy a solo network with mirror node by running the following command:
 
 ```bash
-SOLO_CLUSTER_NAME=solo-cluster
-SOLO_NAMESPACE=solo-e2e
-SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
-SOLO_DEVELOPMENT=solo-deployment
+export SOLO_CLUSTER_NAME=solo-cluster
+export SOLO_NAMESPACE=solo-e2e
+export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
+export SOLO_DEVELOPMENT=solo-deployment
 
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
