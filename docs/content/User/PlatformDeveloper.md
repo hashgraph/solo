@@ -7,21 +7,24 @@ multiple directories, checkout to the respective version and build the code.
 Then you can start customized built platform testing application with the following command:
 
 ```bash
-SOLO_CLUSTER_NAME=solo-e2e
+SOLO_CLUSTER_NAME=solo-cluster
 SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
+SOLO_DEVELOPMENT=solo-deployment
+
 kind delete cluster -n "${SOLO_CLUSTER_NAME}" 
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 solo init
 solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3 
-solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --app PlatformTestingTool.jar
+solo deployment create --namespace "${SOLO_NAMESPACE}"  --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --cluster-ref kind-"${SOLO_CLUSTER_NAME}" --deployment "${SOLO_DEVELOPMENT}" --node-aliases node1,node2,node3
+solo network deploy --deployment "${SOLO_DEVELOPMENT}" -i node1,node2,node3 --app PlatformTestingTool.jar
 
 # option 1) if all nodes are running the same version of platform testing app
-solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path ../hedera-services/platform-sdk/sdk/data
+solo node setup --deployment "${SOLO_DEVELOPMENT}" -i node1,node2,node3 --local-build-path ../hedera-services/platform-sdk/sdk/data
 
 # option 2) if each node is running different version of platform testing app, please provide different paths to the local repositories
-solo node setup -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --local-build-path node1=../hedera-services/platform-sdk/sdk/data,node1=<path2>,node3=<path3>
+solo node setup --deployment "${SOLO_DEVELOPMENT}" -i node1,node2,node3 --local-build-path node1=../hedera-services/platform-sdk/sdk/data,node1=<path2>,node3=<path3>
 
-solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --app PlatformTestingTool.jar
+solo node start --deployment "${SOLO_DEVELOPMENT}" -i node1,node2,node3 --app PlatformTestingTool.jar
 ```
