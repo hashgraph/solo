@@ -1762,18 +1762,16 @@ export class NodeCommandTasks {
         }
 
         if (clusterRefs) {
-          await Promise.all(
-            Object.keys(clusterRefs).map(clusterRef => {
-              return self.chartManager.upgrade(
-                config.namespace,
-                constants.SOLO_DEPLOYMENT_CHART,
-                ctx.config.chartPath,
-                config.soloChartVersion,
-                valuesArgs[clusterRef],
-                this.k8Factory.getK8(this.parent.getLocalConfig().clusterRefs[clusterRef]).contexts().readCurrent(),
-              );
-            }),
-          );
+          for (const clusterRef of Object.keys(clusterRefs)) {
+            await self.chartManager.upgrade(
+              config.namespace,
+              constants.SOLO_DEPLOYMENT_CHART,
+              ctx.config.chartPath,
+              config.soloChartVersion,
+              valuesArgs[clusterRef],
+              this.k8Factory.getK8(this.parent.getLocalConfig().clusterRefs[clusterRef]).contexts().readCurrent(),
+            );
+          }
         } else {
           await self.chartManager.upgrade(
             config.namespace,
