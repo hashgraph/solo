@@ -162,13 +162,15 @@ export class RemoteConfigManager {
 
   /**
    * Loads the remote configuration from the Kubernetes cluster if it exists.
+   * @param namespace - The namespace to search for the ConfigMap.
+   * @param context - The context to use for the Kubernetes client.
    * @returns true if the configuration is loaded successfully.
    */
-  private async load(): Promise<boolean> {
+  private async load(namespace?: NamespaceName, context?: string): Promise<boolean> {
     if (this.remoteConfig) return true;
 
     try {
-      const configMap = await this.getConfigMap();
+      const configMap = await this.getConfigMap(namespace, context);
 
       if (configMap) {
         this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
@@ -361,15 +363,24 @@ export class RemoteConfigManager {
   /**
    * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
    *
+   * @param namespace - The namespace to search for the ConfigMap.
+   * @param context - The context to use for the Kubernetes client.
    * @returns the remote configuration data.
    * @throws {@link SoloError} if the ConfigMap could not be read and the error is not a 404 status.
    */
-  public async getConfigMap(): Promise<k8s.V1ConfigMap> {
+  public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<k8s.V1ConfigMap> {
+    if (!namespace) {
+      namespace = await this.getNamespace();
+    }
+    if (!context) {
+      const contexts: string[] = this.getContexts();
+      if (contexts.length > 0) {
+        context = contexts[0];
+      }
+    }
+
     try {
-      return await this.k8Factory
-        .default()
-        .configMaps()
-        .read(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
+      return await this.k8Factory.getK8(context).configMaps().read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (e) {
       if (!(e instanceof ResourceNotFoundError)) {
         throw new SoloError('Failed to read remote config from cluster', e);

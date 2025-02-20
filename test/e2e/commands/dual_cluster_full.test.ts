@@ -241,8 +241,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     expect(remoteConfigManager.isLoaded(), 'remote config manager should not be loaded').to.be.false;
     const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
     configManager.setFlag(Flags.namespace, namespace);
+    configManager.setFlag(Flags.deployment, deployment);
+
     // @ts-ignore
-    await remoteConfigManager.load();
+    await remoteConfigManager.load(namespace, contexts[0]);
     expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
     expect(
       Object.entries(remoteConfigManager.components.consensusNodes).length,
