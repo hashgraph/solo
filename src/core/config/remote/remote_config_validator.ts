@@ -3,10 +3,14 @@
  */
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors.js';
+import {ConsensusNodeStates} from './enumerations.js';
 
-import {type K8} from '../../kube/k8.js';
+import {type K8Factory} from '../../kube/k8_factory.js';
 import {type ComponentsDataWrapper} from './components_data_wrapper.js';
 import {type BaseComponent} from './components/base_component.js';
+import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
+import {type V1Pod} from '@kubernetes/client-node';
+import {type LocalConfig} from '../local_config.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -14,95 +18,139 @@ import {type BaseComponent} from './components/base_component.js';
  */
 export class RemoteConfigValidator {
   /**
-   * Gathers together and handles validation of all components.
+   * Gathers and handles validation of all components.
    *
-   * @param components - components which to validate.
-   * @param k8 - to validate the elements.
-   * TODO: Make compatible with multi-cluster K8 implementation
+   * @param namespace - namespace to validate the components in.
+   * @param components - components to validate.
+   * @param k8Factory - to validate the elements.
+   * @param localConfig - to get the context from cluster
    */
-  public static async validateComponents(components: ComponentsDataWrapper, k8: K8): Promise<void> {
+  public static async validateComponents(
+    namespace: NamespaceName,
+    components: ComponentsDataWrapper,
+    k8Factory: K8Factory,
+    localConfig: LocalConfig,
+  ): Promise<void> {
     await Promise.all([
-      ...RemoteConfigValidator.validateRelays(components, k8),
-      ...RemoteConfigValidator.validateHaProxies(components, k8),
-      ...RemoteConfigValidator.validateMirrorNodes(components, k8),
-      ...RemoteConfigValidator.validateEnvoyProxies(components, k8),
-      ...RemoteConfigValidator.validateConsensusNodes(components, k8),
-      ...RemoteConfigValidator.validateMirrorNodeExplorers(components, k8),
+      ...RemoteConfigValidator.validateRelays(namespace, components, k8Factory, localConfig),
+      ...RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory, localConfig),
+      ...RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory, localConfig),
+      ...RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory, localConfig),
+      ...RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory, localConfig),
+      ...RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory, localConfig),
     ]);
   }
 
-  private static validateRelays(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
+  private static validateRelays(
+    namespace: NamespaceName,
+    components: ComponentsDataWrapper,
+    k8Factory: K8Factory,
+    localConfig: LocalConfig,
+  ): Promise<void>[] {
     return Object.values(components.relays).map(async component => {
+      const context = localConfig.clusterRefs[component.cluster];
+      const labels = [constants.SOLO_RELAY_LABEL];
       try {
-        const pods = await k8.getPodsByLabel([constants.SOLO_RELAY_LABEL]);
+        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        // to return the generic error message
-        if (!pods.length) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
         RemoteConfigValidator.throwValidationError('Relay', component, e);
       }
     });
   }
 
-  private static validateHaProxies(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
+  private static validateHaProxies(
+    namespace: NamespaceName,
+    components: ComponentsDataWrapper,
+    k8Factory: K8Factory,
+    localConfig: LocalConfig,
+  ): Promise<void>[] {
     return Object.values(components.haProxies).map(async component => {
+      const context = localConfig.clusterRefs[component.cluster];
+      const labels = [`app=${component.name}`];
       try {
-        const pods = await k8.getPodsByLabel([`app=${component.name}`]);
+        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        // to return the generic error message
-        if (!pods.length) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
         RemoteConfigValidator.throwValidationError('HaProxy', component, e);
       }
     });
   }
 
-  private static validateMirrorNodes(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
+  private static validateMirrorNodes(
+    namespace: NamespaceName,
+    components: ComponentsDataWrapper,
+    k8Factory: K8Factory,
+    localConfig: LocalConfig,
+  ): Promise<void>[] {
     return Object.values(components.mirrorNodes).map(async component => {
+      const context = localConfig.clusterRefs[component.cluster];
+      const labels = constants.SOLO_HEDERA_MIRROR_IMPORTER;
       try {
-        const pods = await k8.getPodsByLabel(constants.SOLO_HEDERA_MIRROR_IMPORTER);
+        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        // to return the generic error message
-        if (!pods.length) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
         RemoteConfigValidator.throwValidationError('Mirror node', component, e);
       }
     });
   }
 
-  private static validateEnvoyProxies(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
+  private static validateEnvoyProxies(
+    namespace: NamespaceName,
+    components: ComponentsDataWrapper,
+    k8Factory: K8Factory,
+    localConfig: LocalConfig,
+  ): Promise<void>[] {
     return Object.values(components.envoyProxies).map(async component => {
+      const context = localConfig.clusterRefs[component.cluster];
+      const labels = [`app=${component.name}`];
       try {
-        const pods = await k8.getPodsByLabel([`app=${component.name}`]);
+        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        // to return the generic error message
-        if (!pods.length) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
         RemoteConfigValidator.throwValidationError('Envoy proxy', component, e);
       }
     });
   }
 
-  private static validateConsensusNodes(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
+  private static validateConsensusNodes(
+    namespace: NamespaceName,
+    components: ComponentsDataWrapper,
+    k8Factory: K8Factory,
+    localConfig: LocalConfig,
+  ): Promise<void>[] {
     return Object.values(components.consensusNodes).map(async component => {
-      try {
-        const pods = await k8.getPodsByLabel([`app=network-${component.name}`]);
+      if (component.state === ConsensusNodeStates.REQUESTED) return;
 
-        // to return the generic error message
-        if (!pods.length) throw new Error('Pod not found');
+      const context = localConfig.clusterRefs[component.cluster];
+      const labels = [`app=network-${component.name}`];
+      try {
+        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
+
+        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
         RemoteConfigValidator.throwValidationError('Consensus node', component, e);
       }
     });
   }
 
-  private static validateMirrorNodeExplorers(components: ComponentsDataWrapper, k8: K8): Promise<void>[] {
+  private static validateMirrorNodeExplorers(
+    namespace: NamespaceName,
+    components: ComponentsDataWrapper,
+    k8Factory: K8Factory,
+    localConfig: LocalConfig,
+  ): Promise<void>[] {
     return Object.values(components.mirrorNodeExplorers).map(async component => {
+      const context = localConfig.clusterRefs[component.cluster];
+      const labels = [constants.SOLO_HEDERA_EXPLORER_LABEL];
       try {
-        const pods = await k8.getPodsByLabel([constants.SOLO_HEDERA_EXPLORER_LABEL]);
+        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        // to return the generic error message
-        if (!pods.length) throw new Error('Pod not found');
+        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
         RemoteConfigValidator.throwValidationError('Mirror node explorer', component, e);
       }

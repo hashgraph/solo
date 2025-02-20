@@ -6,9 +6,9 @@ import 'reflect-metadata';
 import * as chai from 'chai';
 import chaiAsPromised from 'chai-as-promised';
 import sinonChai from 'sinon-chai';
-import {resetTestContainer} from './test_container.js';
+import {resetForTest} from './test_container.js';
 
-resetTestContainer();
+resetForTest();
 
 chai.use(chaiAsPromised);
 chai.use(sinonChai);

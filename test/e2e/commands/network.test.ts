@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {bootstrapTestVariables, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
@@ -13,19 +13,21 @@ import fs from 'fs';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
-import {PodName} from '../../../src/core/kube/pod_name.js';
-import {PodRef} from '../../../src/core/kube/pod_ref.js';
-import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 
-describe('NetworkCommand', () => {
+describe('NetworkCommand', function networkCommand() {
+  this.bail(true);
   const testName = 'network-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.namespace.name] = namespace.name;
   argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
   argv[flags.nodeAliasesUnparsed.name] = 'node1';
@@ -35,12 +37,13 @@ describe('NetworkCommand', () => {
   argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
   argv[flags.force.name] = true;
   argv[flags.applicationEnv.name] = applicationEnvFilePath;
+  argv[flags.loadBalancerEnabled.name] = true;
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
   argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
   argv[flags.quiet.name] = true;
 
   const bootstrapResp = bootstrapTestVariables(testName, argv);
-  const k8 = bootstrapResp.opts.k8;
+  const k8Factory = bootstrapResp.opts.k8Factory;
   const accountManager = bootstrapResp.opts.accountManager;
   const configManager = bootstrapResp.opts.configManager;
 
@@ -48,20 +51,29 @@ describe('NetworkCommand', () => {
   const clusterCmd = bootstrapResp.cmd.clusterCmd;
   const initCmd = bootstrapResp.cmd.initCmd;
   const nodeCmd = bootstrapResp.cmd.nodeCmd;
+  const deploymentCmd = bootstrapResp.cmd.deploymentCmd;
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await container.resolve(NetworkNodes).getLogs(namespace);
-    await k8.deleteNamespace(namespace);
+    await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+    await k8Factory.default().namespaces().delete(namespace);
     await accountManager.close();
   });
 
   before(async () => {
+    await k8Factory.default().namespaces().delete(namespace);
     await initCmd.init(argv);
     await clusterCmd.handlers.setup(argv);
     fs.mkdirSync(applicationEnvParentDirectory, {recursive: true});
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
+  });
+
+  it('deployment create should succeed', async () => {
+    expect(await deploymentCmd.create(argv)).to.be.true;
+    argv[flags.nodeAliasesUnparsed.name] = undefined;
+    configManager.reset();
+    configManager.update(argv);
   });
 
   it('keys should be generated', async () => {
@@ -74,10 +86,13 @@ describe('NetworkCommand', () => {
 
       // check pod names should match expected values
       await expect(
-        k8.getPodByName(PodRef.of(namespace, PodName.of('network-node1-0'))),
+        k8Factory
+          .default()
+          .pods()
+          .read(PodRef.of(namespace, PodName.of('network-node1-0'))),
       ).eventually.to.have.nested.property('metadata.name', 'network-node1-0');
-      // get list of pvc using k8 listPvcsByNamespace function and print to log
-      const pvcs = await k8.listPvcsByNamespace(namespace);
+      // get list of pvc using k8 pvcs list function and print to log
+      const pvcs = await k8Factory.default().pvcs().list(namespace, []);
       networkCmd.logger.showList('PVCs', pvcs);
 
       expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
@@ -87,16 +102,19 @@ describe('NetworkCommand', () => {
         flags.bootstrapProperties.constName,
         flags.chainId.constName,
         flags.log4j2Xml.constName,
+        flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.quiet.constName,
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
-        flags.storageAccessKey.constName,
-        flags.storageSecrets.constName,
-        flags.storageEndpoint.constName,
-        flags.googleCredential.constName,
+        flags.gcsAccessKey.constName,
+        flags.gcsSecrets.constName,
+        flags.gcsEndpoint.constName,
+        flags.awsAccessKey.constName,
+        flags.awsSecrets.constName,
+        flags.awsEndpoint.constName,
       ]);
     } catch (e) {
       networkCmd.logger.showUserError(e);
@@ -123,12 +141,12 @@ describe('NetworkCommand', () => {
       const destroyResult = await networkCmd.destroy(argv);
       expect(destroyResult).to.be.true;
 
-      while ((await k8.getPodsByLabel(['solo.hedera.com/type=network-node'])).length > 0) {
+      while ((await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node'])).length > 0) {
         networkCmd.logger.debug('Pods are still running. Waiting...');
         await sleep(Duration.ofSeconds(3));
       }
 
-      while ((await k8.getPodsByLabel(['app=minio'])).length > 0) {
+      while ((await k8Factory.default().pods().list(namespace, ['app=minio'])).length > 0) {
         networkCmd.logger.showUser('Waiting for minio container to be deleted...');
         await sleep(Duration.ofSeconds(3));
       }
@@ -141,10 +159,10 @@ describe('NetworkCommand', () => {
       expect(chartInstalledStatus).to.be.false;
 
       // check if pvc are deleted
-      await expect(k8.listPvcsByNamespace(namespace)).eventually.to.have.lengthOf(0);
+      await expect(k8Factory.default().pvcs().list(namespace, [])).eventually.to.have.lengthOf(0);
 
       // check if secrets are deleted
-      await expect(k8.listSecretsByNamespace(namespace)).eventually.to.have.lengthOf(0);
+      await expect(k8Factory.default().secrets().list(namespace)).eventually.to.have.lengthOf(0);
     } catch (e) {
       networkCmd.logger.showUserError(e);
       expect.fail();

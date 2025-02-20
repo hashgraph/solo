@@ -1,0 +1,323 @@
+labels:
+  solo.hedera.com/testSuiteName: ""
+  solo.hedera.com/testName: ""
+  solo.hedera.com/testRunUID: ""
+  solo.hedera.com/testCreationTimestamp: ""
+  solo.hedera.com/testExpirationTimestamp: ""
+  solo.hedera.com/testRequester: ""
+
+stackgres:
+  coordinator:
+    persistentVolume:
+      storageClass: "standard-rwo"
+  worker:
+    persistentVolume:
+      storageClass: "standard-rwo"
+
+tolerations:
+  - key: "solo.hashgraph.io/role"
+    operator: "Equal"
+    value: "consensus-node"
+    effect: "NoSchedule"
+  - key: "solo.hashgraph.io/role"
+    operator: "Equal"
+    value: "test-clients"
+    effect: "NoSchedule"
+  - key: "solo-scheduling.io/os"
+    operator: "Equal"
+    value: "linux"
+    effect: "NoSchedule"
+  - key: "solo-scheduling.io/role"
+    operator: "Equal"
+    value: "network"
+    effect: "NoSchedule"
+#global:
+#  namespaceOverride: "{{ .Values.global.namespaceOverride }}"
+# The hedera explorer UI /api url will proxy  all request to mirror node
+#
+# Without this we would need to expose the mirror node rest API publicly and specify its public url in the network config below
+proxyPass:
+  /api: "http://{{ .Release.Name }}-rest"
+
+# In the json config below we are using the url as "/", instead of a regular http://mainnet.url
+# This makes the explorer UI make a relative request to its own url
+# This in combination with proxyPass above saves us the need to expose mirror node URL publicly
+config: |
+  [
+    {
+      "name": "localnet",
+      "displayName": "LOCALNET",
+      "url": "/",
+      "ledgerID": "03"
+    }
+  ]
+
+# mirror node
+graphql: # not needed for default use case
+  enabled: false
+rosetta: # not needed for default use case
+  enabled: false
+redis:
+  enabled: true
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+#global:
+#  namespaceOverride: "{{ tpl (.Values.global.namespaceOverride | toString) }}"
+
+# importer is a component of the hedera mirror node
+# config for subchart hedera-mirror/importer
+importer:
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
+  envFrom:
+    - secretRef:
+        name: mirror-passwords
+    - secretRef:
+        name: "{{ .Release.Name }}-redis"
+    - secretRef:
+        name: uploader-mirror-secrets
+  # The addressbook.bin file updates will be handled by infrastructure code or solo
+  addressBook: ""
+  config:
+    # importer is a springboot app, its application.yaml configuration starts here
+    # This config is mounted at [/usr/etc/hedera/application.yaml] in the importer pod
+    hedera:
+      mirror:
+        importer:
+          network: other
+          downloader:
+            allowAnonymousAccess: false
+            bucketName: "solo-streams"
+            # for s3 configuration of mirror node look at uploader-mirror-secrets.yaml
+          parser:
+            record:
+              entity:
+                notify:
+                  enabled: true
+                redis:
+                  enabled: false
+              sidecar:
+                enabled: true
+    management:
+      endpoint:
+        health:
+          group:
+            readiness:
+              exclude: redis
+grpc:
+  ingress:
+    enabled: true
+    hosts:
+      - host: mirror.solo.local
+        paths: ["/com.hedera.mirror.api.proto.ConsensusService", "/com.hedera.mirror.api.proto.NetworkService", "/grpc.reflection.v1alpha.ServerReflection"]
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
+  config:
+    hedera:
+      mirror:
+        grpc:
+          listener:
+            type: NOTIFY
+    management:
+      endpoint:
+        health:
+          group:
+            readiness:
+              exclude: redis
+postgresql:
+  postgresql:
+    nodeSelector:
+      solo.hashgraph.io/role: "consensus-node"
+    tolerations:
+      - key: "solo.hashgraph.io/role"
+        operator: "Equal"
+        value: "consensus-node"
+        effect: "NoSchedule"
+      - key: "solo.hashgraph.io/role"
+        operator: "Equal"
+        value: "test-clients"
+        effect: "NoSchedule"
+      - key: "solo-scheduling.io/os"
+        operator: "Equal"
+        value: "linux"
+        effect: "NoSchedule"
+      - key: "solo-scheduling.io/role"
+        operator: "Equal"
+        value: "network"
+        effect: "NoSchedule"
+  pgpool:
+    replicaCount: 0
+restjava:
+  ingress:
+    enabled: false
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
+rest:
+  ingress:
+    enabled: false
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
+  monitor:
+    enabled: false
+  redis:
+    enabled: true
+web3:
+  ingress:
+    enabled: true
+    hosts:
+      - host: mirror.solo.local
+        paths: ['/api/v1/contracts/call', '/api/v1/contracts/results/((0x)?[A-Fa-f0-9]{64}|\d+\.\d+\.\d+-\d+-\d+)/opcodes']
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
+
+# config for subchart hedera-mirror/monitor
+# Sets up a Pinger service that periodically submits CRYPTO_TRANSFER transactions
+# Additional configuration for node addresses, operator id and key should be handled by infrastructure code or solo
+monitor:
+  ingress:
+    enabled: true
+    hosts:
+      - host: mirror.solo.local
+        paths: ["/actuator/health/cluster"]
+  nodeSelector:
+    solo.hashgraph.io/role: "consensus-node"
+  tolerations:
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "consensus-node"
+      effect: "NoSchedule"
+    - key: "solo.hashgraph.io/role"
+      operator: "Equal"
+      value: "test-clients"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
+  envFrom:
+    - secretRef:
+        name: mirror-passwords
+    - secretRef:
+        name: "{{ .Release.Name }}-redis"
+    - secretRef:
+        name: uploader-mirror-secrets
+  config:
+    hedera:
+      mirror:
+        monitor:
+          publish:
+            scenarios:
+              pinger:
+                properties:
+                  amount: 1
+                  maxTransactionFee: 10000
+                  senderAccountId: 0.0.2
+                  recipientAccountId: 0.0.55
+                  transferTypes:
+                    - CRYPTO
+                receiptPercent: 1
+                tps: 10
+                type: CRYPTO_TRANSFER
+          subscribe:
+            grpc:
+              hcs:
+                enabled: false
+            rest:
+              transactionId:
+                enabled: true
+                samplePercent: 1
+          network: OTHER

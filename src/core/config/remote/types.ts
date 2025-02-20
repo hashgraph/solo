@@ -9,9 +9,11 @@ export type Version = string;
 /// TODO - see if we can use NamespaceName and use some annotations and overrides to covert to strings
 export type NamespaceNameAsString = string;
 export type DeploymentName = string;
-export type Cluster = string;
 export type Context = string;
 export type ComponentName = string;
+
+export type ClusterRef = string;
+export type ClusterRefs = Record<ClusterRef, Context>;
 
 export interface IMigration {
   migratedAt: Date;
@@ -21,7 +23,7 @@ export interface IMigration {
 
 export interface Component {
   name: ComponentName;
-  cluster: Cluster;
+  cluster: ClusterRef;
   namespace: NamespaceNameAsString;
 }
 
@@ -30,7 +32,16 @@ export interface IRelayComponent extends Component {
 }
 
 export interface IConsensusNodeComponent extends Component {
+  nodeId: number;
   state: ConsensusNodeStates;
+}
+
+export interface ICluster {
+  name: string;
+  namespace: string;
+  deployment: DeploymentName;
+  dnsBaseDomain: string;
+  dnsConsensusNodePattern: string;
 }
 
 export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
@@ -48,7 +59,7 @@ export type RemoteConfigCommonFlagsStruct = {
 export interface RemoteConfigDataStructure {
   metadata: RemoteConfigMetadataStructure;
   version: Version;
-  clusters: Record<Cluster, NamespaceNameAsString>;
+  clusters: Record<ClusterRef, ICluster>;
   components: ComponentsDataStructure;
   commandHistory: string[];
   lastExecutedCommand: string;
@@ -56,8 +67,15 @@ export interface RemoteConfigDataStructure {
 }
 
 export interface RemoteConfigMetadataStructure {
-  name: NamespaceNameAsString;
+  namespace: NamespaceNameAsString;
+  deploymentName: DeploymentName;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;
+  soloVersion: Version;
+  soloChartVersion: Version;
+  hederaPlatformVersion: Version;
+  hederaMirrorNodeChartVersion: Version;
+  hederaExplorerChartVersion: Version;
+  hederaJsonRpcRelayChartVersion: Version;
   migration?: IMigration;
 }

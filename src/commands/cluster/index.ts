@@ -4,8 +4,7 @@
 
 import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs_command.js';
-import {BaseCommand} from './../base.js';
-import {type Opts} from '../../types/command_types.js';
+import {BaseCommand, type Opts} from './../base.js';
 import {ClusterCommandHandlers} from './handlers.js';
 import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
 import {patchInject} from '../../core/container_helper.js';
@@ -36,7 +35,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'connect',
               },
-              ContextFlags.USE_FLAGS,
+              ContextFlags.CONNECT_FLAGS,
             ),
           )
           .command(

@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {
@@ -23,34 +23,42 @@ import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER,
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {type K8} from '../../../src/core/kube/k8.js';
+import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type NodeCommand} from '../../../src/commands/node/index.js';
-import {NamespaceName} from '../../../src/core/kube/namespace_name.js';
-import {NetworkNodes} from '../../../src/core/network_nodes.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import * as helpers from '../../../src/core/helpers.js';
+import {Templates} from '../../../src/core/templates.js';
+import * as Base64 from 'js-base64';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const testName = 'account-cmd-e2e';
 const namespace: NamespaceName = NamespaceName.of(testName);
 const testSystemAccounts = [[3, 5]];
-const argv = getDefaultArgv();
+const argv = getDefaultArgv(namespace);
+argv[flags.forcePortForward.name] = true;
 argv[flags.namespace.name] = namespace.name;
 argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
+argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
 argv[flags.generateGossipKeys.name] = true;
 argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterName.name] = TEST_CLUSTER;
+argv[flags.clusterRef.name] = TEST_CLUSTER;
 argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
+argv[flags.loadBalancerEnabled.name] = true;
 // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
 argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
+// enable load balancer for e2e tests
+argv[flags.loadBalancerEnabled.name] = true;
 
 e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
   describe('AccountCommand', async () => {
     let accountCmd: AccountCommand;
-    let k8: K8;
+    let k8Factory: K8Factory;
     let accountManager: AccountManager;
     let configManager: ConfigManager;
     let nodeCmd: NodeCommand;
@@ -58,7 +66,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     before(() => {
       accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
       bootstrapResp.cmd.accountCmd = accountCmd;
-      k8 = bootstrapResp.opts.k8;
+      k8Factory = bootstrapResp.opts.k8Factory;
       accountManager = bootstrapResp.opts.accountManager;
       configManager = bootstrapResp.opts.configManager;
       nodeCmd = bootstrapResp.cmd.nodeCmd;
@@ -67,8 +75,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     after(async function () {
       this.timeout(Duration.ofMinutes(3).toMillis());
 
-      await container.resolve(NetworkNodes).getLogs(namespace);
-      await k8.deleteNamespace(namespace);
+      await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+      await k8Factory.default().namespaces().delete(namespace);
       await accountManager.close();
       await nodeCmd.close();
     });
@@ -76,12 +84,15 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     describe('node proxies should be UP', () => {
       for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
         it(`proxy should be UP: ${nodeAlias} `, async () => {
-          await k8.waitForPodReady(
-            [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
-            1,
-            300,
-            Duration.ofSeconds(2).toMillis(),
-          );
+          await k8Factory
+            .default()
+            .pods()
+            .waitForReadyStatus(
+              namespace,
+              [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'],
+              300,
+              Duration.ofSeconds(2).toMillis(),
+            );
         }).timeout(Duration.ofSeconds(30).toMillis());
       }
     });
@@ -99,12 +110,31 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
         });
 
         after(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
           await accountManager.close();
+        });
+
+        it('Node admin key should have been updated, not eqaul to genesis key', async () => {
+          const nodeAliases = helpers.parseNodeAliases(argv[flags.nodeAliasesUnparsed.name]);
+          for (const nodeAlias of nodeAliases) {
+            const keyFromK8 = await k8Factory
+              .default()
+              .secrets()
+              .read(namespace, Templates.renderNodeAdminKeyName(nodeAlias));
+            const privateKey = Base64.decode(keyFromK8.data.privateKey);
+
+            expect(privateKey.toString()).not.to.equal(genesisKey.toString());
+          }
         });
 
         for (const [start, end] of testSystemAccounts) {
@@ -276,7 +306,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
           const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
           expect(accountAliasInfo).not.to.be.null;
         } catch (e) {
@@ -302,7 +338,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('Create new account', async () => {
         try {
-          await accountManager.loadNodeClient(namespace);
+          const clusterRefs = accountCmd.getClusterRefs();
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv[flags.deployment.name],
+            argv[flags.forcePortForward.name],
+          );
           const privateKey = PrivateKey.generate();
           const amount = 100;
 

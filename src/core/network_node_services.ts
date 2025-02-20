@@ -3,10 +3,14 @@
  */
 
 import {type NodeAlias} from '../types/aliases.js';
-import {type PodName} from './kube/pod_name.js';
-import {type NamespaceName} from './kube/namespace_name.js';
+import {type PodName} from './kube/resources/pod/pod_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type ClusterRef, type Context, type DeploymentName} from './config/remote/types.js';
 
 export class NetworkNodeServices {
+  public readonly clusterRef?: ClusterRef;
+  public readonly context?: Context;
+  public readonly deployment?: DeploymentName;
   public readonly nodeAlias: NodeAlias;
   public readonly namespace: NamespaceName;
   public readonly nodeId: string | number;
@@ -31,6 +35,9 @@ export class NetworkNodeServices {
   public readonly envoyProxyGrpcWebPort: number;
 
   constructor(builder: NetworkNodeServicesBuilder) {
+    this.clusterRef = builder.clusterRef;
+    this.context = builder.context;
+    this.deployment = builder.deployment;
     this.nodeAlias = builder.nodeAlias;
     this.namespace = builder.namespace;
     this.nodeId = builder.nodeId;
@@ -62,6 +69,9 @@ export class NetworkNodeServices {
 
 export class NetworkNodeServicesBuilder {
   public namespace?: NamespaceName;
+  public clusterRef?: ClusterRef;
+  public context?: Context;
+  public deployment?: DeploymentName;
   public nodeId?: string | number;
   public haProxyName?: string;
   public accountId?: string;
@@ -88,6 +98,21 @@ export class NetworkNodeServicesBuilder {
 
   withNamespace(namespace: NamespaceName) {
     this.namespace = namespace;
+    return this;
+  }
+
+  withClusterRef(clusterRef: ClusterRef) {
+    this.clusterRef = clusterRef;
+    return this;
+  }
+
+  withContext(context: Context) {
+    this.context = context;
+    return this;
+  }
+
+  withDeployment(deployment: DeploymentName) {
+    this.deployment = deployment;
     return this;
   }
 

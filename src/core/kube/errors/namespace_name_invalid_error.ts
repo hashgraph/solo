@@ -22,49 +22,6 @@ export class NamespaceNameInvalidError extends SoloError {
   }
 }
 
-export class PodNameInvalidError extends SoloError {
-  public static POD_NAME_INVALID = (name: string) => RFC_1123_POSTFIX(`Pod name '${name}'`);
-
-  /**
-   * Instantiates a new error with a message and an optional cause.
-   *
-   * @param podName - the invalid pod name.
-   * @param cause - optional underlying cause of the error.
-   * @param meta - optional metadata to be reported.
-   */
-  public constructor(podName: string, cause: Error | any = {}, meta: any = {}) {
-    super(PodNameInvalidError.POD_NAME_INVALID(podName), cause, meta);
-  }
-}
-
-export class MissingNamespaceNameError extends SoloError {
-  public static MISSING_NAMESPACE_NAME = 'Namespace name is required.';
-
-  /**
-   * Instantiates a new error with a message and an optional cause.
-   *
-   * @param cause - optional underlying cause of the error.
-   * @param meta - optional metadata to be reported.
-   */
-  public constructor(cause: Error | any = {}, meta: any = {}) {
-    super(MissingNamespaceNameError.MISSING_NAMESPACE_NAME, cause, meta);
-  }
-}
-
-export class MissingPodNameError extends SoloError {
-  public static MISSING_POD_NAME = 'Pod name is required.';
-
-  /**
-   * Instantiates a new error with a message and an optional cause.
-   *
-   * @param cause - optional underlying cause of the error.
-   * @param meta - optional metadata to be reported.
-   */
-  public constructor(cause: Error | any = {}, meta: any = {}) {
-    super(MissingPodNameError.MISSING_POD_NAME, cause, meta);
-  }
-}
-
 export class ContainerNameInvalidError extends SoloError {
   public static CONTAINER_NAME_INVALID = (name: string) => RFC_1123_POSTFIX(`Container name '${name}'`);
 

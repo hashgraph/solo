@@ -1,0 +1,76 @@
+version: 3
+includes:
+  main:
+    taskfile: ../../Taskfile.helper.yml
+    flatten: true
+vars:
+  use_port_forwards: "true"
+  postgres_username: "postgres"
+  postgres_password: "XXXXXXXX"
+
+  postgres_readonly_username: "readonlyuser"
+  postgres_readonly_password: "XXXXXXXX"
+
+  postgres_mirror_node_database_name: "mirror_node"
+
+  postgres_name: "my-postgresql"
+  postgres_database_namespace: "database"
+  postgres_container_name: "{{.postgres_name}}-0"
+  postgres_host_fqdn: "{{.postgres_name}}.database.svc.cluster.local"
+  postgres_container_fdqn: "{{.postgres_container_name}}.database.svc.cluster.local"
+env:
+  SOLO_NETWORK_SIZE: "1"
+  SOLO_DEPLOYMENT: "solo-e2e"
+  SOLO_NAMESPACE: "solo-e2e"
+  SOLO_CLUSTER_NAME: "solo-e2e"
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: |
+    --use-external-database 
+    --external-database-host {{.postgres_host_fqdn}} 
+    --external-database-owner-username {{.postgres_username}} 
+    --external-database-owner-password {{.postgres_password}}
+    --external-database-read-username {{.postgres_readonly_username}}
+    --external-database-read-password {{.postgres_readonly_password}}
+tasks:
+  default:
+    silent: true
+    desc: install Solo, create a kind cluster, deploy the network, set it up, and start it
+    deps:
+      - task: "init"
+    cmds:
+      - echo "This command is meant to deploy a Solo network to a Kind cluster on your local machine, "
+      - echo "ctrl-c if this is not what you want to do."
+      - sleep 5
+
+  install:
+    desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
+    deps:
+      - task: "init"
+    cmds:
+      - task: "cluster:create"
+      - task: "solo:init"
+      - task: "solo:cluster:setup"
+      - task: "solo:deployment:create"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
+      - task: "solo:node:setup"
+      - task: "solo:node:start"
+      - task: "solo:external-database"
+      - task: "solo:mirror-node"
+      - name: "Copy database-seeding-query.sql inside the database pod"
+        cmd: |
+          kubectl cp {{.HOME}}/.solo/cache/database-seeding-query.sql {{.postgres_container_name}}:/tmp/database-seeding-query.sql \
+          -n {{.postgres_database_namespace}}
+      - name: "Execute the database-seeding–query.sql against the database"
+        cmd: |
+          kubectl exec -it {{.postgres_container_name}} -n {{.postgres_database_namespace}} -- env PGPASSWORD={{.postgres_password}} psql -U {{.postgres_username}} \
+            -f /tmp/database-seeding-query.sql \
+            -d {{.postgres_mirror_node_database_name}}
+      - task: "solo:relay"
+      - name: "Run smoke test"
+        cmd: (cd ../../ && ./.github/workflows/script/solo_smoke_test.sh)
+  destroy:
+    desc: destroy relay, mirror-node, and network
+    deps:
+      - task: "init"
+    cmds:
+      - task: "cluster:destroy"

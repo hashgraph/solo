@@ -36,13 +36,13 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async connect(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.commandActionBuilder(
       [
         this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
         this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(this.k8),
+        this.localConfig.promptLocalConfigTask(this.getK8Factory()),
         this.tasks.selectContext(),
         ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         this.tasks.readClustersFromRemoteConfig(argv),
@@ -61,7 +61,7 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async list(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.commandActionBuilder(
       [this.tasks.showClusterList()],
@@ -78,7 +78,7 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async info(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.commandActionBuilder(
       [this.tasks.getClusterInfo()],
@@ -95,7 +95,7 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async setup(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.commandActionBuilder(
       [
@@ -121,7 +121,7 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async reset(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.USE_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.commandActionBuilder(
       [

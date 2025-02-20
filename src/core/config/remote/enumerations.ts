@@ -12,7 +12,7 @@ export enum ComponentType {
   EnvoyProxy = 'envoyProxies',
   MirrorNode = 'mirrorNodes',
   MirrorNodeExplorer = 'mirrorNodeExplorers',
-  Relay = 'replays',
+  Relay = 'relays',
 }
 
 /**
@@ -20,6 +20,7 @@ export enum ComponentType {
  * {@link ConsensusNodeComponent}
  */
 export enum ConsensusNodeStates {
+  REQUESTED = 'requested',
   INITIALIZED = 'initialized',
   SETUP = 'setup',
   STARTED = 'started',

@@ -1,0 +1,11 @@
+ingress:
+  enabled: true
+  hosts:
+    - host: "explorer.solo.local"
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: ca-secret-hiero-explorer
+      hosts:
+        - '{{ index .Values.ingress.hosts 0 "host" }}'

@@ -19,9 +19,10 @@ import {type NodeAlias} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {Duration} from '../src/core/time/duration.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../version.js';
-import {NamespaceName} from '../src/core/kube/namespace_name.js';
-import {NetworkNodes} from '../src/core/network_nodes.js';
+import {NamespaceName} from '../src/core/kube/resources/namespace/namespace_name.js';
+import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -32,7 +33,7 @@ export function testNodeAdd(
 ): void {
   const suffix = localBuildPath.substring(0, 5);
   const namespace = NamespaceName.of(`node-add${suffix}`);
-  const argv = getDefaultArgv();
+  const argv = getDefaultArgv(namespace);
   argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
   argv[flags.stakeAmounts.name] = '1500,1';
   argv[flags.generateGossipKeys.name] = true;
@@ -62,23 +63,31 @@ export function testNodeAdd(
         const nodeCmd = bootstrapResp.cmd.nodeCmd;
         const accountCmd = bootstrapResp.cmd.accountCmd;
         const networkCmd = bootstrapResp.cmd.networkCmd;
-        const k8 = bootstrapResp.opts.k8;
+        const k8Factory = bootstrapResp.opts.k8Factory;
         let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
         let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
         after(async function () {
           this.timeout(Duration.ofMinutes(10).toMillis());
 
-          await container.resolve(NetworkNodes).getLogs(namespace);
+          await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
           await bootstrapResp.opts.accountManager.close();
           await nodeCmd.handlers.stop(argv);
           await networkCmd.destroy(argv);
-          await k8.deleteNamespace(namespace);
+          await k8Factory.default().namespaces().delete(namespace);
         });
 
         it('cache current version of private keys', async () => {
-          existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(namespace);
-          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8, getTmpDir());
+          existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
+            namespace,
+            nodeCmd.getClusterRefs(),
+            argv[flags.deployment.name],
+          );
+          existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+            existingServiceMap,
+            k8Factory,
+            getTmpDir(),
+          );
         }).timeout(defaultTimeout);
 
         it('should succeed with init command', async () => {
@@ -103,7 +112,7 @@ export function testNodeAdd(
         it('existing nodes private keys should not have changed', async () => {
           const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
             existingServiceMap,
-            k8,
+            k8Factory,
             getTmpDir(),
           );
 

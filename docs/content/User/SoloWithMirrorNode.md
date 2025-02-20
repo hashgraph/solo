@@ -18,7 +18,7 @@ solo node start     -n "${SOLO_NAMESPACE}" -i node1,node2
 solo mirror-node deploy -n "${SOLO_NAMESPACE}"
 
 kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 > /dev/null 2>&1 &
-kubectl port-forward svc/hedera-explorer-hedera-explorer-chart -n "${SOLO_NAMESPACE}" 8080:80 > /dev/null 2>&1 &
+kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 > /dev/null 2>&1 &
 
 ```
 

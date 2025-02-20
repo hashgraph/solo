@@ -3,16 +3,17 @@
  */
 import {inject, injectable} from 'tsyringe-neo';
 import {SoloError, MissingArgumentError} from './errors.js';
-import {SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
 import * as constants from '../core/constants.js';
-import {NamespaceName} from './kube/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -24,8 +25,8 @@ import {NamespaceName} from './kube/namespace_name.js';
 export class ConfigManager {
   config!: Record<string, any>;
 
-  constructor(@inject(SoloLogger) private readonly logger?: SoloLogger) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
+  constructor(@inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger) {
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
 
     this.reset();
   }
@@ -34,7 +35,7 @@ export class ConfigManager {
   reset() {
     this.config = {
       flags: {},
-      version: helpers.packageVersion(),
+      version: helpers.getSoloVersion(),
       updatedAt: new Date().toISOString(),
     };
   }

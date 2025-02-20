@@ -3,7 +3,7 @@
  */
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import {type Key} from '@hashgraph/sdk';
+import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -14,6 +14,7 @@ import {
   FileId,
   Hbar,
   HbarUnit,
+  type Key,
   KeyList,
   Logger,
   LogLevel,
@@ -21,24 +22,28 @@ import {
   Status,
   TransferTransaction,
 } from '@hashgraph/sdk';
-import {SoloError, MissingArgumentError} from './errors.js';
+import {MissingArgumentError, ResourceNotFoundError, SoloError} from './errors.js';
 import {Templates} from './templates.js';
-import {type NetworkNodeServices} from './network_node_services.js';
-import {NetworkNodeServicesBuilder} from './network_node_services.js';
+import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
 
-import {SoloLogger} from './logging.js';
-import {type K8} from './kube/k8.js';
-import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
+import {type SoloLogger} from './logging.js';
+import {type K8Factory} from './kube/k8_factory.js';
+import {type AccountIdWithKeyPairObject, type ExtendedNetServer, type Optional} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
-import {PodName} from './kube/pod_name.js';
-import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
+import {PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './container_helper.js';
-import {type NamespaceName} from './kube/namespace_name.js';
-import {PodRef} from './kube/pod_ref.js';
+import {patchInject} from './dependency_injection/container_helper.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {PodRef} from './kube/resources/pod/pod_ref.js';
+import {SecretType} from './kube/resources/secret/secret_type.js';
+import {type V1Pod} from '@kubernetes/client-node';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type ClusterRefs, type DeploymentName} from './config/remote/types.js';
+import {type Service} from './kube/resources/service/service.js';
+import {SoloService} from './model/solo_service.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -50,14 +55,15 @@ const REJECTED = 'rejected';
 @injectable()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
+  private _forcePortForward: boolean = false;
   public _nodeClient: Client | null;
 
   constructor(
-    @inject(SoloLogger) private readonly logger?: SoloLogger,
-    @inject('K8') private readonly k8?: K8,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.k8 = patchInject(k8, 'K8', this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -66,17 +72,32 @@ export class AccountManager {
   /**
    * Gets the account keys from the Kubernetes secret from which it is stored
    * @param accountId - the account ID for which we want its keys
-   * @param namespace - the namespace that is storing the secret
+   * @param namespace - the namespace storing the secret
+   * @param [context]
    */
-  async getAccountKeysFromSecret(accountId: string, namespace: NamespaceName): Promise<AccountIdWithKeyPairObject> {
-    const secret = await this.k8.getSecret(namespace, Templates.renderAccountKeySecretLabelSelector(accountId));
-    if (secret) {
-      return {
-        accountId: secret.labels['solo.hedera.com/account-id'],
-        privateKey: Base64.decode(secret.data.privateKey),
-        publicKey: Base64.decode(secret.data.publicKey),
-      };
+  async getAccountKeysFromSecret(
+    accountId: string,
+    namespace: NamespaceName,
+    context?: Optional<string>,
+  ): Promise<AccountIdWithKeyPairObject> {
+    try {
+      const k8 = this.k8Factory.getK8(context);
+      const secrets = await k8.secrets().list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
+
+      if (secrets.length > 0) {
+        const secret = secrets[0];
+        return {
+          accountId: secret.labels['solo.hedera.com/account-id'],
+          privateKey: Base64.decode(secret.data.privateKey),
+          publicKey: Base64.decode(secret.data.publicKey),
+        };
+      }
+    } catch (e) {
+      if (!(e instanceof ResourceNotFoundError)) {
+        throw e;
+      }
     }
+
     // if it isn't in the secrets we can load genesis key
     return {
       accountId,
@@ -90,10 +111,11 @@ export class AccountManager {
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, ed25519PrivateKey, publicKey
    * @param namespace - the namespace that the secret is in
+   * @param [context]
    */
-  async getTreasuryAccountKeys(namespace: NamespaceName) {
+  async getTreasuryAccountKeys(namespace: NamespaceName, context?: Optional<string>) {
     // check to see if the treasure account is in the secrets
-    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace);
+    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace, context);
   }
 
   /**
@@ -134,7 +156,7 @@ export class AccountManager {
     this._nodeClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        await this.k8.stopPortForward(srv);
+        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
       }
     }
 
@@ -146,8 +168,18 @@ export class AccountManager {
   /**
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
+   * @param clusterRefs - the cluster references to use
+   * @param deployment - k8 deployment name
+   * @param context - k8 context name
+   * @param forcePortForward - whether to force the port forward
    */
-  async loadNodeClient(namespace: NamespaceName) {
+  async loadNodeClient(
+    namespace: NamespaceName,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+    forcePortForward?: boolean,
+    context?: Optional<string>,
+  ) {
     try {
       this.logger.debug(
         `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
@@ -156,13 +188,15 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace);
+        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
       } else {
         try {
-          await this._nodeClient.ping(this._nodeClient.operatorAccountId);
+          if (!constants.SKIP_NODE_PING) {
+            await this._nodeClient.ping(this._nodeClient.operatorAccountId);
+          }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace);
+          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
         }
       }
 
@@ -178,12 +212,27 @@ export class AccountManager {
    * loads and initializes the Node Client, throws a SoloError if anything fails
    * @param namespace - the namespace of the network
    * @param skipNodeAlias - the node alias to skip
+   * @param [clusterRefs]
+   * @param [deployment]
+   * @param [context]
+   * @param forcePortForward - whether to force the port forward
    */
-  async refreshNodeClient(namespace: NamespaceName, skipNodeAlias?: NodeAlias) {
+  async refreshNodeClient(
+    namespace: NamespaceName,
+    skipNodeAlias?: NodeAlias,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+    context?: Optional<string>,
+    forcePortForward?: boolean,
+  ) {
     try {
       await this.close();
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
-      const networkNodeServicesMap = await this.getNodeServiceMap(namespace);
+      if (forcePortForward !== undefined) {
+        this._forcePortForward = forcePortForward;
+      }
+
+      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace, context);
+      const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs, deployment);
 
       this._nodeClient = await this._getNodeClient(
         namespace,
@@ -208,7 +257,7 @@ export class AccountManager {
    * @returns whether to use the local host port forward
    */
   private shouldUseLocalHostPortForward(networkNodeServices: NetworkNodeServices) {
-    return !networkNodeServices.haProxyLoadBalancerIp;
+    return this._forcePortForward || !networkNodeServices.haProxyLoadBalancerIp;
   }
 
   /**
@@ -274,7 +323,9 @@ export class AccountManager {
       this._nodeClient.setRequestTimeout(constants.NODE_CLIENT_REQUEST_TIMEOUT as number);
 
       // ping the node client to ensure it is working
-      await this._nodeClient.ping(AccountId.fromString(operatorId));
+      if (!constants.SKIP_NODE_PING) {
+        await this._nodeClient.ping(AccountId.fromString(operatorId));
+      }
 
       // start a background pinger to keep the node client alive, Hashgraph SDK JS has a 90-second keep alive time, and
       // 5-second keep alive timeout
@@ -300,7 +351,9 @@ export class AccountManager {
       } else {
         try {
           this.logger.debug(`pinging node client at an interval of ${Duration.ofMillis(interval).seconds} seconds`);
-          await this._nodeClient.ping(AccountId.fromString(operatorId));
+          if (!constants.SKIP_NODE_PING) {
+            await this._nodeClient.ping(AccountId.fromString(operatorId));
+          }
         } catch (e: Error | any) {
           const message = `failed to ping node client while running the interval pinger: ${e.message}`;
           this.logger.error(message, e);
@@ -339,11 +392,11 @@ export class AccountManager {
 
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
-          await this.k8.portForward(
-            PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName),
-            localPort,
-            port,
-          ),
+          await this.k8Factory
+            .getK8(networkNodeService.context)
+            .pods()
+            .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
+            .portForward(localPort, port),
         );
       }
 
@@ -404,19 +457,29 @@ export class AccountManager {
   /**
    * Gets a Map of the Hedera node services and the attributes needed, throws a SoloError if anything fails
    * @param namespace - the namespace of the solo network deployment
+   * @param clusterRefs - the cluster references to use
+   * @param deployment - the deployment to use
    * @returns a map of the network node services
    */
-  async getNodeServiceMap(namespace: NamespaceName) {
+  async getNodeServiceMap(namespace: NamespaceName, clusterRefs?: ClusterRefs, deployment?: string) {
     const labelSelector = 'solo.hedera.com/node-name';
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
 
     try {
-      const serviceList = await this.k8.listSvcs(namespace, [labelSelector]);
+      const services: SoloService[] = [];
+      for (const [clusterRef, context] of Object.entries(clusterRefs)) {
+        const serviceList: Service[] = await this.k8Factory.getK8(context).services().list(namespace, [labelSelector]);
+        services.push(
+          ...serviceList.map(service => SoloService.getFromK8Service(service, clusterRef, context, deployment)),
+        );
+      }
 
-      let nodeId = '0';
       // retrieve the list of services and build custom objects for the attributes we need
-      for (const service of serviceList) {
+      for (const service of services) {
+        let nodeId;
+        const clusterRef = service.clusterRef;
+
         let serviceBuilder = new NetworkNodeServicesBuilder(
           service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
         );
@@ -428,6 +491,9 @@ export class AccountManager {
             service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
           );
           serviceBuilder.withNamespace(namespace);
+          serviceBuilder.withClusterRef(clusterRef);
+          serviceBuilder.withContext(clusterRefs[clusterRef]);
+          serviceBuilder.withDeployment(deployment);
         }
 
         const serviceType = service.metadata.labels['solo.hedera.com/type'];
@@ -473,7 +539,6 @@ export class AccountManager {
             }
 
             serviceBuilder
-              .withNodeId(nodeId)
               .withAccountId(service.metadata!.labels!['solo.hedera.com/account-id'])
               .withNodeServiceName(service.metadata!.name as string)
               .withNodeServiceClusterIp(service.spec!.clusterIP as string)
@@ -483,6 +548,8 @@ export class AccountManager {
               .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
               .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
               .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
+
+            if (nodeId) serviceBuilder.withNodeId(nodeId);
             break;
         }
         serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder);
@@ -490,22 +557,30 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList = await this.k8.getPodsByLabel([`app=${serviceBuilder.haProxyAppSelector}`]);
+        const podList: V1Pod[] = await this.k8Factory
+          .getK8(serviceBuilder.context)
+          .pods()
+          .list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
         serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
       }
 
-      // get the pod name of the network node
-      const pods = await this.k8.getPodsByLabel(['solo.hedera.com/type=network-node']);
-      for (const pod of pods) {
-        // eslint-disable-next-line no-prototype-builtins
-        if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
-          // TODO Review why this fixes issue
-          continue;
+      for (const [_, context] of Object.entries(clusterRefs)) {
+        // get the pod name of the network node
+        const pods: V1Pod[] = await this.k8Factory
+          .getK8(context)
+          .pods()
+          .list(namespace, ['solo.hedera.com/type=network-node']);
+        for (const pod of pods) {
+          // eslint-disable-next-line no-prototype-builtins
+          if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
+            // TODO Review why this fixes issue
+            continue;
+          }
+          const podName = PodName.of(pod.metadata!.name);
+          const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
+          const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
+          serviceBuilder.withNodePodName(podName);
         }
-        const podName = PodName.of(pod.metadata!.name);
-        const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
-        const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
-        serviceBuilder.withNodePodName(podName);
       }
 
       const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
@@ -637,16 +712,29 @@ export class AccountManager {
     };
 
     try {
-      if (
-        !(await this.k8.createSecret(
-          Templates.renderAccountKeySecretName(accountId),
-          namespace,
-          'Opaque',
-          data,
-          Templates.renderAccountKeySecretLabelObject(accountId),
-          updateSecrets,
-        ))
-      ) {
+      const createdOrUpdated = updateSecrets
+        ? await this.k8Factory
+            .default()
+            .secrets()
+            .replace(
+              namespace,
+              Templates.renderAccountKeySecretName(accountId),
+              SecretType.OPAQUE,
+              data,
+              Templates.renderAccountKeySecretLabelObject(accountId),
+            )
+        : await this.k8Factory
+            .default()
+            .secrets()
+            .create(
+              namespace,
+              Templates.renderAccountKeySecretName(accountId),
+              SecretType.OPAQUE,
+              data,
+              Templates.renderAccountKeySecretLabelObject(accountId),
+            );
+
+      if (!createdOrUpdated) {
         this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
         return {
           status: REJECTED,
@@ -808,17 +896,19 @@ export class AccountManager {
     }
 
     try {
-      const accountSecretCreated = await this.k8.createSecret(
-        Templates.renderAccountKeySecretName(accountInfo.accountId),
-        namespace,
-        'Opaque',
-        {
-          privateKey: Base64.encode(accountInfo.privateKey),
-          publicKey: Base64.encode(accountInfo.publicKey),
-        },
-        Templates.renderAccountKeySecretLabelObject(accountInfo.accountId),
-        true,
-      );
+      const accountSecretCreated = await this.k8Factory
+        .default()
+        .secrets()
+        .createOrReplace(
+          namespace,
+          Templates.renderAccountKeySecretName(accountInfo.accountId),
+          SecretType.OPAQUE,
+          {
+            privateKey: Base64.encode(accountInfo.privateKey),
+            publicKey: Base64.encode(accountInfo.publicKey),
+          },
+          Templates.renderAccountKeySecretLabelObject(accountInfo.accountId),
+        );
 
       if (!accountSecretCreated) {
         this.logger.error(
@@ -877,18 +967,36 @@ export class AccountManager {
   /**
    * Fetch and prepare address book as a base64 string
    */
-  async prepareAddressBookBase64() {
+  async prepareAddressBookBase64(
+    namespace: NamespaceName,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+    operatorId?: string,
+    operatorKey?: string,
+    forcePortForward?: boolean,
+    context?: string,
+  ) {
     // fetch AddressBook
-    const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK);
-    const addressBookBytes = await fileQuery.execute(this._nodeClient);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
+    const client = this._nodeClient;
 
-    // convert addressBook into base64
-    // @ts-ignore
-    return Base64.encode(addressBookBytes);
+    if (operatorId && operatorKey) {
+      client.setOperator(operatorId, operatorKey);
+    }
+
+    const query = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK);
+    return Buffer.from(await query.execute(client)).toString('base64');
   }
 
-  async getFileContents(namespace: NamespaceName, fileNum: number) {
-    await this.loadNodeClient(namespace);
+  async getFileContents(
+    namespace: NamespaceName,
+    fileNum: number,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+    forcePortForward?: boolean,
+    context?: string,
+  ) {
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);
@@ -908,7 +1016,9 @@ export class AccountManager {
       nodeClient = Client.fromConfig({network: obj, scheduleNetworkUpdate: false});
       this.logger.debug(`pinging network node: ${Object.keys(obj)[0]}`);
       try {
-        await nodeClient.ping(accountId);
+        if (!constants.SKIP_NODE_PING) {
+          await nodeClient.ping(accountId);
+        }
         this.logger.debug(`ping successful for network node: ${Object.keys(obj)[0]}`);
       } catch (e) {
         const message = `failed to ping network node: ${Object.keys(obj)[0]} ${e.message}`;

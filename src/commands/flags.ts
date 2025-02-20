@@ -12,8 +12,11 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
 import {type AnyObject} from '../types/aliases.js';
+import {type ClusterRef} from '../core/config/remote/types.js';
 
 export class Flags {
+  public static KEY_COMMON = '_COMMON_';
+
   private static async prompt(
     type: string,
     task: ListrTaskWrapper<any, any, any>,
@@ -109,23 +112,36 @@ export class Flags {
     prompt: undefined,
   };
 
-  // list of common flags across commands. command specific flags are defined in the command's module.
-  static readonly clusterName: CommandFlag = {
-    constName: 'clusterName',
-    name: 'cluster-name',
+  static readonly forcePortForward: CommandFlag = {
+    constName: 'forcePortForward',
+    name: 'force-port-forward',
     definition: {
-      describe: 'Cluster name',
+      describe: 'Force port forward to access the network services',
+      defaultValue: true, // always use local port-forwarding by default
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  // list of common flags across commands. command specific flags are defined in the command's module.
+  static readonly clusterRef: CommandFlag = {
+    constName: 'clusterRef',
+    name: 'cluster-ref',
+    definition: {
+      describe:
+        'The cluster reference that will be used for referencing the Kubernetes cluster and stored in the local and ' +
+        'remote configuration for the deployment.  For commands that take multiple clusters they can be separated by commas.',
       alias: 'c',
       type: 'string',
     },
-    prompt: async function promptClusterName(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.clusterName.definition.defaultValue,
-        'Enter cluster name: ',
-        'cluster name cannot be empty',
-        Flags.clusterName.name,
+        Flags.clusterRef.definition.defaultValue,
+        'Enter cluster reference: ',
+        'cluster reference cannot be empty',
+        Flags.clusterRef.name,
       );
     },
   };
@@ -171,33 +187,69 @@ export class Flags {
     },
   };
 
+  /**
+   * Parse the values files input string that includes the cluster reference and the values file path
+   * <p>It supports input as below:
+   * <p>--values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
+   * @param input
+   */
+  static parseValuesFilesInput(input: string): Record<ClusterRef, Array<string>> {
+    const valuesFiles: Record<ClusterRef, Array<string>> = {};
+    if (input) {
+      const inputItems = input.split(',');
+      inputItems.forEach(v => {
+        const parts = v.split('=');
+
+        let clusterRef = '';
+        let valuesFile = '';
+        if (parts.length !== 2) {
+          valuesFile = path.resolve(v);
+          clusterRef = Flags.KEY_COMMON;
+        } else {
+          clusterRef = parts[0];
+          valuesFile = path.resolve(parts[1]);
+        }
+
+        if (!valuesFiles[clusterRef]) {
+          valuesFiles[clusterRef] = [];
+        }
+        valuesFiles[clusterRef].push(valuesFile);
+      });
+    }
+
+    return valuesFiles;
+  }
+
   static readonly valuesFile: CommandFlag = {
     constName: 'valuesFile',
     name: 'values-file',
     definition: {
-      describe: 'Comma separated chart values files',
+      describe: 'Comma separated chart values file',
       defaultValue: '',
       alias: 'f',
       type: 'string',
     },
     prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
-      try {
-        if (input && !fs.existsSync(input)) {
-          input = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'text',
-            default: Flags.valuesFile.definition.defaultValue,
-            message: 'Enter path to values.yaml: ',
-          });
+      return input; // no prompt is needed for values file
+    },
+  };
 
-          if (!fs.existsSync(input)) {
-            throw new IllegalArgumentError('Invalid values.yaml file', input);
-          }
-        }
-
-        return input;
-      } catch (e: Error | any) {
-        throw new SoloError(`input failed: ${Flags.valuesFile.name}`, e);
+  static readonly networkDeploymentValuesFile: CommandFlag = {
+    constName: 'valuesFile',
+    name: 'values-file',
+    definition: {
+      describe:
+        'Comma separated chart values file paths for each cluster (e.g. values.yaml,cluster-1=./a/b/values1.yaml,cluster-2=./a/b/values2.yaml)',
+      defaultValue: '',
+      alias: 'f',
+      type: 'string',
+    },
+    prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+      if (input) {
+        Flags.parseValuesFilesInput(input); // validate input as early as possible by parsing it
       }
+
+      return input; // no prompt is needed for values file
     },
   };
 
@@ -343,8 +395,8 @@ export class Flags {
   };
 
   /*
-    Deploy cert manager CRDs separately from cert manager itself.  Cert manager
-    CRDs are required for cert manager to deploy successfully.
+		Deploy cert manager CRDs separately from cert manager itself.  Cert manager
+		CRDs are required for cert manager to deploy successfully.
  */
   static readonly deployCertManagerCrds: CommandFlag = {
     constName: 'deployCertManagerCrds',
@@ -747,11 +799,11 @@ export class Flags {
     },
   };
 
-  static readonly hederaExplorerTlsLoadBalancerIp: CommandFlag = {
-    constName: 'hederaExplorerTlsLoadBalancerIp',
-    name: 'hedera-explorer-tls-load-balancer-ip',
+  static readonly hederaExplorerStaticIp: CommandFlag = {
+    constName: 'hederaExplorerStaticIp',
+    name: 'hedera-explorer-static-ip',
     definition: {
-      describe: 'The static IP address to use for the Hedera Explorer TLS load balancer, defaults to ""',
+      describe: 'The static IP address to use for the Hedera Explorer load balancer, defaults to ""',
       defaultValue: '',
       type: 'string',
     },
@@ -1369,6 +1421,28 @@ export class Flags {
     },
   };
 
+  static readonly enableIngress: CommandFlag = {
+    constName: 'enableIngress',
+    name: 'enable-ingress',
+    definition: {
+      describe: 'enable ingress on the component/pod',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  static readonly mirrorStaticIp: CommandFlag = {
+    constName: 'mirrorStaticIp',
+    name: 'mirror-static-ip',
+    definition: {
+      describe: 'static IP address for the mirror node',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly hederaExplorerVersion: CommandFlag = {
     constName: 'hederaExplorerVersion',
     name: 'hedera-explorer-version',
@@ -1432,6 +1506,26 @@ export class Flags {
         message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
         choices: input,
       });
+    },
+  };
+
+  static readonly deployment: CommandFlag = {
+    constName: 'deployment',
+    name: 'deployment',
+    definition: {
+      describe: 'The name the user will reference locally to link to a deployment',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptDeployment(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.deployment.definition.defaultValue,
+        'Enter the name of the deployment:',
+        null,
+        Flags.deployment.name,
+      );
     },
   };
 
@@ -1513,16 +1607,123 @@ export class Flags {
     },
   };
 
-  static readonly customMirrorNodeDatabaseValuePath: CommandFlag = {
-    constName: 'customMirrorNodeDatabaseValuePath',
-    name: 'custom-mirror-node-database-values-path',
+  static readonly useExternalDatabase: CommandFlag = {
+    constName: 'useExternalDatabase',
+    name: 'use-external-database',
     definition: {
-      describe: 'Path to custom mirror node database values',
-      defaultValue: '',
-      type: 'string',
+      describe:
+        'Set to true if you have an external database to use instead of the database that the Mirror Node Helm chart supplies',
+      defaultValue: false,
+      type: 'boolean',
     },
     prompt: undefined,
   };
+
+  //* ----------------- External Mirror Node PostgreSQL Database Related Flags ------------------ *//
+
+  static readonly externalDatabaseHost: CommandFlag = {
+    constName: 'externalDatabaseHost',
+    name: 'external-database-host',
+    definition: {
+      describe: `Use to provide the external database host if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseHost.definition.defaultValue,
+        'Enter host of the external database',
+        null,
+        Flags.externalDatabaseHost.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseOwnerUsername: CommandFlag = {
+    constName: 'externalDatabaseOwnerUsername',
+    name: 'external-database-owner-username',
+    definition: {
+      describe: `Use to provide the external database owner's username if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerUsername.definition.defaultValue,
+        'Enter username of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerUsername.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseOwnerPassword: CommandFlag = {
+    constName: 'externalDatabaseOwnerPassword',
+    name: 'external-database-owner-password',
+    definition: {
+      describe: `Use to provide the external database owner's password if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseOwnerPassword.definition.defaultValue,
+        'Enter password of the external database owner',
+        null,
+        Flags.externalDatabaseOwnerPassword.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseReadonlyUsername: CommandFlag = {
+    constName: 'externalDatabaseReadonlyUsername',
+    name: 'external-database-read-username',
+    definition: {
+      describe: `Use to provide the external database readonly user's username if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseReadonlyUsername.definition.defaultValue,
+        'Enter username of the external database readonly user',
+        null,
+        Flags.externalDatabaseReadonlyUsername.name,
+      );
+    },
+  };
+
+  static readonly externalDatabaseReadonlyPassword: CommandFlag = {
+    constName: 'externalDatabaseReadonlyPassword',
+    name: 'external-database-read-password',
+    definition: {
+      describe: `Use to provide the external database readonly user's password if the '--${Flags.useExternalDatabase.name}' is passed`,
+      defaultValue: '',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.externalDatabaseReadonlyPassword.definition.defaultValue,
+        'Enter password of the external database readonly user',
+        null,
+        Flags.externalDatabaseReadonlyPassword.name,
+      );
+    },
+  };
+
+  //* ------------------------------------------------------------------------------------------- *//
 
   static readonly grpcTlsKeyPath: CommandFlag = {
     constName: 'grpcTlsKeyPath',
@@ -1614,66 +1815,125 @@ export class Flags {
     definition: {
       defaultValue: constants.StorageType.MINIO_ONLY,
       describe:
-        'storage type for saving stream files, available options are minio_only, gcs_and_minio, s3_only, gcs_only, s3_and_gcs',
+        'storage type for saving stream files, available options are minio_only, aws_only, gcs_only, aws_and_gcs',
       type: 'StorageType',
     },
     prompt: undefined,
   };
 
-  static readonly storageAccessKey: CommandFlag = {
-    constName: 'storageAccessKey',
-    name: 'storage-access-key',
+  static readonly gcsAccessKey: CommandFlag = {
+    constName: 'gcsAccessKey',
+    name: 'gcs-access-key',
     definition: {
       defaultValue: '',
-      describe: 'storage access key',
+      describe: 'gcs storage access key',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageSecrets: CommandFlag = {
-    constName: 'storageSecrets',
-    name: 'storage-secrets',
+  static readonly gcsSecrets: CommandFlag = {
+    constName: 'gcsSecrets',
+    name: 'gcs-secrets',
     definition: {
       defaultValue: '',
-      describe: 'storage secret key',
+      describe: 'gcs storage secret key',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageEndpoint: CommandFlag = {
-    constName: 'storageEndpoint',
-    name: 'storage-endpoint',
+  static readonly gcsEndpoint: CommandFlag = {
+    constName: 'gcsEndpoint',
+    name: 'gcs-endpoint',
     definition: {
       defaultValue: '',
-      describe: 'storage endpoint URL',
+      describe: 'gcs storage endpoint URL',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageBucket: CommandFlag = {
-    constName: 'storageBucket',
-    name: 'storage-bucket',
+  static readonly gcsBucket: CommandFlag = {
+    constName: 'gcsBucket',
+    name: 'gcs-bucket',
     definition: {
       defaultValue: '',
-      describe: 'name of storage bucket',
+      describe: 'name of gcs storage bucket',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageBucketPrefix: CommandFlag = {
-    constName: 'storageBucketPrefix',
-    name: 'storage-bucket-prefix',
+  static readonly gcsBucketPrefix: CommandFlag = {
+    constName: 'gcsBucketPrefix',
+    name: 'gcs-bucket-prefix',
     definition: {
       defaultValue: '',
-      describe: 'path prefix of storage bucket',
+      describe: 'path prefix of google storage bucket',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsAccessKey: CommandFlag = {
+    constName: 'awsAccessKey',
+    name: 'aws-access-key',
+    definition: {
+      defaultValue: '',
+      describe: 'aws storage access key',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsSecrets: CommandFlag = {
+    constName: 'awsSecrets',
+    name: 'aws-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'aws storage secret key',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsEndpoint: CommandFlag = {
+    constName: 'awsEndpoint',
+    name: 'aws-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'aws storage endpoint URL',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsBucket: CommandFlag = {
+    constName: 'awsBucket',
+    name: 'aws-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of aws storage bucket',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly awsBucketPrefix: CommandFlag = {
+    constName: 'awsBucketPrefix',
+    name: 'aws-bucket-prefix',
+    definition: {
+      defaultValue: '',
+      describe: 'path prefix of aws storage bucket',
       type: 'string',
     },
     prompt: undefined,
@@ -1703,6 +1963,65 @@ export class Flags {
     prompt: undefined,
   };
 
+  static readonly storageAccessKey: CommandFlag = {
+    constName: 'storageAccessKey',
+    name: 'storage-access-key',
+    definition: {
+      defaultValue: '',
+      describe: 'storage access key for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageSecrets: CommandFlag = {
+    constName: 'storageSecrets',
+    name: 'storage-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'storage secret key for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageEndpoint: CommandFlag = {
+    constName: 'storageEndpoint',
+    name: 'storage-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'storage endpoint URL for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucket: CommandFlag = {
+    constName: 'storageBucket',
+    name: 'storage-bucket',
+    definition: {
+      defaultValue: '',
+      describe: 'name of storage bucket for mirror node importer',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  static readonly storageBucketPrefix: CommandFlag = {
+    constName: 'storageBucketPrefix',
+    name: 'storage-bucket-prefix',
+    definition: {
+      defaultValue: '',
+      describe: 'path prefix of storage bucket mirror node importer',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly loadBalancerEnabled: CommandFlag = {
     constName: 'loadBalancerEnabled',
     name: 'load-balancer',
@@ -1728,7 +2047,7 @@ export class Flags {
     Flags.cacheDir,
     Flags.chainId,
     Flags.chartDirectory,
-    Flags.clusterName,
+    Flags.clusterRef,
     Flags.clusterSetupNamespace,
     Flags.context,
     Flags.createAmount,
@@ -1740,15 +2059,18 @@ export class Flags {
     Flags.deployJsonRpcRelay,
     Flags.deployMinio,
     Flags.deployPrometheusStack,
+    Flags.deployment,
     Flags.deploymentClusters,
     Flags.devMode,
     Flags.ecdsaPrivateKey,
     Flags.ed25519PrivateKey,
+    Flags.enableIngress,
     Flags.enableHederaExplorerTls,
     Flags.enablePrometheusSvcMonitor,
     Flags.enableTimeout,
     Flags.endpointType,
     Flags.envoyIps,
+    Flags.forcePortForward,
     Flags.generateEcdsaKey,
     Flags.generateGossipKeys,
     Flags.generateTlsKeys,
@@ -1763,14 +2085,16 @@ export class Flags {
     Flags.grpcWebTlsKeyPath,
     Flags.haproxyIps,
     Flags.hederaExplorerTlsHostName,
-    Flags.hederaExplorerTlsLoadBalancerIp,
+    Flags.hederaExplorerStaticIp,
     Flags.hederaExplorerVersion,
     Flags.inputDir,
     Flags.loadBalancerEnabled,
     Flags.localBuildPath,
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
+    Flags.mirrorStaticIp,
     Flags.namespace,
+    Flags.networkDeploymentValuesFile,
     Flags.newAccountNumber,
     Flags.newAdminKey,
     Flags.nodeAlias,
@@ -1793,6 +2117,16 @@ export class Flags {
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
+    Flags.gcsAccessKey,
+    Flags.gcsSecrets,
+    Flags.gcsEndpoint,
+    Flags.gcsBucket,
+    Flags.gcsBucketPrefix,
+    Flags.awsAccessKey,
+    Flags.awsSecrets,
+    Flags.awsEndpoint,
+    Flags.awsBucket,
+    Flags.awsBucketPrefix,
     Flags.storageAccessKey,
     Flags.storageSecrets,
     Flags.storageEndpoint,
@@ -1807,7 +2141,12 @@ export class Flags {
     Flags.upgradeZipFile,
     Flags.userEmailAddress,
     Flags.valuesFile,
-    Flags.customMirrorNodeDatabaseValuePath,
+    Flags.useExternalDatabase,
+    Flags.externalDatabaseHost,
+    Flags.externalDatabaseOwnerUsername,
+    Flags.externalDatabaseOwnerPassword,
+    Flags.externalDatabaseReadonlyUsername,
+    Flags.externalDatabaseReadonlyPassword,
   ];
 
   /** Resets the definition.disablePrompt for all flags */
