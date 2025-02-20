@@ -11,7 +11,14 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8Factory} from '../../kube/k8_factory.js';
-import {type ClusterRef, type Context, type DeploymentName, type NamespaceNameAsString, type Version} from './types.js';
+import {
+  type ClusterRef,
+  type ClusterRefs,
+  type Context,
+  type DeploymentName,
+  type NamespaceNameAsString,
+  type Version,
+} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
@@ -22,12 +29,14 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {type AnyObject} from '../../../types/aliases.js';
+import {type AnyObject, type NodeAlias} from '../../../types/aliases.js';
 import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
 import * as helpers from '../../helpers.js';
+import {ConsensusNode} from '../../model/consensus_node.js';
+import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 
 /**
@@ -384,17 +393,20 @@ export class RemoteConfigManager {
 
   /** Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data. */
   private async replaceConfigMap(): Promise<void> {
-    await this.k8Factory
-      .default()
-      .configMaps()
-      .replace(
-        await this.getNamespace(),
-        constants.SOLO_REMOTE_CONFIGMAP_NAME,
-        constants.SOLO_REMOTE_CONFIGMAP_LABELS,
-        {
+    const contexts = this.getContexts();
+    const namespace = await this.getNamespace();
+
+    await Promise.all(
+      contexts.map(context => {
+        const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
+        const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
+        const data = {
           'remote-config-data': yaml.stringify(this.remoteConfig.toObject() as any),
-        },
-      );
+        };
+
+        return this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data);
+      }),
+    );
   }
 
   private async setDefaultNamespaceIfNotSet(argv: AnyObject): Promise<void> {
@@ -446,5 +458,70 @@ export class RemoteConfigManager {
     const ns = await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
     if (!ns) throw new MissingArgumentError('namespace is not set');
     return ns;
+  }
+
+  //* Common Commands
+
+  /**
+   * Get the consensus nodes from the remoteConfigManager and use the localConfig to get the context
+   * @returns an array of ConsensusNode objects
+   */
+  public getConsensusNodes(): ConsensusNode[] {
+    const consensusNodes: ConsensusNode[] = [];
+    const clusters: Record<ClusterRef, Cluster> = this.clusters;
+
+    try {
+      if (!this?.components?.consensusNodes) return [];
+    } catch {
+      return [];
+    }
+
+    // using the remoteConfigManager to get the consensus nodes
+    if (this?.components?.consensusNodes) {
+      Object.values(this.components.consensusNodes).forEach(node => {
+        consensusNodes.push(
+          new ConsensusNode(
+            node.name as NodeAlias,
+            node.nodeId,
+            node.namespace,
+            node.cluster,
+            // use local config to get the context
+            this.localConfig.clusterRefs[node.cluster],
+            clusters[node.cluster].dnsBaseDomain,
+            clusters[node.cluster].dnsConsensusNodePattern,
+            Templates.renderConsensusNodeFullyQualifiedDomainName(
+              node.name as NodeAlias,
+              node.nodeId,
+              node.namespace,
+              node.cluster,
+              clusters[node.cluster].dnsBaseDomain,
+              clusters[node.cluster].dnsConsensusNodePattern,
+            ),
+          ),
+        );
+      });
+    }
+
+    // return the consensus nodes
+    return consensusNodes;
+  }
+
+  /**
+   * Gets a list of distinct contexts from the consensus nodes.
+   * @returns an array of context strings.
+   */
+  public getContexts(): string[] {
+    return [...new Set(this.getConsensusNodes().map(node => node.context))];
+  }
+
+  /**
+   * Gets a list of distinct cluster references from the consensus nodes.
+   * @returns an object of cluster references.
+   */
+  public getClusterRefs(): ClusterRefs {
+    return this.getConsensusNodes().reduce((acc, node) => {
+      acc[node.cluster] ||= node.context;
+      return acc;
+    }, {} as ClusterRefs);
   }
 }
