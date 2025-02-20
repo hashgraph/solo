@@ -51,7 +51,8 @@ import {ContainerRef} from '../src/core/kube/resources/container/container_ref.j
 import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
-import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
+import {Argv} from './helpers/argv_wrapper.js';
+import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 
 export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
@@ -71,26 +72,6 @@ export function getTestCacheDir(testName?: string) {
 
 export function getTmpDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'));
-}
-
-/** Get argv with defaults */
-export function getDefaultArgv(namespace: NamespaceName) {
-  const argv: Record<string, any> = {};
-  for (const f of flags.allFlags) {
-    argv[f.name] = f.definition.defaultValue;
-  }
-
-  const currentDeployment =
-    argv[flags.deployment.name] || `${namespace?.name || argv[flags.namespace.name]}-deployment`;
-  const cacheDir = getTestCacheDir();
-  argv.cacheDir = cacheDir;
-  argv[flags.cacheDir.name] = cacheDir;
-  argv.deployment = currentDeployment;
-  argv[flags.deployment.name] = currentDeployment;
-  argv[flags.clusterRef.name] = 'cluster-1';
-  argv[flags.deploymentClusters.name] = ['cluster-1'];
-  argv[flags.context.name] = new K8Client(undefined).contexts().readCurrent();
-  return argv;
 }
 
 interface TestOpts {
@@ -129,24 +110,31 @@ interface BootstrapResponse {
   };
 }
 
+interface Cmd {
+  k8FactoryArg?: K8Factory;
+  initCmdArg?: InitCommand;
+  clusterCmdArg?: ClusterCommand;
+  networkCmdArg?: NetworkCommand;
+  nodeCmdArg?: NodeCommand;
+  accountCmdArg?: AccountCommand;
+  deploymentCmdArg?: DeploymentCommand;
+}
+
 /** Initialize common test variables */
 export function bootstrapTestVariables(
   testName: string,
-  argv: any,
-  k8FactoryArg: K8Factory | null = null,
-  initCmdArg: InitCommand | null = null,
-  clusterCmdArg: ClusterCommand | null = null,
-  networkCmdArg: NetworkCommand | null = null,
-  nodeCmdArg: NodeCommand | null = null,
-  accountCmdArg: AccountCommand | null = null,
-  deploymentCmdArg: DeploymentCommand | null = null,
+  argv: Argv,
+  {k8FactoryArg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg, deploymentCmdArg}: Cmd,
 ): BootstrapResponse {
-  const namespace: NamespaceName = NamespaceName.of(argv[flags.namespace.name] || 'bootstrap-ns');
-  const deployment: string = argv[flags.deployment.name] || `${namespace.name}-deployment`;
-  const cacheDir: string = argv[flags.cacheDir.name] || getTestCacheDir(testName);
+  const namespace: NamespaceName = NamespaceName.of(
+    argv.getArg<NamespaceNameAsString>(flags.namespace) || 'bootstrap-ns',
+  );
+
+  const deployment: string = argv.getArg<DeploymentName>(flags.deployment) || `${namespace.name}-deployment`;
+  const cacheDir: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDir(testName);
   resetForTest(namespace.name, cacheDir);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-  configManager.update(argv);
+  configManager.update(argv.build());
 
   const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
   const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
@@ -209,39 +197,39 @@ export function bootstrapTestVariables(
 /** Bootstrap network in a given namespace, then run the test call back providing the bootstrap response */
 export function e2eTestSuite(
   testName: string,
-  argv: Record<any, any>,
-  k8FactoryArg: K8Factory | null = null,
-  initCmdArg: InitCommand | null = null,
-  clusterCmdArg: ClusterCommand | null = null,
-  networkCmdArg: NetworkCommand | null = null,
-  nodeCmdArg: NodeCommand | null = null,
-  accountCmdArg: AccountCommand | null = null,
-  startNodes = true,
-  testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
-) {
-  const bootstrapResp = bootstrapTestVariables(
-    testName,
-    argv,
+  argv: Argv,
+  {
     k8FactoryArg,
     initCmdArg,
     clusterCmdArg,
     networkCmdArg,
     nodeCmdArg,
     accountCmdArg,
-  );
-  const namespace: NamespaceName = bootstrapResp.namespace;
-  const initCmd: InitCommand = bootstrapResp.cmd.initCmd;
-  const k8Factory: K8Factory = bootstrapResp.opts.k8Factory;
-  const clusterCmd: ClusterCommand = bootstrapResp.cmd.clusterCmd;
-  const networkCmd: NetworkCommand = bootstrapResp.cmd.networkCmd;
-  const nodeCmd: NodeCommand = bootstrapResp.cmd.nodeCmd;
-  const chartManager: ChartManager = bootstrapResp.opts.chartManager;
-  const deploymentCmd: DeploymentCommand = bootstrapResp.cmd.deploymentCmd;
+    startNodes,
+  }: Cmd & {startNodes?: boolean},
+  testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
+) {
+  if (typeof startNodes !== 'boolean') startNodes = true;
+
+  const bootstrapResp = bootstrapTestVariables(testName, argv, {
+    k8FactoryArg,
+    initCmdArg,
+    clusterCmdArg,
+    networkCmdArg,
+    nodeCmdArg,
+    accountCmdArg,
+  });
+
+  const {
+    namespace,
+    cmd: {initCmd, clusterCmd, networkCmd, nodeCmd, deploymentCmd},
+    opts: {k8Factory, chartManager},
+  } = bootstrapResp;
 
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
-    describe(`Bootstrap network for test [release ${argv[flags.releaseTag.name]}]`, () => {
+    describe(`Bootstrap network for test [release ${argv.getArg<string>(flags.releaseTag)}]`, () => {
       before(() => {
         bootstrapResp.opts.logger.showUser(
           `------------------------- START: bootstrap (${testName}) ----------------------------`,
@@ -257,7 +245,7 @@ export function e2eTestSuite(
       });
 
       it('should cleanup previous deployment', async () => {
-        await initCmd.init(argv);
+        await initCmd.init(argv.build());
 
         if (await k8Factory.default().namespaces().has(namespace)) {
           await k8Factory.default().namespaces().delete(namespace);
@@ -271,16 +259,16 @@ export function e2eTestSuite(
         if (
           !(await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
         ) {
-          await clusterCmd.handlers.setup(argv);
+          await clusterCmd.handlers.setup(argv.build());
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('should succeed with deployment create', async () => {
-        expect(await deploymentCmd.create(argv)).to.be.true;
+        expect(await deploymentCmd.create(argv.build())).to.be.true;
       });
 
       it('generate key files', async () => {
-        expect(await nodeCmd.handlers.keys(argv)).to.be.true;
+        expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
         expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName,
@@ -290,7 +278,7 @@ export function e2eTestSuite(
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('should succeed with network deploy', async () => {
-        await networkCmd.deploy(argv);
+        await networkCmd.deploy(argv.build());
 
         expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
           flags.apiPermissionProperties.constName,
@@ -319,7 +307,7 @@ export function e2eTestSuite(
         it('should succeed with node setup command', async () => {
           // cache this, because `solo node setup.finalize()` will reset it to false
           try {
-            expect(await nodeCmd.handlers.setup(argv)).to.be.true;
+            expect(await nodeCmd.handlers.setup(argv.build())).to.be.true;
             expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.quiet.constName,
               flags.devMode.constName,
@@ -334,7 +322,7 @@ export function e2eTestSuite(
 
         it('should succeed with node start command', async () => {
           try {
-            expect(await nodeCmd.handlers.start(argv)).to.be.true;
+            expect(await nodeCmd.handlers.start(argv.build())).to.be.true;
           } catch (e) {
             nodeCmd.logger.showUserError(e);
             expect.fail();
@@ -342,7 +330,7 @@ export function e2eTestSuite(
         }).timeout(Duration.ofMinutes(30).toMillis());
 
         it('node log command should work', async () => {
-          expect(await nodeCmd.handlers.logs(argv)).to.be.true;
+          expect(await nodeCmd.handlers.logs(argv.build())).to.be.true;
 
           const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log');
           const soloLog = fs.readFileSync(soloLogPath, 'utf8');
@@ -366,13 +354,14 @@ export function balanceQueryShouldSucceed(
 ) {
   it('Balance query should succeed', async () => {
     try {
-      const argv = getDefaultArgv(namespace);
+      const argv = Argv.getDefaultArgv(namespace);
       expect(accountManager._nodeClient).to.be.null;
+
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
         cmd.getClusterRefs(),
-        argv[flags.deployment.name],
+        argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
 
@@ -397,12 +386,12 @@ export function accountCreationShouldSucceed(
 ) {
   it('Account creation should succeed', async () => {
     try {
-      const argv = getDefaultArgv(namespace);
+      const argv = Argv.getDefaultArgv(namespace);
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
         nodeCmd.getClusterRefs(),
-        argv[flags.deployment.name],
+        argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
       const privateKey = PrivateKey.generate();

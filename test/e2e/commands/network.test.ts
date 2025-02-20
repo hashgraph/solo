@@ -4,7 +4,7 @@
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {bootstrapTestVariables, getDefaultArgv, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
@@ -19,6 +19,7 @@ import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
@@ -27,22 +28,21 @@ describe('NetworkCommand', function networkCommand() {
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
   const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
   const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
-  const argv = getDefaultArgv(namespace);
-  argv[flags.namespace.name] = namespace.name;
-  argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-  argv[flags.nodeAliasesUnparsed.name] = 'node1';
-  argv[flags.generateGossipKeys.name] = true;
-  argv[flags.generateTlsKeys.name] = true;
-  argv[flags.deployMinio.name] = true;
-  argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
-  argv[flags.force.name] = true;
-  argv[flags.applicationEnv.name] = applicationEnvFilePath;
-  argv[flags.loadBalancerEnabled.name] = true;
-  // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
-  argv[flags.quiet.name] = true;
+  const argv = Argv.getDefaultArgv(namespace);
+  argv.setArg(flags.namespace, namespace.name);
+  argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+  argv.setArg(flags.nodeAliasesUnparsed, 'node1');
+  argv.setArg(flags.generateGossipKeys, true);
+  argv.setArg(flags.generateTlsKeys, true);
+  argv.setArg(flags.deployMinio, true);
+  argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+  argv.setArg(flags.force, true);
+  argv.setArg(flags.applicationEnv, applicationEnvFilePath);
+  argv.setArg(flags.loadBalancerEnabled, true);
+  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
+  argv.setArg(flags.quiet, true);
 
-  const bootstrapResp = bootstrapTestVariables(testName, argv);
+  const bootstrapResp = bootstrapTestVariables(testName, argv, {});
   const k8Factory = bootstrapResp.opts.k8Factory;
   const accountManager = bootstrapResp.opts.accountManager;
   const configManager = bootstrapResp.opts.configManager;
@@ -63,26 +63,26 @@ describe('NetworkCommand', function networkCommand() {
 
   before(async () => {
     await k8Factory.default().namespaces().delete(namespace);
-    await initCmd.init(argv);
-    await clusterCmd.handlers.setup(argv);
+    await initCmd.init(argv.build());
+    await clusterCmd.handlers.setup(argv.build());
     fs.mkdirSync(applicationEnvParentDirectory, {recursive: true});
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
   });
 
   it('deployment create should succeed', async () => {
-    expect(await deploymentCmd.create(argv)).to.be.true;
-    argv[flags.nodeAliasesUnparsed.name] = undefined;
+    expect(await deploymentCmd.create(argv.build())).to.be.true;
+    argv.setArg(flags.nodeAliasesUnparsed, undefined);
     configManager.reset();
-    configManager.update(argv);
+    configManager.update(argv.build());
   });
 
   it('keys should be generated', async () => {
-    expect(await nodeCmd.handlers.keys(argv)).to.be.true;
+    expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
   });
 
   it('network deploy command should succeed', async () => {
     try {
-      expect(await networkCmd.deploy(argv)).to.be.true;
+      expect(await networkCmd.deploy(argv.build())).to.be.true;
 
       // check pod names should match expected values
       await expect(
@@ -132,13 +132,13 @@ describe('NetworkCommand', function networkCommand() {
   });
 
   it('network destroy should success', async () => {
-    argv[flags.deletePvcs.name] = true;
-    argv[flags.deleteSecrets.name] = true;
-    argv[flags.force.name] = true;
-    configManager.update(argv);
+    argv.setArg(flags.deletePvcs, true);
+    argv.setArg(flags.deleteSecrets, true);
+    argv.setArg(flags.force, true);
+    configManager.update(argv.build());
 
     try {
-      const destroyResult = await networkCmd.destroy(argv);
+      const destroyResult = await networkCmd.destroy(argv.build());
       expect(destroyResult).to.be.true;
 
       while ((await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node'])).length > 0) {
