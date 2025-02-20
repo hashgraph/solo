@@ -107,7 +107,7 @@ export class PlatformInstaller {
 
       return true;
     } catch (e) {
-      const message = `failed to extract platform code in this pod '${podRef.name}': ${e.message}`;
+      const message = `failed to extract platform code in this pod '${podRef}' while using the '${context}' context: ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }

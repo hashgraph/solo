@@ -196,7 +196,7 @@ export class AccountManager {
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context);
+          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
         }
       }
 
@@ -393,7 +393,7 @@ export class AccountManager {
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
           await this.k8Factory
-            .default()
+            .getK8(networkNodeService.context)
             .pods()
             .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
             .portForward(localPort, port),
@@ -965,14 +965,25 @@ export class AccountManager {
   /**
    * Fetch and prepare address book as a base64 string
    */
-  async prepareAddressBookBase64() {
+  async prepareAddressBookBase64(
+    namespace: NamespaceName,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+    operatorId?: string,
+    operatorKey?: string,
+    forcePortForward?: boolean,
+    context?: string,
+  ) {
     // fetch AddressBook
-    const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK);
-    const addressBookBytes = await fileQuery.execute(this._nodeClient);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
+    const client = this._nodeClient;
 
-    // convert addressBook into base64
-    // @ts-ignore
-    return Base64.encode(addressBookBytes);
+    if (operatorId && operatorKey) {
+      client.setOperator(operatorId, operatorKey);
+    }
+
+    const query = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK);
+    return Buffer.from(await query.execute(client)).toString('base64');
   }
 
   async getFileContents(
@@ -981,8 +992,9 @@ export class AccountManager {
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
     forcePortForward?: boolean,
+    context?: string,
   ) {
-    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);

@@ -317,7 +317,7 @@ export class NodeCommandTasks {
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
       const podRef = podRefs[nodeAlias];
       subTasks.push({
-        title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag} ]`,
+        title: `Update node: ${chalk.yellow(nodeAlias)} [ platformVersion = ${releaseTag}, context = ${context} ]`,
         task: async () => await platformInstaller.fetchPlatform(podRef, releaseTag, context),
       });
     }
@@ -351,6 +351,7 @@ export class NodeCommandTasks {
           ? 'Please attach JVM debugger now.  Sleeping for 1 hour, hit ctrl-c once debugging is complete.'
           : '';
       const title = `Check network pod: ${chalk.yellow(nodeAlias)} ${chalk.red(reminder)}`;
+      const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
 
       const subTask = async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         if (enableDebugger) {
@@ -363,6 +364,10 @@ export class NodeCommandTasks {
           title,
           i,
           status,
+          undefined,
+          undefined,
+          undefined,
+          context,
         );
       };
 
@@ -387,6 +392,7 @@ export class NodeCommandTasks {
     maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
     delay = constants.NETWORK_NODE_ACTIVE_DELAY,
     timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT,
+    context?: string,
   ): Promise<PodRef> {
     nodeAlias = nodeAlias.trim() as NodeAlias;
     const podName = Templates.renderNetworkPodName(nodeAlias);
@@ -571,6 +577,7 @@ export class NodeCommandTasks {
     accountId: string,
     nodeAlias: NodeAlias,
     stakeAmount: number = HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
+    context?: string,
   ) {
     try {
       const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
@@ -579,6 +586,7 @@ export class NodeCommandTasks {
         this.parent.getClusterRefs(),
         deploymentName,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
+        context,
       );
       const client = this.accountManager._nodeClient;
       const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace);
@@ -1266,11 +1274,12 @@ export class NodeCommandTasks {
         let nodeIndex = 0;
         for (const nodeAlias of ctx.config.nodeAliases) {
           const accountId = accountMap.get(nodeAlias);
+          const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
           const stakeAmount =
             stakeAmountParsed.length > 0 ? stakeAmountParsed[nodeIndex] : HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
           subTasks.push({
             title: `Adding stake for node: ${chalk.yellow(nodeAlias)}`,
-            task: async () => await self._addStake(ctx.config.namespace, accountId, nodeAlias, +stakeAmount),
+            task: async () => await self._addStake(ctx.config.namespace, accountId, nodeAlias, +stakeAmount, context),
           });
           nodeIndex++;
         }
@@ -1289,13 +1298,16 @@ export class NodeCommandTasks {
   stakeNewNode() {
     const self = this;
     return new Task('Stake new node', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      const context = helpers.extractContextFromConsensusNodes(ctx.config.nodeAlias, ctx.config.consensusNodes);
       await self.accountManager.refreshNodeClient(
         ctx.config.namespace,
         ctx.config.nodeAlias,
         this.parent.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
+        context,
+        this.configManager.getFlag<boolean>(flags.forcePortForward),
       );
-      await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias);
+      await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias, undefined, context);
     });
   }
 
