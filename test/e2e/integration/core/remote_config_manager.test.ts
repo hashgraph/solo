@@ -23,18 +23,19 @@ import {Argv} from '../../../helpers/argv_wrapper.js';
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = NamespaceName.of('remote-config-manager-e2e');
-const deploymentName = 'deployment';
-const argv = Argv.getDefaultArgv(namespace);
+const argv = getDefaultArgv(namespace);
 const testCacheDir = getTestCacheDir();
-argv.setArg(flags.cacheDir, testCacheDir);
-argv.setArg(flags.namespace, namespace.name);
-argv.setArg(flags.deployment, `${namespace.name}-deployment`);
-argv.setArg(flags.nodeAliasesUnparsed, 'node1');
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
-argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
-argv.setArg(flags.generateGossipKeys, true);
-argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
+argv[flags.cacheDir.name] = testCacheDir;
+argv[flags.namespace.name] = namespace.name;
+const deploymentName = `${namespace.name}-deployment`;
+argv[flags.deployment.name] = `${namespace.name}-deployment`;
+argv[flags.nodeAliasesUnparsed.name] = 'node1';
+argv[flags.clusterRef.name] = TEST_CLUSTER;
+argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
+argv[flags.generateGossipKeys.name] = true;
+argv[flags.generateTlsKeys.name] = true;
+// set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
+argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
 
 e2eTestSuite(namespace.name, argv, {startNodes: false}, bootstrapResp => {
   describe('RemoteConfigManager', async () => {
