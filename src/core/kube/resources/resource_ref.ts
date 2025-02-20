@@ -1,8 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from '../resources/namespace/namespace_name.js';
-import {type ResourceName} from '../resources/resource_name.js';
+import {type NamespaceName} from './namespace/namespace_name.js';
+import {type ResourceName} from './resource_name.js';
 import {MissingNamespaceError} from '../errors/missing_namespace_error.js';
 import {MissingResourceNameError} from '../errors/missing_resource_name_error.js';
 
@@ -33,6 +33,6 @@ export abstract class ResourceRef<T extends ResourceName> {
    * @returns The pod reference as a string.
    */
   public toString(): string {
-    return `{namespace: ${this.namespace}, name: ${this.name}}`;
+    return `${this.namespace}/${this.name}`;
   }
 }
