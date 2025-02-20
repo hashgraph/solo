@@ -571,7 +571,6 @@ export class AccountManager {
           .pods()
           .list(namespace, ['solo.hedera.com/type=network-node']);
         for (const pod of pods) {
-          // eslint-disable-next-line no-prototype-builtins
           if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
             // TODO Review why this fixes issue
             continue;
