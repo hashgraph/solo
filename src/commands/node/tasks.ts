@@ -1552,7 +1552,7 @@ export class NodeCommandTasks {
       }
 
       try {
-        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
+        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(new Long(nodeId));
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
           self.logger.info(`config.tlsPublicKey: ${config.tlsPublicKey}`);
@@ -1979,7 +1979,7 @@ export class NodeCommandTasks {
         const deleteAccountId = accountMap.get(config.nodeAlias);
         this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`);
         const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
-        const nodeDeleteTx = new NodeDeleteTransaction().setNodeId(nodeId).freezeWith(config.nodeClient);
+        const nodeDeleteTx = new NodeDeleteTransaction().setNodeId(new Long(nodeId)).freezeWith(config.nodeClient);
 
         const signedTx = await nodeDeleteTx.sign(config.adminKey);
         const txResp = await signedTx.execute(config.nodeClient);
