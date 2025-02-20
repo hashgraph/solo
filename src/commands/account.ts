@@ -11,7 +11,7 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import * as helpers from '../core/helpers.js';
 import {sleep} from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
-import {type AccountId, AccountInfo, HbarUnit, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
+import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
@@ -275,7 +275,7 @@ export class AccountCommand extends BaseCommand {
                       );
 
                       try {
-                        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
+                        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(new Long(nodeId));
                         const newPrivateKey = PrivateKey.generateED25519();
 
                         nodeUpdateTx = nodeUpdateTx.setAdminKey(newPrivateKey.publicKey);
