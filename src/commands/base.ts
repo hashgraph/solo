@@ -375,30 +375,28 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     // using the remoteConfigManager to get the consensus nodes
-    if (this.getRemoteConfigManager()?.components?.consensusNodes) {
-      Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
-        consensusNodes.push(
-          new ConsensusNode(
+    Object.values(this.getRemoteConfigManager().components.consensusNodes).forEach(node => {
+      consensusNodes.push(
+        new ConsensusNode(
+          node.name as NodeAlias,
+          node.nodeId,
+          node.namespace,
+          node.cluster,
+          // use local config to get the context
+          this.getLocalConfig().clusterRefs[node.cluster],
+          clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
+          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+          Templates.renderConsensusNodeFullyQualifiedDomainName(
             node.name as NodeAlias,
             node.nodeId,
             node.namespace,
             node.cluster,
-            // use local config to get the context
-            this.getLocalConfig().clusterRefs[node.cluster],
-            clusters[node.cluster]?.dnsBaseDomain ?? '',
-            clusters[node.cluster]?.dnsConsensusNodePattern ?? '',
-            Templates.renderConsensusNodeFullyQualifiedDomainName(
-              node.name as NodeAlias,
-              node.nodeId,
-              node.namespace,
-              node.cluster,
-              clusters[node.cluster]?.dnsBaseDomain ?? '',
-              clusters[node.cluster]?.dnsConsensusNodePattern ?? '',
-            ),
+            clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
+            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
           ),
-        );
-      });
-    }
+        ),
+      );
+    });
 
     // return the consensus nodes
     return consensusNodes;
