@@ -97,11 +97,11 @@ npm run solo-test -- network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" \
 
 npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
-npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" \
+npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} \
   --storage-type "${storageType}" \
   "${MIRROR_STORAGE_OPTIONS[@]}" \
 
-npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME}
 
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 

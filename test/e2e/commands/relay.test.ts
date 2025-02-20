@@ -6,7 +6,7 @@ import {expect} from 'chai';
 import each from 'mocha-each';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {RelayCommand} from '../../../src/commands/relay.js';
@@ -15,22 +15,23 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 const testName = 'relay-cmd-e2e';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv(namespace);
-argv[flags.namespace.name] = namespace.name;
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.nodeAliasesUnparsed.name] = 'node1,node2';
-argv[flags.generateGossipKeys.name] = true;
-argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterRef.name] = TEST_CLUSTER;
-argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
-argv[flags.force.name] = true;
-argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue;
-argv[flags.quiet.name] = true;
+const argv = Argv.getDefaultArgv(namespace);
+argv.setArg(flags.namespace, namespace.name);
+argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
+argv.setArg(flags.generateGossipKeys, true);
+argv.setArg(flags.generateTlsKeys, true);
+argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.force, true);
+argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
+argv.setArg(flags.quiet, true);
 
-e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
+e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('RelayCommand', async () => {
     const k8Factory = bootstrapResp.opts.k8Factory;
     const configManager = bootstrapResp.opts.configManager;
@@ -46,12 +47,12 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     each(['node1', 'node1,node2']).it('relay deploy and destroy should work with $value', async function (relayNodes) {
       this.timeout(Duration.ofMinutes(5).toMillis());
 
-      argv[flags.nodeAliasesUnparsed.name] = relayNodes;
-      configManager.update(argv);
+      argv.setArg(flags.nodeAliasesUnparsed, relayNodes);
+      configManager.update(argv.build());
 
       // test relay deploy
       try {
-        expect(await relayCmd.deploy(argv)).to.be.true;
+        expect(await relayCmd.deploy(argv.build())).to.be.true;
       } catch (e) {
         relayCmd.logger.showUserError(e);
         expect.fail();
@@ -66,7 +67,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       // test relay destroy
       try {
-        expect(await relayCmd.destroy(argv)).to.be.true;
+        expect(await relayCmd.destroy(argv.build())).to.be.true;
       } catch (e) {
         relayCmd.logger.showUserError(e);
         expect.fail();
