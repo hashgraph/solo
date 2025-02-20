@@ -65,7 +65,7 @@ import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdate
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
-import {type BaseCommand} from '../base.js';
+import {BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 import {NodeOverridesModel} from '../../core/node_overrides_model.js';
@@ -84,7 +84,6 @@ import {ConsensusNodeComponent} from '../../core/config/remote/components/consen
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
-import {NodeCommand} from './index.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
@@ -1745,8 +1744,8 @@ export class NodeCommandTasks {
         );
 
         if (profileValuesFile) {
-          const valuesFiles: Record<ClusterRef, string> = NodeCommand.prepareValuesFilesMap(
-            config.clusterRefs,
+          const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
+            clusterRefs,
             config.chartDirectory,
             profileValuesFile,
             config.valuesFile,
