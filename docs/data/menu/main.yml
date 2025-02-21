@@ -24,7 +24,12 @@ main:
   - name: Solo CLI manual
     ref: "/User/SoloCLI.md"
   - name: Contributing
-    ref: "/Developer/DEV.md"
+    sub:
+    - name: Contributing to Hashgraph Projects
+      ref: "https://github.com/hashgraph/.github/blob/main/CONTRIBUTING.md"
+      external: true
+    - name: Contributing to Solo
+      ref: "/Developer/DEV.md"
   - name: Design Documentation
     sub:
     - name: Project Overview and High-Level Documentation
