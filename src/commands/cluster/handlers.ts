@@ -7,7 +7,6 @@ import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
@@ -16,6 +15,7 @@ import {CommandHandler} from '../../core/command_handler.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type ClusterCommandConfigs} from './configs.js';
 
 @injectable()
 export class ClusterCommandHandlers extends CommandHandler {
@@ -25,6 +25,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+    @inject(InjectTokens.ClusterCommandConfigs) private readonly configs: ClusterCommandConfigs,
   ) {
     super();
 
@@ -37,6 +38,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.configs = patchInject(configs, InjectTokens.ClusterCommandConfigs, this.constructor.name);
   }
 
   async connect(argv: any) {
@@ -44,7 +46,7 @@ export class ClusterCommandHandlers extends CommandHandler {
 
     const action = this.commandActionBuilder(
       [
-        this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder, this.getConfigMaps()),
         this.setupHomeDirectoryTask(),
         this.localConfig.promptLocalConfigTask(this.k8Factory),
         this.tasks.selectContext(),
@@ -103,7 +105,7 @@ export class ClusterCommandHandlers extends CommandHandler {
 
     const action = this.commandActionBuilder(
       [
-        this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
+        this.tasks.initialize(argv, this.configs.setupConfigBuilder),
         this.tasks.prepareChartValues(argv),
         this.tasks.installClusterChart(argv),
       ],
@@ -129,7 +131,7 @@ export class ClusterCommandHandlers extends CommandHandler {
 
     const action = this.commandActionBuilder(
       [
-        this.tasks.initialize(argv, resetConfigBuilder.bind(this)),
+        this.tasks.initialize(argv, this.configs.resetConfigBuilder),
         this.tasks.acquireNewLease(argv),
         this.tasks.uninstallClusterChart(argv),
       ],

@@ -12,8 +12,7 @@ import fs from 'fs';
 import {Task} from './task.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {ConfigManager} from './config_manager.js';
-import {getConfig} from './config_builder.js';
-import {type BaseCommand} from '../commands/base.js';
+import {type ConfigMap, getConfig} from './config_builder.js';
 
 @injectable()
 export class CommandHandler {
@@ -92,5 +91,9 @@ export class CommandHandler {
 
   public getUnusedConfigs(configName: string): string[] {
     return this._configMaps.get(configName).getUnusedConfigs();
+  }
+
+  public getConfigMaps(): ConfigMap {
+    return this._configMaps;
   }
 }

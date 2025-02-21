@@ -1,6 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
+import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
+
 /**
  * Dependency injection tokens
  */
@@ -38,4 +40,6 @@ export const InjectTokens = {
   NodeCommandTasks: Symbol.for('NodeCommandTasks'),
   NodeCommandHandlers: Symbol.for('NodeCommandHandlers'),
   ConsensusNodeManager: Symbol.for('ConsensusNodeManager'),
+  ClusterCommandConfigs: Symbol.for('ClusterCommandConfigs'),
+  NodeCommandConfigs: Symbol.for('NodeCommandConfigs'),
 };

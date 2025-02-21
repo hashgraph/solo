@@ -31,6 +31,8 @@ import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
 import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
 import {NodeCommandHandlers} from '../../commands/node/handlers.js';
 import {NodeCommandTasks} from '../../commands/node/tasks.js';
+import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
+import {NodeCommandConfigs} from '../../commands/node/configs.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -132,6 +134,8 @@ export class Container {
     container.register(ClusterCommandTasks, {useClass: ClusterCommandTasks}, {lifecycle: Lifecycle.Singleton});
     container.register(NodeCommandHandlers, {useClass: NodeCommandHandlers}, {lifecycle: Lifecycle.Singleton});
     container.register(NodeCommandTasks, {useClass: NodeCommandTasks}, {lifecycle: Lifecycle.Singleton});
+    container.register(ClusterCommandConfigs, {useClass: ClusterCommandConfigs}, {lifecycle: Lifecycle.Singleton});
+    container.register(NodeCommandConfigs, {useClass: NodeCommandConfigs}, {lifecycle: Lifecycle.Singleton});
   }
 
   /**

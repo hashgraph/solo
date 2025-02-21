@@ -9,83 +9,108 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type ConfigManager} from '../../core/config_manager.js';
+import {type SoloLogger} from '../../core/logging.js';
+import {type ChartManager} from '../../core/chart_manager.js';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {type ConfigMap, getConfig} from '../../core/config_builder.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
-export const connectConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
+@injectable()
+export class ClusterCommandConfigs {
+  constructor(
+    @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
+    @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
+    @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+  ) {
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+  }
 
-  // set config in the context for later tasks to use
-  ctx.config = config;
+  public async connectConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
+    const config = getConfig(
+      this.configManager,
+      configMaps,
+      CONNECT_CONFIGS_NAME,
+      argv.flags,
+      [],
+    ) as ClusterConnectConfigClass;
+    // set config in the context for later tasks to use
+    ctx.config = config;
 
-  return ctx.config;
-};
+    return ctx.config;
+  }
 
-export const setupConfigBuilder = async function (argv, ctx, task) {
-  const configManager = this.configManager;
-  configManager.update(argv);
-  flags.disablePrompts([flags.chartDirectory]);
+  public async setupConfigBuilder(argv, ctx, task) {
+    const configManager = this.configManager;
+    configManager.update(argv);
+    flags.disablePrompts([flags.chartDirectory]);
 
-  await configManager.executePrompt(task, [
-    flags.chartDirectory,
-    flags.clusterSetupNamespace,
-    flags.deployCertManager,
-    flags.deployCertManagerCrds,
-    flags.deployMinio,
-    flags.deployPrometheusStack,
-  ]);
+    await configManager.executePrompt(task, [
+      flags.chartDirectory,
+      flags.clusterSetupNamespace,
+      flags.deployCertManager,
+      flags.deployCertManagerCrds,
+      flags.deployMinio,
+      flags.deployPrometheusStack,
+    ]);
 
-  ctx.config = {
-    chartDir: configManager.getFlag(flags.chartDirectory) as string,
-    clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
-    deployCertManager: configManager.getFlag(flags.deployCertManager) as boolean,
-    deployCertManagerCrds: configManager.getFlag(flags.deployCertManagerCrds) as boolean,
-    deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
-    deployPrometheusStack: configManager.getFlag(flags.deployPrometheusStack) as boolean,
-    soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
-  } as ClusterSetupConfigClass;
+    ctx.config = {
+      chartDir: configManager.getFlag(flags.chartDirectory) as string,
+      clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
+      deployCertManager: configManager.getFlag(flags.deployCertManager) as boolean,
+      deployCertManagerCrds: configManager.getFlag(flags.deployCertManagerCrds) as boolean,
+      deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
+      deployPrometheusStack: configManager.getFlag(flags.deployPrometheusStack) as boolean,
+      soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
+    } as ClusterSetupConfigClass;
 
-  this.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
+    this.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
 
-  ctx.isChartInstalled = await this.chartManager.isChartInstalled(
-    ctx.config.clusterSetupNamespace,
-    constants.SOLO_CLUSTER_SETUP_CHART,
-  );
+    ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+      ctx.config.clusterSetupNamespace,
+      constants.SOLO_CLUSTER_SETUP_CHART,
+    );
 
-  return ctx.config;
-};
+    return ctx.config;
+  }
 
-export const resetConfigBuilder = async function (argv, ctx, task) {
-  if (!argv[flags.force.name]) {
-    const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-      type: 'toggle',
-      default: false,
-      message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
-    });
+  public async resetConfigBuilder(argv, ctx, task) {
+    if (!argv[flags.force.name]) {
+      const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
+        type: 'toggle',
+        default: false,
+        message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
+      });
 
-    if (!confirm) {
-      // eslint-disable-next-line n/no-process-exit
-      process.exit(0);
+      if (!confirm) {
+        // eslint-disable-next-line n/no-process-exit
+        process.exit(0);
+      }
     }
+
+    this.configManager.update(argv);
+
+    ctx.config = {
+      clusterName: this.configManager.getFlag(flags.clusterRef) as string,
+      clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
+    } as ClusterResetConfigClass;
+
+    ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+      ctx.config.clusterSetupNamespace,
+      constants.SOLO_CLUSTER_SETUP_CHART,
+    );
+    if (!ctx.isChartInstalled) {
+      throw new SoloError('No chart found for the cluster');
+    }
+
+    return ctx.config;
   }
-
-  this.configManager.update(argv);
-
-  ctx.config = {
-    clusterName: this.configManager.getFlag(flags.clusterRef) as string,
-    clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
-  } as ClusterResetConfigClass;
-
-  ctx.isChartInstalled = await this.chartManager.isChartInstalled(
-    ctx.config.clusterSetupNamespace,
-    constants.SOLO_CLUSTER_SETUP_CHART,
-  );
-  if (!ctx.isChartInstalled) {
-    throw new SoloError('No chart found for the cluster');
-  }
-
-  return ctx.config;
-};
+}
 
 export interface ClusterConnectConfigClass {
   app: string;

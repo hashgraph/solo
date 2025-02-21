@@ -77,6 +77,7 @@ import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ConsensusNodeManager} from '../../core/consensus_node_manager.js';
+import {type ConfigMap} from '../../core/config_builder.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -1926,7 +1927,13 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null, shouldLoadNodeClient = true) {
+  initialize(
+    argv: any,
+    configInit: ConfigBuilder,
+    lease: Lease | null,
+    configMap?: ConfigMap,
+    shouldLoadNodeClient = true,
+  ) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -1953,7 +1960,7 @@ export class NodeCommandTasks {
 
       await this.configManager.executePrompt(task, flagsToPrompt);
 
-      const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
+      const config = await configInit(argv, ctx, task, configMap, shouldLoadNodeClient);
       ctx.config = config;
       config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
       config.contexts = this.consensusNodeManager.getContexts();

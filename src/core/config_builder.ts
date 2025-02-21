@@ -11,7 +11,7 @@ import {type CommandFlag} from '../types/flag_types.js';
  */
 export function getConfig(
   configManager: ConfigManager,
-  configMaps: Map<string, any>,
+  configMaps: ConfigMap,
   configName: string,
   flags: CommandFlag[],
   extraProperties: string[] = [],
@@ -80,3 +80,5 @@ export function getConfig(
 
   return newConfigInstance;
 }
+
+export type ConfigMap = Map<string, any>;

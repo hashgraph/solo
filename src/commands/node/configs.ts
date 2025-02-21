@@ -19,7 +19,15 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type ConfigManager} from '../../core/config_manager.js';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
+import {type ConsensusNodeManager} from '../../core/consensus_node_manager.js';
+import {type AccountManager} from '../../core/account_manager.js';
+import {type Helm} from '../../core/helm.js';
+import {type ConfigMap, getConfig} from '../../core/config_builder.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -32,410 +40,436 @@ export const KEYS_CONFIGS_NAME = 'keyConfigs';
 export const SETUP_CONFIGS_NAME = 'setupConfigs';
 export const START_CONFIGS_NAME = 'startConfigs';
 
-const initializeSetup = async (config: any, k8Factory: K8Factory) => {
-  // compute other config parameters
-  config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
-  config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
-  config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
-
-  if (!(await k8Factory.default().namespaces().has(config.namespace))) {
-    throw new SoloError(`namespace ${config.namespace} does not exist`);
-  }
-
-  // prepare staging keys directory
-  if (!fs.existsSync(config.stagingKeysDir)) {
-    fs.mkdirSync(config.stagingKeysDir, {recursive: true});
-  }
-
-  // create cached keys dir if it does not exist yet
-  if (!fs.existsSync(config.keysDir)) {
-    fs.mkdirSync(config.keysDir);
-  }
-};
-
-export const prepareUpgradeConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
-    'nodeClient',
-    'freezeAdminPrivateKey',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodePrepareUpgradeConfigClass;
-
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-
-  await initializeSetup(config, this.k8Factory);
-  config.nodeClient = await this.accountManager.loadNodeClient(
-    config.namespace,
-    this.parent.getClusterRefs(),
-    config.deployment,
-  );
-
-  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
-  config.freezeAdminPrivateKey = accountKeys.privateKey;
-
-  return config;
-};
-
-export const downloadGeneratedFilesConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
-    'allNodeAliases',
-    'existingNodeAliases',
-    'serviceMap',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeDownloadGeneratedFilesConfigClass;
-
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  config.existingNodeAliases = [];
-  await initializeSetup(config, this.k8Factory);
-
-  return config;
-};
-
-export const upgradeConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
-  const config = this.getConfig(UPGRADE_CONFIGS_NAME, argv.flags, [
-    'allNodeAliases',
-    'existingNodeAliases',
-    'keysDir',
-    'nodeClient',
-    'podRefs',
-    'stagingDir',
-    'stagingKeysDir',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeUpgradeConfigClass;
-
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  config.curDate = new Date();
-  config.existingNodeAliases = [];
-  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
-
-  await initializeSetup(config, this.k8Factory);
-
-  // set config in the context for later tasks to use
-  ctx.config = config;
-
-  ctx.config.chartPath = await helpers.prepareChartPath(
-    this.helm,
-    ctx.config.chartDirectory,
-    constants.SOLO_TESTING_CHART_URL,
-    constants.SOLO_DEPLOYMENT_CHART,
-  );
-  if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-      ctx.config.namespace,
-      this.parent.getClusterRefs(),
-      config.deployment,
+@injectable()
+export class NodeCommandConfigs {
+  constructor(
+    @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(InjectTokens.ConsensusNodeManager) private readonly consensusNodeManager: ConsensusNodeManager,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
+    @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
+    @inject(InjectTokens.Helm) private readonly helm: Helm,
+  ) {
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
+    this.consensusNodeManager = patchInject(
+      consensusNodeManager,
+      InjectTokens.ConsensusNodeManager,
+      this.constructor.name,
     );
   }
 
-  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
-  config.freezeAdminPrivateKey = accountKeys.privateKey;
-  return config;
-};
+  private async initializeSetup(config: any, k8Factory: K8Factory) {
+    // compute other config parameters
+    config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
+    config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
+    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
 
-export const updateConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
-  const config = this.getConfig(UPDATE_CONFIGS_NAME, argv.flags, [
-    'allNodeAliases',
-    'existingNodeAliases',
-    'freezeAdminPrivateKey',
-    'keysDir',
-    'nodeClient',
-    'podRefs',
-    'serviceMap',
-    'stagingDir',
-    'stagingKeysDir',
-    'treasuryKey',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeUpdateConfigClass;
-
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  config.curDate = new Date();
-  config.existingNodeAliases = [];
-
-  await initializeSetup(config, this.k8Factory);
-
-  // set config in the context for later tasks to use
-  ctx.config = config;
-
-  ctx.config.chartPath = await helpers.prepareChartPath(
-    this.helm,
-    ctx.config.chartDirectory,
-    constants.SOLO_TESTING_CHART_URL,
-    constants.SOLO_DEPLOYMENT_CHART,
-  );
-
-  if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-      ctx.config.namespace,
-      this.parent.getClusterRefs(),
-      config.deployment,
-    );
-  }
-
-  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
-  config.freezeAdminPrivateKey = accountKeys.privateKey;
-
-  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
-  const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
-
-  return config;
-};
-
-export const deleteConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
-  const config = this.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
-    'adminKey',
-    'allNodeAliases',
-    'existingNodeAliases',
-    'freezeAdminPrivateKey',
-    'keysDir',
-    'nodeClient',
-    'podRefs',
-    'serviceMap',
-    'stagingDir',
-    'stagingKeysDir',
-    'treasuryKey',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeDeleteConfigClass;
-
-  config.curDate = new Date();
-  config.existingNodeAliases = [];
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-
-  await initializeSetup(config, this.k8Factory);
-
-  // set config in the context for later tasks to use
-  ctx.config = config;
-
-  ctx.config.chartPath = await helpers.prepareChartPath(
-    this.helm,
-    ctx.config.chartDirectory,
-    constants.SOLO_TESTING_CHART_URL,
-    constants.SOLO_DEPLOYMENT_CHART,
-  );
-
-  if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-      ctx.config.namespace,
-      this.parent.getClusterRefs(),
-      config.deployment,
-    );
-  }
-
-  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
-  config.freezeAdminPrivateKey = accountKeys.privateKey;
-
-  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
-  const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
-
-  return config;
-};
-
-export const addConfigBuilder = async function (argv, ctx, task, shouldLoadNodeClient = true) {
-  const config = this.getConfig(ADD_CONFIGS_NAME, argv.flags, [
-    'allNodeAliases',
-    'chartPath',
-    'curDate',
-    'existingNodeAliases',
-    'freezeAdminPrivateKey',
-    'keysDir',
-    'lastStateZipPath',
-    'nodeClient',
-    'podRefs',
-    'serviceMap',
-    'stagingDir',
-    'stagingKeysDir',
-    'treasuryKey',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeAddConfigClass;
-
-  ctx.adminKey = argv[flags.adminKey.name]
-    ? PrivateKey.fromStringED25519(argv[flags.adminKey.name])
-    : PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  config.curDate = new Date();
-  config.existingNodeAliases = [];
-
-  await initializeSetup(config, this.k8Factory);
-
-  // set config in the context for later tasks to use
-  ctx.config = config;
-
-  ctx.config.chartPath = await helpers.prepareChartPath(
-    this.helm,
-    ctx.config.chartDirectory,
-    constants.SOLO_TESTING_CHART_URL,
-    constants.SOLO_DEPLOYMENT_CHART,
-  );
-
-  if (shouldLoadNodeClient) {
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-      ctx.config.namespace,
-      this.parent.getClusterRefs(),
-      config.deployment,
-    );
-  }
-
-  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
-  config.freezeAdminPrivateKey = accountKeys.privateKey;
-
-  const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
-  const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-  config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
-
-  config.serviceMap = await this.accountManager.getNodeServiceMap(
-    config.namespace,
-    this.parent.getClusterRefs(),
-    config.deployment,
-  );
-
-  config.consensusNodes = this.parent.getConsensusNodes();
-  config.contexts = this.parent.getContexts();
-
-  return config;
-};
-
-export const logsConfigBuilder = async function (argv, ctx, task) {
-  const config = {
-    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
-    nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
-    nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
-    deployment: this.configManager.getFlag(flags.deployment),
-    consensusNodes: this.parent.getConsensusNodes(),
-    contexts: this.parent.getContexts(),
-  } as NodeLogsConfigClass;
-  ctx.config = config;
-  return config;
-};
-
-export const statesConfigBuilder = async function (argv, ctx, task) {
-  const config = {
-    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
-    nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
-    nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
-    deployment: this.configManager.getFlag(flags.deployment),
-    consensusNodes: this.parent.getConsensusNodes(),
-    contexts: this.parent.getContexts(),
-  };
-  ctx.config = config;
-  return config;
-};
-
-export const refreshConfigBuilder = async function (argv, ctx, task) {
-  ctx.config = this.getConfig(REFRESH_CONFIGS_NAME, argv.flags, [
-    'nodeAliases',
-    'podRefs',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeRefreshConfigClass;
-
-  ctx.config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
-
-  await initializeSetup(ctx.config, this.k8Factory);
-
-  return ctx.config;
-};
-
-export const keysConfigBuilder = function (argv, ctx, task) {
-  const config: NodeKeysConfigClass = this.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
-    'curDate',
-    'keysDir',
-    'nodeAliases',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeKeysConfigClass;
-
-  config.curDate = new Date();
-  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
-  if (config.nodeAliases.length === 0) {
-    config.nodeAliases = this.consensusNodes.map((node: {name: string}) => {
-      return node.name;
-    });
-    if (config.nodeAliases.length === 0) {
-      throw new SoloError('no node aliases provided via flags or RemoteConfig');
-    }
-  }
-  config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys');
-
-  if (!fs.existsSync(config.keysDir)) {
-    fs.mkdirSync(config.keysDir);
-  }
-  return config;
-};
-
-export const stopConfigBuilder = async function (argv, ctx, task) {
-  ctx.config = {
-    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
-    nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
-    nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
-    deployment: this.configManager.getFlag(flags.deployment),
-    consensusNodes: this.parent.getConsensusNodes(),
-    contexts: this.parent.getContexts(),
-  };
-
-  if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
-    throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
-  }
-
-  return ctx.config;
-};
-
-export const startConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(START_CONFIGS_NAME, argv.flags, [
-    'nodeAliases',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeStartConfigClass;
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  config.consensusNodes = this.parent.getConsensusNodes();
-
-  for (const consensusNode of config.consensusNodes) {
-    const k8 = this.k8Factory.getK8(consensusNode.context);
-    if (!(await k8.namespaces().has(config.namespace))) {
+    if (!(await k8Factory.default().namespaces().has(config.namespace))) {
       throw new SoloError(`namespace ${config.namespace} does not exist`);
     }
+
+    // prepare staging keys directory
+    if (!fs.existsSync(config.stagingKeysDir)) {
+      fs.mkdirSync(config.stagingKeysDir, {recursive: true});
+    }
+
+    // create cached keys dir if it does not exist yet
+    if (!fs.existsSync(config.keysDir)) {
+      fs.mkdirSync(config.keysDir);
+    }
   }
 
-  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+  public async prepareUpgradeConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
+    const config = getConfig(this.configManager, configMaps, PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
+      'nodeClient',
+      'freezeAdminPrivateKey',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodePrepareUpgradeConfigClass;
 
-  return config;
-};
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-export const setupConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
-    'nodeAliases',
-    'podRefs',
-    'namespace',
-    'consensusNodes',
-    'contexts',
-  ]) as NodeSetupConfigClass;
+    await this.initializeSetup(config, this.k8Factory);
+    config.nodeClient = await this.accountManager.loadNodeClient(
+      config.namespace,
+      this.consensusNodeManager.getClusterRefs(),
+      config.deployment,
+    );
 
-  config.namespace = await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task);
-  config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
-  config.consensusNodes = this.parent.getConsensusNodes();
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
+    config.freezeAdminPrivateKey = accountKeys.privateKey;
 
-  await initializeSetup(config, this.k8Factory);
+    return config;
+  }
 
-  // set config in the context for later tasks to use
-  ctx.config = config;
+  public async downloadGeneratedFilesConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
+    const config = getConfig(this.configManager, configMaps, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
+      'allNodeAliases',
+      'existingNodeAliases',
+      'serviceMap',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeDownloadGeneratedFilesConfigClass;
 
-  return ctx.config;
-};
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    config.existingNodeAliases = [];
+    await this.initializeSetup(config, this.k8Factory);
+
+    return config;
+  }
+
+  public async upgradeConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
+    const config = getConfig(this.configManager, configMaps, UPGRADE_CONFIGS_NAME, argv.flags, [
+      'allNodeAliases',
+      'existingNodeAliases',
+      'keysDir',
+      'nodeClient',
+      'podRefs',
+      'stagingDir',
+      'stagingKeysDir',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeUpgradeConfigClass;
+
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    config.curDate = new Date();
+    config.existingNodeAliases = [];
+    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+
+    await this.initializeSetup(config, this.k8Factory);
+
+    // set config in the context for later tasks to use
+    ctx.config = config;
+
+    ctx.config.chartPath = await helpers.prepareChartPath(
+      this.helm,
+      ctx.config.chartDirectory,
+      constants.SOLO_TESTING_CHART_URL,
+      constants.SOLO_DEPLOYMENT_CHART,
+    );
+    if (shouldLoadNodeClient) {
+      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+        ctx.config.namespace,
+        this.consensusNodeManager.getClusterRefs(),
+        config.deployment,
+      );
+    }
+
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
+    config.freezeAdminPrivateKey = accountKeys.privateKey;
+    return config;
+  }
+
+  public async updateConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
+    const config = getConfig(this.configManager, configMaps, UPDATE_CONFIGS_NAME, argv.flags, [
+      'allNodeAliases',
+      'existingNodeAliases',
+      'freezeAdminPrivateKey',
+      'keysDir',
+      'nodeClient',
+      'podRefs',
+      'serviceMap',
+      'stagingDir',
+      'stagingKeysDir',
+      'treasuryKey',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeUpdateConfigClass;
+
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    config.curDate = new Date();
+    config.existingNodeAliases = [];
+
+    await this.initializeSetup(config, this.k8Factory);
+
+    // set config in the context for later tasks to use
+    ctx.config = config;
+
+    ctx.config.chartPath = await helpers.prepareChartPath(
+      this.helm,
+      ctx.config.chartDirectory,
+      constants.SOLO_TESTING_CHART_URL,
+      constants.SOLO_DEPLOYMENT_CHART,
+    );
+
+    if (shouldLoadNodeClient) {
+      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+        ctx.config.namespace,
+        this.consensusNodeManager.getClusterRefs(),
+        config.deployment,
+      );
+    }
+
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
+    config.freezeAdminPrivateKey = accountKeys.privateKey;
+
+    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
+    const treasuryAccountPrivateKey = treasuryAccount.privateKey;
+    config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+
+    return config;
+  }
+
+  public async deleteConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
+    const config = getConfig(this.configManager, configMaps, DELETE_CONFIGS_NAME, argv.flags, [
+      'adminKey',
+      'allNodeAliases',
+      'existingNodeAliases',
+      'freezeAdminPrivateKey',
+      'keysDir',
+      'nodeClient',
+      'podRefs',
+      'serviceMap',
+      'stagingDir',
+      'stagingKeysDir',
+      'treasuryKey',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeDeleteConfigClass;
+
+    config.curDate = new Date();
+    config.existingNodeAliases = [];
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+
+    await this.initializeSetup(config, this.k8Factory);
+
+    // set config in the context for later tasks to use
+    ctx.config = config;
+
+    ctx.config.chartPath = await helpers.prepareChartPath(
+      this.helm,
+      ctx.config.chartDirectory,
+      constants.SOLO_TESTING_CHART_URL,
+      constants.SOLO_DEPLOYMENT_CHART,
+    );
+
+    if (shouldLoadNodeClient) {
+      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+        ctx.config.namespace,
+        this.consensusNodeManager.getClusterRefs(),
+        config.deployment,
+      );
+    }
+
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
+    config.freezeAdminPrivateKey = accountKeys.privateKey;
+
+    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
+    const treasuryAccountPrivateKey = treasuryAccount.privateKey;
+    config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+
+    return config;
+  }
+
+  public async addConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
+    const config = getConfig(this.configManager, configMaps, ADD_CONFIGS_NAME, argv.flags, [
+      'allNodeAliases',
+      'chartPath',
+      'curDate',
+      'existingNodeAliases',
+      'freezeAdminPrivateKey',
+      'keysDir',
+      'lastStateZipPath',
+      'nodeClient',
+      'podRefs',
+      'serviceMap',
+      'stagingDir',
+      'stagingKeysDir',
+      'treasuryKey',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeAddConfigClass;
+
+    ctx.adminKey = argv[flags.adminKey.name]
+      ? PrivateKey.fromStringED25519(argv[flags.adminKey.name])
+      : PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    config.curDate = new Date();
+    config.existingNodeAliases = [];
+
+    await this.initializeSetup(config, this.k8Factory);
+
+    // set config in the context for later tasks to use
+    ctx.config = config;
+
+    ctx.config.chartPath = await helpers.prepareChartPath(
+      this.helm,
+      ctx.config.chartDirectory,
+      constants.SOLO_TESTING_CHART_URL,
+      constants.SOLO_DEPLOYMENT_CHART,
+    );
+
+    if (shouldLoadNodeClient) {
+      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
+        ctx.config.namespace,
+        this.consensusNodeManager.getClusterRefs(),
+        config.deployment,
+      );
+    }
+
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, config.namespace);
+    config.freezeAdminPrivateKey = accountKeys.privateKey;
+
+    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
+    const treasuryAccountPrivateKey = treasuryAccount.privateKey;
+    config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+
+    config.serviceMap = await this.accountManager.getNodeServiceMap(
+      config.namespace,
+      this.consensusNodeManager.getClusterRefs(),
+      config.deployment,
+    );
+
+    config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
+    config.contexts = this.consensusNodeManager.getContexts();
+
+    return config;
+  }
+
+  public async logsConfigBuilder(argv, ctx, task) {
+    const config = {
+      namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+      nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+      nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
+      deployment: this.configManager.getFlag(flags.deployment),
+      consensusNodes: this.consensusNodeManager.getConsensusNodes(),
+      contexts: this.consensusNodeManager.getContexts(),
+    } as NodeLogsConfigClass;
+    ctx.config = config;
+    return config;
+  }
+
+  public async statesConfigBuilder(argv, ctx, task) {
+    const config = {
+      namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+      nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+      nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
+      deployment: this.configManager.getFlag(flags.deployment),
+      consensusNodes: this.consensusNodeManager.getConsensusNodes(),
+      contexts: this.consensusNodeManager.getContexts(),
+    };
+    ctx.config = config;
+    return config;
+  }
+
+  public async refreshConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
+    ctx.config = getConfig(this.configManager, configMaps, REFRESH_CONFIGS_NAME, argv.flags, [
+      'nodeAliases',
+      'podRefs',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeRefreshConfigClass;
+
+    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+
+    await this.initializeSetup(ctx.config, this.k8Factory);
+
+    return ctx.config;
+  }
+
+  public async keysConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
+    const config: NodeKeysConfigClass = getConfig(this.configManager, configMaps, KEYS_CONFIGS_NAME, argv.flags, [
+      'curDate',
+      'keysDir',
+      'nodeAliases',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeKeysConfigClass;
+
+    config.curDate = new Date();
+    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    if (config.nodeAliases.length === 0) {
+      const consensusNodes = this.consensusNodeManager.getConsensusNodes();
+
+      // @ts-expect-error TS2322 Type 'string[]' is not assignable to type 'NodeAliases'
+      config.nodeAliases = consensusNodes.map((node: {name: string}) => {
+        return node.name;
+      });
+      if (config.nodeAliases.length === 0) {
+        throw new SoloError('no node aliases provided via flags or RemoteConfig');
+      }
+    }
+    config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys');
+
+    if (!fs.existsSync(config.keysDir)) {
+      fs.mkdirSync(config.keysDir);
+    }
+    return config;
+  }
+
+  public async stopConfigBuilder(argv, ctx, task) {
+    ctx.config = {
+      namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+      nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+      nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
+      deployment: this.configManager.getFlag(flags.deployment),
+      consensusNodes: this.consensusNodeManager.getConsensusNodes(),
+      contexts: this.consensusNodeManager.getContexts(),
+    };
+
+    if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
+      throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
+    }
+
+    return ctx.config;
+  }
+
+  public async startConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
+    const config = getConfig(this.configManager, configMaps, START_CONFIGS_NAME, argv.flags, [
+      'nodeAliases',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeStartConfigClass;
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
+
+    for (const consensusNode of config.consensusNodes) {
+      const k8 = this.k8Factory.getK8(consensusNode.context);
+      if (!(await k8.namespaces().has(config.namespace))) {
+        throw new SoloError(`namespace ${config.namespace} does not exist`);
+      }
+    }
+
+    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+
+    return config;
+  }
+
+  public async setupConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
+    const config = getConfig(this.configManager, configMaps, SETUP_CONFIGS_NAME, argv.flags, [
+      'nodeAliases',
+      'podRefs',
+      'namespace',
+      'consensusNodes',
+      'contexts',
+    ]) as NodeSetupConfigClass;
+
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
+
+    await this.initializeSetup(config, this.k8Factory);
+
+    // set config in the context for later tasks to use
+    ctx.config = config;
+
+    return ctx.config;
+  }
+}
 
 export interface NodeLogsConfigClass {
   namespace: NamespaceName;
