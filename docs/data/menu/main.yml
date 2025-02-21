@@ -28,7 +28,9 @@ main:
   - name: Design Documentation
     sub:
     - name: Project Overview and High-Level Documentation
-      ref: "/Developer/DesignDocs/ProjectOverview.md"
+      ref: "/Developer/DesignDocs/ProjectOverviewAndHighLevelDocumentation.md"
+    - name: Architecture and System Design
+      ref: "/Developer/DesignDocs/ArchitectureAndSystemDesign.md"
   - name: Start solo network with single command
     ref: "/User/TaskTool.md"
   - name: FAQ
