@@ -43,6 +43,7 @@ export class K8ClientIngresses implements Ingresses {
 
   public async update(namespace: NamespaceName, name: string, patch: object): Promise<void> {
     const ingresses = [];
+    // find the ingresses that match the specified name
     await this.networkingApi
       .listIngressForAllNamespaces()
       .then(response => {
