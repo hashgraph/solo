@@ -49,7 +49,15 @@ tasks:
     cmds:
       - task: "build:typedoc"
       - task: "build:copy"
+      - task: "build:help"
       - task: "build:hugo"
+
+  build:help:
+    cmds:
+      - chmod 755 ./generate_help.sh
+      - |
+        cd ..
+        docs/generate_help.sh
 
   build:hugo:
     cmds:
