@@ -1993,4 +1993,46 @@ export class NodeCommandTasks {
       }
     });
   }
+
+  public addNewConsensusNodeToRemoteConfig(): SoloListrTask<{
+    newNode: {accountId: string; name: string};
+    config: NodeAddConfigClass;
+  }> {
+    return {
+      title: 'Add new node to remote config',
+      task: async (ctx, task) => {
+        const nodeAlias = ctx.config.nodeAlias;
+        // TODO: Discuss how the user should provide the clusterRef
+        const clusterRef = this.k8Factory.default().clusters().readCurrent();
+        const namespace: NamespaceNameAsString = ctx.config.namespace.name;
+
+        task.title += `: ${nodeAlias}`;
+
+        await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+          remoteConfig.components.add(
+            nodeAlias,
+            new ConsensusNodeComponent(
+              nodeAlias,
+              clusterRef,
+              namespace,
+              ConsensusNodeStates.STARTED,
+              Templates.nodeIdFromNodeAlias(nodeAlias),
+            ),
+          );
+
+          remoteConfig.components.add(
+            `envoy-proxy-${nodeAlias}`,
+            new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterRef, namespace),
+          );
+
+          remoteConfig.components.add(
+            `haproxy-${nodeAlias}`,
+            new HaProxyComponent(`haproxy-${nodeAlias}`, clusterRef, namespace),
+          );
+        });
+
+        ctx.config.consensusNodes = this.parent.getConsensusNodes();
+      },
+    };
+  }
 }
