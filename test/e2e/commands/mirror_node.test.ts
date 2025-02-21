@@ -47,6 +47,7 @@ argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 argv.setArg(flags.quiet, true);
 argv.setArg(flags.pinger, true);
 argv.setArg(flags.enableHederaExplorerTls, true);
+argv.setArg(flags.enableIngress, true);
 
 e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
@@ -92,7 +93,6 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         flags.clusterRef.constName,
         flags.chartDirectory.constName,
         flags.deployment.constName,
-        flags.mirrorStaticIp.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.storageAccessKey.constName,
@@ -106,7 +106,6 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       ]);
       expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.hederaExplorerTlsHostName.constName,
-        flags.hederaExplorerStaticIp.constName,
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
