@@ -685,8 +685,8 @@ export class NetworkCommand extends BaseCommand {
     );
 
     config.consensusNodes = this.getConsensusNodes();
-    config.contexts = this.getContexts();
-    config.clusterRefs = this.getClusterRefs();
+    config.contexts = this.remoteConfigManager.getContexts();
+    config.clusterRefs = this.remoteConfigManager.getClusterRefs();
     if (config.nodeAliases.length === 0) {
       config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
       if (config.nodeAliases.length === 0) {
@@ -1137,7 +1137,7 @@ export class NetworkCommand extends BaseCommand {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
-              contexts: this.getContexts(),
+              contexts: self.remoteConfigManager.getContexts(),
             };
 
             return ListrLease.newAcquireLeaseTask(lease, task);
