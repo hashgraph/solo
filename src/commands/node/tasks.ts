@@ -68,11 +68,15 @@ import {PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../core/kube/resources/container/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
-import {type Optional} from '../../types/index.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type Optional, type SoloListrTask} from '../../types/index.js';
+import {type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
+import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
+import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
+import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
+import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 
 export class NodeCommandTasks {
   private readonly accountManager: AccountManager;
