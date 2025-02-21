@@ -31,6 +31,8 @@ main:
       ref: "/Developer/DesignDocs/ProjectOverviewAndHighLevelDocumentation.md"
     - name: Architecture and System Design
       ref: "/Developer/DesignDocs/ArchitectureAndSystemDesign.md"
+    - name: Infrastructure and Deployment
+      ref: "/Developer/DesignDocs/InfrastructureAndDeployment.md"
   - name: Start solo network with single command
     ref: "/User/TaskTool.md"
   - name: FAQ
