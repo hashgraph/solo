@@ -4,6 +4,7 @@ main:
   - name: Getting Started
     ref: "/User/README/README.md"
   - name: Usage
+    ref: "/User/_index.md"
     sub:
     - name: Step-by-step guide
       ref: "/User/StepByStepGuide.md"
@@ -24,6 +25,7 @@ main:
   - name: Solo CLI manual
     ref: "/User/SoloCLI.md"
   - name: Contributing
+    ref: "/Developer/_index.md"
     sub:
     - name: Contributing to Hashgraph Projects
       ref: "https://github.com/hashgraph/.github/blob/main/CONTRIBUTING.md"
@@ -31,6 +33,7 @@ main:
     - name: Contributing to Solo
       ref: "/Developer/DEV.md"
   - name: Design Documentation
+    ref: "/Developer/DesignDocs/_index.md"
     sub:
     - name: Project Overview and High-Level Documentation
       ref: "/Developer/DesignDocs/ProjectOverviewAndHighLevelDocumentation.md"
