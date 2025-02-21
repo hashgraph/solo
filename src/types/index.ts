@@ -126,3 +126,14 @@ export interface NodeOverridesStructure {
   interfaceBindings: GossipEndpoint[];
   endpointOverrides: GossipEndpoint[];
 }
+
+export interface IHelm {
+  prepareCommand(action: string, ...args: string[]): string;
+  install(...args: string[]): Promise<string[]>;
+  uninstall(...args: string[]): Promise<string[]>;
+  upgrade(...args: string[]): Promise<string[]>;
+  list(...args: string[]): Promise<string[]>;
+  dependency(subCommand: string, ...args: string[]): Promise<string[]>;
+  repo(subCommand: string, ...args: string[]): Promise<string[]>;
+  version(args?: string[]): Promise<string[]>;
+}

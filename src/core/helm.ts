@@ -7,9 +7,10 @@ import {Templates} from './templates.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type IHelm} from '../types/index.js';
 
 @injectable()
-export class Helm extends ShellRunner {
+export class Helm extends ShellRunner implements IHelm {
   private readonly helmPath: string;
 
   constructor(@inject(InjectTokens.OsPlatform) private readonly osPlatform?: NodeJS.Platform) {

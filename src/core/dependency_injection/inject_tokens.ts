@@ -1,7 +1,6 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 
 /**
  * Dependency injection tokens
