@@ -1,4 +1,4 @@
-# Architecture and System Design
+## Architecture and System Design
 
 {{< hint type=warning >}} Purpose: Defines the overall structure, key components, and interactions in the system.
 Examples:

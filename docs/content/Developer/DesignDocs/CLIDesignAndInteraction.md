@@ -1,4 +1,4 @@
-# CLI Design and Interaction
+## CLI Design and Interaction
 
 {{< hint type=warning >}} Purpose: Documents the design and structure of the CLI, including commands, arguments, and output.
 Examples:

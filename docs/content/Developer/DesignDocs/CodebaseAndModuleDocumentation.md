@@ -1,4 +1,4 @@
-# Codebase and Module Documentation
+## Codebase and Module Documentation
 
 {{< hint type=warning >}} Purpose: Provides technical details on specific modules, libraries, and their internal workings.
 Examples:

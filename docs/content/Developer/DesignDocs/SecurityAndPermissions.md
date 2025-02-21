@@ -1,4 +1,4 @@
-# Security and Permissions
+## Security and Permissions
 
 {{< hint type=warning >}} Purpose: Documents security-related concerns, including authentication, access control, and data safety.
 Examples:

@@ -1,4 +1,4 @@
-# Testing and Quality Assurance
+## Testing and Quality Assurance
 
 {{< hint type=warning >}} Purpose: Covers unit, integration, and end-to-end testing strategies.
 Examples:

@@ -1,4 +1,4 @@
-# Infrastructure and Deployment
+## Infrastructure and Deployment
 
 {{< hint type=warning >}} Purpose: Describes how the system is deployed, including hosting environments, CI/CD pipelines, and external dependencies.
 Examples:

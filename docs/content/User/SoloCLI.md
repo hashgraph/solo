@@ -1,4 +1,4 @@
-# Solo command line user manual
+## Solo command line user manual
 
 Solo has a series of commands to use, and some commands have subcommands.
 User can get help information by running with the following methods:

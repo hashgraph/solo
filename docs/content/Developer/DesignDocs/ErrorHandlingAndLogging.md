@@ -1,4 +1,4 @@
-# Error Handling and Logging
+## Error Handling and Logging
 
 {{< hint type=warning >}} Purpose: Defines how errors are managed and logged within the CLI.
 Examples:
