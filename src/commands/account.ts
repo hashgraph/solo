@@ -187,7 +187,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.consensusNodeManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
@@ -264,7 +264,7 @@ export class AccountCommand extends BaseCommand {
                       const nodeClient = await self.accountManager.refreshNodeClient(
                         ctx.config.namespace,
                         nodeAlias,
-                        self.getClusterRefs(),
+                        self.consensusNodeManager.getClusterRefs(),
                         this.configManager.getFlag<DeploymentName>(flags.deployment),
                       );
 
@@ -408,7 +408,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.consensusNodeManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
@@ -489,7 +489,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               config.namespace,
-              self.getClusterRefs(),
+              self.consensusNodeManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
@@ -576,7 +576,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               config.namespace,
-              self.getClusterRefs(),
+              self.consensusNodeManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );

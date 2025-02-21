@@ -3,14 +3,14 @@
  */
 import {inject, injectable} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
-import {patchInject} from './container_helper.js';
+import {patchInject} from './dependency_injection/container_helper.js';
 import {Listr} from 'listr2';
 import {SoloError} from './errors.js';
 import {type Lease} from './lease/lease.js';
 import * as constants from './constants.js';
 import fs from 'fs';
 import {Task} from './task.js';
-import type {CommandFlag} from '../types/flag_types.js';
+import {type CommandFlag} from '../types/flag_types.js';
 import {ConfigManager} from './config_manager.js';
 import {getConfig} from './config_builder.js';
 import {type BaseCommand} from '../commands/base.js';

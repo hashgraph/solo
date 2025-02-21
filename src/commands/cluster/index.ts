@@ -7,7 +7,7 @@ import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand, type Opts} from './../base.js';
 import {ClusterCommandHandlers} from './handlers.js';
 import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
-import {patchInject} from '../../core/container_helper.js';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
 
 /**
  * Defines the core functionalities of 'node' command

@@ -64,7 +64,7 @@ e2eTestSuite(
 
       it('save the state and restart the node with saved state', async () => {
         // create an account so later we can verify its balance after restart
-        const clusterRefs: ClusterRefs = nodeCmd.getClusterRefs();
+        const clusterRefs: ClusterRefs = nodeCmd.getConesnsusNodeManager().getClusterRefs();
         await accountManager.loadNodeClient(
           namespace,
           clusterRefs,

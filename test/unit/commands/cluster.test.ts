@@ -49,6 +49,7 @@ import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {K8ClientClusters} from '../../../src/core/kube/k8_client/resources/cluster/k8_client_clusters.js';
 import {K8ClientContexts} from '../../../src/core/kube/k8_client/resources/context/k8_client_contexts.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -148,6 +149,7 @@ describe('ClusterCommand unit tests', () => {
     let loggerStub: sinon.SinonStubbedInstance<SoloLogger>;
     let k8FactoryStub: sinon.SinonStubbedInstance<K8ClientFactory>;
     let remoteConfigManagerStub: sinon.SinonStubbedInstance<RemoteConfigManager>;
+    let consensusNodeManagerStub: sinon.SinonStubbedInstance<ConsensusNodeManager>;
     let localConfig: LocalConfig;
     const defaultRemoteConfig = {
       metadata: {
@@ -202,6 +204,8 @@ describe('ClusterCommand unit tests', () => {
       });
       remoteConfigManagerStub.get.resolves(remoteConfig);
 
+      consensusNodeManagerStub = sandbox.createStubInstance(ConsensusNodeManager);
+
       const k8ClustersStub = sandbox.createStubInstance(K8ClientClusters);
       k8ClustersStub.readCurrent.returns(kubeConfigClusterObject.name);
       k8Stub.clusters.returns(k8ClustersStub);
@@ -245,6 +249,7 @@ describe('ClusterCommand unit tests', () => {
         leaseManager: sandbox.createStubInstance(LeaseManager),
         certificateManager: sandbox.createStubInstance(CertificateManager),
         remoteConfigManager: remoteConfigManagerStub,
+        consensusNodeManager: consensusNodeManagerStub,
       } as Opts;
 
       return options;

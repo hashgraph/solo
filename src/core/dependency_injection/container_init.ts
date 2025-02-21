@@ -17,6 +17,7 @@ import {ProfileManager} from '../profile_manager.js';
 import {IntervalLeaseRenewalService} from '../lease/interval_lease_renewal.js';
 import {LeaseManager} from '../lease/lease_manager.js';
 import {CertificateManager} from '../certificate_manager.js';
+import {ConsensusNodeManager} from '../consensus_node_manager.js';
 import path, {normalize} from 'path';
 import {LocalConfig} from '../config/local_config.js';
 import {RemoteConfigManager} from '../config/remote/remote_config_manager.js';
@@ -26,6 +27,10 @@ import {NetworkNodes} from '../network_nodes.js';
 import {ClusterChecks} from '../cluster_checks.js';
 import {InjectTokens} from './inject_tokens.js';
 import {K8ClientFactory} from '../kube/k8_client/k8_client_factory.js';
+import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
+import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
+import {NodeCommandHandlers} from '../../commands/node/handlers.js';
+import {NodeCommandTasks} from '../../commands/node/tasks.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -83,6 +88,11 @@ export class Container {
     container.register(InjectTokens.AccountManager, {useClass: AccountManager}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.PlatformInstaller, {useClass: PlatformInstaller}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.KeyManager, {useClass: KeyManager}, {lifecycle: Lifecycle.Singleton});
+    container.register(
+      InjectTokens.ConsensusNodeManager,
+      {useClass: ConsensusNodeManager},
+      {lifecycle: Lifecycle.Singleton},
+    );
 
     // ProfileManager
     container.register(InjectTokens.CacheDir, {useValue: cacheDir});
@@ -116,6 +126,12 @@ export class Container {
     container.register(InjectTokens.NetworkNodes, {useClass: NetworkNodes}, {lifecycle: Lifecycle.Singleton});
 
     Container.isInitialized = true;
+
+    // Commands
+    container.register(ClusterCommandHandlers, {useClass: ClusterCommandHandlers}, {lifecycle: Lifecycle.Singleton});
+    container.register(ClusterCommandTasks, {useClass: ClusterCommandTasks}, {lifecycle: Lifecycle.Singleton});
+    container.register(NodeCommandHandlers, {useClass: NodeCommandHandlers}, {lifecycle: Lifecycle.Singleton});
+    container.register(NodeCommandTasks, {useClass: NodeCommandTasks}, {lifecycle: Lifecycle.Singleton});
   }
 
   /**

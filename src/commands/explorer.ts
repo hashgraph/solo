@@ -151,7 +151,7 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
     return valuesArg;
   }

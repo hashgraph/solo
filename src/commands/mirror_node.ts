@@ -119,11 +119,11 @@ export class MirrorNodeCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName);
     if (profileValuesFile) {
-      valuesArg += prepareValuesFiles(profileValuesFile);
+      valuesArg += helpers.prepareValuesFiles(profileValuesFile);
     }
 
     if (config.valuesFile) {
-      valuesArg += prepareValuesFiles(config.valuesFile);
+      valuesArg += helpers.prepareValuesFiles(config.valuesFile);
     }
 
     if (config.storageBucket) {
@@ -257,7 +257,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.consensusNodeManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
@@ -360,12 +360,12 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const portForward = this.configManager.getFlag<boolean>(flags.forcePortForward);
-                    const consensusNodes = this.getConsensusNodes();
+                    const consensusNodes = this.consensusNodeManager.getConsensusNodes();
                     const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
                     const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
                     ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
                       ctx.config.namespace,
-                      this.getClusterRefs(),
+                      this.consensusNodeManager.getClusterRefs(),
                       deployment,
                       this.configManager.getFlag(flags.operatorId),
                       this.configManager.getFlag(flags.operatorKey),
@@ -489,7 +489,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const clusterRefs = this.getClusterRefs();
+                    const clusterRefs = this.consensusNodeManager.getClusterRefs();
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const fees = await this.accountManager.getFileContents(
                       namespace,
@@ -668,7 +668,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.consensusNodeManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,

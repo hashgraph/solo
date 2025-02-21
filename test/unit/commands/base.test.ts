@@ -21,6 +21,7 @@ import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
 import {type ClusterRefs, type ClusterRef} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
+import {type ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -29,6 +30,7 @@ describe('BaseCommand', () => {
   let depManager: DependencyManager;
   let localConfig: LocalConfig;
   let remoteConfigManager: RemoteConfigManager;
+  let consensusNodeManager: ConsensusNodeManager;
   let sandbox = sinon.createSandbox();
   let testLogger: SoloLogger;
 
@@ -43,6 +45,7 @@ describe('BaseCommand', () => {
       configManager = container.resolve(InjectTokens.ConfigManager);
       depManager = container.resolve(InjectTokens.DependencyManager);
       localConfig = container.resolve(InjectTokens.LocalConfig);
+      consensusNodeManager = container.resolve(InjectTokens.ConsensusNodeManager);
       remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
 
       sandbox = sinon.createSandbox();
@@ -170,7 +173,7 @@ describe('BaseCommand', () => {
     });
 
     it('should return consensus nodes', () => {
-      const consensusNodes = baseCmd.getConsensusNodes();
+      const consensusNodes = baseCmd.getConesnsusNodeManager().getConsensusNodes();
       expect(consensusNodes).to.be.an('array');
       expect(consensusNodes[0].context).to.equal('context1');
       expect(consensusNodes[1].context).to.equal('context2');
@@ -185,7 +188,7 @@ describe('BaseCommand', () => {
     });
 
     it('should return contexts', () => {
-      const contexts = baseCmd.getContexts();
+      const contexts = baseCmd.getConesnsusNodeManager().getContexts();
       expect(contexts).to.be.an('array');
       expect(contexts[0]).to.equal('context1');
       expect(contexts[1]).to.equal('context2');
@@ -193,7 +196,7 @@ describe('BaseCommand', () => {
 
     it('should return clusters references', () => {
       const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
-      const clusterRefs: ClusterRefs = baseCmd.getClusterRefs();
+      const clusterRefs: ClusterRefs = baseCmd.getConesnsusNodeManager().getClusterRefs();
       Object.keys(clusterRefs).forEach(clusterRef => {
         expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
       });

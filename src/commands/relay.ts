@@ -4,7 +4,6 @@
 import {Listr, type ListrTask} from 'listr2';
 import {MissingArgumentError, SoloError} from '../core/errors.js';
 import * as helpers from '../core/helpers.js';
-import {getNodeAccountMap} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
@@ -153,7 +152,7 @@ export class RelayCommand extends BaseCommand {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.getClusterRefs(),
+      this.consensusNodeManager.getClusterRefs(),
       deploymentName,
     );
     nodeAliases.forEach(nodeAlias => {
@@ -234,7 +233,7 @@ export class RelayCommand extends BaseCommand {
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
 
             if (ctx.config.clusterRef) {
-              const context = self.getClusterRefs()[ctx.config.clusterRef];
+              const context = self.consensusNodeManager.getClusterRefs()[ctx.config.clusterRef];
               if (context) ctx.config.context = context;
             }
 
@@ -261,7 +260,7 @@ export class RelayCommand extends BaseCommand {
             );
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.consensusNodeManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.context,

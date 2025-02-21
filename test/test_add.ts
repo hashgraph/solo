@@ -80,7 +80,7 @@ export function testNodeAdd(
         it('cache current version of private keys', async () => {
           existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
             namespace,
-            nodeCmd.getClusterRefs(),
+            nodeCmd.getConesnsusNodeManager().getClusterRefs(),
             argv[flags.deployment.name],
           );
           existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(

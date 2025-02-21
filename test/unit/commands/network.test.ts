@@ -33,6 +33,7 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -148,6 +149,7 @@ describe('NetworkCommand unit tests', () => {
 
       opts.leaseManager = container.resolve<LeaseManager>(InjectTokens.LeaseManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
+      opts.consensusNodeManager = sinon.createStubInstance(ConsensusNodeManager);
 
       GenesisNetworkDataConstructor.initialize = sinon.stub().returns(null);
     });
@@ -159,9 +161,10 @@ describe('NetworkCommand unit tests', () => {
     it('Install function is called with expected parameters', async () => {
       try {
         const networkCommand = new NetworkCommand(opts);
-        sinon.stub(networkCommand, 'getConsensusNodes').returns([]);
-        sinon.stub(networkCommand, 'getContexts').returns(['context1']);
-        sinon.stub(networkCommand, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
+        sinon.stub(opts.consensusNodeManagerStub, 'getConsensusNodes').returns([]);
+        sinon.stub(opts.consensusNodeManagerStub, 'getContexts').returns(['context1']);
+        sinon.stub(opts.consensusNodeManagerStub, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
+
         await networkCommand.deploy(argv);
 
         expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
@@ -180,9 +183,9 @@ describe('NetworkCommand unit tests', () => {
         argv[flags.chartDirectory.name] = 'test-directory';
         argv[flags.force.name] = true;
 
-        sinon.stub(NetworkCommand.prototype, 'getConsensusNodes').returns([]);
-        sinon.stub(NetworkCommand.prototype, 'getContexts').returns([]);
-        sinon.stub(NetworkCommand.prototype, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
+        sinon.stub(opts.consensusNodeManagerStub, 'getConsensusNodes').returns([]);
+        sinon.stub(opts.consensusNodeManagerStub, 'getContexts').returns([]);
+        sinon.stub(opts.consensusNodeManagerStub, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
         await networkCommand.deploy(argv);
         expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
@@ -208,7 +211,7 @@ describe('NetworkCommand unit tests', () => {
         const task = sinon.stub();
 
         sinon
-          .stub(NetworkCommand.prototype, 'getConsensusNodes')
+          .stub(opts.consensusNodeManagerStub, 'getConsensusNodes')
           .returns([new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn')]);
         const networkCommand = new NetworkCommand(opts);
         const config = await networkCommand.prepareConfig(task, argv);

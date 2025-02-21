@@ -115,7 +115,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     }).timeout(Duration.ofMinutes(10).toMillis());
 
     it('mirror node API should be running', async () => {
-      const clusterRefs: ClusterRefs = mirrorNodeCmd.getClusterRefs();
+      const clusterRefs: ClusterRefs = mirrorNodeCmd.getConesnsusNodeManager().getClusterRefs();
       await accountManager.loadNodeClient(
         namespace,
         clusterRefs,

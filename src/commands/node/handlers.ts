@@ -20,30 +20,27 @@ import {
   upgradeConfigBuilder,
 } from './configs.js';
 import * as constants from '../../core/constants.js';
-import {AccountManager} from '../../core/account_manager.js';
-import {PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
-import {LeaseManager} from '../../core/lease/lease_manager.js';
-import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {type LeaseManager} from '../../core/lease/lease_manager.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {type Lease} from '../../core/lease/lease.js';
-import {NodeCommandTasks} from './tasks.js';
+import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
 import {type Listr, type ListrTask} from 'listr2';
 import chalk from 'chalk';
-import type {ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
-import type {Optional} from '../../types/index.js';
-import {type NamespaceNameAsString} from '../../core/config/remote/types.js';
+import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
+import {type Optional} from '../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../core/container_helper.js';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {CommandHandler} from '../../core/command_handler.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type CommandFlag} from '../../types/flag_types.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type ConsensusNodeManager} from '../../core/consensus_node_manager.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -52,21 +49,24 @@ export class NodeCommandHandlers extends CommandHandler {
   public consensusNodes: ConsensusNode[];
 
   constructor(
-    @inject(AccountManager) private readonly accountManager: AccountManager,
-    @inject(K8Client) private readonly k8: K8,
-    @inject(PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
-    @inject(LeaseManager) private readonly leaseManager: LeaseManager,
-    @inject(RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
-    @inject(NodeCommandTasks) private readonly tasks: NodeCommandTasks,
+    @inject(InjectTokens.LeaseManager) private readonly leaseManager: LeaseManager,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(InjectTokens.NodeCommandTasks) private readonly tasks: NodeCommandTasks,
+    @inject(InjectTokens.ConsensusNodeManager) private readonly consensusNodeManager: ConsensusNodeManager,
   ) {
     super();
-
-    this.accountManager = patchInject(accountManager, AccountManager, this.constructor.name);
-    this.k8 = patchInject(k8, K8Client, this.constructor.name);
-    this.platformInstaller = patchInject(platformInstaller, PlatformInstaller, this.constructor.name);
-    this.leaseManager = patchInject(leaseManager, LeaseManager, this.constructor.name);
-    this.remoteConfigManager = patchInject(remoteConfigManager, RemoteConfigManager, this.constructor.name);
-    this.tasks = patchInject(tasks, NodeCommandTasks, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, InjectTokens.LeaseManager, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
+    this.tasks = patchInject(tasks, InjectTokens.NodeCommandTasks, this.constructor.name);
+    this.consensusNodeManager = patchInject(
+      consensusNodeManager,
+      InjectTokens.ConsensusNodeManager,
+      this.constructor.name,
+    );
 
     this._portForwards = [];
   }
@@ -77,8 +77,8 @@ export class NodeCommandHandlers extends CommandHandler {
   static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
 
   private init() {
-    this.consensusNodes = this.parent.getConsensusNodes();
-    this.contexts = this.parent.getContexts();
+    this.consensusNodes = this.consensusNodeManager.getConsensusNodes();
+    this.contexts = this.consensusNodeManager.getContexts();
   }
 
   /** ******** Task Lists **********/

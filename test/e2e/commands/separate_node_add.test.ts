@@ -80,7 +80,7 @@ e2eTestSuite(
         // @ts-ignore
         existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(
           namespace,
-          nodeCmd.getClusterRefs(),
+          nodeCmd.getConesnsusNodeManager().getClusterRefs(),
           argv[flags.deployment.name],
         );
         existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(

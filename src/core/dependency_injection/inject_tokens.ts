@@ -33,4 +33,9 @@ export const InjectTokens = {
   RemoteConfigManager: Symbol.for('RemoteConfigManager'),
   ClusterChecks: Symbol.for('ClusterChecks'),
   NetworkNodes: Symbol.for('NetworkNodes'),
+  ClusterCommandTasks: Symbol.for('ClusterCommandTasks'),
+  ClusterCommandHandlers: Symbol.for('ClusterCommandHandlers'),
+  NodeCommandTasks: Symbol.for('NodeCommandTasks'),
+  NodeCommandHandlers: Symbol.for('NodeCommandHandlers'),
+  ConsensusNodeManager: Symbol.for('ConsensusNodeManager'),
 };

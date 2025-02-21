@@ -9,8 +9,14 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
-import * as helpers from '../core/helpers.js';
-import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {
+  addDebugOptions,
+  resolveValidJsonFilePath,
+  validatePath,
+  sleep,
+  parseNodeAliases,
+  prepareChartPath,
+} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
@@ -635,9 +641,9 @@ export class NetworkCommand extends BaseCommand {
       flags.genesisThrottlesFile.definition.defaultValue as string,
     );
 
-    config.consensusNodes = this.getConsensusNodes();
-    config.contexts = this.getContexts();
-    config.clusterRefs = this.getClusterRefs();
+    config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
+    config.contexts = this.consensusNodeManager.getContexts();
+    config.clusterRefs = this.consensusNodeManager.getClusterRefs();
     if (config.nodeAliases.length === 0) {
       config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
       if (config.nodeAliases.length === 0) {
@@ -867,7 +873,7 @@ export class NetworkCommand extends BaseCommand {
                     }
 
                     attempts++;
-                    await helpers.sleep(Duration.ofSeconds(2));
+                    await sleep(Duration.ofSeconds(2));
                   }
                   throw new SoloError('Load balancer not found');
                 },

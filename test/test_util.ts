@@ -52,6 +52,7 @@ import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
 import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
+import {type ConsensusNodeManager} from '../src/core/consensus_node_manager.js';
 
 export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
@@ -110,6 +111,7 @@ interface TestOpts {
   certificateManager: CertificateManager;
   remoteConfigManager: RemoteConfigManager;
   localConfig: LocalConfig;
+  consensusNodeManager: ConsensusNodeManager;
 }
 
 interface BootstrapResponse {
@@ -161,6 +163,7 @@ export function bootstrapTestVariables(
   const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
+  const consensusNodeManager: ConsensusNodeManager = container.resolve(InjectTokens.ConsensusNodeManager);
   testLogger = container.resolve(InjectTokens.SoloLogger);
 
   const opts: TestOpts = {
@@ -180,6 +183,7 @@ export function bootstrapTestVariables(
     certificateManager,
     localConfig,
     remoteConfigManager,
+    consensusNodeManager,
   };
 
   const initCmd: InitCommand = initCmdArg || new InitCommand(opts);
@@ -371,7 +375,7 @@ export function balanceQueryShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        cmd.getClusterRefs(),
+        cmd.getConesnsusNodeManager().getClusterRefs(),
         argv[flags.deployment.name],
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -401,7 +405,7 @@ export function accountCreationShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        nodeCmd.getClusterRefs(),
+        nodeCmd.getConesnsusNodeManager().getClusterRefs(),
         argv[flags.deployment.name],
       );
       expect(accountManager._nodeClient).not.to.be.null;
