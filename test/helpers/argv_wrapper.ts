@@ -57,8 +57,8 @@ export class Argv {
     argv.setArg(flags.cacheDir, cacheDir);
     argv.deployment = currentDeployment;
     argv.setArg(flags.deployment, currentDeployment);
-    argv.setArg(flags.clusterRef, 'cluster-1');
-    argv.setArg(flags.deploymentClusters, ['cluster-1']);
+    argv.setArg(flags.clusterRef, 'kind-solo-e2e');
+    argv.setArg(flags.deploymentClusters, ['kind-solo-e2e']);
     argv.setArg(flags.context, new K8Client(undefined).contexts().readCurrent());
     return argv;
   }
