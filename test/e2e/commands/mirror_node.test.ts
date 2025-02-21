@@ -9,7 +9,6 @@ import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   e2eTestSuite,
-  getDefaultArgv,
   HEDERA_PLATFORM_VERSION_TAG,
   TEST_CLUSTER,
 } from '../../test_util.js';
@@ -28,29 +27,28 @@ import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
+import {type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv(namespace);
-argv[flags.namespace.name] = namespace.name;
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.forcePortForward.name] = true;
+const argv = Argv.getDefaultArgv(namespace);
+argv.setArg(flags.namespace, namespace.name);
+argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.forcePortForward, true);
+argv.setArg(flags.nodeAliasesUnparsed, 'node1'); // use a single node to reduce resource during e2e tests
+argv.setArg(flags.generateGossipKeys, true);
+argv.setArg(flags.generateTlsKeys, true);
+argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.force, true);
+argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
+argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
+argv.setArg(flags.quiet, true);
+argv.setArg(flags.pinger, true);
+argv.setArg(flags.enableHederaExplorerTls, true);
 
-argv[flags.nodeAliasesUnparsed.name] = 'node1'; // use a single node to reduce resource during e2e tests
-argv[flags.generateGossipKeys.name] = true;
-argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterRef.name] = TEST_CLUSTER;
-argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
-argv[flags.force.name] = true;
-argv[flags.relayReleaseTag.name] = flags.relayReleaseTag.definition.defaultValue;
-// set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
-argv[flags.quiet.name] = true;
-argv[flags.pinger.name] = true;
-
-argv[flags.enableHederaExplorerTls.name] = true;
-e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
+e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
     const k8Factory = bootstrapResp.opts.k8Factory;
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
@@ -83,8 +81,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     it('mirror node and explorer deploy should success', async () => {
       try {
-        expect(await mirrorNodeCmd.deploy(argv)).to.be.true;
-        expect(await explorerCommand.deploy(argv)).to.be.true;
+        expect(await mirrorNodeCmd.deploy(argv.build())).to.be.true;
+        expect(await explorerCommand.deploy(argv.build())).to.be.true;
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();
@@ -121,8 +119,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       await accountManager.loadNodeClient(
         namespace,
         clusterRefs,
-        argv[flags.deployment.name],
-        argv[flags.forcePortForward.name],
+        argv.getArg<DeploymentName>(flags.deployment),
+        argv.getArg<boolean>(flags.forcePortForward),
       );
       try {
         // find hedera explorer pod
@@ -229,8 +227,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     it('mirror node destroy should success', async () => {
       try {
-        expect(await mirrorNodeCmd.destroy(argv)).to.be.true;
-        expect(await explorerCommand.destroy(argv)).to.be.true;
+        expect(await mirrorNodeCmd.destroy(argv.build())).to.be.true;
+        expect(await explorerCommand.destroy(argv.build())).to.be.true;
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
         expect.fail();

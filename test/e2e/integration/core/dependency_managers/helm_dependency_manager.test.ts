@@ -8,15 +8,11 @@ import each from 'mocha-each';
 import fs from 'fs';
 import path from 'path';
 import {HelmDependencyManager} from '../../../../../src/core/dependency_managers/index.js';
-import {PackageDownloader} from '../../../../../src/core/package_downloader.js';
-import {Zippy} from '../../../../../src/core/zippy.js';
-import {getTestCacheDir, getTmpDir, testLogger} from '../../../../test_util.js';
+import {getTestCacheDir, getTmpDir} from '../../../../test_util.js';
 import * as version from '../../../../../version.js';
 
 describe('HelmDependencyManager', () => {
-  const downloader = new PackageDownloader(testLogger);
   const tmpDir = path.join(getTmpDir(), 'bin');
-  const zippy = new Zippy(testLogger);
 
   before(() => fs.mkdirSync(tmpDir));
 
