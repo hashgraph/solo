@@ -33,10 +33,21 @@ main:
       ref: "/Developer/DesignDocs/ArchitectureAndSystemDesign.md"
     - name: Infrastructure and Deployment
       ref: "/Developer/DesignDocs/InfrastructureAndDeployment.md"
+    - name: CLI Design and Interaction
+      ref: "/Developer/DesignDocs/CLIDesignAndInteraction.md"
+    - name: Codebase and Module Documentation
+      ref: "/Developer/DesignDocs/CodebaseAndModuleDocumentation.md"
+      sub:
+      - name: API Reference
+        ref: "/solo/static/Classes/index.html"
+        external: true
+    - name: Error Handling and Logging
+      ref: "/Developer/DesignDocs/ErrorHandlingAndLogging.md"
+    - name: Security and Permissions
+      ref: "/Developer/DesignDocs/SecurityAndPermissions.md"
+    - name: Testing and Quality Assurance
+      ref: "/Developer/DesignDocs/TestingAndQualityAssurance.md"
   - name: Start solo network with single command
     ref: "/User/TaskTool.md"
   - name: FAQ
     ref: "/User/FAQ.md"
-  - name: API Reference
-    ref: "/solo/static/Classes/index.html"
-    external: true
