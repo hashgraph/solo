@@ -1,31 +1,38 @@
 ---
+# https://geekdocs.de/usage/menus/
 main:
   - name: Getting Started
     ref: "/User/README/index.md"
-  - name: Start solo network with single command
-    ref: "/User/TaskTool.md"
-  - name: Hedera Developer
-    ref: "HederaDeveloper.md"
-  - name: Platform Developer
-    ref: "PlatformDeveloper.md"
-  - name: Attach JVM debugger and retrieve logs
-    ref: "/User/DebugLog/index.md"
-  - name: Using Solo with Hedera JavaScript SDK
-    ref: "/User/SDK.md"
-  - name: Using Solo with mirror node
-    ref: "/User/SoloWithMirrorNode.md"
-  - name: Access Hedera Network services
-    ref: "/User/AccessHederaServices.md"
-  - name: "Using Environment Variables"
-    ref: "/User/Env.md"
-  - name: FAQ
-    ref: "/User/FAQ.md"
-  - name: Step-by-step guide
-    ref: "/User/StepByStepGuide.md"
+  - name: Usage
+    sub:
+    - name: Step-by-step guide
+      ref: "/User/StepByStepGuide.md"
+    - name: Access Hedera Network services
+      ref: "/User/AccessHederaServices.md"
+    - name: Using Solo with mirror node
+      ref: "/User/SoloWithMirrorNode.md"
+    - name: Hedera Developer
+      ref: "HederaDeveloper.md"
+    - name: Platform Developer
+      ref: "PlatformDeveloper.md"
+    - name: Attach JVM debugger and retrieve logs
+      ref: "/User/DebugLog/index.md"
+    - name: Using Solo with Hedera JavaScript SDK
+      ref: "/User/SDK.md"
+    - name: Using Environment Variables
+      ref: "/User/Env.md"
   - name: Solo CLI manual
     ref: "/User/SoloCLI.md"
-  - name: Solo Development
+  - name: Contributing
     ref: "/Developer/DEV.md"
-  - name: Classes
+  - name: Design Documentation
+    sub:
+    - name: Project Overview and High-Level Documentation
+      ref: "/Developer/DesignDocs/ProjectOverview.md"
+  - name: Start solo network with single command
+    ref: "/User/TaskTool.md"
+  - name: FAQ
+    ref: "/User/FAQ.md"
+  - name: API Reference
     ref: "/solo/static/Classes/index.html"
     external: true
