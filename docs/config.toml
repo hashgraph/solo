@@ -34,6 +34,7 @@ target = "layouts"
 tag = "tags"
 
 [params]
+    geekdocCollapseMenu = true  # Enables collapsible menu
     # (Optional, default false) Render menu from data file in 'data/menu/main.yaml'.
     # See also https://geekdocs.de/usage/menus/#bundle-menu.
     geekdocMenuBundle = true
@@ -41,10 +42,11 @@ tag = "tags"
     # option allows you to distinguish between files with the same name in different folders.
     # NOTE: This parameter only applies when 'geekdocSearch = true'.
     geekdocSearchShowParent = true
-    # Set to true to make a section foldable in side menu.
-    geekdocCollapseSection = true
-    # Add an anchor link to headlines.
+   # Add an anchor link to headlines.
     geekdocAnchor = true
+
+[params.geekdocMenu]
+collapsed = true
 
 [minify]
 disableHTML = true

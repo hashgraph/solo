@@ -23,7 +23,7 @@ tasks:
   start:
     cmds:
       - task: "default"
-      - hugo server
+      - hugo server --disableFastRender
 
   check-doc-dir:
     status:
@@ -61,7 +61,7 @@ tasks:
       - curl -L https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C themes/hugo-geekdoc/ --strip-components=1
       - hugo version
       - hugo config
-      - hugo --gc --config hugo.toml --minify --baseURL "$HUGO_BASE_URL/"
+      - hugo --gc --minify --baseURL "$HUGO_BASE_URL/"
 
   build:typedoc:
     cmds:
