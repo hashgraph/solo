@@ -2,7 +2,7 @@
 # https://geekdocs.de/usage/menus/
 main:
   - name: Getting Started
-    ref: "/User/README/index.md"
+    ref: "/User/README/README.md"
   - name: Usage
     sub:
     - name: Step-by-step guide
@@ -16,7 +16,7 @@ main:
     - name: Platform Developer
       ref: "PlatformDeveloper.md"
     - name: Attach JVM debugger and retrieve logs
-      ref: "/User/DebugLog/index.md"
+      ref: "/User/DebugLog/HowToDebugHederaServicesAndPlatformSDK.md"
     - name: Using Solo with Hedera JavaScript SDK
       ref: "/User/SDK.md"
     - name: Using Environment Variables

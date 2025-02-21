@@ -73,7 +73,7 @@ tasks:
       - cp ../DEV.md content/Developer/DEV.md
       - mkdir -p content/User
       - mkdir -p content/User/README
-      - cp ../README.md content/User/README/index.md
+      - cp ../README.md content/User/README/README.md
       - mkdir -p content/User/README/images
       - cp ../images/DockerDesktop.png content/User/README/images/DockerDesktop.png
 
