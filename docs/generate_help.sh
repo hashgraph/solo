@@ -1,6 +1,6 @@
 #!/bin/bash
 
-OUTPUT_FILE="solo_commands.md"
+OUTPUT_FILE="docs/content/User/SoloCommands.md"
 echo "# Solo Command Reference" > "$OUTPUT_FILE"
 
 # Add Table of Contents placeholder

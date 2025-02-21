@@ -41,6 +41,7 @@ tasks:
       - rm -Rf content/Classes
       - rm -f content/Developer/DEV.md
       - rm -f content/User/README.md
+      - rm -f content/User/SoloCommands.md
       - rm -Rf public
       - rm -Rf themes
       - rm -f .hugo_build.lock

@@ -24,6 +24,9 @@ main:
       ref: "/User/Env.md"
   - name: Solo CLI manual
     ref: "/User/SoloCLI.md"
+    sub:
+    - name: Solo CLI Commands
+      ref: "/User/SoloCommands.md"
   - name: Contributing
     ref: "/Developer/_index.md"
     sub:
