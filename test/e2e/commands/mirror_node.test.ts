@@ -94,6 +94,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         flags.clusterRef.constName,
         flags.chartDirectory.constName,
         flags.deployment.constName,
+        flags.mirrorStaticIp.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
         flags.storageAccessKey.constName,
@@ -107,6 +108,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       ]);
       expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.hederaExplorerTlsHostName.constName,
+        flags.hederaExplorerStaticIp.constName,
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,

@@ -771,7 +771,13 @@ export class MirrorNodeCommand extends BaseCommand {
           title: 'Uninstall mirror ingress controller',
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
-            await this.k8Factory.default().ingressClasses().delete(constants.MIRROR_INGRESS_CLASS_NAME);
+            // delete ingress class if found one
+            const existingIngressClasses = await this.k8Factory.default().ingressClasses().list();
+            existingIngressClasses.map(ingressClass => {
+              if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
+                this.k8Factory.default().ingressClasses().delete(constants.MIRROR_INGRESS_CLASS_NAME);
+              }
+            });
           },
         },
         this.removeMirrorNodeComponents(),
