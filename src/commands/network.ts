@@ -685,8 +685,8 @@ export class NetworkCommand extends BaseCommand {
     );
 
     config.consensusNodes = this.getConsensusNodes();
-    config.contexts = this.remoteConfigManager.getContexts();
-    config.clusterRefs = this.remoteConfigManager.getClusterRefs();
+    config.contexts = this.getContexts();
+    config.clusterRefs = this.getClusterRefs();
     if (config.nodeAliases.length === 0) {
       config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
       if (config.nodeAliases.length === 0) {
