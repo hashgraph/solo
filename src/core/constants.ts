@@ -56,7 +56,8 @@ export const HEDERA_NODE_SIDECARS = [
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = NamespaceName.of('solo-setup');
 export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts';
-export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
+export const SOLO_E2E_NAMESPACE = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
+export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'kind-solo-e2e';
 export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup';
 export const SOLO_DEPLOYMENT_CHART = 'solo-deployment';
 export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';

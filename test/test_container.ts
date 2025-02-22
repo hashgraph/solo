@@ -27,6 +27,5 @@ export function resetForTest(namespace?: NamespaceNameAsString, cacheDir: string
   // need to init the container prior to using K8Client for dependency injection to work
   resetTestContainer(cacheDir);
 
-  parsedData.clusterRefs['cluster-1'] = new K8Client(undefined).contexts().readCurrent();
   fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
 }
