@@ -76,7 +76,7 @@ import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
-import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
@@ -1667,8 +1667,6 @@ export class NodeCommandTasks {
 
         // On Update and Delete
         for (let i = 0; i < index; i++) {
-          if (transactionType === NodeSubcommandType.ADD) continue; // Do nothing on 'node add'
-
           const consensusNode = consensusNodes.find(node => node.nodeId === i);
           const clusterRef = consensusNode
             ? consensusNode.cluster
@@ -2097,6 +2095,28 @@ export class NodeCommandTasks {
         });
 
         ctx.config.consensusNodes = this.parent.getConsensusNodes();
+        // if the consensusNodes does not contain the nodeAlias then add it
+        if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
+          ctx.config.consensusNodes.push(
+            new ConsensusNode(
+              ctx.config.nodeAlias,
+              Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
+              ctx.config.namespace.name,
+              ctx.config.consensusNodes[0].cluster,
+              ctx.config.consensusNodes[0].context,
+              'cluster.local',
+              'network-${nodeAlias}-svc.${namespace}.svc',
+              Templates.renderConsensusNodeFullyQualifiedDomainName(
+                ctx.config.nodeAlias as NodeAlias,
+                Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
+                ctx.config.namespace.name as NamespaceNameAsString,
+                ctx.config.consensusNodes[0].cluster,
+                'cluster.local',
+                'network-${nodeAlias}-svc.${namespace}.svc',
+              ),
+            ),
+          );
+        }
       },
     };
   }
