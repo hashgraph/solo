@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xeo pipefail
+set -eo pipefail
 
 OUTPUT_FILE="docs/content/User/SoloCommands.md"
 echo "# Solo Command Reference" > "$OUTPUT_FILE"
@@ -7,53 +7,49 @@ echo "# Solo Command Reference" > "$OUTPUT_FILE"
 # Add Table of Contents placeholder
 echo "## Table of Contents" >> "$OUTPUT_FILE"
 echo -e "\n- [Root Help Output](#root-help-output)" >> "$OUTPUT_FILE"
-TOC_COMMANDS=()
 
-# Get top-level commands
-COMMANDS=($(npm run solo -- --help | awk '/Commands:/ {flag=1; next} /Options:/ {flag=0} flag && NF && $1 != "" {print $1}'))
+# Get top-level commands (ignore errors safely)
+COMMANDS=($(npm run solo -- --help | awk '/Commands:/ {flag=1; next} /Options:/ {flag=0} flag && NF && $1 != "" {print $1}' || true))
 
 for cmd in "${COMMANDS[@]}"; do
-    TOC_COMMANDS+=("- [${cmd}](#${cmd})")
+    echo "Processing command: $cmd"
     echo -e "\n- [${cmd}](#${cmd})" >> "$OUTPUT_FILE"
+
     # Add subcommands if they exist
-    SUBCOMMANDS=($(npm run solo -- "$cmd" --help | sed -n '/Commands:/,/Options:/p' | grep -E "^  $cmd \S+" | awk '{print $2}'))
+    SUBCOMMAND_OUTPUT=$(npm run solo -- "$cmd" --help 2>/dev/null || true)
+
+    # Extract subcommands (suppress errors)
+    SUBCOMMANDS=($(echo "$SUBCOMMAND_OUTPUT" | sed -n '/Commands:/,/Options:/p' | grep -E "^  $cmd \S+" | awk '{print $2}' || true))
 
     for subcmd in "${SUBCOMMANDS[@]}"; do
-        TOC_COMMANDS+=("- [${cmd} $subcmd](#${cmd}-${subcmd})")
+        echo "Processing subcommand: $cmd $subcmd"
         echo -e "\n    - [${cmd} $subcmd](#${cmd}-${subcmd})" >> "$OUTPUT_FILE"
     done
 done
 
-# Add the root help output to TOC
+# Add the root help output
 echo -e "\n## Root Help Output" >> "$OUTPUT_FILE"
 echo '```' >> "$OUTPUT_FILE"
 npm run solo -- --help >> "$OUTPUT_FILE"
 echo '```' >> "$OUTPUT_FILE"
 
-# Now we process each command and subcommand to generate their documentation
+# Process each command
 for cmd in "${COMMANDS[@]}"; do
-    echo "Processing command: $cmd"
     echo -e "\n## Command: $cmd" >> "$OUTPUT_FILE"
     echo '```' >> "$OUTPUT_FILE"
     npm run solo -- "$cmd" --help >> "$OUTPUT_FILE"
     echo '```' >> "$OUTPUT_FILE"
 
-    # Extract subcommands from the command help
-    SUBCOMMANDS=($(npm run solo -- "$cmd" --help | sed -n '/Commands:/,/Options:/p' | grep -E "^  $cmd \S+" | awk '{print $2}'))
+    # Extract subcommands again safely
+    SUBCOMMAND_OUTPUT=$(npm run solo -- "$cmd" --help 2>/dev/null || true)
+    SUBCOMMANDS=($(echo "$SUBCOMMAND_OUTPUT" | sed -n '/Commands:/,/Options:/p' | grep -E "^  $cmd \S+" | awk '{print $2}' || true))
 
-    if [ ${#SUBCOMMANDS[@]} -gt 0 ]; then
-        # If there are subcommands, process them
-        for subcmd in "${SUBCOMMANDS[@]}"; do
-            echo "Processing subcommand: $cmd $subcmd"
-            echo -e "\n### $cmd $subcmd" >> "$OUTPUT_FILE"
-            echo '```' >> "$OUTPUT_FILE"
-            npm run solo -- "$cmd" "$subcmd" --help >> "$OUTPUT_FILE"
-            echo '```' >> "$OUTPUT_FILE"
-        done
-    else
-        # If no subcommands, we skip further processing
-        echo "No subcommands for $cmd"
-    fi
+    for subcmd in "${SUBCOMMANDS[@]}"; do
+        echo -e "\n### $cmd $subcmd" >> "$OUTPUT_FILE"
+        echo '```' >> "$OUTPUT_FILE"
+        npm run solo -- "$cmd" "$subcmd" --help >> "$OUTPUT_FILE"
+        echo '```' >> "$OUTPUT_FILE"
+    done
 done
 
 echo "Documentation saved to $OUTPUT_FILE"

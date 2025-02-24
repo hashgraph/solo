@@ -58,9 +58,11 @@ tasks:
       - chmod 755 ./generate_help.sh
       - npm run build
       - |
+        set -eo pipefail
         cd ..
         pwd
         docs/generate_help.sh
+        npx eslint --fix .
 
   build:hugo:
     cmds:
