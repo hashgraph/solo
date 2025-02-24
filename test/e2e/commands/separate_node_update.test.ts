@@ -70,7 +70,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     it('cache current version of private keys', async () => {
       existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
         namespace,
-        nodeCmd.getConesnsusNodeManager().getClusterRefs(),
+        nodeCmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());

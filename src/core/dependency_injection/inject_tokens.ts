@@ -38,7 +38,6 @@ export const InjectTokens = {
   ClusterCommandHandlers: Symbol.for('ClusterCommandHandlers'),
   NodeCommandTasks: Symbol.for('NodeCommandTasks'),
   NodeCommandHandlers: Symbol.for('NodeCommandHandlers'),
-  ConsensusNodeManager: Symbol.for('ConsensusNodeManager'),
   ClusterCommandConfigs: Symbol.for('ClusterCommandConfigs'),
   NodeCommandConfigs: Symbol.for('NodeCommandConfigs'),
 };

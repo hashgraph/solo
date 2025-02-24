@@ -256,7 +256,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.consensusNodeManager.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
@@ -359,12 +359,12 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const portForward = this.configManager.getFlag<boolean>(flags.forcePortForward);
-                    const consensusNodes = this.consensusNodeManager.getConsensusNodes();
+                    const consensusNodes = this.remoteConfigManager.getConsensusNodes();
                     const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
                     const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
                     ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
                       ctx.config.namespace,
-                      this.consensusNodeManager.getClusterRefs(),
+                      this.remoteConfigManager.getClusterRefs(),
                       deployment,
                       this.configManager.getFlag(flags.operatorId),
                       this.configManager.getFlag(flags.operatorKey),
@@ -488,7 +488,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const clusterRefs = this.consensusNodeManager.getClusterRefs();
+                    const clusterRefs = this.remoteConfigManager.getClusterRefs();
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const fees = await this.accountManager.getFileContents(
                       namespace,
@@ -668,7 +668,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.consensusNodeManager.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,

@@ -176,7 +176,7 @@ export class AccountCommand extends BaseCommand {
             self.configManager.update(argv);
             const config = {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
-              contexts: this.getConesnsusNodeManager().getContexts(),
+              contexts: this.getRemoteConfigManager().getContexts(),
               nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
             };
 
@@ -191,7 +191,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.consensusNodeManager.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
@@ -270,7 +270,7 @@ export class AccountCommand extends BaseCommand {
                       const nodeClient = await self.accountManager.refreshNodeClient(
                         ctx.config.namespace,
                         nodeAlias,
-                        self.consensusNodeManager.getClusterRefs(),
+                        self.remoteConfigManager.getClusterRefs(),
                         this.configManager.getFlag<DeploymentName>(flags.deployment),
                       );
 
@@ -415,7 +415,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.consensusNodeManager.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
@@ -496,7 +496,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               config.namespace,
-              self.consensusNodeManager.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
@@ -583,7 +583,7 @@ export class AccountCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               config.namespace,
-              self.consensusNodeManager.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );

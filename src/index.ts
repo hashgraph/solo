@@ -34,7 +34,6 @@ import {Container} from './core/dependency_injection/container_init.js';
 import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
 import {type NamespaceName} from './core/kube/resources/namespace/namespace_name.js';
 import {type Opts} from './commands/base.js';
-import {type ConsensusNodeManager} from './core/consensus_node_manager.js';
 
 export function main(argv: any) {
   Container.getInstance().init();
@@ -64,7 +63,6 @@ export function main(argv: any) {
     const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
     const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
-    const consensusNodeManager: ConsensusNodeManager = container.resolve(InjectTokens.ConsensusNodeManager);
 
     // set cluster and namespace in the global configManager from kubernetes context
     // so that we don't need to prompt the user
@@ -80,7 +78,6 @@ export function main(argv: any) {
       platformInstaller,
       chartManager,
       configManager,
-      consensusNodeManager,
       depManager,
       keyManager,
       accountManager,

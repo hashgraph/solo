@@ -152,7 +152,7 @@ export class RelayCommand extends BaseCommand {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServicesMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.consensusNodeManager.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
     nodeAliases.forEach(nodeAlias => {
@@ -233,7 +233,7 @@ export class RelayCommand extends BaseCommand {
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
 
             if (ctx.config.clusterRef) {
-              const context = self.consensusNodeManager.getClusterRefs()[ctx.config.clusterRef];
+              const context = self.remoteConfigManager.getClusterRefs()[ctx.config.clusterRef];
               if (context) ctx.config.context = context;
             }
 
@@ -260,7 +260,7 @@ export class RelayCommand extends BaseCommand {
             );
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.consensusNodeManager.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.context,
@@ -390,7 +390,7 @@ export class RelayCommand extends BaseCommand {
             } as RelayDestroyConfigClass;
 
             if (ctx.config.clusterRef) {
-              const context = self.getConesnsusNodeManager().getClusterRefs()[ctx.config.clusterRef];
+              const context = self.getRemoteConfigManager().getClusterRefs()[ctx.config.clusterRef];
               if (context) ctx.config.context = context;
             }
 

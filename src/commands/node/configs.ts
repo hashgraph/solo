@@ -24,10 +24,10 @@ import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
-import {type ConsensusNodeManager} from '../../core/consensus_node_manager.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {type Helm} from '../../core/helm.js';
 import {type ConfigMap, getConfig} from '../../core/config_builder.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -45,7 +45,7 @@ export class NodeCommandConfigs {
   constructor(
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
     @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
-    @inject(InjectTokens.ConsensusNodeManager) private readonly consensusNodeManager: ConsensusNodeManager,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
     @inject(InjectTokens.Helm) private readonly helm: Helm,
@@ -55,9 +55,9 @@ export class NodeCommandConfigs {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
-    this.consensusNodeManager = patchInject(
-      consensusNodeManager,
-      InjectTokens.ConsensusNodeManager,
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
       this.constructor.name,
     );
   }
@@ -97,7 +97,7 @@ export class NodeCommandConfigs {
     await this.initializeSetup(config, this.k8Factory);
     config.nodeClient = await this.accountManager.loadNodeClient(
       config.namespace,
-      this.consensusNodeManager.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       config.deployment,
     );
 
@@ -157,7 +157,7 @@ export class NodeCommandConfigs {
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         config.deployment,
       );
     }
@@ -203,7 +203,7 @@ export class NodeCommandConfigs {
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         config.deployment,
       );
     }
@@ -255,7 +255,7 @@ export class NodeCommandConfigs {
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         config.deployment,
       );
     }
@@ -313,7 +313,7 @@ export class NodeCommandConfigs {
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         config.deployment,
       );
     }
@@ -327,12 +327,12 @@ export class NodeCommandConfigs {
 
     config.serviceMap = await this.accountManager.getNodeServiceMap(
       config.namespace,
-      this.consensusNodeManager.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       config.deployment,
     );
 
-    config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
-    config.contexts = this.consensusNodeManager.getContexts();
+    config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    config.contexts = this.remoteConfigManager.getContexts();
 
     return config;
   }
@@ -343,8 +343,8 @@ export class NodeCommandConfigs {
       nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
       nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: this.consensusNodeManager.getConsensusNodes(),
-      contexts: this.consensusNodeManager.getContexts(),
+      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      contexts: this.remoteConfigManager.getContexts(),
     } as NodeLogsConfigClass;
     ctx.config = config;
     return config;
@@ -356,8 +356,8 @@ export class NodeCommandConfigs {
       nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
       nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: this.consensusNodeManager.getConsensusNodes(),
-      contexts: this.consensusNodeManager.getContexts(),
+      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      contexts: this.remoteConfigManager.getContexts(),
     };
     ctx.config = config;
     return config;
@@ -392,7 +392,7 @@ export class NodeCommandConfigs {
     config.curDate = new Date();
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
     if (config.nodeAliases.length === 0) {
-      const consensusNodes = this.consensusNodeManager.getConsensusNodes();
+      const consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
       // @ts-expect-error TS2322 Type 'string[]' is not assignable to type 'NodeAliases'
       config.nodeAliases = consensusNodes.map((node: {name: string}) => {
@@ -416,8 +416,8 @@ export class NodeCommandConfigs {
       nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
       nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: this.consensusNodeManager.getConsensusNodes(),
-      contexts: this.consensusNodeManager.getContexts(),
+      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      contexts: this.remoteConfigManager.getContexts(),
     };
 
     if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
@@ -435,7 +435,7 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeStartConfigClass;
     config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
+    config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
     for (const consensusNode of config.consensusNodes) {
       const k8 = this.k8Factory.getK8(consensusNode.context);
@@ -460,7 +460,7 @@ export class NodeCommandConfigs {
 
     config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
-    config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
+    config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
     await this.initializeSetup(config, this.k8Factory);
 

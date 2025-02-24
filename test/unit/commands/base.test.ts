@@ -8,7 +8,7 @@ import {type Helm} from '../../../src/core/helm.js';
 import {type ChartManager} from '../../../src/core/chart_manager.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type LocalConfig} from '../../../src/core/config/local_config.js';
-import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
@@ -21,7 +21,6 @@ import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
 import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
-import {ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
 import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 
@@ -32,7 +31,6 @@ describe('BaseCommand', () => {
   let depManager: DependencyManager;
   let localConfig: LocalConfig;
   let remoteConfigManager: RemoteConfigManager;
-  let consensusNodeManager: ConsensusNodeManager;
   let sandbox = sinon.createSandbox();
   let testLogger: SoloLogger;
 
@@ -47,7 +45,6 @@ describe('BaseCommand', () => {
       configManager = container.resolve(InjectTokens.ConfigManager);
       depManager = container.resolve(InjectTokens.DependencyManager);
       localConfig = container.resolve(InjectTokens.LocalConfig);
-      consensusNodeManager = container.resolve(InjectTokens.ConsensusNodeManager);
       remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
 
       sandbox = sinon.createSandbox();
@@ -64,7 +61,6 @@ describe('BaseCommand', () => {
         depManager,
         localConfig,
         remoteConfigManager,
-        consensusNodeManager,
       });
     });
 
@@ -148,8 +144,7 @@ describe('BaseCommand', () => {
       } = createComponentsDataWrapper();
 
       const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject());
-      const remoteConfigManager = sinon.stub() as unknown as RemoteConfigManager;
-      const consensusNodeManager = sinon.createStubInstance(ConsensusNodeManager);
+      const remoteConfigManager = sinon.createStubInstance(RemoteConfigManager);
 
       const mockecConsensusNodes = [
         new ConsensusNode(
@@ -174,9 +169,9 @@ describe('BaseCommand', () => {
         ),
       ];
 
-      consensusNodeManager.getConsensusNodes.returns(mockecConsensusNodes);
-      consensusNodeManager.getContexts.returns(mockecConsensusNodes.map(node => node.context));
-      consensusNodeManager.getClusterRefs.returns({cluster: 'context1', cluster2: 'context2'});
+      remoteConfigManager.getConsensusNodes.returns(mockecConsensusNodes);
+      remoteConfigManager.getContexts.returns(mockecConsensusNodes.map(node => node.context));
+      remoteConfigManager.getClusterRefs.returns({cluster: 'context1', cluster2: 'context2'});
 
       Object.defineProperty(remoteConfigManager, 'components', {
         get: () => newComponentsDataWrapper,
@@ -201,12 +196,11 @@ describe('BaseCommand', () => {
         depManager,
         localConfig,
         remoteConfigManager,
-        consensusNodeManager,
       });
     });
 
     it('should return consensus nodes', () => {
-      const consensusNodes = baseCmd.getConesnsusNodeManager().getConsensusNodes();
+      const consensusNodes = baseCmd.getRemoteConfigManager().getConsensusNodes();
       expect(consensusNodes).to.be.an('array');
       expect(consensusNodes[0].context).to.equal('context1');
       expect(consensusNodes[1].context).to.equal('context2');
@@ -221,7 +215,7 @@ describe('BaseCommand', () => {
     });
 
     it('should return contexts', () => {
-      const contexts = baseCmd.getConesnsusNodeManager().getContexts();
+      const contexts = baseCmd.getRemoteConfigManager().getContexts();
       expect(contexts).to.be.an('array');
       expect(contexts[0]).to.equal('context1');
       expect(contexts[1]).to.equal('context2');
@@ -229,7 +223,7 @@ describe('BaseCommand', () => {
 
     it('should return clusters references', () => {
       const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
-      const clusterRefs: ClusterRefs = baseCmd.getConesnsusNodeManager().getClusterRefs();
+      const clusterRefs: ClusterRefs = baseCmd.getRemoteConfigManager().getClusterRefs();
       Object.keys(clusterRefs).forEach(clusterRef => {
         expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
       });

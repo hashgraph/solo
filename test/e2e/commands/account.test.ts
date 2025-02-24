@@ -111,7 +111,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          const clusterRefs = accountCmd.getConesnsusNodeManager().getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -307,7 +307,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          const clusterRefs = accountCmd.getConesnsusNodeManager().getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -339,7 +339,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
       it('Create new account', async () => {
         try {
-          const clusterRefs = accountCmd.getConesnsusNodeManager().getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,

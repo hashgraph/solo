@@ -22,7 +22,6 @@ import {BASE_TEST_DIR} from '../../../test_util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
-import {type ConsensusNodeManager} from '../../../../src/core/consensus_node_manager.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -38,7 +37,6 @@ describe('InitCommand', () => {
 
   let leaseManager: LeaseManager;
   let remoteConfigManager: RemoteConfigManager;
-  let consensusNodeManager: ConsensusNodeManager;
 
   let sandbox = sinon.createSandbox();
   let initCmd: InitCommand;
@@ -50,7 +48,6 @@ describe('InitCommand', () => {
     localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
     remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     leaseManager = container.resolve(InjectTokens.LeaseManager);
-    consensusNodeManager = container.resolve(InjectTokens.ConsensusNodeManager);
 
     // @ts-ignore
     initCmd = new InitCommand({
@@ -64,7 +61,6 @@ describe('InitCommand', () => {
       leaseManager,
       localConfig,
       remoteConfigManager,
-      consensusNodeManager,
     });
   });
 

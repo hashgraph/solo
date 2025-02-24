@@ -29,7 +29,6 @@ import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {getConfig} from '../core/config_builder.js';
-import {type ConsensusNodeManager} from '../core/consensus_node_manager.js';
 
 export interface CommandHandlers {
   parent: BaseCommand;
@@ -51,7 +50,6 @@ export interface Opts {
   certificateManager: CertificateManager;
   localConfig: LocalConfig;
   remoteConfigManager: RemoteConfigManager;
-  consensusNodeManager: ConsensusNodeManager;
   parent?: BaseCommand;
 }
 
@@ -65,7 +63,6 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly _configMaps = new Map<string, any>();
   public readonly localConfig: LocalConfig;
   protected readonly remoteConfigManager: RemoteConfigManager;
-  protected readonly consensusNodeManager: ConsensusNodeManager;
 
   constructor(opts: Opts) {
     if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
@@ -74,7 +71,6 @@ export abstract class BaseCommand extends ShellRunner {
     if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
     if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
     if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required');
-    if (!opts || !opts.consensusNodeManager) throw new Error('An instance of core/ConsensusNodeManager is required');
     if (!opts || !opts.remoteConfigManager)
       throw new Error('An instance of core/config/RemoteConfigManager is required');
     super();
@@ -87,7 +83,6 @@ export abstract class BaseCommand extends ShellRunner {
     this.leaseManager = opts.leaseManager;
     this.localConfig = opts.localConfig;
     this.remoteConfigManager = opts.remoteConfigManager;
-    this.consensusNodeManager = opts.consensusNodeManager;
   }
 
   /**
@@ -202,10 +197,6 @@ export abstract class BaseCommand extends ShellRunner {
 
   public getRemoteConfigManager() {
     return this.remoteConfigManager;
-  }
-
-  public getConesnsusNodeManager() {
-    return this.consensusNodeManager;
   }
 
   abstract close(): Promise<void>;

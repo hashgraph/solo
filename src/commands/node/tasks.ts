@@ -76,8 +76,8 @@ import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
-import {type ConsensusNodeManager} from '../../core/consensus_node_manager.js';
 import {type ConfigMap} from '../../core/config_builder.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -91,7 +91,7 @@ export class NodeCommandTasks {
     @inject(InjectTokens.ProfileManager) private readonly profileManager: ProfileManager,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
     @inject(InjectTokens.CertificateManager) private readonly certificateManager: CertificateManager,
-    @inject(InjectTokens.ConsensusNodeManager) private readonly consensusNodeManager: ConsensusNodeManager,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
@@ -102,9 +102,9 @@ export class NodeCommandTasks {
     this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
     this.certificateManager = patchInject(certificateManager, InjectTokens.CertificateManager, this.constructor.name);
-    this.consensusNodeManager = patchInject(
-      consensusNodeManager,
-      InjectTokens.ConsensusNodeManager,
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
       this.constructor.name,
     );
   }
@@ -550,7 +550,7 @@ export class NodeCommandTasks {
       const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
       await this.accountManager.loadNodeClient(
         namespace,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         deploymentName,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
         context,
@@ -912,7 +912,7 @@ export class NodeCommandTasks {
     return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
       config.existingNodeAliases = [];
-      const clusterRefs = this.consensusNodeManager.getClusterRefs();
+      const clusterRefs = this.remoteConfigManager.getClusterRefs();
       config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace, clusterRefs, config.deployment);
       for (const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeAlias);
@@ -997,7 +997,7 @@ export class NodeCommandTasks {
     return new Task('Populate serviceMap', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
         ctx.config.namespace,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         ctx.config.deployment,
       );
       ctx.config.podRefs[ctx.config.nodeAlias] = PodRef.of(
@@ -1048,7 +1048,7 @@ export class NodeCommandTasks {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.consensusNodeManager.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
 
@@ -1075,7 +1075,7 @@ export class NodeCommandTasks {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.consensusNodeManager.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
 
@@ -1231,7 +1231,7 @@ export class NodeCommandTasks {
       config.nodeClient = await self.accountManager.refreshNodeClient(
         config.namespace,
         skipNodeAlias,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
       );
 
@@ -1283,7 +1283,7 @@ export class NodeCommandTasks {
       await self.accountManager.refreshNodeClient(
         ctx.config.namespace,
         ctx.config.nodeAlias,
-        this.consensusNodeManager.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
         context,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
@@ -1523,7 +1523,7 @@ export class NodeCommandTasks {
         config.nodeClient = await self.accountManager.refreshNodeClient(
           config.namespace,
           config.nodeAlias,
-          this.consensusNodeManager.getClusterRefs(),
+          this.remoteConfigManager.getClusterRefs(),
           this.configManager.getFlag<DeploymentName>(flags.deployment),
         );
       }
@@ -1632,7 +1632,7 @@ export class NodeCommandTasks {
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace,
-            this.consensusNodeManager.getClusterRefs(),
+            this.remoteConfigManager.getClusterRefs(),
             config.deployment,
           );
         }
@@ -1756,7 +1756,7 @@ export class NodeCommandTasks {
       'Kill nodes to pick up updated configMaps',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
-        const clusterRefs = this.consensusNodeManager.getClusterRefs();
+        const clusterRefs = this.remoteConfigManager.getClusterRefs();
         // the updated node will have a new pod ID if its account ID changed which is a label
         config.serviceMap = await this.accountManager.getNodeServiceMap(
           config.namespace,
@@ -1962,8 +1962,8 @@ export class NodeCommandTasks {
 
       const config = await configInit(argv, ctx, task, configMap, shouldLoadNodeClient);
       ctx.config = config;
-      config.consensusNodes = this.consensusNodeManager.getConsensusNodes();
-      config.contexts = this.consensusNodeManager.getContexts();
+      config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+      config.contexts = this.remoteConfigManager.getContexts();
 
       for (const flag of allRequiredFlags) {
         if (typeof config[flag.constName] === 'undefined') {

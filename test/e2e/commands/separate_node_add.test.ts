@@ -72,7 +72,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       // @ts-expect-error - TS2341: to access private property
       existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(
         namespace,
-        nodeCmd.getConesnsusNodeManager().getClusterRefs(),
+        nodeCmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());

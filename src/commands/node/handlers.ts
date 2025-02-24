@@ -26,7 +26,6 @@ import {CommandHandler} from '../../core/command_handler.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
-import {type ConsensusNodeManager} from '../../core/consensus_node_manager.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -38,7 +37,6 @@ export class NodeCommandHandlers extends CommandHandler {
     @inject(InjectTokens.LeaseManager) private readonly leaseManager: LeaseManager,
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.NodeCommandTasks) private readonly tasks: NodeCommandTasks,
-    @inject(InjectTokens.ConsensusNodeManager) private readonly consensusNodeManager: ConsensusNodeManager,
     @inject(InjectTokens.NodeCommandConfigs) private readonly configs: NodeCommandConfigs,
   ) {
     super();
@@ -50,11 +48,6 @@ export class NodeCommandHandlers extends CommandHandler {
       this.constructor.name,
     );
     this.tasks = patchInject(tasks, InjectTokens.NodeCommandTasks, this.constructor.name);
-    this.consensusNodeManager = patchInject(
-      consensusNodeManager,
-      InjectTokens.ConsensusNodeManager,
-      this.constructor.name,
-    );
 
     this._portForwards = [];
   }
@@ -65,8 +58,8 @@ export class NodeCommandHandlers extends CommandHandler {
   static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
 
   private init() {
-    this.consensusNodes = this.consensusNodeManager.getConsensusNodes();
-    this.contexts = this.consensusNodeManager.getContexts();
+    this.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    this.contexts = this.remoteConfigManager.getContexts();
   }
 
   /** ******** Task Lists **********/

@@ -33,7 +33,6 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 
 const testName = 'network-cmd-unit';
@@ -150,7 +149,6 @@ describe('NetworkCommand unit tests', () => {
 
       opts.leaseManager = container.resolve<LeaseManager>(InjectTokens.LeaseManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
-      opts.consensusNodeManager = sinon.createStubInstance(ConsensusNodeManager);
 
       GenesisNetworkDataConstructor.initialize = sinon.stub().returns(null);
     });
@@ -162,9 +160,9 @@ describe('NetworkCommand unit tests', () => {
     it('Install function is called with expected parameters', async () => {
       try {
         const networkCommand = new NetworkCommand(opts);
-        opts.consensusNodeManager.getConsensusNodes = sinon.stub().returns([]);
-        opts.consensusNodeManager.getContexts = sinon.stub().returns(['context1']);
-        opts.consensusNodeManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
+        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([]);
+        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
+        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
         await networkCommand.deploy(argv.build());
 
@@ -184,9 +182,9 @@ describe('NetworkCommand unit tests', () => {
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
 
-        opts.consensusNodeManager.getConsensusNodes = sinon.stub().returns([]);
-        opts.consensusNodeManager.getContexts = sinon.stub().returns([]);
-        opts.consensusNodeManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
+        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([]);
+        opts.remoteConfigManager.getContexts = sinon.stub().returns([]);
+        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
         await networkCommand.deploy(argv.build());
         expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
@@ -211,11 +209,11 @@ describe('NetworkCommand unit tests', () => {
 
         const task = sinon.stub();
 
-        opts.consensusNodeManager.getConsensusNodes = sinon
+        opts.remoteConfigManager.getConsensusNodes = sinon
           .stub()
           .returns([new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn')]);
-        opts.consensusNodeManager.getContexts = sinon.stub().returns(['context-1']);
-        opts.consensusNodeManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
+        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context-1']);
+        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
 
         const networkCommand = new NetworkCommand(opts);
         const config = await networkCommand.prepareConfig(task, argv.build());
