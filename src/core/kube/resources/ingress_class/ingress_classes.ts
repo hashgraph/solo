@@ -11,4 +11,17 @@ export interface IngressClasses {
    * @throws SoloError if failed to list IngressClasses
    */
   list(): Promise<IngressClass[]>;
+
+  /**
+   * Create an IngressClass
+   * @param ingressClassName
+   * @param controllerName
+   */
+  create(ingressClassName: string, controllerName: string): Promise<void>;
+
+  /**
+   * Delete an IngressClass
+   * @param ingressClassName
+   */
+  delete(ingressClassName: string): Promise<void>;
 }

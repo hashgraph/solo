@@ -17,8 +17,6 @@ export const SETUP_FLAGS = {
     flags.chartDirectory,
     flags.clusterRef,
     flags.clusterSetupNamespace,
-    flags.deployCertManager,
-    flags.deployCertManagerCrds,
     flags.deployMinio,
     flags.deployPrometheusStack,
     flags.quiet,
