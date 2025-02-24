@@ -15,6 +15,7 @@ const getBaseCommandOpts = () => ({
   configManager: sinon.stub(),
   depManager: sinon.stub(),
   localConfig: sinon.stub(),
+  consensusNodeManager: sinon.stub(),
 });
 
 describe('NodeCommand unit tests', () => {

@@ -13,7 +13,6 @@ import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {CommandHandler} from '../../core/command_handler.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
-import {type ChartManager} from '../../core/chart_manager.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ClusterCommandConfigs} from './configs.js';
 
@@ -24,7 +23,6 @@ export class ClusterCommandHandlers extends CommandHandler {
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
-    @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
     @inject(InjectTokens.ClusterCommandConfigs) private readonly configs: ClusterCommandConfigs,
   ) {
     super();
@@ -37,7 +35,6 @@ export class ClusterCommandHandlers extends CommandHandler {
     );
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
-    this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
     this.configs = patchInject(configs, InjectTokens.ClusterCommandConfigs, this.constructor.name);
   }
 
@@ -46,7 +43,7 @@ export class ClusterCommandHandlers extends CommandHandler {
 
     const action = this.commandActionBuilder(
       [
-        this.tasks.initialize(argv, this.configs.connectConfigBuilder, this.getConfigMaps()),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs), this.getConfigMaps()),
         this.setupHomeDirectoryTask(),
         this.localConfig.promptLocalConfigTask(this.k8Factory),
         this.tasks.selectContext(),
@@ -62,7 +59,7 @@ export class ClusterCommandHandlers extends CommandHandler {
       null,
     );
 
-    await action(argv, this);
+    await action(argv);
     return true;
   }
 
@@ -79,7 +76,7 @@ export class ClusterCommandHandlers extends CommandHandler {
       null,
     );
 
-    await action(argv, this);
+    await action(argv);
     return true;
   }
 
@@ -96,7 +93,7 @@ export class ClusterCommandHandlers extends CommandHandler {
       null,
     );
 
-    await action(argv, this);
+    await action(argv);
     return true;
   }
 
@@ -105,7 +102,7 @@ export class ClusterCommandHandlers extends CommandHandler {
 
     const action = this.commandActionBuilder(
       [
-        this.tasks.initialize(argv, this.configs.setupConfigBuilder),
+        this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs), this.getConfigMaps()),
         this.tasks.prepareChartValues(argv),
         this.tasks.installClusterChart(argv),
       ],
@@ -118,7 +115,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     );
 
     try {
-      await action(argv, this);
+      await action(argv);
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster setup', e);
     }
@@ -131,7 +128,7 @@ export class ClusterCommandHandlers extends CommandHandler {
 
     const action = this.commandActionBuilder(
       [
-        this.tasks.initialize(argv, this.configs.resetConfigBuilder),
+        this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs), this.getConfigMaps()),
         this.tasks.acquireNewLease(argv),
         this.tasks.uninstallClusterChart(argv),
       ],
@@ -144,7 +141,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     );
 
     try {
-      await action(argv, this);
+      await action(argv);
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster reset', e);
     }

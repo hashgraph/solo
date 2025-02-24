@@ -21,7 +21,8 @@ import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
 import {type ClusterRefs, type ClusterRef} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
-import {type ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
+import {ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
+import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -62,6 +63,7 @@ describe('BaseCommand', () => {
         depManager,
         localConfig,
         remoteConfigManager,
+        consensusNodeManager,
       });
     });
 
@@ -146,6 +148,35 @@ describe('BaseCommand', () => {
 
       const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject());
       const remoteConfigManager = sinon.stub() as unknown as RemoteConfigManager;
+      const consensusNodeManager = sinon.createStubInstance(ConsensusNodeManager);
+
+      const mockecConsensusNodes = [
+        new ConsensusNode(
+          'name',
+          0,
+          'namespace',
+          'cluster',
+          'context1',
+          'dnsBaseDomain',
+          'dnsConsensusNodePattern',
+          'fullyQualifiedDomainName',
+        ),
+        new ConsensusNode(
+          'node2',
+          1,
+          'namespace',
+          'cluster2',
+          'context2',
+          'dnsBaseDomain',
+          'dnsConsensusNodePattern',
+          'fullyQualifiedDomainName',
+        ),
+      ];
+
+      consensusNodeManager.getConsensusNodes.returns(mockecConsensusNodes);
+      consensusNodeManager.getContexts.returns(mockecConsensusNodes.map(node => node.context));
+      consensusNodeManager.getClusterRefs.returns({cluster: 'context1', cluster2: 'context2'});
+
       Object.defineProperty(remoteConfigManager, 'components', {
         get: () => newComponentsDataWrapper,
       });
@@ -169,6 +200,7 @@ describe('BaseCommand', () => {
         depManager,
         localConfig,
         remoteConfigManager,
+        consensusNodeManager,
       });
     });
 

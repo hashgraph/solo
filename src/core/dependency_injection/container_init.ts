@@ -130,12 +130,32 @@ export class Container {
     Container.isInitialized = true;
 
     // Commands
-    container.register(ClusterCommandHandlers, {useClass: ClusterCommandHandlers}, {lifecycle: Lifecycle.Singleton});
-    container.register(ClusterCommandTasks, {useClass: ClusterCommandTasks}, {lifecycle: Lifecycle.Singleton});
-    container.register(NodeCommandHandlers, {useClass: NodeCommandHandlers}, {lifecycle: Lifecycle.Singleton});
-    container.register(NodeCommandTasks, {useClass: NodeCommandTasks}, {lifecycle: Lifecycle.Singleton});
-    container.register(ClusterCommandConfigs, {useClass: ClusterCommandConfigs}, {lifecycle: Lifecycle.Singleton});
-    container.register(NodeCommandConfigs, {useClass: NodeCommandConfigs}, {lifecycle: Lifecycle.Singleton});
+    container.register(
+      InjectTokens.ClusterCommandHandlers,
+      {useClass: ClusterCommandHandlers},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.ClusterCommandTasks,
+      {useClass: ClusterCommandTasks},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.NodeCommandHandlers,
+      {useClass: NodeCommandHandlers},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(InjectTokens.NodeCommandTasks, {useClass: NodeCommandTasks}, {lifecycle: Lifecycle.Singleton});
+    container.register(
+      InjectTokens.ClusterCommandConfigs,
+      {useClass: ClusterCommandConfigs},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.NodeCommandConfigs,
+      {useClass: NodeCommandConfigs},
+      {lifecycle: Lifecycle.Singleton},
+    );
   }
 
   /**

@@ -36,7 +36,6 @@ import {type ConfigMap} from '../../core/config_builder.js';
 
 @injectable()
 export class ClusterCommandTasks {
-  private readonly parent: BaseCommand;
   private readonly clusterChecks: ClusterChecks = container.resolve(InjectTokens.ClusterChecks);
 
   constructor(
@@ -289,7 +288,7 @@ export class ClusterCommandTasks {
     return {
       title: 'Resolve context for remote cluster',
       task: async (_, task) => {
-        this.parent.logger.info('Resolve context for remote cluster...');
+        this.logger.info('Resolve context for remote cluster...');
         const configManager = this.configManager;
         const isQuiet = configManager.getFlag<boolean>(flags.quiet);
         const deploymentName: string = configManager.getFlag<DeploymentName>(flags.deployment);

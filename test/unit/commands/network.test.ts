@@ -161,9 +161,9 @@ describe('NetworkCommand unit tests', () => {
     it('Install function is called with expected parameters', async () => {
       try {
         const networkCommand = new NetworkCommand(opts);
-        sinon.stub(opts.consensusNodeManagerStub, 'getConsensusNodes').returns([]);
-        sinon.stub(opts.consensusNodeManagerStub, 'getContexts').returns(['context1']);
-        sinon.stub(opts.consensusNodeManagerStub, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
+        opts.consensusNodeManager.getConsensusNodes = sinon.stub().returns([]);
+        opts.consensusNodeManager.getContexts = sinon.stub().returns(['context1']);
+        opts.consensusNodeManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
         await networkCommand.deploy(argv);
 
@@ -182,10 +182,9 @@ describe('NetworkCommand unit tests', () => {
       try {
         argv[flags.chartDirectory.name] = 'test-directory';
         argv[flags.force.name] = true;
-
-        sinon.stub(opts.consensusNodeManagerStub, 'getConsensusNodes').returns([]);
-        sinon.stub(opts.consensusNodeManagerStub, 'getContexts').returns([]);
-        sinon.stub(opts.consensusNodeManagerStub, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
+        opts.consensusNodeManager.getConsensusNodes = sinon.stub().returns([]);
+        opts.consensusNodeManager.getContexts = sinon.stub().returns([]);
+        opts.consensusNodeManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
         await networkCommand.deploy(argv);
         expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
@@ -210,9 +209,12 @@ describe('NetworkCommand unit tests', () => {
 
         const task = sinon.stub();
 
-        sinon
-          .stub(opts.consensusNodeManagerStub, 'getConsensusNodes')
+        opts.consensusNodeManager.getConsensusNodes = sinon
+          .stub()
           .returns([new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn')]);
+        opts.consensusNodeManager.getContexts = sinon.stub().returns(['context-1']);
+        opts.consensusNodeManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
+
         const networkCommand = new NetworkCommand(opts);
         const config = await networkCommand.prepareConfig(task, argv);
 

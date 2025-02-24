@@ -13,6 +13,7 @@ import {Task} from './task.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {ConfigManager} from './config_manager.js';
 import {type ConfigMap, getConfig} from './config_builder.js';
+import {InjectTokens} from './dependency_injection/inject_tokens.js';
 
 @injectable()
 export class CommandHandler {
@@ -22,8 +23,8 @@ export class CommandHandler {
     @inject(SoloLogger) public readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this.logger = patchInject(logger, SoloLogger, this.constructor.name);
-    this.configManager = patchInject(configManager, ConfigManager, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
   }
 
   public commandActionBuilder(
@@ -31,14 +32,14 @@ export class CommandHandler {
     options: any,
     errorString: string,
     lease: Lease | null,
-  ): (argv: any, handlerObj: CommandHandler) => Promise<void> {
-    return async function (argv: any, handlerObj: CommandHandler): Promise<void> {
+  ): (argv: any) => Promise<void> {
+    return async function (argv: any): Promise<void> {
       const tasks = new Listr([...actionTasks], options);
 
       try {
         await tasks.run();
       } catch (e: Error | any) {
-        handlerObj.logger.error(`${errorString}: ${e.message}`, e);
+        this.logger.error(`${errorString}: ${e.message}`, e);
         throw new SoloError(`${errorString}: ${e.message}`, e);
       } finally {
         const promises = [];

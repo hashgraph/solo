@@ -7,8 +7,9 @@ import {type AccountManager} from '../../core/account_manager.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand, type Opts} from './../base.js';
 import * as NodeFlags from './flags.js';
-import {NodeCommandHandlers} from './handlers.js';
+import {type NodeCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -36,7 +37,7 @@ export class NodeCommand extends BaseCommand {
 
     this.accountManager = opts.accountManager;
 
-    this.handlers = patchInject(null, NodeCommandHandlers, this.constructor.name);
+    this.handlers = patchInject(null, InjectTokens.NodeCommandHandlers, this.constructor.name);
   }
 
   close(): Promise<void> {

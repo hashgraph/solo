@@ -100,6 +100,7 @@ describe('ClusterCommand unit tests', () => {
       opts.logger = container.resolve(InjectTokens.SoloLogger);
       opts.helm = container.resolve(InjectTokens.Helm);
       opts.chartManager = container.resolve(InjectTokens.ChartManager);
+      opts.consensusNodeManager = container.resolve(InjectTokens.ConsensusNodeManager);
       opts.helm.dependency = sandbox.stub();
 
       opts.chartManager.isChartInstalled = sandbox.stub().returns(false);
@@ -217,21 +218,21 @@ describe('ClusterCommand unit tests', () => {
         configManager.getFlag.withArgs(stubbedFlags[i][0]).returns(stubbedFlags[i][1]);
       }
 
-      container.unregister(RemoteConfigManager);
-      container.registerInstance(RemoteConfigManager, remoteConfigManagerStub);
+      container.unregister(InjectTokens.RemoteConfigManager);
+      container.registerInstance(InjectTokens.RemoteConfigManager, remoteConfigManagerStub);
 
-      container.unregister(K8Client);
-      container.registerInstance(K8Client, k8Stub);
+      container.unregister(InjectTokens.K8Factory);
+      container.registerInstance(InjectTokens.K8Factory, k8FactoryStub);
 
       const localConfig = new LocalConfig(filePath);
-      container.unregister(LocalConfig);
-      container.registerInstance(LocalConfig, localConfig);
+      container.unregister(InjectTokens.LocalConfig);
+      container.registerInstance(InjectTokens.LocalConfig, localConfig);
 
-      container.unregister(ConfigManager);
-      container.registerInstance(ConfigManager, configManager);
+      container.unregister(InjectTokens.ConfigManager);
+      container.registerInstance(InjectTokens.ConfigManager, configManager);
 
-      container.unregister(SoloLogger);
-      container.registerInstance(SoloLogger, loggerStub);
+      container.unregister(InjectTokens.SoloLogger);
+      container.registerInstance(InjectTokens.SoloLogger, loggerStub);
 
       const options = {
         logger: loggerStub,
