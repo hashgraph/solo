@@ -56,6 +56,7 @@ export class YargsCommand {
           .then((r: any) => {
             commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
             if (!r) process.exit(1);
+            else process.exit(0);
           })
           .catch((err: Error | any) => {
             commandDef.logger.showUserError(err);
