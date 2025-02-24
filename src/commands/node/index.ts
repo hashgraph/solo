@@ -6,9 +6,10 @@ import {IllegalArgumentError} from '../../core/errors.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand, type Opts} from './../base.js';
-import {NodeCommandTasks} from './tasks.js';
 import * as NodeFlags from './flags.js';
-import {NodeCommandHandlers} from './handlers.js';
+import {type NodeCommandHandlers} from './handlers.js';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -16,9 +17,7 @@ import {NodeCommandHandlers} from './handlers.js';
 export class NodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
 
-  public readonly tasks: NodeCommandTasks;
   public readonly handlers: NodeCommandHandlers;
-  public _portForwards: any;
 
   constructor(opts: Opts) {
     super(opts);
@@ -37,49 +36,17 @@ export class NodeCommand extends BaseCommand {
       throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
 
     this.accountManager = opts.accountManager;
-    this._portForwards = [];
 
-    this.tasks = new NodeCommandTasks({
-      accountManager: opts.accountManager,
-      configManager: opts.configManager,
-      logger: opts.logger,
-      platformInstaller: opts.platformInstaller,
-      profileManager: opts.profileManager,
-      k8Factory: opts.k8Factory,
-      keyManager: opts.keyManager,
-      chartManager: opts.chartManager,
-      certificateManager: opts.certificateManager,
-      parent: this,
-    });
-
-    this.handlers = new NodeCommandHandlers({
-      accountManager: opts.accountManager,
-      configManager: opts.configManager,
-      platformInstaller: opts.platformInstaller,
-      logger: opts.logger,
-      k8Factory: opts.k8Factory,
-      tasks: this.tasks,
-      parent: this,
-      leaseManager: opts.leaseManager,
-      remoteConfigManager: opts.remoteConfigManager,
-    });
+    this.handlers = patchInject(null, InjectTokens.NodeCommandHandlers, this.constructor.name);
   }
 
-  /**
-   * stops and closes the port forwards
-   * - calls the accountManager.close()
-   * - for all portForwards, calls k8Factory.default().pods().readByRef(null).stopPortForward(srv)
-   */
-  async close() {
-    await this.accountManager.close();
-    if (this._portForwards) {
-      for (const srv of this._portForwards) {
-        // pass null to readByRef because it isn't needed for stopPortForward()
-        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
-      }
-    }
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
+  }
 
-    this._portForwards = [];
+  getUnusedConfigs(configName: string): string[] {
+    return this.handlers.getUnusedConfigs(configName);
   }
 
   getCommandDefinition() {
