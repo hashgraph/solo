@@ -54,7 +54,7 @@ import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv_wrapper.js';
 import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 
-export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
+export const TEST_CLUSTER = 'kind' + SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
