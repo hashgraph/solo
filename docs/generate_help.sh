@@ -1,4 +1,5 @@
 #!/bin/bash
+set -xeo pipefail
 
 OUTPUT_FILE="docs/content/User/SoloCommands.md"
 echo "# Solo Command Reference" > "$OUTPUT_FILE"

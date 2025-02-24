@@ -58,6 +58,7 @@ tasks:
       - chmod 755 ./generate_help.sh
       - |
         cd ..
+        pwd
         docs/generate_help.sh
 
   build:hugo:
