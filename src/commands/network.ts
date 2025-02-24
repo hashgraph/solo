@@ -1144,7 +1144,7 @@ export class NetworkCommand extends BaseCommand {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
-              contexts: this.getContexts(),
+              contexts: this.getConesnsusNodeManager().getContexts(),
             };
 
             return ListrLease.newAcquireLeaseTask(lease, task);

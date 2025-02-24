@@ -390,7 +390,7 @@ export class RelayCommand extends BaseCommand {
             } as RelayDestroyConfigClass;
 
             if (ctx.config.clusterRef) {
-              const context = self.getClusterRefs()[ctx.config.clusterRef];
+              const context = self.getConesnsusNodeManager().getClusterRefs()[ctx.config.clusterRef];
               if (context) ctx.config.context = context;
             }
 

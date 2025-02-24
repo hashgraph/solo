@@ -68,19 +68,15 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       await k8Factory.default().namespaces().delete(namespace);
     });
 
-      it('cache current version of private keys', async () => {
-          // @ts-expect-error - TS2341: to access private property
-        existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(
-          namespace,
-          nodeCmd.getConesnsusNodeManager().getClusterRefs(),
-            argv.getArg<DeploymentName>(flags.deployment),
-        );
-        existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
-          existingServiceMap,
-          k8Factory,
-          getTmpDir(),
-        );
-      }).timeout(defaultTimeout);
+    it('cache current version of private keys', async () => {
+      // @ts-expect-error - TS2341: to access private property
+      existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(
+        namespace,
+        nodeCmd.getConesnsusNodeManager().getClusterRefs(),
+        argv.getArg<DeploymentName>(flags.deployment),
+      );
+      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());
+    }).timeout(defaultTimeout);
 
     it('should succeed with init command', async () => {
       const status = await accountCmd.init(argv.build());

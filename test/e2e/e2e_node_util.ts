@@ -117,21 +117,21 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         accountCreationShouldSucceed(accountManager, nodeCmd, namespace);
       });
 
-        function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: NamespaceName, nodeAlias: NodeAlias) {
-          it(`${nodeAlias} should be running`, async () => {
-            try {
-              const nodeTasks = container.resolve(NodeCommandTasks);
-              expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
-                `network-${nodeAlias}-0`,
-              );
-            } catch (e) {
-              nodeCmd.logger.showUserError(e);
-              expect.fail();
-            } finally {
-              await nodeCmd.close();
-            }
-          }).timeout(defaultTimeout);
-        }
+      function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: NamespaceName, nodeAlias: NodeAlias) {
+        it(`${nodeAlias} should be running`, async () => {
+          try {
+            const nodeTasks = container.resolve(NodeCommandTasks);
+            expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
+              `network-${nodeAlias}-0`,
+            );
+          } catch (e) {
+            nodeCmd.logger.showUserError(e);
+            expect.fail();
+          } finally {
+            await nodeCmd.close();
+          }
+        }).timeout(defaultTimeout);
+      }
 
       function nodeRefreshShouldSucceed(nodeAlias: NodeAlias, nodeCmd: NodeCommand, argv: Argv) {
         it(`${nodeAlias} refresh should succeed`, async () => {
@@ -152,29 +152,29 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         }).timeout(Duration.ofMinutes(20).toMillis());
       }
 
-        function nodeShouldNotBeActive(nodeCmd: NodeCommand, nodeAlias: NodeAlias) {
-          const nodeTasks = container.resolve(NodeCommandTasks);
-          it(`${nodeAlias} should not be ACTIVE`, async () => {
-            expect(2);
-            try {
-              await expect(
-                nodeTasks._checkNetworkNodeActiveness(
-                  namespace,
-                  nodeAlias,
-                  {title: ''} as ListrTaskWrapper<any, any, any>,
-                  '',
-                  44,
-                  undefined,
-                  15,
-                ),
-              ).to.be.rejected;
-            } catch (e) {
-              expect(e).not.to.be.null;
-            } finally {
-              await nodeCmd.close();
-            }
-          }).timeout(defaultTimeout);
-        }
+      function nodeShouldNotBeActive(nodeCmd: NodeCommand, nodeAlias: NodeAlias) {
+        const nodeTasks = container.resolve(NodeCommandTasks);
+        it(`${nodeAlias} should not be ACTIVE`, async () => {
+          expect(2);
+          try {
+            await expect(
+              nodeTasks._checkNetworkNodeActiveness(
+                namespace,
+                nodeAlias,
+                {title: ''} as ListrTaskWrapper<any, any, any>,
+                '',
+                44,
+                undefined,
+                15,
+              ),
+            ).to.be.rejected;
+          } catch (e) {
+            expect(e).not.to.be.null;
+          } finally {
+            await nodeCmd.close();
+          }
+        }).timeout(defaultTimeout);
+      }
 
       async function nodeRefreshTestSetup(argv: Argv, k8Factory: K8Factory, nodeAliases: string) {
         argv.setArg(flags.nodeAliasesUnparsed, nodeAliases);

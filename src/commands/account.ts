@@ -176,7 +176,7 @@ export class AccountCommand extends BaseCommand {
             self.configManager.update(argv);
             const config = {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
-              contexts: this.getContexts(),
+              contexts: this.getConesnsusNodeManager().getContexts(),
               nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
             };
 

@@ -366,7 +366,7 @@ export function balanceQueryShouldSucceed(
         namespace,
         skipNodeAlias,
         cmd.getConesnsusNodeManager().getClusterRefs(),
-          argv.getArg<DeploymentName>(flags.deployment),
+        argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
 
@@ -396,7 +396,7 @@ export function accountCreationShouldSucceed(
         namespace,
         skipNodeAlias,
         nodeCmd.getConesnsusNodeManager().getClusterRefs(),
-          argv.getArg<DeploymentName>(flags.deployment),
+        argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
       const privateKey = PrivateKey.generate();

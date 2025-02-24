@@ -52,18 +52,18 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       k8Factory = bootstrapResp.opts.k8Factory;
     });
 
-      it('save the state and restart the node with saved state', async () => {
-        // create an account so later we can verify its balance after restart
-        const clusterRefs: ClusterRefs = nodeCmd.getConesnsusNodeManager().getClusterRefs();
-        await accountManager.loadNodeClient(
-          namespace,
-          clusterRefs,
-            argv.getArg<DeploymentName>(flags.deployment),
-            argv.getArg<boolean>(flags.forcePortForward),
-        );
-        const privateKey = PrivateKey.generate();
-        // get random integer between 100 and 1000
-        const amount = Math.floor(Math.random() * (1000 - 100) + 100);
+    it('save the state and restart the node with saved state', async () => {
+      // create an account so later we can verify its balance after restart
+      const clusterRefs: ClusterRefs = nodeCmd.getConesnsusNodeManager().getClusterRefs();
+      await accountManager.loadNodeClient(
+        namespace,
+        clusterRefs,
+        argv.getArg<DeploymentName>(flags.deployment),
+        argv.getArg<boolean>(flags.forcePortForward),
+      );
+      const privateKey = PrivateKey.generate();
+      // get random integer between 100 and 1000
+      const amount = Math.floor(Math.random() * (1000 - 100) + 100);
 
       const newAccount = await new AccountCreateTransaction()
         .setKey(privateKey)

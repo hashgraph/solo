@@ -76,6 +76,7 @@ export class ConsensusNodeManager {
   /**
    * Gets a list of distinct contexts from the consensus nodes
    * @returns an array of context strings
+   * @deprecated use one inside remote config
    */
   public getContexts(): string[] {
     const contexts: string[] = [];
@@ -90,6 +91,7 @@ export class ConsensusNodeManager {
   /**
    * Gets a list of distinct cluster references from the consensus nodes
    * @returns an object of cluster references
+   * @deprecated use one inside remote config
    */
   public getClusterRefs(): ClusterRefs {
     const clustersRefs: ClusterRefs = {};
