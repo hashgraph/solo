@@ -31,19 +31,19 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}"
 Example output
 
 ```
-Creating cluster "solo-update-readme-13426023930-1" ...
+Creating cluster "solo-update-readme-13489128394-1" ...
  ✓ Ensuring node image (kindest/node:v1.32.0) 🖼
  ✓ Preparing nodes 📦 
  ✓ Writing configuration 📜
  ✓ Starting control-plane 🕹️
  ✓ Installing CNI 🔌
  ✓ Installing StorageClass 💾
-Set kubectl context to "kind-solo-update-readme-13426023930-1"
+Set kubectl context to "kind-solo-update-readme-13489128394-1"
 You can now use your cluster with:
 
-kubectl cluster-info --context kind-solo-update-readme-13426023930-1
+kubectl cluster-info --context kind-solo-update-readme-13489128394-1
 
-Thanks for using kind! 😊
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -92,9 +92,9 @@ solo init
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: init
 **********************************************************************************
 ✔ Setup home directory and cache
@@ -120,9 +120,9 @@ solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: node keys --gossip-keys --tls-keys --node-aliases node1,node2,node3
 **********************************************************************************
 ✔ Initialize
@@ -133,8 +133,8 @@ Current Command		: node keys --gossip-keys --tls-keys --node-aliases node1,node2
 ✔ Generate gossip keys
 ✔ Backup old files
 ✔ TLS key for node: node1
-✔ TLS key for node: node2
 ✔ TLS key for node: node3
+✔ TLS key for node: node2
 ✔ Generate gRPC TLS Keys
 ✔ Finalize
 ```
@@ -157,10 +157,10 @@ solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETU
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
-Current Command		: deployment create --node-aliases node1,node2,node3 --namespace solo --context kind-solo-update-readme-13426023930-1 --email john@doe.com --deployment-clusters kind-solo-update-readme-13426023930-1 --deployment solo-deployment
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
+Current Command		: deployment create --node-aliases node1,node2,node3 --namespace solo --context kind-solo-update-readme-13489128394-1 --email john@doe.com --deployment-clusters kind-solo-update-readme-13489128394-1 --deployment solo-deployment
 Kubernetes Namespace	: solo
 **********************************************************************************
 ✔ Initialize
@@ -168,11 +168,11 @@ Kubernetes Namespace	: solo
 ✔ Prompt local configuration
 ✔ Add new deployment to local config
 ✔ Resolve context for remote cluster
-✔ Validate context- validated context kind-solo-update-readme-13426023930-1
+✔ Validate context- validated context kind-solo-update-readme-13489128394-1
 ✔ Update local configuration
-✔ Testing connection to cluster: kind-solo-update-readme-13426023930-1
+✔ Testing connection to cluster: kind-solo-update-readme-13489128394-1
 ✔ Validate cluster connections
-✔ Create remote config in cluster: kind-solo-update-readme-13426023930-1
+✔ Create remote config in cluster: kind-solo-update-readme-13489128394-1
 ✔ Create remoteConfig in clusters
 ```
 
@@ -187,9 +187,9 @@ solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: cluster setup --cluster-setup-namespace solo-cluster
 **********************************************************************************
 ✔ Initialize
@@ -214,9 +214,9 @@ solo network deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: network deploy --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
@@ -225,25 +225,25 @@ Current Command		: network deploy --node-aliases node1,node2,node3 --deployment 
 ✔ Copy Gossip keys to staging
 ✔ Copy gRPC TLS keys to staging
 ✔ Prepare staging directory
-✔ Copy Gossip keys
-✔ Node: node2, cluster: kind-solo-update-readme-13426023930-1
-✔ Copy Gossip keys
-✔ Node: node1, cluster: kind-solo-update-readme-13426023930-1
 ✔ Copy TLS keys
 ✔ Copy Gossip keys
-✔ Node: node3, cluster: kind-solo-update-readme-13426023930-1
+✔ Node: node1, cluster: kind-solo-update-readme-13489128394-1
+✔ Copy Gossip keys
+✔ Node: node3, cluster: kind-solo-update-readme-13489128394-1
+✔ Copy Gossip keys
+✔ Node: node2, cluster: kind-solo-update-readme-13489128394-1
 ✔ Copy node keys to secrets
 ✔ Install chart 'solo-deployment'
-✔ Check Node: node1, Cluster: kind-solo-update-readme-13426023930-1
-✔ Check Node: node2, Cluster: kind-solo-update-readme-13426023930-1
-✔ Check Node: node3, Cluster: kind-solo-update-readme-13426023930-1
+✔ Check Node: node1, Cluster: kind-solo-update-readme-13489128394-1
+✔ Check Node: node2, Cluster: kind-solo-update-readme-13489128394-1
+✔ Check Node: node3, Cluster: kind-solo-update-readme-13489128394-1
 ✔ Check node pods are running
-✔ Check Envoy Proxy for: node1, cluster: kind-solo-update-readme-13426023930-1
-✔ Check Envoy Proxy for: node2, cluster: kind-solo-update-readme-13426023930-1
-✔ Check Envoy Proxy for: node3, cluster: kind-solo-update-readme-13426023930-1
-✔ Check HAProxy for: node3, cluster: kind-solo-update-readme-13426023930-1
-✔ Check HAProxy for: node2, cluster: kind-solo-update-readme-13426023930-1
-✔ Check HAProxy for: node1, cluster: kind-solo-update-readme-13426023930-1
+✔ Check HAProxy for: node2, cluster: kind-solo-update-readme-13489128394-1
+✔ Check HAProxy for: node1, cluster: kind-solo-update-readme-13489128394-1
+✔ Check HAProxy for: node3, cluster: kind-solo-update-readme-13489128394-1
+✔ Check Envoy Proxy for: node1, cluster: kind-solo-update-readme-13489128394-1
+✔ Check Envoy Proxy for: node3, cluster: kind-solo-update-readme-13489128394-1
+✔ Check Envoy Proxy for: node2, cluster: kind-solo-update-readme-13489128394-1
 ✔ Check proxy pods are running
 ✔ Check MinIO
 ✔ Check auxiliary pods are ready
@@ -262,9 +262,9 @@ solo node setup -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: node setup --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
@@ -273,23 +273,23 @@ Current Command		: node setup --node-aliases node1,node2,node3 --deployment solo
 ✔ Validating state for node node2 - valid state: requested
 ✔ Validating state for node node3 - valid state: requested
 ✔ Validate nodes states
-✔ Check network pod: node3
 ✔ Check network pod: node1
 ✔ Check network pod: node2
+✔ Check network pod: node3
 ✔ Identify network pods
-✔ Update node: node1 [ platformVersion = v0.58.10, context = kind-solo-update-readme-13426023930-1 ]
-✔ Update node: node3 [ platformVersion = v0.58.10, context = kind-solo-update-readme-13426023930-1 ]
-✔ Update node: node2 [ platformVersion = v0.58.10, context = kind-solo-update-readme-13426023930-1 ]
+✔ Update node: node3 [ platformVersion = v0.58.10, context = kind-solo-update-readme-13489128394-1 ]
+✔ Update node: node2 [ platformVersion = v0.58.10, context = kind-solo-update-readme-13489128394-1 ]
+✔ Update node: node1 [ platformVersion = v0.58.10, context = kind-solo-update-readme-13489128394-1 ]
 ✔ Fetch platform software into network nodes
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Copy configuration files
 ✔ Set file permissions
-✔ Node: node2
+✔ Node: node3
 ✔ Set file permissions
 ✔ Node: node1
 ✔ Set file permissions
-✔ Node: node3
+✔ Node: node2
 ✔ Setup network nodes
 ✔ Change node state to setup in remote config
 ```
@@ -305,9 +305,9 @@ solo node start -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: node start --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
@@ -316,17 +316,17 @@ Current Command		: node start --node-aliases node1,node2,node3 --deployment solo
 ✔ Validating state for node node2 - valid state: setup
 ✔ Validating state for node node3 - valid state: setup
 ✔ Validate nodes states
-✔ Check network pod: node2
 ✔ Check network pod: node1
+✔ Check network pod: node2
 ✔ Check network pod: node3
 ✔ Identify existing network nodes
+✔ Start node: node1
 ✔ Start node: node2
 ✔ Start node: node3
-✔ Start node: node1
 ✔ Starting nodes
 ✔ Check network pod: node1  - status ACTIVE, attempt: 20/300
-✔ Check network pod: node3  - status ACTIVE, attempt: 20/300
 ✔ Check network pod: node2  - status ACTIVE, attempt: 20/300
+✔ Check network pod: node3  - status ACTIVE, attempt: 20/300
 ✔ Check all nodes are ACTIVE
 ✔ Check proxy for node: node1
 ✔ Check proxy for node: node2
@@ -350,9 +350,9 @@ solo mirror-node deploy --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: mirror-node deploy --deployment solo-deployment
 **********************************************************************************
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
@@ -362,9 +362,9 @@ Current Command		: mirror-node deploy --deployment solo-deployment
 ✔ Enable mirror-node
 ✔ Check Postgres DB
 ✔ Check GRPC
+✔ Check REST API
 ✔ Check Importer
 ✔ Check Monitor
-✔ Check REST API
 ✔ Check pods are ready
 ✔ Insert data in public.file_data
 ✔ Seed DB data
@@ -382,9 +382,9 @@ solo relay deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 ******************************* Solo *********************************************
-Version			: 0.35.0
-Kubernetes Context	: kind-solo-update-readme-13426023930-1
-Kubernetes Cluster	: kind-solo-update-readme-13426023930-1
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-update-readme-13489128394-1
+Kubernetes Cluster	: kind-solo-update-readme-13489128394-1
 Current Command		: relay deploy --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
 ✔ Acquire lease - lease acquired successfully, attempt: 1/10
