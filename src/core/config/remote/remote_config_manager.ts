@@ -475,32 +475,33 @@ export class RemoteConfigManager {
     } catch {
       return [];
     }
+    console.log(`this.localConfig.clusterRefs = ${JSON.stringify(this.localConfig.clusterRefs)}`);
 
     // using the remoteConfigManager to get the consensus nodes
-    if (this?.components?.consensusNodes) {
-      Object.values(this.components.consensusNodes).forEach(node => {
-        consensusNodes.push(
-          new ConsensusNode(
+    Object.values(this.components.consensusNodes).forEach(node => {
+      this.logger.debug(`Adding consensus node ${node.name} , node.cluster = ${node.cluster}`);
+      console.log(`push node = ${JSON.stringify(node)}`);
+      consensusNodes.push(
+        new ConsensusNode(
+          node.name as NodeAlias,
+          node.nodeId,
+          node.namespace,
+          node.cluster,
+          // use local config to get the context
+          this.localConfig.clusterRefs[node.cluster],
+          clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
+          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+          Templates.renderConsensusNodeFullyQualifiedDomainName(
             node.name as NodeAlias,
             node.nodeId,
             node.namespace,
             node.cluster,
-            // use local config to get the context
-            this.localConfig.clusterRefs[node.cluster],
-            clusters[node.cluster].dnsBaseDomain,
-            clusters[node.cluster].dnsConsensusNodePattern,
-            Templates.renderConsensusNodeFullyQualifiedDomainName(
-              node.name as NodeAlias,
-              node.nodeId,
-              node.namespace,
-              node.cluster,
-              clusters[node.cluster].dnsBaseDomain,
-              clusters[node.cluster].dnsConsensusNodePattern,
-            ),
+            clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
+            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
           ),
-        );
-      });
-    }
+        ),
+      );
+    });
 
     // return the consensus nodes
     return consensusNodes;
