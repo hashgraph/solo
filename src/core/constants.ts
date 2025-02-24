@@ -204,6 +204,9 @@ export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_0
 export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const LOCAL_BUILD_COPY_RETRY = +process.env.LOCAL_BUILD_COPY_RETRY || 3;
 
+export const LOAD_BALANCER_CHECK_DELAY_SECS = +process.env.LOAD_BALANCER_CHECK_DELAY_SECS || 5;
+export const LOAD_BALANCER_CHECK_MAX_ATTEMPTS = +process.env.LOAD_BALANCER_CHECK_MAX_ATTEMPTS || 60;
+
 export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TIMEOUT || 120;
 
 export const DEFAULT_LOCAL_CONFIG_FILE = 'local-config.yaml';
