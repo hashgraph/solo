@@ -11,7 +11,6 @@ import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
-import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
@@ -97,7 +96,7 @@ export class DeploymentCommand extends BaseCommand {
         this.localConfig.promptLocalConfigTask(self.k8Factory),
         {
           title: 'Add new deployment to local config',
-          task: async (ctx, task) => {
+          task: async ctx => {
             const {deployments} = this.localConfig;
             const {deployment, namespace: configNamespace, deploymentClusters} = ctx.config;
             deployments[deployment] = {
@@ -236,7 +235,7 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
-  public getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  public getCommandDefinition() {
     const self = this;
     return {
       command: 'deployment',
