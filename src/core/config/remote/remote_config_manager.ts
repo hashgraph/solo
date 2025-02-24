@@ -475,7 +475,6 @@ export class RemoteConfigManager {
     } catch {
       return [];
     }
-    console.log(`this.localConfig.clusterRefs = ${JSON.stringify(this.localConfig.clusterRefs)}`);
 
     // using the remoteConfigManager to get the consensus nodes
     Object.values(this.components.consensusNodes).forEach(node => {

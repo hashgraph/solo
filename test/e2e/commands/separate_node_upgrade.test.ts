@@ -81,7 +81,6 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
         flags.localBuildPath.constName,
         flags.force.constName,
         'nodeClient',
-        'contexts',
       ]);
     }).timeout(Duration.ofMinutes(5).toMillis());
 
