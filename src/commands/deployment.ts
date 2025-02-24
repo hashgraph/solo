@@ -104,6 +104,12 @@ export class DeploymentCommand extends BaseCommand {
               clusters: deploymentClusters,
             };
             this.localConfig.setDeployments(deployments);
+
+            // update clusterRefs
+            const currentClusterRefs = this.localConfig.clusterRefs;
+            currentClusterRefs[ctx.config.clusterRef] = ctx.config.context;
+            this.localConfig.setClusterRefs(currentClusterRefs);
+
             await this.localConfig.write();
           },
         },
