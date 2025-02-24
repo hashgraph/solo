@@ -8,7 +8,7 @@ For Developers working on Hedera Application and platform development:
 
 * [Hedera developer](HederaDeveloper.md)
 * [Platform developer](PlatformDeveloper.md)
-* [Attach JVM debugger and retrieve logs](DebugLog/index.md)
+* [Attach JVM debugger and retrieve logs](DebugLog/HowToDebugHederaServicesAndPlatformSDK.md)
 
 For Hedera JavaScript SDK users:
 

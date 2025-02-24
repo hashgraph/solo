@@ -96,6 +96,7 @@ jobs:
 
       - name: Build with Hugo
         run: |
+          set -xeo pipefail
           cd docs
           task default
 

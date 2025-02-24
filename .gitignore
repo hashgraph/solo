@@ -482,3 +482,4 @@ deleteme.yaml
 /docs/.hugo_build.lock
 /docs/public/
 /contextDir/
+/docs/resources/
