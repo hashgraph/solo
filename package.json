@@ -77,7 +77,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/eslintrc": "^3.3.0",
     "@eslint/js": "^9.19.0",
     "@types/adm-zip": "^0.5.7",
     "@types/chai": "^5.0.1",
