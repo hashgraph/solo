@@ -57,7 +57,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   static get DESTROY_FLAGS_LIST() {
-    return [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed];
+    return [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef];
   }
 
   async prepareValuesArg(
@@ -358,6 +358,8 @@ export class RelayCommand extends BaseCommand {
       nodeAliases: NodeAliases;
       releaseName: string;
       isChartInstalled: boolean;
+      clusterRef: Optional<ClusterRef>;
+      context: Optional<string>;
     }
 
     interface Context {
@@ -371,24 +373,32 @@ export class RelayCommand extends BaseCommand {
           task: async (ctx, task) => {
             // reset nodeAlias
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
-
             self.configManager.update(argv);
+
+            flags.disablePrompts([flags.clusterRef]);
+
             await self.configManager.executePrompt(task, RelayCommand.DESTROY_FLAGS_LIST);
-            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {
               chartDirectory: self.configManager.getFlag<string>(flags.chartDirectory) as string,
-              namespace: namespace,
+              namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
               ),
+              clusterRef: self.configManager.getFlag<string>(flags.clusterRef) as string,
             } as RelayDestroyConfigClass;
+
+            if (ctx.config.clusterRef) {
+              const context = self.getClusterRefs()[ctx.config.clusterRef];
+              if (context) ctx.config.context = context;
+            }
 
             ctx.config.releaseName = this.prepareReleaseName(ctx.config.nodeAliases);
             ctx.config.isChartInstalled = await this.chartManager.isChartInstalled(
               ctx.config.namespace,
               ctx.config.releaseName,
+              ctx.config.context,
             );
 
             self.logger.debug('Initialized config', {config: ctx.config});
@@ -404,10 +414,13 @@ export class RelayCommand extends BaseCommand {
             await this.chartManager.uninstall(
               config.namespace,
               config.releaseName,
-              this.k8Factory.default().contexts().readCurrent(),
+              this.k8Factory.getK8(ctx.config.context).contexts().readCurrent(),
             );
 
-            this.logger.showList('Destroyed Relays', await self.chartManager.getInstalledCharts(config.namespace));
+            this.logger.showList(
+              'Destroyed Relays',
+              await self.chartManager.getInstalledCharts(config.namespace, config.context),
+            );
 
             // reset nodeAliasesUnparsed
             self.configManager.setFlag(flags.nodeAliasesUnparsed, '');
@@ -424,7 +437,7 @@ export class RelayCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError('Error uninstalling relays', e);
     } finally {
       await lease.release();

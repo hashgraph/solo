@@ -28,6 +28,7 @@ import {ServiceRef} from '../../../../src/core/kube/resources/service/service_re
 import {ServiceName} from '../../../../src/core/kube/resources/service/service_name.js';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
+import {Argv} from '../../../helpers/argv_wrapper.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -55,7 +56,7 @@ describe('K8', () => {
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
   const testNamespace = NamespaceName.of('k8-e2e');
-  const argv = [];
+  const argv = Argv.initializeEmpty();
   const podName = PodName.of(`test-pod-${uuid4()}`);
   const podRef = PodRef.of(testNamespace, podName);
   const containerName = ContainerName.of('alpine');
@@ -65,8 +66,8 @@ describe('K8', () => {
   before(async function () {
     this.timeout(defaultTimeout);
     try {
-      argv[flags.namespace.name] = testNamespace.name;
-      configManager.update(argv);
+      argv.setArg(flags.namespace, testNamespace.name);
+      configManager.update(argv.build());
       if (!(await k8Factory.default().namespaces().has(testNamespace))) {
         await k8Factory.default().namespaces().create(testNamespace);
       }
@@ -84,8 +85,8 @@ describe('K8', () => {
     this.timeout(defaultTimeout);
     try {
       await k8Factory.default().pods().readByRef(PodRef.of(testNamespace, podName)).killPod();
-      argv[flags.namespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
-      configManager.update(argv);
+      argv.setArg(flags.namespace, constants.SOLO_SETUP_NAMESPACE.name);
+      configManager.update(argv.build());
     } catch (e) {
       console.log(e);
       throw e;

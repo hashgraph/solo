@@ -28,9 +28,8 @@ import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag_types.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
-import {type DeploymentName} from '../core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes} from '../core/helpers.js';
-import {node} from 'globals';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -624,6 +623,7 @@ export class MirrorNodeCommand extends BaseCommand {
         namespace: NamespaceName;
         clusterContext: string;
         isChartInstalled: boolean;
+        clusterRef?: Optional<ClusterRef>;
       };
     }
 

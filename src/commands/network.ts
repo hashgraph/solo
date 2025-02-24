@@ -31,7 +31,7 @@ import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {v4 as uuidv4} from 'uuid';
-import {type SoloListrTask} from '../types/index.js';
+import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
@@ -40,6 +40,8 @@ import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js'
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Duration} from '../core/time/duration.js';
+import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
+import {PodName} from '../core/kube/resources/pod/pod_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -89,6 +91,18 @@ export interface NetworkDeployConfigClass {
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRefs: ClusterRefs;
+}
+
+interface NetworkDestroyContext {
+  config: {
+    deletePvcs: boolean;
+    deleteSecrets: boolean;
+    namespace: NamespaceName;
+    enableTimeout: boolean;
+    force: boolean;
+    contexts: string[];
+  };
+  checkTimeout: boolean;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -166,6 +180,42 @@ export class NetworkCommand extends BaseCommand {
       flags.backupBucket,
       flags.googleCredential,
     ];
+  }
+
+  private waitForNetworkPods() {
+    const self = this;
+    return {
+      title: 'Check node pods are running',
+      task: (ctx, task) => {
+        const subTasks: any[] = [];
+        const config = ctx.config;
+
+        // nodes
+        for (const consensusNode of config.consensusNodes) {
+          subTasks.push({
+            title: `Check Node: ${chalk.yellow(consensusNode.name)}, Cluster: ${chalk.yellow(consensusNode.cluster)}`,
+            task: async () =>
+              await self.k8Factory
+                .getK8(consensusNode.context)
+                .pods()
+                .waitForRunningPhase(
+                  config.namespace,
+                  [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
+                  constants.PODS_RUNNING_MAX_ATTEMPTS,
+                  constants.PODS_RUNNING_DELAY,
+                ),
+          });
+        }
+
+        // set up the sub-tasks
+        return task.newListr(subTasks, {
+          concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+          rendererOptions: {
+            collapseSubtasks: false,
+          },
+        });
+      },
+    };
   }
 
   async prepareMinioSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
@@ -678,37 +728,58 @@ export class NetworkCommand extends BaseCommand {
     return config;
   }
 
-  async destroyTask(ctx: any, task: any) {
+  async destroyTask(ctx: NetworkDestroyContext, task: SoloListrTaskWrapper<NetworkDestroyContext>) {
     const self = this;
     task.title = `Uninstalling chart ${constants.SOLO_DEPLOYMENT_CHART}`;
-    await self.chartManager.uninstall(
-      ctx.config.namespace,
-      constants.SOLO_DEPLOYMENT_CHART,
-      this.k8Factory.default().contexts().readCurrent(),
+
+    // Uninstall all 'solo deployment' charts for each cluster using the contexts
+    await Promise.all(
+      ctx.config.contexts.map(context => {
+        return self.chartManager.uninstall(
+          ctx.config.namespace,
+          constants.SOLO_DEPLOYMENT_CHART,
+          this.k8Factory.getK8(context).contexts().readCurrent(),
+        );
+      }),
     );
 
+    // Delete PVCs inside each cluster
     if (ctx.config.deletePvcs) {
-      const pvcs = await self.k8Factory.default().pvcs().list(ctx.config.namespace, []);
       task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`;
-      if (pvcs) {
-        for (const pvc of pvcs) {
-          await self.k8Factory
-            .default()
-            .pvcs()
-            .delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
-        }
-      }
+
+      await Promise.all(
+        ctx.config.contexts.map(async context => {
+          // Fetch all PVCs inside the namespace using the context
+          const pvcs = await this.k8Factory.getK8(context).pvcs().list(ctx.config.namespace, []);
+
+          // Delete all if found
+          return Promise.all(
+            pvcs.map(pvc =>
+              this.k8Factory
+                .getK8(context)
+                .pvcs()
+                .delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc))),
+            ),
+          );
+        }),
+      );
     }
 
+    // Delete Secrets inside each cluster
     if (ctx.config.deleteSecrets) {
       task.title = `Deleting secrets in namespace ${ctx.config.namespace}`;
-      const secrets = await self.k8Factory.default().secrets().list(ctx.config.namespace);
 
-      if (secrets) {
-        for (const secret of secrets) {
-          await self.k8Factory.default().secrets().delete(ctx.config.namespace, secret.name);
-        }
-      }
+      await Promise.all(
+        ctx.config.contexts.map(async context => {
+          // Fetch all Secrets inside the namespace using the context
+          const secrets = await this.k8Factory.getK8(context).secrets().list(ctx.config.namespace);
+
+          // Delete all if found
+          return Promise.all(
+            secrets.map(secret => this.k8Factory.getK8(context).secrets().delete(ctx.config.namespace, secret.name)),
+          );
+        }),
+      );
     }
   }
 
@@ -849,7 +920,7 @@ export class NetworkCommand extends BaseCommand {
                   let attempts = 0;
                   let svc = null;
 
-                  while (attempts < 30) {
+                  while (attempts < constants.LOAD_BALANCER_CHECK_MAX_ATTEMPTS) {
                     svc = await self.k8Factory
                       .getK8(consensusNode.context)
                       .services()
@@ -873,7 +944,7 @@ export class NetworkCommand extends BaseCommand {
                     }
 
                     attempts++;
-                    await sleep(Duration.ofSeconds(2));
+                    await sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
                   }
                   throw new SoloError('Load balancer not found');
                 },
@@ -912,6 +983,17 @@ export class NetworkCommand extends BaseCommand {
                     config.valuesArgMap[clusterRef],
                     config.clusterRefs[clusterRef],
                   );
+
+                  const context = config.clusterRefs[clusterRef];
+                  const pods = await this.k8Factory
+                    .getK8(context)
+                    .pods()
+                    .list(ctx.config.namespace, ['solo.hedera.com/type=network-node']);
+
+                  for (const pod of pods) {
+                    const podRef = PodRef.of(ctx.config.namespace, PodName.of(pod.metadata.name));
+                    await this.k8Factory.getK8(context).pods().readByRef(podRef).killPod();
+                  }
                 },
               });
             }
@@ -925,38 +1007,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
-        {
-          title: 'Check node pods are running',
-          task: (ctx, task) => {
-            const subTasks: any[] = [];
-            const config = ctx.config;
-
-            // nodes
-            for (const consensusNode of config.consensusNodes) {
-              subTasks.push({
-                title: `Check Node: ${chalk.yellow(consensusNode.name)}, Cluster: ${chalk.yellow(consensusNode.cluster)}`,
-                task: async () =>
-                  await self.k8Factory
-                    .getK8(consensusNode.context)
-                    .pods()
-                    .waitForRunningPhase(
-                      config.namespace,
-                      [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
-                      constants.PODS_RUNNING_MAX_ATTEMPTS,
-                      constants.PODS_RUNNING_DELAY,
-                    ),
-              });
-            }
-
-            // set up the sub-tasks
-            return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
-              rendererOptions: {
-                collapseSubtasks: false,
-              },
-            });
-          },
-        },
+        self.waitForNetworkPods(),
         {
           title: 'Check proxy pods are running',
           task: (ctx, task) => {
@@ -1066,19 +1117,8 @@ export class NetworkCommand extends BaseCommand {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: {
-        deletePvcs: boolean;
-        deleteSecrets: boolean;
-        namespace: NamespaceName;
-        enableTimeout: boolean;
-        force: boolean;
-      };
-      checkTimeout: boolean;
-    }
-
     let networkDestroySuccess = true;
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<NetworkDestroyContext>(
       [
         {
           title: 'Initialize',
@@ -1097,14 +1137,14 @@ export class NetworkCommand extends BaseCommand {
 
             self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets]);
-            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-              namespace,
+              namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
+              contexts: this.getContexts(),
             };
 
             return ListrLease.newAcquireLeaseTask(lease, task);
@@ -1114,18 +1154,22 @@ export class NetworkCommand extends BaseCommand {
           title: 'Running sub-tasks to destroy network',
           task: async (ctx, task) => {
             if (ctx.config.enableTimeout) {
-              const timeoutId = setTimeout(() => {
+              const timeoutId = setTimeout(async () => {
                 const message = `\n\nUnable to finish network destroy in ${constants.NETWORK_DESTROY_WAIT_TIMEOUT} seconds\n\n`;
                 self.logger.error(message);
                 self.logger.showUser(chalk.red(message));
                 networkDestroySuccess = false;
 
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
-                  self.k8Factory.default().namespaces().delete(ctx.config.namespace);
+                  await Promise.all(
+                    ctx.config.contexts.map(context =>
+                      self.k8Factory.getK8(context).namespaces().delete(ctx.config.namespace),
+                    ),
+                  );
                 } else {
                   // If the namespace is not being deleted,
                   // remove all components data from the remote configuration
-                  self.remoteConfigManager.deleteComponents();
+                  await self.remoteConfigManager.deleteComponents();
                 }
               }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
 
@@ -1146,10 +1190,11 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | unknown) {
+    } catch (e) {
       throw new SoloError('Error destroying network', e);
     } finally {
-      await lease.release();
+      // If the namespace is deleted, the lease can't be released
+      await lease.release().catch();
     }
 
     return networkDestroySuccess;
@@ -1184,26 +1229,12 @@ export class NetworkCommand extends BaseCommand {
                 ctx.config.chartPath,
                 config.soloChartVersion,
                 config.valuesArgMap[clusterRef],
-                this.k8Factory.default().contexts().readCurrent(),
+                config.clusterRefs[clusterRef],
               );
             }
           },
         },
-        {
-          title: 'Waiting for network pods to be running',
-          task: async ctx => {
-            const config = ctx.config;
-            await this.k8Factory
-              .default()
-              .pods()
-              .waitForRunningPhase(
-                config.namespace,
-                ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
-                constants.PODS_RUNNING_MAX_ATTEMPTS,
-                constants.PODS_RUNNING_DELAY,
-              );
-          },
-        },
+        self.waitForNetworkPods(),
       ],
       {
         concurrent: false,

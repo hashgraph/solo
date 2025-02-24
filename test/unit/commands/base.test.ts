@@ -19,10 +19,11 @@ import {resetForTest} from '../../test_container.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_data_wrapper.js';
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
-import {type ClusterRefs, type ClusterRef} from '../../../src/core/config/remote/types.js';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
 import {ConsensusNodeManager} from '../../../src/core/consensus_node_manager.js';
 import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -79,11 +80,11 @@ describe('BaseCommand', () => {
     });
     it('getConfig tracks property usage', () => {
       const flagsList = [flags.releaseTag, flags.tlsClusterIssuerType, flags.valuesFile];
-      const argv = {};
-      argv[flags.releaseTag.name] = 'releaseTag1';
-      argv[flags.tlsClusterIssuerType.name] = 'type2';
-      argv[flags.valuesFile.name] = 'file3';
-      configManager.update(argv);
+      const argv = Argv.initializeEmpty();
+      argv.setArg(flags.releaseTag, 'releaseTag1');
+      argv.setArg(flags.tlsClusterIssuerType, 'type2');
+      argv.setArg(flags.valuesFile, 'file3');
+      configManager.update(argv.build());
 
       const extraVars = ['var1', 'var2'];
 

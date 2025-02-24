@@ -11,13 +11,14 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import * as helpers from '../core/helpers.js';
 import {sleep} from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
-import {type AccountId, AccountInfo, HbarUnit, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
+import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../core/config/remote/types.js';
+import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Base64} from 'js-base64';
@@ -156,6 +157,7 @@ export class AccountCommand extends BaseCommand {
       config: {
         namespace: NamespaceName;
         nodeAliases: NodeAliases;
+        contexts: string[];
       };
       updateSecrets: boolean;
       accountsBatchedSet: number[][];
@@ -172,18 +174,20 @@ export class AccountCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-
-            if (!(await this.k8Factory.default().namespaces().has(namespace))) {
-              throw new SoloError(`namespace ${namespace.name} does not exist`);
-            }
-
-            ctx.config = {
-              namespace: namespace,
+            const config = {
+              namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+              contexts: this.getContexts(),
               nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
             };
 
-            self.logger.debug('Initialized config', ctx.config);
+            if (!(await this.k8Factory.getK8(config.contexts[0]).namespaces().has(config.namespace))) {
+              throw new SoloError(`namespace ${config.namespace.name} does not exist`);
+            }
+
+            // set config in the context for later tasks to use
+            ctx.config = config;
+
+            self.logger.debug('Initialized config', {config});
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
@@ -201,12 +205,11 @@ export class AccountCommand extends BaseCommand {
                 {
                   title: 'Prepare for account key updates',
                   task: async ctx => {
-                    const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-                    const secrets = await self.k8Factory
+                    ctx.updateSecrets = await self.k8Factory
                       .default()
                       .secrets()
-                      .list(namespace, ['solo.hedera.com/account-id']);
-                    ctx.updateSecrets = secrets.length > 0;
+                      .list(ctx.config.namespace, ['solo.hedera.com/account-id'])
+                      .then(secrets => secrets.length > 0);
 
                     ctx.accountsBatchedSet = self.accountManager.batchAccounts(this.systemAccounts);
 
@@ -223,9 +226,10 @@ export class AccountCommand extends BaseCommand {
                 {
                   title: 'Update special account key sets',
                   task: ctx => {
-                    const subTasks: any[] = [];
+                    const subTasks: SoloListrTask<Context>[] = [];
                     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
                     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
+
                     for (const currentSet of ctx.accountsBatchedSet) {
                       const accStart = `${realm}.${shard}.${currentSet[0]}`;
                       const accEnd = `${realm}.${shard}.${currentSet[currentSet.length - 1]}`;
@@ -233,6 +237,7 @@ export class AccountCommand extends BaseCommand {
                         accStart !== accEnd
                           ? `${chalk.yellow(accStart)} to ${chalk.yellow(accEnd)}`
                           : `${chalk.yellow(accStart)}`;
+
                       subTasks.push({
                         title: `Updating accounts [${rangeStr}]`,
                         task: async (ctx: Context) => {
@@ -241,6 +246,7 @@ export class AccountCommand extends BaseCommand {
                             currentSet,
                             ctx.updateSecrets,
                             ctx.resultTracker,
+                            ctx.config.contexts,
                           );
                         },
                       });
@@ -269,7 +275,7 @@ export class AccountCommand extends BaseCommand {
                       );
 
                       try {
-                        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(nodeId);
+                        let nodeUpdateTx = new NodeUpdateTransaction().setNodeId(new Long(nodeId));
                         const newPrivateKey = PrivateKey.generateED25519();
 
                         nodeUpdateTx = nodeUpdateTx.setAdminKey(newPrivateKey.publicKey);
@@ -320,6 +326,7 @@ export class AccountCommand extends BaseCommand {
                       );
                     }
                     self.logger.showUser(chalk.gray('Waiting for sockets to be closed....'));
+
                     if (ctx.resultTracker.rejectedCount > 0) {
                       throw new SoloError(
                         `Account keys updates failed for ${ctx.resultTracker.rejectedCount} accounts.`,
@@ -346,7 +353,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error in creating account: ${e.message}`, e);
     } finally {
       await this.closeConnections();
