@@ -289,5 +289,8 @@ export class DeploymentCommand extends BaseCommand {
     };
   }
 
-  async close() {}
+  close(): Promise<void> {
+    // no-op
+    return Promise.resolve();
+  }
 }
