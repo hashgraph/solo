@@ -913,7 +913,7 @@ export class NetworkCommand extends BaseCommand {
                   let attempts = 0;
                   let svc = null;
 
-                  while (attempts < 30) {
+                  while (attempts < constants.LOAD_BALANCER_CHECK_MAX_ATTEMPTS) {
                     svc = await self.k8Factory
                       .getK8(consensusNode.context)
                       .services()
@@ -937,7 +937,7 @@ export class NetworkCommand extends BaseCommand {
                     }
 
                     attempts++;
-                    await helpers.sleep(Duration.ofSeconds(2));
+                    await helpers.sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
                   }
                   throw new SoloError('Load balancer not found');
                 },
