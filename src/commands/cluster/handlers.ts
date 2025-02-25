@@ -41,7 +41,8 @@ export class ClusterCommandHandlers extends CommandHandler {
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
-    const action = this.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [
         this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs), this.getConfigMaps()),
         this.setupHomeDirectoryTask(),
@@ -59,14 +60,14 @@ export class ClusterCommandHandlers extends CommandHandler {
       null,
     );
 
-    await action(argv);
     return true;
   }
 
   async list(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
-    const action = this.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [this.tasks.showClusterList()],
       {
         concurrent: false,
@@ -76,14 +77,14 @@ export class ClusterCommandHandlers extends CommandHandler {
       null,
     );
 
-    await action(argv);
     return true;
   }
 
   async info(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
-    const action = this.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [this.tasks.getClusterInfo()],
       {
         concurrent: false,
@@ -93,29 +94,26 @@ export class ClusterCommandHandlers extends CommandHandler {
       null,
     );
 
-    await action(argv);
     return true;
   }
 
   async setup(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
-
-    const action = this.commandActionBuilder(
-      [
-        this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs), this.getConfigMaps()),
-        this.tasks.prepareChartValues(argv),
-        this.tasks.installClusterChart(argv),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'cluster setup',
-      null,
-    );
-
     try {
-      await action(argv);
+      await this.commandAction(
+        argv,
+        [
+          this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs), this.getConfigMaps()),
+          this.tasks.prepareChartValues(argv),
+          this.tasks.installClusterChart(argv),
+        ],
+        {
+          concurrent: false,
+          rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+        },
+        'cluster setup',
+        null,
+      );
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster setup', e);
     }
@@ -125,23 +123,21 @@ export class ClusterCommandHandlers extends CommandHandler {
 
   async reset(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
-
-    const action = this.commandActionBuilder(
-      [
-        this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs), this.getConfigMaps()),
-        this.tasks.acquireNewLease(argv),
-        this.tasks.uninstallClusterChart(argv),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'cluster reset',
-      null,
-    );
-
     try {
-      await action(argv);
+      await this.commandAction(
+        argv,
+        [
+          this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs), this.getConfigMaps()),
+          this.tasks.acquireNewLease(argv),
+          this.tasks.uninstallClusterChart(argv),
+        ],
+        {
+          concurrent: false,
+          rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+        },
+        'cluster reset',
+        null,
+      );
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster reset', e);
     }

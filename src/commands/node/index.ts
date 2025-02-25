@@ -16,8 +16,8 @@ import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
  */
 export class NodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
-
   public readonly handlers: NodeCommandHandlers;
+  public _portForwards: any;
 
   constructor(opts: Opts) {
     super(opts);
@@ -38,11 +38,24 @@ export class NodeCommand extends BaseCommand {
     this.accountManager = opts.accountManager;
 
     this.handlers = patchInject(null, InjectTokens.NodeCommandHandlers, this.constructor.name);
+    this._portForwards = [];
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
+  /**
+   * stops and closes the port forwards
+   * - calls the accountManager.close()
+   * - for all portForwards, calls k8Factory.default().pods().readByRef(null).stopPortForward(srv)
+   */
+  async close() {
+    await this.accountManager.close();
+    if (this._portForwards) {
+      for (const srv of this._portForwards) {
+        // pass null to readByRef because it isn't needed for stopPortForward()
+        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
+      }
+    }
+
+    this._portForwards = [];
   }
 
   getUnusedConfigs(configName: string): string[] {

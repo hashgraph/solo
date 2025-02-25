@@ -13,8 +13,6 @@ import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
 import {type CommandFlag} from '../types/flag_types.js';
-import {type Lease} from '../core/lease/lease.js';
-import {Listr} from 'listr2';
 import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
@@ -29,10 +27,6 @@ import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {getConfig} from '../core/config_builder.js';
-
-export interface CommandHandlers {
-  parent: BaseCommand;
-}
 
 export interface Opts {
   logger: SoloLogger;
@@ -50,7 +44,6 @@ export interface Opts {
   certificateManager: CertificateManager;
   localConfig: LocalConfig;
   remoteConfigManager: RemoteConfigManager;
-  parent?: BaseCommand;
 }
 
 export abstract class BaseCommand extends ShellRunner {
@@ -200,26 +193,6 @@ export abstract class BaseCommand extends ShellRunner {
   }
 
   abstract close(): Promise<void>;
-
-  public commandActionBuilder(actionTasks: any, options: any, errorString: string, lease: Lease | null) {
-    return async function (argv: any, commandDef: CommandHandlers) {
-      const tasks = new Listr([...actionTasks], options);
-
-      try {
-        await tasks.run();
-      } catch (e: Error | any) {
-        commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
-        throw new SoloError(`${errorString}: ${e.message}`, e);
-      } finally {
-        const promises = [];
-
-        promises.push(commandDef.parent.close());
-
-        if (lease) promises.push(lease.release());
-        await Promise.all(promises);
-      }
-    };
-  }
 
   /**
    * Setup home directories

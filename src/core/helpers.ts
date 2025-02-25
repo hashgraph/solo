@@ -17,11 +17,12 @@ import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 import paths from 'path';
 import {type ConsensusNode} from './model/consensus_node.js';
-import {type IHelm, type Optional} from '../types/index.js';
+import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type K8} from './kube/k8.js';
+import {type Helm} from './helm.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -421,7 +422,7 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
   }
 }
 
-export async function prepareChartPath(helm: IHelm, chartDir: string, chartRepo: string, chartReleaseName: string) {
+export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: string, chartReleaseName: string) {
   if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
   if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
 

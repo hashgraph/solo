@@ -14,6 +14,7 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {ConfigManager} from './config_manager.js';
 import {type ConfigMap, getConfig} from './config_builder.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {AccountManager} from './account_manager.js';
 
 @injectable()
 export class CommandHandler {
@@ -22,32 +23,32 @@ export class CommandHandler {
   constructor(
     @inject(SoloLogger) public readonly logger?: SoloLogger,
     @inject(ConfigManager) private readonly configManager?: ConfigManager,
+    @inject(AccountManager) private readonly accountManager?: AccountManager,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
   }
 
-  public commandActionBuilder(
+  public async commandAction(
+    argv: any,
     actionTasks: any,
     options: any,
     errorString: string,
     lease: Lease | null,
-  ): (argv: any) => Promise<void> {
-    return async function (argv: any): Promise<void> {
-      const tasks = new Listr([...actionTasks], options);
-
-      try {
-        await tasks.run();
-      } catch (e: Error | any) {
-        this.logger.error(`${errorString}: ${e.message}`, e);
-        throw new SoloError(`${errorString}: ${e.message}`, e);
-      } finally {
-        const promises = [];
-
-        if (lease) promises.push(lease.release());
-        await Promise.all(promises);
-      }
-    };
+  ): Promise<void> {
+    const tasks = new Listr([...actionTasks], options);
+    try {
+      await tasks.run();
+    } catch (e: Error | any) {
+      this.logger.error(`${errorString}: ${e.message}`, e);
+      throw new SoloError(`${errorString}: ${e.message}`, e);
+    } finally {
+      const promises = [];
+      if (lease) promises.push(lease.release());
+      await this.accountManager.close();
+      await Promise.all(promises);
+    }
   }
 
   /**
