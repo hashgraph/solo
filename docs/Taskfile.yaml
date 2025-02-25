@@ -56,7 +56,7 @@ tasks:
   build:help:
     cmds:
       - chmod 755 ./generate_help.sh
-      - npm run build
+      - task build
       - |
         set -eo pipefail
         cd ..

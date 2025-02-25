@@ -13,7 +13,7 @@ task default-with-mirror
 Then create a new test account with the following command:
 
 ```
-npm run solo-test -- account create -n solo-e2e --hbar-amount 100
+task solo-test -- account create -n solo-e2e --hbar-amount 100
 ```
 
 The output would be similar to the following:
@@ -31,7 +31,7 @@ The output would be similar to the following:
 Then use the following commmand to get private key of the account `0.0.1007`:
 
 ```bash
- npm run solo-test -- account get --account-id 0.0.1007 -n solo-e2e --private-key
+ task solo-test -- account get --account-id 0.0.1007 -n solo-e2e --private-key
 ```
 
 The output would be similar to the following:
