@@ -574,7 +574,7 @@ export class Flags {
     definition: {
       describe: 'Local chart directory path (e.g. ~/solo-charts/charts',
       defaultValue: '',
-      alias: 'd',
+      alias: 'c',
       type: 'string',
     },
     prompt: async function promptChartDir(task: ListrTaskWrapper<any, any, any>, input: any) {
