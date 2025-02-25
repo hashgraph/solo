@@ -207,8 +207,8 @@ jobs:
 
       - name: Run E2E Tests
         run: |
-          echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
-          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} task ${{ inputs.npm-test-script }}
+          echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1"
+          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 ${{ env.CG_EXEC }} task ${{ inputs.npm-test-script }}
 
 #      - name: Sleep on Failure
 #        if: ${{ failure() }}

@@ -5,7 +5,8 @@
 import {type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
-import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
+import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
@@ -57,13 +58,12 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
 
 export const resetConfigBuilder = async function (argv, ctx, task) {
   if (!argv[flags.force.name]) {
-    const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-      type: 'toggle',
+    const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
       default: false,
       message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
     });
 
-    if (!confirm) {
+    if (!confirmResult) {
       // eslint-disable-next-line n/no-process-exit
       process.exit(0);
     }
