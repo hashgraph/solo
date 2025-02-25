@@ -178,7 +178,6 @@ export class NodeCommandHandlers implements CommandHandlers {
       this.tasks.addNewConsensusNodeToRemoteConfig(),
       this.tasks.copyNodeKeysToSecrets(),
       this.tasks.getNodeLogsAndConfigs(),
-      this.tasks.addNewConsensusNodeToRemoteConfig(),
       this.tasks.updateChartWithConfigMap('Deploy new network node', NodeSubcommandType.ADD),
       this.tasks.killNodes(),
       this.tasks.checkNodePodsAreRunning(),
