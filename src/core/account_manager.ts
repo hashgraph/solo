@@ -948,10 +948,8 @@ export class AccountManager {
         .addHbarTransfer(toAccountId, new Hbar(hbarAmount))
         .freezeWith(this._nodeClient);
 
-      // @ts-ignore
       const txResponse = await transaction.execute(this._nodeClient);
 
-      // @ts-ignore
       const receipt = await txResponse.getReceipt(this._nodeClient);
 
       this.logger.debug(
@@ -959,7 +957,7 @@ export class AccountManager {
       );
 
       return receipt.status === Status.Success;
-    } catch (e: Error | any) {
+    } catch (e) {
       const errorMessage = `transfer amount failed with an error: ${e.toString()}`;
       this.logger.error(errorMessage);
       throw new SoloError(errorMessage, e);

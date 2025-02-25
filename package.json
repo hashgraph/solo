@@ -50,7 +50,7 @@
     "@hashgraph/sdk": "^2.59.0",
     "@inquirer/prompts": "^7.3.2",
     "@kubernetes/client-node": "^0.22.3",
-    "@listr2/prompt-adapter-enquirer": "^2.0.12",
+    "@listr2/prompt-adapter-inquirer": "^2.0.18",
     "@peculiar/x509": "^1.12.3",
     "adm-zip": "^0.5.16",
     "chalk": "^5.4.1",
@@ -77,7 +77,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/eslintrc": "^3.3.0",
     "@eslint/js": "^9.19.0",
     "@types/adm-zip": "^0.5.7",
     "@types/chai": "^5.0.1",
@@ -121,7 +121,7 @@
     "mocha-each": "^2.0.1",
     "mocha-junit-reporter": "^2.2.1",
     "mocha-multi-reporters": "^1.5.1",
-    "prettier": "^3.5.1",
+    "prettier": "^3.5.2",
     "remark-cli": "^12.0.1",
     "remark-frontmatter": "^5.0.0",
     "remark-lint-list-item-indent": "^4.0.1",
@@ -131,7 +131,7 @@
     "sinon": "^19.0.2",
     "sinon-chai": "^4.0.0",
     "tsx": "^4.19.3",
-    "typedoc": "^0.27.7",
+    "typedoc": "^0.27.9",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.24.1"
   },
