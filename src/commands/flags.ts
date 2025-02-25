@@ -1515,6 +1515,7 @@ export class Flags {
     name: 'deployment',
     definition: {
       describe: 'The name the user will reference locally to link to a deployment',
+      alias: 'd',
       defaultValue: '',
       type: 'string',
     },
