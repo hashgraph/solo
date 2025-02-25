@@ -23,7 +23,7 @@ tasks:
   start:
     cmds:
       - task: "default"
-      - hugo server
+      - hugo server --disableFastRender --ignoreCache
 
   check-doc-dir:
     status:
@@ -41,6 +41,7 @@ tasks:
       - rm -Rf content/Classes
       - rm -f content/Developer/DEV.md
       - rm -f content/User/README.md
+      - rm -f content/User/SoloCommands.md
       - rm -Rf public
       - rm -Rf themes
       - rm -f .hugo_build.lock
@@ -49,7 +50,19 @@ tasks:
     cmds:
       - task: "build:typedoc"
       - task: "build:copy"
+      - task: "build:help"
       - task: "build:hugo"
+
+  build:help:
+    cmds:
+      - chmod 755 ./generate_help.sh
+      - npm run build
+      - |
+        set -eo pipefail
+        cd ..
+        pwd
+        docs/generate_help.sh
+        npx eslint --fix .
 
   build:hugo:
     cmds:
@@ -61,7 +74,7 @@ tasks:
       - curl -L https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C themes/hugo-geekdoc/ --strip-components=1
       - hugo version
       - hugo config
-      - hugo --gc --config hugo.toml --minify --baseURL "$HUGO_BASE_URL/"
+      - hugo --gc --minify --baseURL "$HUGO_BASE_URL/"
 
   build:typedoc:
     cmds:
@@ -73,7 +86,7 @@ tasks:
       - cp ../DEV.md content/Developer/DEV.md
       - mkdir -p content/User
       - mkdir -p content/User/README
-      - cp ../README.md content/User/README/index.md
+      - cp ../README.md content/User/README/README.md
       - mkdir -p content/User/README/images
       - cp ../images/DockerDesktop.png content/User/README/images/DockerDesktop.png
 
