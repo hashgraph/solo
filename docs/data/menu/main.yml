@@ -1,31 +1,64 @@
 ---
+# https://geekdocs.de/usage/menus/
 main:
   - name: Getting Started
-    ref: "/User/README/index.md"
-  - name: Start solo network with single command
-    ref: "/User/TaskTool.md"
-  - name: Hedera Developer
-    ref: "HederaDeveloper.md"
-  - name: Platform Developer
-    ref: "PlatformDeveloper.md"
-  - name: Attach JVM debugger and retrieve logs
-    ref: "/User/DebugLog/index.md"
-  - name: Using Solo with Hedera JavaScript SDK
-    ref: "/User/SDK.md"
-  - name: Using Solo with mirror node
-    ref: "/User/SoloWithMirrorNode.md"
-  - name: Access Hedera Network services
-    ref: "/User/AccessHederaServices.md"
-  - name: "Using Environment Variables"
-    ref: "/User/Env.md"
-  - name: FAQ
-    ref: "/User/FAQ.md"
-  - name: Step-by-step guide
-    ref: "/User/StepByStepGuide.md"
+    ref: "/User/README/README.md"
+  - name: Usage
+    ref: "/User/_index.md"
+    sub:
+    - name: Step-by-step guide
+      ref: "/User/StepByStepGuide.md"
+    - name: Access Hedera Network services
+      ref: "/User/AccessHederaServices.md"
+    - name: Using Solo with mirror node
+      ref: "/User/SoloWithMirrorNode.md"
+    - name: Hedera Developer
+      ref: "HederaDeveloper.md"
+    - name: Platform Developer
+      ref: "PlatformDeveloper.md"
+    - name: Attach JVM debugger and retrieve logs
+      ref: "/User/DebugLog/HowToDebugHederaServicesAndPlatformSDK.md"
+    - name: Using Solo with Hedera JavaScript SDK
+      ref: "/User/SDK.md"
+    - name: Using Environment Variables
+      ref: "/User/Env.md"
   - name: Solo CLI manual
     ref: "/User/SoloCLI.md"
-  - name: Solo Development
-    ref: "/Developer/DEV.md"
-  - name: Classes
-    ref: "/solo/static/Classes/index.html"
-    external: true
+    sub:
+    - name: Solo CLI Commands
+      ref: "/User/SoloCommands.md"
+  - name: Contributing
+    ref: "/Developer/_index.md"
+    sub:
+    - name: Contributing to Hashgraph Projects
+      ref: "https://github.com/hashgraph/.github/blob/main/CONTRIBUTING.md"
+      external: true
+    - name: Contributing to Solo
+      ref: "/Developer/DEV.md"
+  - name: Design Documentation
+    ref: "/Developer/DesignDocs/_index.md"
+    sub:
+    - name: Project Overview and High-Level Documentation
+      ref: "/Developer/DesignDocs/ProjectOverviewAndHighLevelDocumentation.md"
+    - name: Architecture and System Design
+      ref: "/Developer/DesignDocs/ArchitectureAndSystemDesign.md"
+    - name: Infrastructure and Deployment
+      ref: "/Developer/DesignDocs/InfrastructureAndDeployment.md"
+    - name: CLI Design and Interaction
+      ref: "/Developer/DesignDocs/CLIDesignAndInteraction.md"
+    - name: Codebase and Module Documentation
+      ref: "/Developer/DesignDocs/CodebaseAndModuleDocumentation.md"
+      sub:
+      - name: API Reference
+        ref: "/solo/static/Classes/index.html"
+        external: true
+    - name: Error Handling and Logging
+      ref: "/Developer/DesignDocs/ErrorHandlingAndLogging.md"
+    - name: Security and Permissions
+      ref: "/Developer/DesignDocs/SecurityAndPermissions.md"
+    - name: Testing and Quality Assurance
+      ref: "/Developer/DesignDocs/TestingAndQualityAssurance.md"
+  - name: Start solo network with single command
+    ref: "/User/TaskTool.md"
+  - name: FAQ
+    ref: "/User/FAQ.md"
