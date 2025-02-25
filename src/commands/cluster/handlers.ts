@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type BaseCommand, type CommandHandlers} from '../base.js';
-import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
@@ -10,21 +9,25 @@ import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js'
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
+import {type CommandFlag} from '../../types/flag_types.js';
+import {type AnyArgv, type AnyObject} from '../../types/aliases.js';
+import {type IClusterCommandHandlers} from './interfaces/tasks.js';
+import {type IClusterCommandTasks} from './interfaces/handlers.js';
 
-export class ClusterCommandHandlers implements CommandHandlers {
-  readonly parent: BaseCommand;
-  readonly tasks: ClusterCommandTasks;
+export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandHandlers {
+  public readonly parent: BaseCommand;
+  public readonly tasks: IClusterCommandTasks;
   public readonly remoteConfigManager: RemoteConfigManager;
-  private getConfig: any;
+  public readonly getConfig: (configName: string, flags: CommandFlag[], extraProperties?: string[]) => AnyObject;
 
-  constructor(parent: BaseCommand, tasks: ClusterCommandTasks, remoteConfigManager: RemoteConfigManager) {
+  public constructor(parent: BaseCommand, tasks: IClusterCommandTasks, remoteConfigManager: RemoteConfigManager) {
     this.parent = parent;
     this.tasks = tasks;
     this.remoteConfigManager = remoteConfigManager;
     this.getConfig = parent.getConfig.bind(parent);
   }
 
-  async connect(argv: any) {
+  public async connect(argv: AnyArgv): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -34,7 +37,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
         this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8Factory()),
         this.tasks.selectContext(),
         ListrRemoteConfig.loadRemoteConfig(this.parent, argv),
-        this.tasks.readClustersFromRemoteConfig(argv),
+        this.tasks.readClustersFromRemoteConfig(),
         this.tasks.updateLocalConfig(),
       ],
       {
@@ -49,7 +52,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
     return true;
   }
 
-  async list(argv: any) {
+  public async list(argv: AnyArgv): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -66,7 +69,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
     return true;
   }
 
-  async info(argv: any) {
+  public async info(argv: AnyArgv): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -83,13 +86,13 @@ export class ClusterCommandHandlers implements CommandHandlers {
     return true;
   }
 
-  async setup(argv: any) {
+  public async setup(argv: AnyArgv): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
-        this.tasks.prepareChartValues(argv),
+        this.tasks.prepareChartValues(),
         this.tasks.installClusterChart(argv),
       ],
       {
@@ -102,20 +105,20 @@ export class ClusterCommandHandlers implements CommandHandlers {
 
     try {
       await action(argv, this);
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError('Error on cluster setup', e);
     }
 
     return true;
   }
 
-  async reset(argv: any) {
+  public async reset(argv: AnyArgv): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, resetConfigBuilder.bind(this)),
-        this.tasks.acquireNewLease(argv),
+        this.tasks.acquireNewLease(),
         this.tasks.uninstallClusterChart(argv),
       ],
       {
@@ -128,7 +131,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
 
     try {
       await action(argv, this);
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError('Error on cluster reset', e);
     }
     return true;

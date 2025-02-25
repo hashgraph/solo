@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
+import {type AnyArgv, type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -10,19 +10,27 @@ import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type SoloListrTaskWrapper} from '../../types/index.js';
+import {type IClusterCommandHandlers} from './interfaces/tasks.js';
+import {type CommandHandlers} from '../base.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
-export const connectConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
-
-  // set config in the context for later tasks to use
-  ctx.config = config;
-
+export const connectConfigBuilder = async function (
+  this: IClusterCommandHandlers & CommandHandlers,
+  argv: AnyArgv,
+  ctx: ClusterConnectContext,
+): Promise<ClusterConnectConfigClass> {
+  ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
   return ctx.config;
 };
 
-export const setupConfigBuilder = async function (argv, ctx, task) {
+export const setupConfigBuilder = async function (
+  this: IClusterCommandHandlers & CommandHandlers,
+  argv: AnyArgv,
+  ctx: ClusterSetupContext,
+  task: SoloListrTaskWrapper<ClusterSetupContext>,
+): Promise<ClusterSetupConfigClass> {
   const parent = this.parent;
   const configManager = parent.getConfigManager();
   configManager.update(argv);
@@ -56,7 +64,12 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
   return ctx.config;
 };
 
-export const resetConfigBuilder = async function (argv, ctx, task) {
+export const resetConfigBuilder = async function (
+  this: IClusterCommandHandlers & CommandHandlers,
+  argv: AnyArgv,
+  ctx: ClusterResetContext,
+  task: SoloListrTaskWrapper<ClusterResetContext>,
+): Promise<ClusterResetConfigClass> {
   if (!argv[flags.force.name]) {
     const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
       default: false,
@@ -73,7 +86,7 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
 
   ctx.config = {
     clusterName: this.parent.getConfigManager().getFlag(flags.clusterRef) as string,
-    clusterSetupNamespace: this.parent.getConfigManager().getFlag(flags.clusterSetupNamespace) as string,
+    clusterSetupNamespace: this.parent.getConfigManager().getFlag(flags.clusterSetupNamespace) as NamespaceName,
   } as ClusterResetConfigClass;
 
   ctx.isChartInstalled = await this.parent
@@ -96,6 +109,10 @@ export interface ClusterConnectConfigClass {
   clusterName: string;
 }
 
+export interface ClusterConnectContext {
+  config: ClusterConnectConfigClass;
+}
+
 export interface ClusterSetupConfigClass {
   chartDir: string;
   clusterSetupNamespace: NamespaceName;
@@ -106,9 +123,21 @@ export interface ClusterSetupConfigClass {
   soloChartVersion: string;
 }
 
+export interface ClusterSetupContext {
+  config: ClusterSetupConfigClass;
+  chartPath: string;
+  isChartInstalled: boolean;
+  valuesArg: string;
+}
+
 export interface ClusterResetConfigClass {
   clusterName: string;
-  clusterSetupNamespace: string;
+  clusterSetupNamespace: NamespaceName;
+}
+
+export interface ClusterResetContext {
+  config: ClusterResetConfigClass;
+  isChartInstalled: boolean;
 }
 
 export interface SelectClusterContextContext {
