@@ -1,6 +1,8 @@
 {{ $destination := .Destination }}
 {{ if strings.HasPrefix $destination "http" }}
 <a href="{{ $destination | safeURL }}"{{ with .Title }} title="{{ .Title }}"{{ end }} target="_blank" rel="noopener noreferrer">{{ .Text | safeHTML }}</a>
+{{ else if strings.HasPrefix $destination "#" }}
+<a href="{{ $destination }}">{{ .Text }}</a>
 {{ else }}
 <a href="{{ (.Page.GetPage .Destination).RelPermalink | safeURL }}">{{ .Text | safeHTML }}</a>
 {{ end }}
