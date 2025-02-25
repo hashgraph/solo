@@ -7,7 +7,7 @@ import {type RemoteConfigCommonFlagsStruct} from './types.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type CommandFlag} from '../../../types/flag_types.js';
 import {type AnyObject} from '../../../types/aliases.js';
-import {select} from '@inquirer/prompts';
+import {select as selectPrompt} from '@inquirer/prompts';
 
 export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsStruct> {
   private static readonly COMMON_FLAGS: CommandFlag[] = [
@@ -53,7 +53,7 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
         // if the quiet or forced flag is passed don't prompt the user
         if (isQuiet === true || isForced === true) return;
 
-        const answer = await select<string>({
+        const answer = await selectPrompt<string>({
           message: 'Value in remote config differs with the one you are passing, choose which you want to use',
           choices: [
             {
