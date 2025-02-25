@@ -18,7 +18,7 @@ env:
   # TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
   # NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1="
 vars:
-  test_prefix: cross-env MOCHA_SUITE_NAME
+  test_prefix: ./node_modules/.bin/cross-env MOCHA_SUITE_NAME
   reporter_prefix: c8 --report-dir
   reporter_options_prefix: --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit
 
