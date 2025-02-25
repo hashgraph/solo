@@ -23,7 +23,7 @@ for cmd in "${COMMANDS[@]}"; do
 
     for subcmd in "${SUBCOMMANDS[@]}"; do
         echo "Processing subcommand: $cmd $subcmd"
-        echo -e "\n    - [${cmd} $subcmd](#${cmd}-${subcmd})" >> "$OUTPUT_FILE"
+        echo -e "\n  - [${cmd} $subcmd](#${cmd}-${subcmd})" >> "$OUTPUT_FILE"
     done
 done
 
@@ -35,7 +35,7 @@ echo '```' >> "$OUTPUT_FILE"
 
 # Process each command
 for cmd in "${COMMANDS[@]}"; do
-    echo -e "\n## Command: $cmd" >> "$OUTPUT_FILE"
+    echo -e "\n## $cmd" >> "$OUTPUT_FILE"
     echo '```' >> "$OUTPUT_FILE"
     npm run solo -- "$cmd" --help >> "$OUTPUT_FILE"
     echo '```' >> "$OUTPUT_FILE"

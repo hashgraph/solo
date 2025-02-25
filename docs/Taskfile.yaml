@@ -87,8 +87,9 @@ tasks:
       - mkdir -p content/User
       - mkdir -p content/User/README
       - cp ../README.md content/User/README/README.md
-      - mkdir -p content/User/README/images
-      - cp ../images/DockerDesktop.png content/User/README/images/DockerDesktop.png
+      - mkdir -p content/User/README/README/images
+      - cp ../images/DockerDesktop.png content/User/README/README/images/DockerDesktop.png
+      - chmod -R 755 content/User/README
 
   install:
     cmds:

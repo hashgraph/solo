@@ -4,7 +4,7 @@ You can run `solo account init` anytime after `solo node start`
 
 ### Where can I find the default account keys ?
 
-It is the well known default genesis key [Link](https://github.com/hashgraph/hedera-services/blob/develop/hedera-node/data/onboard/GenesisPrivKey.txt)
+It is the well known default genesis key [Link](https://github.com/hiero-ledger/hiero-consensus-node/blob/develop/hedera-node/data/onboard/GenesisPrivKey.txt)
 
 ### How do I get the key for an account?
 
