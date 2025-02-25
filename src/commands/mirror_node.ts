@@ -20,6 +20,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
+import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
+import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
 import {ContainerName} from '../core/kube/resources/container/container_name.js';
@@ -35,6 +37,8 @@ interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
   namespace: NamespaceName;
+  enableIngress: boolean;
+  mirrorStaticIp: string;
   profileFile: string;
   profileName: string;
   valuesFile: string;
@@ -89,6 +93,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.clusterRef,
       flags.chartDirectory,
       flags.deployment,
+      flags.enableIngress,
+      flags.mirrorStaticIp,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
@@ -374,6 +380,35 @@ export class MirrorNodeCommand extends BaseCommand {
                   },
                 },
                 {
+                  title: 'Install mirror ingress controller',
+                  task: async ctx => {
+                    const config = ctx.config;
+
+                    let mirrorIngressControllerValuesArg = '';
+
+                    if (config.mirrorStaticIp !== '') {
+                      mirrorIngressControllerValuesArg += ` --set controller.service.loadBalancerIP=${ctx.config.mirrorStaticIp}`;
+                    }
+                    mirrorIngressControllerValuesArg += ` --set fullnameOverride=${constants.MIRROR_INGRESS_CONTROLLER}`;
+
+                    const ingressControllerChartPath = await self.prepareChartPath(
+                      '', // don't use chartPath which is for local solo-charts only
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                    );
+
+                    await self.chartManager.install(
+                      config.namespace,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                      ingressControllerChartPath,
+                      INGRESS_CONTROLLER_VERSION,
+                      mirrorIngressControllerValuesArg,
+                      this.k8Factory.default().contexts().readCurrent(),
+                    );
+                  },
+                  skip: ctx => !ctx.config.enableIngress,
+                },
+                {
                   title: 'Deploy mirror-node',
                   task: async ctx => {
                     await self.chartManager.install(
@@ -384,6 +419,31 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.valuesArg,
                       ctx.config.clusterContext,
                     );
+
+                    if (ctx.config.enableIngress) {
+                      // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+                      await this.k8Factory
+                        .default()
+                        .ingresses()
+                        .update(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                          spec: {
+                            ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
+                          },
+                        });
+
+                      // to support GRPC over HTTP/2
+                      await this.k8Factory
+                        .default()
+                        .configMaps()
+                        .update(ctx.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
+                          'backend-protocol': 'h2',
+                        });
+
+                      await this.k8Factory
+                        .default()
+                        .ingressClasses()
+                        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+                    }
                   },
                 },
               ],
@@ -706,6 +766,19 @@ export class MirrorNodeCommand extends BaseCommand {
             }
           },
           skip: ctx => !ctx.config.isChartInstalled,
+        },
+        {
+          title: 'Uninstall mirror ingress controller',
+          task: async ctx => {
+            await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
+            // delete ingress class if found one
+            const existingIngressClasses = await this.k8Factory.default().ingressClasses().list();
+            existingIngressClasses.map(ingressClass => {
+              if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
+                this.k8Factory.default().ingressClasses().delete(constants.MIRROR_INGRESS_CLASS_NAME);
+              }
+            });
+          },
         },
         this.removeMirrorNodeComponents(),
       ],

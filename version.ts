@@ -13,3 +13,4 @@ export const LOCAL_HEDERA_PLATFORM_VERSION = 'v0.58.3';
 export const MIRROR_NODE_VERSION = 'v0.122';
 export const HEDERA_EXPLORER_VERSION = '24.12.0';
 export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.63.2';
+export const INGRESS_CONTROLLER_VERSION = '0.14.5';
