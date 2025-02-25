@@ -18,9 +18,9 @@ env:
   # TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
   # NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1="
 vars:
-  cross_env: ./node_modules/.bin/cross-env
-  mocha_bin: ./node_modules/.bin/mocha
-  c8_bin: ./node_modules/.bin/c8
+  cross_env: npx cross-env
+  mocha_bin: npx mocha
+  c8_bin: npx c8
 
   test_prefix: "{{ .cross_env }} MOCHA_SUITE_NAME"
   reporter_prefix: "{{ .c8_bin }} --report-dir"
