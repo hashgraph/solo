@@ -15,7 +15,6 @@ export class ClusterCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand;
   readonly tasks: ClusterCommandTasks;
   public readonly remoteConfigManager: RemoteConfigManager;
-  private getConfig: any;
 
   constructor(parent: BaseCommand, tasks: ClusterCommandTasks, remoteConfigManager: RemoteConfigManager) {
     this.parent = parent;
