@@ -26,7 +26,7 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" --config "
 
 # **********************************************************************************************************************
 # Init and deploy a network for e2e tests in (test/e2e/core)
-# -c ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
+# --chart-directory ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
 npm run build
 npm run solo -- init || exit 1 # cache args for subsequent commands
