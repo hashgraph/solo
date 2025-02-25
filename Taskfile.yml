@@ -68,16 +68,26 @@ tasks:
       - node --no-deprecation --no-warnings dist/solo.js
   check:
     cmds:
-      - npx remark . --quiet --frail && npx eslint . && npx tsc && npx madge --circular src/* && npx typedoc --emit none
+      - npx remark . --quiet --frail
+      - npx eslint .
+      - npx tsc
+      - npx madge --circular src/*
+      - npx typedoc --emit none
   format:
     cmds:
-      - npx remark . --quiet --frail --output && npx eslint --fix . && npx tsc && npx madge --circular src/* && npx typedoc --emit none
+      - npx remark . --quiet --frail --output
+      - npx eslint --fix .
+      - npx tsc
+      - npx madge --circular src/*
+      - npx typedoc --emit none
   test-setup:
     cmds:
       - ./test/e2e/setup-e2e.sh
   build:
     cmds:
-      - rm -Rf dist && npx tsc && node resources/post-build-script.j
+      - rm -Rf dist
+      - npx tsc
+      - node resources/post-build-script.js
 
   # TESTING COMMANDS
   test:
