@@ -49,8 +49,8 @@ interface MirrorNodeDeployConfigClass {
   operatorKey: string;
   useExternalDatabase: boolean;
   storageType: constants.StorageType;
-  storageAccessKey: string;
-  storageSecrets: string;
+  storageReadAccessKey: string;
+  storageReadSecrets: string;
   storageEndpoint: string;
   storageBucket: string;
   storageBucketPrefix: string;
@@ -100,8 +100,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.operatorId,
       flags.operatorKey,
       flags.storageType,
-      flags.storageAccessKey,
-      flags.storageSecrets,
+      flags.storageReadAccessKey,
+      flags.storageReadSecrets,
       flags.storageEndpoint,
       flags.storageBucket,
       flags.storageBucketPrefix,
@@ -137,8 +137,8 @@ export class MirrorNodeCommand extends BaseCommand {
     let storageType = '';
     if (
       config.storageType !== constants.StorageType.MINIO_ONLY &&
-      config.storageAccessKey &&
-      config.storageSecrets &&
+      config.storageReadAccessKey &&
+      config.storageReadSecrets &&
       config.storageEndpoint
     ) {
       if (
@@ -153,8 +153,8 @@ export class MirrorNodeCommand extends BaseCommand {
       }
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE=${storageType}`;
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI=${config.storageEndpoint}`;
-      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageAccessKey}`;
-      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageSecrets}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageReadAccessKey}`;
+      valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageReadSecrets}`;
     }
 
     // if the useExternalDatabase populate all the required values before installing the chart
