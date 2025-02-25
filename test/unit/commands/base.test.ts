@@ -8,7 +8,7 @@ import {type Helm} from '../../../src/core/helm.js';
 import {type ChartManager} from '../../../src/core/chart_manager.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {type LocalConfig} from '../../../src/core/config/local_config.js';
-import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
@@ -21,6 +21,7 @@ import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_
 import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
 import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
+import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 
 describe('BaseCommand', () => {
@@ -143,7 +144,35 @@ describe('BaseCommand', () => {
       } = createComponentsDataWrapper();
 
       const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject());
-      const remoteConfigManager = sinon.stub() as unknown as RemoteConfigManager;
+      const remoteConfigManager = sinon.createStubInstance(RemoteConfigManager);
+
+      const mockecConsensusNodes = [
+        new ConsensusNode(
+          'name',
+          0,
+          'namespace',
+          'cluster',
+          'context1',
+          'dnsBaseDomain',
+          'dnsConsensusNodePattern',
+          'fullyQualifiedDomainName',
+        ),
+        new ConsensusNode(
+          'node2',
+          1,
+          'namespace',
+          'cluster2',
+          'context2',
+          'dnsBaseDomain',
+          'dnsConsensusNodePattern',
+          'fullyQualifiedDomainName',
+        ),
+      ];
+
+      remoteConfigManager.getConsensusNodes.returns(mockecConsensusNodes);
+      remoteConfigManager.getContexts.returns(mockecConsensusNodes.map(node => node.context));
+      remoteConfigManager.getClusterRefs.returns({cluster: 'context1', cluster2: 'context2'});
+
       Object.defineProperty(remoteConfigManager, 'components', {
         get: () => newComponentsDataWrapper,
       });
@@ -171,7 +200,7 @@ describe('BaseCommand', () => {
     });
 
     it('should return consensus nodes', () => {
-      const consensusNodes = baseCmd.getConsensusNodes();
+      const consensusNodes = baseCmd.getRemoteConfigManager().getConsensusNodes();
       expect(consensusNodes).to.be.an('array');
       expect(consensusNodes[0].context).to.equal('context1');
       expect(consensusNodes[1].context).to.equal('context2');
@@ -186,7 +215,7 @@ describe('BaseCommand', () => {
     });
 
     it('should return contexts', () => {
-      const contexts = baseCmd.getContexts();
+      const contexts = baseCmd.getRemoteConfigManager().getContexts();
       expect(contexts).to.be.an('array');
       expect(contexts[0]).to.equal('context1');
       expect(contexts[1]).to.equal('context2');
@@ -194,7 +223,7 @@ describe('BaseCommand', () => {
 
     it('should return clusters references', () => {
       const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
-      const clusterRefs: ClusterRefs = baseCmd.getClusterRefs();
+      const clusterRefs: ClusterRefs = baseCmd.getRemoteConfigManager().getClusterRefs();
       Object.keys(clusterRefs).forEach(clusterRef => {
         expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
       });

@@ -51,6 +51,7 @@ import {ContainerRef} from '../src/core/kube/resources/container/container_ref.j
 import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
+import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
 import {Argv} from './helpers/argv_wrapper.js';
 import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 
@@ -360,7 +361,7 @@ export function balanceQueryShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        cmd.getClusterRefs(),
+        cmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -390,7 +391,7 @@ export function accountCreationShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        nodeCmd.getClusterRefs(),
+        nodeCmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;

@@ -13,6 +13,7 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
+import {prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
@@ -92,11 +93,11 @@ export class ExplorerCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName);
     if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile);
+      valuesArg += prepareValuesFiles(profileValuesFile);
     }
 
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
 
     if (config.enableIngress) {
@@ -150,7 +151,7 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
     return valuesArg;
   }
@@ -158,7 +159,7 @@ export class ExplorerCommand extends BaseCommand {
   async prepareValuesArg(config: ExplorerDeployConfigClass) {
     let valuesArg = '';
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
     return valuesArg;
   }
@@ -202,14 +203,15 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         {
           title: 'Upgrade solo-setup chart',
           task: async ctx => {
             const config = ctx.config;
             const {chartDirectory, clusterSetupNamespace, soloChartVersion} = config;
 
-            const chartPath = await this.prepareChartPath(
+            const chartPath = await prepareChartPath(
+              self.helm,
               chartDirectory,
               constants.SOLO_TESTING_CHART_URL,
               constants.SOLO_CLUSTER_SETUP_CHART,
@@ -285,7 +287,7 @@ export class ExplorerCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            let exploreValuesArg = self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+            let exploreValuesArg = prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
             exploreValuesArg += await self.prepareHederaExplorerValuesArg(config);
 
             await self.chartManager.install(
@@ -419,7 +421,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         {
           title: 'Destroy explorer',
           task: async ctx => {

@@ -35,7 +35,7 @@ import {
   PrivateKey,
   Timestamp,
 } from '@hashgraph/sdk';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
+import {MissingArgumentError, SoloError} from '../../core/errors.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -47,6 +47,7 @@ import {
   renameAndCopyFile,
   sleep,
   splitFlagInput,
+  prepareValuesFiles,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
@@ -59,7 +60,6 @@ import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdate
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
-import {type BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 import {NodeOverridesModel} from '../../core/node_overrides_model.js';
@@ -68,66 +68,45 @@ import {PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../core/kube/resources/container/container_ref.js';
 import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {type Optional} from '../../types/index.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type ConfigMap} from '../../core/config_builder.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 
+@injectable()
 export class NodeCommandTasks {
-  private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
-  private readonly keyManager: KeyManager;
-  private readonly profileManager: ProfileManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly logger: SoloLogger;
-  private readonly k8Factory: K8Factory;
-  private readonly parent: BaseCommand;
-  private readonly chartManager: ChartManager;
-  private readonly certificateManager: CertificateManager;
-
-  private readonly prepareValuesFiles: any;
-
-  constructor(opts: {
-    logger: SoloLogger;
-    accountManager: AccountManager;
-    configManager: ConfigManager;
-    k8Factory: K8Factory;
-    platformInstaller: PlatformInstaller;
-    keyManager: KeyManager;
-    profileManager: ProfileManager;
-    chartManager: ChartManager;
-    certificateManager: CertificateManager;
-    parent: BaseCommand;
-  }) {
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
-    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.profileManager)
-      throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
-    if (!opts || !opts.certificateManager)
-      throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
-    if (!opts || !opts.parent)
-      throw new IllegalArgumentError('An instance of parents as BaseCommand is required', opts.parent);
-
-    this.accountManager = opts.accountManager;
-    this.configManager = opts.configManager;
-    this.logger = opts.logger;
-    this.k8Factory = opts.k8Factory;
-
-    this.platformInstaller = opts.platformInstaller;
-    this.profileManager = opts.profileManager;
-    this.keyManager = opts.keyManager;
-    this.chartManager = opts.chartManager;
-    this.certificateManager = opts.certificateManager;
-    this.prepareValuesFiles = opts.parent.prepareValuesFiles.bind(opts.parent);
-    this.parent = opts.parent;
+  constructor(
+    @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
+    @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
+    @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
+    @inject(InjectTokens.PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
+    @inject(InjectTokens.KeyManager) private readonly keyManager: KeyManager,
+    @inject(InjectTokens.ProfileManager) private readonly profileManager: ProfileManager,
+    @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+    @inject(InjectTokens.CertificateManager) private readonly certificateManager: CertificateManager,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+  ) {
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.platformInstaller = patchInject(platformInstaller, InjectTokens.PlatformInstaller, this.constructor.name);
+    this.keyManager = patchInject(keyManager, InjectTokens.KeyManager, this.constructor.name);
+    this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
+    this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.certificateManager = patchInject(certificateManager, InjectTokens.CertificateManager, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {
@@ -571,7 +550,7 @@ export class NodeCommandTasks {
       const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
       await this.accountManager.loadNodeClient(
         namespace,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         deploymentName,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
         context,
@@ -933,7 +912,7 @@ export class NodeCommandTasks {
     return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
       config.existingNodeAliases = [];
-      const clusterRefs = this.parent.getClusterRefs();
+      const clusterRefs = this.remoteConfigManager.getClusterRefs();
       config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace, clusterRefs, config.deployment);
       for (const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeAlias);
@@ -1018,7 +997,7 @@ export class NodeCommandTasks {
     return new Task('Populate serviceMap', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
         ctx.config.namespace,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         ctx.config.deployment,
       );
       ctx.config.podRefs[ctx.config.nodeAlias] = PodRef.of(
@@ -1069,7 +1048,7 @@ export class NodeCommandTasks {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.parent.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
 
@@ -1096,7 +1075,7 @@ export class NodeCommandTasks {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.parent.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
 
@@ -1252,7 +1231,7 @@ export class NodeCommandTasks {
       config.nodeClient = await self.accountManager.refreshNodeClient(
         config.namespace,
         skipNodeAlias,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
       );
 
@@ -1304,7 +1283,7 @@ export class NodeCommandTasks {
       await self.accountManager.refreshNodeClient(
         ctx.config.namespace,
         ctx.config.nodeAlias,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
         context,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
@@ -1544,7 +1523,7 @@ export class NodeCommandTasks {
         config.nodeClient = await self.accountManager.refreshNodeClient(
           config.namespace,
           config.nodeAlias,
-          this.parent.getClusterRefs(),
+          this.remoteConfigManager.getClusterRefs(),
           this.configManager.getFlag<DeploymentName>(flags.deployment),
         );
       }
@@ -1653,7 +1632,7 @@ export class NodeCommandTasks {
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
             config.namespace,
-            this.parent.getClusterRefs(),
+            this.remoteConfigManager.getClusterRefs(),
             config.deployment,
           );
         }
@@ -1716,7 +1695,7 @@ export class NodeCommandTasks {
           path.join(config.stagingDir, 'templates', 'application.properties'),
         );
         if (profileValuesFile) {
-          valuesArg += self.prepareValuesFiles(profileValuesFile);
+          valuesArg += prepareValuesFiles(profileValuesFile);
         }
 
         valuesArg = addDebugOptions(valuesArg, config.debugNodeAlias);
@@ -1777,7 +1756,7 @@ export class NodeCommandTasks {
       'Kill nodes to pick up updated configMaps',
       async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
         const config = ctx.config;
-        const clusterRefs = this.parent.getClusterRefs();
+        const clusterRefs = this.remoteConfigManager.getClusterRefs();
         // the updated node will have a new pod ID if its account ID changed which is a label
         config.serviceMap = await this.accountManager.getNodeServiceMap(
           config.namespace,
@@ -1948,7 +1927,13 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null, shouldLoadNodeClient = true) {
+  initialize(
+    argv: any,
+    configInit: ConfigBuilder,
+    lease: Lease | null,
+    configMap?: ConfigMap,
+    shouldLoadNodeClient = true,
+  ) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -1975,10 +1960,10 @@ export class NodeCommandTasks {
 
       await this.configManager.executePrompt(task, flagsToPrompt);
 
-      const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
+      const config = await configInit(argv, ctx, task, configMap, shouldLoadNodeClient);
       ctx.config = config;
-      config.consensusNodes = this.parent.getConsensusNodes();
-      config.contexts = this.parent.getContexts();
+      config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+      config.contexts = this.remoteConfigManager.getContexts();
 
       for (const flag of allRequiredFlags) {
         if (typeof config[flag.constName] === 'undefined') {
