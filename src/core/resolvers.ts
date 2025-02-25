@@ -7,7 +7,7 @@ import {type ConfigManager} from './config_manager.js';
 import {Flags as flags} from '../commands/flags.js';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
-import {input} from '@inquirer/prompts';
+import {input as inputPrompt} from '@inquirer/prompts';
 import {SoloError} from './errors.js';
 
 export async function resolveNamespaceFromDeployment(
@@ -42,7 +42,7 @@ export async function promptTheUserForDeployment(
       throw new SoloError('deployment is required');
     }
 
-    const answer = await input({
+    const answer = await inputPrompt({
       message: 'Enter the name of the deployment:',
       validate: (value: string) => !!value,
     });
