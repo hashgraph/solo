@@ -50,7 +50,7 @@
     "@hashgraph/sdk": "^2.59.0",
     "@inquirer/prompts": "^7.3.2",
     "@kubernetes/client-node": "^0.22.3",
-    "@listr2/prompt-adapter-enquirer": "^2.0.12",
+    "@listr2/prompt-adapter-inquirer": "^2.0.18",
     "@peculiar/x509": "^1.12.3",
     "adm-zip": "^0.5.16",
     "chalk": "^5.4.1",
