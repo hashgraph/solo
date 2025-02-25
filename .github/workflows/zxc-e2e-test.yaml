@@ -157,6 +157,12 @@ jobs:
         id: npm-deps
         run: npm ci
 
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Compile Project
         run: npm run build
 
@@ -202,7 +208,7 @@ jobs:
       - name: Run E2E Tests
         run: |
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
-          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
+          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} task ${{ inputs.npm-test-script }}
 
 #      - name: Sleep on Failure
 #        if: ${{ failure() }}
