@@ -1,22 +1,4 @@
 version: 3
-includes:
-  helper:
-    taskfile: ./Taskfile.helper.yml
-    flatten: true
-env:
-  SOLO_NETWORK_SIZE: 2
-  SOLO_NAMESPACE: solo-e2e
-  SOLO_DEPLOYMENT: solo-deployment
-  # SOLO_CHART_VERSION: 0.39.0
-  # CONSENSUS_NODE_VERSION: v0.58.0
-  HEDERA_SERVICES_ROOT: "/Users/user/source/hedera-services"
-  # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
-  # DEBUG_NODE_ALIAS: "node2"
-  # SOLO_CHARTS_DIR_FLAG: "-d /Users/user/source/solo-charts/charts"
-  # LOAD_BALANCER_FLAG: "--load-balancer"
-  # ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
-  # TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
-  # NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1="
 vars:
   cross_env: npx cross-env
   mocha_bin: npx mocha
@@ -26,46 +8,13 @@ vars:
   reporter_prefix: "{{ .c8_bin }} --report-dir"
   reporter_options_prefix: --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit
 
-  use_port_forwards: "true"
-
 tasks:
-  default:
-    silent: true
-    desc: install Solo, create a kind cluster, deploy the network, set it up, and start it
-    deps:
-      - task: "init"
-    cmds:
-      - echo "This command is meant to deploy a Solo network to a Kind cluster on your local machine, "
-      - echo "ctrl-c if this is not what you want to do."
-      - sleep 5
-      - task: "install"
-      - task: "start"
-
-  install:
-    desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
-    deps:
-      - task: "init"
-    cmds:
-      - task: "cluster:create"
-      - task: "solo:init"
-      - task: "solo:cluster:setup"
-      - task: "solo:keys"
-      - task: "solo:deployment:create"
-      - task: "solo:network:deploy"
-
-  destroy:
-    desc: destroy relay, mirror-node, and network
-    deps:
-      - task: "init"
-    cmds:
-      - task: "cluster:destroy"
-
   solo-test:
     cmds:
-      - npx tsx --no-deprecation --no-warnings solo.ts
+      - npx tsx --no-deprecation --no-warnings solo.ts {{ .CLI_ARGS }}
   solo:
     cmds:
-      - node --no-deprecation --no-warnings dist/solo.js
+      - node --no-deprecation --no-warnings dist/solo.js {{ .CLI_ARGS }}
   check:
     cmds:
       - npx remark . --quiet --frail

@@ -77,5 +77,5 @@ jobs:
         run: |
           cd examples/external-database-test
           export CONSENSUS_NODE_VERSION=v0.58.3
-          SOLO_CLUSTER_NAME=solo-task-test-${{ matrix.type }}-${{ github.run_id }}-${{ github.run_attempt }} task install
-          task destroy
+          SOLO_CLUSTER_NAME=solo-task-test-${{ matrix.type }}-${{ github.run_id }}-${{ github.run_attempt }} task install:external-database
+          task destroy:external-database

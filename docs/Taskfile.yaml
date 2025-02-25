@@ -56,10 +56,10 @@ tasks:
   build:help:
     cmds:
       - chmod 755 ./generate_help.sh
-      - task build
       - |
         set -eo pipefail
         cd ..
+        task build
         pwd
         docs/generate_help.sh
         npx eslint --fix .
