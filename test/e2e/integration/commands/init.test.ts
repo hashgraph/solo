@@ -22,6 +22,7 @@ import {BASE_TEST_DIR} from '../../../test_util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
+import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../../src/core/constants.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -45,7 +46,7 @@ describe('InitCommand', () => {
     sandbox = sinon.createSandbox();
     sandbox.stub(K8Client.prototype, 'init').callsFake(() => this);
     k8Factory = container.resolve(InjectTokens.K8Factory);
-    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, 'local-config.yaml'));
+    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, DEFAULT_LOCAL_CONFIG_FILE));
     remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     leaseManager = container.resolve(InjectTokens.LeaseManager);
 
