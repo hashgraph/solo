@@ -20,8 +20,6 @@ import {Templates} from '../../../src/core/templates.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
-import sinon from 'sinon';
-import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {KubeConfig} from '@kubernetes/client-node';
 import {MissingArgumentError} from '../../../src/core/errors.js';
 
