@@ -102,7 +102,9 @@ export class ChartManager {
   }
 
   async isChartInstalled(namespaceName: NamespaceName, chartReleaseName: string, kubeContext?: string) {
-    this.logger.debug(`> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName} ]`);
+    this.logger.debug(
+      `> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName}, kubeContext: ${kubeContext} ]`,
+    );
     const charts = await this.getInstalledCharts(namespaceName, kubeContext);
 
     return charts.some(item => item.startsWith(chartReleaseName));
