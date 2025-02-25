@@ -59,7 +59,7 @@ function start_background_transactions ()
   # generate accounts as background traffic for two minutes
   # so record stream files can be kept pushing to mirror node
   cd solo
-  npm run solo-test -- account create --deployment solo-e2e --create-amount 15 > /dev/null 2>&1 &
+  task solo-test -- account create --deployment solo-e2e --create-amount 15 > /dev/null 2>&1 &
   cd -
 }
 
@@ -69,7 +69,7 @@ function start_contract_test ()
   echo "Wait a few seconds for background transactions to start"
   sleep 5
   echo "Run smart contract test"
-  npm run hh:test
+  task hh:test
   result=$?
 
   cd -
@@ -134,7 +134,7 @@ function check_importer_log()
 # then call solo account init before deploy mirror and relay node
 if [ "$1" == "account-init" ]; then
   echo "Call solo account init"
-  npm run solo-test -- account init --deployment solo-e2e
+  task solo-test -- account init --deployment solo-e2e
 fi
 
 echo "Change to parent directory"

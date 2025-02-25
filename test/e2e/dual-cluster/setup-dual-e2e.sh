@@ -68,12 +68,12 @@ done
 # -d ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
-npm run build
-npm run solo -- init || exit 1 # cache args for subsequent commands
+task build
+task solo -- init || exit 1 # cache args for subsequent commands
 
 for i in $(seq 1 "${SOLO_CLUSTER_DUALITY}"); do
   kubectl config use-context "kind-${SOLO_CLUSTER_NAME}-c${i}"
-  npm run solo -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" || exit 1
+  task solo -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" || exit 1
   helm list --all-namespaces
 done
 

@@ -164,7 +164,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compile Project
-        run: npm run build
+        run: task build
 
       - name: Pull Kind Docker Image
         run: docker image pull kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
