@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
-import {confirm} from '@inquirer/confirm';
+import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
 import {SoloError, MissingArgumentError} from '../core/errors.js';
 import * as constants from '../core/constants.js';
@@ -384,7 +384,7 @@ export class ExplorerCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             if (!argv.force) {
-              const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirm, {
+              const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
                 default: false,
                 message: 'Are you sure you would like to destroy the explorer?',
               });
