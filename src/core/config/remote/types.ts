@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type NodeAliases} from '../../../types/aliases.js';
-import {type ComponentType, type ConsensusNodeStates} from './enumerations.js';
+import {type ComponentType, type ConsensusNodeStates, type DeploymentStates} from './enumerations.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
@@ -68,6 +68,7 @@ export interface RemoteConfigDataStructure {
 
 export interface RemoteConfigMetadataStructure {
   namespace: NamespaceNameAsString;
+  state: DeploymentStates,
   deploymentName: DeploymentName;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;

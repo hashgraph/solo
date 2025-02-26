@@ -27,6 +27,9 @@ export class ClusterCommandHandlers implements CommandHandlers {
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
+    // TODO:
+    // * Verifies the connection to the cluster can be established using kubectl get namespaces.
+    // * Fails if the connection cannot be established.
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, connectConfigBuilder.bind(this)),

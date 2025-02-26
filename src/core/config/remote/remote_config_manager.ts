@@ -38,6 +38,7 @@ import * as helpers from '../../helpers.js';
 import {ConsensusNode} from '../../model/consensus_node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
+import {DeploymentStates} from './enumerations.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -110,7 +111,7 @@ export class RemoteConfigManager {
    * Gathers data from the local configuration and constructs a new ConfigMap
    * entry in the cluster with initial command history and metadata.
    */
-  private async create(argv: AnyObject): Promise<void> {
+  public async create(argv: AnyObject, state: DeploymentStates): Promise<void> {
     const clusters: Record<ClusterRef, Cluster> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
@@ -130,6 +131,7 @@ export class RemoteConfigManager {
       metadata: new RemoteConfigMetadata(
         namespace.name,
         this.configManager.getFlag<DeploymentName>(flags.deployment),
+        state,
         new Date(),
         this.localConfig.userEmailAddress,
         helpers.getSoloVersion(),
@@ -162,13 +164,14 @@ export class RemoteConfigManager {
 
   /**
    * Loads the remote configuration from the Kubernetes cluster if it exists.
+   * @param [context]
    * @returns true if the configuration is loaded successfully.
    */
-  private async load(): Promise<boolean> {
+  private async load(context?: string): Promise<boolean> {
     if (this.remoteConfig) return true;
 
     try {
-      const configMap = await this.getConfigMap();
+      const configMap = await this.getConfigMap(context);
 
       if (configMap) {
         this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
@@ -185,8 +188,8 @@ export class RemoteConfigManager {
    * Loads the remote configuration, performs a validation and returns it
    * @returns RemoteConfigDataWrapper
    */
-  public async get(): Promise<RemoteConfigDataWrapper> {
-    await this.load();
+  public async get(context?: string): Promise<RemoteConfigDataWrapper> {
+    await this.load(context);
     try {
       await RemoteConfigValidator.validateComponents(
         this.configManager.getFlag(flags.namespace),
@@ -319,6 +322,7 @@ export class RemoteConfigManager {
     context: Context,
     namespace: NamespaceNameAsString,
     argv: AnyObject,
+    state: DeploymentStates,
   ) {
     const self = this;
     self.k8Factory.default().contexts().updateCurrent(context);
@@ -338,7 +342,7 @@ export class RemoteConfigManager {
       throw new SoloError('Remote config already exists');
     }
 
-    await self.create(argv);
+    await self.create(argv, state);
   }
 
   /* ---------- Utilities ---------- */
@@ -361,13 +365,15 @@ export class RemoteConfigManager {
   /**
    * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
    *
+   * @param [context]
+   *
    * @returns the remote configuration data.
    * @throws {@link SoloError} if the ConfigMap could not be read and the error is not a 404 status.
    */
-  public async getConfigMap(): Promise<k8s.V1ConfigMap> {
+  public async getConfigMap(context?: string): Promise<k8s.V1ConfigMap> {
     try {
       return await this.k8Factory
-        .default()
+        .getK8(context)
         .configMaps()
         .read(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (e) {

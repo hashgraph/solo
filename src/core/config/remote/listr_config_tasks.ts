@@ -7,6 +7,7 @@ import {type ClusterRef, type Context} from './types.js';
 import {type SoloListrTask} from '../../../types/index.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
+import {DeploymentStates} from './enumerations.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.
@@ -45,11 +46,12 @@ export class ListrRemoteConfig {
     context: Context,
     namespace: NamespaceName,
     argv: AnyObject,
+    state: DeploymentStates,
   ): SoloListrTask<any> {
     return {
       title: `Create remote config in cluster: ${chalk.cyan(clusterRef)}`,
       task: async (): Promise<void> => {
-        await command.getRemoteConfigManager().createAndValidate(clusterRef, context, namespace.name, argv);
+        await command.getRemoteConfigManager().createAndValidate(clusterRef, context, namespace.name, argv, state);
       },
     };
   }
@@ -70,6 +72,7 @@ export class ListrRemoteConfig {
           const context = command.localConfig.clusterRefs?.[clusterRef];
           if (!context) continue;
 
+          // TODO: 666
           subTasks.push(ListrRemoteConfig.createRemoteConfig(command, clusterRef, context, ctx.config.namespace, argv));
         }
 

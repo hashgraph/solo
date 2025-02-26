@@ -2034,6 +2034,51 @@ export class Flags {
     prompt: undefined,
   };
 
+  // --------------- Add Cluster --------------- //
+
+  static readonly enableCertManager: CommandFlag = {
+    constName: 'enableCertManager',
+    name: 'enable-cert-manager',
+    definition: {
+      describe: '',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  static readonly numberOfConsensusNodes: CommandFlag = {
+    constName: 'numberOfConsensusNodes',
+    name: 'num-consensus-nodes',
+    definition: {
+      describe: '',
+      type: 'number',
+    },
+    prompt: undefined,
+  };
+
+  static readonly dnsBaseDomain: CommandFlag = {
+    constName: 'dnsBaseDomain',
+    name: 'dns-base-domain',
+    definition: {
+      describe: '',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly dnsConsensusNodePattern: CommandFlag = {
+    constName: 'dnsConsensusNodePattern',
+    name: 'dns-consensus-node-pattern',
+    definition: {
+      describe: '',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
@@ -2148,6 +2193,10 @@ export class Flags {
     Flags.externalDatabaseOwnerPassword,
     Flags.externalDatabaseReadonlyUsername,
     Flags.externalDatabaseReadonlyPassword,
+    Flags.enableCertManager,
+    Flags.numberOfConsensusNodes,
+    Flags.dnsBaseDomain,
+    Flags.dnsConsensusNodePattern,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

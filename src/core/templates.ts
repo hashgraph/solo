@@ -7,7 +7,7 @@ import path from 'path';
 import {DataValidationError, IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
-import {type IP, type NodeAlias, type NodeId} from '../types/aliases.js';
+import {type IP, type NodeAlias, type NodeAliases, type NodeId} from '../types/aliases.js';
 import {PodName} from './kube/resources/pod/pod_name.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
@@ -29,6 +29,20 @@ export class Templates {
 
   public static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}`;
+  }
+
+  public static renderNodeAliasFromNumber(num: number): NodeAlias {
+    return `node${num}`;
+  }
+
+  public static renderNodeAliasesFromCount(count: number): NodeAliases {
+    const nodeAliases: NodeAliases = [];
+
+    for (let i = 1; i <= count; i++) {
+      nodeAliases.push(Templates.renderNodeAliasFromNumber(i));
+    }
+
+    return nodeAliases;
   }
 
   public static renderGossipPemPrivateKeyFile(nodeAlias: NodeAlias): string {

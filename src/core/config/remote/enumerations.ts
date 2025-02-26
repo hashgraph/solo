@@ -27,3 +27,8 @@ export enum ConsensusNodeStates {
   FREEZED = 'freezed',
   STOPPED = 'stopped',
 }
+
+export enum DeploymentStates {
+  PRE_GENESIS = 'pre-genesis',
+  POST_GENESIS = 'post-genesis',
+}
