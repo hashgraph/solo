@@ -60,5 +60,5 @@ echo "Remove color codes and lines showing intermediate progress"
 sed -i 's/\[32m//g' docs/site/content/User/StepByStepGuide.md
 sed -i 's/\[33m//g' docs/site/content/User/StepByStepGuide.md
 sed -i 's/\[39m//g' docs/site/content/User/StepByStepGuide.md
-egrep -v '↓|❯|•' docs/site/content/User/StepByStepGuide.md > docs/site/content/User/StepByStepGuide.md.tmp && mv docs/content/User/StepByStepGuide.md.tmp docs/content/User/StepByStepGuide.md
+egrep -v '↓|❯|•' docs/site/content/User/StepByStepGuide.md > docs/site/content/User/StepByStepGuide.md.tmp && mv docs/site/content/User/StepByStepGuide.md.tmp docs/site/content/User/StepByStepGuide.md
 set +x
