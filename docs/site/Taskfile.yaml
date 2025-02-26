@@ -28,12 +28,12 @@ tasks:
   check-doc-dir:
     status:
       - |
-        if [ "$(basename "$PWD")" != "docs" ]; then
+        if [ "$(basename "$PWD")" != "site" ]; then
           exit 1
         fi
     cmds:
       - |
-        echo "Error: Must be in the 'docs' directory."
+        echo "Error: Must be in the 'docs/site' directory."
         exit 1
 
   clean:
@@ -54,15 +54,12 @@ tasks:
       - task: "build:hugo"
 
   build:help:
+    dir: ../..
     cmds:
-      - chmod 755 ./generate_help.sh
+      - chmod 755 docs/site/generate_help.sh
       - npm run build
-      - |
-        set -eo pipefail
-        cd ..
-        pwd
-        docs/generate_help.sh
-        npx eslint --fix .
+      - docs/site/generate_help.sh
+      - npx eslint --fix .
 
   build:hugo:
     cmds:
@@ -77,18 +74,19 @@ tasks:
       - hugo --gc --minify --baseURL "$HUGO_BASE_URL/"
 
   build:typedoc:
+    dir: ../..
     cmds:
-      - cd .. && npx typedoc --out docs/public/static/Classes --entryPoints ./solo.ts --entryPoints ./src/index.ts --entryPointStrategy expand ./src
+      - npx typedoc --out docs/site/public/static/Classes --entryPoints ./solo.ts --entryPoints ./src/index.ts --entryPointStrategy expand ./src
 
   build:copy:
     cmds:
       - mkdir -p content/Developer
-      - cp ../DEV.md content/Developer/DEV.md
+      - cp ../../DEV.md content/Developer/DEV.md
       - mkdir -p content/User
       - mkdir -p content/User/README
-      - cp ../README.md content/User/README/README.md
+      - cp ../../README.md content/User/README/README.md
       - mkdir -p content/User/README/README/images
-      - cp ../images/DockerDesktop.png content/User/README/README/images/DockerDesktop.png
+      - cp ../../images/DockerDesktop.png content/User/README/README/images/DockerDesktop.png
       - chmod -R 755 content/User/README
 
   install:
@@ -108,6 +106,6 @@ tasks:
       - npx typedoc --version
 
   install:solo:
+    dir: ../..
     cmds:
-      - cd ..
       - npm install
