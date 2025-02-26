@@ -56,7 +56,7 @@ tasks:
   build:help:
     dir: ../..
     cmds:
-      - chmod 755 ./generate_help.sh
+      - chmod 755 docs/site/generate_help.sh
       - npm run build
       - docs/site/generate_help.sh
       - npx eslint --fix .
