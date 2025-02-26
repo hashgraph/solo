@@ -196,6 +196,9 @@ jobs:
       - name: Setup E2E Tests
         run: | 
           npm link
+          if [[ "${{ inputs.npm-test-script }}" == "test-e2e-dual-cluster-full" ]]; then
+            set SOLO_CLUSTER_DUALITY=2
+          fi
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
           SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} ./test/e2e/dual-cluster/setup-dual-e2e.sh
 

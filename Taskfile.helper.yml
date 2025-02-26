@@ -194,7 +194,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node keys --gossip-keys --tls-keys --deployment  "${SOLO_DEPLOYMENT}" -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node keys --gossip-keys --tls-keys --node-aliases {{.node_identifiers}} --deployment  "${SOLO_DEPLOYMENT}" -q --dev
 
   solo:network:deploy:
     silent: true
