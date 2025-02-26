@@ -80,18 +80,18 @@ export class ClusterCommandConfigs {
     return ctx.config;
   }
 
-public async resetConfigBuilder(argv, ctx, task) {
-  if (!argv[flags.force.name]) {
-    const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
-      default: false,
-      message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
-    });
+  public async resetConfigBuilder(argv, ctx, task) {
+    if (!argv[flags.force.name]) {
+      const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
+        default: false,
+        message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
+      });
 
-    if (!confirmResult) {
-      // eslint-disable-next-line n/no-process-exit
-      process.exit(0);
+      if (!confirmResult) {
+        // eslint-disable-next-line n/no-process-exit
+        process.exit(0);
+      }
     }
-  }
 
     this.configManager.update(argv);
 

@@ -471,14 +471,13 @@ export class RemoteConfigManager {
     const clusters: Record<ClusterRef, Cluster> = this.clusters;
 
     try {
-      if (!this?.components?.consensusNodes) return [];
+      if (!this.components?.consensusNodes) return [];
     } catch {
       return [];
     }
 
     // using the remoteConfigManager to get the consensus nodes
     Object.values(this.components.consensusNodes).forEach(node => {
-      this.logger.debug(`Adding consensus node ${node.name} , node.cluster = ${node.cluster}`);
       consensusNodes.push(
         new ConsensusNode(
           node.name as NodeAlias,

@@ -76,8 +76,6 @@ import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {type Optional} from '../../types/index.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type Optional, type SoloListrTask} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
@@ -91,6 +89,8 @@ import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
+import {BaseCommand} from '../base.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -105,6 +105,7 @@ export class NodeCommandTasks {
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
     @inject(InjectTokens.CertificateManager) private readonly certificateManager: CertificateManager,
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
@@ -115,6 +116,7 @@ export class NodeCommandTasks {
     this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
     this.certificateManager = patchInject(certificateManager, InjectTokens.CertificateManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
     this.remoteConfigManager = patchInject(
       remoteConfigManager,
       InjectTokens.RemoteConfigManager,
@@ -382,7 +384,7 @@ export class NodeCommandTasks {
     const podRef = PodRef.of(namespace, podName);
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`;
 
-    const consensusNodes = this.parent.getConsensusNodes();
+    const consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
     let attempt = 0;
     let success = false;
@@ -1623,13 +1625,13 @@ export class NodeCommandTasks {
         if (consensusNodes.length) {
           consensusNodes.forEach(node => (valuesArgMap[node.cluster] = ''));
         } else {
-          valuesArgMap[this.parent.getK8Factory().default().clusters().readCurrent()] = '';
+          valuesArgMap[this.k8Factory.default().clusters().readCurrent()] = '';
         }
 
-        const clusterRefs = this.parent.getClusterRefs() ?? {};
+        const clusterRefs = this.remoteConfigManager.getClusterRefs() ?? {};
         if (!Object.keys(clusterRefs).length) {
-          const clusterRef = this.parent.getK8Factory().default().clusters().readCurrent();
-          clusterRefs[clusterRef] = this.parent.getLocalConfig().clusterRefs[clusterRef];
+          const clusterRef = this.k8Factory.default().clusters().readCurrent();
+          clusterRefs[clusterRef] = this.localConfig.clusterRefs[clusterRef];
         }
 
         if (!config.serviceMap) {
@@ -1652,9 +1654,7 @@ export class NodeCommandTasks {
         // On Update and Delete
         for (let i = 0; i < index; i++) {
           const consensusNode = consensusNodes.find(node => node.nodeId === i);
-          const clusterRef = consensusNode
-            ? consensusNode.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
           if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
             // for the case of updating node
@@ -1674,9 +1674,7 @@ export class NodeCommandTasks {
         // When adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const consensusNode = consensusNodes.find(node => node.nodeId === index);
-          const clusterRef = consensusNode
-            ? consensusNode.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
           valuesArgMap[clusterRef] +=
             ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
@@ -1696,7 +1694,7 @@ export class NodeCommandTasks {
           const consensusNodeInValues = consensusNodes.find(node => node.name === nodeAlias);
           const clusterForConsensusNodeInValues = consensusNodeInValues
             ? consensusNodeInValues.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+            : this.k8Factory.default().clusters().readCurrent();
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
@@ -1741,9 +1739,7 @@ export class NodeCommandTasks {
 
         // Add Debug options
         const consensusNode = consensusNodes.find(node => node.name === config.debugNodeAlias);
-        const clusterRef = consensusNode
-          ? consensusNode.cluster
-          : this.parent.getK8Factory().default().clusters().readCurrent();
+        const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
@@ -1754,7 +1750,7 @@ export class NodeCommandTasks {
           ctx.config.chartPath,
           config.soloChartVersion,
           valuesArgMap[clusterRef],
-          this.parent.getLocalConfig().clusterRefs[clusterRef],
+          this.localConfig.clusterRefs[clusterRef],
         );
       },
       skip,
@@ -2061,7 +2057,7 @@ export class NodeCommandTasks {
 
         task.title += `: ${nodeAlias}`;
 
-        await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.add(
             nodeAlias,
             new ConsensusNodeComponent(
@@ -2084,7 +2080,7 @@ export class NodeCommandTasks {
           );
         });
 
-        ctx.config.consensusNodes = this.parent.getConsensusNodes();
+        ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
         // if the consensusNodes does not contain the nodeAlias then add it
         if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
           ctx.config.consensusNodes.push(
