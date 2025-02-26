@@ -15,6 +15,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   readonly parent: BaseCommand;
   readonly tasks: ClusterCommandTasks;
   public readonly remoteConfigManager: RemoteConfigManager;
+  private getConfig: any;
 
   constructor(parent: BaseCommand, tasks: ClusterCommandTasks, remoteConfigManager: RemoteConfigManager) {
     this.parent = parent;
@@ -41,6 +42,23 @@ export class ClusterCommandHandlers implements CommandHandlers {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
       'cluster connect',
+      null,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async disconnect(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+
+    const action = this.parent.commandActionBuilder(
+      [],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'cluster disconnect',
       null,
     );
 

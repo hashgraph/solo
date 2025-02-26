@@ -369,7 +369,11 @@ export class ClusterCommandTasks {
 
   showClusterList() {
     return new Task('List all available clusters', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.parent.logger.showList('Clusters', this.parent.getK8Factory().default().clusters().list());
+      const clusterRefs = this.parent.localConfig.clusterRefs;
+      const clusterList = Object.entries(clusterRefs).map(
+        ([clusterName, clusterContext]) => `${clusterName} - ${clusterContext}`,
+      );
+      this.parent.logger.showList('Cluster references and the respective contexts', clusterList);
     });
   }
 
