@@ -82,8 +82,7 @@ export class ClusterCommandConfigs {
 
   public async resetConfigBuilder(argv, ctx, task) {
     if (!argv[flags.force.name]) {
-      const confirm = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
-
+      const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
         default: false,
         message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
       });

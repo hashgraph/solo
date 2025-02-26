@@ -87,9 +87,10 @@ import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_pro
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ConfigMap} from '../../core/config_builder.js';
-import {type LocalConfig} from '../../core/config/local_config.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
+import {BaseCommand} from '../base.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -115,6 +116,7 @@ export class NodeCommandTasks {
     this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
     this.certificateManager = patchInject(certificateManager, InjectTokens.CertificateManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
     this.remoteConfigManager = patchInject(
       remoteConfigManager,
       InjectTokens.RemoteConfigManager,
@@ -1653,9 +1655,7 @@ export class NodeCommandTasks {
         // On Update and Delete
         for (let i = 0; i < index; i++) {
           const consensusNode = consensusNodes.find(node => node.nodeId === i);
-          const clusterRef = consensusNode
-            ? consensusNode.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
           if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
             // for the case of updating node
@@ -1675,9 +1675,7 @@ export class NodeCommandTasks {
         // When adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const consensusNode = consensusNodes.find(node => node.nodeId === index);
-          const clusterRef = consensusNode
-            ? consensusNode.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
           valuesArgMap[clusterRef] +=
             ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
@@ -1697,7 +1695,7 @@ export class NodeCommandTasks {
           const consensusNodeInValues = consensusNodes.find(node => node.name === nodeAlias);
           const clusterForConsensusNodeInValues = consensusNodeInValues
             ? consensusNodeInValues.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+            : this.k8Factory.default().clusters().readCurrent();
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
@@ -1742,9 +1740,7 @@ export class NodeCommandTasks {
 
         // Add Debug options
         const consensusNode = consensusNodes.find(node => node.name === config.debugNodeAlias);
-        const clusterRef = consensusNode
-          ? consensusNode.cluster
-          : this.k8Factory.default().clusters().readCurrent();
+        const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
@@ -2062,7 +2058,7 @@ export class NodeCommandTasks {
 
         task.title += `: ${nodeAlias}`;
 
-        await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.add(
             nodeAlias,
             new ConsensusNodeComponent(
@@ -2085,7 +2081,7 @@ export class NodeCommandTasks {
           );
         });
 
-        ctx.config.consensusNodes = this.parent.getConsensusNodes();
+        ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
         // if the consensusNodes does not contain the nodeAlias then add it
         if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
           ctx.config.consensusNodes.push(
