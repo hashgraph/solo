@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type NamespaceName} from '../resources/namespace/namespace_name.js';
+import {type NamespaceName} from './namespace/namespace_name.js';
 
 export interface ObjectMeta {
   readonly namespace?: NamespaceName;

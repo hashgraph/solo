@@ -1749,7 +1749,7 @@ export class NodeCommandTasks {
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
         // Update charts
-        self.chartManager.upgrade(
+        await self.chartManager.upgrade(
           config.namespace,
           constants.SOLO_DEPLOYMENT_CHART,
           ctx.config.chartPath,
