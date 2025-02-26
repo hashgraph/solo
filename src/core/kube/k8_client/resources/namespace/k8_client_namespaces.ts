@@ -26,15 +26,19 @@ export class K8ClientNamespaces implements Namespaces {
   public async delete(namespace: NamespaceName): Promise<boolean> {
     try {
       const resp: {response: any; body?: V1Status} = await this.kubeClient.deleteNamespace(namespace.name);
-      let namespaceExists = true;
-      while (namespaceExists) {
-        const response = await this.kubeClient.readNamespace(namespace.name);
+      try {
+        let namespaceExists = true;
+        while (namespaceExists) {
+          const response = await this.kubeClient.readNamespace(namespace.name);
 
-        if (!response?.body?.metadata?.deletionTimestamp) {
-          namespaceExists = false;
-        } else {
-          await sleep(Duration.ofSeconds(1));
+          if (!response?.body?.metadata?.deletionTimestamp) {
+            namespaceExists = false;
+          } else {
+            await sleep(Duration.ofSeconds(1));
+          }
         }
+      } catch {
+        // The namespace has been deleted
       }
 
       return resp.response.statusCode === StatusCodes.OK;
