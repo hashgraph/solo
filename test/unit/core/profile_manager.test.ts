@@ -102,6 +102,7 @@ describe('ProfileManager', () => {
   });
 
   it('should be able to load a profile file', () => {
+    configManager.setFlag(flags.cacheDir, '.');
     configManager.setFlag(flags.profileFile, testProfileFile);
     const profiles = profileManager.loadProfiles(true);
     expect(profiles).not.to.be.null;
