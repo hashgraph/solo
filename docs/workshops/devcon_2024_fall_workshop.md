@@ -61,7 +61,7 @@ Also split your terminals like below so that you can run commands on one termina
 
 If you don’t know how to split your terminal, just open two separate windows and put side-by-side (fyi, I am using tmux so it may look a bit different to some of you).
 
-![Screenshot 2024-04-29 at 5.54.17 AM.png](images/devcon_2024_fall_workshop/screenshot_section_1_1_setup_env_vars.png)
+![Screenshot 2024-04-29 at 5.54.17 AM.png](images/devcon_2024_fall_workshop/screenshot_section_1_1_1_setup_env_vars.png)
 
 ### 1.2 Create a k8s cluster
 
@@ -73,7 +73,7 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}"
 
 #### Checkpoint
 
-![image.png](images/devcon_2024_fall_workshop/screenshot_section_1_2_create_k8s_cluster.png)
+![image.png](images/devcon_2024_fall_workshop/screenshot_section_1_2_1_create_k8s_cluster.png)
 
 ### 1.3 Load images into the cluster
 
@@ -113,7 +113,7 @@ As you run various `solo` commands in the upcoming steps you will be able to wat
 
 If you only see a list of namespaces, then just select the namespace ‘all’ and press enter.
 
-![image.png](images/devcon_2024_fall_workshop/screenshot_section_1_4_view_k8s_cluster.png)
+![image.png](images/devcon_2024_fall_workshop/screenshot_section_1_4_1_view_k8s_cluster.png)
 
 ---
 
@@ -131,7 +131,7 @@ npm i -g @hashgraph/solo
 
 Verify `solo` is installed (ensure version is ≥  `0.30.1`)
 
-![image.png](images/devcon_2024_fall_workshop/screenshot_section_2_1_install_solo.png)
+![image.png](images/devcon_2024_fall_workshop/screenshot_section_2_1_1_install_solo.png)
 
 ### 2.2 Run Solo Init
 
@@ -144,7 +144,7 @@ solo init -n $SOLO_NAMESPACE -i node1,node2,node3 -s "${SOLO_CLUSTER_SETUP_NAMES
 
 #### Checkpoint
 
-![image.png](images/devcon_2024_fall_workshop/screenshot_section_2_2_run_solo_init.png)
+![image.png](images/devcon_2024_fall_workshop/screenshot_section_2_2_1_run_solo_init.png)
 
 ### 2.3 Generate node keys
 
