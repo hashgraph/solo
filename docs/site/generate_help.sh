@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-OUTPUT_FILE="docs/content/User/SoloCommands.md"
+OUTPUT_FILE="docs/site/content/User/SoloCommands.md"
 echo "# Solo Command Reference" > "$OUTPUT_FILE"
 
 # Add Table of Contents placeholder
