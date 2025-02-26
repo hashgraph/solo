@@ -411,11 +411,7 @@ export class RelayCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            await this.chartManager.uninstall(
-              config.namespace,
-              config.releaseName,
-              this.k8Factory.getK8(ctx.config.context).contexts().readCurrent(),
-            );
+            await this.chartManager.uninstall(config.namespace, config.releaseName, ctx.config.context);
 
             this.logger.showList(
               'Destroyed Relays',

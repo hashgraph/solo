@@ -20,7 +20,6 @@ import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.j
 import {type SelectClusterContextContext} from './configs.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
-import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {type ConfigManager} from '../../core/config_manager.js';
@@ -28,8 +27,10 @@ import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {type LeaseManager} from '../../core/lease/lease_manager.js';
 import {type Helm} from '../../core/helm.js';
-import {type ClusterChecks} from '../../core/cluster_checks.js';
+import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
+import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
+import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ConfigMap} from '../../core/config_builder.js';
@@ -527,8 +528,7 @@ export class ClusterCommandTasks {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
         if (!argv.force && (await self.clusterChecks.isRemoteConfigPresentInAnyNamespace())) {
-          const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'toggle',
+          const confirm = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
             default: false,
             message:
               'There is remote config for one of the deployments' +

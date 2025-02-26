@@ -138,6 +138,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
+      this.tasks.addNewConsensusNodeToRemoteConfig(),
       this.tasks.copyNodeKeysToSecrets(),
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap('Deploy new network node', NodeSubcommandType.ADD),
@@ -814,7 +815,7 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.initialize(argv, this.configs.startConfigBuilder.bind(this.configs), lease, this.getConfigMaps()),
         this.validateAllNodeStates({acceptedStates: [ConsensusNodeStates.SETUP]}),
         this.tasks.identifyExistingNodes(),
-        this.tasks.uploadStateFiles((ctx: any) => ctx.config.stateFile.length === 0),
+        this.tasks.uploadStateFiles(ctx => ctx.config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
@@ -979,11 +980,10 @@ export class NodeCommandHandlers extends CommandHandler {
 
         task.title += ` ${nodeAlias}`;
 
-        const components = this.remoteConfigManager.components;
-
-        const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
-
-        task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
+        // TODO: Disabled for now until the node's state mapping is completed
+        // const components = this.remoteConfigManager.components;
+        // const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+        // task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
       },
     };
   }

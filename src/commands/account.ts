@@ -13,7 +13,7 @@ import {sleep} from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
+import {type AnyArgv, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
@@ -22,6 +22,17 @@ import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Base64} from 'js-base64';
+
+interface UpdateAccountContext {
+  config: {
+    accountId: string;
+    amount: number;
+    namespace: NamespaceName;
+    ecdsaPrivateKey: string;
+    ed25519PrivateKey: string;
+  };
+  accountInfo: {accountId: AccountId | string; balance: number; publicKey: string; privateKey?: string};
+}
 
 export class AccountCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
@@ -34,22 +45,26 @@ export class AccountCommand extends BaseCommand {
   } | null;
   private readonly systemAccounts: number[][];
 
-  constructor(opts: Opts, systemAccounts = constants.SYSTEM_ACCOUNTS) {
+  public constructor(opts: Opts, systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS) {
     super(opts);
 
     if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
+      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
 
     this.accountManager = opts.accountManager;
     this.accountInfo = null;
     this.systemAccounts = systemAccounts;
   }
 
-  async closeConnections() {
+  private async closeConnections(): Promise<void> {
     await this.accountManager.close();
   }
 
-  async buildAccountInfo(accountInfo: AccountInfo, namespace: NamespaceName, shouldRetrievePrivateKey: boolean) {
+  private async buildAccountInfo(
+    accountInfo: AccountInfo,
+    namespace: NamespaceName,
+    shouldRetrievePrivateKey: boolean,
+  ) {
     if (!accountInfo || !(accountInfo instanceof AccountInfo))
       throw new IllegalArgumentError('An instance of AccountInfo is required');
 
@@ -73,7 +88,7 @@ export class AccountCommand extends BaseCommand {
       try {
         const privateKey = PrivateKey.fromStringDer(newAccountInfo.privateKey);
         newAccountInfo.privateKeyRaw = privateKey.toStringRaw();
-      } catch (e: Error | any) {
+      } catch {
         this.logger.error(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`);
       }
     }
@@ -81,7 +96,7 @@ export class AccountCommand extends BaseCommand {
     return newAccountInfo;
   }
 
-  async createNewAccount(ctx: {
+  public async createNewAccount(ctx: {
     config: {
       generateEcdsaKey: boolean;
       ecdsaPrivateKey?: string;
@@ -110,11 +125,11 @@ export class AccountCommand extends BaseCommand {
     );
   }
 
-  getAccountInfo(ctx: {config: {accountId: string}}) {
+  private getAccountInfo(ctx: {config: {accountId: string}}): Promise<AccountInfo> {
     return this.accountManager.accountInfoQuery(ctx.config.accountId);
   }
 
-  async updateAccountInfo(ctx: any) {
+  private async updateAccountInfo(ctx: UpdateAccountContext) {
     let amount = ctx.config.amount;
     if (ctx.config.ed25519PrivateKey) {
       if (
@@ -128,10 +143,10 @@ export class AccountCommand extends BaseCommand {
         return false;
       }
     } else {
-      amount = amount || flags.amount.definition.defaultValue;
+      amount = amount || (flags.amount.definition.defaultValue as number);
     }
 
-    const hbarAmount = Number.parseFloat(amount);
+    const hbarAmount = Number.parseFloat(amount.toString());
     if (amount && isNaN(hbarAmount)) {
       throw new SoloError(`The HBAR amount was invalid: ${amount}`);
     }
@@ -146,11 +161,11 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  async transferAmountFromOperator(toAccountId: AccountId, amount: number) {
+  private async transferAmountFromOperator(toAccountId: AccountId | string, amount: number): Promise<boolean> {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount);
   }
 
-  async init(argv: any) {
+  public async init(argv: AnyArgv) {
     const self = this;
 
     interface Context {
@@ -176,7 +191,7 @@ export class AccountCommand extends BaseCommand {
             self.configManager.update(argv);
             const config = {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
-              contexts: this.getRemoteConfigManager().getContexts(),
+              contexts: this.remoteConfigManager.getContexts(),
               nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
             };
 
@@ -365,7 +380,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  async create(argv: any) {
+  public async create(argv: AnyArgv) {
     const self = this;
     const lease = await self.leaseManager.create();
 
@@ -446,7 +461,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error in creating account: ${e.message}`, e);
     } finally {
       await lease.release();
@@ -456,21 +471,10 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  async update(argv: any) {
+  public async update(argv: AnyArgv) {
     const self = this;
 
-    interface Context {
-      config: {
-        accountId: string;
-        amount: number;
-        namespace: NamespaceName;
-        ecdsaPrivateKey: string;
-        ed25519PrivateKey: string;
-      };
-      accountInfo: {accountId: string; balance: number; publicKey: string; privateKey?: string};
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<UpdateAccountContext>(
       [
         {
           title: 'Initialize',
@@ -538,7 +542,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error in updating account: ${e.message}`, e);
     } finally {
       await this.closeConnections();
@@ -547,7 +551,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  async get(argv: any) {
+  public async get(argv: AnyArgv) {
     const self = this;
 
     interface Context {
@@ -558,7 +562,6 @@ export class AccountCommand extends BaseCommand {
       };
     }
 
-    // @ts-ignore
     const tasks = new Listr<Context>(
       [
         {
@@ -611,7 +614,7 @@ export class AccountCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error in getting account info: ${e.message}`, e);
     } finally {
       await this.closeConnections();
@@ -621,18 +624,18 @@ export class AccountCommand extends BaseCommand {
   }
 
   /** Return Yargs command definition for 'node' command */
-  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  public getCommandDefinition() {
     const self = this;
     return {
       command: 'account',
       desc: 'Manage Hedera accounts in solo network',
-      builder: (yargs: any) => {
+      builder: (yargs: AnyYargs) => {
         return yargs
           .command({
             command: 'init',
             desc: 'Initialize system accounts with new keys',
-            builder: (y: any) => flags.setCommandFlags(y, flags.deployment, flags.nodeAliasesUnparsed),
-            handler: (argv: any) => {
+            builder: (y: AnyYargs) => flags.setCommandFlags(y, flags.deployment, flags.nodeAliasesUnparsed),
+            handler: (argv: AnyArgv) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
 
@@ -640,10 +643,12 @@ export class AccountCommand extends BaseCommand {
                 .init(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account init' ===");
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },
@@ -651,7 +656,7 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be generated for you, otherwise you may supply either a ECDSA or ED25519 private key',
-            builder: (y: any) =>
+            builder: (y: AnyYargs) =>
               flags.setCommandFlags(
                 y,
                 flags.amount,
@@ -662,7 +667,7 @@ export class AccountCommand extends BaseCommand {
                 flags.generateEcdsaKey,
                 flags.setAlias,
               ),
-            handler: (argv: any) => {
+            handler: (argv: AnyArgv) => {
               self.logger.info("==== Running 'account create' ===");
               self.logger.info(argv);
 
@@ -670,10 +675,12 @@ export class AccountCommand extends BaseCommand {
                 .create(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account create' ===");
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },
@@ -681,7 +688,7 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'update',
             desc: 'Updates an existing account with the provided info, if you want to update the private key, you can supply either ECDSA or ED25519 but not both\n',
-            builder: (y: any) =>
+            builder: (y: AnyYargs) =>
               flags.setCommandFlags(
                 y,
                 flags.accountId,
@@ -690,7 +697,7 @@ export class AccountCommand extends BaseCommand {
                 flags.ecdsaPrivateKey,
                 flags.ed25519PrivateKey,
               ),
-            handler: (argv: any) => {
+            handler: (argv: AnyArgv) => {
               self.logger.info("==== Running 'account update' ===");
               self.logger.info(argv);
 
@@ -698,10 +705,12 @@ export class AccountCommand extends BaseCommand {
                 .update(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account update' ===");
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },
@@ -709,8 +718,8 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
-            builder: (y: any) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.deployment),
-            handler: (argv: any) => {
+            builder: (y: AnyYargs) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.deployment),
+            handler: (argv: AnyArgv) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);
 
@@ -718,10 +727,12 @@ export class AccountCommand extends BaseCommand {
                 .get(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account get' ===");
+                  // eslint-disable-next-line n/no-process-exit
                   if (!r) process.exit(1);
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
+                  // eslint-disable-next-line n/no-process-exit
                   process.exit(1);
                 });
             },
@@ -731,7 +742,7 @@ export class AccountCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
+  public close(): Promise<void> {
     return this.closeConnections();
   }
 }

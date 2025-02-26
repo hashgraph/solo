@@ -1,7 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
+import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
@@ -890,7 +891,7 @@ export class NetworkCommand extends BaseCommand {
                 await self.chartManager.uninstall(
                   config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
-                  this.k8Factory.getK8(config.clusterRefs[clusterRef]).contexts().readCurrent(),
+                  config.clusterRefs[clusterRef],
                 );
               }
 
@@ -909,7 +910,7 @@ export class NetworkCommand extends BaseCommand {
           title: 'Check for load balancer',
           skip: ctx => ctx.config.loadBalancerEnabled === false,
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             //Add check for network node service to be created and load balancer to be assigned (if load balancer is enabled)
@@ -969,7 +970,7 @@ export class NetworkCommand extends BaseCommand {
             ctx.config.valuesArgMap = await this.prepareValuesArgMap(ctx.config);
 
             // Perform a helm upgrade for each cluster
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
             for (const clusterRef of Object.keys(config.clusterRefs)) {
               subTasks.push({
@@ -1011,7 +1012,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check proxy pods are running',
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             // HAProxy
@@ -1060,7 +1061,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check auxiliary pods are ready',
           task: (_, task) => {
-            const subTasks = [];
+            const subTasks: SoloListrTask<Context>[] = [];
 
             // minio
             subTasks.push({
@@ -1104,7 +1105,7 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
     } finally {
       await lease.release();
@@ -1124,13 +1125,12 @@ export class NetworkCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             if (!argv.force) {
-              const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-                type: 'toggle',
+              const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
                 default: false,
                 message: 'Are you sure you would like to destroy the network components?',
               });
 
-              if (!confirm) {
+              if (!confirmResult) {
                 process.exit(0);
               }
             }
@@ -1144,7 +1144,7 @@ export class NetworkCommand extends BaseCommand {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
-              contexts: this.getRemoteConfigManager().getContexts(),
+              contexts: self.remoteConfigManager.getContexts(),
             };
 
             return ListrLease.newAcquireLeaseTask(lease, task);

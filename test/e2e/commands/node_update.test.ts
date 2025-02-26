@@ -28,6 +28,8 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
+import {type NetworkNodeServices} from '../../../src/core/network_node_services.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update');
@@ -55,8 +57,8 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     const nodeCmd = bootstrapResp.cmd.nodeCmd;
     const accountCmd = bootstrapResp.cmd.accountCmd;
     const k8Factory = bootstrapResp.opts.k8Factory;
-    let existingServiceMap;
-    let existingNodeIdsPrivateKeysHash;
+    let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
+    let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
     after(async function () {
       this.timeout(Duration.ofMinutes(10).toMillis());
