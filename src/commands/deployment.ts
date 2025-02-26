@@ -17,9 +17,13 @@ import {type NamespaceName} from '../core/kube/resources/namespace/namespace_nam
 import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
-import {type AnyArgv, type AnyYargs} from '../types/aliases.js';
-import {DeploymentStates} from '../core/config/remote/enumerations.js';
+import {type AnyArgv, type AnyYargs, type NodeAliases} from '../types/aliases.js';
+import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
 import {Templates} from '../core/templates.js';
+import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
+import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
+import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
+import {Cluster} from '../core/config/remote/cluster.js';
 
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
@@ -166,7 +170,6 @@ export class DeploymentCommand extends BaseCommand {
             });
           },
         },
-        ListrRemoteConfig.createRemoteConfigInMultipleClusters(this, argv),
       ],
       {
         concurrent: false,
@@ -199,6 +202,10 @@ export class DeploymentCommand extends BaseCommand {
       dnsConsensusNodePattern: string;
 
       state?: DeploymentStates;
+      nodeAliases: NodeAliases;
+
+      existingNodesCount: number;
+      existingClusterContext?: string;
     }
 
     interface Context {
@@ -225,6 +232,9 @@ export class DeploymentCommand extends BaseCommand {
               numberOfConsensusNodes: self.configManager.getFlag<number>(flags.numberOfConsensusNodes),
               dnsBaseDomain: self.configManager.getFlag(flags.dnsBaseDomain),
               dnsConsensusNodePattern: self.configManager.getFlag(flags.dnsConsensusNodePattern),
+
+              existingNodesCount: 0,
+              nodeAliases: [],
             } as Config;
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
@@ -259,14 +269,21 @@ export class DeploymentCommand extends BaseCommand {
                 await self.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
               }
 
+              ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, 0);
+
               return;
             }
 
             const existingClusterContext = self.localConfig.clusterRefs[existingClusterRefs[0]];
+            ctx.config.existingClusterContext = existingClusterContext;
 
             const remoteConfig = await self.remoteConfigManager.get(existingClusterContext);
+
             const state = remoteConfig.metadata.state;
             ctx.config.state = state;
+
+            const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length + 1;
+            ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
 
             // If state is pre-genesis prompt the user for the --num-of-consensus-nodes
             if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
@@ -302,7 +319,7 @@ export class DeploymentCommand extends BaseCommand {
         },
         {
           title: 'Verify prerequisites',
-          task: async (ctx, task) => {
+          task: async () => {
             // TODO: Verifies Kubernetes cluster & namespace-level prerequisites (e.g., cert-manager, HAProxy, etc.)
           },
         },
@@ -323,15 +340,64 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'create remote config for deployment',
           task: async (ctx, task) => {
-            const {deployment, clusterRef, context, state, numberOfConsensusNodes} = ctx.config;
+            const {
+              deployment,
+              clusterRef,
+              context,
+              state,
+              nodeAliases,
+              namespace,
+              existingClusterContext,
+              dnsBaseDomain,
+              dnsConsensusNodePattern,
+            } = ctx.config;
 
             task.title += `: ${deployment} in cluster: ${clusterRef}`;
-            // TODO: Create remote config
 
-            const nodeAliasesUnparsed = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes).join(',');
-            self.configManager.setFlag(flags.nodeAliasesUnparsed, nodeAliasesUnparsed);
+            if (!existingClusterContext) {
+              await self.remoteConfigManager.create(
+                argv,
+                state,
+                nodeAliases,
+                namespace,
+                deployment,
+                clusterRef,
+                context,
+              );
 
-            await self.remoteConfigManager.create(argv, state);
+              return;
+            }
+
+            await self.remoteConfigManager.createConfigMap(context);
+
+            await self.remoteConfigManager.modify(async remoteConfig => {
+              // update components
+              for (const nodeAlias of nodeAliases) {
+                remoteConfig.components.add(
+                  new ConsensusNodeComponent(
+                    nodeAlias,
+                    clusterRef,
+                    namespace.name,
+                    ConsensusNodeStates.REQUESTED,
+                    Templates.nodeIdFromNodeAlias(nodeAlias),
+                  ),
+                );
+
+                remoteConfig.components.add(
+                  new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterRef, namespace.name),
+                );
+
+                remoteConfig.components.add(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterRef, namespace.name));
+              }
+
+              // update command history
+              remoteConfig.addCommandToHistory(argv._.join(' '));
+
+              // update clusters
+              remoteConfig.addCluster(
+                new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
+              );
+            });
           },
         },
       ],

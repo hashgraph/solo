@@ -49,8 +49,10 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   /* -------- Modifiers -------- */
 
   /** Used to add new component to their respective group. */
-  public add(serviceName: ComponentName, component: BaseComponent): void {
+  public add(component: BaseComponent): void {
     const self = this;
+
+    const serviceName = component.name;
 
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);
@@ -71,8 +73,10 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   /** Used to edit an existing component from their respective group. */
-  public edit(serviceName: ComponentName, component: BaseComponent): void {
+  public edit(component: BaseComponent): void {
     const self = this;
+
+    const serviceName = component.name;
 
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);

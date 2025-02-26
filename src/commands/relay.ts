@@ -504,7 +504,7 @@ export class RelayCommand extends BaseCommand {
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace.name, nodeAliases));
+          remoteConfig.components.add(new RelayComponent('relay', cluster, namespace.name, nodeAliases));
         });
       },
     };

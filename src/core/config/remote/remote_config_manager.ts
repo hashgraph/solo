@@ -29,7 +29,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {type AnyObject, type NodeAlias} from '../../../types/aliases.js';
+import {type AnyArgv, type AnyObject, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
@@ -38,7 +38,7 @@ import * as helpers from '../../helpers.js';
 import {ConsensusNode} from '../../model/consensus_node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
-import {DeploymentStates} from './enumerations.js';
+import {type DeploymentStates} from './enumerations.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -111,7 +111,15 @@ export class RemoteConfigManager {
    * Gathers data from the local configuration and constructs a new ConfigMap
    * entry in the cluster with initial command history and metadata.
    */
-  public async create(argv: AnyObject, state: DeploymentStates): Promise<void> {
+  public async create(
+    argv: AnyArgv,
+    state: DeploymentStates,
+    nodeAliases: NodeAliases,
+    namespace: NamespaceName,
+    deployment: DeploymentName,
+    clusterRef: ClusterRef,
+    context: string,
+  ): Promise<void> {
     const clusters: Record<ClusterRef, Cluster> = {};
 
     Object.entries(this.localConfig.deployments).forEach(
@@ -123,31 +131,21 @@ export class RemoteConfigManager {
       },
     );
 
-    // temporary workaround until we can have `solo deployment add` command
-    const nodeAliases: string[] = helpers.splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
-    const namespace = await this.getNamespace();
+    const lastUpdatedAt = new Date();
+    const email = this.localConfig.userEmailAddress;
+    const soloVersion = helpers.getSoloVersion();
+    const command: string = argv._.join(' ');
 
     this.remoteConfig = new RemoteConfigDataWrapper({
-      metadata: new RemoteConfigMetadata(
-        namespace.name,
-        this.configManager.getFlag<DeploymentName>(flags.deployment),
-        state,
-        new Date(),
-        this.localConfig.userEmailAddress,
-        helpers.getSoloVersion(),
-      ),
+      metadata: new RemoteConfigMetadata(namespace.name, deployment, state, lastUpdatedAt, email, soloVersion),
       clusters,
-      commandHistory: ['deployment create'],
-      lastExecutedCommand: 'deployment create',
-      components: ComponentsDataWrapper.initializeWithNodes(
-        nodeAliases,
-        this.configManager.getFlag(flags.deploymentClusters),
-        namespace.name,
-      ),
+      commandHistory: [command],
+      lastExecutedCommand: command,
+      components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterRef, namespace.name),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
-    await this.createConfigMap();
+    await this.createConfigMap(context);
   }
 
   /**
@@ -192,13 +190,15 @@ export class RemoteConfigManager {
     await this.load(context);
     try {
       await RemoteConfigValidator.validateComponents(
-        this.configManager.getFlag(flags.namespace),
+        await this.getNamespace(),
         this.remoteConfig.components,
         this.k8Factory,
         this.localConfig,
       );
     } catch {
-      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8Factory.default().clusters().readCurrent()));
+      throw new SoloError(
+        ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8Factory.getK8(context).clusters().readCurrent()),
+      );
     }
     return this.remoteConfig;
   }
@@ -317,38 +317,10 @@ export class RemoteConfigManager {
     }
   }
 
-  public async createAndValidate(
-    clusterRef: ClusterRef,
-    context: Context,
-    namespace: NamespaceNameAsString,
-    argv: AnyObject,
-    state: DeploymentStates,
-  ) {
-    const self = this;
-    self.k8Factory.default().contexts().updateCurrent(context);
-
-    if (!(await self.k8Factory.default().namespaces().has(NamespaceName.of(namespace)))) {
-      await self.k8Factory.default().namespaces().create(NamespaceName.of(namespace));
-    }
-
-    const localConfigExists = this.localConfig.configFileExists();
-    if (!localConfigExists) {
-      throw new SoloError("Local config doesn't exist");
-    }
-
-    self.unload();
-    if (await self.load()) {
-      self.logger.showUser(chalk.red('Remote config already exists'));
-      throw new SoloError('Remote config already exists');
-    }
-
-    await self.create(argv, state);
-  }
-
   /* ---------- Utilities ---------- */
 
   /** Empties the component data inside the remote config */
-  public async deleteComponents() {
+  public async deleteComponents(): Promise<void> {
     await this.modify(async remoteConfig => {
       remoteConfig.components = ComponentsDataWrapper.initializeEmpty();
     });
@@ -358,7 +330,7 @@ export class RemoteConfigManager {
     return !!this.remoteConfig;
   }
 
-  public unload() {
+  public unload(): void {
     delete this.remoteConfig;
   }
 
@@ -388,9 +360,9 @@ export class RemoteConfigManager {
   /**
    * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
    */
-  private async createConfigMap(): Promise<void> {
+  public async createConfigMap(context?: string): Promise<void> {
     await this.k8Factory
-      .default()
+      .getK8(context)
       .configMaps()
       .create(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
         'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
@@ -407,7 +379,7 @@ export class RemoteConfigManager {
         const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
         const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
         const data = {
-          'remote-config-data': yaml.stringify(this.remoteConfig.toObject() as any),
+          'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
         };
 
         return this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data);

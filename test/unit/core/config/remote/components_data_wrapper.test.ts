@@ -100,7 +100,7 @@ describe('ComponentsDataWrapper', () => {
 
     const existingComponent = consensusNodes[serviceName];
 
-    expect(() => componentsDataWrapper.add(serviceName, existingComponent)).to.throw(SoloError, 'Component exists');
+    expect(() => componentsDataWrapper.add(existingComponent)).to.throw(SoloError, 'Component exists');
   });
 
   it('should be able to add new component with the .add() method', () => {
@@ -116,7 +116,7 @@ describe('ComponentsDataWrapper', () => {
     };
     const newComponent = new EnvoyProxyComponent(name, cluster, namespace);
 
-    componentsDataWrapper.add(newServiceName, newComponent);
+    componentsDataWrapper.add(newComponent);
 
     const componentDataWrapperObject = componentsDataWrapper.toObject();
 
@@ -140,13 +140,13 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
     const relayComponent = relays[serviceName];
 
-    componentsDataWrapper.edit(serviceName, relayComponent);
+    componentsDataWrapper.edit(relayComponent);
 
     const newName = 'newName';
 
     const newReplayComponent = new RelayComponent(newName, cluster, namespace);
 
-    componentsDataWrapper.edit(serviceName, newReplayComponent);
+    componentsDataWrapper.edit(newReplayComponent);
 
     expect(componentsDataWrapper.toObject()[ComponentType.Relay][serviceName].name).to.equal(newName);
   });
@@ -160,7 +160,7 @@ describe('ComponentsDataWrapper', () => {
     const notFoundServiceName = 'not_found';
     const relay = relays[serviceName];
 
-    expect(() => componentsDataWrapper.edit(notFoundServiceName, relay)).to.throw(
+    expect(() => componentsDataWrapper.edit(relay)).to.throw(
       SoloError,
       `Component doesn't exist, name: ${notFoundServiceName}`,
     );

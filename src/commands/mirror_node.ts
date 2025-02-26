@@ -814,7 +814,7 @@ export class MirrorNodeCommand extends BaseCommand {
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('mirrorNode', new MirrorNodeComponent('mirrorNode', cluster, namespace.name));
+          remoteConfig.components.add(new MirrorNodeComponent('mirrorNode', cluster, namespace.name));
         });
       },
     };

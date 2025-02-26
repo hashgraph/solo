@@ -35,11 +35,13 @@ export class Templates {
     return `node${num}`;
   }
 
-  public static renderNodeAliasesFromCount(count: number): NodeAliases {
+  public static renderNodeAliasesFromCount(count: number, existingNodesCount: number): NodeAliases {
     const nodeAliases: NodeAliases = [];
+    let nodeNumber = existingNodesCount + 1;
 
-    for (let i = 1; i <= count; i++) {
-      nodeAliases.push(Templates.renderNodeAliasFromNumber(i));
+    for (let i = 0; i < count; i++) {
+      nodeAliases.push(Templates.renderNodeAliasFromNumber(nodeNumber));
+      nodeNumber++;
     }
 
     return nodeAliases;
