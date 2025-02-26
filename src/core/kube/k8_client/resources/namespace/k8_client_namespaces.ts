@@ -6,8 +6,6 @@ import {type V1Status, type CoreV1Api} from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {SoloError} from '../../../../errors.js';
 import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
-import {ResourceDeleteError} from '../../../errors/resource_operation_errors.js';
-import {ResourceType} from '../../../resources/resource_type.js';
 
 export class K8ClientNamespaces implements Namespaces {
   constructor(private readonly kubeClient: CoreV1Api) {}

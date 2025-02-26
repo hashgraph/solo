@@ -6,7 +6,6 @@ import {Container} from '../src/core/dependency_injection/container_init.js';
 import fs from 'fs';
 import {type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import * as yaml from 'yaml';
-import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../src/core/constants.js';
 
 const cacheDirectory = path.join('test', 'data', 'tmp');
