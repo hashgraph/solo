@@ -25,7 +25,7 @@ x509.cryptoProvider.set(crypto);
 export class KeyManager {
   static SigningKeyAlgo = {
     name: 'RSASSA-PKCS1-v1_5',
-    hash: {name: 'SHA-384'},
+    hash: 'SHA-384',
     publicExponent: new Uint8Array([1, 0, 1]),
     modulusLength: 3072,
   };
@@ -263,12 +263,7 @@ export class KeyManager {
 
       this.logger.debug(`generating ${keyPrefix}-key for node: ${nodeAlias}`, {friendlyName});
 
-      let keypair: crypto.webcrypto.CryptoKeyPair;
-      try {
-        keypair = await crypto.subtle.generateKey(KeyManager.SigningKeyAlgo, true, KeyManager.SigningKeyUsage);
-      } catch (e) {
-        throw new SoloError('Error generating keypair: ' + e.message, e);
-      }
+      const keypair = await crypto.subtle.generateKey(KeyManager.SigningKeyAlgo, true, KeyManager.SigningKeyUsage);
 
       const cert = await x509.X509CertificateGenerator.createSelfSigned({
         serialNumber: '01',
