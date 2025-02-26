@@ -24,7 +24,7 @@ export KIND_CREATE_CLUSTER_OUTPUT=$( cat create-cluster.log | tee test.log )
 solo init | tee init.log
 export SOLO_INIT_OUTPUT=$( cat init.log | tee test.log )
 
-olo deployment create -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" | tee deployment-create.log
+solo deployment create -i node1,node2,node3 -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}" | tee deployment-create.log
 export SOLO_DEPLOYMENT_CREATE_OUTPUT=$( cat deployment-create.log | tee test.log )
 
 solo node keys --gossip-keys --tls-keys --deployment "${SOLO_DEPLOYMENT}" | tee keys.log
