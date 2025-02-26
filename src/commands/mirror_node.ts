@@ -32,7 +32,7 @@ import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes} from '../core/helpers.js';
 
-interface MirrorNodeDeployConfigClass {
+export interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
   namespace: NamespaceName;
@@ -61,7 +61,7 @@ interface MirrorNodeDeployConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
 }
 
-interface Context {
+export interface Context {
   config: MirrorNodeDeployConfigClass;
   addressBook: string;
 }
