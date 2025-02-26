@@ -158,7 +158,7 @@ minio-server:
         nodeSelector:
           solo.hashgraph.io/role: "consensus-node"
           solo.hashgraph.io/owner: "alex.kuzmin"
-          solo.hashgraph.io/network-id: "%NETWORK_ID%"
+          solo.hashgraph.io/network-id: "engineering-1"
         tolerations:
           - key: "solo.hashgraph.io/role"
             operator: "Equal"
@@ -170,7 +170,7 @@ minio-server:
             effect: "NoSchedule"
           - key: "solo.hashgraph.io/network-id"
             operator: "Equal"
-            value: "%NETWORK_ID%"
+            value: "engineering-1"
             effect: "NoSchedule"
         resources:
           requests:
