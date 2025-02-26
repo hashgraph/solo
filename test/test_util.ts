@@ -276,6 +276,7 @@ export function e2eTestSuite(
         expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName,
+          flags.namespace.constName,
           'consensusNodes',
           'contexts',
         ]);
