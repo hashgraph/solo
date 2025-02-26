@@ -463,7 +463,7 @@ secring.*
 ### Completely Ignore Intellij
 .idea
 
-### Ignore Helm resources
+### Ignore Generated resources
 **/src/main/resources/software/**
 .env
 *.run
@@ -473,13 +473,13 @@ coverage/
 deleteme.yaml
 /.nyc_output/
 /.nvmrc
-/docs/public/static/Classes/
-/docs/content/Classes/
-/docs/content/Developer/DEV.md
-/docs/content/User/README.md
-/docs/content/User/README
-/docs/themes/
-/docs/.hugo_build.lock
-/docs/public/
+/docs/site/public/static/Classes/
+/docs/site/content/Classes/
+/docs/site/content/Developer/DEV.md
+/docs/site/content/User/README.md
+/docs/site/content/User/README
+/docs/site/themes/
+/docs/site/.hugo_build.lock
+/docs/site/public/
 /contextDir/
-/docs/resources/
+/docs/site/resources/
