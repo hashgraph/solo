@@ -1,6 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
+import {ComponentsDataWrapper} from './components_data_wrapper.js';
+import {ConsensusNodeComponent} from './components/consensus_node_component.js';
 
 /**
  * Enumerations that represent the component types used in remote config
