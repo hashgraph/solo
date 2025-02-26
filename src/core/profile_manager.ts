@@ -60,10 +60,7 @@ export class ProfileManager {
    * @throws {IllegalArgumentError} if the profile file is not found.
    */
   loadProfiles(forceReload = false): Map<string, AnyObject> {
-    const profileFile = path.join(
-      this.configManager.getFlag<string>(flags.cacheDir),
-      this.configManager.getFlag<string>(flags.profileFile),
-    );
+    const profileFile = this.configManager.getFlagFile(flags.profileFile);
     if (!profileFile) throw new MissingArgumentError('profileFile is required');
 
     // return the cached value as quickly as possible
@@ -218,10 +215,7 @@ export class ProfileManager {
     );
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
-      const filePath = path.join(
-        this.configManager.getFlag<string>(flags.cacheDir),
-        this.configManager.getFlag<string>(flag),
-      );
+      const filePath = this.configManager.getFlagFile(flag);
       if (!filePath) {
         throw new SoloError(`Configuration file path is missing for: ${flag.name}`);
       }

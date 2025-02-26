@@ -15,6 +15,7 @@ import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {type AnyArgv, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
+import path from 'path';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -194,5 +195,12 @@ export class ConfigManager {
       const input = await flag.prompt(task, this.getFlag(flag));
       this.setFlag(flag, input);
     }
+  }
+
+  public getFlagFile(flag: CommandFlag): string {
+    if (this.getFlag(flag) === flag.definition.defaultValue) {
+      return path.join(this.getFlag(flags.cacheDir), this.getFlag(flag));
+    }
+    return this.getFlag(flag);
   }
 }
