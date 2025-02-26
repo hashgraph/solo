@@ -1492,7 +1492,7 @@ export class Flags {
   };
 
   static readonly context: CommandFlag = {
-    constName: 'contextName',
+    constName: 'context',
     name: 'context',
     definition: {
       describe: 'The Kubernetes context name to be used. Multiple contexts can be separated by a comma',

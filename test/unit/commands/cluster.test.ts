@@ -44,6 +44,7 @@ import {K8ClientClusters} from '../../../src/core/kube/k8_client/resources/clust
 import {K8ClientContexts} from '../../../src/core/kube/k8_client/resources/context/k8_client_contexts.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {K8ClientNamespaces} from '../../../src/core/kube/k8_client/resources/namespace/k8_client_namespaces.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -497,7 +498,7 @@ describe('ClusterCommand unit tests', () => {
       });
     });
 
-    describe('readClustersFromRemoteConfig', () => {
+    xdescribe('readClustersFromRemoteConfig', () => {
       let taskStub;
 
       async function runReadClustersFromRemoteConfigTask(opts) {

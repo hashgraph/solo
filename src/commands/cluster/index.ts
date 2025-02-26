@@ -35,11 +35,22 @@ export class ClusterCommand extends BaseCommand {
             new YargsCommand(
               {
                 command: 'connect',
-                description: 'updates the local configuration by connecting a deployment to a k8s context',
+                description: 'associates a cluster reference to a k8s context',
                 commandDef: this,
                 handler: 'connect',
               },
               ContextFlags.CONNECT_FLAGS,
+            ),
+          )
+          .command(
+            new YargsCommand(
+              {
+                command: 'disconnect',
+                description: 'dissociates a cluster reference from a k8s context',
+                commandDef: this,
+                handler: 'disconnect',
+              },
+              ContextFlags.DEFAULT_FLAGS,
             ),
           )
           .command(
@@ -50,7 +61,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'list',
               },
-              DEFAULT_FLAGS,
+              ContextFlags.NO_FLAGS,
             ),
           )
           .command(
@@ -61,7 +72,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'info',
               },
-              DEFAULT_FLAGS,
+              ContextFlags.DEFAULT_FLAGS,
             ),
           )
           .command(

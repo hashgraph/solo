@@ -230,6 +230,9 @@ export abstract class BaseCommand extends ShellRunner {
               this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
               return this[`_${flag.constName}`];
             },
+            set(value) {
+              this[`_${flag.constName}`] = value;
+            },
           });
         });
 

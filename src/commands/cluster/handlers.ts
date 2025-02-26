@@ -6,9 +6,8 @@ import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
-import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
+import {connectConfigBuilder, defaultConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
 
 export class ClusterCommandHandlers implements CommandHandlers {
@@ -30,12 +29,9 @@ export class ClusterCommandHandlers implements CommandHandlers {
     const action = this.parent.commandActionBuilder(
       [
         this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
-        this.parent.setupHomeDirectoryTask(),
-        this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8Factory()),
-        this.tasks.selectContext(),
-        ListrRemoteConfig.loadRemoteConfig(this.parent, argv),
-        this.tasks.readClustersFromRemoteConfig(argv),
-        this.tasks.updateLocalConfig(),
+        this.tasks.connectClusterRef(),
+        this.tasks.testConnectionToCluster(),
+        this.tasks.saveLocalConfig(),
       ],
       {
         concurrent: false,
@@ -50,10 +46,14 @@ export class ClusterCommandHandlers implements CommandHandlers {
   }
 
   async disconnect(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
-      [],
+      [
+        this.tasks.initialize(argv, defaultConfigBuilder.bind(this)),
+        this.tasks.disconnectClusterRef(),
+        this.tasks.saveLocalConfig(),
+      ],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -67,7 +67,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   }
 
   async list(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.NO_FLAGS);
 
     const action = this.parent.commandActionBuilder(
       [this.tasks.showClusterList()],
@@ -84,10 +84,10 @@ export class ClusterCommandHandlers implements CommandHandlers {
   }
 
   async info(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
-      [this.tasks.getClusterInfo()],
+      [this.tasks.initialize(argv, defaultConfigBuilder.bind(this)), this.tasks.getClusterInfo()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
