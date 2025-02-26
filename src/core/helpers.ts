@@ -17,7 +17,7 @@ import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
 import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
-import {type Version} from './config/remote/types.js';
+import {type ClusterRef, type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type K8} from './kube/k8.js';

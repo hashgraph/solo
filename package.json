@@ -32,11 +32,13 @@
     "test-e2e-node-upgrade": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Upgrade Tests\" c8 --report-dir='coverage/e2e-node-upgrade' mocha 'test/e2e/commands/node_upgrade.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-upgrade.xml",
     "test-e2e-node-upgrade-separate": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Node Upgrade - Separate commands Tests\" c8 --report-dir='coverage/e2e-node-upgrade-separate' mocha 'test/e2e/commands/separate_node_upgrade.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-node-upgrade-separate.xml",
     "test-e2e-relay": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Relay Tests\" c8 --report-dir='coverage/e2e-relay' mocha 'test/e2e/commands/relay.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-relay.xml",
+    "test-e2e-dual-full": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Dual Cluster Full Test\" c8 --report-dir='coverage/e2e-dual-cluster-full' mocha 'test/e2e/commands/dual_cluster_full.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-dual-cluster-full.xml",
     "solo-test": "tsx --no-deprecation --no-warnings solo.ts",
     "solo": "node --no-deprecation --no-warnings dist/solo.js",
     "check": "remark . --quiet --frail && eslint . && tsc && madge --circular src/* && npx typedoc --emit none",
     "format": "remark . --quiet --frail --output && eslint --fix . && tsc && madge --circular src/* && npx typedoc --emit none",
     "test-setup": "./test/e2e/setup-e2e.sh",
+    "dual-cluster-setup": "./test/e2e/dual-cluster/setup-dual-e2e.sh",
     "build": "rm -Rf dist && tsc && node resources/post-build-script.js"
   },
   "keywords": [
