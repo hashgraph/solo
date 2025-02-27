@@ -70,7 +70,7 @@ permissions:
 env:
   #CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
   CG_EXEC: "ionice -c 2 -n 2 nice -n 19"
-  SOLO_CLUSTER_DUALITY: 1
+  SOLO_CLUSTER_DUALITY: ${{ inputs.npm-test-script == 'test-e2e-dual-cluster-full' && 2 || 1 }}
 
 jobs:
   e2e-test:
@@ -196,9 +196,6 @@ jobs:
       - name: Setup E2E Tests
         run: | 
           npm link
-          if [[ "${{ inputs.npm-test-script }}" == "test-e2e-dual-cluster-full" ]]; then
-            set SOLO_CLUSTER_DUALITY=2
-          fi
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
           SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} ./test/e2e/dual-cluster/setup-dual-e2e.sh
 

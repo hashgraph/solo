@@ -603,7 +603,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      const message = `Error deploying node: ${e.message}`;
+      const message = `Error deploying mirror node: ${e.message}`;
       self.logger.error(message, e);
       throw new SoloError(message, e);
     } finally {
