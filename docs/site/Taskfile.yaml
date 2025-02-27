@@ -76,7 +76,7 @@ tasks:
   build:typedoc:
     dir: ../..
     cmds:
-      - npx typedoc --out docs/site/public/static/Classes --entryPoints ./solo.ts --entryPoints ./src/index.ts --entryPointStrategy expand ./src
+      - npx typedoc --excludeExternals --out docs/site/public/static/Classes --entryPoints ./solo.ts --entryPoints ./src/index.ts --entryPointStrategy expand ./src
 
   build:copy:
     cmds:

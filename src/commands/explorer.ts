@@ -22,7 +22,7 @@ import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
 
-interface ExplorerDeployConfigClass {
+export interface ExplorerDeployConfigClass {
   chartDirectory: string;
   clusterRef: string;
   clusterContext: string;

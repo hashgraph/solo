@@ -118,7 +118,7 @@ export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod';
 
 /**
  * Listr related
- * @return a object that defines the default color options
+ * @returns a object that defines the default color options
  */
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,

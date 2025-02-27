@@ -1064,7 +1064,6 @@ export class NodeCommandTasks {
 
   /**
    * Generate genesis network json file
-   * @private
    * @param namespace - namespace
    * @param consensusNodes - consensus nodes
    * @param keysDir - keys directory
