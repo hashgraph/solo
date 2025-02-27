@@ -29,7 +29,7 @@ describe('ClusterCommand', () => {
     logging.SoloLogger.prototype.showJSON.restore();
   });
 
-  const TEST_CONTEXT = `kind-${TEST_CLUSTER}`;
+  const TEST_CONTEXT = TEST_CLUSTER;
   const testName = 'cluster-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const argv = Argv.getDefaultArgv(namespace);
