@@ -340,7 +340,6 @@ export class AccountManager {
   /**
    * pings the node client at a set interval, can throw an exception if the ping fails
    * @param operatorId
-   * @private
    */
   private startIntervalPinger(operatorId: string) {
     const interval = constants.NODE_CLIENT_PING_INTERVAL;
@@ -416,7 +415,6 @@ export class AccountManager {
    * @param obj - the object containing the network node service and the account id
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
-   * @private
    */
   private async testNodeClientConnection(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
     const maxRetries = constants.NODE_CLIENT_PING_MAX_RETRIES;
@@ -1008,7 +1006,6 @@ export class AccountManager {
    * @param obj - the network node object where the key is the network endpoint and the value is the account id
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
-   * @private
    */
   private async pingNetworkNode(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
     let nodeClient: Client;
