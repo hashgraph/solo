@@ -440,16 +440,28 @@ export class AccountCommand extends BaseCommand {
         },
         {
           title: 'create the new account',
-          task: async ctx => {
+          task: async (ctx, task) => {
+            const subTasks: SoloListrTask<Context>[] = [];
+
             for (let i = 0; i < ctx.config.createAmount; i++) {
-              self.accountInfo = await self.createNewAccount(ctx);
-              const accountInfoCopy = {...self.accountInfo};
-              delete accountInfoCopy.privateKey;
-              this.logger.showJSON('new account created', accountInfoCopy);
-              if (ctx.config.createAmount > 0) {
-                await sleep(Duration.ofSeconds(1));
-              }
+              subTasks.push({
+                title: `Create accounts [${i}]`,
+                task: async (ctx: Context) => {
+                  self.accountInfo = await self.createNewAccount(ctx);
+                  const accountInfoCopy = {...self.accountInfo};
+                  delete accountInfoCopy.privateKey;
+                  this.logger.showJSON('new account created', accountInfoCopy);
+                },
+              });
             }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: 8,
+              rendererOptions: {
+                collapseSubtasks: false,
+              },
+            });
           },
         },
       ],
