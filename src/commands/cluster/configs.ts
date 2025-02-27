@@ -16,7 +16,6 @@ import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {type ConfigMap, getConfig} from '../../core/config_builder.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
@@ -32,14 +31,8 @@ export class ClusterCommandConfigs {
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
   }
 
-  public async connectConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
-    const config = getConfig(
-      this.configManager,
-      configMaps,
-      CONNECT_CONFIGS_NAME,
-      argv.flags,
-      [],
-    ) as ClusterConnectConfigClass;
+  public async connectConfigBuilder(argv, ctx, task) {
+    const config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
     // set config in the context for later tasks to use
     ctx.config = config;
 

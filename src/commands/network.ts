@@ -71,7 +71,6 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsKeyPath: string;
   genesisThrottlesFile: string;
   resolvedThrottlesFile: string;
-  getUnusedConfigs: () => string[];
   haproxyIps: string;
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
@@ -646,7 +645,7 @@ export class NetworkCommand extends BaseCommand {
     this.configManager.setFlag(flags.namespace, namespace);
 
     // create a config object for subsequent steps
-    const config: NetworkDeployConfigClass = this.getConfig(
+    const config: NetworkDeployConfigClass = this.configManager.getConfig(
       NetworkCommand.DEPLOY_CONFIGS_NAME,
       NetworkCommand.DEPLOY_FLAGS_LIST,
       [

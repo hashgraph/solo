@@ -88,7 +88,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         expect.fail();
       }
 
-      expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+      expect(mirrorNodeCmd.configManager.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.clusterRef.constName,
         flags.chartDirectory.constName,
         flags.deployment.constName,
@@ -103,7 +103,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         flags.externalDatabaseReadonlyUsername.constName,
         flags.externalDatabaseReadonlyPassword.constName,
       ]);
-      expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+      expect(explorerCommand.configManager.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.hederaExplorerTlsHostName.constName,
         flags.deployment.constName,
         flags.profileFile.constName,

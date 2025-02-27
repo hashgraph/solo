@@ -43,7 +43,6 @@ interface MirrorNodeDeployConfigClass {
   valuesArg: string;
   quiet: boolean;
   mirrorNodeVersion: string;
-  getUnusedConfigs: () => string[];
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
@@ -231,11 +230,11 @@ export class MirrorNodeCommand extends BaseCommand {
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
-              'chartPath',
-              'valuesArg',
-              'namespace',
-            ]) as MirrorNodeDeployConfigClass;
+            ctx.config = this.configManager.getConfig(
+              MirrorNodeCommand.DEPLOY_CONFIGS_NAME,
+              MirrorNodeCommand.DEPLOY_FLAGS_LIST,
+              ['chartPath', 'valuesArg', 'namespace'],
+            ) as MirrorNodeDeployConfigClass;
 
             ctx.config.namespace = namespace;
             ctx.config.chartPath = await helpers.prepareChartPath(

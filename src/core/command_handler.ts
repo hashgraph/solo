@@ -12,7 +12,6 @@ import fs from 'fs';
 import {Task} from './task.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {ConfigManager} from './config_manager.js';
-import {type ConfigMap, getConfig} from './config_builder.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {AccountManager} from './account_manager.js';
 
@@ -86,16 +85,7 @@ export class CommandHandler {
     });
   }
 
-  // Config related methods:
-  public getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
-    return getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
-  }
-
   public getUnusedConfigs(configName: string): string[] {
     return this._configMaps.get(configName).getUnusedConfigs();
-  }
-
-  public getConfigMaps(): ConfigMap {
-    return this._configMaps;
   }
 }

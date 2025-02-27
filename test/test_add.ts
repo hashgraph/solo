@@ -89,7 +89,7 @@ export function testNodeAdd(
 
       it('should add a new node to the network successfully', async () => {
         await nodeCmd.handlers.add(argv.build());
-        expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
+        expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.force.constName,
           flags.quiet.constName,

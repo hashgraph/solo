@@ -137,7 +137,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         it(`${nodeAlias} refresh should succeed`, async () => {
           try {
             expect(await nodeCmd.handlers.refresh(argv.build())).to.be.true;
-            expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
+            expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName,
               flags.quiet.constName,
               'contexts',
