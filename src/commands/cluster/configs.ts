@@ -13,6 +13,7 @@ export const CONNECT_CONFIGS_NAME = 'connectConfig';
 export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 export const connectConfigBuilder = async function (argv, ctx, task) {
+  this.parent.getConfigManager().update(argv);
   ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
 
   if (!ctx.config.context) {
@@ -29,6 +30,7 @@ export const connectConfigBuilder = async function (argv, ctx, task) {
 };
 
 export const defaultConfigBuilder = async function (argv, ctx, task) {
+  this.parent.getConfigManager().update(argv);
   ctx.config = this.getConfig(DEFAULT_CONFIGS_NAME, argv.flags, []) as ClusterRefDefaultConfigClass;
   return ctx.config;
 };

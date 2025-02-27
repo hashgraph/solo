@@ -29,6 +29,7 @@ describe('ClusterCommand', () => {
     logging.SoloLogger.prototype.showJSON.restore();
   });
 
+  const TEST_CONTEXT = `kind-${TEST_CLUSTER}`;
   const testName = 'cluster-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const argv = Argv.getDefaultArgv(namespace);
@@ -116,4 +117,23 @@ describe('ClusterCommand', () => {
     argv.setArg(flags.clusterSetupNamespace, namespace.name);
     expect(await clusterCmd.handlers.reset(argv.build())).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
+
+  it('solo cluster connect should work', async () => {
+    const argv = Argv.initializeEmpty();
+    argv.setArg(flags.clusterRef, TEST_CLUSTER);
+    argv.setArg(flags.context, TEST_CONTEXT);
+
+    const connectResult = await clusterCmd.handlers.connect(argv.build());
+    expect(connectResult).to.be.ok;
+    expect(clusterCmd.localConfig.clusterRefs[TEST_CLUSTER]).to.equal(TEST_CONTEXT);
+  });
+
+  it('solo cluster disconnect should work', async () => {
+    const argv = Argv.initializeEmpty();
+    argv.setArg(flags.clusterRef, TEST_CLUSTER);
+
+    const connectResult = await clusterCmd.handlers.disconnect(argv.build());
+    expect(connectResult).to.be.ok;
+    expect(clusterCmd.localConfig.clusterRefs[TEST_CLUSTER]).to.not.exist;
+  });
 });
