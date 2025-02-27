@@ -199,7 +199,7 @@ jobs:
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}"
           SOLO_TEST_CLUSTER=${{ inputs.cluster-name }} ${{ env.CG_EXEC }} ./test/e2e/dual-cluster/setup-dual-e2e.sh
 
-      - name: Change directory if needed
+      - name: Run E2E Tests
         run: |
           RANDOM_VALUE=$(($RANDOM % 100))
           THRESHOLD=50 # Change this threshold as needed
@@ -211,8 +211,6 @@ jobs:
             cd docs/
           fi          
 
-      - name: Run E2E Tests
-        run: |
           pwd
           echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1"
           SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
