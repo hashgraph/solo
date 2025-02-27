@@ -368,10 +368,20 @@ export class DeploymentCommand extends BaseCommand {
               return;
             }
 
+            //? Create copy of the existing remote config inside the new cluster
             await self.remoteConfigManager.createConfigMap(context);
 
+            //? Update remote configs inside the clusters
             await self.remoteConfigManager.modify(async remoteConfig => {
-              // update components
+              //* update the command history
+              remoteConfig.addCommandToHistory(argv._.join(' '));
+
+              //* add the new clusters
+              remoteConfig.addCluster(
+                new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
+              );
+
+              //* add the new nodes to components
               for (const nodeAlias of nodeAliases) {
                 remoteConfig.components.add(
                   new ConsensusNodeComponent(
@@ -389,14 +399,6 @@ export class DeploymentCommand extends BaseCommand {
 
                 remoteConfig.components.add(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterRef, namespace.name));
               }
-
-              // update command history
-              remoteConfig.addCommandToHistory(argv._.join(' '));
-
-              // update clusters
-              remoteConfig.addCluster(
-                new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
-              );
             });
           },
         },
@@ -560,8 +562,5 @@ export class DeploymentCommand extends BaseCommand {
     };
   }
 
-  public close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }
