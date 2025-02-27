@@ -32,10 +32,10 @@ import {CustomProcessOutput} from './core/process_output.js';
 import {type SoloLogger} from './core/logging.js';
 import {Container} from './core/dependency_injection/container_init.js';
 import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
-import {type NamespaceName} from './core/kube/resources/namespace/namespace_name.js';
 import {type Opts} from './commands/base.js';
+import {Middlewares} from './core/middlewares.js';
 
-export function main(argv: any) {
+export function main(argv: string[]) {
   Container.getInstance().init();
 
   const logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
@@ -44,6 +44,7 @@ export function main(argv: any) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
     logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
     logger.showUser(chalk.cyan('**********************************************************************************'));
+    // eslint-disable-next-line n/no-process-exit
     process.exit(0);
   }
 
@@ -64,12 +65,6 @@ export function main(argv: any) {
     const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
 
-    // set cluster and namespace in the global configManager from kubernetes context
-    // so that we don't need to prompt the user
-    const contextNamespace: NamespaceName = k8Factory.default().contexts().readCurrentNamespace();
-    const currentClusterName: string = k8Factory.default().clusters().readCurrent();
-    const contextName: string = k8Factory.default().contexts().readCurrent();
-
     const opts: Opts = {
       logger,
       helm,
@@ -88,79 +83,30 @@ export function main(argv: any) {
       localConfig,
     };
 
-    const processArguments = (argv: any, yargs: any): any => {
-      if (argv._[0] === 'init') {
-        configManager.reset();
-      }
-
-      const clusterName = configManager.getFlag(flags.clusterRef) || currentClusterName;
-
-      if (contextNamespace?.name) {
-        configManager.setFlag(flags.namespace, contextNamespace);
-      }
-
-      // apply precedence for flags
-      argv = configManager.applyPrecedence(argv, yargs.parsed.aliases);
-
-      // update
-      configManager.update(argv);
-
-      const currentCommand = argv._.join(' ') as string;
-      const commandArguments = flags.stringifyArgv(argv);
-      const commandData = (currentCommand + ' ' + commandArguments).trim();
-
-      logger.showUser(
-        chalk.cyan('\n******************************* Solo *********************************************'),
-      );
-      logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(configManager.getVersion()));
-      logger.showUser(chalk.cyan('Kubernetes Context\t:'), chalk.yellow(contextName));
-      logger.showUser(chalk.cyan('Kubernetes Cluster\t:'), chalk.yellow(clusterName));
-      logger.showUser(chalk.cyan('Current Command\t\t:'), chalk.yellow(commandData));
-      if (typeof configManager.getFlag<NamespaceName>(flags.namespace)?.name !== 'undefined') {
-        logger.showUser(chalk.cyan('Kubernetes Namespace\t:'), chalk.yellow(configManager.getFlag(flags.namespace)));
-      }
-      logger.showUser(chalk.cyan('**********************************************************************************'));
-
-      return argv;
-    };
-
-    const loadRemoteConfig = async (argv: any, yargs: any): Promise<any> => {
-      const command = argv._[0];
-      const subCommand = argv._[1];
-      const skip =
-        command === 'init' ||
-        (command === 'node' && subCommand === 'keys') ||
-        (command === 'cluster' && subCommand === 'connect') ||
-        (command === 'cluster' && subCommand === 'info') ||
-        (command === 'cluster' && subCommand === 'list') ||
-        (command === 'cluster' && subCommand === 'setup') ||
-        (command === 'deployment' && subCommand === 'create') ||
-        (command === 'deployment' && subCommand === 'list');
-
-      if (!skip) {
-        await remoteConfigManager.loadAndValidate(argv);
-      }
-
-      return argv;
-    };
+    const middlewares = new Middlewares(opts);
 
     const rootCmd = yargs(hideBin(argv))
       .scriptName('')
       .usage('Usage:\n  solo <command> [options]')
       .alias('h', 'help')
       .alias('v', 'version')
-      // @ts-ignore
+      // @ts-expect-error - TS2769: No overload matches this call.
       .command(commands.Initialize(opts))
       .strict()
       .demand(1, 'Select a command')
-      // @ts-ignore
-      .middleware([processArguments, loadRemoteConfig], false); // applyBeforeValidate = false as otherwise middleware is called twice
+
+      .middleware(
+        // @ts-expect-error - TS2322: To assign middlewares
+        [middlewares.processArgumentsAndDisplayHeader(), middlewares.loadRemoteConfig()],
+        false, // applyBeforeValidate is false as otherwise middleware is called twice
+      );
 
     // set root level flags
     flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
     return rootCmd.parse();
-  } catch (e: Error | any) {
+  } catch (e) {
     logger.showUserError(e);
+    // eslint-disable-next-line n/no-process-exit
     process.exit(1);
   }
 }

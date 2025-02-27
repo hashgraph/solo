@@ -54,7 +54,7 @@ import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv_wrapper.js';
 import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 
-export const TEST_CLUSTER = SOLO_TEST_CLUSTER;
+export const TEST_CLUSTER = 'kind-' + SOLO_TEST_CLUSTER;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
@@ -294,11 +294,11 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
-          flags.gcsAccessKey.constName,
-          flags.gcsSecrets.constName,
+          flags.gcsWriteAccessKey.constName,
+          flags.gcsWriteSecrets.constName,
           flags.gcsEndpoint.constName,
-          flags.awsAccessKey.constName,
-          flags.awsSecrets.constName,
+          flags.awsWriteAccessKey.constName,
+          flags.awsWriteSecrets.constName,
           flags.awsEndpoint.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());

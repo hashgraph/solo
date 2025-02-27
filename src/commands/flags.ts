@@ -8,7 +8,13 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
-import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
+import {
+  select as selectPrompt,
+  input as inputPrompt,
+  number as numberPrompt,
+  confirm as confirmPrompt,
+} from '@inquirer/prompts';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
 import {type AnyObject} from '../types/aliases.js';
@@ -18,7 +24,7 @@ export class Flags {
   public static KEY_COMMON = '_COMMON_';
 
   private static async prompt(
-    type: string,
+    type: 'toggle' | 'input' | 'number',
     task: ListrTaskWrapper<any, any, any>,
     input: any,
     defaultValue: any,
@@ -37,11 +43,20 @@ export class Flags {
           throw new SoloError('Cannot prompt for input in non-interactive mode');
         }
 
-        input = await task.prompt(ListrEnquirerPromptAdapter).run({
-          type,
-          default: defaultValue,
-          message: promptMessage,
-        });
+        const promptOptions = {default: defaultValue, message: promptMessage};
+
+        switch (type) {
+          case 'input':
+            input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, promptOptions);
+            break;
+          case 'toggle':
+            input = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
+            break;
+          case 'number': {
+            input = await task.prompt(ListrInquirerPromptAdapter).run(numberPrompt, promptOptions);
+            break;
+          }
+        }
       }
 
       if (emptyCheckMessage && !input) {
@@ -49,7 +64,7 @@ export class Flags {
       }
 
       return input;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`input failed: ${flagName}: ${e.message}`, e);
     }
   }
@@ -62,7 +77,7 @@ export class Flags {
     emptyCheckMessage: string | null,
     flagName: string,
   ) {
-    return await Flags.prompt('text', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
+    return await Flags.prompt('input', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
   }
 
   private static async promptToggle(
@@ -281,9 +296,8 @@ export class Flags {
     },
     prompt: async function promptProfileFile(task: ListrTaskWrapper<any, any, any>, input: any) {
       if (input && !fs.existsSync(input)) {
-        input = await task.prompt(ListrEnquirerPromptAdapter).run({
-          type: 'text',
-          default: Flags.valuesFile.definition.defaultValue,
+        input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, {
+          default: Flags.valuesFile.definition.defaultValue as string,
           message: 'Enter path to custom resource profile definition file: ',
         });
       }
@@ -307,15 +321,14 @@ export class Flags {
     prompt: async function promptProfile(
       task: ListrTaskWrapper<any, any, any>,
       input: any,
-      choices = constants.ALL_PROFILES,
+      choices: string[] = constants.ALL_PROFILES,
     ) {
       try {
         const initial = choices.indexOf(input);
         if (initial < 0) {
-          const input = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'select',
+          const input = await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
             message: 'Select profile for solo network deployment',
-            choices: helpers.cloneArray(choices),
+            choices: helpers.cloneArray(choices).map(profile => ({name: profile, value: profile})),
           });
 
           if (!input) {
@@ -326,7 +339,7 @@ export class Flags {
         }
 
         return input;
-      } catch (e: Error | any) {
+      } catch (e) {
         throw new SoloError(`input failed: ${Flags.profileName.name}`, e);
       }
     },
@@ -579,19 +592,14 @@ export class Flags {
     definition: {
       describe: 'Local chart directory path (e.g. ~/solo-charts/charts',
       defaultValue: '',
-      alias: 'd',
       type: 'string',
     },
     prompt: async function promptChartDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+      if (input === 'false') return '';
       try {
-        if (input === 'false') {
-          return '';
-        }
-
         if (input && !fs.existsSync(input)) {
-          input = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'text',
-            default: Flags.chartDirectory.definition.defaultValue,
+          input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, {
+            default: Flags.chartDirectory.definition.defaultValue as string,
             message: 'Enter local charts directory path: ',
           });
 
@@ -601,7 +609,7 @@ export class Flags {
         }
 
         return input;
-      } catch (e: Error | any) {
+      } catch (e) {
         throw new SoloError(`input failed: ${Flags.chartDirectory.name}`, e);
       }
     },
@@ -775,22 +783,17 @@ export class Flags {
       type: 'string',
     },
     prompt: async function promptTlsClusterIssuerType(task: ListrTaskWrapper<any, any, any>, input: any) {
+      if (input) return;
       try {
-        if (!input) {
-          input = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'text',
-            default: Flags.tlsClusterIssuerType.definition.defaultValue,
-            message:
-              'Enter TLS cluster issuer type, available options are: "acme-staging", "acme-prod", or "self-signed":',
-          });
-        }
-
-        if (!input || !['acme-staging', 'acme-prod', 'self-signed'].includes(input)) {
-          throw new SoloError('must be one of: "acme-staging", "acme-prod", or "self-signed"');
-        }
+        input = await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
+          default: Flags.tlsClusterIssuerType.definition.defaultValue as string,
+          message:
+            'Enter TLS cluster issuer type, available options are: "acme-staging", "acme-prod", or "self-signed":',
+          choices: ['acme-staging', 'acme-prod', 'self-signed'],
+        });
 
         return input;
-      } catch (e: Error | any) {
+      } catch (e) {
         throw new SoloError(`input failed: ${Flags.tlsClusterIssuerType.name}`, e);
       }
     },
@@ -1494,8 +1497,7 @@ export class Flags {
       }
 
       const promptForInput = async () => {
-        return await task.prompt(ListrEnquirerPromptAdapter).run({
-          type: 'text',
+        return await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, {
           message: 'Please enter your email address:',
         });
       };
@@ -1518,9 +1520,7 @@ export class Flags {
       type: 'string',
     },
     prompt: async function promptContext(task: ListrTaskWrapper<any, any, any>, input: string[], cluster?: string) {
-      return await task.prompt(ListrEnquirerPromptAdapter).run({
-        type: 'select',
-        name: 'context',
+      return await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
         message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
         choices: input,
       });
@@ -1532,6 +1532,7 @@ export class Flags {
     name: 'deployment',
     definition: {
       describe: 'The name the user will reference locally to link to a deployment',
+      alias: 'd',
       defaultValue: '',
       type: 'string',
     },
@@ -1839,24 +1840,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsAccessKey: CommandFlag = {
-    constName: 'gcsAccessKey',
-    name: 'gcs-access-key',
+  static readonly gcsWriteAccessKey: CommandFlag = {
+    constName: 'gcsWriteAccessKey',
+    name: 'gcs-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'gcs storage access key',
+      describe: 'gcs storage access key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly gcsSecrets: CommandFlag = {
-    constName: 'gcsSecrets',
-    name: 'gcs-secrets',
+  static readonly gcsWriteSecrets: CommandFlag = {
+    constName: 'gcsWriteSecrets',
+    name: 'gcs-write-secrets',
     definition: {
       defaultValue: '',
-      describe: 'gcs storage secret key',
+      describe: 'gcs storage secret key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -1898,24 +1899,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsAccessKey: CommandFlag = {
-    constName: 'awsAccessKey',
-    name: 'aws-access-key',
+  static readonly awsWriteAccessKey: CommandFlag = {
+    constName: 'awsWriteAccessKey',
+    name: 'aws-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'aws storage access key',
+      describe: 'aws storage access key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly awsSecrets: CommandFlag = {
-    constName: 'awsSecrets',
-    name: 'aws-secrets',
+  static readonly awsWriteSecrets: CommandFlag = {
+    constName: 'awsWriteSecrets',
+    name: 'aws-write-secrets',
     definition: {
       defaultValue: '',
-      describe: 'aws storage secret key',
+      describe: 'aws storage secret key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -1981,24 +1982,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageAccessKey: CommandFlag = {
-    constName: 'storageAccessKey',
-    name: 'storage-access-key',
+  static readonly storageReadAccessKey: CommandFlag = {
+    constName: 'storageReadAccessKey',
+    name: 'storage-read-access-key',
     definition: {
       defaultValue: '',
-      describe: 'storage access key for mirror node importer',
+      describe: 'storage read access key for mirror node importer',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageSecrets: CommandFlag = {
-    constName: 'storageSecrets',
-    name: 'storage-secrets',
+  static readonly storageReadSecrets: CommandFlag = {
+    constName: 'storageReadSecrets',
+    name: 'storage-read-secrets',
     definition: {
       defaultValue: '',
-      describe: 'storage secret key for mirror node importer',
+      describe: 'storage read-secret key for mirror node importer',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2136,18 +2137,18 @@ export class Flags {
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
-    Flags.gcsAccessKey,
-    Flags.gcsSecrets,
+    Flags.gcsWriteAccessKey,
+    Flags.gcsWriteSecrets,
     Flags.gcsEndpoint,
     Flags.gcsBucket,
     Flags.gcsBucketPrefix,
-    Flags.awsAccessKey,
-    Flags.awsSecrets,
+    Flags.awsWriteAccessKey,
+    Flags.awsWriteSecrets,
     Flags.awsEndpoint,
     Flags.awsBucket,
     Flags.awsBucketPrefix,
-    Flags.storageAccessKey,
-    Flags.storageSecrets,
+    Flags.storageReadAccessKey,
+    Flags.storageReadSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
     Flags.storageBucketPrefix,

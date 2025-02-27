@@ -20,7 +20,8 @@ import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.j
 import {type SelectClusterContextContext} from './configs.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
-import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
+import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
@@ -480,8 +481,7 @@ export class ClusterCommandTasks {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
         if (!argv.force && (await self.clusterChecks.isRemoteConfigPresentInAnyNamespace())) {
-          const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-            type: 'toggle',
+          const confirm = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
             default: false,
             message:
               'There is remote config for one of the deployments' +

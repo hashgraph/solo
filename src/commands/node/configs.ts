@@ -19,7 +19,6 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_
 import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type ConsensusNode} from '../../core/model/consensus_node.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -474,7 +473,6 @@ export interface NodeKeysConfigClass {
 export interface NodeStartConfigClass {
   app: string;
   cacheDir: string;
-  consensusNodes: ConsensusNode[];
   debugNodeAlias: NodeAlias;
   namespace: NamespaceName;
   deployment: string;
@@ -482,6 +480,7 @@ export interface NodeStartConfigClass {
   stagingDir: string;
   podRefs: Record<NodeAlias, PodRef>;
   nodeAliasesUnparsed: string;
+  consensusNodes: ConsensusNode[];
   contexts: string[];
 }
 
@@ -529,11 +528,11 @@ export interface NodeSetupConfigClass {
   releaseTag: string;
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
-  consensusNodes: ConsensusNode[];
   skipStop?: boolean;
   keysDir: string;
   stagingDir: string;
   getUnusedConfigs: () => string[];
+  consensusNodes: ConsensusNode[];
   contexts: string[];
 }
 
@@ -606,7 +605,7 @@ export interface NodeUpdateConfigClass {
   contexts: string[];
 }
 
-interface NodePrepareUpgradeConfigClass {
+export interface NodePrepareUpgradeConfigClass {
   cacheDir: string;
   namespace: NamespaceName;
   deployment: string;
@@ -618,7 +617,7 @@ interface NodePrepareUpgradeConfigClass {
   contexts: string[];
 }
 
-interface NodeDownloadGeneratedFilesConfigClass {
+export interface NodeDownloadGeneratedFilesConfigClass {
   cacheDir: string;
   namespace: NamespaceName;
   deployment: string;

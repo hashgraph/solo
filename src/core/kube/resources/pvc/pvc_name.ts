@@ -2,8 +2,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {ResourceName} from '../../resources/resource_name.js';
-import {ResourceType} from '../../resources/resource_type.js';
+import {ResourceName} from '../resource_name.js';
+import {ResourceType} from '../resource_type.js';
 
 /**
  * Represents a Kubernetes PVC (persistent volume claim) name. A Kubernetes PVC name must be a valid RFC-1123 DNS label.

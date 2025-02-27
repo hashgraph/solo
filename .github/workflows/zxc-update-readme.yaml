@@ -95,7 +95,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install gettext-base
 
-      - name: Update docs/content/User/StepByStepGuide.md
+      - name: Update docs/site/content/User/StepByStepGuide.md
         env:
           SOLO_TEST_CLUSTER: "solo-update-readme-${{ github.run_id }}-${{ github.run_attempt }}"
         run: |
@@ -112,7 +112,7 @@ jobs:
           ./.github/workflows/script/update_md.sh </dev/null | cat
           set +x
 
-      - name: Check docs/content/User/StepByStepGuide.md Changes
+      - name: Check docs/site/content/User/StepByStepGuide.md Changes
         id: check-readme-changes
         run: |
           CHANGES=$(git diff --stat)
@@ -143,15 +143,15 @@ jobs:
           git_user_signingkey: true
           git_commit_gpgsign: true
 
-      - name: Commit docs/content/User/StepByStepGuide.md Changes
+      - name: Commit docs/site/content/User/StepByStepGuide.md Changes
         id: commit-readme
         if : ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() && inputs.commit-changes }}
         uses: stefanzweifel/git-auto-commit-action@e348103e9026cc0eee72ae06630dbe30c8bf7a79 # v5.1.0
         with:
-          commit_message: "chore: auto update docs/content/User/StepByStepGuide.md"
+          commit_message: "chore: auto update docs/site/content/User/StepByStepGuide.md"
           commit_options: '--no-verify --signoff'
           add_options: '-u'
-          file_pattern: 'docs/content/User/StepByStepGuide.md'
+          file_pattern: 'docs/site/content/User/StepByStepGuide.md'
           commit_user_name: Swirlds Automation
           commit_user_email: swirlds-eng-automation@swirlds.com
           commit_author: Swirlds Automation <swirlds-eng-automation@swirlds.com>

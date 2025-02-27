@@ -53,12 +53,12 @@ echo "Generate README.md"
 envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
 $SOLO_DEPLOYMENT_CREATE_OUTPUT,$SOLO_NETWORK_DEPLOY_OUTPUT,$SOLO_NODE_SETUP_OUTPUT,$SOLO_NODE_START_OUTPUT,\
 $SOLO_MIRROR_NODE_DEPLOY_OUTPUT,$SOLO_RELAY_DEPLOY_OUTPUT'\
-< docs/content/User/StepByStepGuide.md.template > docs/content/User/StepByStepGuide.md
+< docs/site/content/User/StepByStepGuide.md.template > docs/site/content/User/StepByStepGuide.md
 
 echo "Remove color codes and lines showing intermediate progress"
 
-sed -i 's/\[32m//g' docs/content/User/StepByStepGuide.md
-sed -i 's/\[33m//g' docs/content/User/StepByStepGuide.md
-sed -i 's/\[39m//g' docs/content/User/StepByStepGuide.md
-egrep -v '↓|❯|•' docs/content/User/StepByStepGuide.md > docs/content/User/StepByStepGuide.md.tmp && mv docs/content/User/StepByStepGuide.md.tmp docs/content/User/StepByStepGuide.md
+sed -i 's/\[32m//g' docs/site/content/User/StepByStepGuide.md
+sed -i 's/\[33m//g' docs/site/content/User/StepByStepGuide.md
+sed -i 's/\[39m//g' docs/site/content/User/StepByStepGuide.md
+egrep -v '↓|❯|•' docs/site/content/User/StepByStepGuide.md > docs/site/content/User/StepByStepGuide.md.tmp && mv docs/site/content/User/StepByStepGuide.md.tmp docs/site/content/User/StepByStepGuide.md
 set +x

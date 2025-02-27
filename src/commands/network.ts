@@ -1,7 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
+import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
@@ -70,13 +71,13 @@ export interface NetworkDeployConfigClass {
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
   storageType: constants.StorageType;
-  gcsAccessKey: string;
-  gcsSecrets: string;
+  gcsWriteAccessKey: string;
+  gcsWriteSecrets: string;
   gcsEndpoint: string;
   gcsBucket: string;
   gcsBucketPrefix: string;
-  awsAccessKey: string;
-  awsSecrets: string;
+  awsWriteAccessKey: string;
+  awsWriteSecrets: string;
   awsEndpoint: string;
   awsBucket: string;
   awsBucketPrefix: string;
@@ -87,7 +88,7 @@ export interface NetworkDeployConfigClass {
   clusterRefs: ClusterRefs;
 }
 
-interface NetworkDestroyContext {
+export interface NetworkDestroyContext {
   config: {
     deletePvcs: boolean;
     deleteSecrets: boolean;
@@ -161,13 +162,13 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.gcsAccessKey,
-      flags.gcsSecrets,
+      flags.gcsWriteAccessKey,
+      flags.gcsWriteSecrets,
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
-      flags.awsAccessKey,
-      flags.awsSecrets,
+      flags.awsWriteAccessKey,
+      flags.awsWriteSecrets,
       flags.awsEndpoint,
       flags.awsBucket,
       flags.awsBucketPrefix,
@@ -240,22 +241,22 @@ export class NetworkCommand extends BaseCommand {
     const namespace = config.namespace;
 
     // Generating cloud storage secrets
-    const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
+    const {gcsWriteAccessKey, gcsWriteSecrets, gcsEndpoint, awsWriteAccessKey, awsWriteSecrets, awsEndpoint} = config;
     const cloudData = {};
     if (
       config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
-      cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsWriteAccessKey);
+      cloudData['S3_SECRET_KEY'] = Base64.encode(awsWriteSecrets);
       cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
     }
     if (
       config.storageType === constants.StorageType.GCS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
-      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsWriteAccessKey);
+      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsWriteSecrets);
       cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
     }
 
@@ -341,13 +342,13 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    gcsAccessKey: string;
-    gcsSecrets: string;
+    gcsWriteAccessKey: string;
+    gcsWriteSecrets: string;
     gcsEndpoint: string;
     gcsBucket: string;
     gcsBucketPrefix: string;
-    awsAccessKey: string;
-    awsSecrets: string;
+    awsWriteAccessKey: string;
+    awsWriteSecrets: string;
     awsEndpoint: string;
     awsBucket: string;
     awsBucketPrefix: string;
@@ -395,13 +396,13 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    gcsAccessKey: string;
-    gcsSecrets: string;
+    gcsWriteAccessKey: string;
+    gcsWriteSecrets: string;
     gcsEndpoint: string;
     gcsBucket: string;
     gcsBucketPrefix: string;
-    awsAccessKey: string;
-    awsSecrets: string;
+    awsWriteAccessKey: string;
+    awsWriteSecrets: string;
     awsEndpoint: string;
     awsBucket: string;
     awsBucketPrefix: string;
@@ -557,7 +558,6 @@ export class NetworkCommand extends BaseCommand {
    * @param consensusNodes - the consensus nodes to iterate over
    * @param valuesArgs - the values arguments to add to
    * @param templateString - the template string to add
-   * @private
    */
   private addArgForEachRecord(
     records: Record<NodeAlias, string>,
@@ -619,8 +619,8 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.gcsAccessKey,
-      flags.gcsSecrets,
+      flags.gcsWriteAccessKey,
+      flags.gcsWriteSecrets,
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
@@ -883,7 +883,7 @@ export class NetworkCommand extends BaseCommand {
                 await self.chartManager.uninstall(
                   config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
-                  this.k8Factory.getK8(config.clusterRefs[clusterRef]).contexts().readCurrent(),
+                  config.clusterRefs[clusterRef],
                 );
               }
 
@@ -902,7 +902,7 @@ export class NetworkCommand extends BaseCommand {
           title: 'Check for load balancer',
           skip: ctx => ctx.config.loadBalancerEnabled === false,
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             //Add check for network node service to be created and load balancer to be assigned (if load balancer is enabled)
@@ -913,7 +913,7 @@ export class NetworkCommand extends BaseCommand {
                   let attempts = 0;
                   let svc = null;
 
-                  while (attempts < 30) {
+                  while (attempts < constants.LOAD_BALANCER_CHECK_MAX_ATTEMPTS) {
                     svc = await self.k8Factory
                       .getK8(consensusNode.context)
                       .services()
@@ -937,7 +937,7 @@ export class NetworkCommand extends BaseCommand {
                     }
 
                     attempts++;
-                    await helpers.sleep(Duration.ofSeconds(2));
+                    await helpers.sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
                   }
                   throw new SoloError('Load balancer not found');
                 },
@@ -962,7 +962,7 @@ export class NetworkCommand extends BaseCommand {
             ctx.config.valuesArgMap = await this.prepareValuesArgMap(ctx.config);
 
             // Perform a helm upgrade for each cluster
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
             for (const clusterRef of Object.keys(config.clusterRefs)) {
               subTasks.push({
@@ -1004,7 +1004,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check proxy pods are running',
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             // HAProxy
@@ -1053,7 +1053,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check auxiliary pods are ready',
           task: (_, task) => {
-            const subTasks = [];
+            const subTasks: SoloListrTask<Context>[] = [];
 
             // minio
             subTasks.push({
@@ -1097,7 +1097,7 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
     } finally {
       await lease.release();
@@ -1117,13 +1117,12 @@ export class NetworkCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             if (!argv.force) {
-              const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-                type: 'toggle',
+              const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
                 default: false,
                 message: 'Are you sure you would like to destroy the network components?',
               });
 
-              if (!confirm) {
+              if (!confirmResult) {
                 process.exit(0);
               }
             }
@@ -1137,7 +1136,7 @@ export class NetworkCommand extends BaseCommand {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
-              contexts: this.getContexts(),
+              contexts: self.remoteConfigManager.getContexts(),
             };
 
             return ListrLease.newAcquireLeaseTask(lease, task);
