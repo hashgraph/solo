@@ -226,6 +226,8 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.externalDatabaseOwnerPassword,
               flags.externalDatabaseReadonlyUsername,
               flags.externalDatabaseReadonlyPassword,
+              flags.profileFile,
+              flags.profileName,
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);

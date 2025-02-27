@@ -115,6 +115,7 @@ jobs:
       - name: Check docs/site/content/User/StepByStepGuide.md Changes
         id: check-readme-changes
         run: |
+          set -xeo pipefail
           CHANGES=$(git diff --stat)
           echo "Changes: $CHANGES"
           
