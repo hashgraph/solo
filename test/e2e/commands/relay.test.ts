@@ -38,7 +38,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     const relayCmd = new RelayCommand(bootstrapResp.opts);
 
     after(async function () {
-      this.timeout(Duration.ofMinutes(10).toMillis());
+      this.timeout(Duration.ofMinutes(5).toMillis());
       await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
       await k8Factory.default().namespaces().delete(namespace);
     });
