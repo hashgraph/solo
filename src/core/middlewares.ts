@@ -106,7 +106,11 @@ export class Middlewares {
       const skip =
         command === 'init' ||
         (command === 'node' && subCommand === 'keys') ||
-        command === 'cluster-ref' ||
+        (command === 'cluster' && subCommand === 'connect') ||
+        (command === 'cluster' && subCommand === 'disconnect') ||
+        (command === 'cluster' && subCommand === 'info') ||
+        (command === 'cluster' && subCommand === 'list') ||
+        (command === 'cluster' && subCommand === 'setup') ||
         (command === 'deployment' && subCommand === 'create') ||
         (command === 'deployment' && subCommand === 'list');
 

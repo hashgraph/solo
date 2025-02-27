@@ -7,7 +7,6 @@ import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand, type Opts} from './../base.js';
 import {ClusterCommandTasks} from './tasks.js';
 import {ClusterCommandHandlers} from './handlers.js';
-import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -83,7 +82,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'setup',
               },
-              SETUP_FLAGS,
+              ContextFlags.SETUP_FLAGS,
             ),
           )
           .command(
@@ -94,7 +93,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'reset',
               },
-              RESET_FLAGS,
+              ContextFlags.RESET_FLAGS,
             ),
           )
           .demandCommand(1, 'Select a context command');
