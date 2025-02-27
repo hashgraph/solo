@@ -605,7 +605,7 @@ export interface NodeUpdateConfigClass {
   contexts: string[];
 }
 
-interface NodePrepareUpgradeConfigClass {
+export interface NodePrepareUpgradeConfigClass {
   cacheDir: string;
   namespace: NamespaceName;
   deployment: string;
@@ -617,7 +617,7 @@ interface NodePrepareUpgradeConfigClass {
   contexts: string[];
 }
 
-interface NodeDownloadGeneratedFilesConfigClass {
+export interface NodeDownloadGeneratedFilesConfigClass {
   cacheDir: string;
   namespace: NamespaceName;
   deployment: string;

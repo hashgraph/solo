@@ -92,7 +92,7 @@ export class RemoteConfigManager {
    * The callback operates on the configuration data, which is then saved to the cluster.
    *
    * @param callback - an async function that modifies the remote configuration data.
-   * @throws {@link SoloError} if the configuration is not loaded before modification.
+   * @throws if the configuration is not loaded before modification, will throw a SoloError {@link SoloError}
    */
   public async modify(callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void>): Promise<void> {
     if (!this.remoteConfig) {
@@ -340,7 +340,7 @@ export class RemoteConfigManager {
    * @param [context]
    *
    * @returns the remote configuration data.
-   * @throws {@link SoloError} if the ConfigMap could not be read and the error is not a 404 status.
+   * @throws if the ConfigMap could not be read and the error is not a 404 status, will throw a SoloError {@link SoloError}
    */
   public async getConfigMap(context?: string): Promise<k8s.V1ConfigMap> {
     try {
