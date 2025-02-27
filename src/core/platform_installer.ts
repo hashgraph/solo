@@ -319,7 +319,6 @@ export class PlatformInstaller {
    * @param podRef - pod reference
    * @param isGenesis - true if this is `solo node setup` and we are at genesis
    * @param context
-   * @private
    */
   private async copyConfigurationFiles(stagingDir: string, podRef: PodRef, isGenesis: boolean, context?: string) {
     if (isGenesis) {

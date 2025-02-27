@@ -299,11 +299,11 @@ export function e2eTestSuite(
           flags.settingTxt.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
-          flags.gcsAccessKey.constName,
-          flags.gcsSecrets.constName,
+          flags.gcsWriteAccessKey.constName,
+          flags.gcsWriteSecrets.constName,
           flags.gcsEndpoint.constName,
-          flags.awsAccessKey.constName,
-          flags.awsSecrets.constName,
+          flags.awsWriteAccessKey.constName,
+          flags.awsWriteSecrets.constName,
           flags.awsEndpoint.constName,
         ]);
       }).timeout(Duration.ofMinutes(5).toMillis());

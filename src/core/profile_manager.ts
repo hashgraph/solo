@@ -155,7 +155,6 @@ export class ProfileManager {
    * @param itemPath - item path in the YAML, if empty then root of the YAML object will be used
    * @param items - the element object
    * @param yamlRoot - root of the YAML object to update
-   * @private
    */
   _setChartItems(itemPath: string, items: any, yamlRoot: AnyObject) {
     if (!items) return;

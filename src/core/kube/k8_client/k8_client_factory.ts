@@ -22,7 +22,6 @@ export class K8ClientFactory implements K8Factory {
    * Create a new k8Factory client for the given context
    * @param context - The context to create the k8Factory client for
    * @returns a new k8Factory client
-   * @private
    */
   private createK8Client(context: string): K8 {
     return new K8Client(context);
