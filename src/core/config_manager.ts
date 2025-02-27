@@ -199,7 +199,9 @@ export class ConfigManager {
 
   public getFlagFile(flag: CommandFlag): string {
     if (this.getFlag(flag) === flag.definition.defaultValue) {
-      return path.join(this.getFlag(flags.cacheDir), this.getFlag(flag));
+      const cacheDir: string =
+        this.getFlag<string>(flags.cacheDir) || (flags.cacheDir.definition.defaultValue as string);
+      return path.join(cacheDir, this.getFlag(flag));
     }
     return this.getFlag(flag);
   }
