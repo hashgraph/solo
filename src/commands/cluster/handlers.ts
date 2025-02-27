@@ -44,7 +44,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs), this.getConfigMaps()),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
         this.setupHomeDirectoryTask(),
         this.localConfig.promptLocalConfigTask(this.k8Factory),
         this.tasks.selectContext(),
@@ -103,7 +103,7 @@ export class ClusterCommandHandlers extends CommandHandler {
       await this.commandAction(
         argv,
         [
-          this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs), this.getConfigMaps()),
+          this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs)),
           this.tasks.prepareChartValues(argv),
           this.tasks.installClusterChart(argv),
         ],
@@ -127,7 +127,7 @@ export class ClusterCommandHandlers extends CommandHandler {
       await this.commandAction(
         argv,
         [
-          this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs), this.getConfigMaps()),
+          this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs)),
           this.tasks.acquireNewLease(argv),
           this.tasks.uninstallClusterChart(argv),
         ],

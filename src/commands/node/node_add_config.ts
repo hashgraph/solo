@@ -46,7 +46,6 @@ export interface NodeAddConfigClass {
   grpcWebTlsKeyPath: string;
   haproxyIps: string;
   envoyIps: string;
-  getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
 }

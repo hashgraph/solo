@@ -110,7 +110,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       await nodeCmd.handlers.updateSubmitTransactions(argvExecute.build());
       await nodeCmd.handlers.updateExecute(argvExecute.build());
 
-      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
+      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.quiet.constName,
         flags.force.constName,

@@ -26,7 +26,6 @@ import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {type Helm} from '../../core/helm.js';
-import {type ConfigMap, getConfig} from '../../core/config_builder.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
@@ -83,8 +82,8 @@ export class NodeCommandConfigs {
     }
   }
 
-  public async prepareUpgradeConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
-    const config = getConfig(this.configManager, configMaps, PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
+  public async prepareUpgradeConfigBuilder(argv, ctx, task) {
+    const config = this.configManager.getConfig(PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
       'nodeClient',
       'freezeAdminPrivateKey',
       'namespace',
@@ -107,8 +106,8 @@ export class NodeCommandConfigs {
     return config;
   }
 
-  public async downloadGeneratedFilesConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
-    const config = getConfig(this.configManager, configMaps, DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
+  public async downloadGeneratedFilesConfigBuilder(argv, ctx, task) {
+    const config = this.configManager.getConfig(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'existingNodeAliases',
       'serviceMap',
@@ -124,8 +123,8 @@ export class NodeCommandConfigs {
     return config;
   }
 
-  public async upgradeConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
-    const config = getConfig(this.configManager, configMaps, UPGRADE_CONFIGS_NAME, argv.flags, [
+  public async upgradeConfigBuilder(argv, ctx, task, shouldLoadNodeClient = true) {
+    const config = this.configManager.getConfig(UPGRADE_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'existingNodeAliases',
       'keysDir',
@@ -167,8 +166,8 @@ export class NodeCommandConfigs {
     return config;
   }
 
-  public async updateConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
-    const config = getConfig(this.configManager, configMaps, UPDATE_CONFIGS_NAME, argv.flags, [
+  public async updateConfigBuilder(argv, ctx, task, shouldLoadNodeClient = true) {
+    const config = this.configManager.getConfig(UPDATE_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'existingNodeAliases',
       'freezeAdminPrivateKey',
@@ -218,8 +217,8 @@ export class NodeCommandConfigs {
     return config;
   }
 
-  public async deleteConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
-    const config = getConfig(this.configManager, configMaps, DELETE_CONFIGS_NAME, argv.flags, [
+  public async deleteConfigBuilder(argv, ctx, task, shouldLoadNodeClient = true) {
+    const config = this.configManager.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
       'adminKey',
       'allNodeAliases',
       'existingNodeAliases',
@@ -270,8 +269,8 @@ export class NodeCommandConfigs {
     return config;
   }
 
-  public async addConfigBuilder(argv, ctx, task, configMaps?: ConfigMap, shouldLoadNodeClient = true) {
-    const config = getConfig(this.configManager, configMaps, ADD_CONFIGS_NAME, argv.flags, [
+  public async addConfigBuilder(argv, ctx, task, shouldLoadNodeClient = true) {
+    const config = this.configManager.getConfig(ADD_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'chartPath',
       'curDate',
@@ -363,8 +362,8 @@ export class NodeCommandConfigs {
     return config;
   }
 
-  public async refreshConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
-    ctx.config = getConfig(this.configManager, configMaps, REFRESH_CONFIGS_NAME, argv.flags, [
+  public async refreshConfigBuilder(argv, ctx, task) {
+    ctx.config = this.configManager.getConfig(REFRESH_CONFIGS_NAME, argv.flags, [
       'nodeAliases',
       'podRefs',
       'namespace',
@@ -380,8 +379,8 @@ export class NodeCommandConfigs {
     return ctx.config;
   }
 
-  public async keysConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
-    const config: NodeKeysConfigClass = getConfig(this.configManager, configMaps, KEYS_CONFIGS_NAME, argv.flags, [
+  public async keysConfigBuilder(argv, ctx, task) {
+    const config: NodeKeysConfigClass = this.configManager.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
       'curDate',
       'keysDir',
       'nodeAliases',
@@ -427,8 +426,8 @@ export class NodeCommandConfigs {
     return ctx.config;
   }
 
-  public async startConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
-    const config = getConfig(this.configManager, configMaps, START_CONFIGS_NAME, argv.flags, [
+  public async startConfigBuilder(argv, ctx, task) {
+    const config = this.configManager.getConfig(START_CONFIGS_NAME, argv.flags, [
       'nodeAliases',
       'namespace',
       'consensusNodes',
@@ -449,8 +448,8 @@ export class NodeCommandConfigs {
     return config;
   }
 
-  public async setupConfigBuilder(argv, ctx, task, configMaps?: ConfigMap) {
-    const config = getConfig(this.configManager, configMaps, SETUP_CONFIGS_NAME, argv.flags, [
+  public async setupConfigBuilder(argv, ctx, task) {
+    const config = this.configManager.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
       'nodeAliases',
       'podRefs',
       'namespace',
@@ -490,7 +489,6 @@ export interface NodeRefreshConfigClass {
   releaseTag: string;
   nodeAliases: NodeAliases;
   podRefs: Record<NodeAlias, PodRef>;
-  getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
 }
@@ -504,7 +502,6 @@ export interface NodeKeysConfigClass {
   curDate: Date;
   keysDir: string;
   nodeAliases: NodeAliases;
-  getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
 }
@@ -548,7 +545,6 @@ export interface NodeDeleteConfigClass {
   stagingDir: string;
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
-  getUnusedConfigs: () => string[];
   curDate: Date;
   consensusNodes: ConsensusNode[];
   contexts: string[];
@@ -570,7 +566,6 @@ export interface NodeSetupConfigClass {
   skipStop?: boolean;
   keysDir: string;
   stagingDir: string;
-  getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
 }
@@ -599,7 +594,6 @@ export interface NodeUpgradeConfigClass {
   stagingDir: string;
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
-  getUnusedConfigs: () => string[];
   curDate: Date;
   consensusNodes: ConsensusNode[];
   contexts: string[];
@@ -638,7 +632,6 @@ export interface NodeUpdateConfigClass {
   stagingDir: string;
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
-  getUnusedConfigs: () => string[];
   curDate: Date;
   consensusNodes: ConsensusNode[];
   contexts: string[];
@@ -651,7 +644,6 @@ interface NodePrepareUpgradeConfigClass {
   releaseTag: string;
   freezeAdminPrivateKey: string;
   nodeClient: any;
-  getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
 }
@@ -663,7 +655,6 @@ interface NodeDownloadGeneratedFilesConfigClass {
   releaseTag: string;
   freezeAdminPrivateKey: string;
   nodeClient: any;
-  getUnusedConfigs: () => string[];
   existingNodeAliases: NodeAliases[];
   allNodeAliases: NodeAliases[];
   serviceMap: Map<string, NetworkNodeServices>;

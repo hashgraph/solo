@@ -270,7 +270,7 @@ export function e2eTestSuite(
 
       it('generate key files', async () => {
         expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
-        expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
+        expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName,
           'consensusNodes',
@@ -281,7 +281,7 @@ export function e2eTestSuite(
       it('should succeed with network deploy', async () => {
         await networkCmd.deploy(argv.build());
 
-        expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        expect(networkCmd.configManager.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
           flags.apiPermissionProperties.constName,
           flags.applicationEnv.constName,
           flags.applicationProperties.constName,
@@ -309,7 +309,7 @@ export function e2eTestSuite(
           // cache this, because `solo node setup.finalize()` will reset it to false
           try {
             expect(await nodeCmd.handlers.setup(argv.build())).to.be.true;
-            expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
+            expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.quiet.constName,
               flags.devMode.constName,
               flags.adminPublicKeys.constName,

@@ -33,7 +33,6 @@ import {type Helm} from '../../core/helm.js';
 import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
-import {type ConfigMap} from '../../core/config_builder.js';
 
 @injectable()
 export class ClusterCommandTasks {
@@ -376,7 +375,7 @@ export class ClusterCommandTasks {
     };
   }
 
-  public initialize(argv: any, configInit: ConfigBuilder, configMap?: ConfigMap) {
+  public initialize(argv: any, configInit: ConfigBuilder) {
     const {requiredFlags, optionalFlags} = argv;
 
     argv.flags = [...requiredFlags, ...optionalFlags];
@@ -386,7 +385,7 @@ export class ClusterCommandTasks {
         this.logger.setDevMode(true);
       }
 
-      ctx.config = await configInit(argv, ctx, task, configMap);
+      ctx.config = await configInit(argv, ctx, task);
     });
   }
 

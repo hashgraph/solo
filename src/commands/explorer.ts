@@ -38,7 +38,6 @@ interface ExplorerDeployConfigClass {
   tlsClusterIssuerType: string;
   valuesFile: string;
   valuesArg: string;
-  getUnusedConfigs: () => string[];
   clusterSetupNamespace: NamespaceName;
   soloChartVersion: string;
 }
@@ -188,9 +187,11 @@ export class ExplorerCommand extends BaseCommand {
 
             await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);
 
-            ctx.config = this.getConfig(ExplorerCommand.DEPLOY_CONFIGS_NAME, ExplorerCommand.DEPLOY_FLAGS_LIST, [
-              'valuesArg',
-            ]) as ExplorerDeployConfigClass;
+            ctx.config = this.configManager.getConfig(
+              ExplorerCommand.DEPLOY_CONFIGS_NAME,
+              ExplorerCommand.DEPLOY_FLAGS_LIST,
+              ['valuesArg'],
+            ) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
             ctx.config.clusterContext = ctx.config.clusterRef

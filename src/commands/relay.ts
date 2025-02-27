@@ -202,7 +202,6 @@ export class RelayCommand extends BaseCommand {
       valuesArg: string;
       clusterRef: Optional<ClusterRef>;
       context: Optional<string>;
-      getUnusedConfigs: () => string[];
     }
 
     interface Context {
@@ -224,9 +223,11 @@ export class RelayCommand extends BaseCommand {
             await self.configManager.executePrompt(task, RelayCommand.DEPLOY_FLAGS_LIST);
 
             // prompt if inputs are empty and set it in the context
-            ctx.config = this.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, RelayCommand.DEPLOY_FLAGS_LIST, [
-              'nodeAliases',
-            ]) as RelayDeployConfigClass;
+            ctx.config = this.configManager.getConfig(
+              RelayCommand.DEPLOY_CONFIGS_NAME,
+              RelayCommand.DEPLOY_FLAGS_LIST,
+              ['nodeAliases'],
+            ) as RelayDeployConfigClass;
 
             ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);

@@ -94,38 +94,50 @@ describe('BaseCommand', () => {
       }
 
       const NEW_CLASS1_NAME = 'newClassInstance1';
-      const newClassInstance1 = baseCmd.getConfig(NEW_CLASS1_NAME, flagsList, extraVars) as newClassInstance;
+      const newClassInstance1 = baseCmd.configManager.getConfig(
+        NEW_CLASS1_NAME,
+        flagsList,
+        extraVars,
+      ) as newClassInstance;
       expect(newClassInstance1.releaseTag).to.equal('releaseTag1');
       expect(newClassInstance1.tlsClusterIssuerType).to.equal('type2');
       expect(newClassInstance1.valuesFile).to.equal('file3');
       expect(newClassInstance1.var1).to.equal('');
       expect(newClassInstance1.var2).to.equal('');
-      expect(baseCmd.getUnusedConfigs(NEW_CLASS1_NAME)).to.deep.equal([]);
+      expect(baseCmd.configManager.getUnusedConfigs(NEW_CLASS1_NAME)).to.deep.equal([]);
 
       const NEW_CLASS2_NAME = 'newClassInstance2';
-      const newClassInstance2 = baseCmd.getConfig(NEW_CLASS2_NAME, flagsList, extraVars) as newClassInstance;
+      const newClassInstance2 = baseCmd.configManager.getConfig(
+        NEW_CLASS2_NAME,
+        flagsList,
+        extraVars,
+      ) as newClassInstance;
       newClassInstance2.var1 = 'var1';
       newClassInstance2.var2 = 'var2';
       expect(newClassInstance2.var1).to.equal('var1');
       expect(newClassInstance2.var2).to.equal('var2');
-      expect(baseCmd.getUnusedConfigs(NEW_CLASS2_NAME)).to.deep.equal([
+      expect(baseCmd.configManager.getUnusedConfigs(NEW_CLASS2_NAME)).to.deep.equal([
         flags.releaseTag.constName,
         flags.tlsClusterIssuerType.constName,
         flags.valuesFile.constName,
       ]);
 
       const NEW_CLASS3_NAME = 'newClassInstance3';
-      const newClassInstance3 = baseCmd.getConfig(NEW_CLASS3_NAME, flagsList, extraVars) as newClassInstance;
+      const newClassInstance3 = baseCmd.configManager.getConfig(
+        NEW_CLASS3_NAME,
+        flagsList,
+        extraVars,
+      ) as newClassInstance;
       newClassInstance3.var1 = 'var1';
       expect(newClassInstance3.var1).to.equal('var1');
       expect(newClassInstance3.tlsClusterIssuerType).to.equal('type2');
-      expect(baseCmd.getUnusedConfigs(NEW_CLASS3_NAME)).to.deep.equal([
+      expect(baseCmd.configManager.getUnusedConfigs(NEW_CLASS3_NAME)).to.deep.equal([
         flags.releaseTag.constName,
         flags.valuesFile.constName,
         'var2',
       ]);
 
-      const newClassInstance4 = baseCmd.getConfig('newClassInstance4', []) as newClassInstance;
+      const newClassInstance4 = baseCmd.configManager.getConfig('newClassInstance4', []) as newClassInstance;
       expect(newClassInstance4.getUnusedConfigs()).to.deep.equal([]);
     });
   });

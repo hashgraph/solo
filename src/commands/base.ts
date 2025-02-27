@@ -12,7 +12,6 @@ import {type K8Factory} from '../core/kube/k8_factory.js';
 import {type ChartManager} from '../core/chart_manager.js';
 import {type ConfigManager} from '../core/config_manager.js';
 import {type DependencyManager} from '../core/dependency_managers/index.js';
-import {type CommandFlag} from '../types/flag_types.js';
 import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
@@ -26,7 +25,6 @@ import {type KeyManager} from '../core/key_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
-import {getConfig} from '../core/config_builder.js';
 
 export interface Opts {
   logger: SoloLogger;
@@ -50,10 +48,9 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly helm: Helm;
   protected readonly k8Factory: K8Factory;
   protected readonly chartManager: ChartManager;
-  protected readonly configManager: ConfigManager;
+  public readonly configManager: ConfigManager;
   protected readonly depManager: DependencyManager;
   protected readonly leaseManager: LeaseManager;
-  protected readonly _configMaps = new Map<string, any>();
   public readonly localConfig: LocalConfig;
   protected readonly remoteConfigManager: RemoteConfigManager;
 
@@ -159,25 +156,8 @@ export abstract class BaseCommand extends ShellRunner {
     return valuesFiles;
   }
 
-  /**
-   * Dynamically builds a class with properties from the provided list of flags
-   * and extra properties, will keep track of which properties are used.  Call
-   * getUnusedConfigs() to get an array of unused properties.
-   */
-  public getConfig(configName: string, flags: CommandFlag[], extraProperties: string[] = []): object {
-    return getConfig(this.configManager, this._configMaps, configName, flags, extraProperties);
-  }
-
   public getLeaseManager(): LeaseManager {
     return this.leaseManager;
-  }
-
-  /**
-   * Get the list of unused configurations that were not accessed
-   * @returns an array of unused configurations
-   */
-  public getUnusedConfigs(configName: string): string[] {
-    return this._configMaps.get(configName).getUnusedConfigs();
   }
 
   public getK8Factory() {
