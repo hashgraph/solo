@@ -88,6 +88,8 @@ import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {ShellRunner} from '../../core/shell_runner.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {BaseCommand} from '../base.js';
 
@@ -224,6 +226,7 @@ export class NodeCommandTasks {
     task: ListrTaskWrapper<any, any, any>,
     localBuildPath: string,
     consensusNodes: Optional<ConsensusNode[]>,
+    releaseTag: string,
   ) {
     const subTasks = [];
 
@@ -263,6 +266,19 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
+          const shellRunner = new ShellRunner();
+          const retrievedReleaseTag = await shellRunner.run(
+            `git -C ${localDataLibBuildPath} describe --tags --abbrev=0`,
+          );
+          const expectedReleaseTag = releaseTag ? releaseTag : LOCAL_HEDERA_PLATFORM_VERSION;
+          if (retrievedReleaseTag.join('\n') !== expectedReleaseTag) {
+            this.logger.showUser(
+              chalk.cyan(
+                `Checkout version ${retrievedReleaseTag} does not match the release version ${expectedReleaseTag}`,
+              ),
+            );
+          }
+
           // retry copying the build to the node to handle edge cases during performance testing
           let error: Error | null = null;
           let i = 0;
@@ -987,6 +1003,7 @@ export class NodeCommandTasks {
             task,
             localBuildPath,
             ctx.config.consensusNodes,
+            releaseTag,
           )
         : self._fetchPlatformSoftware(
             ctx.config[aliasesField],
@@ -1062,7 +1079,6 @@ export class NodeCommandTasks {
 
   /**
    * Generate genesis network json file
-   * @private
    * @param namespace - namespace
    * @param consensusNodes - consensus nodes
    * @param keysDir - keys directory

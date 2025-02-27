@@ -93,7 +93,7 @@ export interface NetworkDeployConfigClass {
   clusterRefs: ClusterRefs;
 }
 
-interface NetworkDestroyContext {
+export interface NetworkDestroyContext {
   config: {
     deletePvcs: boolean;
     deleteSecrets: boolean;
@@ -563,7 +563,6 @@ export class NetworkCommand extends BaseCommand {
    * @param consensusNodes - the consensus nodes to iterate over
    * @param valuesArgs - the values arguments to add to
    * @param templateString - the template string to add
-   * @private
    */
   private addArgForEachRecord(
     records: Record<NodeAlias, string>,

@@ -75,8 +75,8 @@ local: # 3 nodes, ~850 TPS (Docker Desktop 8 cores, 16 GB RAM)
           cpu: 0
           memory: 0
         limits:
-          cpu: 500m
-          memory: 500Mi
+          cpu: 1000m
+          memory: 1000Mi
       readinessProbe:
         failureThreshold: 60
       livenessProbe:
