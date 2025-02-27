@@ -71,13 +71,13 @@ export interface NetworkDeployConfigClass {
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
   storageType: constants.StorageType;
-  gcsAccessKey: string;
-  gcsSecrets: string;
+  gcsWriteAccessKey: string;
+  gcsWriteSecrets: string;
   gcsEndpoint: string;
   gcsBucket: string;
   gcsBucketPrefix: string;
-  awsAccessKey: string;
-  awsSecrets: string;
+  awsWriteAccessKey: string;
+  awsWriteSecrets: string;
   awsEndpoint: string;
   awsBucket: string;
   awsBucketPrefix: string;
@@ -162,13 +162,13 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.gcsAccessKey,
-      flags.gcsSecrets,
+      flags.gcsWriteAccessKey,
+      flags.gcsWriteSecrets,
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
-      flags.awsAccessKey,
-      flags.awsSecrets,
+      flags.awsWriteAccessKey,
+      flags.awsWriteSecrets,
       flags.awsEndpoint,
       flags.awsBucket,
       flags.awsBucketPrefix,
@@ -241,22 +241,22 @@ export class NetworkCommand extends BaseCommand {
     const namespace = config.namespace;
 
     // Generating cloud storage secrets
-    const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
+    const {gcsWriteAccessKey, gcsWriteSecrets, gcsEndpoint, awsWriteAccessKey, awsWriteSecrets, awsEndpoint} = config;
     const cloudData = {};
     if (
       config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
-      cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsWriteAccessKey);
+      cloudData['S3_SECRET_KEY'] = Base64.encode(awsWriteSecrets);
       cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
     }
     if (
       config.storageType === constants.StorageType.GCS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
-      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsWriteAccessKey);
+      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsWriteSecrets);
       cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
     }
 
@@ -342,13 +342,13 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    gcsAccessKey: string;
-    gcsSecrets: string;
+    gcsWriteAccessKey: string;
+    gcsWriteSecrets: string;
     gcsEndpoint: string;
     gcsBucket: string;
     gcsBucketPrefix: string;
-    awsAccessKey: string;
-    awsSecrets: string;
+    awsWriteAccessKey: string;
+    awsWriteSecrets: string;
     awsEndpoint: string;
     awsBucket: string;
     awsBucketPrefix: string;
@@ -396,13 +396,13 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    gcsAccessKey: string;
-    gcsSecrets: string;
+    gcsWriteAccessKey: string;
+    gcsWriteSecrets: string;
     gcsEndpoint: string;
     gcsBucket: string;
     gcsBucketPrefix: string;
-    awsAccessKey: string;
-    awsSecrets: string;
+    awsWriteAccessKey: string;
+    awsWriteSecrets: string;
     awsEndpoint: string;
     awsBucket: string;
     awsBucketPrefix: string;
@@ -619,8 +619,8 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.gcsAccessKey,
-      flags.gcsSecrets,
+      flags.gcsWriteAccessKey,
+      flags.gcsWriteSecrets,
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
