@@ -1,9 +1,10 @@
 # Internal Data Model
 
 Solo internally maintains several critical path data models which support various features. 
-As of the 0.35 release of Solo, these models are not clearly defined and documented. These models 
-are also intermingled in public/private API implementations, user input/output implementations, 
-business logic implementations, runtime introspection implementations, and other such areas.
+As of the v0.35 release train of Solo, these models are not clearly defined and documented. These 
+models are also intermingled in public/private API implementations, user input/output 
+implementations, business logic implementations, runtime introspection implementations, and other 
+such areas.
 
 The goal of this document is to present a clear and concise definition of the internal data models
 and propose a plan to refactor the codebase to separate these models from the rest of the codebase.
@@ -21,7 +22,14 @@ and documented. This leads to several issues:
 6. **Testability**: The codebase is not easily testable due to the lack of clear data models.
 7. **Readability**: The codebase is not readable due to the lack of clear data models.
 
-## 
+## Areas for Improvement
+
+1. Clear and concise definition of the internal data models.
+2. Separation of the internal data models from the rest of the codebase.
+3. Distinction between types of internal data.
+4. Documentation of the internal data models.
+5. Separation of data objects used to read/write configuration and introspected state from business objects used to represent the state of the system.
+
 
 
 
