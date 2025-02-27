@@ -111,9 +111,12 @@ describe('RemoteConfigDataWrapper', async () => {
     // @ts-expect-error 2740: Type {} is missing the following properties from type RemoteConfigMetadata
     expect(() => (dataWrapper.metadata = {})).to.throw(SoloError);
 
-    expect(() => (dataWrapper.clusters = {null: null})).to.throw(SoloError);
-    expect(() => (dataWrapper.clusters = {namespace: null})).to.throw(SoloError);
-    expect(() => (dataWrapper.clusters = {null: new Cluster('cluster', 'namespace', 'deployment')})).to.throw(
+    // @ts-expect-error - TS2341: to access private property
+    expect(() => (dataWrapper._clusters = {null: null})).to.throw(SoloError);
+    // @ts-expect-error - TS2341: to access private property
+    expect(() => (dataWrapper._clusters = {namespace: null})).to.throw(SoloError);
+    // @ts-expect-error - TS2341: to access private property
+    expect(() => (dataWrapper._clusters = {null: new Cluster('cluster', 'namespace', 'deployment')})).to.throw(
       SoloError,
     );
   });

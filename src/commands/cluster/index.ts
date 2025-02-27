@@ -27,7 +27,7 @@ export class ClusterCommand extends BaseCommand {
 
   getCommandDefinition() {
     return {
-      command: 'cluster',
+      command: 'cluster-ref',
       desc: 'Manage solo testing cluster',
       builder: (yargs: any) => {
         return yargs

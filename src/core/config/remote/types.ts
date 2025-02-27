@@ -68,7 +68,7 @@ export interface RemoteConfigDataStructure {
 
 export interface RemoteConfigMetadataStructure {
   namespace: NamespaceNameAsString;
-  state: DeploymentStates,
+  state: DeploymentStates;
   deploymentName: DeploymentName;
   lastUpdatedAt: Date;
   lastUpdateBy: EmailAddress;

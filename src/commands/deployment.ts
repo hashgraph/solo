@@ -7,7 +7,6 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import chalk from 'chalk';
-import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
@@ -34,16 +33,7 @@ export class DeploymentCommand extends BaseCommand {
     this.tasks = new ClusterCommandTasks(this, this.k8Factory);
   }
 
-  private static DEPLOY_FLAGS_LIST = [
-    flags.quiet,
-    flags.context,
-    flags.namespace,
-    flags.clusterRef,
-    flags.userEmailAddress,
-    flags.deployment,
-    flags.deploymentClusters,
-    flags.nodeAliasesUnparsed,
-  ];
+  private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment, flags.userEmailAddress];
 
   private static ADD_CLUSTER_FLAGS_LIST = [
     flags.quiet,
@@ -62,13 +52,8 @@ export class DeploymentCommand extends BaseCommand {
 
     interface Config {
       quiet: boolean;
-      context: string;
-      clusters: string[];
       namespace: NamespaceName;
       deployment: DeploymentName;
-      deploymentClusters: string[];
-      nodeAliases: string[];
-      clusterRef: ClusterRef;
       email: string;
     }
 
@@ -84,92 +69,24 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [flags.namespace, flags.deployment, flags.deploymentClusters]);
-            const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
-
-            if (self.localConfig.deployments && self.localConfig.deployments[deploymentName]) {
-              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(deploymentName));
-            }
+            await self.configManager.executePrompt(task, [flags.namespace, flags.deployment]);
 
             ctx.config = {
+              quiet: self.configManager.getFlag<boolean>(flags.quiet),
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
-              deploymentClusters: splitFlagInput(self.configManager.getFlag<string>(flags.deploymentClusters)),
-              nodeAliases: splitFlagInput(self.configManager.getFlag<string>(flags.nodeAliasesUnparsed)),
-              clusterRef: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
-              context: self.configManager.getFlag<string>(flags.context),
-              email: self.configManager.getFlag<string>(flags.userEmailAddress),
+              email: self.configManager.getFlag(flags.userEmailAddress),
             } as Config;
+
+            if (self.localConfig.deployments && self.localConfig.deployments[ctx.config.deployment]) {
+              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(ctx.config.deployment));
+            }
 
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
           },
         },
         this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(self.k8Factory),
-        {
-          title: 'Add new deployment to local config',
-          task: async ctx => {
-            const {deployments} = this.localConfig;
-            const {deployment, namespace: configNamespace, deploymentClusters} = ctx.config;
-            deployments[deployment] = {
-              namespace: configNamespace.name,
-              clusters: deploymentClusters,
-            };
-            this.localConfig.setDeployments(deployments);
-
-            // update clusterRefs
-            const currentClusterRefs = this.localConfig.clusterRefs;
-            currentClusterRefs[ctx.config.clusterRef] = ctx.config.context;
-            this.localConfig.setClusterRefs(currentClusterRefs);
-
-            await this.localConfig.write();
-          },
-        },
-        this.tasks.selectContext(),
-        {
-          title: 'Validate context',
-          task: async (ctx, task) => {
-            ctx.config.context = ctx.config.context ?? self.configManager.getFlag<string>(flags.context);
-            const availableContexts = self.k8Factory.default().contexts().list();
-
-            if (availableContexts.includes(ctx.config.context)) {
-              task.title += chalk.green(`- validated context ${ctx.config.context}`);
-              return;
-            }
-
-            throw new SoloError(
-              `Context with name ${ctx.config.context} not found, available contexts include ${availableContexts.join(', ')}`,
-            );
-          },
-        },
-        this.tasks.updateLocalConfig(),
-        {
-          title: 'Validate cluster connections',
-          task: async (ctx, task) => {
-            const subTasks: SoloListrTask<Context>[] = [];
-
-            for (const cluster of self.localConfig.deployments[ctx.config.deployment].clusters) {
-              const context = self.localConfig.clusterRefs?.[cluster];
-              if (!context) continue;
-
-              subTasks.push({
-                title: `Testing connection to cluster: ${chalk.cyan(cluster)}`,
-                task: async (_, task) => {
-                  if (!(await self.k8Factory.default().contexts().testContextConnection(context))) {
-                    task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
-
-                    throw new SoloError(`Cluster connection failed for: ${cluster}`);
-                  }
-                },
-              });
-            }
-
-            return task.newListr(subTasks, {
-              concurrent: true,
-              rendererOptions: {collapseSubtasks: false},
-            });
-          },
-        },
+        this.localConfig.promptLocalConfigTask(),
       ],
       {
         concurrent: false,
@@ -494,7 +411,7 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'create',
             desc: 'Creates solo deployment',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.DEPLOY_FLAGS_LIST),
+            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST),
             handler: (argv: AnyArgv) => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);

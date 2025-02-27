@@ -30,7 +30,7 @@ import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyArgv, type AnyObject, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
-import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
