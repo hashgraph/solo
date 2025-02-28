@@ -9,7 +9,7 @@ import {getSoloVersion} from '../../../src/core/helpers.js';
 import * as constants from '../../../src/core/constants.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test_container.js';
-import {type ClusterRef, type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type ClusterRef, type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import {container} from 'tsyringe-neo';
@@ -242,9 +242,13 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // TODO remove once `solo cluster-ref connect' is implemented
   it(`${testName}: manually modify local config`, async () => {
     const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
+    const currentClusterRefs: ClusterRefs = localConfig.clusterRefs;
     for (let index = 0; index < testClusterRefs.length; index++) {
-      localConfig.clusterRefs[testClusterRefs[index]] = contexts[index];
+      currentClusterRefs[testClusterRefs[index]] = contexts[index];
     }
+    expect(JSON.stringify(localConfig.setClusterRefs(currentClusterRefs).clusterRefs)).to.equal(
+      JSON.stringify(localConfig.clusterRefs),
+    );
 
     await localConfig.write();
   });

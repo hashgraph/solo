@@ -243,7 +243,7 @@ export class RemoteConfigManager {
       return;
       // throw new SoloError('Failed to load remote config')
     }
-
+    self.logger.info('Remote config loaded');
     if (!validate) {
       return;
     }
