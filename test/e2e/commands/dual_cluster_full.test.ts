@@ -20,6 +20,7 @@ import {expect} from 'chai';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import fs from 'fs';
 import path from 'path';
+import {type LocalConfig} from '../../../src/core/config/local_config.js';
 
 function newArgv(): string[] {
   return ['${PATH}/node', '${SOLO_ROOT}/solo.ts'];
@@ -61,7 +62,7 @@ async function manuallyCreateRemoteConfigConfigMap(
   contexts: string[],
   namespace: NamespaceName,
   deployment: string,
-  clusterRefs: ClusterRef[],
+  testClusterRefs: ClusterRef[],
   nodeAliasesUnparsed: string,
 ) {
   const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
@@ -87,14 +88,14 @@ async function manuallyCreateRemoteConfigConfigMap(
     soloVersion: ${getSoloVersion()} 
   version: 1.0.0
   clusters:
-    ${clusterRefs[0]}:
-      name: ${clusterRefs[0]}
+    ${testClusterRefs[0]}:
+      name: ${testClusterRefs[0]}
       namespace: ${namespace.name}
       deployment: ${deployment}
       dnsBaseDomain: cluster.local
       dnsConsensusNodePattern: network-\${nodeAlias}-svc.\${namespace}.svc
-    ${clusterRefs[1]}:
-      name: ${clusterRefs[1]}
+    ${testClusterRefs[1]}:
+      name: ${testClusterRefs[1]}
       namespace: ${namespace.name}
       deployment: ${deployment}
       dnsBaseDomain: cluster.local
@@ -107,13 +108,13 @@ async function manuallyCreateRemoteConfigConfigMap(
     consensusNodes:
       node1:
         name: node1
-        cluster: ${clusterRefs[0]}
+        cluster: ${testClusterRefs[0]}
         namespace: ${namespace.name}
         state: requested
         nodeId: 0
       node2:
         name: node2
-        cluster: ${clusterRefs[1]}
+        cluster: ${testClusterRefs[1]}
         namespace: ${namespace.name}
         state: requested
         nodeId: 1
@@ -178,7 +179,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   const testName: string = 'dual-cluster-full';
   const namespace: NamespaceName = NamespaceName.of(testName);
   const deployment = `${testName}-deployment`;
-  const clusterRefs: ClusterRef[] = ['e2e-cluster-1', 'e2e-cluster-2'];
+  const testClusterRefs: ClusterRef[] = ['e2e-cluster-1', 'e2e-cluster-2'];
   const testCluster = TEST_CLUSTER.includes('c1') ? TEST_CLUSTER : `${TEST_CLUSTER}-c1`;
   const contexts: string[] = [`${testCluster}`, `${testCluster.replace('-c1', '-c2')}`];
   const nodeAliasesUnparsed = 'node1,node2';
@@ -238,9 +239,19 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster2 --enable-cert-manager
   //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-${nodeAlias}-svc.${namespace}.svc
 
+  // TODO remove once `solo cluster-ref connect' is implemented
+  it(`${testName}: manually modify local config`, async () => {
+    const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
+    for (let index = 0; index < testClusterRefs.length; index++) {
+      localConfig.clusterRefs[testClusterRefs[index]] = contexts[index];
+    }
+
+    await localConfig.write();
+  });
+
   // TODO replace with proper commands to create a deployment - see above
   it(`${testName}: manually create remote config`, async () => {
-    await manuallyCreateRemoteConfigConfigMap(contexts, namespace, deployment, clusterRefs, nodeAliasesUnparsed);
+    await manuallyCreateRemoteConfigConfigMap(contexts, namespace, deployment, testClusterRefs, nodeAliasesUnparsed);
 
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     expect(remoteConfigManager.isLoaded(), 'remote config manager should not be loaded').to.be.false;
