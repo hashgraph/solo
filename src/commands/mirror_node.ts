@@ -226,6 +226,8 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.externalDatabaseOwnerPassword,
               flags.externalDatabaseReadonlyUsername,
               flags.externalDatabaseReadonlyPassword,
+              flags.profileFile,
+              flags.profileName,
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
@@ -603,7 +605,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      const message = `Error deploying node: ${e.message}`;
+      const message = `Error deploying mirror node: ${e.message}`;
       self.logger.error(message, e);
       throw new SoloError(message, e);
     } finally {

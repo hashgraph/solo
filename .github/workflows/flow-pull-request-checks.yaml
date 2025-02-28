@@ -75,6 +75,7 @@ jobs:
       matrix:
         e2e-test-type:
           - { name: "Integration", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-integration-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-integration-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-integration-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-integration-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
+          - { name: "Dual Cluster Full", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-dual-cluster-full-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-dual-cluster-full-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-dual-cluster-full-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-dual-cluster-full-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Node Add", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-add-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-node-add-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Node Local Hedera", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Node Delete", npm-test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}", cluster-name: "${{needs.env-vars.outputs.e2e-node-delete-test-subdir}}-${{ github.run_id }}-${{ github.run_attempt }}" }
@@ -161,6 +162,7 @@ jobs:
       enable-codacy-coverage: true
       enable-e2e-coverage-report: true
       e2e-integration-test-subdir: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
+      e2e-dual-cluster-full-test-subdir: ${{ needs.env-vars.outputs.e2e-dual-cluster-full-test-subdir }}
       e2e-standard-test-subdir: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
       e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
@@ -178,6 +180,7 @@ jobs:
       e2e-node-upgrade-separate-commands-test-subdir: ${{ needs.env-vars.outputs.e2e-node-upgrade-separate-commands-test-subdir }}
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
+      e2e-dual-cluster-full-coverage-report: ${{ needs.env-vars.outputs.e2e-dual-cluster-full-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
       e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
