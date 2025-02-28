@@ -157,14 +157,15 @@ export class RemoteConfigManager {
 
   /**
    * Loads the remote configuration from the Kubernetes cluster if it exists.
-   * @param [context]
+   * @param namespace - The namespace to search for the ConfigMap.
+   * @param context - The context to use for the Kubernetes client.
    * @returns true if the configuration is loaded successfully.
    */
-  private async load(context?: string): Promise<boolean> {
+  private async load(namespace?: NamespaceName, context?: string): Promise<boolean> {
     if (this.remoteConfig) return true;
 
     try {
-      const configMap = await this.getConfigMap(context);
+      const configMap = await this.getConfigMap(namespace, context);
 
       if (configMap) {
         this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
@@ -182,10 +183,12 @@ export class RemoteConfigManager {
    * @returns RemoteConfigDataWrapper
    */
   public async get(context?: string): Promise<RemoteConfigDataWrapper> {
-    await this.load(context);
+    const namespace = this.configManager.getFlag<NamespaceName>(flags.namespace) ?? (await this.getNamespace());
+
+    await this.load(namespace, context);
     try {
       await RemoteConfigValidator.validateComponents(
-        await this.getNamespace(),
+        namespace,
         this.remoteConfig.components,
         this.k8Factory,
         this.localConfig,
@@ -220,8 +223,9 @@ export class RemoteConfigManager {
    * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
    *
    * @param argv - arguments containing command input for historical reference.
+   * @param validate - whether to validate the remote configuration.
    */
-  public async loadAndValidate(argv: {_: string[]} & AnyObject) {
+  public async loadAndValidate(argv: {_: string[]} & AnyObject, validate: boolean = true) {
     const self = this;
     try {
       await self.setDefaultNamespaceIfNotSet(argv);
@@ -237,6 +241,10 @@ export class RemoteConfigManager {
       // TODO see if this should be disabled to make it an optional feature
       return;
       // throw new SoloError('Failed to load remote config')
+    }
+
+    if (!validate) {
+      return;
     }
 
     await RemoteConfigValidator.validateComponents(
@@ -332,17 +340,21 @@ export class RemoteConfigManager {
   /**
    * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
    *
-   * @param [context]
-   *
+   * @param namespace - The namespace to search for the ConfigMap.
+   * @param context - The context to use for the Kubernetes client.
    * @returns the remote configuration data.
    * @throws if the ConfigMap could not be read and the error is not a 404 status, will throw a SoloError {@link SoloError}
    */
-  public async getConfigMap(context?: string): Promise<k8s.V1ConfigMap> {
+  public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<k8s.V1ConfigMap> {
+    if (!namespace) {
+      namespace = await this.getNamespace();
+    }
+    if (!context) {
+      context = this.getContextForFirstCluster();
+    }
+
     try {
-      return await this.k8Factory
-        .getK8(context)
-        .configMaps()
-        .read(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME);
+      return await this.k8Factory.getK8(context).configMaps().read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
     } catch (e) {
       if (!(e instanceof ResourceNotFoundError)) {
         throw new SoloError('Failed to read remote config from cluster', e);
@@ -495,5 +507,15 @@ export class RemoteConfigManager {
       acc[node.cluster] ||= node.context;
       return acc;
     }, {} as ClusterRefs);
+  }
+
+  private getContextForFirstCluster() {
+    const contexts = this.getContexts();
+    if (contexts.length > 0) {
+      return contexts[0];
+    }
+    const cluster =
+      this.localConfig.deployments[this.configManager.getFlag<DeploymentName>(flags.deployment)].clusters[0];
+    return this.localConfig.clusterRefs[cluster];
   }
 }
