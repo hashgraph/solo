@@ -481,6 +481,9 @@ export class RemoteConfigManager {
    */
   public getConsensusNodes(): ConsensusNode[] {
     const consensusNodes: ConsensusNode[] = [];
+    if (!this.isLoaded()) {
+      throw new SoloError('Remote configuration is not loaded, and was expected to be loaded');
+    }
     const clusters: Record<ClusterRef, Cluster> = this.clusters;
 
     try {
