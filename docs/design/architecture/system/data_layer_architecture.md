@@ -1,4 +1,4 @@
-# Internal Data Model
+# Data Layer Architecture
 
 Solo internally maintains several critical path data models which support various features. 
 As of the v0.35 release train of Solo, these models are not clearly defined and documented. These 
@@ -9,6 +9,7 @@ such areas.
 The goal of this document is to present a clear and concise definition of the internal data models
 and propose a plan to refactor the codebase to separate these models from the rest of the codebase.
 
+[todo]: <> (Move the problem statement and areas for improvement to the technical design doc)
 ## Problem Statement
 
 The current state of the Solo codebase is such that the internal data models are not clearly defined
@@ -28,7 +29,12 @@ and documented. This leads to several issues:
 2. Separation of the internal data models from the rest of the codebase.
 3. Distinction between types of internal data.
 4. Documentation of the internal data models.
-5. Separation of data objects used to read/write configuration and introspected state from business objects used to represent the state of the system.
+5. Separation of data objects used to read/write configuration from business objects used to represent the state of the system.
+6. Separation of internal objects model and persistence. 
+7. Schema Migration support (currently missing).
+
+## Configuration
+
 
 
 
