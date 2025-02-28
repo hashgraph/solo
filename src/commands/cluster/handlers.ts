@@ -101,7 +101,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   }
 
   async setup(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.SETUP_FLAGS);
 
     const action = this.parent.commandActionBuilder(
       [
@@ -127,7 +127,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
   }
 
   async reset(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.RESET_FLAGS);
 
     const action = this.parent.commandActionBuilder(
       [

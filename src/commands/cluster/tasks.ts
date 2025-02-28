@@ -43,8 +43,8 @@ export class ClusterCommandTasks {
       task: async (ctx, task: ListrTaskWrapper<any, any, any>) => {
         task.title += ctx.config.clusterRef;
         const localConfig = this.parent.getLocalConfig();
-        if (typeof ctx.config.context === 'string') {
-          localConfig.clusterRefs[ctx.config.clusterRef] = ctx.config.context;
+        if (typeof ctx.config.selectedContext === 'string') {
+          localConfig.clusterRefs[ctx.config.clusterRef] = ctx.config.selectedContext;
         }
       },
     };

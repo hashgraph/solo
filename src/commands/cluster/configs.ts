@@ -14,15 +14,16 @@ export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 export const connectConfigBuilder = async function (argv, ctx, task) {
   this.parent.getConfigManager().update(argv);
-  ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
+  ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, ['selectedContext']) as ClusterRefConnectConfigClass;
 
-  if (!ctx.config.context) {
+  ctx.config.selectedContext = ctx.config.context;
+  if (!ctx.config.selectedContext) {
     const isQuiet = this.parent.getConfigManager().getFlag(flags.quiet);
     if (isQuiet) {
-      ctx.config.context = this.parent.getK8Factory().default().contexts().readCurrent();
+      ctx.config.selectedContext = this.parent.getK8Factory().default().contexts().readCurrent();
     } else {
       const kubeContexts = this.parent.getK8Factory().default().contexts().list();
-      ctx.config.context = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+      ctx.config.selectedContext = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
     }
   }
 
