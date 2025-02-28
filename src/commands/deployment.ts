@@ -24,6 +24,29 @@ import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
 
+export interface DeploymentAddClusterConfig {
+  quiet: boolean;
+  context: string;
+  namespace: NamespaceName;
+  deployment: DeploymentName;
+  clusterRef: ClusterRef;
+
+  enableCertManager: boolean;
+  numberOfConsensusNodes: number;
+  dnsBaseDomain: string;
+  dnsConsensusNodePattern: string;
+
+  state?: DeploymentStates;
+  nodeAliases: NodeAliases;
+
+  existingNodesCount: number;
+  existingClusterContext?: string;
+}
+
+export interface DeploymentAddClusterContext {
+  config: DeploymentAddClusterConfig;
+}
+
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
 
@@ -114,238 +137,15 @@ export class DeploymentCommand extends BaseCommand {
   public async addCluster(argv: AnyArgv): Promise<boolean> {
     const self = this;
 
-    interface Config {
-      quiet: boolean;
-      context: string;
-      namespace: NamespaceName;
-      deployment: DeploymentName;
-      clusterRef: ClusterRef;
-
-      enableCertManager: boolean;
-      numberOfConsensusNodes: number;
-      dnsBaseDomain: string;
-      dnsConsensusNodePattern: string;
-
-      state?: DeploymentStates;
-      nodeAliases: NodeAliases;
-
-      existingNodesCount: number;
-      existingClusterContext?: string;
-    }
-
-    interface Context {
-      config: Config;
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<DeploymentAddClusterContext>(
       [
-        {
-          title: 'Initialize',
-          task: async (ctx, task) => {
-            self.configManager.update(argv);
-            self.logger.debug('Updated config with argv', {config: self.configManager.config});
-
-            await self.configManager.executePrompt(task, [flags.deployment, flags.clusterRef]);
-
-            ctx.config = {
-              quiet: self.configManager.getFlag<boolean>(flags.quiet),
-              namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
-              deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
-              clusterRef: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
-
-              enableCertManager: self.configManager.getFlag<boolean>(flags.enableCertManager),
-              numberOfConsensusNodes: self.configManager.getFlag<number>(flags.numberOfConsensusNodes),
-              dnsBaseDomain: self.configManager.getFlag(flags.dnsBaseDomain),
-              dnsConsensusNodePattern: self.configManager.getFlag(flags.dnsConsensusNodePattern),
-
-              existingNodesCount: 0,
-              nodeAliases: [],
-            } as Config;
-
-            self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
-          },
-        },
-        {
-          title: 'Verify args',
-          task: async ctx => {
-            const {clusterRef, deployment} = ctx.config;
-
-            if (!self.localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
-              throw new SoloError(`Cluster ref ${clusterRef} not found in local config`);
-            }
-
-            ctx.config.context = self.localConfig.clusterRefs[clusterRef];
-
-            if (!self.localConfig.deployments.hasOwnProperty(deployment)) {
-              throw new SoloError(`Deployment ${deployment} not found in local config`);
-            }
-
-            if (self.localConfig.deployments[deployment].clusters.includes(clusterRef)) {
-              throw new SoloError(`Cluster ref ${clusterRef} is already added for deployment`);
-            }
-          },
-        },
-        {
-          title: 'check network state',
-          task: async (ctx, task) => {
-            const {deployment, numberOfConsensusNodes, quiet} = ctx.config;
-
-            const existingClusterRefs = self.localConfig.deployments[deployment].clusters;
-
-            // if there is no remote config don't validate deployment state
-            if (!existingClusterRefs.length) {
-              ctx.config.state = DeploymentStates.PRE_GENESIS;
-
-              // if the user can't be prompted for '--num-of-consensus-nodes' fail
-              if (!numberOfConsensusNodes && quiet) {
-                throw new SoloError(
-                  `--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`,
-                );
-              }
-
-              // prompt the user for the '--num-of-consensus-nodes'
-              else if (!numberOfConsensusNodes) {
-                await self.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
-                ctx.config.numberOfConsensusNodes = self.configManager.getFlag<number>(flags.numberOfConsensusNodes);
-              }
-
-              ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, 0);
-
-              return;
-            }
-
-            const existingClusterContext = self.localConfig.clusterRefs[existingClusterRefs[0]];
-            ctx.config.existingClusterContext = existingClusterContext;
-
-            const remoteConfig = await self.remoteConfigManager.get(existingClusterContext);
-
-            const state = remoteConfig.metadata.state;
-            ctx.config.state = state;
-
-            const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length + 1;
-            ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
-
-            // If state is pre-genesis and user can't be prompted for the '--num-of-consensus-nodes' fail
-            if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes && quiet) {
-              throw new SoloError(
-                `--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`,
-              );
-            }
-
-            // If state is pre-genesis prompt the user for the '--num-of-consensus-nodes'
-            else if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
-              await self.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
-              ctx.config.numberOfConsensusNodes = self.configManager.getFlag<number>(flags.numberOfConsensusNodes);
-            }
-
-            // if the state is post-genesis and '--num-of-consensus-nodes' is specified throw
-            else if (state === DeploymentStates.POST_GENESIS && numberOfConsensusNodes) {
-              throw new SoloError(
-                `--${flags.numberOfConsensusNodes.name}=${numberOfConsensusNodes} shouldn't be specified ${state}`,
-              );
-            }
-          },
-        },
-        {
-          title: 'Test connection with cluster',
-          task: async (ctx, task) => {
-            const {clusterRef, context} = ctx.config;
-
-            task.title += `: ${clusterRef}, context: ${context}`;
-
-            const isConnected = await self.k8Factory
-              .getK8(context)
-              .namespaces()
-              .list()
-              .then(() => true)
-              .catch(() => false);
-
-            if (!isConnected) {
-              throw new SoloError(`Connection failed for cluster ${clusterRef} with context: ${context}`);
-            }
-          },
-        },
-        {
-          title: 'Verify prerequisites',
-          task: async () => {
-            // TODO: Verifies Kubernetes cluster & namespace-level prerequisites (e.g., cert-manager, HAProxy, etc.)
-          },
-        },
-        {
-          title: 'add cluster-ref in local config deployments',
-          task: async (ctx, task) => {
-            const {clusterRef, deployment} = ctx.config;
-
-            task.title = `add cluster-ref: ${clusterRef} for deployment: ${deployment} in local config`;
-
-            const deployments = self.localConfig.deployments;
-
-            deployments[ctx.config.deployment].clusters.push(clusterRef);
-
-            self.localConfig.setDeployments(deployments);
-          },
-        },
-        {
-          title: 'create remote config for deployment',
-          task: async (ctx, task) => {
-            const {
-              deployment,
-              clusterRef,
-              context,
-              state,
-              nodeAliases,
-              namespace,
-              existingClusterContext,
-              dnsBaseDomain,
-              dnsConsensusNodePattern,
-            } = ctx.config;
-
-            task.title += `: ${deployment} in cluster: ${clusterRef}`;
-
-            if (!existingClusterContext) {
-              await self.remoteConfigManager.create(
-                argv,
-                state,
-                nodeAliases,
-                namespace,
-                deployment,
-                clusterRef,
-                context,
-                dnsBaseDomain,
-                dnsConsensusNodePattern,
-              );
-
-              return;
-            }
-
-            //? Create copy of the existing remote config inside the new cluster
-            await self.remoteConfigManager.createConfigMap(context);
-
-            //? Update remote configs inside the clusters
-            await self.remoteConfigManager.modify(async remoteConfig => {
-              //* update the command history
-              remoteConfig.addCommandToHistory(argv._.join(' '));
-
-              //* add the new clusters
-              remoteConfig.addCluster(
-                new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
-              );
-
-              //* add the new nodes to components
-              for (const nodeAlias of nodeAliases) {
-                remoteConfig.components.add(
-                  new ConsensusNodeComponent(
-                    nodeAlias,
-                    clusterRef,
-                    namespace.name,
-                    ConsensusNodeStates.NON_DEPLOYED,
-                    Templates.nodeIdFromNodeAlias(nodeAlias),
-                  ),
-                );
-              }
-            });
-          },
-        },
+        self.initializeClusterAddConfig(argv),
+        self.verifyClusterAddArgs(),
+        self.checkNetworkState(),
+        self.testClusterConnection(),
+        self.verifyClusterAddPrerequisites(),
+        self.addClusterRefToDeployments(),
+        self.createOrEditRemoteConfigForNewDeployment(argv),
       ],
       {
         concurrent: false,
@@ -507,4 +307,259 @@ export class DeploymentCommand extends BaseCommand {
   }
 
   public async close(): Promise<void> {} // no-op
+
+  /**
+   * Initializes and populates the config and context for 'deployment add-cluster'
+   */
+  public initializeClusterAddConfig(argv: any): SoloListrTask<DeploymentAddClusterContext> {
+    return {
+      title: 'Initialize',
+      task: async (ctx, task) => {
+        this.configManager.update(argv);
+
+        await this.configManager.executePrompt(task, [flags.deployment, flags.clusterRef]);
+
+        ctx.config = {
+          quiet: this.configManager.getFlag<boolean>(flags.quiet),
+          namespace: this.configManager.getFlag<NamespaceName>(flags.namespace),
+          deployment: this.configManager.getFlag<DeploymentName>(flags.deployment),
+          clusterRef: this.configManager.getFlag<ClusterRef>(flags.clusterRef),
+
+          enableCertManager: this.configManager.getFlag<boolean>(flags.enableCertManager),
+          numberOfConsensusNodes: this.configManager.getFlag<number>(flags.numberOfConsensusNodes),
+          dnsBaseDomain: this.configManager.getFlag(flags.dnsBaseDomain),
+          dnsConsensusNodePattern: this.configManager.getFlag(flags.dnsConsensusNodePattern),
+
+          existingNodesCount: 0,
+          nodeAliases: [] as NodeAliases,
+          context: '',
+        };
+
+        this.logger.debug('Prepared config', {config: ctx.config, cachedConfig: this.configManager.config});
+      },
+    };
+  }
+
+  /**
+   * Validates:
+   * - cluster ref is present in the local config's cluster-ref => context mapping
+   * - the deployment is created
+   * - the cluster-ref is not already added to the deployment
+   */
+  public verifyClusterAddArgs(): SoloListrTask<DeploymentAddClusterContext> {
+    return {
+      title: 'Verify args',
+      task: async ctx => {
+        const {clusterRef, deployment} = ctx.config;
+
+        if (!this.localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
+          throw new SoloError(`Cluster ref ${clusterRef} not found in local config`);
+        }
+
+        ctx.config.context = this.localConfig.clusterRefs[clusterRef];
+
+        if (!this.localConfig.deployments.hasOwnProperty(deployment)) {
+          throw new SoloError(`Deployment ${deployment} not found in local config`);
+        }
+
+        if (this.localConfig.deployments[deployment].clusters.includes(clusterRef)) {
+          throw new SoloError(`Cluster ref ${clusterRef} is already added for deployment`);
+        }
+      },
+    };
+  }
+
+  /**
+   * Checks the network state:
+   * - if remote config is found check's the state field to see if it's pre or post genesis.
+   *   - pre genesis:
+   *     - prompts user if needed.
+   *     - generates node aliases based on '--number-of-consensus-nodes'
+   *   - post genesis:
+   *     - throws if '--number-of-consensus-nodes' is passed
+   * - if remote config is not found:
+   *   - prompts user if needed.
+   *   - generates node aliases based on '--number-of-consensus-nodes'.
+   */
+  public checkNetworkState(): SoloListrTask<DeploymentAddClusterContext> {
+    return {
+      title: 'check network state',
+      task: async (ctx, task) => {
+        const {deployment, numberOfConsensusNodes, quiet} = ctx.config;
+
+        const existingClusterRefs = this.localConfig.deployments[deployment].clusters;
+
+        // if there is no remote config don't validate deployment state
+        if (!existingClusterRefs.length) {
+          ctx.config.state = DeploymentStates.PRE_GENESIS;
+
+          // if the user can't be prompted for '--num-of-consensus-nodes' fail
+          if (!numberOfConsensusNodes && quiet) {
+            throw new SoloError(`--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`);
+          }
+
+          // prompt the user for the '--num-of-consensus-nodes'
+          else if (!numberOfConsensusNodes) {
+            await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
+            ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
+          }
+
+          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, 0);
+
+          return;
+        }
+
+        const existingClusterContext = this.localConfig.clusterRefs[existingClusterRefs[0]];
+        ctx.config.existingClusterContext = existingClusterContext;
+
+        const remoteConfig = await this.remoteConfigManager.get(existingClusterContext);
+
+        const state = remoteConfig.metadata.state;
+        ctx.config.state = state;
+
+        const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length + 1;
+        ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
+
+        // If state is pre-genesis and user can't be prompted for the '--num-of-consensus-nodes' fail
+        if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes && quiet) {
+          throw new SoloError(`--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`);
+        }
+
+        // If state is pre-genesis prompt the user for the '--num-of-consensus-nodes'
+        else if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
+          await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
+          ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
+        }
+
+        // if the state is post-genesis and '--num-of-consensus-nodes' is specified throw
+        else if (state === DeploymentStates.POST_GENESIS && numberOfConsensusNodes) {
+          throw new SoloError(
+            `--${flags.numberOfConsensusNodes.name}=${numberOfConsensusNodes} shouldn't be specified ${state}`,
+          );
+        }
+      },
+    };
+  }
+
+  /**
+   * Tries to connect with the cluster using the context from the local config
+   */
+  public testClusterConnection(): SoloListrTask<DeploymentAddClusterContext> {
+    return {
+      title: 'Test cluster connection',
+      task: async (ctx, task) => {
+        const {clusterRef, context} = ctx.config;
+
+        task.title += `: ${clusterRef}, context: ${context}`;
+
+        const isConnected = await this.k8Factory
+          .getK8(context)
+          .namespaces()
+          .list()
+          .then(() => true)
+          .catch(() => false);
+
+        if (!isConnected) {
+          throw new SoloError(`Connection failed for cluster ${clusterRef} with context: ${context}`);
+        }
+      },
+    };
+  }
+
+  public verifyClusterAddPrerequisites(): SoloListrTask<DeploymentAddClusterContext> {
+    return {
+      title: 'Verify prerequisites',
+      task: async () => {
+        // TODO: Verifies Kubernetes cluster & namespace-level prerequisites (e.g., cert-manager, HAProxy, etc.)
+      },
+    };
+  }
+
+  /**
+   * Adds the new cluster-ref for the deployment in local config
+   */
+  public addClusterRefToDeployments(): SoloListrTask<DeploymentAddClusterContext> {
+    return {
+      title: 'add cluster-ref in local config deployments',
+      task: async (ctx, task) => {
+        const {clusterRef, deployment} = ctx.config;
+
+        task.title = `add cluster-ref: ${clusterRef} for deployment: ${deployment} in local config`;
+
+        const deployments = this.localConfig.deployments;
+
+        deployments[deployment].clusters.push(clusterRef);
+
+        this.localConfig.setDeployments(deployments);
+      },
+    };
+  }
+
+  /**
+   * - if remote config not found, create new remote config for the deployment.
+   * - if remote config is found, add the new data for the deployment.
+   */
+  public createOrEditRemoteConfigForNewDeployment(argv: any): SoloListrTask<DeploymentAddClusterContext> {
+    return {
+      title: 'create remote config for deployment',
+      task: async (ctx, task) => {
+        const {
+          deployment,
+          clusterRef,
+          context,
+          state,
+          nodeAliases,
+          namespace,
+          existingClusterContext,
+          dnsBaseDomain,
+          dnsConsensusNodePattern,
+        } = ctx.config;
+
+        task.title += `: ${deployment} in cluster: ${clusterRef}`;
+
+        if (!existingClusterContext) {
+          await this.remoteConfigManager.create(
+            argv,
+            state,
+            nodeAliases,
+            namespace,
+            deployment,
+            clusterRef,
+            context,
+            dnsBaseDomain,
+            dnsConsensusNodePattern,
+          );
+
+          return;
+        }
+
+        //? Create copy of the existing remote config inside the new cluster
+        await this.remoteConfigManager.createConfigMap(context);
+
+        //? Update remote configs inside the clusters
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          //* update the command history
+          remoteConfig.addCommandToHistory(argv._.join(' '));
+
+          //* add the new clusters
+          remoteConfig.addCluster(
+            new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
+          );
+
+          //* add the new nodes to components
+          for (const nodeAlias of nodeAliases) {
+            remoteConfig.components.add(
+              new ConsensusNodeComponent(
+                nodeAlias,
+                clusterRef,
+                namespace.name,
+                ConsensusNodeStates.NON_DEPLOYED,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
+              ),
+            );
+          }
+        });
+      },
+    };
+  }
 }
