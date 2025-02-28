@@ -179,7 +179,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   const namespace: NamespaceName = NamespaceName.of(testName);
   const deployment = `${testName}-deployment`;
   const clusterRefs: ClusterRef[] = ['e2e-cluster-1', 'e2e-cluster-2'];
-  const contexts: string[] = [`${TEST_CLUSTER}`, `${TEST_CLUSTER.replace('-c1', '-c2')}`];
+  const testCluster = TEST_CLUSTER.includes('c1') ? TEST_CLUSTER : `${TEST_CLUSTER}-c1`;
+  const contexts: string[] = [`${testCluster}`, `${testCluster.replace('-c1', '-c2')}`];
   const nodeAliasesUnparsed = 'node1,node2';
   const nodeAliasesWithClusterRefsUnparsed = 'e2e-cluster-1=node1,e2e-cluster-2=node2';
   const testCacheDir = getTestCacheDir();
@@ -187,6 +188,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
     fs.rmSync(testCacheDir, {recursive: true, force: true});
+    expect(contexts[0].includes('c1'), 'context should include c1').to.be.true;
+    expect(contexts[1].includes('c2'), 'context should include c2').to.be.true;
   });
 
   beforeEach(async () => {
