@@ -49,11 +49,17 @@ export class Container {
 
   /**
    * Initialize the container with the default dependencies
+   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
    */
-  init(cacheDir: string = constants.SOLO_CACHE_DIR, logLevel: string = 'debug', devMode: boolean = false) {
+  init(
+    homeDir: string = constants.SOLO_HOME_DIR,
+    cacheDir: string = constants.SOLO_CACHE_DIR,
+    logLevel: string = 'debug',
+    devMode: boolean = false,
+  ) {
     // SoloLogger
     container.register(InjectTokens.LogLevel, {useValue: logLevel});
     container.register(InjectTokens.DevMode, {useValue: devMode});
@@ -102,7 +108,7 @@ export class Container {
     );
 
     // LocalConfig
-    const localConfigPath = normalize(path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
+    const localConfigPath = normalize(path.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
     container.register(InjectTokens.LocalConfigFilePath, {useValue: localConfigPath});
     container.register(InjectTokens.LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
@@ -120,28 +126,30 @@ export class Container {
 
   /**
    * clears the container registries and re-initializes the container
+   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
    */
-  reset(cacheDir?: string, logLevel?: string, devMode?: boolean) {
+  reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.reset();
     }
-    Container.getInstance().init(cacheDir, logLevel, devMode);
+    Container.getInstance().init(homeDir, cacheDir, logLevel, devMode);
   }
 
   /**
    * clears the container instances, useful for testing when you are using container.registerInstance()
+   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
    */
-  clearInstances(cacheDir?: string, logLevel?: string, devMode?: boolean) {
+  clearInstances(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
     } else {
-      Container.getInstance().init(cacheDir, logLevel, devMode);
+      Container.getInstance().init(homeDir, cacheDir, logLevel, devMode);
     }
   }
 

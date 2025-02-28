@@ -11,7 +11,8 @@ import {DEFAULT_LOCAL_CONFIG_FILE} from '../src/core/constants.js';
 const cacheDirectory = path.join('test', 'data', 'tmp');
 
 export function resetTestContainer(cacheDir: string = cacheDirectory) {
-  Container.getInstance().reset(cacheDir, 'debug', true);
+  // For the test suites cacheDir === homeDir is acceptable because the data is temporary
+  Container.getInstance().reset(cacheDir, cacheDir, 'debug', true);
 }
 
 export function resetForTest(namespace?: NamespaceNameAsString, cacheDir: string = cacheDirectory) {
