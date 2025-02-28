@@ -39,6 +39,7 @@ export async function main(argv: string[]) {
   Container.getInstance().init();
 
   const logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+  logger.debug('Initializing Solo CLI');
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));

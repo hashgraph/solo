@@ -23,6 +23,8 @@ import path from 'path';
 import {type LocalConfig} from '../../../src/core/config/local_config.js';
 import {type SoloLogger} from '../../../src/core/logging.js';
 
+const testName: string = 'dual-cluster-full';
+
 function newArgv(): string[] {
   return ['${PATH}/node', '${SOLO_ROOT}/solo.ts'];
 }
@@ -56,6 +58,7 @@ function soloNodeKeysArgv(deployment: DeploymentName, nodeAliasesUnparsed: strin
   // TODO remove once solo node keys pulls the node aliases from the remote config
   argv.push(optionFromFlag(Flags.nodeAliasesUnparsed));
   argv.push(nodeAliasesUnparsed);
+  container.resolve<SoloLogger>(InjectTokens.SoloLogger).info(`${testName}: soloNodeKeysArgv: ${argv.join(' ')}`);
   return argv;
 }
 
@@ -177,7 +180,6 @@ function soloNodeStartArgv(deployment: string) {
 
 describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): Promise<void> {
   this.bail(true);
-  const testName: string = 'dual-cluster-full';
   const namespace: NamespaceName = NamespaceName.of(testName);
   const deployment = `${testName}-deployment`;
   const testClusterRefs: ClusterRef[] = ['e2e-cluster-1', 'e2e-cluster-2'];

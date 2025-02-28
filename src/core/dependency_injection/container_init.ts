@@ -70,8 +70,10 @@ export class Container {
     container.register(InjectTokens.DevMode, {useValue: devMode});
     if (testLogger) {
       container.registerInstance(InjectTokens.SoloLogger, testLogger);
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using test logger');
     } else {
       container.register(InjectTokens.SoloLogger, {useClass: SoloLogger}, {lifecycle: Lifecycle.Singleton});
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using default logger');
     }
 
     container.register(InjectTokens.PackageDownloader, {useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton});
@@ -130,6 +132,7 @@ export class Container {
     container.register(InjectTokens.ClusterChecks, {useClass: ClusterChecks}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.NetworkNodes, {useClass: NetworkNodes}, {lifecycle: Lifecycle.Singleton});
 
+    container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container initialized');
     Container.isInitialized = true;
   }
 
@@ -142,6 +145,7 @@ export class Container {
    */
   reset(cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
     if (Container.instance && Container.isInitialized) {
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Resetting container');
       container.reset();
       Container.isInitialized = false;
     }
