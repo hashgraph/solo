@@ -58,7 +58,7 @@ export class Container {
     cacheDir: string = constants.SOLO_CACHE_DIR,
     logLevel: string = 'debug',
     devMode: boolean = false,
-    testLogger: SoloLogger,
+    testLogger?: SoloLogger,
   ) {
     if (Container.isInitialized) return;
 
