@@ -783,7 +783,7 @@ export class NodeCommandHandlers implements CommandHandlers {
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
         }),
         this.tasks.identifyNetworkPods(1),
-        this.tasks.stopNodes(),
+        this.tasks.stopNodes('nodeAliases'),
         this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
       ],
       {
@@ -866,7 +866,7 @@ export class NodeCommandHandlers implements CommandHandlers {
         this.tasks.identifyExistingNodes(),
         this.tasks.sendFreezeTransaction(),
         this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
-        this.tasks.stopNodes(),
+        this.tasks.stopNodes('existingNodeAliases'),
         this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
       ],
       {

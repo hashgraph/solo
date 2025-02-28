@@ -1362,12 +1362,12 @@ export class NodeCommandTasks {
     });
   }
 
-  stopNodes() {
+  stopNodes(nodeAliasesProperty: string) {
     return new Task('Stopping nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = [];
       if (!ctx.config.skipStop) {
         await this.accountManager.close();
-        for (const nodeAlias of ctx.config.existingNodeAliases) {
+        for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
           const podRef = ctx.config.podRefs[nodeAlias];
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
           const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
