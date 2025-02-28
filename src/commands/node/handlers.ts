@@ -19,6 +19,7 @@ import {
   freezeConfigBuilder,
   updateConfigBuilder,
   upgradeConfigBuilder,
+  restartConfigBuilder,
 } from './configs.js';
 import * as constants from '../../core/constants.js';
 import {type AccountManager} from '../../core/account_manager.js';
@@ -873,6 +874,33 @@ export class NodeCommandHandlers implements CommandHandlers {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
       'Error freezing node',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async restart(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.RESTART_FLAGS);
+
+    const lease = await this.leaseManager.create();
+
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, restartConfigBuilder.bind(this), lease),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.startNodes('existingNodeAliases'),
+        this.tasks.enablePortForwarding(),
+        this.tasks.checkAllNodesAreActive('existingNodeAliases'),
+        this.tasks.checkNodeProxiesAreActive(),
+        this.changeAllNodeStates(ConsensusNodeStates.STARTED),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error restarting node',
       lease,
     );
 

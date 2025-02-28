@@ -245,9 +245,9 @@ export const START_FLAGS = {
 };
 
 export const RESTART_FLAGS = {
-  requiredFlags: [flags.deployment, flags.releaseTag],
-  requiredFlagsWithDisabledPrompt: [flags.app],
-  optionalFlags: [flags.quiet, flags.nodeAliasesUnparsed, flags.debugNodeAlias, flags.stateFile, flags.stakeAmounts],
+  requiredFlags: [flags.deployment],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [flags.quiet],
 };
 
 export const SETUP_FLAGS = {
