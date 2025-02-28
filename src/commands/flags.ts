@@ -574,7 +574,6 @@ export class Flags {
     definition: {
       describe: 'Local chart directory path (e.g. ~/solo-charts/charts',
       defaultValue: '',
-      alias: 'd',
       type: 'string',
     },
     prompt: async function promptChartDir(task: ListrTaskWrapper<any, any, any>, input: any) {
@@ -1515,6 +1514,7 @@ export class Flags {
     name: 'deployment',
     definition: {
       describe: 'The name the user will reference locally to link to a deployment',
+      alias: 'd',
       defaultValue: '',
       type: 'string',
     },
@@ -1822,24 +1822,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsAccessKey: CommandFlag = {
-    constName: 'gcsAccessKey',
-    name: 'gcs-access-key',
+  static readonly gcsWriteAccessKey: CommandFlag = {
+    constName: 'gcsWriteAccessKey',
+    name: 'gcs-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'gcs storage access key',
+      describe: 'gcs storage access key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly gcsSecrets: CommandFlag = {
-    constName: 'gcsSecrets',
-    name: 'gcs-secrets',
+  static readonly gcsWriteSecrets: CommandFlag = {
+    constName: 'gcsWriteSecrets',
+    name: 'gcs-write-secrets',
     definition: {
       defaultValue: '',
-      describe: 'gcs storage secret key',
+      describe: 'gcs storage secret key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -1881,24 +1881,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsAccessKey: CommandFlag = {
-    constName: 'awsAccessKey',
-    name: 'aws-access-key',
+  static readonly awsWriteAccessKey: CommandFlag = {
+    constName: 'awsWriteAccessKey',
+    name: 'aws-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'aws storage access key',
+      describe: 'aws storage access key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly awsSecrets: CommandFlag = {
-    constName: 'awsSecrets',
-    name: 'aws-secrets',
+  static readonly awsWriteSecrets: CommandFlag = {
+    constName: 'awsWriteSecrets',
+    name: 'aws-write-secrets',
     definition: {
       defaultValue: '',
-      describe: 'aws storage secret key',
+      describe: 'aws storage secret key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -1964,24 +1964,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageAccessKey: CommandFlag = {
-    constName: 'storageAccessKey',
-    name: 'storage-access-key',
+  static readonly storageReadAccessKey: CommandFlag = {
+    constName: 'storageReadAccessKey',
+    name: 'storage-read-access-key',
     definition: {
       defaultValue: '',
-      describe: 'storage access key for mirror node importer',
+      describe: 'storage read access key for mirror node importer',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageSecrets: CommandFlag = {
-    constName: 'storageSecrets',
-    name: 'storage-secrets',
+  static readonly storageReadSecrets: CommandFlag = {
+    constName: 'storageReadSecrets',
+    name: 'storage-read-secrets',
     definition: {
       defaultValue: '',
-      describe: 'storage secret key for mirror node importer',
+      describe: 'storage read-secret key for mirror node importer',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2118,18 +2118,18 @@ export class Flags {
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
-    Flags.gcsAccessKey,
-    Flags.gcsSecrets,
+    Flags.gcsWriteAccessKey,
+    Flags.gcsWriteSecrets,
     Flags.gcsEndpoint,
     Flags.gcsBucket,
     Flags.gcsBucketPrefix,
-    Flags.awsAccessKey,
-    Flags.awsSecrets,
+    Flags.awsWriteAccessKey,
+    Flags.awsWriteSecrets,
     Flags.awsEndpoint,
     Flags.awsBucket,
     Flags.awsBucketPrefix,
-    Flags.storageAccessKey,
-    Flags.storageSecrets,
+    Flags.storageReadAccessKey,
+    Flags.storageReadSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
     Flags.storageBucketPrefix,
