@@ -83,8 +83,10 @@ export async function main(argv: string[]) {
       localConfig,
     };
 
+    logger.debug('Initializing middlewares');
     const middlewares = new Middlewares(opts);
 
+    logger.debug('Initializing commands');
     const rootCmd = yargs(hideBin(argv))
       .scriptName('')
       .usage('Usage:\n  solo <command> [options]')
@@ -101,8 +103,10 @@ export async function main(argv: string[]) {
         false, // applyBeforeValidate is false as otherwise middleware is called twice
       );
 
+    logger.debug('Setting up flags');
     // set root level flags
     flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
+    logger.debug('Parsing root command (executing the commands)');
     return rootCmd.parse();
   } catch (e) {
     logger.showUserError(e);

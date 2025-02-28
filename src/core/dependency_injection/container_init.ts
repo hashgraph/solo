@@ -60,7 +60,10 @@ export class Container {
     devMode: boolean = false,
     testLogger?: SoloLogger,
   ) {
-    if (Container.isInitialized) return;
+    if (Container.isInitialized) {
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container already initialized');
+      return;
+    }
 
     // SoloLogger
     container.register(InjectTokens.LogLevel, {useValue: logLevel});
