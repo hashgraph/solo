@@ -60,7 +60,9 @@ export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
 
-export let testLogger: SoloLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+export function getTestLogger() {
+  return container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+}
 
 export function getTestCacheDir(testName?: string) {
   const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR;
@@ -150,7 +152,7 @@ export function bootstrapTestVariables(
   const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
-  testLogger = container.resolve(InjectTokens.SoloLogger);
+  const testLogger: SoloLogger = getTestLogger();
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -227,6 +229,8 @@ export function e2eTestSuite(
     opts: {k8Factory, chartManager},
   } = bootstrapResp;
 
+  const testLogger: SoloLogger = getTestLogger();
+
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
@@ -273,6 +277,7 @@ export function e2eTestSuite(
         expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName,
+          flags.namespace.constName,
           'consensusNodes',
           'contexts',
         ]);
