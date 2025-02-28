@@ -167,8 +167,8 @@ export class DeploymentCommand extends BaseCommand {
         },
         {
           title: 'Verify args',
-          task: async (ctx, task) => {
-            const {clusterRef, deployment, numberOfConsensusNodes, quiet} = ctx.config;
+          task: async ctx => {
+            const {clusterRef, deployment} = ctx.config;
 
             if (!self.localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
               throw new SoloError(`Cluster ref ${clusterRef} not found in local config`);
@@ -183,6 +183,12 @@ export class DeploymentCommand extends BaseCommand {
             if (self.localConfig.deployments[deployment].clusters.includes(clusterRef)) {
               throw new SoloError(`Cluster ref ${clusterRef} is already added for deployment`);
             }
+          },
+        },
+        {
+          title: 'check network state',
+          task: async (ctx, task) => {
+            const {deployment, numberOfConsensusNodes, quiet} = ctx.config;
 
             const existingClusterRefs = self.localConfig.deployments[deployment].clusters;
 
