@@ -113,6 +113,10 @@ export class Middlewares {
         (command === 'deployment' && subCommand === 'create') ||
         (command === 'deployment' && subCommand === 'list');
 
+      if (command === 'node' && subCommand === 'keys') {
+        await remoteConfigManager.loadAndValidate(argv, false);
+      }
+
       if (!skip) {
         await remoteConfigManager.loadAndValidate(argv);
       }

@@ -173,7 +173,7 @@ export const PROFILE_TINY = 'tiny';
 export const PROFILE_LOCAL = 'local';
 
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE];
-export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custom-spec.yaml');
+export const DEFAULT_PROFILE_FILE = path.join('profiles', 'custom-spec.yaml');
 
 export const STANDARD_DATAMASK = '***';
 
