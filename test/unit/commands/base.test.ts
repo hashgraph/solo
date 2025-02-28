@@ -188,7 +188,7 @@ describe('BaseCommand', () => {
       Object.defineProperty(remoteConfigManager, 'components', {
         get: () => newComponentsDataWrapper,
       });
-      remoteConfigManager.isLoaded = sinon.stub().returns(true);
+      remoteConfigManager.isLoaded = sinon.stub<[], boolean>().returns(true);
 
       const clusters = {};
       const cluster = new Cluster('cluster', 'namespace', 'deployment', undefined, undefined);
