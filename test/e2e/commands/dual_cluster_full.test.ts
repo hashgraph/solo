@@ -21,6 +21,7 @@ import {type ConfigManager} from '../../../src/core/config_manager.js';
 import fs from 'fs';
 import path from 'path';
 import {type LocalConfig} from '../../../src/core/config/local_config.js';
+import {type SoloLogger} from '../../../src/core/logging.js';
 
 function newArgv(): string[] {
   return ['${PATH}/node', '${SOLO_ROOT}/solo.ts'];
@@ -270,12 +271,17 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       Object.entries(remoteConfigManager.components.consensusNodes).length,
       'consensus node count should be 2',
     ).to.equal(2);
+
+    container
+      .resolve<SoloLogger>(InjectTokens.SoloLogger)
+      .info(`${testName}: finished manually creating the remote config and loading it into the two clusters`);
   });
 
   // TODO cluster setup (for right now this is being done by the `setup-dual-e2e.sh` script)
 
   it(`${testName}: node keys`, async () => {
     // TODO we shouldn't have to pass the nodeAliasesUnparsed
+    container.resolve<SoloLogger>(InjectTokens.SoloLogger).info(`${testName}: beginning node keys command`);
     await main(soloNodeKeysArgv(deployment, nodeAliasesUnparsed));
     const node1Key = fs.readFileSync(path.join(testCacheDir, 'keys', 's-private-node1.pem'));
     expect(node1Key).to.not.be.null;
