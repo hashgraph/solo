@@ -35,7 +35,7 @@ import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
 import {type Opts} from './commands/base.js';
 import {Middlewares} from './core/middlewares.js';
 
-export function main(argv: string[]) {
+export async function main(argv: string[]) {
   Container.getInstance().init();
 
   const logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
@@ -103,7 +103,7 @@ export function main(argv: string[]) {
 
     // set root level flags
     flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
-    return rootCmd.parse();
+    return await rootCmd.parse();
   } catch (e) {
     logger.showUserError(e);
     // eslint-disable-next-line n/no-process-exit
