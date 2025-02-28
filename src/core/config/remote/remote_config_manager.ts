@@ -404,7 +404,7 @@ export class RemoteConfigManager {
 
     if (!currentDeployment) {
       this.logger.error('Selected deployment name is not set in local config', this.localConfig);
-      throw new SoloError('Selected deployment name is not set in local config');
+      throw new SoloError(`Selected deployment name is not set in local config - ${deploymentName}`);
     }
 
     const namespace = currentDeployment.namespace;

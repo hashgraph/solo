@@ -33,7 +33,7 @@ export class DeploymentCommand extends BaseCommand {
     this.tasks = new ClusterCommandTasks(this, this.k8Factory);
   }
 
-  private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment, flags.userEmailAddress];
+  private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment];
 
   private static ADD_CLUSTER_FLAGS_LIST = [
     flags.quiet,
@@ -54,7 +54,6 @@ export class DeploymentCommand extends BaseCommand {
       quiet: boolean;
       namespace: NamespaceName;
       deployment: DeploymentName;
-      email: string;
     }
 
     interface Context {
@@ -67,7 +66,6 @@ export class DeploymentCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             self.configManager.update(argv);
-            self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
             await self.configManager.executePrompt(task, [flags.namespace, flags.deployment]);
 
@@ -75,7 +73,6 @@ export class DeploymentCommand extends BaseCommand {
               quiet: self.configManager.getFlag<boolean>(flags.quiet),
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
-              email: self.configManager.getFlag(flags.userEmailAddress),
             } as Config;
 
             if (self.localConfig.deployments && self.localConfig.deployments[ctx.config.deployment]) {
@@ -85,8 +82,19 @@ export class DeploymentCommand extends BaseCommand {
             self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
           },
         },
-        this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(),
+        {
+          title: 'Add deployment to local config',
+          task: async (ctx, task) => {
+            const {namespace, deployment} = ctx.config;
+            task.title = `Adding deployment: ${deployment} with namespace: ${namespace.name} to local config`;
+
+            if (this.localConfig.deployments[deployment]) {
+              throw new SoloError(`Deployment ${deployment} is already added to local config`);
+            }
+
+            this.localConfig.deployments[deployment] = {clusters: [], namespace: namespace.name};
+          },
+        },
       ],
       {
         concurrent: false,
@@ -160,20 +168,20 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Verify args',
           task: async (ctx, task) => {
-            const {clusterRef, deployment, numberOfConsensusNodes} = ctx.config;
+            const {clusterRef, deployment, numberOfConsensusNodes, quiet} = ctx.config;
 
             if (!self.localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
-              throw new SoloError('Cluster ref not found in local config');
+              throw new SoloError(`Cluster ref ${clusterRef} not found in local config`);
             }
 
             ctx.config.context = self.localConfig.clusterRefs[clusterRef];
 
             if (!self.localConfig.deployments.hasOwnProperty(deployment)) {
-              throw new SoloError('Deployment not found in local config');
+              throw new SoloError(`Deployment ${deployment} not found in local config`);
             }
 
             if (self.localConfig.deployments[deployment].clusters.includes(clusterRef)) {
-              throw new SoloError('Cluster ref is already present for deployment');
+              throw new SoloError(`Cluster ref ${clusterRef} is already added for deployment`);
             }
 
             const existingClusterRefs = self.localConfig.deployments[deployment].clusters;
@@ -182,8 +190,17 @@ export class DeploymentCommand extends BaseCommand {
             if (!existingClusterRefs.length) {
               ctx.config.state = DeploymentStates.PRE_GENESIS;
 
-              if (!numberOfConsensusNodes) {
+              // if the user can't be prompted for '--num-of-consensus-nodes' fail
+              if (!numberOfConsensusNodes && quiet) {
+                throw new SoloError(
+                  `--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`,
+                );
+              }
+
+              // prompt the user for the '--num-of-consensus-nodes'
+              else if (!numberOfConsensusNodes) {
                 await self.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
+                ctx.config.numberOfConsensusNodes = self.configManager.getFlag<number>(flags.numberOfConsensusNodes);
               }
 
               ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, 0);
@@ -202,15 +219,23 @@ export class DeploymentCommand extends BaseCommand {
             const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length + 1;
             ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
 
-            // If state is pre-genesis prompt the user for the --num-of-consensus-nodes
-            if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
-              await self.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
+            // If state is pre-genesis and user can't be prompted for the '--num-of-consensus-nodes' fail
+            if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes && quiet) {
+              throw new SoloError(
+                `--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`,
+              );
             }
 
-            // if the state is post-genesis and --num-of-consensus-nodes is specified throw
+            // If state is pre-genesis prompt the user for the '--num-of-consensus-nodes'
+            else if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
+              await self.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
+              ctx.config.numberOfConsensusNodes = self.configManager.getFlag<number>(flags.numberOfConsensusNodes);
+            }
+
+            // if the state is post-genesis and '--num-of-consensus-nodes' is specified throw
             else if (state === DeploymentStates.POST_GENESIS && numberOfConsensusNodes) {
               throw new SoloError(
-                `--${flags.numberOfConsensusNodes.name}=${numberOfConsensusNodes} shouldn't be specified after ${state}`,
+                `--${flags.numberOfConsensusNodes.name}=${numberOfConsensusNodes} shouldn't be specified ${state}`,
               );
             }
           },
@@ -230,7 +255,7 @@ export class DeploymentCommand extends BaseCommand {
               .catch(() => false);
 
             if (!isConnected) {
-              throw new SoloError(`Cannection failed for cluster ${clusterRef} with context: ${context}`);
+              throw new SoloError(`Connection failed for cluster ${clusterRef} with context: ${context}`);
             }
           },
         },

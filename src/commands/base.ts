@@ -346,7 +346,7 @@ export abstract class BaseCommand extends ShellRunner {
         }
         self.logger.debug(`OK: setup directory: ${dirPath}`);
       });
-    } catch (e: Error | any) {
+    } catch (e) {
       this.logger.error(e);
       throw new SoloError(`failed to create directory: ${e.message}`, e);
     }

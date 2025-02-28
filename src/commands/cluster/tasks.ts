@@ -17,8 +17,8 @@ import {RemoteConfigManager} from '../../core/config/remote/remote_config_manage
 import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
-import {type SelectClusterContextContext} from './configs.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type ClusterRefConnectContext, type SelectClusterContextContext} from './configs.js';
+import {type ClusterRef, type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
@@ -38,30 +38,56 @@ export class ClusterCommandTasks {
     this.parent = parent;
   }
 
-  testConnectionToCluster(cluster: string, localConfig: LocalConfig, parentTask: ListrTaskWrapper<any, any, any>) {
+  public connectClusterRef(): SoloListrTask<ClusterRefConnectContext> {
+    return {
+      title: 'Associate a context with a cluster reference: ',
+      task: async (ctx, task) => {
+        task.title += ctx.config.clusterRef;
+
+        this.parent.getLocalConfig().clusterRefs[ctx.config.clusterRef] = ctx.config.contextName;
+      },
+    };
+  }
+
+  public saveLocalConfig(): SoloListrTask<ClusterRefConnectContext> {
+    return {
+      title: 'Save local configuration',
+      task: async () => {
+        await this.parent.getLocalConfig().write();
+      },
+    };
+  }
+
+  public disconnectClusterRef() {
+    return {
+      title: 'Remove cluster reference ',
+      task: async (ctx, task: ListrTaskWrapper<any, any, any>) => {
+        task.title += ctx.config.clusterRef;
+        const localConfig = this.parent.getLocalConfig();
+        delete localConfig.clusterRefs[ctx.config.clusterRef];
+      },
+    };
+  }
+
+  testConnectionToCluster(clusterRef?: string): SoloListrTask<ClusterRefConnectContext> {
     const self = this;
     return {
-      title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
-      task: async (_, subTask: ListrTaskWrapper<any, any, any>) => {
-        let context = localConfig.clusterRefs[cluster];
-        if (!context) {
-          const isQuiet = self.parent.getConfigManager().getFlag(flags.quiet);
-          if (isQuiet) {
-            context = self.parent.getK8Factory().default().contexts().readCurrent();
-          } else {
-            context = await self.promptForContext(parentTask, cluster);
-          }
-
-          localConfig.clusterRefs[cluster] = context;
-        }
-        if (!(await self.parent.getK8Factory().default().contexts().testContextConnection(context))) {
-          subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
-          throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
+      title: 'Test connection to cluster: ',
+      task: async (ctx, task) => {
+        task.title += clusterRef ?? ctx.config.clusterRef;
+        try {
+          await self.parent.getK8Factory().getK8(ctx.config.contextName).namespaces().list();
+        } catch {
+          task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
+          throw new SoloError(
+            `${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(ctx.config.contextName, ctx.config.clusterRef)}`,
+          );
         }
       },
     };
   }
 
+  // Method not used now but may be used in the future
   validateRemoteConfigForCluster(
     cluster: string,
     currentClusterName: string,
@@ -82,6 +108,7 @@ export class ClusterCommandTasks {
     };
   }
 
+  // Method not used now but may be used in the future
   readClustersFromRemoteConfig(argv) {
     const self = this;
     return {
@@ -96,7 +123,7 @@ export class ClusterCommandTasks {
 
         // Validate connections for the other clusters
         for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(self.testConnectionToCluster(cluster, localConfig, task));
+          subTasks.push(self.testConnectionToCluster(cluster));
         }
 
         // Pull and validate RemoteConfigs from the other clusters
@@ -359,30 +386,58 @@ export class ClusterCommandTasks {
 
     argv.flags = [...requiredFlags, ...optionalFlags];
 
-    return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      if (argv[flags.devMode.name]) {
-        this.parent.logger.setDevMode(true);
-      }
+    return {
+      title: 'Initialize',
+      task: async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+        if (argv[flags.devMode.name]) {
+          this.parent.logger.setDevMode(true);
+        }
 
-      ctx.config = await configInit(argv, ctx, task);
-    });
+        ctx.config = await configInit(argv, ctx, task);
+      },
+    };
   }
 
   showClusterList() {
     return new Task('List all available clusters', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.parent.logger.showList('Clusters', this.parent.getK8Factory().default().clusters().list());
+      const clusterRefs = this.parent.localConfig.clusterRefs;
+      const clusterList = Object.entries(clusterRefs).map(
+        ([clusterName, clusterContext]) => `${clusterName}:${clusterContext}`,
+      );
+      this.parent.logger.showList('Cluster references and the respective contexts', clusterList);
     });
   }
 
   getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      try {
-        const clusterName = this.parent.getK8Factory().default().clusters().readCurrent();
-        this.parent.logger.showUser(`Cluster Name (${clusterName})`);
-        this.parent.logger.showUser('\n');
-      } catch (e: Error | unknown) {
-        this.parent.logger.showUserError(e);
+      const clusterRef = ctx.config.clusterRef;
+      const localConfig = this.parent.getLocalConfig();
+      const clusterRefs = localConfig.clusterRefs;
+      const deployments = localConfig.deployments;
+
+      if (!clusterRefs[clusterRef]) {
+        throw new Error(`Cluster "${clusterRef}" not found in the LocalConfig`);
       }
+
+      const context = clusterRefs[clusterRef];
+      const deploymentsWithSelectedCluster = Object.entries(deployments)
+        .filter(([_, deployment]) => deployment.clusters.includes(clusterRef))
+        .map(([deploymentName, deployment]) => ({
+          name: deploymentName,
+          namespace: deployment.namespace || 'default',
+        }));
+
+      task.output =
+        `Cluster Reference: ${clusterRef}\n` + `Associated Context: ${context}\n` + 'Deployments using this Cluster:';
+
+      if (deploymentsWithSelectedCluster.length) {
+        task.output +=
+          '\n' + deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n');
+      } else {
+        task.output += '\n  - None';
+      }
+
+      this.parent.logger.showUser(task.output);
     });
   }
 

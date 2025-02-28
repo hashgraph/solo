@@ -2,23 +2,38 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName, type EmailAddress} from '../../core/config/remote/types.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
+export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 export const connectConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
+  const configManager = this.parent.getConfigManager();
+  configManager.update(argv);
+  ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
 
-  // set config in the context for later tasks to use
-  ctx.config = config;
+  if (!ctx.config.contextName) {
+    const isQuiet = configManager.getFlag(flags.quiet);
+    if (isQuiet) {
+      ctx.config.contextName = this.parent.getK8Factory().default().contexts().readCurrent();
+    } else {
+      const kubeContexts = this.parent.getK8Factory().default().contexts().list();
+      ctx.config.contextName = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+    }
+  }
 
+  return ctx.config;
+};
+
+export const defaultConfigBuilder = async function (argv, ctx, task) {
+  this.parent.getConfigManager().update(argv);
+  ctx.config = this.getConfig(DEFAULT_CONFIGS_NAME, argv.flags, []) as ClusterRefDefaultConfigClass;
   return ctx.config;
 };
 
@@ -86,14 +101,23 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
   return ctx.config;
 };
 
-export interface ClusterConnectConfigClass {
-  app: string;
+export interface ClusterRefConnectConfigClass {
   cacheDir: string;
   devMode: boolean;
-  namespace: string;
-  nodeAlias: NodeAlias;
-  context: string;
-  clusterName: string;
+  quiet: boolean;
+  userEmailAddress: EmailAddress;
+  clusterRef: ClusterRef;
+  contextName: string;
+}
+
+export interface ClusterRefConnectContext {
+  config: ClusterRefConnectConfigClass;
+}
+
+export interface ClusterRefDefaultConfigClass {
+  cacheDir: string;
+  devMode: boolean;
+  clusterRef: string;
 }
 
 export interface ClusterSetupConfigClass {
