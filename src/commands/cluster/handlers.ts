@@ -23,6 +23,11 @@ export class ClusterCommandHandlers implements CommandHandlers {
     this.getConfig = parent.getConfig.bind(parent);
   }
 
+  /**
+   * - Setup home directory.
+   * - Create new local config if needed.
+   * - Add new 'cluster-ref => context' mapping in the local config.
+   */
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 

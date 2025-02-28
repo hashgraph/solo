@@ -70,6 +70,9 @@ export class DeploymentCommand extends BaseCommand {
 
   private static LIST_DEPLOYMENTS_FLAGS_LIST = [flags.quiet, flags.clusterRef];
 
+  /**
+   * Create new deployment inside the local config
+   */
   public async create(argv: AnyArgv): Promise<boolean> {
     const self = this;
 
@@ -134,6 +137,9 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
+  /**
+   * Add new cluster for specified deployment, and create or edit the remote config
+   */
   public async addCluster(argv: AnyArgv): Promise<boolean> {
     const self = this;
 
