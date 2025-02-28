@@ -186,17 +186,19 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   const nodeAliasesUnparsed = 'node1,node2';
   const nodeAliasesWithClusterRefsUnparsed = 'e2e-cluster-1=node1,e2e-cluster-2=node2';
   const testCacheDir = getTestCacheDir();
+  let testLogger: SoloLogger;
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
     fs.rmSync(testCacheDir, {recursive: true, force: true});
     expect(contexts[0].includes('c1'), 'context should include c1').to.be.true;
     expect(contexts[1].includes('c2'), 'context should include c2').to.be.true;
+    testLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
   });
 
   beforeEach(async () => {
     // TODO switch to only resetting the test containers and not using the test version of the local config
-    resetForTest(namespace.name, testCacheDir);
+    resetForTest(namespace.name, testCacheDir, testLogger);
   });
 
   // TODO after all test are done delete the namespace for the next test
