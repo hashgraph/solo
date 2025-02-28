@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {Flags as flags} from '../flags.js';
-import {type AnyArgv, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
+import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
 import {type BaseCommand} from '../base.js';
 import {splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
@@ -363,7 +363,7 @@ export class ClusterCommandTasks implements IClusterCommandTasks {
     };
   }
 
-  public initialize(argv: AnyArgv, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
+  public initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
     const {requiredFlags, optionalFlags} = argv;
 
     argv.flags = [...requiredFlags, ...optionalFlags];
@@ -461,7 +461,7 @@ export class ClusterCommandTasks implements IClusterCommandTasks {
     };
   }
 
-  public installClusterChart(argv: AnyArgv): SoloListrTask<ClusterSetupContext> {
+  public installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterSetupContext> {
     const parent = this.parent;
     return {
       title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
@@ -521,7 +521,7 @@ export class ClusterCommandTasks implements IClusterCommandTasks {
     };
   }
 
-  public uninstallClusterChart(argv: AnyArgv): SoloListrTask<ClusterResetContext> {
+  public uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterResetContext> {
     const parent = this.parent;
     const self = this;
 

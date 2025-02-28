@@ -19,7 +19,7 @@ import {ConsensusNodeComponent} from '../../../../src/core/config/remote/compone
 import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
 import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
 
-import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
+import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
@@ -40,7 +40,7 @@ describe('RemoteConfigValidator', () => {
 
   before(async () => {
     configManager = container.resolve(InjectTokens.ConfigManager);
-    configManager.update({[flags.namespace.name]: namespace});
+    configManager.update({[flags.namespace.name]: namespace} as ArgvStruct);
     k8Factory = container.resolve(InjectTokens.K8Factory);
     localConfig = new LocalConfig(filePath);
     await k8Factory.default().namespaces().create(namespace);

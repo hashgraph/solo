@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type AnyArgv, type NodeAlias} from '../../types/aliases.js';
+import {type ArgvStruct, type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -18,7 +18,7 @@ export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
 export const connectConfigBuilder = async function (
   this: IClusterCommandHandlers & CommandHandlers,
-  argv: AnyArgv,
+  argv: ArgvStruct,
   ctx: ClusterConnectContext,
 ): Promise<ClusterConnectConfigClass> {
   ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
@@ -27,7 +27,7 @@ export const connectConfigBuilder = async function (
 
 export const setupConfigBuilder = async function (
   this: IClusterCommandHandlers & CommandHandlers,
-  argv: AnyArgv,
+  argv: ArgvStruct,
   ctx: ClusterSetupContext,
   task: SoloListrTaskWrapper<ClusterSetupContext>,
 ): Promise<ClusterSetupConfigClass> {
@@ -66,7 +66,7 @@ export const setupConfigBuilder = async function (
 
 export const resetConfigBuilder = async function (
   this: IClusterCommandHandlers & CommandHandlers,
-  argv: AnyArgv,
+  argv: ArgvStruct,
   ctx: ClusterResetContext,
   task: SoloListrTaskWrapper<ClusterResetContext>,
 ): Promise<ClusterResetConfigClass> {

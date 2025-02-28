@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {type SoloListrTask} from '../../../types/index.js';
-import {type AnyArgv, type AnyListrContext, type ConfigBuilder} from '../../../types/aliases.js';
+import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../../types/aliases.js';
 import {type ClusterResetContext, type ClusterSetupContext, type SelectClusterContextContext} from '../configs.js';
 
 export interface IClusterCommandTasks {
@@ -14,8 +14,8 @@ export interface IClusterCommandTasks {
   updateLocalConfig(): SoloListrTask<SelectClusterContextContext>;
   readClustersFromRemoteConfig(): SoloListrTask<SelectClusterContextContext>;
 
-  installClusterChart(argv: AnyArgv): SoloListrTask<ClusterSetupContext>;
-  uninstallClusterChart(argv: AnyArgv): SoloListrTask<ClusterResetContext>;
+  installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterSetupContext>;
+  uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterResetContext>;
 
-  initialize(argv: AnyArgv, configInit: ConfigBuilder): SoloListrTask<AnyListrContext>;
+  initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext>;
 }

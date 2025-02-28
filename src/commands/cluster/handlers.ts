@@ -10,7 +10,7 @@ import {type RemoteConfigManager} from '../../core/config/remote/remote_config_m
 import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
 import {type CommandFlag} from '../../types/flag_types.js';
-import {type AnyArgv, type AnyObject} from '../../types/aliases.js';
+import {type ArgvStruct, type AnyObject} from '../../types/aliases.js';
 import {type IClusterCommandHandlers} from './interfaces/tasks.js';
 import {type IClusterCommandTasks} from './interfaces/handlers.js';
 
@@ -27,7 +27,7 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
     this.getConfig = parent.getConfig.bind(parent);
   }
 
-  public async connect(argv: AnyArgv): Promise<boolean> {
+  public async connect(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -52,7 +52,7 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
     return true;
   }
 
-  public async list(argv: AnyArgv): Promise<boolean> {
+  public async list(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -69,7 +69,7 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
     return true;
   }
 
-  public async info(argv: AnyArgv): Promise<boolean> {
+  public async info(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -86,7 +86,7 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
     return true;
   }
 
-  public async setup(argv: AnyArgv): Promise<boolean> {
+  public async setup(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(
@@ -112,7 +112,7 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
     return true;
   }
 
-  public async reset(argv: AnyArgv): Promise<boolean> {
+  public async reset(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     const action = this.parent.commandActionBuilder(

@@ -13,7 +13,7 @@ import {patchInject} from './dependency_injection/container_helper.js';
 import * as constants from '../core/constants.js';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type AnyArgv, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
+import {type ArgvStruct, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 
 /**
@@ -67,7 +67,7 @@ export class ConfigManager {
   }
 
   /** Update the config using the argv */
-  public update(argv: AnyArgv = {}): void {
+  public update(argv: ArgvStruct): void {
     if (!argv || Object.keys(argv).length === 0) return;
 
     for (const flag of flags.allFlags) {
