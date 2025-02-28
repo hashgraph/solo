@@ -60,6 +60,8 @@ export class Container {
     logLevel: string = 'debug',
     devMode: boolean = false,
   ) {
+    if (Container.isInitialized) return;
+
     // SoloLogger
     container.register(InjectTokens.LogLevel, {useValue: logLevel});
     container.register(InjectTokens.DevMode, {useValue: devMode});
@@ -134,6 +136,7 @@ export class Container {
   reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.reset();
+      Container.isInitialized = false;
     }
     Container.getInstance().init(homeDir, cacheDir, logLevel, devMode);
   }
@@ -148,6 +151,7 @@ export class Container {
   clearInstances(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
+      Container.isInitialized = false;
     } else {
       Container.getInstance().init(homeDir, cacheDir, logLevel, devMode);
     }

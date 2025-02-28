@@ -60,6 +60,11 @@ on:
         type: string
         required: false
         default: "e2e-integration"
+      e2e-dual-cluster-full-test-subdir:
+        description: "E2E Dual Cluster Full Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-dual-cluster-full"
       e2e-standard-test-subdir:
         description: "E2E Standard Test Subdirectory:"
         type: string
@@ -145,6 +150,11 @@ on:
         type: string
         required: false
         default: "E2E Integration Tests Coverage Report"
+      e2e-dual-cluster-full-coverage-report:
+        description: "E2E Dual Cluster Full Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Dual Cluster Full Tests Coverage Report"
       e2e-standard-coverage-report:
         description: "E2E Standard Coverage Report:"
         type: string
@@ -281,6 +291,13 @@ jobs:
         with:
           name: ${{ inputs.e2e-integration-coverage-report }}
           path: 'coverage/${{ inputs.e2e-integration-test-subdir }}'
+
+      - name: Download E2E Dual Cluster Full Coverage Report
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-dual-cluster-full-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-dual-cluster-full-test-subdir }}'
 
       - name: Download E2E Standard Coverage Report
         uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
