@@ -49,10 +49,10 @@ export class YargsCommand {
       command,
       desc: description,
       builder: (y: any) => commandFlags.setCommandFlags(y, ...allFlags),
-      handler: (argv: any) => {
+      handler: async (argv: any) => {
         commandDef.logger.info(`==== Running '${commandNamespace} ${command}' ===`);
         commandDef.logger.info(argv);
-        commandDef.handlers[handler](argv)
+        await commandDef.handlers[handler](argv)
           .then((r: any) => {
             commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
             if (!r) process.exit(1);

@@ -103,7 +103,7 @@ export async function main(argv: string[]) {
 
     // set root level flags
     flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
-    return await rootCmd.parse();
+    return rootCmd.parse();
   } catch (e) {
     logger.showUserError(e);
     // eslint-disable-next-line n/no-process-exit
