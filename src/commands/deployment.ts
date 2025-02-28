@@ -305,6 +305,8 @@ export class DeploymentCommand extends BaseCommand {
                 deployment,
                 clusterRef,
                 context,
+                dnsBaseDomain,
+                dnsConsensusNodePattern,
               );
 
               return;
@@ -330,16 +332,10 @@ export class DeploymentCommand extends BaseCommand {
                     nodeAlias,
                     clusterRef,
                     namespace.name,
-                    ConsensusNodeStates.REQUESTED,
+                    ConsensusNodeStates.NON_DEPLOYED,
                     Templates.nodeIdFromNodeAlias(nodeAlias),
                   ),
                 );
-
-                remoteConfig.components.add(
-                  new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterRef, namespace.name),
-                );
-
-                remoteConfig.components.add(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterRef, namespace.name));
               }
             });
           },
