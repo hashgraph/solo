@@ -256,18 +256,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   // TODO cluster setup (for right now this is being done by the `setup-dual-e2e.sh` script)
 
-  // TODO currently this is disabled because the crypto call is crashing NodeJS
   it(`${testName}: node keys`, async () => {
     // TODO we shouldn't have to pass the nodeAliasesUnparsed
     await main(soloNodeKeysArgv(deployment, nodeAliasesUnparsed));
-    // .catch(err => {
-    //   expect.fail(`node keys command should not fail: error: ${err.message}`, err);
-    // })
-    // .then(() => {
-    //   // expect the keys to be generated
-    //   const node1Key = fs.readFileSync(path.join(testCacheDir, 'keys', 's-private-node1.pem'));
-    //   expect(node1Key).to.not.be.null;
-    // });
     const node1Key = fs.readFileSync(path.join(testCacheDir, 'keys', 's-private-node1.pem'));
     expect(node1Key).to.not.be.null;
   });
