@@ -118,7 +118,7 @@ jobs:
       - name: Check docs/site/content/User/StepByStepGuide.md Changes
         id: check-readme-changes
         run: |
-          set -xeo pipefail
+          set +e
           echo "::group::Git Diff StepByStepGuide.md"
           git diff --stat
           echo "::endgroup::"
