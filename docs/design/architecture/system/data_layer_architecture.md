@@ -55,9 +55,9 @@ All implementations should adhere to the following requirements:
 * Configuration keys must be hierarchical.
 * Configuration keys must be addressable using a hierarchical key syntax with each level separated by a period (`.`).
 * Configuration keys are defined as either a root, intermediate, or leaf node in the hierarchy.
-* Leaf nodes must not have children and must have a directly assigned primitive value.
+* Leaf nodes must not have children and must have a directly assigned primitive value or an array of primitive values.
   * In this context, a primitive value is a value that is not an object, map, or array.
-  * Primitive values may be nullable.
+  * Primitive values may be nullable and the absence of a leaf key must equate to a null value.
 * Intermediate nodes must have children and may be represented as objects in the configuration system.
   * Intermediate nodes must have a single parent.
 * Root nodes are the top-level nodes in the hierarchy and must have children.
