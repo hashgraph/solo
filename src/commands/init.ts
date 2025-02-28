@@ -121,8 +121,8 @@ export class InitCommand extends BaseCommand {
       builder: (y: any) => {
         flags.setCommandFlags(y, flags.cacheDir);
       },
-      handler: (argv: any) => {
-        self
+      handler: async (argv: any) => {
+        await self
           .init(argv)
           .then(r => {
             if (!r) process.exit(1);

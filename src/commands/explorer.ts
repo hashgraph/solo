@@ -463,11 +463,11 @@ export class ExplorerCommand extends BaseCommand {
             command: 'deploy',
             desc: 'Deploy explorer',
             builder: y => flags.setCommandFlags(y, ...ExplorerCommand.DEPLOY_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running explorer deploy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running explorer deploy`====');
@@ -491,11 +491,11 @@ export class ExplorerCommand extends BaseCommand {
                 flags.quiet,
                 flags.deployment,
               ),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info('==== Running explorer destroy ===');
               self.logger.info(argv);
 
-              self
+              await self
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running explorer destroy ====');

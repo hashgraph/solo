@@ -460,11 +460,11 @@ export class RelayCommand extends BaseCommand {
             builder: (y: any) => {
               flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST);
             },
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'relay deploy' ===", {argv});
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `relay deploy`====');
@@ -482,11 +482,11 @@ export class RelayCommand extends BaseCommand {
             desc: 'Destroy JSON RPC relay',
             builder: (y: any) =>
               flags.setCommandFlags(y, flags.chartDirectory, flags.deployment, flags.quiet, flags.nodeAliasesUnparsed),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'relay destroy' ===", {argv});
               self.logger.debug(argv);
 
-              self.destroy(argv).then(r => {
+              await self.destroy(argv).then(r => {
                 self.logger.info('==== Finished running `relay destroy`====');
 
                 if (!r) process.exit(1);

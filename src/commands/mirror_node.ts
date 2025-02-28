@@ -742,11 +742,11 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
             builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'mirror-node deploy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node deploy`====');
@@ -770,11 +770,11 @@ export class MirrorNodeCommand extends BaseCommand {
                 flags.quiet,
                 flags.deployment,
               ),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'mirror-node destroy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node destroy`====');

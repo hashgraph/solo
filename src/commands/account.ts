@@ -647,11 +647,11 @@ export class AccountCommand extends BaseCommand {
             command: 'init',
             desc: 'Initialize system accounts with new keys',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, flags.deployment, flags.nodeAliasesUnparsed),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .init(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account init' ===");
@@ -679,11 +679,11 @@ export class AccountCommand extends BaseCommand {
                 flags.generateEcdsaKey,
                 flags.setAlias,
               ),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account create' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .create(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account create' ===");
@@ -709,11 +709,11 @@ export class AccountCommand extends BaseCommand {
                 flags.ecdsaPrivateKey,
                 flags.ed25519PrivateKey,
               ),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account update' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .update(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account update' ===");
@@ -731,11 +731,11 @@ export class AccountCommand extends BaseCommand {
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.deployment),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .get(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account get' ===");

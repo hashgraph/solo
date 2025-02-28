@@ -252,11 +252,11 @@ export class DeploymentCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates solo deployment',
             builder: y => flags.setCommandFlags(y, ...DeploymentCommand.DEPLOY_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .create(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
@@ -273,11 +273,11 @@ export class DeploymentCommand extends BaseCommand {
             command: 'list',
             desc: 'List solo deployments inside a cluster',
             builder: y => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'deployment list' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .list(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment list`====');
