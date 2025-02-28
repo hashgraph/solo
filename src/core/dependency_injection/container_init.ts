@@ -60,6 +60,8 @@ export class Container {
    * @param devMode - if true, show full stack traces in error messages
    */
   init(cacheDir: string = constants.SOLO_CACHE_DIR, logLevel: string = 'debug', devMode: boolean = false) {
+    if (Container.isInitialized) return;
+
     // SoloLogger
     container.register(InjectTokens.LogLevel, {useValue: logLevel});
     container.register(InjectTokens.DevMode, {useValue: devMode});
@@ -161,6 +163,7 @@ export class Container {
   reset(cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.reset();
+      Container.isInitialized = false;
     }
     Container.getInstance().init(cacheDir, logLevel, devMode);
   }
@@ -174,6 +177,7 @@ export class Container {
   clearInstances(cacheDir?: string, logLevel?: string, devMode?: boolean) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
+      Container.isInitialized = false;
     } else {
       Container.getInstance().init(cacheDir, logLevel, devMode);
     }

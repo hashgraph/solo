@@ -19,7 +19,7 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, testLogger} from '../../test_util.js';
+import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, getTestLogger} from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -36,6 +36,7 @@ import {Templates} from '../../../src/core/templates.js';
 import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type SoloLogger} from '../../../src/core/logging.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -63,6 +64,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     let accountManager: AccountManager;
     let configManager: ConfigManager;
     let nodeCmd: NodeCommand;
+    let testLogger: SoloLogger;
 
     before(() => {
       accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
@@ -71,6 +73,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       accountManager = bootstrapResp.opts.accountManager;
       configManager = bootstrapResp.opts.configManager;
       nodeCmd = bootstrapResp.cmd.nodeCmd;
+      testLogger = getTestLogger();
     });
 
     after(async function () {

@@ -29,6 +29,7 @@ import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tok
 import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {LocalConfig} from '../../../../src/core/config/local_config.js';
 import {getTestCacheDir} from '../../../test_util.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
@@ -46,7 +47,8 @@ describe('RemoteConfigValidator', () => {
     await k8Factory.default().namespaces().create(namespace);
   });
 
-  after(async () => {
+  after(async function () {
+    this.timeout(Duration.ofMinutes(5).toMillis());
     await k8Factory.default().namespaces().delete(namespace);
   });
 

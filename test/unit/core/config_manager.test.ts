@@ -8,7 +8,7 @@ import {ConfigManager} from '../../../src/core/config_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {testLogger} from '../../test_util.js';
+import {getTestLogger} from '../../test_util.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 
@@ -19,7 +19,7 @@ describe('ConfigManager', () => {
       container.register(InjectTokens.LogLevel, {useValue: 'debug'});
       container.register(InjectTokens.DevMode, {useValue: true});
       container.register(InjectTokens.SoloLogger, {useValue: new SoloLogger()});
-      container.registerInstance(SoloLogger, testLogger);
+      container.registerInstance(SoloLogger, getTestLogger());
       container.register(InjectTokens.ConfigManager, {useClass: ConfigManager});
     });
 
