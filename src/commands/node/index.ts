@@ -128,6 +128,29 @@ export class NodeCommand extends BaseCommand {
           .command(
             new YargsCommand(
               {
+                command: 'freeze',
+                description: 'Freeze a node',
+                commandDef: self,
+                handler: 'freeze',
+              },
+              NodeFlags.FREEZE_FLAGS,
+            ),
+          )
+
+          .command(
+            new YargsCommand(
+              {
+                command: 'restart',
+                description: 'Restart a node',
+                commandDef: self,
+                handler: 'restart',
+              },
+              NodeFlags.RESTART_FLAGS,
+            ),
+          )
+          .command(
+            new YargsCommand(
+              {
                 command: 'keys',
                 description: 'Generate node keys',
                 commandDef: self,

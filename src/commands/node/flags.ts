@@ -232,7 +232,19 @@ export const STOP_FLAGS = {
   optionalFlags: [flags.quiet],
 };
 
+export const FREEZE_FLAGS = {
+  requiredFlags: [flags.deployment],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [flags.quiet],
+};
+
 export const START_FLAGS = {
+  requiredFlags: [flags.deployment, flags.releaseTag],
+  requiredFlagsWithDisabledPrompt: [flags.app],
+  optionalFlags: [flags.quiet, flags.nodeAliasesUnparsed, flags.debugNodeAlias, flags.stateFile, flags.stakeAmounts],
+};
+
+export const RESTART_FLAGS = {
   requiredFlags: [flags.deployment, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app],
   optionalFlags: [flags.quiet, flags.nodeAliasesUnparsed, flags.debugNodeAlias, flags.stateFile, flags.stakeAmounts],

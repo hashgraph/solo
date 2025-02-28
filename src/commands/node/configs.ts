@@ -389,6 +389,24 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
   return ctx.config;
 };
 
+export const freezeConfigBuilder = async function (argv, ctx, task) {
+  ctx.config = {
+    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
+    deployment: this.configManager.getFlag(flags.deployment),
+    consensusNodes: this.parent.getConsensusNodes(),
+    contexts: this.parent.getContexts(),
+  };
+
+  if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
+    throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
+  }
+
+  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
+  ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
+
+  return ctx.config;
+};
+
 export const startConfigBuilder = async function (argv, ctx, task) {
   const config = this.getConfig(START_CONFIGS_NAME, argv.flags, [
     'nodeAliases',

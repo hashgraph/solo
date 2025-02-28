@@ -768,6 +768,42 @@ export class NodeCommandTasks {
     });
   }
 
+  sendFreezeTransaction(): Task {
+    const self = this;
+    return new Task('Send freeze only transaction', async ctx => {
+      const {freezeAdminPrivateKey} = ctx.config;
+      try {
+        const nodeClient = await this.accountManager.loadNodeClient(
+          ctx.config.namespace,
+          this.parent.getClusterRefs(),
+          ctx.config.deployment,
+        );
+        const futureDate = new Date();
+        self.logger.debug(`Current time: ${futureDate}`);
+
+        futureDate.setTime(futureDate.getTime() + 5000); // 5 seconds in the future
+        self.logger.debug(`Freeze time: ${futureDate}`);
+
+        nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey);
+        const freezeOnlyTransaction = await new FreezeTransaction()
+          .setFreezeType(FreezeType.FreezeOnly)
+          .setStartTimestamp(Timestamp.fromDate(futureDate))
+          .freezeWith(nodeClient)
+          .execute(nodeClient);
+
+        const freezeOnlyReceipt = await freezeOnlyTransaction.getReceipt(nodeClient);
+
+        self.logger.debug(
+          `sent prepare transaction [id: ${freezeOnlyTransaction.transactionId.toString()}]`,
+          freezeOnlyReceipt.status.toString(),
+        );
+      } catch (e) {
+        self.logger.error(`Error in sending freeze transaction: ${e.message}`, e);
+        throw new SoloError(`Error in sending freeze transaction: ${e.message}`, e);
+      }
+    });
+  }
+
   /** Download generated config files and key files from the network node */
   downloadNodeGeneratedFiles(): Task {
     const self = this;
@@ -1331,7 +1367,7 @@ export class NodeCommandTasks {
       const subTasks = [];
       if (!ctx.config.skipStop) {
         await this.accountManager.close();
-        for (const nodeAlias of ctx.config.nodeAliases) {
+        for (const nodeAlias of ctx.config.existingNodeAliases) {
           const podRef = ctx.config.podRefs[nodeAlias];
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
           const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);

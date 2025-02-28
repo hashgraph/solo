@@ -16,6 +16,7 @@ import {
   startConfigBuilder,
   statesConfigBuilder,
   stopConfigBuilder,
+  freezeConfigBuilder,
   updateConfigBuilder,
   upgradeConfigBuilder,
 } from './configs.js';
@@ -847,6 +848,31 @@ export class NodeCommandHandlers implements CommandHandlers {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
       'Error in setting up nodes',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async freeze(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.FREEZE_FLAGS);
+    const lease = await this.leaseManager.create();
+
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, freezeConfigBuilder.bind(this), lease),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.sendFreezeTransaction(),
+        this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+        this.tasks.stopNodes(),
+        this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error freezing node',
       lease,
     );
 
