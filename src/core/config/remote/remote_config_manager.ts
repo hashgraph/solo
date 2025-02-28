@@ -119,28 +119,23 @@ export class RemoteConfigManager {
     deployment: DeploymentName,
     clusterRef: ClusterRef,
     context: string,
+    dnsBaseDomain: string,
+    dnsConsensusNodePattern: string,
   ): Promise<void> {
-    const clusters: Record<ClusterRef, Cluster> = {};
-
-    Object.entries(this.localConfig.deployments).forEach(
-      ([deployment, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
-        const namespace = deploymentStructure.namespace.toString();
-        deploymentStructure.clusters.forEach(
-          cluster => (clusters[cluster] = new Cluster(cluster, namespace, deployment)),
-        );
-      },
-    );
+    const clusters: Record<ClusterRef, Cluster> = {
+      [clusterRef]: new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
+    };
 
     const lastUpdatedAt = new Date();
     const email = this.localConfig.userEmailAddress;
     const soloVersion = helpers.getSoloVersion();
-    const command: string = argv._.join(' ');
+    const currentCommand: string = argv._.join(' ');
 
     this.remoteConfig = new RemoteConfigDataWrapper({
-      metadata: new RemoteConfigMetadata(namespace.name, deployment, state, lastUpdatedAt, email, soloVersion),
       clusters,
-      commandHistory: [command],
-      lastExecutedCommand: command,
+      metadata: new RemoteConfigMetadata(namespace.name, deployment, state, lastUpdatedAt, email, soloVersion),
+      commandHistory: [currentCommand],
+      lastExecutedCommand: currentCommand,
       components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterRef, namespace.name),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });

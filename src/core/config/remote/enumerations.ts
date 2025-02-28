@@ -18,6 +18,7 @@ export enum ComponentType {
  * Enumerations that represent the state of consensus node in remote config
  */
 export enum ConsensusNodeStates {
+  NON_DEPLOYED = 'non-deployed',
   REQUESTED = 'requested',
   INITIALIZED = 'initialized',
   SETUP = 'setup',
