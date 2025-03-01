@@ -201,12 +201,9 @@ jobs:
 
       - name: Run E2E Tests
         run: |
-          echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1"
-          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
-
-#      - name: Sleep on Failure
-#        if: ${{ failure() }}
-#        run: sleep 3600
+          set SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1
+          echo "SOLO_TEST_CLUSTER=${SOLO_TEST_CLUSTER}"
+          ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
@@ -216,23 +213,6 @@ jobs:
           path: ~/.solo/logs/*
           overwrite: true
           if-no-files-found: error
-
-      - name: Files and Directories
-        if: ${{ !cancelled() }}
-        run: |
-          pushd ~/.solo
-          pwd
-          find . -exec ls -al {} +
-          popd
-          pwd
-          find . -not -path './node_modules/*' \
-                 -not -path './.git/*' \
-                 -not -path './coverage/*' \
-                 -not -path './dist/*' \
-                 -not -path './.github/*' 
-                 -not -path './examples/*' \
-                 -not -path './src/*' \
-                 -exec ls -al {} +
 
       - name: Upload E2E Test Report
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
