@@ -166,8 +166,9 @@ export class SoloLogger {
     });
   }
 
-  logAndExitError(msg: string, ...args: any) {
-    this.winstonLogger.log('error', msg, args, () => {
+  logAndExitError(error: Error) {
+    this.showUserError(error);
+    this.winstonLogger.log('error', '', error, () => {
       queueMicrotask(() => {
         // eslint-disable-next-line n/no-process-exit
         process.exit(1);

@@ -12,5 +12,5 @@ await fnm
     context.logger.logAndExitSuccess('Solo CLI completed, via entrypoint');
   })
   .catch(err => {
-    context.logger.logAndExitError('Solo CLI failed, via entrypoint', err);
+    context.logger.logAndExitError(err);
   });

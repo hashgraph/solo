@@ -34,25 +34,43 @@ import {Container} from './core/dependency_injection/container_init.js';
 import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
 import {type Opts} from './commands/base.js';
 import {Middlewares} from './core/middlewares.js';
+import {SoloError} from './core/errors.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
-  Container.getInstance().init();
+  try {
+    Container.getInstance().init();
+  } catch (e) {
+    console.error(`Error initializing container: ${e.message}`, e);
+    throw new SoloError('Error initializing container');
+  }
 
   const logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
-  if (context) {
-    // save the logger so that solo.ts can use it to properly flush the logs and exit
-    context.logger = logger;
-  }
-  logger.debug('Initializing Solo CLI');
-  constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
-  if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
-    logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
-    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
-    logger.showUser(chalk.cyan('**********************************************************************************'));
-    logger.logAndExitSuccess('displayed version information, exiting');
-  }
 
   try {
+    if (context) {
+      // save the logger so that solo.ts can use it to properly flush the logs and exit
+      context.logger = logger;
+    }
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.logAndExitError(
+        new SoloError(`Unhandled Rejection at: ${JSON.stringify(promise)}, reason: ${JSON.stringify(reason)}`),
+      );
+    });
+    process.on('uncaughtException', (err, origin) => {
+      logger.logAndExitError(new SoloError(`Uncaught Exception: ${err}, origin: ${origin}`));
+    });
+
+    logger.debug('Initializing Solo CLI');
+    constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
+    if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
+      logger.showUser(
+        chalk.cyan('\n******************************* Solo *********************************************'),
+      );
+      logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
+      logger.showUser(chalk.cyan('**********************************************************************************'));
+      logger.logAndExitSuccess('displayed version information, exiting');
+    }
+
     // prepare dependency manger registry
     const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
     const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
@@ -107,13 +125,19 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
         false, // applyBeforeValidate is false as otherwise middleware is called twice
       );
 
+    rootCmd.fail((msg, err) => {
+      logger.logAndExitError(
+        new SoloError(`Error running Solo CLI, failure occurred: ${msg ? msg : ''} ${err.message}`, err),
+      );
+    });
+
     logger.debug('Setting up flags');
     // set root level flags
     flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
     logger.debug('Parsing root command (executing the commands)');
     return rootCmd.parse();
   } catch (e) {
-    logger.logAndExitError(`Error running Solo CLI: ${e.message}`, e);
+    logger.logAndExitError(new SoloError(`Error running Solo CLI: ${e.message}`, e));
     // technically unreachable, but helps TS understand that we're exiting
     throw e;
   }
