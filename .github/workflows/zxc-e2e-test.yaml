@@ -220,10 +220,12 @@ jobs:
       - name: Files and Directories
         if: ${{ !cancelled() }}
         run: |
+          pushd ~/.solo
           pwd
-          find . ! -name 'node_modules' -exec ls -al {} +
-          cd ~/.solo
-          find . ! -name 'node_modules' -exec ls -al {} +
+          find . -exec ls -al {} +
+          popd
+          pwd
+          find . -not -path './node_modules/*' -not -path './.git/*' -not -path './coverage/*' -exec ls -al {} +
 
       - name: Upload E2E Test Report
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
