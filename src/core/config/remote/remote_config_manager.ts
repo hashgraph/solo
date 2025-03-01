@@ -179,7 +179,10 @@ export class RemoteConfigManager {
 
       return false;
     } catch (e) {
-      throw new SoloError('Failed to load remote config from cluster', e);
+      const newError = new SoloError('Failed to load remote config from cluster', e);
+      // TODO: throw newError instead of showUserError()
+      this.logger.showUserError(newError);
+      return false;
     }
   }
 
@@ -237,8 +240,10 @@ export class RemoteConfigManager {
     }
 
     if (!(await self.load())) {
-      self.logger.showUser(chalk.red('remote config not found'));
-      throw new SoloError('Failed to load remote config');
+      const newError = new SoloError('Failed to load remote config');
+      // TODO throw newError instead of showUserError()
+      self.logger.showUserError(newError);
+      return;
     }
     self.logger.info('Remote config loaded');
     if (!validate) {
@@ -387,14 +392,21 @@ export class RemoteConfigManager {
         .configMaps()
         .read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
       if (!configMap) {
-        throw new SoloError(`Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`);
+        // TODO throw newError instead of showUserError()
+        const newError = new SoloError(
+          `Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`,
+        );
+        this.logger.showUserError(newError);
       }
       return configMap;
     } catch (e) {
-      throw new SoloError(
+      // TODO throw newError instead of showUserError()
+      const newError = new SoloError(
         `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
         e,
       );
+      this.logger.showUserError(newError);
+      return null;
     }
   }
 
@@ -440,8 +452,8 @@ export class RemoteConfigManager {
       currentDeployment = this.localConfig.deployments[deploymentName];
       // TODO: Fix once we have the DataManager,
       //       without this the user will be prompted a second time for the deployment
-      argv[flags.deployment.name] = deploymentName;
       // TODO: we should not be mutating argv
+      argv[flags.deployment.name] = deploymentName;
       this.logger.warn(
         `Deployment name not found in flags or local config, setting it in argv and config manager to: ${deploymentName}`,
       );
