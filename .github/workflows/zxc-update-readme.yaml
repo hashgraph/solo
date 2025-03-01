@@ -116,6 +116,8 @@ jobs:
           ../.github/workflows/script/update_md.sh </dev/null | cat
           set +x
           echo "::group::Updated StepByStepGuide.md"
+          
+          cd ..
           cat docs/site/content/User/StepByStepGuide.md
           echo "::endgroup::"
 
