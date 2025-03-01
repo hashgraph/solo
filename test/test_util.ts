@@ -5,6 +5,7 @@ import 'chai-as-promised';
 
 import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
+import 'dotenv/config';
 
 import fs from 'fs';
 import os from 'os';
