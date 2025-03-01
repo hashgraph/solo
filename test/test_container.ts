@@ -19,17 +19,18 @@ export function resetForTest(
   namespace?: NamespaceNameAsString,
   cacheDir: string = cacheDirectory,
   testLogger?: SoloLogger,
+  resetLocalConfig: boolean = true,
 ) {
-  const localConfigFile = DEFAULT_LOCAL_CONFIG_FILE;
-  if (!fs.existsSync(cacheDirectory)) {
-    fs.mkdirSync(cacheDirectory, {recursive: true});
+  if (resetLocalConfig) {
+    const localConfigFile = DEFAULT_LOCAL_CONFIG_FILE;
+    if (!fs.existsSync(cacheDirectory)) {
+      fs.mkdirSync(cacheDirectory, {recursive: true});
+    }
+
+    const localConfigData = fs.readFileSync(path.join('test', 'data', localConfigFile), 'utf8');
+    const parsedData = yaml.parse(localConfigData);
+    fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
   }
-
-  const localConfigData = fs.readFileSync(path.join('test', 'data', localConfigFile), 'utf8');
-  const parsedData = yaml.parse(localConfigData);
-
   // need to init the container prior to using K8Client for dependency injection to work
   resetTestContainer(cacheDir, testLogger);
-
-  fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
 }

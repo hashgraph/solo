@@ -49,7 +49,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   beforeEach(async () => {
     // TODO switch to only resetting the test containers and not using the test version of the local config
     testLogger.info(`${testName}: resetting containers for each test`);
-    resetForTest(namespace.name, testCacheDir, testLogger);
+    resetForTest(namespace.name, testCacheDir, testLogger, false);
     testLogger.info(`${testName}: finished resetting containers for each test`);
   });
 
