@@ -35,10 +35,14 @@ import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
 import {type Opts} from './commands/base.js';
 import {Middlewares} from './core/middlewares.js';
 
-export async function main(argv: string[]) {
+export async function main(argv: string[], context?: {logger: SoloLogger}) {
   Container.getInstance().init();
 
   const logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+  if (context) {
+    // save the logger so that solo.ts can use it to properly flush the logs and exit
+    context.logger = logger;
+  }
   logger.debug('Initializing Solo CLI');
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
