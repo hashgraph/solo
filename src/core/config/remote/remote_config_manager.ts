@@ -179,7 +179,7 @@ export class RemoteConfigManager {
 
       return false;
     } catch (e) {
-      return false;
+      throw new SoloError('Failed to load remote config from cluster', e);
     }
   }
 
@@ -229,7 +229,7 @@ export class RemoteConfigManager {
   public async loadAndValidate(argv: {_: string[]} & AnyObject, validate: boolean = true) {
     const self = this;
     try {
-      await self.setDefaultNamespaceIfNotSet(argv);
+      await self.setDefaultNamespaceAndDeploymentIfNotSet(argv);
       self.setDefaultContextIfNotSet();
     } catch (e) {
       self.logger.showUser(chalk.red(e.message));
@@ -238,10 +238,7 @@ export class RemoteConfigManager {
 
     if (!(await self.load())) {
       self.logger.showUser(chalk.red('remote config not found'));
-
-      // TODO see if this should be disabled to make it an optional feature
-      return;
-      // throw new SoloError('Failed to load remote config')
+      throw new SoloError('Failed to load remote config');
     }
     self.logger.info('Remote config loaded');
     if (!validate) {
@@ -378,17 +375,26 @@ export class RemoteConfigManager {
       namespace = await this.getNamespace();
     }
     if (!context) {
-      context = this.getContextForFirstCluster();
+      context = this.configManager.getFlag(flags.context);
+      if (!context) {
+        context = this.getContextForFirstCluster();
+      }
     }
 
     try {
-      return await this.k8Factory.getK8(context).configMaps().read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
-    } catch (e) {
-      if (!(e instanceof ResourceNotFoundError)) {
-        throw new SoloError('Failed to read remote config from cluster', e);
+      const configMap = await this.k8Factory
+        .getK8(context)
+        .configMaps()
+        .read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
+      if (!configMap) {
+        throw new SoloError(`Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`);
       }
-
-      return null;
+      return configMap;
+    } catch (e) {
+      throw new SoloError(
+        `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
+        e,
+      );
     }
   }
 
@@ -422,7 +428,7 @@ export class RemoteConfigManager {
     );
   }
 
-  private async setDefaultNamespaceIfNotSet(argv: AnyObject): Promise<void> {
+  private async setDefaultNamespaceAndDeploymentIfNotSet(argv: AnyObject): Promise<void> {
     if (this.configManager.hasFlag(flags.namespace)) return;
 
     // TODO: Current quick fix for commands where namespace is not passed
@@ -435,6 +441,11 @@ export class RemoteConfigManager {
       // TODO: Fix once we have the DataManager,
       //       without this the user will be prompted a second time for the deployment
       argv[flags.deployment.name] = deploymentName;
+      // TODO: we should not be mutating argv
+      this.logger.warn(
+        `Deployment name not found in flags or local config, setting it in argv and config manager to: ${deploymentName}`,
+      );
+      this.configManager.setFlag(flags.deployment, deploymentName);
     }
 
     if (!currentDeployment) {
@@ -444,6 +455,7 @@ export class RemoteConfigManager {
 
     const namespace = currentDeployment.namespace;
 
+    this.logger.warn(`Namespace not found in flags, setting it to: ${namespace}`);
     this.configManager.setFlag(flags.namespace, namespace);
     argv[flags.namespace.name] = namespace;
   }
@@ -451,13 +463,17 @@ export class RemoteConfigManager {
   private setDefaultContextIfNotSet(): void {
     if (this.configManager.hasFlag(flags.context)) return;
 
-    const context = this.k8Factory.default().contexts().readCurrent();
+    let context: string = this.getContextForFirstCluster();
+    if (!context) {
+      context = this.k8Factory.default().contexts().readCurrent();
+    }
 
     if (!context) {
       this.logger.error("Context is not passed and default one can't be acquired", this.localConfig);
       throw new SoloError("Context is not passed and default one can't be acquired");
     }
 
+    this.logger.warn(`Context not found in flags, setting it to: ${context}`);
     this.configManager.setFlag(flags.context, context);
   }
 
@@ -469,7 +485,7 @@ export class RemoteConfigManager {
    */
   private async getNamespace(): Promise<NamespaceName> {
     const ns = await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
+    if (!ns) throw new MissingArgumentError('namespace was not found in the deployment within local config');
     return ns;
   }
 
@@ -537,13 +553,14 @@ export class RemoteConfigManager {
     }, {} as ClusterRefs);
   }
 
-  private getContextForFirstCluster() {
-    const contexts = this.getContexts();
-    if (contexts.length > 0) {
-      return contexts[0];
-    }
-    const cluster =
-      this.localConfig.deployments[this.configManager.getFlag<DeploymentName>(flags.deployment)].clusters[0];
-    return this.localConfig.clusterRefs[cluster];
+  private getContextForFirstCluster(): string {
+    const clusterRefs: ClusterRef[] =
+      this.localConfig.deployments[this.configManager.getFlag<DeploymentName>(flags.deployment)].clusters;
+    const cluster: string = clusterRefs[0];
+    const context: string = this.localConfig.clusterRefs[cluster];
+    this.logger.debug(
+      `Using context ${context} for cluster ${cluster} for deployment ${this.configManager.getFlag<DeploymentName>(flags.deployment)}`,
+    );
+    return context;
   }
 }
