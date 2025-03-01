@@ -469,11 +469,11 @@ export class RelayCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `relay deploy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error deploying relay: ${err.message}`, err);
                 });
             },
           })
@@ -489,7 +489,7 @@ export class RelayCommand extends BaseCommand {
               await self.destroy(argv).then(r => {
                 self.logger.info('==== Finished running `relay destroy`====');
 
-                if (!r) process.exit(1);
+                if (!r) throw new SoloError('Error destroying relay, expected return value to be true');
               });
             },
           })

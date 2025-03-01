@@ -45,8 +45,7 @@ export async function main(argv: string[]) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
     logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
     logger.showUser(chalk.cyan('**********************************************************************************'));
-    // eslint-disable-next-line n/no-process-exit
-    process.exit(0);
+    logger.logAndExitSuccess('displayed version information, exiting');
   }
 
   try {
@@ -110,8 +109,8 @@ export async function main(argv: string[]) {
     logger.debug('Parsing root command (executing the commands)');
     return rootCmd.parse();
   } catch (e) {
-    logger.showUserError(e);
-    // eslint-disable-next-line n/no-process-exit
-    process.exit(1);
+    logger.logAndExitError(`Error running Solo CLI: ${e.message}`, e);
+    // technically unreachable, but helps TS understand that we're exiting
+    throw e;
   }
 }

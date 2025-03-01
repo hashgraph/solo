@@ -125,11 +125,11 @@ export class InitCommand extends BaseCommand {
         await self
           .init(argv)
           .then(r => {
-            if (!r) process.exit(1);
+            if (!r) throw new SoloError('Error running init, expected return value to be true');
           })
           .catch(err => {
             self.logger.showUserError(err);
-            process.exit(1);
+            throw new SoloError('Error running init', err);
           });
       },
     };

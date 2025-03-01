@@ -390,7 +390,7 @@ export class ExplorerCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                process.exit(0);
+                this.logger.logAndExitSuccess('Aborted application by user prompt');
               }
             }
 
@@ -471,11 +471,11 @@ export class ExplorerCommand extends BaseCommand {
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running explorer deploy`====');
-                  if (!r) process.exit(1);
+                  if (!r) throw new Error('Explorer deployment failed, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Explorer deployment failed: ${err.message}`, err);
                 });
             },
           })
@@ -499,11 +499,11 @@ export class ExplorerCommand extends BaseCommand {
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running explorer destroy ====');
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Explorer destruction failed, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Explorer destruction failed: ${err.message}`, err);
                 });
             },
           })

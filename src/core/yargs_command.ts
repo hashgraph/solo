@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {Flags as commandFlags} from '../commands/flags.js';
-import {IllegalArgumentError} from './errors.js';
+import {IllegalArgumentError, SoloError} from './errors.js';
 import {type BaseCommand} from '../commands/base.js';
 import {type CommandFlag} from '../types/flag_types.js';
 
@@ -55,11 +55,11 @@ export class YargsCommand {
         await commandDef.handlers[handler](argv)
           .then((r: any) => {
             commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
-            if (!r) process.exit(1);
+            if (!r) throw new SoloError(`${commandNamespace} ${command} failed, expected returned value to be true`);
           })
           .catch((err: Error | any) => {
             commandDef.logger.showUserError(err);
-            process.exit(1);
+            throw new SoloError(`${commandNamespace} ${command} failed: ${err.message}`, err);
           });
       },
     };

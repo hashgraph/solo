@@ -641,7 +641,7 @@ export class MirrorNodeCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                process.exit(0);
+                this.logger.logAndExitSuccess('Aborted application by user prompt');
               }
             }
 
@@ -750,11 +750,11 @@ export class MirrorNodeCommand extends BaseCommand {
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node deploy`====');
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error deploying mirror node, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error deploying mirror node: ${err.message}`, err);
                 });
             },
           })
@@ -778,11 +778,11 @@ export class MirrorNodeCommand extends BaseCommand {
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node destroy`====');
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error destroying mirror node, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error destroying mirror node: ${err.message}`, err);
                 });
             },
           })

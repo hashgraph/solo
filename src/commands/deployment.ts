@@ -261,11 +261,11 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error creating deployment: ${err.message}`, err);
                 });
             },
           })
@@ -282,11 +282,11 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment list`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error listing deployments: ${err.message}`, err);
                 });
             },
           })

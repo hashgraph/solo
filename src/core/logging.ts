@@ -156,6 +156,18 @@ export class SoloLogger {
     this.showUser(chalk.green('-------------------------------------------------------------------------------'));
     console.log(JSON.stringify(obj, null, ' '));
   }
+
+  logAndExitSuccess(msg: string, ...args: any) {
+    this.info(msg, ...args);
+    // eslint-disable-next-line n/no-process-exit
+    process.exit(0);
+  }
+
+  logAndExitError(msg: string, ...args: any) {
+    this.error(msg, ...args);
+    // eslint-disable-next-line n/no-process-exit
+    process.exit(1);
+  }
 }
 
 export function NewLogger(level = 'debug', devMode = false) {

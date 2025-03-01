@@ -655,13 +655,11 @@ export class AccountCommand extends BaseCommand {
                 .init(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account init' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running init, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running init: ${err.message}`, err);
                 });
             },
           })
@@ -687,13 +685,11 @@ export class AccountCommand extends BaseCommand {
                 .create(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account create' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running create, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running create: ${err.message}`, err);
                 });
             },
           })
@@ -717,13 +713,11 @@ export class AccountCommand extends BaseCommand {
                 .update(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account update' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running update, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running update: ${err.message}`, err);
                 });
             },
           })
@@ -739,13 +733,11 @@ export class AccountCommand extends BaseCommand {
                 .get(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account get' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running get, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running get: ${err.message}`, err);
                 });
             },
           })
