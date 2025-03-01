@@ -159,7 +159,7 @@ export class SoloLogger {
 
   logAndExitSuccess(msg: string, ...args: any) {
     this.winstonLogger.log('info', msg, args, () => {
-      process.nextTick(() => {
+      queueMicrotask(() => {
         // eslint-disable-next-line n/no-process-exit
         process.exit(0);
       });
@@ -168,7 +168,7 @@ export class SoloLogger {
 
   logAndExitError(msg: string, ...args: any) {
     this.winstonLogger.log('error', msg, args, () => {
-      process.nextTick(() => {
+      queueMicrotask(() => {
         // eslint-disable-next-line n/no-process-exit
         process.exit(1);
       });
