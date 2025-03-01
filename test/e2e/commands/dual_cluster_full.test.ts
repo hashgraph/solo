@@ -40,6 +40,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
     fs.rmSync(testCacheDir, {recursive: true, force: true});
+    resetForTest(namespace.name, testCacheDir, testLogger, true);
     expect(contexts[0].includes('c1'), 'context should include c1').to.be.true;
     expect(contexts[1].includes('c2'), 'context should include c2').to.be.true;
     testLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
