@@ -158,15 +158,21 @@ export class SoloLogger {
   }
 
   logAndExitSuccess(msg: string, ...args: any) {
-    this.info(msg, ...args);
-    // eslint-disable-next-line n/no-process-exit
-    process.exit(0);
+    this.winstonLogger.log('info', msg, args, () => {
+      process.nextTick(() => {
+        // eslint-disable-next-line n/no-process-exit
+        process.exit(0);
+      });
+    });
   }
 
   logAndExitError(msg: string, ...args: any) {
-    this.error(msg, ...args);
-    // eslint-disable-next-line n/no-process-exit
-    process.exit(1);
+    this.winstonLogger.log('error', msg, args, () => {
+      process.nextTick(() => {
+        // eslint-disable-next-line n/no-process-exit
+        process.exit(1);
+      });
+    });
   }
 }
 
