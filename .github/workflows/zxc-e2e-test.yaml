@@ -225,7 +225,14 @@ jobs:
           find . -exec ls -al {} +
           popd
           pwd
-          find . -not -path './node_modules/*' -not -path './.git/*' -not -path './coverage/*' -exec ls -al {} +
+          find . -not -path './node_modules/*' \
+                 -not -path './.git/*' \
+                 -not -path './coverage/*' \
+                 -not -path './dist/*' \
+                 -not -path './.github/*' 
+                 -not -path './examples/*' \
+                 -not -path './src/*' \
+                 -exec ls -al {} +
 
       - name: Upload E2E Test Report
         uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
