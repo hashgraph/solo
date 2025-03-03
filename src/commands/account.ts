@@ -13,7 +13,7 @@ import {sleep} from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
 import {ListrLease} from '../core/lease/listr_lease.js';
-import {type AnyArgv, type AnyYargs, type NodeAliases} from '../types/aliases.js';
+import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {Duration} from '../core/time/duration.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
@@ -165,7 +165,7 @@ export class AccountCommand extends BaseCommand {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount);
   }
 
-  public async init(argv: AnyArgv) {
+  public async init(argv: ArgvStruct) {
     const self = this;
 
     interface Context {
@@ -373,14 +373,14 @@ export class AccountCommand extends BaseCommand {
     } finally {
       await this.closeConnections();
       // create two accounts to force the handler to trigger
-      await self.create({});
-      await self.create({});
+      await self.create({} as ArgvStruct);
+      await self.create({} as ArgvStruct);
     }
 
     return true;
   }
 
-  public async create(argv: AnyArgv) {
+  public async create(argv: ArgvStruct) {
     const self = this;
     const lease = await self.leaseManager.create();
 
@@ -483,7 +483,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  public async update(argv: AnyArgv) {
+  public async update(argv: ArgvStruct) {
     const self = this;
 
     const tasks = new Listr<UpdateAccountContext>(
@@ -563,7 +563,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  public async get(argv: AnyArgv) {
+  public async get(argv: ArgvStruct) {
     const self = this;
 
     interface Context {
@@ -647,7 +647,7 @@ export class AccountCommand extends BaseCommand {
             command: 'init',
             desc: 'Initialize system accounts with new keys',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, flags.deployment, flags.nodeAliasesUnparsed),
-            handler: (argv: AnyArgv) => {
+            handler: (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
 
@@ -679,7 +679,7 @@ export class AccountCommand extends BaseCommand {
                 flags.generateEcdsaKey,
                 flags.setAlias,
               ),
-            handler: (argv: AnyArgv) => {
+            handler: (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account create' ===");
               self.logger.info(argv);
 
@@ -709,7 +709,7 @@ export class AccountCommand extends BaseCommand {
                 flags.ecdsaPrivateKey,
                 flags.ed25519PrivateKey,
               ),
-            handler: (argv: AnyArgv) => {
+            handler: (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account update' ===");
               self.logger.info(argv);
 
@@ -731,7 +731,7 @@ export class AccountCommand extends BaseCommand {
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, flags.accountId, flags.privateKey, flags.deployment),
-            handler: (argv: AnyArgv) => {
+            handler: (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);
 

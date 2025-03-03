@@ -503,9 +503,10 @@ describe('ClusterCommand unit tests', () => {
       async function runReadClustersFromRemoteConfigTask(opts) {
         command = new ClusterCommand(opts);
         tasks = new ClusterCommandTasks(command, k8FactoryStub);
-        const taskObj = tasks.readClustersFromRemoteConfig({});
+        const taskObj = tasks.readClustersFromRemoteConfig();
         taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
         taskStub.newListr = sandbox.stub();
+        // @ts-expect-error: TS2740: Type {} is missing properties
         await taskObj.task({config: {}}, taskStub);
         return command;
       }
