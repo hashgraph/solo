@@ -6,6 +6,8 @@ import {type IngressClass} from '../../../resources/ingress_class/ingress_class.
 import {type V1IngressClass, type NetworkingV1Api} from '@kubernetes/client-node';
 import {K8ClientIngressClass} from './k8_client_ingress_class.js';
 import {SoloError} from '../../../../errors.js';
+import {ResourceCreateError} from '../../../errors/resource_operation_errors.js';
+import {ResourceType} from '../../../resources/resource_type.js';
 
 export class K8ClientIngressClasses implements IngressClasses {
   constructor(private readonly networkingApi: NetworkingV1Api) {}
@@ -41,7 +43,7 @@ export class K8ClientIngressClasses implements IngressClasses {
     try {
       await this.networkingApi.createIngressClass(ingressClass);
     } catch (e) {
-      throw new SoloError(`Error creating IngressClass ${ingressClassName}: ${e}`);
+      throw new ResourceCreateError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, e);
     }
   }
 

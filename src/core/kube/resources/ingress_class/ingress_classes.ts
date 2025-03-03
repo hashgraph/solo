@@ -16,12 +16,14 @@ export interface IngressClasses {
    * Create an IngressClass
    * @param ingressClassName
    * @param controllerName
+   * @throws SoloError if failed to create IngressClasses
    */
   create(ingressClassName: string, controllerName: string): Promise<void>;
 
   /**
    * Delete an IngressClass
    * @param ingressClassName
+   * @throws SoloError if failed to delete IngressClasses
    */
   delete(ingressClassName: string): Promise<void>;
 }

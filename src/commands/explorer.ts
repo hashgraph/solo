@@ -297,7 +297,7 @@ export class ExplorerCommand extends BaseCommand {
               ingressControllerChartPath,
               INGRESS_CONTROLLER_VERSION,
               explorerIngressControllerValuesArg,
-              this.k8Factory.default().contexts().readCurrent(),
+              ctx.config.clusterContext,
             );
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
@@ -313,7 +313,7 @@ export class ExplorerCommand extends BaseCommand {
                 },
               });
             await this.k8Factory
-              .default()
+              .getK8(ctx.config.clusterContext)
               .ingressClasses()
               .create(constants.EXPLORER_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
           },
@@ -443,10 +443,16 @@ export class ExplorerCommand extends BaseCommand {
           task: async ctx => {
             await this.chartManager.uninstall(ctx.config.namespace, constants.INGRESS_CONTROLLER_RELEASE_NAME);
             // delete ingress class if found one
-            const existingIngressClasses = await this.k8Factory.default().ingressClasses().list();
+            const existingIngressClasses = await this.k8Factory
+              .getK8(ctx.config.clusterContext)
+              .ingressClasses()
+              .list();
             existingIngressClasses.map(ingressClass => {
               if (ingressClass.name === constants.EXPLORER_INGRESS_CLASS_NAME) {
-                this.k8Factory.default().ingressClasses().delete(constants.EXPLORER_INGRESS_CLASS_NAME);
+                this.k8Factory
+                  .getK8(ctx.config.clusterContext)
+                  .ingressClasses()
+                  .delete(constants.EXPLORER_INGRESS_CLASS_NAME);
               }
             });
           },
