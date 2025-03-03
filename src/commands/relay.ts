@@ -462,20 +462,20 @@ export class RelayCommand extends BaseCommand {
             builder: (y: any) => {
               flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST);
             },
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'relay deploy' ===", {argv});
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `relay deploy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error deploying relay: ${err.message}`, err);
                 });
             },
           })
@@ -484,14 +484,14 @@ export class RelayCommand extends BaseCommand {
             desc: 'Destroy JSON RPC relay',
             builder: (y: any) =>
               flags.setCommandFlags(y, flags.chartDirectory, flags.deployment, flags.quiet, flags.nodeAliasesUnparsed),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'relay destroy' ===", {argv});
               self.logger.debug(argv);
 
-              self.destroy(argv).then(r => {
+              await self.destroy(argv).then(r => {
                 self.logger.info('==== Finished running `relay destroy`====');
 
-                if (!r) process.exit(1);
+                if (!r) throw new SoloError('Error destroying relay, expected return value to be true');
               });
             },
           })

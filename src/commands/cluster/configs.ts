@@ -80,11 +80,10 @@ export class ClusterCommandConfigs {
         message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
       });
 
-      if (!confirmResult) {
-        // eslint-disable-next-line n/no-process-exit
-        process.exit(0);
-      }
+    if (!confirmResult) {
+      this.logger.logAndExitSuccess('Aborted application by user prompt');
     }
+  }
 
     this.configManager.update(argv);
 

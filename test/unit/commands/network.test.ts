@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import {HEDERA_PLATFORM_VERSION_TAG, SOLO_TEST_CLUSTER, TEST_CLUSTER} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -166,7 +166,7 @@ describe('NetworkCommand unit tests', () => {
 
         await networkCommand.deploy(argv.build());
 
-        expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
+        expect(opts.chartManager.install.args[0][0].name).to.equal(SOLO_TEST_CLUSTER);
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(opts.chartManager.install.args[0][2]).to.equal(
           constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
@@ -187,7 +187,7 @@ describe('NetworkCommand unit tests', () => {
         opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
         await networkCommand.deploy(argv.build());
-        expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
+        expect(opts.chartManager.install.args[0][0].name).to.equal(SOLO_TEST_CLUSTER);
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(opts.chartManager.install.args[0][2]).to.equal(
           path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
