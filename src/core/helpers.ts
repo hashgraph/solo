@@ -21,6 +21,7 @@ import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type K8} from './kube/k8.js';
+import chalk from 'chalk';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -466,4 +467,19 @@ export function getSoloVersion(): Version {
  */
 export function deepClone<T = AnyObject>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
+}
+
+export function showVersionBanner(
+  logger: SoloLogger,
+  chartName: string,
+  version: string,
+  action: string = 'Installed',
+) {
+  logger.showUser(
+    chalk.cyan(
+      `\n******************************* ${action} ${chartName} chart *******************************************`,
+    ),
+  );
+  logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(version));
+  logger.showUser(chalk.cyan('**********************************************************************************'));
 }

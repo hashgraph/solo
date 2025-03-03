@@ -6,7 +6,7 @@ import {Flags as flags} from '../flags.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {type ConfigBuilder} from '../../types/aliases.js';
 import {type BaseCommand} from '../base.js';
-import {splitFlagInput} from '../../core/helpers.js';
+import {showVersionBanner, splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
 import chalk from 'chalk';
@@ -26,6 +26,8 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_
 import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../../version.js';
+import {SOLO_CLUSTER_SETUP_CHART} from '../../core/constants.js';
 
 export class ClusterCommandTasks {
   private readonly parent: BaseCommand;
@@ -435,6 +437,7 @@ export class ClusterCommandTasks {
               valuesArg,
               this.k8Factory.default().contexts().readCurrent(),
             );
+          showVersionBanner(parent.logger, SOLO_CLUSTER_SETUP_CHART, version);
         } catch (e: Error | unknown) {
           // if error, uninstall the chart and rethrow the error
           parent.logger.debug(

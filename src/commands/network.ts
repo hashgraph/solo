@@ -11,7 +11,7 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import * as helpers from '../core/helpers.js';
-import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {addDebugOptions, resolveValidJsonFilePath, showVersionBanner, validatePath} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
@@ -37,6 +37,8 @@ import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Duration} from '../core/time/duration.js';
 import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
 import {PodName} from '../core/kube/resources/pod/pod_name.js';
+import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
+import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -895,6 +897,7 @@ export class NetworkCommand extends BaseCommand {
                 config.valuesArgMap[clusterRef],
                 config.clusterRefs[clusterRef],
               );
+              showVersionBanner(self.logger, SOLO_DEPLOYMENT_CHART, config.soloChartVersion);
             }
           },
         },
@@ -976,6 +979,7 @@ export class NetworkCommand extends BaseCommand {
                     config.valuesArgMap[clusterRef],
                     config.clusterRefs[clusterRef],
                   );
+                  showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
 
                   const context = config.clusterRefs[clusterRef];
                   const pods = await this.k8Factory
@@ -1223,6 +1227,7 @@ export class NetworkCommand extends BaseCommand {
                 config.valuesArgMap[clusterRef],
                 config.clusterRefs[clusterRef],
               );
+              showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
             }
           },
         },

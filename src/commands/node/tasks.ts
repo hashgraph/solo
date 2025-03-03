@@ -45,6 +45,7 @@ import {
   getNodeAccountMap,
   prepareEndpoints,
   renameAndCopyFile,
+  showVersionBanner,
   sleep,
   splitFlagInput,
 } from '../../core/helpers.js';
@@ -1788,6 +1789,7 @@ export class NodeCommandTasks {
           valuesArgMap[clusterRef],
           this.parent.getLocalConfig().clusterRefs[clusterRef],
         );
+        showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
       },
       skip,
     };
