@@ -206,7 +206,7 @@ export class Flags {
     constName: 'mirrorNamespace',
     name: 'mirror-namespace',
     definition: {
-      describe: 'Namespace to use for the Mirror Node deployment, a new one will be created if it does't exist',
+      describe: 'Namespace to use for the Mirror Node deployment, a new one will be created if it does not exist',
       type: 'string',
     },
     prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
