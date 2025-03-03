@@ -1,6 +1,6 @@
 ## Use the Task tool to launch Solo
 
-For users who want to quickly deploy a standalone solo network without need to know what is under the hood,
+For users who want to quickly deploy a standalone solo network without needing to know what is under the hood,
 they can use the Task tool to launch the network with a single command.
 
 NOTE: this requires cloning the GitHub repository: https://github.com/hashgraph/solo
