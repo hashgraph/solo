@@ -6,7 +6,7 @@ import {type IngressClass} from '../../../resources/ingress_class/ingress_class.
 import {type V1IngressClass, type NetworkingV1Api} from '@kubernetes/client-node';
 import {K8ClientIngressClass} from './k8_client_ingress_class.js';
 import {SoloError} from '../../../../errors.js';
-import {ResourceCreateError} from '../../../errors/resource_operation_errors.js';
+import {ResourceCreateError, ResourceDeleteError} from '../../../errors/resource_operation_errors.js';
 import {ResourceType} from '../../../resources/resource_type.js';
 
 export class K8ClientIngressClasses implements IngressClasses {
@@ -51,7 +51,7 @@ export class K8ClientIngressClasses implements IngressClasses {
     try {
       await this.networkingApi.deleteIngressClass(ingressClassName);
     } catch (e) {
-      throw new SoloError(`Error deleting IngressClass ${ingressClassName}: ${e}`);
+      throw new ResourceDeleteError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, e);
     }
   }
 }
