@@ -574,8 +574,7 @@ export class ClusterCommandTasks {
           });
 
           if (!confirm) {
-            // eslint-disable-next-line n/no-process-exit
-            process.exit(0);
+            self.parent.logger.logAndExitSuccess('Aborted application by user prompt');
           }
         }
         await parent
