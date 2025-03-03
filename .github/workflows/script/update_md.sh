@@ -48,6 +48,7 @@ export SOLO_MIRROR_NODE_DEPLOY_OUTPUT=$( cat mirror-node-deploy.log | tee test.l
 solo relay deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee relay-deploy.log
 export SOLO_RELAY_DEPLOY_OUTPUT=$( cat relay-deploy.log | tee test.log )
 
+cd ../
 echo "Generate README.md"
 
 envsubst '$KIND_CREATE_CLUSTER_OUTPUT,$SOLO_INIT_OUTPUT,$SOLO_NODE_KEY_PEM_OUTPUT,$SOLO_CLUSTER_SETUP_OUTPUT, \
