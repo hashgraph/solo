@@ -701,7 +701,7 @@ export class MirrorNodeCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                process.exit(0);
+                this.logger.logAndExitSuccess('Aborted application by user prompt');
               }
             }
 
@@ -826,19 +826,19 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
             builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'mirror-node deploy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node deploy`====');
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error deploying mirror node, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error deploying mirror node: ${err.message}`, err);
                 });
             },
           })
@@ -854,19 +854,19 @@ export class MirrorNodeCommand extends BaseCommand {
                 flags.quiet,
                 flags.deployment,
               ),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'mirror-node destroy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node destroy`====');
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error destroying mirror node, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error destroying mirror node: ${err.message}`, err);
                 });
             },
           })

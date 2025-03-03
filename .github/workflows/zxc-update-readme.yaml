@@ -109,9 +109,15 @@ jobs:
           which solo
           node -p -e "Boolean(process.stdout.isTTY)"
           chmod 755 ./.github/workflows/script/update_md.sh
-          ./.github/workflows/script/update_md.sh </dev/null | cat
+          
+          cd docs/
+          pwd
+          
+          ../.github/workflows/script/update_md.sh </dev/null | cat
           set +x
           echo "::group::Updated StepByStepGuide.md"
+          
+          cd ..
           cat docs/site/content/User/StepByStepGuide.md
           echo "::endgroup::"
 
