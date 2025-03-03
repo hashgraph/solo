@@ -469,17 +469,30 @@ export function deepClone<T = AnyObject>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
+function printPaddedMessage(message: string, totalWidth: number): string {
+  // If the message is longer than or equal to totalWidth, return it as is
+  if (message.length >= totalWidth) {
+    return message;
+  }
+
+  // Calculate the total padding needed (excluding the message length)
+  const totalPadding = totalWidth - message.length;
+
+  // Split the padding between left and right (favoring left if odd)
+  const leftPadding = Math.floor(totalPadding / 2);
+  const rightPadding = totalPadding - leftPadding;
+
+  // Construct the padded string
+  return '*'.repeat(leftPadding) + message + '*'.repeat(rightPadding);
+}
+
 export function showVersionBanner(
   logger: SoloLogger,
   chartName: string,
   version: string,
   action: string = 'Installed',
 ) {
-  logger.showUser(
-    chalk.cyan(
-      `\n******************************* ${action} ${chartName} chart *******************************************`,
-    ),
-  );
+  logger.showUser(chalk.cyan(printPaddedMessage(` ${action} ${chartName} chart `, 80)));
   logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(version));
-  logger.showUser(chalk.cyan('**********************************************************************************'));
+  logger.showUser(chalk.cyan(printPaddedMessage('', 80)));
 }
