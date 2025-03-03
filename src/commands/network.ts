@@ -1123,7 +1123,7 @@ export class NetworkCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                process.exit(0);
+                this.logger.logAndExitSuccess('Aborted application by user prompt');
               }
             }
 
@@ -1260,20 +1260,20 @@ export class NetworkCommand extends BaseCommand {
             command: 'deploy',
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'network deploy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `network deploy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error deploying network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error deploying network: ${err.message}`, err);
                 });
             },
           })
@@ -1290,20 +1290,20 @@ export class NetworkCommand extends BaseCommand {
                 flags.deployment,
                 flags.quiet,
               ),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'network destroy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `network destroy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error destroying network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error destroying network: ${err.message}`, err);
                 });
             },
           })
@@ -1311,20 +1311,20 @@ export class NetworkCommand extends BaseCommand {
             command: 'refresh',
             desc: 'Refresh solo network deployment',
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'chart upgrade' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .refresh(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `chart upgrade`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error refreshing network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error refreshing network: ${err.message}`, err);
                 });
             },
           })
