@@ -720,21 +720,19 @@ export class AccountCommand extends BaseCommand {
             command: 'init',
             desc: 'Initialize system accounts with new keys',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.INIT_FLAGS_LIST),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .init(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account init' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running init, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running init: ${err.message}`, err);
                 });
             },
           })
@@ -742,21 +740,19 @@ export class AccountCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be generated for you, otherwise you may supply either a ECDSA or ED25519 private key',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.CREATE_FLAGS_LIST),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account create' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .create(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account create' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running create, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running create: ${err.message}`, err);
                 });
             },
           })
@@ -764,21 +760,19 @@ export class AccountCommand extends BaseCommand {
             command: 'update',
             desc: 'Updates an existing account with the provided info, if you want to update the private key, you can supply either ECDSA or ED25519 but not both\n',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.UPDATE_FLAGS_LIST),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account update' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .update(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account update' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running update, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running update: ${err.message}`, err);
                 });
             },
           })
@@ -786,21 +780,19 @@ export class AccountCommand extends BaseCommand {
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.GET_FLAGS_LIST),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .get(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account get' ===");
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error running get, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error running get: ${err.message}`, err);
                 });
             },
           })

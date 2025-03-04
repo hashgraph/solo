@@ -223,7 +223,13 @@ export const REFRESH_FLAGS = {
 export const KEYS_FLAGS = {
   requiredFlags: [flags.cacheDir, flags.generateGossipKeys, flags.generateTlsKeys, flags.deployment],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [flags.devMode, flags.quiet, flags.nodeAliasesUnparsed],
+  optionalFlags: [
+    flags.devMode,
+    flags.quiet,
+    flags.nodeAliasesUnparsed,
+    // TODO remove namespace once the remote config manager is updated to pull the namespace from the local config
+    flags.namespace,
+  ],
 };
 
 export const STOP_FLAGS = {
@@ -232,10 +238,22 @@ export const STOP_FLAGS = {
   optionalFlags: [flags.quiet],
 };
 
+export const FREEZE_FLAGS = {
+  requiredFlags: [flags.deployment],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [flags.quiet],
+};
+
 export const START_FLAGS = {
   requiredFlags: [flags.deployment, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app],
   optionalFlags: [flags.quiet, flags.nodeAliasesUnparsed, flags.debugNodeAlias, flags.stateFile, flags.stakeAmounts],
+};
+
+export const RESTART_FLAGS = {
+  requiredFlags: [flags.deployment],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [flags.quiet],
 };
 
 export const SETUP_FLAGS = {

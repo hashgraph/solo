@@ -531,16 +531,16 @@ Options:
                                                                         [string]
       --grpc-tls-cert              TLS Certificate path for the gRPC (e.g. "node
                                    1=/Users/username/node1-grpc.cert" with multi
-                                   ple nodes comma seperated)           [string]
+                                   ple nodes comma separated)           [string]
       --grpc-web-tls-cert          TLS Certificate path for gRPC Web (e.g. "node
                                    1=/Users/username/node1-grpc-web.cert" with m
-                                   ultiple nodes comma seperated)       [string]
+                                   ultiple nodes comma separated)       [string]
       --grpc-tls-key               TLS Certificate key path for the gRPC (e.g. "
                                    node1=/Users/username/node1-grpc.key" with mu
-                                   ltiple nodes comma seperated)        [string]
+                                   ltiple nodes comma separated)        [string]
       --grpc-web-tls-key           TLC Certificate key path for gRPC Web (e.g. "
                                    node1=/Users/username/node1-grpc-web.key" wit
-                                   h multiple nodes comma seperated)    [string]
+                                   h multiple nodes comma separated)    [string]
       --haproxy-ips                IP mapping where key = value is node alias an
                                    d static ip for haproxy, (e.g.: --haproxy-ips
                                     node1=127.0.0.1,node2=127.0.0.1)    [string]
@@ -652,16 +652,16 @@ Options:
                                                                         [string]
       --grpc-tls-cert              TLS Certificate path for the gRPC (e.g. "node
                                    1=/Users/username/node1-grpc.cert" with multi
-                                   ple nodes comma seperated)           [string]
+                                   ple nodes comma separated)           [string]
       --grpc-web-tls-cert          TLS Certificate path for gRPC Web (e.g. "node
                                    1=/Users/username/node1-grpc-web.cert" with m
-                                   ultiple nodes comma seperated)       [string]
+                                   ultiple nodes comma separated)       [string]
       --grpc-tls-key               TLS Certificate key path for the gRPC (e.g. "
                                    node1=/Users/username/node1-grpc.key" with mu
-                                   ltiple nodes comma seperated)        [string]
+                                   ltiple nodes comma separated)        [string]
       --grpc-web-tls-key           TLC Certificate key path for gRPC Web (e.g. "
                                    node1=/Users/username/node1-grpc-web.key" wit
-                                   h multiple nodes comma seperated)    [string]
+                                   h multiple nodes comma separated)    [string]
       --haproxy-ips                IP mapping where key = value is node alias an
                                    d static ip for haproxy, (e.g.: --haproxy-ips
                                     node1=127.0.0.1,node2=127.0.0.1)    [string]
@@ -814,7 +814,7 @@ Options:
                                                                         [string]
       --stake-amounts       The amount to be staked in the same order you list t
                             he node aliases with multiple node staked values com
-                            ma seperated                                [string]
+                            ma separated                                [string]
   -h, --help                Show help                                  [boolean]
   -v, --version             Show version number                        [boolean]
 ```
@@ -973,16 +973,16 @@ Options:
                             e the pod, required for node add           [boolean]
       --grpc-tls-cert       TLS Certificate path for the gRPC (e.g. "node1=/User
                             s/username/node1-grpc.cert" with multiple nodes comm
-                            a seperated)                                [string]
+                            a separated)                                [string]
       --grpc-web-tls-cert   TLS Certificate path for gRPC Web (e.g. "node1=/User
                             s/username/node1-grpc-web.cert" with multiple nodes
-                            comma seperated)                            [string]
+                            comma separated)                            [string]
       --grpc-tls-key        TLS Certificate key path for the gRPC (e.g. "node1=/
                             Users/username/node1-grpc.key" with multiple nodes c
-                            omma seperated)                             [string]
+                            omma separated)                             [string]
       --grpc-web-tls-key    TLC Certificate key path for gRPC Web (e.g. "node1=/
                             Users/username/node1-grpc-web.key" with multiple nod
-                            es comma seperated)                         [string]
+                            es comma separated)                         [string]
       --gossip-endpoints    Comma separated gossip endpoints of the node(e.g. fi
                             rst one is internal, second one is external)[string]
       --grpc-endpoints      Comma separated gRPC endpoints of the node (at most
@@ -1035,16 +1035,16 @@ Options:
                             e the pod, required for node add           [boolean]
       --grpc-tls-cert       TLS Certificate path for the gRPC (e.g. "node1=/User
                             s/username/node1-grpc.cert" with multiple nodes comm
-                            a seperated)                                [string]
+                            a separated)                                [string]
       --grpc-web-tls-cert   TLS Certificate path for gRPC Web (e.g. "node1=/User
                             s/username/node1-grpc-web.cert" with multiple nodes
-                            comma seperated)                            [string]
+                            comma separated)                            [string]
       --grpc-tls-key        TLS Certificate key path for the gRPC (e.g. "node1=/
                             Users/username/node1-grpc.key" with multiple nodes c
-                            omma seperated)                             [string]
+                            omma separated)                             [string]
       --grpc-web-tls-key    TLC Certificate key path for gRPC Web (e.g. "node1=/
                             Users/username/node1-grpc-web.key" with multiple nod
-                            es comma seperated)                         [string]
+                            es comma separated)                         [string]
       --gossip-endpoints    Comma separated gossip endpoints of the node(e.g. fi
                             rst one is internal, second one is external)[string]
       --grpc-endpoints      Comma separated gRPC endpoints of the node (at most
@@ -1091,16 +1091,16 @@ Options:
                             e the pod, required for node add           [boolean]
       --grpc-tls-cert       TLS Certificate path for the gRPC (e.g. "node1=/User
                             s/username/node1-grpc.cert" with multiple nodes comm
-                            a seperated)                                [string]
+                            a separated)                                [string]
       --grpc-web-tls-cert   TLS Certificate path for gRPC Web (e.g. "node1=/User
                             s/username/node1-grpc-web.cert" with multiple nodes
-                            comma seperated)                            [string]
+                            comma separated)                            [string]
       --grpc-tls-key        TLS Certificate key path for the gRPC (e.g. "node1=/
                             Users/username/node1-grpc.key" with multiple nodes c
-                            omma seperated)                             [string]
+                            omma separated)                             [string]
       --grpc-web-tls-key    TLC Certificate key path for gRPC Web (e.g. "node1=/
                             Users/username/node1-grpc-web.key" with multiple nod
-                            es comma seperated)                         [string]
+                            es comma separated)                         [string]
       --gossip-endpoints    Comma separated gossip endpoints of the node(e.g. fi
                             rst one is internal, second one is external)[string]
       --grpc-endpoints      Comma separated gRPC endpoints of the node (at most
@@ -1146,16 +1146,16 @@ Options:
                             e the pod, required for node add           [boolean]
       --grpc-tls-cert       TLS Certificate path for the gRPC (e.g. "node1=/User
                             s/username/node1-grpc.cert" with multiple nodes comm
-                            a seperated)                                [string]
+                            a separated)                                [string]
       --grpc-web-tls-cert   TLS Certificate path for gRPC Web (e.g. "node1=/User
                             s/username/node1-grpc-web.cert" with multiple nodes
-                            comma seperated)                            [string]
+                            comma separated)                            [string]
       --grpc-tls-key        TLS Certificate key path for the gRPC (e.g. "node1=/
                             Users/username/node1-grpc.key" with multiple nodes c
-                            omma seperated)                             [string]
+                            omma separated)                             [string]
       --grpc-web-tls-key    TLC Certificate key path for gRPC Web (e.g. "node1=/
                             Users/username/node1-grpc-web.key" with multiple nod
-                            es comma seperated)                         [string]
+                            es comma separated)                         [string]
       --gossip-endpoints    Comma separated gossip endpoints of the node(e.g. fi
                             rst one is internal, second one is external)[string]
       --grpc-endpoints      Comma separated gRPC endpoints of the node (at most

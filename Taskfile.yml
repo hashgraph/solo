@@ -41,8 +41,8 @@ tasks:
       - task: "cluster:create"
       - task: "solo:init"
       - task: "solo:cluster:setup"
-      - task: "solo:keys"
       - task: "solo:deployment:create"
+      - task: "solo:keys"
       - task: "solo:network:deploy"
 
   destroy:

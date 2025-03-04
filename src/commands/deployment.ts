@@ -252,20 +252,20 @@ export class DeploymentCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates solo deployment',
             builder: y => flags.setCommandFlags(y, ...DeploymentCommand.DEPLOY_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .create(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error creating deployment: ${err.message}`, err);
                 });
             },
           })
@@ -273,20 +273,20 @@ export class DeploymentCommand extends BaseCommand {
             command: 'list',
             desc: 'List solo deployments inside a cluster',
             builder: y => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'deployment list' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .list(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment list`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error listing deployments: ${err.message}`, err);
                 });
             },
           })
