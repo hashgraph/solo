@@ -23,9 +23,9 @@ describe('ClusterCommand', () => {
   });
 
   after(() => {
-    // @ts-ignore
+    // @ts-expect-error: TS2339 - to add method
     logging.SoloLogger.prototype.showUser.restore();
-    // @ts-ignore
+    // @ts-expect-error: TS2339 - to add method
     logging.SoloLogger.prototype.showJSON.restore();
   });
 

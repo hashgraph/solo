@@ -34,7 +34,7 @@ tasks:
       - task: "start"
 
   install:
-    desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
+    desc: create the cluster, solo init, solo cluster-ref create, solo node keys, solo network deploy
     deps:
       - task: "init"
     cmds:

@@ -373,7 +373,7 @@ tasks:
     cmds:
       - |
         export MINIO_FLAG=$(cat {{ .minio_flag_file }})
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${MINIO_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${CLUSTER_TLS_FLAGS} -q --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster-ref setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${MINIO_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${CLUSTER_TLS_FLAGS} -q --dev
 
   solo:node:addresses:
     internal: true

@@ -821,7 +821,7 @@ export class NetworkCommand extends BaseCommand {
               );
               if (!isChartInstalled) {
                 throw new SoloError(
-                  `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed for cluster: ${context}. Run 'solo cluster setup'`,
+                  `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed for cluster: ${context}. Run 'solo cluster-ref setup'`,
                 );
               }
             }
@@ -1262,7 +1262,7 @@ export class NetworkCommand extends BaseCommand {
         return yargs
           .command({
             command: 'deploy',
-            desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
+            desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster-ref setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: async (argv: any) => {
               self.logger.info("==== Running 'network deploy' ===");

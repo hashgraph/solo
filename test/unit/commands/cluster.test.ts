@@ -490,7 +490,7 @@ describe('ClusterCommand unit tests', () => {
 
         try {
           await runSelectContextTask(opts);
-          expect(true).to.be.false;
+          expect.fail();
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER('invalid-context'));
         }
@@ -602,7 +602,7 @@ describe('ClusterCommand unit tests', () => {
         expect(subTasks.length).to.eq(2);
         try {
           await runSubTasks(subTasks);
-          expect(true).to.be.false;
+          expect.fail();
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED('prompted-context', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
@@ -631,7 +631,7 @@ describe('ClusterCommand unit tests', () => {
         expect(subTasks.length).to.eq(2);
         try {
           await runSubTasks(subTasks);
-          expect(true).to.be.false;
+          expect.fail();
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH('cluster-3', 'cluster-4'));
           expect(contextPromptStub).calledOnce;
