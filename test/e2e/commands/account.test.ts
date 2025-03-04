@@ -414,7 +414,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         } catch (e) {
           networkCmd.logger.showUserError(e);
         }
-      });
+      }).timeout(Duration.ofMinutes(4).toMillis());
     });
   });
 });
