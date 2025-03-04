@@ -112,39 +112,6 @@ export class ClusterCommandTasks {
     };
   }
 
-  // Method not used now but may be used in the future
-  readClustersFromRemoteConfig(argv) {
-    const self = this;
-    return {
-      title: 'Read clusters from remote config',
-      task: async (ctx, task) => {
-        const localConfig = this.parent.getLocalConfig();
-        const currentClusterName = this.parent.getK8Factory().default().clusters().readCurrent();
-        const currentRemoteConfig: RemoteConfigDataWrapper = await this.parent.getRemoteConfigManager().get();
-        const subTasks = [];
-        const remoteConfigClusters = Object.keys(currentRemoteConfig.clusters);
-        const otherRemoteConfigClusters: string[] = remoteConfigClusters.filter(c => c !== currentClusterName);
-
-        // Validate connections for the other clusters
-        for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(self.testConnectionToCluster(cluster));
-        }
-
-        // Pull and validate RemoteConfigs from the other clusters
-        for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(
-            self.validateRemoteConfigForCluster(cluster, currentClusterName, localConfig, currentRemoteConfig),
-          );
-        }
-
-        return task.newListr(subTasks, {
-          concurrent: false,
-          rendererOptions: {collapseSubtasks: false},
-        });
-      },
-    };
-  }
-
   updateLocalConfig(): SoloListrTask<SelectClusterContextContext> {
     return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       this.parent.logger.info('Compare local and remote configuration...');

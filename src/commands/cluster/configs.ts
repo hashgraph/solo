@@ -12,11 +12,16 @@ import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_co
 import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
 import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
 import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
+import {ErrorMessages} from '../../core/error_messages.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 export const connectConfigBuilder = async function (argv, ctx, task) {
+  if (!this.parent.localConfig.configFileExists()) {
+    this.parent.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
+  }
+
   this.parent.getConfigManager().update(argv);
   ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, ['selectedContext']) as ClusterRefConnectConfigClass;
 
