@@ -775,7 +775,7 @@ export class NodeCommandHandlers extends CommandHandler {
           acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
         }),
         this.tasks.identifyNetworkPods(1),
-        this.tasks.stopNodes(),
+        this.tasks.stopNodes('nodeAliases'),
         this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
       ],
       {
@@ -841,6 +841,58 @@ export class NodeCommandHandlers extends CommandHandler {
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
       'Error in setting up nodes',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async freeze(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.FREEZE_FLAGS);
+    const lease = await this.leaseManager.create();
+
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, freezeConfigBuilder.bind(this), lease),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.sendFreezeTransaction(),
+        this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+        this.tasks.stopNodes('existingNodeAliases'),
+        this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error freezing node',
+      lease,
+    );
+
+    await action(argv, this);
+    return true;
+  }
+
+  async restart(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, NodeFlags.RESTART_FLAGS);
+
+    const lease = await this.leaseManager.create();
+
+    const action = this.parent.commandActionBuilder(
+      [
+        this.tasks.initialize(argv, restartConfigBuilder.bind(this), lease),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.startNodes('existingNodeAliases'),
+        this.tasks.enablePortForwarding(),
+        this.tasks.checkAllNodesAreActive('existingNodeAliases'),
+        this.tasks.checkNodeProxiesAreActive(),
+        this.changeAllNodeStates(ConsensusNodeStates.STARTED),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'Error restarting node',
       lease,
     );
 
