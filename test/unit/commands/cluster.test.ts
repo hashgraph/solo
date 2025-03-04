@@ -408,21 +408,21 @@ describe('ClusterCommand unit tests', () => {
           [flags.context, 'provided-context-1,provided-context-2,provided-context-3'],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('provided-context-1');
       });
 
       it('should use local config mapping to connect to first provided cluster', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterRef, 'cluster-2,cluster-3']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected cluster is not found in local config mapping', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.clusterRef, 'cluster-3']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-3');
       });
 
@@ -432,7 +432,7 @@ describe('ClusterCommand unit tests', () => {
           [flags.quiet, true],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith(
           'context-from-kubeConfig',
         );
@@ -441,14 +441,14 @@ describe('ClusterCommand unit tests', () => {
       it('should use context from local config mapping for the first cluster from the selected deployment', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-2']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
       });
 
       it('should prompt for context if selected deployment is found in local config but the context is not', async () => {
         const opts = getBaseCommandOpts(sandbox, {}, [[flags.deployment, 'deployment-3']]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-3');
       });
 
@@ -458,7 +458,7 @@ describe('ClusterCommand unit tests', () => {
           [flags.quiet, true],
         ]);
 
-        command = await runSelectContextTask(opts); // @ts-ignore
+        command = await runSelectContextTask(opts);
         expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith(
           'context-from-kubeConfig',
         );
@@ -508,18 +508,6 @@ describe('ClusterCommand unit tests', () => {
         taskStub.newListr = sandbox.stub();
         await taskObj.task({config: {}}, taskStub);
         return command;
-      }
-
-      async function runSubTasks(subTasks) {
-        const stubs = [];
-        for (const subTask of subTasks) {
-          const subTaskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
-          subTaskStub.newListr = sandbox.stub();
-          await subTask.task({config: {}}, subTaskStub);
-          stubs.push(subTaskStub);
-        }
-
-        return stubs;
       }
 
       afterEach(async () => {
