@@ -719,7 +719,7 @@ export class MirrorNodeCommand extends BaseCommand {
             const isChartInstalled = await this.chartManager.isChartInstalled(
               namespace,
               constants.MIRROR_NODE_RELEASE_NAME,
-              ctx.config.clusterContext,
+              clusterContext,
             );
 
             ctx.config = {
