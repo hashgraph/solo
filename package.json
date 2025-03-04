@@ -60,6 +60,7 @@
     "class-validator": "^0.14.1",
     "dot-object": "^2.1.5",
     "dotenv": "^16.4.7",
+    "elliptic": "^6.6.1",
     "esm": "^3.2.25",
     "figlet": "^1.8.0",
     "got": "^14.4.6",
