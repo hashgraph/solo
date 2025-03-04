@@ -1522,6 +1522,9 @@ export class NodeCommandTasks {
       ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(
         (nodeAlias: NodeAlias) => nodeAlias !== ctx.config.nodeAlias,
       );
+      ctx.config.consensusNodes = ctx.config.consensusNodes.filter(
+        (consensusNode: ConsensusNode) => consensusNode.name !== ctx.config.nodeAlias,
+      );
     });
   }
 
@@ -1703,6 +1706,11 @@ export class NodeCommandTasks {
           }
         }
 
+        // now remove the deleted node from the serviceMap
+        if (transactionType === NodeSubcommandType.DELETE) {
+          config.serviceMap.delete(config.nodeAlias);
+        }
+
         // When adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const consensusNode = consensusNodes.find(node => node.nodeId === index);
@@ -1752,7 +1760,7 @@ export class NodeCommandTasks {
         }
 
         // Add profile values files
-        const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+        const profileValuesFile = await self.profileManager.prepareValuesForNodeTransaction(
           path.join(config.stagingDir, 'config.txt'),
           path.join(config.stagingDir, 'templates', 'application.properties'),
         );
