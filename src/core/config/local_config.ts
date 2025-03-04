@@ -68,6 +68,7 @@ export class LocalConfig implements LocalConfigData {
     if (this.configFileExists()) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const parsedConfig = yaml.parse(fileContent);
+      this.logger.debug(`Parsed local config from ${filePath}: ${JSON.stringify(parsedConfig)}`);
 
       for (const key in parsedConfig) {
         if (!allowedKeys.includes(key)) {

@@ -58,14 +58,29 @@ export class Container {
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
+   * @param testLogger - a test logger to use, if provided
    */
-  init(cacheDir: string = constants.SOLO_CACHE_DIR, logLevel: string = 'debug', devMode: boolean = false) {
-    if (Container.isInitialized) return;
+  init(
+    cacheDir: string = constants.SOLO_CACHE_DIR,
+    logLevel: string = 'debug',
+    devMode: boolean = false,
+    testLogger?: SoloLogger,
+  ) {
+    if (Container.isInitialized) {
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container already initialized');
+      return;
+    }
 
     // SoloLogger
     container.register(InjectTokens.LogLevel, {useValue: logLevel});
     container.register(InjectTokens.DevMode, {useValue: devMode});
-    container.register(InjectTokens.SoloLogger, {useClass: SoloLogger}, {lifecycle: Lifecycle.Singleton});
+    if (testLogger) {
+      container.registerInstance(InjectTokens.SoloLogger, testLogger);
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using test logger');
+    } else {
+      container.register(InjectTokens.SoloLogger, {useClass: SoloLogger}, {lifecycle: Lifecycle.Singleton});
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using default logger');
+    }
 
     container.register(InjectTokens.PackageDownloader, {useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.Zippy, {useClass: Zippy}, {lifecycle: Lifecycle.Singleton});
@@ -123,6 +138,7 @@ export class Container {
     container.register(InjectTokens.ClusterChecks, {useClass: ClusterChecks}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.NetworkNodes, {useClass: NetworkNodes}, {lifecycle: Lifecycle.Singleton});
 
+    container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container initialized');
     Container.isInitialized = true;
 
     // Commands
@@ -159,13 +175,15 @@ export class Container {
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
+   * @param testLogger - a test logger to use, if provided
    */
-  reset(cacheDir?: string, logLevel?: string, devMode?: boolean) {
+  reset(cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
     if (Container.instance && Container.isInitialized) {
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Resetting container');
       container.reset();
       Container.isInitialized = false;
     }
-    Container.getInstance().init(cacheDir, logLevel, devMode);
+    Container.getInstance().init(cacheDir, logLevel, devMode, testLogger);
   }
 
   /**
@@ -173,13 +191,14 @@ export class Container {
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
+   * @param testLogger - a test logger to use, if provided
    */
-  clearInstances(cacheDir?: string, logLevel?: string, devMode?: boolean) {
+  clearInstances(cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
       Container.isInitialized = false;
     } else {
-      Container.getInstance().init(cacheDir, logLevel, devMode);
+      Container.getInstance().init(cacheDir, logLevel, devMode, testLogger);
     }
   }
 

@@ -1569,7 +1569,7 @@ export class Flags {
       describe:
         'TLS Certificate path for the gRPC ' +
         '(e.g. "node1=/Users/username/node1-grpc.cert" ' +
-        'with multiple nodes comma seperated)',
+        'with multiple nodes comma separated)',
       defaultValue: '',
       type: 'string',
     },
@@ -1592,7 +1592,7 @@ export class Flags {
       describe:
         'TLS Certificate path for gRPC Web ' +
         '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
-        'with multiple nodes comma seperated)',
+        'with multiple nodes comma separated)',
       defaultValue: '',
       type: 'string',
     },
