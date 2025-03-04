@@ -80,10 +80,10 @@ export class ClusterCommandConfigs {
         message: 'Are you sure you would like to uninstall solo-cluster-setup chart?',
       });
 
-    if (!confirmResult) {
-      this.logger.logAndExitSuccess('Aborted application by user prompt');
+      if (!confirmResult) {
+        this.logger.logAndExitSuccess('Aborted application by user prompt');
+      }
     }
-  }
 
     this.configManager.update(argv);
 

@@ -535,7 +535,7 @@ export class ClusterCommandTasks {
           });
 
           if (!confirm) {
-            self.parent.logger.logAndExitSuccess('Aborted application by user prompt');
+            self.logger.logAndExitSuccess('Aborted application by user prompt');
           }
         }
         await self.chartManager.uninstall(
