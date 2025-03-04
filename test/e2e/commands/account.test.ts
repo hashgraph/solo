@@ -405,6 +405,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           networkCmd.logger.showUserError(e);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
+
+      // hitchhiker account test to test node freeze and restart
+      it('Freeze and restart all nodes should succeed', async () => {
+        try {
+          await nodeCmd.handlers.freeze(argv.build());
+          await nodeCmd.handlers.restart(argv.build());
+        } catch (e) {
+          networkCmd.logger.showUserError(e);
+        }
+      });
     });
   });
 });

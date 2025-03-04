@@ -129,7 +129,7 @@ export class NodeCommand extends BaseCommand {
             new YargsCommand(
               {
                 command: 'freeze',
-                description: 'Freeze a node',
+                description: 'Freeze all nodes of the network',
                 commandDef: self,
                 handler: 'freeze',
               },
@@ -141,7 +141,7 @@ export class NodeCommand extends BaseCommand {
             new YargsCommand(
               {
                 command: 'restart',
-                description: 'Restart a node',
+                description: 'Restart all nodes of the network',
                 commandDef: self,
                 handler: 'restart',
               },
