@@ -123,7 +123,7 @@ describe('NetworkCommand', function networkCommand() {
   }).timeout(Duration.ofMinutes(4).toMillis());
 
   it('application env file contents should be in cached values file', () => {
-    // @ts-ignore in order to access the private property
+    // @ts-expect-error - TS2341: to access private property
     const valuesYaml = fs.readFileSync(networkCmd.profileValuesFile).toString();
     const fileRows = applicationEnvFileContents.split('\n');
     for (const fileRow of fileRows) {
