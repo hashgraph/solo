@@ -11,7 +11,6 @@ import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error_messages.js';
-import {splitFlagInput} from '../core/helpers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
@@ -20,9 +19,8 @@ import {type AnyArgv, type AnyYargs, type NodeAliases} from '../types/aliases.js
 import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
 import {Templates} from '../core/templates.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
-import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
-import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
+import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 
 export interface DeploymentAddClusterConfig {
   quiet: boolean;
@@ -119,6 +117,7 @@ export class DeploymentCommand extends BaseCommand {
             }
 
             this.localConfig.deployments[deployment] = {clusters: [], namespace: namespace.name};
+            await this.localConfig.write();
           },
         },
       ],
@@ -300,7 +299,6 @@ export class DeploymentCommand extends BaseCommand {
                 .catch(err => {
                   self.logger.showUserError(err);
                   throw new SoloError(`Error adding cluster deployment: ${err.message}`, err);
-
                 });
             },
           })
@@ -324,7 +322,7 @@ export class DeploymentCommand extends BaseCommand {
 
         ctx.config = {
           quiet: this.configManager.getFlag<boolean>(flags.quiet),
-          namespace: this.configManager.getFlag<NamespaceName>(flags.namespace),
+          namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
           deployment: this.configManager.getFlag<DeploymentName>(flags.deployment),
           clusterRef: this.configManager.getFlag<ClusterRef>(flags.clusterRef),
 
@@ -518,7 +516,13 @@ export class DeploymentCommand extends BaseCommand {
           dnsConsensusNodePattern,
         } = ctx.config;
 
+        argv[flags.nodeAliasesUnparsed.name] = nodeAliases.join(',');
+
         task.title += `: ${deployment} in cluster: ${clusterRef}`;
+
+        if (!(await this.k8Factory.getK8(context).namespaces().has(namespace))) {
+          await this.k8Factory.getK8(context).namespaces().create(namespace);
+        }
 
         if (!existingClusterContext) {
           await this.remoteConfigManager.create(

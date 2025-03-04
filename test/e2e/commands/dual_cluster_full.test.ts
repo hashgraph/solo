@@ -93,9 +93,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   //   11. Saves the Remote Config to the ConfigMap in the namespace of the deployment for each cluster-ref added
 
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster1 --enable-cert-manager
-  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-${nodeAlias}-svc.${namespace}.svc
+  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster2 --enable-cert-manager
-  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-${nodeAlias}-svc.${namespace}.svc
+  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
 
   // TODO remove once `solo cluster-ref connect' is implemented
   it(`${testName}: manually modify local config`, async () => {
@@ -244,13 +244,13 @@ async function manuallyCreateRemoteConfigConfigMap(
       namespace: ${namespace.name}
       deployment: ${deployment}
       dnsBaseDomain: cluster.local
-      dnsConsensusNodePattern: network-\${nodeAlias}-svc.\${namespace}.svc
+      dnsConsensusNodePattern: network-{nodeAlias}-svc.{namespace}.svc
     ${testClusterRefs[1]}:
       name: ${testClusterRefs[1]}
       namespace: ${namespace.name}
       deployment: ${deployment}
       dnsBaseDomain: cluster.local
-      dnsConsensusNodePattern: network-\${nodeAlias}-svc.\${namespace}.svc
+      dnsConsensusNodePattern: network-{nodeAlias}-svc.{namespace}.svc
   components:
     relays: {}
     haProxies: {}

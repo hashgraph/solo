@@ -364,6 +364,7 @@ export abstract class BaseCommand extends ShellRunner {
   /**
    * Get the consensus nodes from the remoteConfigManager and use the localConfig to get the context
    * @returns an array of ConsensusNode objects
+   * @deprecated use one inside remote config
    */
   public getConsensusNodes(): ConsensusNode[] {
     const consensusNodes: ConsensusNode[] = [];
@@ -389,14 +390,14 @@ export abstract class BaseCommand extends ShellRunner {
           // use local config to get the context
           this.getLocalConfig().clusterRefs[node.cluster],
           clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
           Templates.renderConsensusNodeFullyQualifiedDomainName(
             node.name as NodeAlias,
             node.nodeId,
             node.namespace,
             node.cluster,
             clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
           ),
         ),
       );

@@ -624,9 +624,8 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
+      flags.nodeAliasesUnparsed,
     ];
-
-    if (promptForNodeAliases) flagsWithDisabledPrompts.push(flags.nodeAliasesUnparsed);
 
     // disable the prompts that we don't want to prompt the user for
     flags.disablePrompts(flagsWithDisabledPrompts);
@@ -657,7 +656,12 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    if (promptForNodeAliases) {
+      config.nodeAliases = this.remoteConfigManager.getConsensusNodes().map(node => node.name);
+      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
+    } else {
+      config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    }
 
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);

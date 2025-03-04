@@ -14,7 +14,7 @@ describe('core/templates', () => {
       cluster: 'solo-cluster',
       context: 'solo-cluster',
       dnsBaseDomain: 'cluster.local',
-      dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
+      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
       fullyQualifiedDomainName: 'network-node1-svc.solo.svc.cluster.local',
     },
     {

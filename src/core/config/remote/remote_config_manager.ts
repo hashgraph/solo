@@ -195,6 +195,7 @@ export class RemoteConfigManager {
         this.remoteConfig.components,
         this.k8Factory,
         this.localConfig,
+        false,
       );
     } catch {
       throw new SoloError(
@@ -227,8 +228,13 @@ export class RemoteConfigManager {
    *
    * @param argv - arguments containing command input for historical reference.
    * @param validate - whether to validate the remote configuration.
+   * @param [skipConsensusNodesValidation] - whether or not to validate the consensusNodes
    */
-  public async loadAndValidate(argv: {_: string[]} & AnyObject, validate: boolean = true) {
+  public async loadAndValidate(
+    argv: {_: string[]} & AnyObject,
+    validate: boolean = true,
+    skipConsensusNodesValidation: boolean = true,
+  ) {
     const self = this;
     try {
       await self.setDefaultNamespaceAndDeploymentIfNotSet(argv);
@@ -254,6 +260,7 @@ export class RemoteConfigManager {
       self.remoteConfig.components,
       self.k8Factory,
       this.localConfig,
+      skipConsensusNodesValidation,
     );
 
     const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
@@ -501,14 +508,14 @@ export class RemoteConfigManager {
           // use local config to get the context
           this.localConfig.clusterRefs[node.cluster],
           clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
           Templates.renderConsensusNodeFullyQualifiedDomainName(
             node.name as NodeAlias,
             node.nodeId,
             node.namespace,
             node.cluster,
             clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
           ),
         ),
       );

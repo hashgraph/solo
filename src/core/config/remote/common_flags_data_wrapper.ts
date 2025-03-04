@@ -100,12 +100,23 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
   }
 
   public toObject(): RemoteConfigCommonFlagsStruct {
-    return {
-      nodeAliasesUnparsed: this.flags.nodeAliasesUnparsed,
-      releaseTag: this.flags.releaseTag,
-      relayReleaseTag: this.flags.relayReleaseTag,
-      hederaExplorerVersion: this.flags.hederaExplorerVersion,
-      mirrorNodeVersion: this.flags.mirrorNodeVersion,
-    };
+    const data: AnyObject = {};
+    if (typeof this.flags.nodeAliasesUnparsed !== 'undefined') {
+      data.nodeAliasesUnparsed = this.flags.nodeAliasesUnparsed;
+    }
+    if (typeof this.flags.releaseTag !== 'undefined') {
+      data.releaseTag = this.flags.releaseTag;
+    }
+    if (typeof this.flags.relayReleaseTag !== 'undefined') {
+      data.relayReleaseTag = this.flags.relayReleaseTag;
+    }
+    if (typeof this.flags.hederaExplorerVersion !== 'undefined') {
+      data.hederaExplorerVersion = this.flags.hederaExplorerVersion;
+    }
+    if (typeof this.flags.mirrorNodeVersion !== 'undefined') {
+      data.mirrorNodeVersion = this.flags.mirrorNodeVersion;
+    }
+
+    return data;
   }
 }

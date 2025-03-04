@@ -2114,14 +2114,14 @@ export class NodeCommandTasks {
               ctx.config.consensusNodes[0].cluster,
               ctx.config.consensusNodes[0].context,
               'cluster.local',
-              'network-${nodeAlias}-svc.${namespace}.svc',
+              'network-{nodeAlias}-svc.{namespace}.svc',
               Templates.renderConsensusNodeFullyQualifiedDomainName(
                 ctx.config.nodeAlias as NodeAlias,
                 Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
                 ctx.config.namespace.name as NamespaceNameAsString,
                 ctx.config.consensusNodes[0].cluster,
                 'cluster.local',
-                'network-${nodeAlias}-svc.${namespace}.svc',
+                'network-{nodeAlias}-svc.{namespace}.svc',
               ),
             ),
           );

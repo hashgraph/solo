@@ -37,7 +37,7 @@ describe('ProfileManager', () => {
       cluster: kubeConfig.getCurrentCluster().name,
       context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
-      dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
+      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
       fullyQualifiedDomainName: 'network-node1-svc.test-namespace.svc.cluster.local',
     },
     {
@@ -47,7 +47,7 @@ describe('ProfileManager', () => {
       cluster: kubeConfig.getCurrentCluster().name,
       context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
-      dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
+      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
       fullyQualifiedDomainName: 'network-node2-svc.test-namespace.svc.cluster.local',
     },
     {
@@ -57,7 +57,7 @@ describe('ProfileManager', () => {
       cluster: kubeConfig.getCurrentCluster().name,
       context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
-      dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
+      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
       fullyQualifiedDomainName: 'network-node3-svc.test-namespace.svc.cluster.local',
     },
   ];

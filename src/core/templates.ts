@@ -264,8 +264,8 @@ export class Templates {
    * in the dnsConsensusNodePattern: ${nodeAlias}, ${nodeId}, ${namespace}, ${cluster}
    *
    * The end result will be `${dnsConsensusNodePattern}.${dnsBaseDomain}`.
-   * For example, if the dnsConsensusNodePattern is `network-${nodeAlias}-svc.${namespace}.svc` and the dnsBaseDomain is `cluster.local`,
-   * the fully qualified domain name will be `network-${nodeAlias}-svc.${namespace}.svc.cluster.local`.
+   * For example, if the dnsConsensusNodePattern is `network-{nodeAlias}-svc.{namespace}.svc` and the dnsBaseDomain is `cluster.local`,
+   * the fully qualified domain name will be `network-{nodeAlias}-svc.{namespace}.svc.cluster.local`.
    * @param nodeAlias - the alias of the consensus node
    * @param nodeId - the id of the consensus node
    * @param namespace - the namespace of the consensus node
@@ -283,10 +283,10 @@ export class Templates {
     dnsConsensusNodePattern: string,
   ) {
     const searchReplace = {
-      '${nodeAlias}': nodeAlias,
-      '${nodeId}': nodeId.toString(),
-      '${namespace}': namespace,
-      '${cluster}': cluster,
+      '{nodeAlias}': nodeAlias,
+      '{nodeId}': nodeId.toString(),
+      '{namespace}': namespace,
+      '{cluster}': cluster,
     };
 
     Object.entries(searchReplace).forEach(([search, replace]) => {
