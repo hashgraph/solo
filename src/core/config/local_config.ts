@@ -79,6 +79,8 @@ export class LocalConfig implements LocalConfigData {
 
       this.validate();
       this.skipPromptTask = true;
+    } else {
+      this.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
     }
   }
 
