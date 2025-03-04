@@ -160,7 +160,8 @@ describe('NetworkCommand unit tests', () => {
     it('Install function is called with expected parameters', async () => {
       try {
         const networkCommand = new NetworkCommand(opts);
-        sinon.stub(networkCommand, 'getConsensusNodes').returns([]);
+        // @ts-expect-error - TS2740: to mock return value
+        sinon.stub(networkCommand, 'getConsensusNodes').returns([{name: 'node1'}]);
         sinon.stub(networkCommand, 'getContexts').returns(['context1']);
         sinon.stub(networkCommand, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
         await networkCommand.deploy(argv.build());
@@ -181,7 +182,8 @@ describe('NetworkCommand unit tests', () => {
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
 
-        sinon.stub(NetworkCommand.prototype, 'getConsensusNodes').returns([]);
+        // @ts-expect-error - TS2740: to mock return value
+        sinon.stub(NetworkCommand.prototype, 'getConsensusNodes').returns([{name: 'node1'}]);
         sinon.stub(NetworkCommand.prototype, 'getContexts').returns([]);
         sinon.stub(NetworkCommand.prototype, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);

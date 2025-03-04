@@ -79,7 +79,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   // solo deployment add-cluster --deployment(*) --cluster-ref(#) --enable-cert-manager
   //  --num-consensus-nodes N --dns-base-domain us-west-2.gcp.charlie.sphere
-  //  --dns-consensus-node-pattern "${nodeId}.consensus.prod"
+  //  --dns-consensus-node-pattern "{nodeId}.consensus.prod"
   //   1. Add the specified cluster-ref to the deployment
   //   2. Fail if the cluster-ref does not exist in the local configuration
   //   3. Fail if the deployment does not exist in the local configuration

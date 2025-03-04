@@ -16,9 +16,9 @@ import {SoloError} from '../../../../../src/core/errors.js';
 import {type NodeAliases} from '../../../../../src/types/aliases.js';
 
 export function createComponentsDataWrapper() {
-  const serviceName = 'serviceName';
-
   const name = 'name';
+  const serviceName = name;
+
   const cluster = 'cluster';
   const namespace = 'namespace';
   const state = ConsensusNodeStates.STARTED;
@@ -40,7 +40,7 @@ export function createComponentsDataWrapper() {
   };
   const mirrorNodeExplorers = {[serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace)};
 
-  // @ts-ignore
+  // @ts-expect-error - TS267: to access private constructor
   const componentsDataWrapper = new ComponentsDataWrapper(
     relays,
     haProxies,
@@ -70,7 +70,7 @@ describe('ComponentsDataWrapper', () => {
   it('should be able to create a instance', () => createComponentsDataWrapper());
 
   it('should not be able to create a instance if wrong data is passed to constructor', () => {
-    // @ts-ignore
+    // @ts-expect-error - TS267: to access private constructor
     expect(() => new ComponentsDataWrapper({serviceName: {}})).to.throw(SoloError, 'Invalid component type');
   });
 
@@ -108,9 +108,9 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const newServiceName = 'newServiceName';
+    const newServiceName = 'envoy';
     const {name, cluster, namespace} = {
-      name: 'envoy',
+      name: newServiceName,
       cluster: 'cluster',
       namespace: 'new-namespace',
     };
@@ -142,13 +142,13 @@ describe('ComponentsDataWrapper', () => {
 
     componentsDataWrapper.edit(relayComponent);
 
-    const newName = 'newName';
+    const newCluster = 'newCluster';
 
-    const newReplayComponent = new RelayComponent(newName, cluster, namespace);
+    const newReplayComponent = new RelayComponent(relayComponent.name, newCluster, namespace);
 
     componentsDataWrapper.edit(newReplayComponent);
 
-    expect(componentsDataWrapper.toObject()[ComponentType.Relay][serviceName].name).to.equal(newName);
+    expect(componentsDataWrapper.toObject()[ComponentType.Relay][relayComponent.name].cluster).to.equal(newCluster);
   });
 
   it("should not be able to edit component with the .edit() if it doesn't exist ", () => {
@@ -159,6 +159,7 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
     const notFoundServiceName = 'not_found';
     const relay = relays[serviceName];
+    relay.name = notFoundServiceName;
 
     expect(() => componentsDataWrapper.edit(relay)).to.throw(
       SoloError,
@@ -174,7 +175,6 @@ describe('ComponentsDataWrapper', () => {
 
     componentsDataWrapper.remove(serviceName, ComponentType.Relay);
 
-    // @ts-ignore
     expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName);
   });
 

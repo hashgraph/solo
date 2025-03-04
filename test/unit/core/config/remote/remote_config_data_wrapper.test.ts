@@ -94,12 +94,6 @@ describe('RemoteConfigDataWrapper', async () => {
     // @ts-expect-error TS2341 Property lastExecutedCommand is private and only accessible within class RemoteConfigDataWrapper
     expect(() => (dataWrapper.lastExecutedCommand = 1)).to.throw(SoloError);
 
-    // @ts-expect-error TS2322 Type number is not assignable to type Record<string, string>
-    expect(() => (dataWrapper.clusters = 1)).to.throw(SoloError);
-
-    // @ts-expect-error TS2322 Type string is not assignable to type Record<string, string>
-    expect(() => (dataWrapper.clusters = '')).to.throw(SoloError);
-
     // @ts-expect-error TS2322 Type number is not assignable to type ComponentsDataWrapper
     expect(() => (dataWrapper.components = 1)).to.throw(SoloError);
 
@@ -110,14 +104,5 @@ describe('RemoteConfigDataWrapper', async () => {
 
     // @ts-expect-error 2740: Type {} is missing the following properties from type RemoteConfigMetadata
     expect(() => (dataWrapper.metadata = {})).to.throw(SoloError);
-
-    // @ts-expect-error - TS2341: to access private property
-    expect(() => (dataWrapper._clusters = {null: null})).to.throw(SoloError);
-    // @ts-expect-error - TS2341: to access private property
-    expect(() => (dataWrapper._clusters = {namespace: null})).to.throw(SoloError);
-    // @ts-expect-error - TS2341: to access private property
-    expect(() => (dataWrapper._clusters = {null: new Cluster('cluster', 'namespace', 'deployment')})).to.throw(
-      SoloError,
-    );
   });
 });

@@ -261,7 +261,7 @@ export class Templates {
 
   /**
    * Renders the fully qualified domain name for a consensus node. We support the following variables for templating
-   * in the dnsConsensusNodePattern: ${nodeAlias}, ${nodeId}, ${namespace}, ${cluster}
+   * in the dnsConsensusNodePattern: {nodeAlias}, {nodeId}, {namespace}, {cluster}
    *
    * The end result will be `${dnsConsensusNodePattern}.${dnsBaseDomain}`.
    * For example, if the dnsConsensusNodePattern is `network-{nodeAlias}-svc.{namespace}.svc` and the dnsBaseDomain is `cluster.local`,

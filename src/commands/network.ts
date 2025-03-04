@@ -568,8 +568,8 @@ export class NetworkCommand extends BaseCommand {
     if (records) {
       consensusNodes.forEach(consensusNode => {
         if (records[consensusNode.name]) {
-          const newTemplateString = templateString.replace('${nodeId}', consensusNode.nodeId.toString());
-          valuesArgs[consensusNode.cluster] += newTemplateString.replace('${recordValue}', records[consensusNode.name]);
+          const newTemplateString = templateString.replace('{nodeId}', consensusNode.nodeId.toString());
+          valuesArgs[consensusNode.cluster] += newTemplateString.replace('{recordValue}', records[consensusNode.name]);
         }
       });
     }
