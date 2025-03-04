@@ -8,7 +8,10 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_config_class.js';
+import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
+import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
+import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
@@ -100,43 +103,3 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
 
   return ctx.config;
 };
-
-export interface ClusterRefConnectConfigClass {
-  cacheDir: string;
-  devMode: boolean;
-  context: string;
-  clusterRef: string;
-}
-
-export interface ClusterRefDefaultConfigClass {
-  cacheDir: string;
-  devMode: boolean;
-  clusterRef: string;
-}
-
-export interface ClusterSetupConfigClass {
-  chartDir: string;
-  clusterSetupNamespace: NamespaceName;
-  deployCertManager: boolean;
-  deployCertManagerCrds: boolean;
-  deployMinio: boolean;
-  deployPrometheusStack: boolean;
-  soloChartVersion: string;
-}
-
-export interface ClusterResetConfigClass {
-  clusterName: string;
-  clusterSetupNamespace: string;
-}
-
-export interface SelectClusterContextContext {
-  config: {
-    quiet: boolean;
-    namespace: NamespaceName;
-    clusterName: string;
-    context: string;
-    clusters: string[];
-    deployment: DeploymentName;
-    deploymentClusters: string[];
-  };
-}
