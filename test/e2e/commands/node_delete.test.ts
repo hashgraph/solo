@@ -46,10 +46,10 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     const accountCmd = bootstrapResp.cmd.accountCmd;
     const k8Factory = bootstrapResp.opts.k8Factory;
 
-    after(async function () {
-      this.timeout(Duration.ofMinutes(10).toMillis());
-      await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-      await k8Factory.default().namespaces().delete(namespace);
+    after(async () => {
+      //   this.timeout(Duration.ofMinutes(10).toMillis());
+      //   await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+      //   await k8Factory.default().namespaces().delete(namespace);
     });
 
     it('should succeed with init command', async () => {

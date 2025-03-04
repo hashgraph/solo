@@ -53,13 +53,20 @@ import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv_wrapper.js';
-import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 
-export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
-export const TEST_CLUSTER = SOLO_TEST_CLUSTER.startsWith('kind-') ? SOLO_TEST_CLUSTER : `kind-${SOLO_TEST_CLUSTER}`;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
+
+export function getTestCluster(): ClusterRef {
+  const soloTestCluster: ClusterRef =
+    process.env.SOLO_TEST_CLUSTER ||
+    container.resolve<K8Factory>(InjectTokens.K8Factory).default().clusters().readCurrent() ||
+    'solo-e2e';
+
+  return soloTestCluster.startsWith('kind-') ? soloTestCluster : `kind-${soloTestCluster}`;
+}
 
 export function getTestLogger() {
   return container.resolve<SoloLogger>(InjectTokens.SoloLogger);

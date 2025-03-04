@@ -9,8 +9,8 @@ import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   e2eTestSuite,
+  getTestCluster,
   HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER,
 } from '../test_util.js';
 import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
@@ -37,7 +37,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
   argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2,node3');
   argv.setArg(flags.generateGossipKeys, true);
   argv.setArg(flags.generateTlsKeys, true);
-  argv.setArg(flags.clusterRef, TEST_CLUSTER);
+  argv.setArg(flags.clusterRef, getTestCluster());
   argv.setArg(flags.devMode, true);
   argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
   argv.setArg(flags.quiet, true);
