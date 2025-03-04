@@ -31,8 +31,6 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
   await configManager.executePrompt(task, [
     flags.chartDirectory,
     flags.clusterSetupNamespace,
-    flags.deployCertManager,
-    flags.deployCertManagerCrds,
     flags.deployMinio,
     flags.deployPrometheusStack,
   ]);
@@ -40,8 +38,6 @@ export const setupConfigBuilder = async function (argv, ctx, task) {
   ctx.config = {
     chartDir: configManager.getFlag(flags.chartDirectory) as string,
     clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
-    deployCertManager: configManager.getFlag(flags.deployCertManager) as boolean,
-    deployCertManagerCrds: configManager.getFlag(flags.deployCertManagerCrds) as boolean,
     deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
     deployPrometheusStack: configManager.getFlag(flags.deployPrometheusStack) as boolean,
     soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
@@ -98,8 +94,6 @@ export interface ClusterConnectConfigClass {
 export interface ClusterSetupConfigClass {
   chartDir: string;
   clusterSetupNamespace: NamespaceName;
-  deployCertManager: boolean;
-  deployCertManagerCrds: boolean;
   deployMinio: boolean;
   deployPrometheusStack: boolean;
   soloChartVersion: string;
