@@ -6,7 +6,7 @@ import {it, describe, after, before, afterEach, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {bootstrapTestVariables, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import {bootstrapTestVariables, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
@@ -14,6 +14,9 @@ import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
+import * as yaml from 'yaml';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -23,9 +26,9 @@ describe('ClusterCommand', () => {
   });
 
   after(() => {
-    // @ts-expect-error: TS2339 - to add method
+    // @ts-expect-error: TS2339 - to restore
     logging.SoloLogger.prototype.showUser.restore();
-    // @ts-expect-error: TS2339 - to add method
+    // @ts-expect-error: TS2339 - to restore
     logging.SoloLogger.prototype.showJSON.restore();
   });
 
@@ -96,7 +99,7 @@ describe('ClusterCommand', () => {
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('function showInstalledChartList should return right true', async () => {
-    // @ts-ignore
+    // @ts-expect-error - TS2341: to access private property
     await expect(clusterCmd.handlers.tasks.showInstalledChartList()).to.eventually.be.undefined;
   }).timeout(Duration.ofMinutes(1).toMillis());
 
@@ -116,4 +119,59 @@ describe('ClusterCommand', () => {
     argv.setArg(flags.clusterSetupNamespace, namespace.name);
     expect(await clusterCmd.handlers.reset(argv.build())).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
+
+  // 'solo cluster-ref connect' tests
+  function getClusterConnectDefaultArgv(): {argv: Argv; clusterRef: string; contextName: string} {
+    const clusterRef = TEST_CLUSTER;
+    const contextName = k8Factory.default().contexts().readCurrent();
+
+    const argv = Argv.initializeEmpty();
+    argv.setArg(flags.clusterRef, clusterRef);
+    argv.setArg(flags.quiet, true);
+    argv.setArg(flags.context, contextName);
+    argv.setArg(flags.userEmailAddress, 'test@test.com');
+    return {argv, clusterRef, contextName};
+  }
+
+  it('cluster-ref connect should pass with correct data', async () => {
+    const {argv, clusterRef, contextName} = getClusterConnectDefaultArgv();
+
+    await clusterCmd.handlers.connect(argv.build());
+
+    const localConfigPath = path.join(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigYaml = fs.readFileSync(localConfigPath).toString();
+    const localConfigData = yaml.parse(localConfigYaml);
+
+    expect(localConfigData.clusterRefs).to.have.own.property(clusterRef);
+    expect(localConfigData.clusterRefs[clusterRef]).to.equal(contextName);
+  });
+
+  it('cluster-ref connect should fail with cluster ref that already exists', async () => {
+    const clusterRef = 'duplicated';
+    const {argv} = getClusterConnectDefaultArgv();
+    argv.setArg(flags.clusterRef, clusterRef);
+
+    try {
+      await clusterCmd.handlers.connect(argv.build());
+      await clusterCmd.handlers.connect(argv.build());
+      expect.fail();
+    } catch (e) {
+      expect(e.message).to.include(`Cluster ref ${clusterRef} already exists inside local config`);
+    }
+  });
+
+  it('cluster-ref connect should fail with invalid context name', async () => {
+    const clusterRef = 'test-context-name';
+    const contextName = 'INVALID_CONTEXT';
+    const {argv} = getClusterConnectDefaultArgv();
+    argv.setArg(flags.clusterRef, clusterRef);
+    argv.setArg(flags.context, contextName);
+
+    try {
+      await clusterCmd.handlers.connect(argv.build());
+      expect.fail();
+    } catch (e) {
+      expect(e.message).to.include(`Context ${contextName} is not valid for cluster test-context-name`);
+    }
+  });
 });

@@ -36,6 +36,7 @@ export class ClusterCommandHandlers implements CommandHandlers {
         this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
         this.parent.setupHomeDirectoryTask(),
         this.parent.getLocalConfig().createLocalConfigTask(),
+        this.tasks.validateClusterRefs(),
         this.tasks.connectClusterRef(),
         this.tasks.testConnectionToCluster(),
         this.tasks.saveLocalConfig(),

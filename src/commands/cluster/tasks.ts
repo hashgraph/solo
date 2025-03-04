@@ -87,6 +87,23 @@ export class ClusterCommandTasks {
     };
   }
 
+  validateClusterRefs(): SoloListrTask<ClusterRefConnectContext> {
+    const self = this;
+    return {
+      title: 'Validating cluster ref: ',
+      task: async (ctx, task) => {
+        const {clusterRef} = ctx.config;
+        task.title = clusterRef;
+
+        const localConfig = self.parent.getLocalConfig();
+
+        if (localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
+          throw new SoloError(`Cluster ref ${clusterRef} already exists inside local config`);
+        }
+      },
+    };
+  }
+
   // Method not used now but may be used in the future
   validateRemoteConfigForCluster(
     cluster: string,

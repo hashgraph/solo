@@ -137,6 +137,7 @@ export class LocalConfig implements LocalConfigData {
       clusterRefs: this.clusterRefs,
       soloVersion: this.soloVersion,
     });
+
     await fs.promises.writeFile(this.filePath, yamlContent);
 
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
