@@ -79,8 +79,7 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
     });
 
     if (!confirmResult) {
-      // eslint-disable-next-line n/no-process-exit
-      process.exit(0);
+      this.logger.logAndExitSuccess('Aborted application by user prompt');
     }
   }
 

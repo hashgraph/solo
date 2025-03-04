@@ -245,43 +245,41 @@ export class DeploymentCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates solo deployment',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .create(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+
+                  if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error creating deployment: ${err.message}`, err);
                 });
             },
           })
           .command({
             command: 'list',
             desc: 'List solo deployments inside a cluster',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
-            handler: (argv: AnyArgv) => {
+            builder: y => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
+            handler: async argv => {
               self.logger.info("==== Running 'deployment list' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .list(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment list`====');
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+
+                  if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error listing deployments: ${err.message}`, err);
                 });
             },
           })
@@ -289,21 +287,20 @@ export class DeploymentCommand extends BaseCommand {
             command: 'add-cluster',
             desc: 'Adds cluster to solo deployments',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST),
-            handler: (argv: AnyArgv) => {
+            handler: async (argv: AnyArgv) => {
               self.logger.info("==== Running 'deployment add-cluster' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .addCluster(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment add-cluster`====');
-                  // eslint-disable-next-line n/no-process-exit
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error adding cluster deployment, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  // eslint-disable-next-line n/no-process-exit
-                  process.exit(1);
+                  throw new SoloError(`Error adding cluster deployment: ${err.message}`, err);
+
                 });
             },
           })

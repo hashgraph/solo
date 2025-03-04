@@ -5,6 +5,7 @@ import 'chai-as-promised';
 
 import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
+import 'dotenv/config';
 
 import fs from 'fs';
 import os from 'os';
@@ -17,7 +18,7 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {type DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
+import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
@@ -54,7 +55,8 @@ import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv_wrapper.js';
 import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 
-export const TEST_CLUSTER = 'kind-' + SOLO_TEST_CLUSTER;
+export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
+export const TEST_CLUSTER = SOLO_TEST_CLUSTER.startsWith('kind-') ? SOLO_TEST_CLUSTER : `kind-${SOLO_TEST_CLUSTER}`;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
