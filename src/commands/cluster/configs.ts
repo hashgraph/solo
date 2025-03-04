@@ -83,24 +83,24 @@ export class ClusterCommandConfigs {
       if (!confirmResult) {
         this.logger.logAndExitSuccess('Aborted application by user prompt');
       }
-
-      this.configManager.update(argv);
-
-      ctx.config = {
-        clusterName: this.configManager.getFlag(flags.clusterRef) as string,
-        clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
-      } as ClusterResetConfigClass;
-
-      ctx.isChartInstalled = await this.chartManager.isChartInstalled(
-        ctx.config.clusterSetupNamespace,
-        constants.SOLO_CLUSTER_SETUP_CHART,
-      );
-      if (!ctx.isChartInstalled) {
-        throw new SoloError('No chart found for the cluster');
-      }
-
-      return ctx.config;
     }
+
+    this.configManager.update(argv);
+
+    ctx.config = {
+      clusterName: this.configManager.getFlag(flags.clusterRef) as string,
+      clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
+    } as ClusterResetConfigClass;
+
+    ctx.isChartInstalled = await this.chartManager.isChartInstalled(
+      ctx.config.clusterSetupNamespace,
+      constants.SOLO_CLUSTER_SETUP_CHART,
+    );
+    if (!ctx.isChartInstalled) {
+      throw new SoloError('No chart found for the cluster');
+    }
+
+    return ctx.config;
   }
 }
 
