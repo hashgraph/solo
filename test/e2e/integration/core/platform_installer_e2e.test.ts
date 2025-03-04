@@ -7,7 +7,7 @@ import {expect} from 'chai';
 import * as constants from '../../../../src/core/constants.js';
 import * as fs from 'fs';
 
-import {e2eTestSuite, getTestCacheDir, TEST_CLUSTER, getTestLogger} from '../../../test_util.js';
+import {e2eTestSuite, getTestCacheDir, getTestCluster, getTestLogger} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {Duration} from '../../../../src/core/time/duration.js';
@@ -28,7 +28,7 @@ const testCacheDir = getTestCacheDir();
 argv.setArg(flags.cacheDir, testCacheDir);
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1');
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);

@@ -1558,6 +1558,9 @@ export class NodeCommandTasks {
       ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(
         (nodeAlias: NodeAlias) => nodeAlias !== ctx.config.nodeAlias,
       );
+      ctx.config.consensusNodes = ctx.config.consensusNodes.filter(
+        (consensusNode: ConsensusNode) => consensusNode.name !== ctx.config.nodeAlias,
+      );
     });
   }
 
@@ -1720,15 +1723,22 @@ export class NodeCommandTasks {
         // On Update and Delete
         for (let i = 0; i < index; i++) {
           const consensusNode = consensusNodes.find(node => node.nodeId === i);
+          if (!consensusNode) break; // break in the case that no consensus node is found, which can happen from a node delete
           const clusterRef = consensusNode
             ? consensusNode.cluster
             : this.parent.getK8Factory().default().clusters().readCurrent();
 
-          if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
+          // TODO the node array index in the set command will be different from the loop index in the case of multiple clusters
+          // TODO also, if a node delete has been ran, or a node add, then the node array will still have to be contiguous, but the nodeId will not match the index
+          if (
+            transactionType === NodeSubcommandType.UPDATE &&
+            config.newAccountNumber &&
+            i === Templates.nodeIdFromNodeAlias(config.nodeAlias)
+          ) {
             // for the case of updating node
             // use new account number for this node id
             valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
+              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.nodeAlias}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) {
             // for the case of deleting node
             valuesArgMap[clusterRef] +=
@@ -1737,6 +1747,11 @@ export class NodeCommandTasks {
             valuesArgMap[clusterRef] +=
               ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           }
+        }
+
+        // now remove the deleted node from the serviceMap
+        if (transactionType === NodeSubcommandType.DELETE) {
+          config.serviceMap.delete(config.nodeAlias);
         }
 
         // When adding a new node
@@ -1788,7 +1803,7 @@ export class NodeCommandTasks {
         }
 
         // Add profile values files
-        const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+        const profileValuesFile = await self.profileManager.prepareValuesForNodeTransaction(
           path.join(config.stagingDir, 'config.txt'),
           path.join(config.stagingDir, 'templates', 'application.properties'),
         );

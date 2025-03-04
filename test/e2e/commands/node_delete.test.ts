@@ -11,9 +11,7 @@ import {
   e2eTestSuite,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import {getTmpDir} from '../../../src/core/helpers.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import fs from 'fs';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -72,19 +70,16 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, deleteNodeAlias);
 
-    it('config.txt should no longer contain removed node alias name', async () => {
+    it('deleted consensus node should not be running', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
       const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
       const podName: PodName = PodName.of(pods[0].metadata.name);
-      const tmpDir = getTmpDir();
-      await k8Factory
+      const response = await k8Factory
         .default()
         .containers()
         .readByRef(ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER))
-        .copyFrom(`${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
-      const configTxt = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
-      console.log('config.txt:', configTxt);
-      expect(configTxt).not.to.contain(deleteNodeAlias);
+        .execContainer(['bash', '-c', `tail -n 1 ${HEDERA_HAPI_PATH}/output/swirlds.log`]);
+      expect(response).to.contain('JVM is shutting down');
     }).timeout(Duration.ofMinutes(10).toMillis());
   });
 });
