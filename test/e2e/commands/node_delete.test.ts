@@ -11,9 +11,7 @@ import {
   e2eTestSuite,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import {getTmpDir} from '../../../src/core/helpers.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import fs from 'fs';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -46,10 +44,10 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     const accountCmd = bootstrapResp.cmd.accountCmd;
     const k8Factory = bootstrapResp.opts.k8Factory;
 
-    after(async () => {
-      //   this.timeout(Duration.ofMinutes(10).toMillis());
-      //   await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-      //   await k8Factory.default().namespaces().delete(namespace);
+    after(async function () {
+      this.timeout(Duration.ofMinutes(10).toMillis());
+      await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+      await k8Factory.default().namespaces().delete(namespace);
     });
 
     it('should succeed with init command', async () => {

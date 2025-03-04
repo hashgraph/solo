@@ -1687,15 +1687,22 @@ export class NodeCommandTasks {
         // On Update and Delete
         for (let i = 0; i < index; i++) {
           const consensusNode = consensusNodes.find(node => node.nodeId === i);
+          if (!consensusNode) break; // break in the case that no consensus node is found, which can happen from a node delete
           const clusterRef = consensusNode
             ? consensusNode.cluster
             : this.parent.getK8Factory().default().clusters().readCurrent();
 
-          if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
+          // TODO the node array index in the set command will be different from the loop index in the case of multiple clusters
+          // TODO also, if a node delete has been ran, or a node add, then the node array will still have to be contiguous, but the nodeId will not match the index
+          if (
+            transactionType === NodeSubcommandType.UPDATE &&
+            config.newAccountNumber &&
+            i === Templates.nodeIdFromNodeAlias(config.nodeAlias)
+          ) {
             // for the case of updating node
             // use new account number for this node id
             valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
+              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.nodeAlias}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) {
             // for the case of deleting node
             valuesArgMap[clusterRef] +=
