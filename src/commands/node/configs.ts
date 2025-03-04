@@ -9,7 +9,7 @@ import {SoloError} from '../../core/errors.js';
 import * as helpers from '../../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
-import {validatePath} from '../../core/helpers.js';
+import {checkNamespace, validatePath} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
@@ -382,9 +382,22 @@ export const stopConfigBuilder = async function (argv, ctx, task) {
     contexts: this.parent.getContexts(),
   };
 
-  if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
-    throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
-  }
+  await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+  return ctx.config;
+};
+
+export const freezeConfigBuilder = async function (argv, ctx, task) {
+  ctx.config = {
+    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
+    deployment: this.configManager.getFlag(flags.deployment),
+    consensusNodes: this.parent.getConsensusNodes(),
+    contexts: this.parent.getContexts(),
+  };
+
+  await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+
+  const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
+  ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
 
   return ctx.config;
 };
@@ -409,6 +422,19 @@ export const startConfigBuilder = async function (argv, ctx, task) {
   config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
 
   return config;
+};
+
+export const restartConfigBuilder = async function (argv, ctx, task) {
+  ctx.config = {
+    namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
+    deployment: this.configManager.getFlag(flags.deployment),
+    consensusNodes: this.parent.getConsensusNodes(),
+    contexts: this.parent.getContexts(),
+  };
+
+  await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+
+  return ctx.config;
 };
 
 export const setupConfigBuilder = async function (argv, ctx, task) {
