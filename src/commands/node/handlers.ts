@@ -4,23 +4,6 @@
 
 import * as helpers from '../../core/helpers.js';
 import * as NodeFlags from './flags.js';
-import {
-  addConfigBuilder,
-  deleteConfigBuilder,
-  downloadGeneratedFilesConfigBuilder,
-  keysConfigBuilder,
-  logsConfigBuilder,
-  prepareUpgradeConfigBuilder,
-  refreshConfigBuilder,
-  setupConfigBuilder,
-  startConfigBuilder,
-  statesConfigBuilder,
-  stopConfigBuilder,
-  freezeConfigBuilder,
-  updateConfigBuilder,
-  upgradeConfigBuilder,
-  restartConfigBuilder,
-} from './configs.js';
 import {type NodeCommandConfigs} from './configs.js';
 import * as constants from '../../core/constants.js';
 import {type LeaseManager} from '../../core/lease/lease_manager.js';
@@ -861,17 +844,16 @@ export class NodeCommandHandlers extends CommandHandler {
       lease,
     );
 
-    await action(argv, this);
     return true;
   }
 
   async freeze(argv: any) {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.FREEZE_FLAGS);
     const lease = await this.leaseManager.create();
-
-    const action = this.parent.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [
-        this.tasks.initialize(argv, freezeConfigBuilder.bind(this), lease),
+        this.tasks.initialize(argv, this.configs.freezeConfigBuilder.bind(this), lease),
         this.tasks.identifyExistingNodes(),
         this.tasks.sendFreezeTransaction(),
         this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
@@ -886,7 +868,6 @@ export class NodeCommandHandlers extends CommandHandler {
       lease,
     );
 
-    await action(argv, this);
     return true;
   }
 
@@ -894,10 +875,10 @@ export class NodeCommandHandlers extends CommandHandler {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.RESTART_FLAGS);
 
     const lease = await this.leaseManager.create();
-
-    const action = this.parent.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [
-        this.tasks.initialize(argv, restartConfigBuilder.bind(this), lease),
+        this.tasks.initialize(argv, this.configs.restartConfigBuilder.bind(this), lease),
         this.tasks.identifyExistingNodes(),
         this.tasks.startNodes('existingNodeAliases'),
         this.tasks.enablePortForwarding(),
