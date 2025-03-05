@@ -513,47 +513,5 @@ describe('ClusterCommand unit tests', () => {
         }
       });
     });
-
-    describe('readClustersFromRemoteConfig', () => {
-      let taskStub;
-
-      async function runReadClustersFromRemoteConfigTask(opts) {
-        command = new ClusterCommand(opts);
-        tasks = container.resolve(ClusterCommandTasks);
-        const taskObj = tasks.readClustersFromRemoteConfig({});
-        taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
-        taskStub.newListr = sandbox.stub();
-        await taskObj.task({config: {}}, taskStub);
-        return command;
-      }
-
-      afterEach(async () => {
-        await fs.promises.unlink(filePath);
-        sandbox.restore();
-      });
-
-      beforeEach(async () => {
-        contextPromptStub = sandbox.stub(flags.context, 'prompt').callsFake(() => {
-          return new Promise(resolve => {
-            resolve('prompted-context');
-          });
-        });
-
-        loggerStub = sandbox.createStubInstance(SoloLogger);
-        await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
-      });
-
-      it('should load RemoteConfig when there is only 1 cluster', async () => {
-        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
-          clusters: {
-            'cluster-3': 'deployment',
-          },
-        });
-        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
-        command = await runReadClustersFromRemoteConfigTask(opts);
-
-        expect(taskStub.newListr).calledWith([]);
-      });
-    });
   });
 });

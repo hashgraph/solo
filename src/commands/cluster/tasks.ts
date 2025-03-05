@@ -92,11 +92,7 @@ export class ClusterCommandTasks {
     };
   }
 
-  testConnectionToCluster(
-    clusterRef: string,
-    localConfig: LocalConfig,
-    parentTask: ListrTaskWrapper<any, any, any>,
-  ): SoloListrTask<ClusterRefConnectContext> {
+  testConnectionToCluster(clusterRef?: string): SoloListrTask<ClusterRefConnectContext> {
     const self = this;
     return {
       title: `Test connection to cluster: ${chalk.cyan(clusterRef)}`,
@@ -107,10 +103,10 @@ export class ClusterCommandTasks {
           if (isQuiet) {
             context = self.k8Factory.default().contexts().readCurrent();
           } else {
-            context = await self.promptForContext(parentTask, clusterRef);
+            context = await self.promptForContext(task, clusterRef);
           }
 
-          localConfig.clusterRefs[clusterRef] = context;
+          this.localConfig.clusterRefs[clusterRef] = context;
         }
         if (!(await self.k8Factory.default().contexts().testContextConnection(context))) {
           task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
@@ -136,38 +132,6 @@ export class ClusterCommandTasks {
         if (!RemoteConfigManager.compare(currentRemoteConfig, remoteConfigFromOtherCluster)) {
           throw new SoloError(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH(currentClusterName, cluster));
         }
-      },
-    };
-  }
-
-  public readClustersFromRemoteConfig(argv) {
-    const self = this;
-    return {
-      title: 'Read clusters from remote config',
-      task: async (ctx, task) => {
-        const localConfig = this.localConfig;
-        const currentClusterName = this.k8Factory.default().clusters().readCurrent();
-        const currentRemoteConfig: RemoteConfigDataWrapper = await this.remoteConfigManager.get();
-        const subTasks = [];
-        const remoteConfigClusters = Object.keys(currentRemoteConfig.clusters);
-        const otherRemoteConfigClusters: string[] = remoteConfigClusters.filter(c => c !== currentClusterName);
-
-        // Validate connections for the other clusters
-        for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(self.testConnectionToCluster(cluster, localConfig, task));
-        }
-
-        // Pull and validate RemoteConfigs from the other clusters
-        for (const cluster of otherRemoteConfigClusters) {
-          subTasks.push(
-            self.validateRemoteConfigForCluster(cluster, currentClusterName, localConfig, currentRemoteConfig),
-          );
-        }
-
-        return task.newListr(subTasks, {
-          concurrent: false,
-          rendererOptions: {collapseSubtasks: false},
-        });
       },
     };
   }

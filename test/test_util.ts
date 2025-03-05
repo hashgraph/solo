@@ -25,7 +25,7 @@ import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 
 import {type SoloLogger} from '../src/core/logging.js';
 import {type BaseCommand} from '../src/commands/base.js';
-import {type NodeAlias, NodeAliases} from '../src/types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {type K8Factory} from '../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../src/core/account_manager.js';
@@ -34,7 +34,7 @@ import {type ProfileManager} from '../src/core/profile_manager.js';
 import {type LeaseManager} from '../src/core/lease/lease_manager.js';
 import {type CertificateManager} from '../src/core/certificate_manager.js';
 import {type LocalConfig} from '../src/core/config/local_config.js';
-import {type RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
+import {RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
 import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';
 import {type ConfigManager} from '../src/core/config_manager.js';
@@ -52,15 +52,14 @@ import {ContainerRef} from '../src/core/kube/resources/container/container_ref.j
 import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
-import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
 import {Argv} from './helpers/argv_wrapper.js';
 import {
-  ClusterRef,
+  type ClusterRef,
   type ClusterRefs,
   type DeploymentName,
   type NamespaceNameAsString,
 } from '../src/core/config/remote/types.js';
-import type {ConsensusNode} from '../src/core/model/consensus_node.js';
+import {type ConsensusNode} from '../src/core/model/consensus_node.js';
 import sinon from 'sinon';
 
 export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
@@ -321,9 +320,9 @@ export function e2eTestSuite(
         const contexts = [context];
         const clusterRefs = {[clusterRef]: context} as ClusterRefs;
 
-        sinon.stub(NetworkCommand.prototype, 'getConsensusNodes').returns(consensusNodes);
-        sinon.stub(NetworkCommand.prototype, 'getContexts').returns(contexts);
-        sinon.stub(NetworkCommand.prototype, 'getClusterRefs').returns(clusterRefs);
+        sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
+        sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
+        sinon.stub(RemoteConfigManager.prototype, 'getClusterRefs').returns(clusterRefs);
 
         await networkCmd.deploy(argv.build());
 

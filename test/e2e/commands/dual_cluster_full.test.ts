@@ -231,6 +231,7 @@ async function manuallyCreateRemoteConfigConfigMap(
     deploymentName: ${deployment}
     lastUpdatedAt: 2025-02-14T22:10:13.586000Z
     lastUpdateBy: john@doe.com
+    state: "post-genesis"
     soloChartVersion: ""
     hederaPlatformVersion: ""
     hederaMirrorNodeChartVersion: ""

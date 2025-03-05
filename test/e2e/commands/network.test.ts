@@ -21,14 +21,12 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import sinon from 'sinon';
-import {DeploymentCommand} from '../../../src/commands/deployment.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {NodeCommandHandlers} from '../../../src/commands/node/handlers.js';
-import {NodeCommand} from '../../../src/commands/node/index.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Templates} from '../../../src/core/templates.js';
-import {type ClusterRef, type ClusterRefs} from '../../../src/core/config/remote/types.js';
-import {NodeAlias} from '../../../src/types/aliases.js';
+import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
@@ -107,7 +105,7 @@ describe('NetworkCommand', function networkCommand() {
     sinon.stub(RemoteConfigManager.prototype, 'getClusterRefs').returns(clusterRefs);
     sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
 
-    sinon.stub(DeploymentCommand.prototype, 'getConsensusNodes').returns(consensusNodes);
+    sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
 
     expect(await deploymentCmd.create(argv.build())).to.be.true;
     argv.setArg(flags.nodeAliasesUnparsed, undefined);
@@ -118,8 +116,8 @@ describe('NetworkCommand', function networkCommand() {
   it('keys should be generated', async () => {
     // @ts-expect-error - TS2740: to mock
     sinon.stub(NodeCommandHandlers.prototype, 'init').returns();
-    sinon.stub(NodeCommand.prototype, 'getConsensusNodes').returns(consensusNodes);
-    sinon.stub(NodeCommand.prototype, 'getContexts').returns(contexts);
+    sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
+    sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
 
     nodeCmd.handlers.consensusNodes = consensusNodes;
 
@@ -128,9 +126,9 @@ describe('NetworkCommand', function networkCommand() {
 
   it('network deploy command should succeed', async () => {
     try {
-      sinon.stub(NetworkCommand.prototype, 'getConsensusNodes').returns(consensusNodes);
-      sinon.stub(NetworkCommand.prototype, 'getContexts').returns(contexts);
-      sinon.stub(NetworkCommand.prototype, 'getClusterRefs').returns(clusterRefs);
+      sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
+      sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
+      sinon.stub(RemoteConfigManager.prototype, 'getClusterRefs').returns(clusterRefs);
 
       expect(await networkCmd.deploy(argv.build())).to.be.true;
 

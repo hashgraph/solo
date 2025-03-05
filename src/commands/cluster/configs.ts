@@ -15,7 +15,7 @@ import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {K8Factory} from '../../core/kube/k8_factory.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
@@ -33,7 +33,7 @@ export class ClusterCommandConfigs {
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
   }
 
-  public async connectConfigBuilder(argv, ctx, task) { // TODO 666
+  public async connectConfigBuilder(argv, ctx, task) {
     this.configManager.update(argv);
     ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
 
