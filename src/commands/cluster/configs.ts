@@ -2,23 +2,46 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_config_class.js';
+import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
+import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
+import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
+import {ErrorMessages} from '../../core/error_messages.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
+export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 export const connectConfigBuilder = async function (argv, ctx, task) {
-  const config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
+  if (!this.parent.localConfig.configFileExists()) {
+    this.parent.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
+  }
 
-  // set config in the context for later tasks to use
-  ctx.config = config;
+  this.parent.getConfigManager().update(argv);
+  ctx.config = this.getConfig(CONNECT_CONFIGS_NAME, argv.flags, ['selectedContext']) as ClusterRefConnectConfigClass;
 
+  ctx.config.selectedContext = ctx.config.context;
+  if (!ctx.config.selectedContext) {
+    const isQuiet = this.parent.getConfigManager().getFlag(flags.quiet);
+    if (isQuiet) {
+      ctx.config.selectedContext = this.parent.getK8Factory().default().contexts().readCurrent();
+    } else {
+      const kubeContexts = this.parent.getK8Factory().default().contexts().list();
+      ctx.config.selectedContext = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+    }
+  }
+
+  return ctx.config;
+};
+
+export const defaultConfigBuilder = async function (argv, ctx, task) {
+  this.parent.getConfigManager().update(argv);
+  ctx.config = this.getConfig(DEFAULT_CONFIGS_NAME, argv.flags, []) as ClusterRefDefaultConfigClass;
   return ctx.config;
 };
 
@@ -80,38 +103,3 @@ export const resetConfigBuilder = async function (argv, ctx, task) {
 
   return ctx.config;
 };
-
-export interface ClusterConnectConfigClass {
-  app: string;
-  cacheDir: string;
-  devMode: boolean;
-  namespace: string;
-  nodeAlias: NodeAlias;
-  context: string;
-  clusterName: string;
-}
-
-export interface ClusterSetupConfigClass {
-  chartDir: string;
-  clusterSetupNamespace: NamespaceName;
-  deployMinio: boolean;
-  deployPrometheusStack: boolean;
-  soloChartVersion: string;
-}
-
-export interface ClusterResetConfigClass {
-  clusterName: string;
-  clusterSetupNamespace: string;
-}
-
-export interface SelectClusterContextContext {
-  config: {
-    quiet: boolean;
-    namespace: NamespaceName;
-    clusterName: string;
-    context: string;
-    clusters: string[];
-    deployment: DeploymentName;
-    deploymentClusters: string[];
-  };
-}

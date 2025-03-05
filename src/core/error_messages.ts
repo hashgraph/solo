@@ -3,6 +3,7 @@
  */
 
 export const ErrorMessages = {
+  LOCAL_CONFIG_DOES_NOT_EXIST: 'Please create a local configuration first. Run "solo deployment create"',
   LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST:
     'The selected deployment does not correspond to a deployment in the local configuration',
   LOCAL_CONFIG_GENERIC: 'Validation of local config failed',

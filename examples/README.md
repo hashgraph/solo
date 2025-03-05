@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-* install taskfile: `npm install -g taskfile-cli`
+* install taskfile: `npm install -g @go-task/cli`
 
 ## Running the examples with Taskfile
 

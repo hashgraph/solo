@@ -112,6 +112,7 @@ export class Middlewares {
         command === 'init' ||
         (command === 'node' && subCommand === 'keys') ||
         (command === 'cluster' && subCommand === 'connect') ||
+        (command === 'cluster' && subCommand === 'disconnect') ||
         (command === 'cluster' && subCommand === 'info') ||
         (command === 'cluster' && subCommand === 'list') ||
         (command === 'cluster' && subCommand === 'setup') ||
