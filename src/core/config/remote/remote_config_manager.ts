@@ -22,7 +22,6 @@ import {
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
-import {type DeploymentStructure} from '../local_config_data.js';
 import {type Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {inject, injectable} from 'tsyringe-neo';
@@ -31,7 +30,6 @@ import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type AnyArgv, type AnyObject, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
-import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
 import * as helpers from '../../helpers.js';
@@ -340,10 +338,6 @@ export class RemoteConfigManager {
 
   public isLoaded(): boolean {
     return !!this.remoteConfig;
-  }
-
-  public unload(): void {
-    delete this.remoteConfig;
   }
 
   /**

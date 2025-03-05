@@ -10,20 +10,12 @@ import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
-import {
-  type DeploymentName,
-  type EmailAddress,
-  type Version,
-  type ClusterRefs,
-  type ClusterRef,
-} from './remote/types.js';
+import {type EmailAddress, type Version, type ClusterRefs, type ClusterRef} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import {type K8Factory} from '../kube/k8_factory.js';
 import * as helpers from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 @injectable()
