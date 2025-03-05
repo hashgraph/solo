@@ -6,6 +6,8 @@ import {type IngressClass} from '../../../resources/ingress_class/ingress_class.
 import {type V1IngressClass, type NetworkingV1Api} from '@kubernetes/client-node';
 import {K8ClientIngressClass} from './k8_client_ingress_class.js';
 import {SoloError} from '../../../../errors.js';
+import {ResourceCreateError, ResourceDeleteError} from '../../../errors/resource_operation_errors.js';
+import {ResourceType} from '../../../resources/resource_type.js';
 
 export class K8ClientIngressClasses implements IngressClasses {
   constructor(private readonly networkingApi: NetworkingV1Api) {}
@@ -24,6 +26,32 @@ export class K8ClientIngressClasses implements IngressClasses {
       return ingressClasses;
     } catch (e) {
       throw new SoloError('Failed to list IngressClasses:', e);
+    }
+  }
+
+  public async create(ingressClassName: string, controllerName: string) {
+    const ingressClass = {
+      apiVersion: 'networking.k8s.io/v1',
+      kind: 'IngressClass',
+      metadata: {
+        name: ingressClassName,
+      },
+      spec: {
+        controller: controllerName,
+      },
+    };
+    try {
+      await this.networkingApi.createIngressClass(ingressClass);
+    } catch (e) {
+      throw new ResourceCreateError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, e);
+    }
+  }
+
+  public async delete(ingressClassName: string) {
+    try {
+      await this.networkingApi.deleteIngressClass(ingressClassName);
+    } catch (e) {
+      throw new ResourceDeleteError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, e);
     }
   }
 }

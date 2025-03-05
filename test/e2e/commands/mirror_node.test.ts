@@ -47,6 +47,7 @@ argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 argv.setArg(flags.quiet, true);
 argv.setArg(flags.pinger, true);
 argv.setArg(flags.enableHederaExplorerTls, true);
+argv.setArg(flags.enableIngress, true);
 
 e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {

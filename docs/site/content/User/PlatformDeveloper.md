@@ -1,7 +1,7 @@
 ### Use solo with local build platform code
 
 First, please clone hedera service repo `https://github.com/hiero-ledger/hiero-consensus-node/` and build the code
-with `./gradlew assemble`. If need to running nodes with different versions or releases, please duplicate the repo or build directories in
+with `./gradlew assemble`. If need to run nodes with different versions or releases, please duplicate the repo or build directories in
 multiple directories, checkout to the respective version and build the code.
 
 Then you can start customized built platform testing application with the following command:
