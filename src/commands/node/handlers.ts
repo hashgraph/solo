@@ -844,7 +844,6 @@ export class NodeCommandHandlers extends CommandHandler {
       lease,
     );
 
-    await action(argv, this);
     return true;
   }
 
@@ -852,56 +851,6 @@ export class NodeCommandHandlers extends CommandHandler {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.FREEZE_FLAGS);
     const lease = await this.leaseManager.create();
 
-    const action = this.parent.commandActionBuilder(
-      [
-        this.tasks.initialize(argv, freezeConfigBuilder.bind(this), lease),
-        this.tasks.identifyExistingNodes(),
-        this.tasks.sendFreezeTransaction(),
-        this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
-        this.tasks.stopNodes('existingNodeAliases'),
-        this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'Error freezing node',
-      lease,
-    );
-
-    await action(argv, this);
-    return true;
-  }
-
-  async restart(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.RESTART_FLAGS);
-
-    const lease = await this.leaseManager.create();
-
-    const action = this.parent.commandActionBuilder(
-      [
-        this.tasks.initialize(argv, restartConfigBuilder.bind(this), lease),
-        this.tasks.identifyExistingNodes(),
-        this.tasks.startNodes('existingNodeAliases'),
-        this.tasks.enablePortForwarding(),
-        this.tasks.checkAllNodesAreActive('existingNodeAliases'),
-        this.tasks.checkNodeProxiesAreActive(),
-        this.changeAllNodeStates(ConsensusNodeStates.STARTED),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'Error restarting node',
-      lease,
-    );
-
-    return true;
-  }
-
-  async freeze(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, NodeFlags.FREEZE_FLAGS);
-    const lease = await this.leaseManager.create();
     await this.commandAction(
       argv,
       [

@@ -421,7 +421,7 @@ export class NodeCommandConfigs {
 
     await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
     return ctx.config;
-  };
+  }
 
   public async freezeConfigBuilder(argv, ctx, task) {
     ctx.config = {

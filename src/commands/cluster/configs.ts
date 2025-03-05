@@ -44,20 +44,20 @@ export class ClusterCommandConfigs {
     configManager.update(argv);
     flags.disablePrompts([flags.chartDirectory]);
 
-  await configManager.executePrompt(task, [
-    flags.chartDirectory,
-    flags.clusterSetupNamespace,
-    flags.deployMinio,
-    flags.deployPrometheusStack,
-  ]);
+    await configManager.executePrompt(task, [
+      flags.chartDirectory,
+      flags.clusterSetupNamespace,
+      flags.deployMinio,
+      flags.deployPrometheusStack,
+    ]);
 
-  ctx.config = {
-    chartDir: configManager.getFlag(flags.chartDirectory) as string,
-    clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
-    deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
-    deployPrometheusStack: configManager.getFlag(flags.deployPrometheusStack) as boolean,
-    soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
-  } as ClusterSetupConfigClass;
+    ctx.config = {
+      chartDir: configManager.getFlag(flags.chartDirectory) as string,
+      clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
+      deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
+      deployPrometheusStack: configManager.getFlag(flags.deployPrometheusStack) as boolean,
+      soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
+    } as ClusterSetupConfigClass;
 
     this.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
 
