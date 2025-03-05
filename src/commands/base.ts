@@ -178,8 +178,7 @@ export abstract class BaseCommand extends ShellRunner {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  public setupHomeDirectory(dirs: string[]): string[] {
-    const self = this;
+  public setupHomeDirectory(dirs: string[] = []) {
     if (!dirs || dirs?.length === 0) {
       dirs = [
         constants.SOLO_HOME_DIR,
@@ -188,6 +187,7 @@ export abstract class BaseCommand extends ShellRunner {
         constants.SOLO_VALUES_DIR,
       ];
     }
+    const self = this;
 
     try {
       dirs.forEach(dirPath => {

@@ -425,10 +425,10 @@ export class NodeCommandConfigs {
 
   public async freezeConfigBuilder(argv, ctx, task) {
     ctx.config = {
-      namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
+      namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: this.parent.getConsensusNodes(),
-      contexts: this.parent.getContexts(),
+      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      contexts: this.remoteConfigManager.getContexts(),
     };
 
     await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
@@ -463,10 +463,10 @@ export class NodeCommandConfigs {
 
   public async restartConfigBuilder(argv, ctx, task) {
     ctx.config = {
-      namespace: await resolveNamespaceFromDeployment(this.parent.localConfig, this.configManager, task),
+      namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: this.parent.getConsensusNodes(),
-      contexts: this.parent.getContexts(),
+      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      contexts: this.remoteConfigManager.getContexts(),
     };
 
     await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
@@ -592,6 +592,7 @@ export interface NodeSetupConfigClass {
   skipStop?: boolean;
   keysDir: string;
   stagingDir: string;
+  getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
 }

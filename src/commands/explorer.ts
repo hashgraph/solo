@@ -248,6 +248,9 @@ export class ExplorerCommand extends BaseCommand {
             // sleep for a few seconds to allow cert-manager to be ready
             await new Promise(resolve => setTimeout(resolve, 10000));
 
+            // sleep for a few seconds to allow cert-manager to be ready
+            await new Promise(resolve => setTimeout(resolve, 10000));
+
             await self.chartManager.upgrade(
               NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
               constants.SOLO_CERT_MANAGER_CHART,

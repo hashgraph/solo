@@ -47,7 +47,6 @@ import {
   renameAndCopyFile,
   sleep,
   splitFlagInput,
-  prepareValuesFiles,
 } from '../../core/helpers.js';
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
@@ -82,16 +81,16 @@ import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
+import {BaseCommand} from '../base.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
-import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
 import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell_runner.js';
-import {type LocalConfig} from '../../core/config/local_config.js';
-import {BaseCommand} from '../base.js';
 
 @injectable()
 export class NodeCommandTasks {
