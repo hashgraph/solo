@@ -6,8 +6,6 @@ import {type NamespaceName} from '../../../core/kube/resources/namespace/namespa
 export interface ClusterSetupConfigClass {
   chartDir: string;
   clusterSetupNamespace: NamespaceName;
-  deployCertManager: boolean;
-  deployCertManagerCrds: boolean;
   deployMinio: boolean;
   deployPrometheusStack: boolean;
   soloChartVersion: string;
