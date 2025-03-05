@@ -35,11 +35,13 @@ and documented. This leads to several issues:
 
 ## Configuration
 
-### Standards
+### General Standards
 
 Solo uses a hierarchical configuration system to manage configuration values. Configuration values can
 be set in multiple places, and Solo follows a specific order of precedence to determine the effective
-value. Configuration values can be set in the following places:
+value. 
+
+Configuration values can be set in the following places:
 
 * Default Values (constants)
 * Environment Variables 
@@ -47,7 +49,7 @@ value. Configuration values can be set in the following places:
 * Remote Configuration File (Deployment Specific)
 
 The configuration values must be addressable using a hierarchical key syntax. Solo follows the 
-Eclipse MicroProfile Config Specification for the key syntax. 
+Eclipse MicroProfile Config Specification for the key syntax and other recommendations.
 
 All implementations should adhere to the following requirements:
 
@@ -65,6 +67,8 @@ All implementations should adhere to the following requirements:
 * Support for multiple file formats (e.g., YAML, JSON) is permitted but not required.
 * Support for environment variables is required.
 * Support for default values is required.
+* Configuration key/value pairs must support mapping to strongly typed objects.
+  * Implementations may provide an object mapper implementation, but it is not required.
 
 For example, the key `deployment.network.realm` represents a hierarchical structure with three 
 levels: `deployment`, `network`, and `realm`. The `realm` key has no children and has a directly 
@@ -172,4 +176,5 @@ In this case, the effective value of `deployment.network.realm` will be `1`.
 In this case, the effective value of `deployment.network.realm` will be `0`.
 
 
+## Schema Migration
 
