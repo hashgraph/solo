@@ -12,7 +12,7 @@ kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 solo init
 solo node keys --gossip-keys --tls-keys -i node1,node2
-solo cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+solo cluster-ref setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 solo deployment create --namespace "${SOLO_NAMESPACE}"  --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --cluster-ref kind-"${SOLO_CLUSTER_NAME}" --deployment "${SOLO_DEVELOPMENT}" --node-aliases node1,node2
 
 solo network deploy --deployment "${SOLO_DEVELOPMENT}" -i node1,node2

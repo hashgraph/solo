@@ -5,7 +5,6 @@ import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
-import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -38,25 +37,51 @@ export class ClusterCommandHandlers extends CommandHandler {
     this.configs = patchInject(configs, InjectTokens.ClusterCommandConfigs, this.constructor.name);
   }
 
+  /**
+   * - Setup home directory.
+   * - Create new local config if needed.
+   * - Add new 'cluster-ref => context' mapping in the local config.
+   */
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this)),
         this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(this.k8Factory),
-        this.tasks.selectContext(),
-        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
-        this.tasks.readClustersFromRemoteConfig(argv),
-        this.tasks.updateLocalConfig(),
+        this.localConfig.createLocalConfigTask(),
+        this.tasks.validateClusterRefs(),
+        this.tasks.connectClusterRef(),
+        this.tasks.testConnectionToCluster(),
+        this.tasks.saveLocalConfig(),
       ],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'cluster connect',
+      'cluster-ref connect',
+      null,
+    );
+
+    return true;
+  }
+
+  async disconnect(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
+
+    await this.commandAction(
+      argv,
+      [
+        this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this)),
+        this.tasks.disconnectClusterRef(),
+        this.tasks.saveLocalConfig(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'cluster-ref disconnect',
       null,
     );
 
@@ -64,7 +89,7 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async list(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.NO_FLAGS);
 
     await this.commandAction(
       argv,
@@ -81,7 +106,7 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async info(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
 
     await this.commandAction(
       argv,

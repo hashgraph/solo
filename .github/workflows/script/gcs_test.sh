@@ -85,7 +85,7 @@ SOLO_DEPLOYMENT=solo-e2e
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 npm run solo-test -- init
-npm run solo-test -- cluster setup \
+npm run solo-test -- cluster-ref setup \
   -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
 npm run solo-test -- deployment create -i node1 -n "${SOLO_NAMESPACE}" --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"

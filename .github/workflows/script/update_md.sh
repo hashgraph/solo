@@ -30,7 +30,7 @@ export SOLO_DEPLOYMENT_CREATE_OUTPUT=$( cat deployment-create.log | tee test.log
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee keys.log
 export SOLO_NODE_KEY_PEM_OUTPUT=$( cat keys.log | tee test.log )
 
-solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee cluster-setup.log
+solo cluster-ref setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" | tee cluster-setup.log
 export SOLO_CLUSTER_SETUP_OUTPUT=$( cat cluster-setup.log | tee test.log )
 
 solo network deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee network-deploy.log

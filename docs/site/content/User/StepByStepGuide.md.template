@@ -117,7 +117,7 @@ $SOLO_DEPLOYMENT_CREATE_OUTPUT
 * Setup cluster with shared components
 
 ```
-solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+solo cluster-ref setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 ```
 
 * Example output

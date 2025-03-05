@@ -65,8 +65,8 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     return this._clusters;
   }
 
-  public set clusters(clusters: Record<ClusterRef, Cluster>) {
-    this._clusters = clusters;
+  public addCluster(cluster: Cluster): void {
+    this._clusters[cluster.name] = cluster;
     this.validate();
   }
 

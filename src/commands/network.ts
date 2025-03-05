@@ -573,8 +573,8 @@ export class NetworkCommand extends BaseCommand {
     if (records) {
       consensusNodes.forEach(consensusNode => {
         if (records[consensusNode.name]) {
-          const newTemplateString = templateString.replace('${nodeId}', consensusNode.nodeId.toString());
-          valuesArgs[consensusNode.cluster] += newTemplateString.replace('${recordValue}', records[consensusNode.name]);
+          const newTemplateString = templateString.replace('{nodeId}', consensusNode.nodeId.toString());
+          valuesArgs[consensusNode.cluster] += newTemplateString.replace('{recordValue}', records[consensusNode.name]);
         }
       });
     }
@@ -629,9 +629,8 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
+      flags.nodeAliasesUnparsed,
     ];
-
-    if (promptForNodeAliases) flagsWithDisabledPrompts.push(flags.nodeAliasesUnparsed);
 
     // disable the prompts that we don't want to prompt the user for
     flags.disablePrompts(flagsWithDisabledPrompts);
@@ -662,7 +661,12 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
+    if (promptForNodeAliases) {
+      config.nodeAliases = this.remoteConfigManager.getConsensusNodes().map(node => node.name);
+      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
+    } else {
+      config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
+    }
 
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -823,7 +827,7 @@ export class NetworkCommand extends BaseCommand {
               );
               if (!isChartInstalled) {
                 throw new SoloError(
-                  `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed for cluster: ${context}. Run 'solo cluster setup'`,
+                  `Chart ${constants.SOLO_CLUSTER_SETUP_CHART} is not installed for cluster: ${context}. Run 'solo cluster-ref setup'`,
                 );
               }
             }
@@ -1264,7 +1268,7 @@ export class NetworkCommand extends BaseCommand {
         return yargs
           .command({
             command: 'deploy',
-            desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
+            desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster-ref setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
             handler: async (argv: any) => {
               self.logger.info("==== Running 'network deploy' ===");
@@ -1352,7 +1356,6 @@ export class NetworkCommand extends BaseCommand {
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of ctx.config.consensusNodes) {
             remoteConfig.components.edit(
-              consensusNode.name,
               new ConsensusNodeComponent(
                 consensusNode.name,
                 consensusNode.cluster,
@@ -1363,12 +1366,10 @@ export class NetworkCommand extends BaseCommand {
             );
 
             remoteConfig.components.add(
-              `envoy-proxy-${consensusNode.name}`,
               new EnvoyProxyComponent(`envoy-proxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
             );
 
             remoteConfig.components.add(
-              `haproxy-${consensusNode.name}`,
               new HaProxyComponent(`haproxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
             );
           }

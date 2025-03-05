@@ -11,7 +11,7 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     public readonly namespace: NamespaceNameAsString,
     public readonly deployment: DeploymentName,
     public readonly dnsBaseDomain: string = 'cluster.local', // example: 'us-west-2.gcp.charlie.sphere'`
-    public readonly dnsConsensusNodePattern: string = 'network-${nodeAlias}-svc.${namespace}.svc', // example: '${nodeId}.consensus.prod'`
+    public readonly dnsConsensusNodePattern: string = 'network-{nodeAlias}-svc.{namespace}.svc', // example: '{nodeId}.consensus.prod'`
   ) {
     if (!name) throw new SoloError('name is required');
     if (typeof name !== 'string') throw new SoloError(`Invalid type for name: ${typeof name}`);

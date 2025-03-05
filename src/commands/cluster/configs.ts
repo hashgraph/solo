@@ -2,22 +2,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName, type EmailAddress} from '../../core/config/remote/types.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
+export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 @injectable()
 export class ClusterCommandConfigs {
@@ -25,6 +26,7 @@ export class ClusterCommandConfigs {
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
@@ -32,10 +34,25 @@ export class ClusterCommandConfigs {
   }
 
   public async connectConfigBuilder(argv, ctx, task) {
-    const config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
-    // set config in the context for later tasks to use
-    ctx.config = config;
+    this.configManager.update(argv);
+    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
 
+    if (!ctx.config.contextName) {
+      const isQuiet = this.configManager.getFlag(flags.quiet);
+      if (isQuiet) {
+        ctx.config.contextName = this.k8Factory.default().contexts().readCurrent();
+      } else {
+        const kubeContexts = this.k8Factory.default().contexts().list();
+        ctx.config.contextName = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+      }
+    }
+
+    return ctx.config;
+  }
+
+  public async defaultConfigBuilder(argv, ctx, task) {
+    this.configManager.update(argv);
+    ctx.config = this.configManager.getConfig(DEFAULT_CONFIGS_NAME, argv.flags, []) as ClusterRefDefaultConfigClass;
     return ctx.config;
   }
 
@@ -100,14 +117,23 @@ export class ClusterCommandConfigs {
   }
 }
 
-export interface ClusterConnectConfigClass {
-  app: string;
+export interface ClusterRefConnectConfigClass {
   cacheDir: string;
   devMode: boolean;
-  namespace: string;
-  nodeAlias: NodeAlias;
-  context: string;
-  clusterName: string;
+  quiet: boolean;
+  userEmailAddress: EmailAddress;
+  clusterRef: ClusterRef;
+  contextName: string;
+}
+
+export interface ClusterRefConnectContext {
+  config: ClusterRefConnectConfigClass;
+}
+
+export interface ClusterRefDefaultConfigClass {
+  cacheDir: string;
+  devMode: boolean;
+  clusterRef: string;
 }
 
 export interface ClusterSetupConfigClass {
