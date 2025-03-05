@@ -273,24 +273,11 @@ export class ClusterCommandTasks {
     chartDir = flags.chartDirectory.definition.defaultValue as string,
     prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
     minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
-    certManagerEnabled = flags.deployCertManager.definition.defaultValue as boolean,
-    certManagerCrdsEnabled = flags.deployCertManagerCrds.definition.defaultValue as boolean,
   ) {
     let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
-    valuesArg += ` --set cloud.certManager.enabled=${certManagerEnabled}`;
-    valuesArg += ` --set cert-manager.installCRDs=${certManagerCrdsEnabled}`;
     valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
-
-    if (certManagerEnabled && !certManagerCrdsEnabled) {
-      this.parent.logger.showUser(
-        chalk.yellowBright('> WARNING:'),
-        chalk.yellow(
-          'cert-manager CRDs are required for cert-manager, please enable it if you have not installed it independently.',
-        ),
-      );
-    }
 
     return valuesArg;
   }
@@ -483,22 +470,8 @@ export class ClusterCommandTasks {
           ctx.config.deployPrometheusStack = false;
         }
 
-        // if cert manager is installed, don't deploy it
-        if (
-          (ctx.config.deployCertManager || ctx.config.deployCertManagerCrds) &&
-          (await self.clusterChecks.isCertManagerInstalled())
-        ) {
-          ctx.config.deployCertManager = false;
-          ctx.config.deployCertManagerCrds = false;
-        }
-
         // If all are already present or not wanted, skip installation
-        if (
-          !ctx.config.deployPrometheusStack &&
-          !ctx.config.deployMinio &&
-          !ctx.config.deployCertManager &&
-          !ctx.config.deployCertManagerCrds
-        ) {
+        if (!ctx.config.deployPrometheusStack && !ctx.config.deployMinio) {
           ctx.isChartInstalled = true;
           return;
         }
@@ -507,8 +480,6 @@ export class ClusterCommandTasks {
           ctx.config.chartDir,
           ctx.config.deployPrometheusStack,
           ctx.config.deployMinio,
-          ctx.config.deployCertManager,
-          ctx.config.deployCertManagerCrds,
         );
       },
       ctx => ctx.isChartInstalled,
