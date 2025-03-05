@@ -27,7 +27,7 @@ import {NodeCommandHandlers} from '../../../src/commands/node/handlers.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Templates} from '../../../src/core/templates.js';
-import {type ClusterRef, ClusterRefs} from '../../../src/core/config/remote/types.js';
+import {type ClusterRef, type ClusterRefs} from '../../../src/core/config/remote/types.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
