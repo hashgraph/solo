@@ -145,7 +145,7 @@ describe('NetworkCommand', function networkCommand() {
       const pvcs = await k8Factory.default().pvcs().list(namespace, []);
       networkCmd.logger.showList('PVCs', pvcs);
 
-      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+      expect(networkCmd.configManager.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.apiPermissionProperties.constName,
         flags.applicationEnv.constName,
         flags.applicationProperties.constName,

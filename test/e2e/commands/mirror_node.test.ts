@@ -89,22 +89,14 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         expect.fail();
       }
 
-      expect(mirrorNodeCmd.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.clusterRef.constName,
-        flags.chartDirectory.constName,
+      expect(mirrorNodeCmd.configManager.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        flags.hederaExplorerTlsHostName.constName,
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
-        flags.storageReadAccessKey.constName,
-        flags.storageReadSecrets.constName,
-        flags.storageEndpoint.constName,
-        flags.externalDatabaseHost.constName,
-        flags.externalDatabaseOwnerUsername.constName,
-        flags.externalDatabaseOwnerPassword.constName,
-        flags.externalDatabaseReadonlyUsername.constName,
-        flags.externalDatabaseReadonlyPassword.constName,
+        flags.quiet.constName,
       ]);
-      expect(explorerCommand.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+      expect(explorerCommand.configManager.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.hederaExplorerTlsHostName.constName,
         flags.deployment.constName,
         flags.profileFile.constName,
@@ -114,7 +106,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     }).timeout(Duration.ofMinutes(10).toMillis());
 
     it('mirror node API should be running', async () => {
-      const clusterRefs: ClusterRefs = mirrorNodeCmd.getClusterRefs();
+      const clusterRefs: ClusterRefs = mirrorNodeCmd.getRemoteConfigManager().getClusterRefs();
       await accountManager.loadNodeClient(
         namespace,
         clusterRefs,

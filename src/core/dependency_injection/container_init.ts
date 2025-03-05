@@ -26,6 +26,12 @@ import {NetworkNodes} from '../network_nodes.js';
 import {ClusterChecks} from '../cluster_checks.js';
 import {InjectTokens} from './inject_tokens.js';
 import {K8ClientFactory} from '../kube/k8_client/k8_client_factory.js';
+import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
+import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
+import {NodeCommandHandlers} from '../../commands/node/handlers.js';
+import {NodeCommandTasks} from '../../commands/node/tasks.js';
+import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
+import {NodeCommandConfigs} from '../../commands/node/configs.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -134,6 +140,34 @@ export class Container {
 
     container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container initialized');
     Container.isInitialized = true;
+
+    // Commands
+    container.register(
+      InjectTokens.ClusterCommandHandlers,
+      {useClass: ClusterCommandHandlers},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.ClusterCommandTasks,
+      {useClass: ClusterCommandTasks},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.NodeCommandHandlers,
+      {useClass: NodeCommandHandlers},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(InjectTokens.NodeCommandTasks, {useClass: NodeCommandTasks}, {lifecycle: Lifecycle.Singleton});
+    container.register(
+      InjectTokens.ClusterCommandConfigs,
+      {useClass: ClusterCommandConfigs},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.NodeCommandConfigs,
+      {useClass: NodeCommandConfigs},
+      {lifecycle: Lifecycle.Singleton},
+    );
   }
 
   /**
