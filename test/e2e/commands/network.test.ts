@@ -28,6 +28,7 @@ import {NodeCommand} from '../../../src/commands/node/index.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Templates} from '../../../src/core/templates.js';
 import {type ClusterRef, type ClusterRefs} from '../../../src/core/config/remote/types.js';
+import {NodeAlias} from '../../../src/types/aliases.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
@@ -56,13 +57,33 @@ describe('NetworkCommand', function networkCommand() {
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
 
-  // @ts-expect-error - TS2352: to mock
+  const nodeAlias = 'node1' as NodeAlias;
+  const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
+  const clusterRef = TEST_CLUSTER;
+  const context = k8Factory.default().contexts().readCurrent();
+
   const consensusNodes = [
-    {name: 'node1', namespace: namespace.name, nodeId: Templates.nodeIdFromNodeAlias('node1'), cluster: TEST_CLUSTER},
+    {
+      name: nodeAlias,
+      namespace: namespace.name,
+      nodeId,
+      cluster: clusterRef,
+      context,
+      dnsBaseDomain: 'cluster.local',
+      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
+      fullyQualifiedDomainName: Templates.renderConsensusNodeFullyQualifiedDomainName(
+        nodeAlias,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
+        namespace.name,
+        clusterRef,
+        'cluster.local',
+        'network-{nodeAlias}-svc.{namespace}.svc',
+      ),
+    },
   ] as ConsensusNode[];
 
-  const contexts = [k8Factory.default().contexts().readCurrent()];
-  const clusterRefs = {[TEST_CLUSTER]: k8Factory.default().contexts().readCurrent()} as ClusterRefs;
+  const contexts = [context];
+  const clusterRefs = {[clusterRef]: context} as ClusterRefs;
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
