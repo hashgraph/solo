@@ -9,7 +9,7 @@ import {SoloError} from '../../core/errors.js';
 import * as helpers from '../../core/helpers.js';
 import path from 'path';
 import fs from 'fs';
-import {validatePath} from '../../core/helpers.js';
+import {checkNamespace, validatePath} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
@@ -419,9 +419,22 @@ export class NodeCommandConfigs {
       contexts: this.remoteConfigManager.getContexts(),
     };
 
-    if (!(await this.k8Factory.default().namespaces().has(ctx.config.namespace))) {
-      throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
-    }
+    await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+    return ctx.config;
+  }
+
+  public async freezeConfigBuilder(argv, ctx, task) {
+    ctx.config = {
+      namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+      deployment: this.configManager.getFlag(flags.deployment),
+      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      contexts: this.remoteConfigManager.getContexts(),
+    };
+
+    await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
+    ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
 
     return ctx.config;
   }
@@ -446,6 +459,19 @@ export class NodeCommandConfigs {
     config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
 
     return config;
+  }
+
+  public async restartConfigBuilder(argv, ctx, task) {
+    ctx.config = {
+      namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
+      deployment: this.configManager.getFlag(flags.deployment),
+      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      contexts: this.remoteConfigManager.getContexts(),
+    };
+
+    await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+
+    return ctx.config;
   }
 
   public async setupConfigBuilder(argv, ctx, task) {

@@ -23,6 +23,7 @@ import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type K8} from './kube/k8.js';
 import {type Helm} from './helm.js';
+import {type K8Factory} from './kube/k8_factory.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -494,4 +495,19 @@ export function getSoloVersion(): Version {
  */
 export function deepClone<T = AnyObject>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
+}
+
+/**
+ * Check if the namespace exists in the context of given consensus nodes
+ * @param consensusNodes
+ * @param k8Factory
+ * @param namespace
+ */
+export async function checkNamespace(consensusNodes: ConsensusNode[], k8Factory: K8Factory, namespace: NamespaceName) {
+  for (const consensusNode of consensusNodes) {
+    const k8 = k8Factory.getK8(consensusNode.context);
+    if (!(await k8.namespaces().has(namespace))) {
+      throw new SoloError(`namespace ${namespace} does not exist in context ${consensusNode.context}`);
+    }
+  }
 }
