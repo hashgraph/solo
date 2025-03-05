@@ -95,22 +95,31 @@ export class ClusterCommandTasks {
   testConnectionToCluster(clusterRef?: string): SoloListrTask<ClusterRefConnectContext> {
     const self = this;
     return {
-      title: `Test connection to cluster: ${chalk.cyan(clusterRef)}`,
-      task: async (_, task) => {
-        let context = this.localConfig.clusterRefs[clusterRef];
-        if (!context) {
-          const isQuiet = self.configManager.getFlag(flags.quiet);
-          if (isQuiet) {
-            context = self.k8Factory.default().contexts().readCurrent();
-          } else {
-            context = await self.promptForContext(task, clusterRef);
-          }
-
-          this.localConfig.clusterRefs[clusterRef] = context;
-        }
-        if (!(await self.k8Factory.default().contexts().testContextConnection(context))) {
+      title: 'Test connection to cluster: ',
+      task: async (ctx, task) => {
+        task.title += clusterRef ?? ctx.config.clusterRef;
+        try {
+          await self.k8Factory.getK8(ctx.config.contextName).namespaces().list();
+        } catch {
           task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
-          throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, clusterRef)}`);
+          throw new SoloError(
+            `${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(ctx.config.contextName, ctx.config.clusterRef)}`,
+          );
+        }
+      },
+    };
+  }
+
+  public validateClusterRefs(): SoloListrTask<ClusterRefConnectContext> {
+    const self = this;
+    return {
+      title: 'Validating cluster ref: ',
+      task: async (ctx, task) => {
+        const {clusterRef} = ctx.config;
+        task.title = clusterRef;
+
+        if (self.localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
+          throw new SoloError(`Cluster ref ${clusterRef} already exists inside local config`);
         }
       },
     };
