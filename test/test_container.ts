@@ -12,7 +12,8 @@ import {type SoloLogger} from '../src/core/logging.js';
 const cacheDirectory = path.join('test', 'data', 'tmp');
 
 export function resetTestContainer(cacheDir: string = cacheDirectory, testLogger?: SoloLogger) {
-  Container.getInstance().reset(cacheDir, 'debug', true, testLogger);
+  // For the test suites cacheDir === homeDir is acceptable because the data is temporary
+  Container.getInstance().reset(cacheDir, cacheDir, 'debug', true, testLogger);
 }
 
 export function resetForTest(
