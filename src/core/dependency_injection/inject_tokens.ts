@@ -1,6 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
+
 /**
  * Dependency injection tokens
  */
@@ -33,4 +34,10 @@ export const InjectTokens = {
   RemoteConfigManager: Symbol.for('RemoteConfigManager'),
   ClusterChecks: Symbol.for('ClusterChecks'),
   NetworkNodes: Symbol.for('NetworkNodes'),
+  ClusterCommandTasks: Symbol.for('ClusterCommandTasks'),
+  ClusterCommandHandlers: Symbol.for('ClusterCommandHandlers'),
+  NodeCommandTasks: Symbol.for('NodeCommandTasks'),
+  NodeCommandHandlers: Symbol.for('NodeCommandHandlers'),
+  ClusterCommandConfigs: Symbol.for('ClusterCommandConfigs'),
+  NodeCommandConfigs: Symbol.for('NodeCommandConfigs'),
 };
