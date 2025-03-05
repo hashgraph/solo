@@ -11,7 +11,16 @@
     * HTTP Request Payloads and Query Strings
   * GitHub Actions
   * Electron UI Application
-* Workflow Layer
+* Workflow Layer 
+  * Workflow Inputs
+    * User Supplied Inputs
+    * Business Layer Outputs
+  * Workflow Outputs
+    * Business Layer Inputs
+    * Presentation Layer Responses
+  * Workflow State
+    * Computed
+    * Business Layer Data Objects
   * Facade Pattern for Underlying Workflow Engines 
      * Listr2
      * Headless
@@ -44,7 +53,7 @@
   * Runtime State
     * Introspected 
     * Computed
-    * User Supplied Input
+    * Indirect User Supplied Input
 * Data Layer
   * Schema Migration
   * Configuration
