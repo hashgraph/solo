@@ -290,7 +290,8 @@ export class ExplorerCommand extends BaseCommand {
             }
             explorerIngressControllerValuesArg += ` --set fullnameOverride=${constants.EXPLORER_INGRESS_CONTROLLER}`;
 
-            const ingressControllerChartPath = await self.prepareChartPath(
+            const ingressControllerChartPath = await prepareChartPath(
+              self.helm,
               '', // don't use chartPath which is for local solo-charts only
               constants.INGRESS_CONTROLLER_RELEASE_NAME,
               constants.INGRESS_CONTROLLER_RELEASE_NAME,

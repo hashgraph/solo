@@ -761,7 +761,7 @@ export class NodeCommandTasks {
       try {
         const nodeClient = await this.accountManager.loadNodeClient(
           ctx.config.namespace,
-          this.parent.getClusterRefs(),
+          this.remoteConfigManager.getClusterRefs(),
           ctx.config.deployment,
         );
         const futureDate = new Date();
