@@ -1099,6 +1099,8 @@ export class NodeCommandTasks {
     });
   }
 
+  // generates the node overrides file.  This file is used to override the address book.  It is useful in cases where
+  // there is a hair pinning issue and the node needs to connect to itself via a different address.
   private async generateNodeOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
