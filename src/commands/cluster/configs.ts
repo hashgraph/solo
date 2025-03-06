@@ -93,8 +93,8 @@ export class ClusterCommandConfigs {
     this.configManager.update(argv);
 
     ctx.config = {
-      clusterName: this.configManager.getFlag(flags.clusterRef) as string,
-      clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
+      clusterName: this.configManager.getFlag(flags.clusterRef),
+      clusterSetupNamespace: this.configManager.getFlag<NamespaceName>(flags.clusterSetupNamespace),
     } as ClusterResetConfigClass;
 
     ctx.isChartInstalled = await this.chartManager.isChartInstalled(
