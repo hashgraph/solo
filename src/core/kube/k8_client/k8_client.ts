@@ -28,6 +28,7 @@ import {type Secrets} from '../resources/secret/secrets.js';
 import {K8ClientSecrets} from './resources/secret/k8_client_secrets.js';
 import {type Ingresses} from '../resources/ingress/ingresses.js';
 import {K8ClientIngresses} from './resources/ingress/k8_client_ingresses.js';
+import {type NamespaceName} from '../resources/namespace/namespace_name.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo

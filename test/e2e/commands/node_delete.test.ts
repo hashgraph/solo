@@ -59,7 +59,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('should delete a node from the network successfully', async () => {
       await nodeCmd.handlers.delete(argv.build());
-      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
+      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.force.constName,
         flags.quiet.constName,

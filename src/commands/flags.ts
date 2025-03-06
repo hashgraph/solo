@@ -202,6 +202,24 @@ export class Flags {
     },
   };
 
+  static readonly mirrorNamespace: CommandFlag = {
+    constName: 'mirrorNamespace',
+    name: 'mirror-namespace',
+    definition: {
+      describe: 'Namespace to use for the Mirror Node deployment, a new one will be created if it does not exist',
+      type: 'string',
+    },
+    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        'solo',
+        'Enter mirror node namespace name: ',
+        'namespace cannot be empty',
+        Flags.mirrorNamespace.name,
+      );
+    },
+  };
   /**
    * Parse the values files input string that includes the cluster reference and the values file path
    * <p>It supports input as below:
@@ -1497,7 +1515,7 @@ export class Flags {
     constName: 'contextName',
     name: 'context',
     definition: {
-      describe: 'The Kubernetes context name to be used. Multiple contexts can be separated by a comma',
+      describe: 'The Kubernetes context name to be used',
       defaultValue: '',
       type: 'string',
     },
@@ -2094,6 +2112,7 @@ export class Flags {
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
+    Flags.mirrorNamespace,
     Flags.namespace,
     Flags.networkDeploymentValuesFile,
     Flags.newAccountNumber,
