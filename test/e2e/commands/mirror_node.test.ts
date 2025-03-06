@@ -166,7 +166,6 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         // Create a new public topic and submit a message
         const txResponse = await new TopicCreateTransaction()
           .setAdminKey(PrivateKey.fromStringED25519(GENESIS_KEY))
-          .setSubmitKey(PrivateKey.fromStringED25519(GENESIS_KEY))
           .execute(accountManager._nodeClient);
         const receipt = await txResponse.getReceipt(accountManager._nodeClient);
         newTopicId = receipt.topicId;
