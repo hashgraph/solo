@@ -29,6 +29,7 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {GENESIS_KEY} from '../../../src/core/constants.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -162,35 +163,21 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
     it('Create topic and submit message should success', async () => {
       try {
-        // generate a new user account as operator instead of using default genesis account
-        await accountCmd.create(argv.build());
-        // @ts-ignore to access the private property
-        const accountInfo = accountCmd.accountInfo;
-        const privateKey = PrivateKey.fromStringED25519(accountInfo.privateKey);
-
-        const clusterRefs: ClusterRefs = mirrorNodeCmd.getClusterRefs();
-        const client = await accountManager.loadNodeClient(
-          namespace,
-          clusterRefs,
-          argv.getArg<DeploymentName>(flags.deployment),
-          argv.getArg<boolean>(flags.forcePortForward),
-        );
-        client.setOperator(accountInfo.accountId, privateKey);
-
         // Create a new public topic and submit a message
-        const txResponse = await new TopicCreateTransaction().setAdminKey(privateKey)
-          .setSubmitKey(privateKey)
-          .execute(client);
-        const receipt = await txResponse.getReceipt(client);
+        const txResponse = await new TopicCreateTransaction()
+          .setAdminKey(PrivateKey.fromStringED25519(GENESIS_KEY))
+          .setSubmitKey(PrivateKey.fromStringED25519(GENESIS_KEY))
+          .execute(accountManager._nodeClient);
+        const receipt = await txResponse.getReceipt(accountManager._nodeClient);
         newTopicId = receipt.topicId;
         mirrorNodeCmd.logger.debug(`Newly created topic ID is: ${newTopicId}`);
 
         const submitResponse = await new TopicMessageSubmitTransaction({
           topicId: newTopicId,
           message: testMessage,
-        }).execute(client);
+        }).execute(accountManager._nodeClient);
 
-        const submitReceipt = await submitResponse.getReceipt(client);
+        const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient);
         expect(submitReceipt.status).to.deep.equal(Status.Success);
       } catch (e) {
         mirrorNodeCmd.logger.showUserError(e);
