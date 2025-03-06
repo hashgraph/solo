@@ -21,6 +21,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
+import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
+import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
 import {ContainerName} from '../core/kube/resources/container/container_name.js';
@@ -36,6 +38,8 @@ export interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
   namespace: NamespaceName;
+  enableIngress: boolean;
+  mirrorStaticIp: string;
   profileFile: string;
   profileName: string;
   valuesFile: string;
@@ -43,7 +47,6 @@ export interface MirrorNodeDeployConfigClass {
   valuesArg: string;
   quiet: boolean;
   mirrorNodeVersion: string;
-  getUnusedConfigs: () => string[];
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
@@ -90,6 +93,8 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.clusterRef,
       flags.chartDirectory,
       flags.deployment,
+      flags.enableIngress,
+      flags.mirrorStaticIp,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
@@ -119,11 +124,11 @@ export class MirrorNodeCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName);
     if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile);
+      valuesArg += helpers.prepareValuesFiles(profileValuesFile);
     }
 
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += helpers.prepareValuesFiles(config.valuesFile);
     }
 
     if (config.storageBucket) {
@@ -233,21 +238,22 @@ export class MirrorNodeCommand extends BaseCommand {
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
-              'chartPath',
-              'valuesArg',
-              'namespace',
-            ]) as MirrorNodeDeployConfigClass;
+            ctx.config = this.configManager.getConfig(
+              MirrorNodeCommand.DEPLOY_CONFIGS_NAME,
+              MirrorNodeCommand.DEPLOY_FLAGS_LIST,
+              ['chartPath', 'valuesArg', 'namespace'],
+            ) as MirrorNodeDeployConfigClass;
 
             ctx.config.namespace = namespace;
-            ctx.config.chartPath = await self.prepareChartPath(
+            ctx.config.chartPath = await helpers.prepareChartPath(
+              self.helm,
               '', // don't use chartPath which is for local solo-charts only
               constants.MIRROR_NODE_RELEASE_NAME,
               constants.MIRROR_NODE_CHART,
             );
 
             // predefined values first
-            ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
+            ctx.config.valuesArg += helpers.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
             // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
@@ -258,7 +264,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
@@ -361,12 +367,12 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const portForward = this.configManager.getFlag<boolean>(flags.forcePortForward);
-                    const consensusNodes = this.getConsensusNodes();
+                    const consensusNodes = this.remoteConfigManager.getConsensusNodes();
                     const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
                     const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
                     ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
                       ctx.config.namespace,
-                      this.getClusterRefs(),
+                      this.remoteConfigManager.getClusterRefs(),
                       deployment,
                       this.configManager.getFlag(flags.operatorId),
                       this.configManager.getFlag(flags.operatorKey),
@@ -375,6 +381,36 @@ export class MirrorNodeCommand extends BaseCommand {
                     );
                     ctx.config.valuesArg += ` --set "importer.addressBook=${ctx.addressBook}"`;
                   },
+                },
+                {
+                  title: 'Install mirror ingress controller',
+                  task: async ctx => {
+                    const config = ctx.config;
+
+                    let mirrorIngressControllerValuesArg = '';
+
+                    if (config.mirrorStaticIp !== '') {
+                      mirrorIngressControllerValuesArg += ` --set controller.service.loadBalancerIP=${ctx.config.mirrorStaticIp}`;
+                    }
+                    mirrorIngressControllerValuesArg += ` --set fullnameOverride=${constants.MIRROR_INGRESS_CONTROLLER}`;
+
+                    const ingressControllerChartPath = await helpers.prepareChartPath(
+                      self.helm,
+                      '', // don't use chartPath which is for local solo-charts only
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                    );
+
+                    await self.chartManager.install(
+                      config.namespace,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                      ingressControllerChartPath,
+                      INGRESS_CONTROLLER_VERSION,
+                      mirrorIngressControllerValuesArg,
+                      ctx.config.clusterContext,
+                    );
+                  },
+                  skip: ctx => !ctx.config.enableIngress,
                 },
                 {
                   title: 'Deploy mirror-node',
@@ -387,6 +423,31 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.valuesArg,
                       ctx.config.clusterContext,
                     );
+
+                    if (ctx.config.enableIngress) {
+                      // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+                      await this.k8Factory
+                        .getK8(ctx.config.clusterContext)
+                        .ingresses()
+                        .update(ctx.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+                          spec: {
+                            ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
+                          },
+                        });
+
+                      // to support GRPC over HTTP/2
+                      await this.k8Factory
+                        .getK8(ctx.config.clusterContext)
+                        .configMaps()
+                        .update(ctx.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
+                          'backend-protocol': 'h2',
+                        });
+
+                      await this.k8Factory
+                        .getK8(ctx.config.clusterContext)
+                        .ingressClasses()
+                        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+                    }
                   },
                 },
               ],
@@ -485,17 +546,19 @@ export class MirrorNodeCommand extends BaseCommand {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
                     const namespace = ctx.config.namespace;
+                    const clusterContext = ctx.config.clusterContext;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const clusterRefs = this.getClusterRefs();
+                    const clusterRefs = this.remoteConfigManager.getClusterRefs();
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const fees = await this.accountManager.getFileContents(
                       namespace,
                       feesFileIdNum,
                       clusterRefs,
+                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
@@ -503,6 +566,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       namespace,
                       exchangeRatesFileIdNum,
                       clusterRefs,
+                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
@@ -659,6 +723,7 @@ export class MirrorNodeCommand extends BaseCommand {
             const isChartInstalled = await this.chartManager.isChartInstalled(
               namespace,
               constants.MIRROR_NODE_RELEASE_NAME,
+              clusterContext,
             );
 
             ctx.config = {
@@ -669,7 +734,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
@@ -708,6 +773,29 @@ export class MirrorNodeCommand extends BaseCommand {
             }
           },
           skip: ctx => !ctx.config.isChartInstalled,
+        },
+        {
+          title: 'Uninstall mirror ingress controller',
+          task: async ctx => {
+            await this.chartManager.uninstall(
+              ctx.config.namespace,
+              constants.INGRESS_CONTROLLER_RELEASE_NAME,
+              ctx.config.clusterContext,
+            );
+            // delete ingress class if found one
+            const existingIngressClasses = await this.k8Factory
+              .getK8(ctx.config.clusterContext)
+              .ingressClasses()
+              .list();
+            existingIngressClasses.map(ingressClass => {
+              if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
+                this.k8Factory
+                  .getK8(ctx.config.clusterContext)
+                  .ingressClasses()
+                  .delete(constants.MIRROR_INGRESS_CLASS_NAME);
+              }
+            });
+          },
         },
         this.removeMirrorNodeComponents(),
       ],

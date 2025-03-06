@@ -5,8 +5,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
+import {MissingArgumentError, SoloError} from './errors.js';
 import * as semver from 'semver';
-import {SoloError} from './errors.js';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
@@ -15,12 +15,15 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
+import paths from 'path';
 import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type K8} from './kube/k8.js';
+import {type Helm} from './helm.js';
+import {type K8Factory} from './kube/k8_factory.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -420,6 +423,32 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
   }
 }
 
+export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: string, chartReleaseName: string) {
+  if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
+  if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
+
+  if (chartDir) {
+    const chartPath = path.join(chartDir, chartReleaseName);
+    await helm.dependency('update', chartPath);
+    return chartPath;
+  }
+
+  return `${chartRepo}/${chartReleaseName}`;
+}
+
+export function prepareValuesFiles(valuesFile: string) {
+  let valuesArg = '';
+  if (valuesFile) {
+    const valuesFiles = valuesFile.split(',');
+    valuesFiles.forEach(vf => {
+      const vfp = paths.resolve(vf);
+      valuesArg += ` --values ${vfp}`;
+    });
+  }
+
+  return valuesArg;
+}
+
 export function populateHelmArgs(valuesMapping: Record<string, string | boolean | number>): string {
   let valuesArg = '';
 
@@ -466,4 +495,19 @@ export function getSoloVersion(): Version {
  */
 export function deepClone<T = AnyObject>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
+}
+
+/**
+ * Check if the namespace exists in the context of given consensus nodes
+ * @param consensusNodes
+ * @param k8Factory
+ * @param namespace
+ */
+export async function checkNamespace(consensusNodes: ConsensusNode[], k8Factory: K8Factory, namespace: NamespaceName) {
+  for (const consensusNode of consensusNodes) {
+    const k8 = k8Factory.getK8(consensusNode.context);
+    if (!(await k8.namespaces().has(namespace))) {
+      throw new SoloError(`namespace ${namespace} does not exist in context ${consensusNode.context}`);
+    }
+  }
 }

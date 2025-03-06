@@ -71,7 +71,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     it('cache current version of private keys', async () => {
       existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
         namespace,
-        nodeCmd.getClusterRefs(),
+        nodeCmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());
@@ -101,7 +101,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       argv.setArg(flags.tlsPrivateKey, tlsKeyFiles.privateKeyFile);
 
       await nodeCmd.handlers.update(argv.build());
-      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
+      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.quiet.constName,
         flags.force.constName,

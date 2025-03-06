@@ -72,7 +72,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       // @ts-expect-error - TS2341: to access private property
       existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(
         namespace,
-        nodeCmd.getClusterRefs(),
+        nodeCmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());
@@ -87,7 +87,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       await nodeCmd.handlers.addPrepare(argvPrepare.build());
       await nodeCmd.handlers.addSubmitTransactions(argvExecute.build());
       await nodeCmd.handlers.addExecute(argvExecute.build());
-      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
+      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
         flags.gossipEndpoints.constName,
         flags.grpcEndpoints.constName,
         flags.devMode.constName,

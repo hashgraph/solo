@@ -114,7 +114,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          const clusterRefs = accountCmd.getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -310,7 +310,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          const clusterRefs = accountCmd.getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -342,7 +342,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
       it('Create new account', async () => {
         try {
-          const clusterRefs = accountCmd.getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -405,6 +405,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           networkCmd.logger.showUserError(e);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
+
+      // hitchhiker account test to test node freeze and restart
+      it('Freeze and restart all nodes should succeed', async () => {
+        try {
+          await nodeCmd.handlers.freeze(argv.build());
+          await nodeCmd.handlers.restart(argv.build());
+        } catch (e) {
+          networkCmd.logger.showUserError(e);
+        }
+      }).timeout(Duration.ofMinutes(4).toMillis());
     });
   });
 });

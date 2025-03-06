@@ -58,7 +58,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         relayCmd.logger.showUserError(e);
         expect.fail();
       }
-      expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+      expect(relayCmd.configManager.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,
