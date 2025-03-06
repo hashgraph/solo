@@ -5,8 +5,9 @@
 import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand, type Opts} from './../base.js';
-import {ClusterCommandTasks} from './tasks.js';
-import {ClusterCommandHandlers} from './handlers.js';
+import {type ClusterCommandHandlers} from './handlers.js';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -17,11 +18,7 @@ export class ClusterCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.handlers = new ClusterCommandHandlers(
-      this,
-      new ClusterCommandTasks(this, this.k8Factory),
-      this.remoteConfigManager,
-    );
+    this.handlers = patchInject(null, InjectTokens.ClusterCommandHandlers, this.constructor.name);
   }
 
   getCommandDefinition() {

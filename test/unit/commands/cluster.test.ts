@@ -209,7 +209,23 @@ describe('ClusterCommand unit tests', () => {
         configManager.getFlag.withArgs(stubbedFlags[i][0]).returns(stubbedFlags[i][1]);
       }
 
-      return {
+      container.unregister(InjectTokens.RemoteConfigManager);
+      container.registerInstance(InjectTokens.RemoteConfigManager, remoteConfigManagerStub);
+
+      container.unregister(InjectTokens.K8Factory);
+      container.registerInstance(InjectTokens.K8Factory, k8FactoryStub);
+
+      const localConfig = new LocalConfig(filePath);
+      container.unregister(InjectTokens.LocalConfig);
+      container.registerInstance(InjectTokens.LocalConfig, localConfig);
+
+      container.unregister(InjectTokens.ConfigManager);
+      container.registerInstance(InjectTokens.ConfigManager, configManager);
+
+      container.unregister(InjectTokens.SoloLogger);
+      container.registerInstance(InjectTokens.SoloLogger, loggerStub);
+
+      const options = {
         logger: loggerStub,
         helm: sandbox.createStubInstance(Helm),
         k8Factory: k8FactoryStub,
@@ -226,16 +242,17 @@ describe('ClusterCommand unit tests', () => {
         certificateManager: sandbox.createStubInstance(CertificateManager),
         remoteConfigManager: remoteConfigManagerStub,
       } as Opts;
+
+      return options;
     };
 
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8Factory);
+        tasks = container.resolve(ClusterCommandTasks);
 
-        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1.
-        const taskObj = tasks.updateLocalConfig({});
+        const taskObj = tasks.updateLocalConfig();
 
         await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
@@ -370,7 +387,7 @@ describe('ClusterCommand unit tests', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8Factory);
+        tasks = container.resolve(ClusterCommandTasks);
 
         // @ts-expect-error - TS2554: Expected 0 arguments, but got 1
         const taskObj = tasks.selectContext({});
@@ -494,6 +511,150 @@ describe('ClusterCommand unit tests', () => {
           expect(true).to.be.false;
         } catch (e) {
           expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER('invalid-context'));
+        }
+      });
+    });
+
+    describe('readClustersFromRemoteConfig', () => {
+      let taskStub;
+
+      async function runReadClustersFromRemoteConfigTask(opts) {
+        command = new ClusterCommand(opts);
+        tasks = container.resolve(ClusterCommandTasks);
+        const taskObj = tasks.readClustersFromRemoteConfig({});
+        taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
+        taskStub.newListr = sandbox.stub();
+        await taskObj.task({config: {}}, taskStub);
+        return command;
+      }
+
+      async function runSubTasks(subTasks) {
+        const stubs = [];
+        for (const subTask of subTasks) {
+          const subTaskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
+          subTaskStub.newListr = sandbox.stub();
+          await subTask.task({config: {}}, subTaskStub);
+          stubs.push(subTaskStub);
+        }
+
+        return stubs;
+      }
+
+      afterEach(async () => {
+        await fs.promises.unlink(filePath);
+        sandbox.restore();
+      });
+
+      beforeEach(async () => {
+        contextPromptStub = sandbox.stub(flags.context, 'prompt').callsFake(() => {
+          return new Promise(resolve => {
+            resolve('prompted-context');
+          });
+        });
+
+        loggerStub = sandbox.createStubInstance(SoloLogger);
+        await fs.promises.writeFile(filePath, stringify(testLocalConfigData));
+      });
+
+      it('should load RemoteConfig when there is only 1 cluster', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+
+        expect(taskStub.newListr).calledWith([]);
+      });
+
+      it('should test other clusters and pull their respective RemoteConfigs', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-2': 'deployment',
+            'cluster-3': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        await runSubTasks(subTasks);
+        expect(contextPromptStub).not.called;
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('context-2');
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('context-2');
+      });
+
+      it('should prompt for context when reading unknown cluster', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+            'cluster-4': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        await runSubTasks(subTasks);
+        expect(contextPromptStub).calledOnce;
+        expect(command.getK8Factory().default().contexts().updateCurrent).to.have.been.calledWith('prompted-context');
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+        expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('prompted-context');
+      });
+
+      it('should throw error for invalid prompted context', async () => {
+        const remoteConfig = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+            'cluster-4': 'deployment',
+          },
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, [], {testContextConnectionError: true});
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        try {
+          await runSubTasks(subTasks);
+          expect(true).to.be.false;
+        } catch (e) {
+          expect(e.message).to.eq(ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED('prompted-context', 'cluster-4'));
+          expect(contextPromptStub).calledOnce;
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('prompted-context');
+        }
+      });
+
+      it('should throw error when remoteConfigs do not match', async () => {
+        const remoteConfig: any = Object.assign({}, defaultRemoteConfig, {
+          clusters: {
+            'cluster-3': 'deployment',
+            'cluster-4': 'deployment',
+          },
+        });
+        const mismatchedRemoteConfig: any = Object.assign({}, defaultRemoteConfig, {
+          clusters: {'cluster-3': 'deployment'},
+        });
+        const opts = getBaseCommandOpts(sandbox, remoteConfig, []);
+
+        remoteConfigManagerStub.get.onCall(0).resolves(remoteConfig);
+        remoteConfigManagerStub.get.onCall(1).resolves(mismatchedRemoteConfig);
+        command = await runReadClustersFromRemoteConfigTask(opts);
+        expect(taskStub.newListr).calledOnce;
+        const subTasks = taskStub.newListr.firstCall.firstArg;
+        expect(subTasks.length).to.eq(2);
+        try {
+          await runSubTasks(subTasks);
+          expect(true).to.be.false;
+        } catch (e) {
+          expect(e.message).to.eq(ErrorMessages.REMOTE_CONFIGS_DO_NOT_MATCH('cluster-3', 'cluster-4'));
+          expect(contextPromptStub).calledOnce;
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledOnce;
+          expect(command.getK8Factory().default().contexts().testContextConnection).calledWith('prompted-context');
         }
       });
     });

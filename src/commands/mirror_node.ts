@@ -47,7 +47,6 @@ export interface MirrorNodeDeployConfigClass {
   valuesArg: string;
   quiet: boolean;
   mirrorNodeVersion: string;
-  getUnusedConfigs: () => string[];
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
@@ -125,11 +124,11 @@ export class MirrorNodeCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesForMirrorNodeChart(profileName);
     if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile);
+      valuesArg += helpers.prepareValuesFiles(profileValuesFile);
     }
 
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += helpers.prepareValuesFiles(config.valuesFile);
     }
 
     if (config.storageBucket) {
@@ -239,21 +238,22 @@ export class MirrorNodeCommand extends BaseCommand {
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            ctx.config = this.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, MirrorNodeCommand.DEPLOY_FLAGS_LIST, [
-              'chartPath',
-              'valuesArg',
-              'namespace',
-            ]) as MirrorNodeDeployConfigClass;
+            ctx.config = this.configManager.getConfig(
+              MirrorNodeCommand.DEPLOY_CONFIGS_NAME,
+              MirrorNodeCommand.DEPLOY_FLAGS_LIST,
+              ['chartPath', 'valuesArg', 'namespace'],
+            ) as MirrorNodeDeployConfigClass;
 
             ctx.config.namespace = namespace;
-            ctx.config.chartPath = await self.prepareChartPath(
+            ctx.config.chartPath = await helpers.prepareChartPath(
+              self.helm,
               '', // don't use chartPath which is for local solo-charts only
               constants.MIRROR_NODE_RELEASE_NAME,
               constants.MIRROR_NODE_CHART,
             );
 
             // predefined values first
-            ctx.config.valuesArg += this.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
+            ctx.config.valuesArg += helpers.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
             // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
@@ -264,7 +264,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
@@ -367,12 +367,12 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const portForward = this.configManager.getFlag<boolean>(flags.forcePortForward);
-                    const consensusNodes = this.getConsensusNodes();
+                    const consensusNodes = this.remoteConfigManager.getConsensusNodes();
                     const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
                     const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
                     ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
                       ctx.config.namespace,
-                      this.getClusterRefs(),
+                      this.remoteConfigManager.getClusterRefs(),
                       deployment,
                       this.configManager.getFlag(flags.operatorId),
                       this.configManager.getFlag(flags.operatorKey),
@@ -394,7 +394,8 @@ export class MirrorNodeCommand extends BaseCommand {
                     }
                     mirrorIngressControllerValuesArg += ` --set fullnameOverride=${constants.MIRROR_INGRESS_CONTROLLER}`;
 
-                    const ingressControllerChartPath = await self.prepareChartPath(
+                    const ingressControllerChartPath = await helpers.prepareChartPath(
+                      self.helm,
                       '', // don't use chartPath which is for local solo-charts only
                       constants.INGRESS_CONTROLLER_RELEASE_NAME,
                       constants.INGRESS_CONTROLLER_RELEASE_NAME,
@@ -550,7 +551,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     const exchangeRatesFileIdNum = 112;
                     const timestamp = Date.now();
 
-                    const clusterRefs = this.getClusterRefs();
+                    const clusterRefs = this.remoteConfigManager.getClusterRefs();
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const fees = await this.accountManager.getFileContents(
                       namespace,
@@ -730,7 +731,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
-              self.getClusterRefs(),
+              self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
