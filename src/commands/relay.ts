@@ -211,6 +211,12 @@ export class RelayCommand extends BaseCommand {
 
     const tasks = new Listr<Context>(
       [
+        // {
+        //   title: 'Throw',
+        //   task: async (ctx, task) => {
+        //     throw new SoloError('test throw');
+        //   },
+        // },
         {
           title: 'Initialize',
           task: async (ctx, task) => {
@@ -472,7 +478,6 @@ export class RelayCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying relay: ${err.message}`, err);
                 });
             },

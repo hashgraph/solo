@@ -489,7 +489,7 @@ export class ClusterCommandTasks {
           });
 
           if (!confirm) {
-            self.parent.logger.logAndExitSuccess('Aborted application by user prompt');
+            self.parent.logger.info('Aborted application by user prompt');
           }
         }
         await parent

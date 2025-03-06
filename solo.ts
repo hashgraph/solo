@@ -9,8 +9,8 @@ const context: {logger: SoloLogger} = {logger: undefined};
 await fnm
   .main(process.argv, context)
   .then(() => {
-    context.logger.logAndExitSuccess('Solo CLI completed, via entrypoint');
+    context.logger.info('Solo CLI completed, via entrypoint');
   })
   .catch(err => {
-    context.logger.logAndExitError(err);
+    context.logger.showUserError(err);
   });

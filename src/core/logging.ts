@@ -156,25 +156,6 @@ export class SoloLogger {
     this.showUser(chalk.green('-------------------------------------------------------------------------------'));
     console.log(JSON.stringify(obj, null, ' '));
   }
-
-  logAndExitSuccess(msg: string, ...args: any) {
-    this.winstonLogger.log('info', msg, args, () => {
-      queueMicrotask(() => {
-        // eslint-disable-next-line n/no-process-exit
-        process.exit(0);
-      });
-    });
-  }
-
-  logAndExitError(error: Error) {
-    this.showUserError(error);
-    this.winstonLogger.log('error', '', error, () => {
-      queueMicrotask(() => {
-        // eslint-disable-next-line n/no-process-exit
-        process.exit(1);
-      });
-    });
-  }
 }
 
 export function NewLogger(level = 'debug', devMode = false) {

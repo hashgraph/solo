@@ -1123,7 +1123,7 @@ export class NetworkCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                this.logger.info('Aborted application by user prompt');
               }
             }
 
