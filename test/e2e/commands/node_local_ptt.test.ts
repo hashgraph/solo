@@ -7,7 +7,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getTestCluster} from '../../test_util.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
-import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
@@ -35,7 +35,7 @@ argv.setArg(
 
 argv.setArg(flags.app, 'PlatformTestingTool.jar');
 argv.setArg(flags.namespace, namespace.name);
-argv.setArg(flags.releaseTag, LOCAL_HEDERA_PLATFORM_VERSION);
+argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node for platform app should start successfully', () => {

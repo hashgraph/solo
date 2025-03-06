@@ -15,7 +15,7 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {type NodeCommand} from '../../../src/commands/node/index.js';
 import {type AccountCommand} from '../../../src/commands/account.js';
 import {type AccountManager} from '../../../src/core/account_manager.js';
-import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
@@ -37,7 +37,7 @@ let k8Factory: K8Factory;
 console.log('Starting local build for Hedera app');
 argv.setArg(flags.localBuildPath, 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data');
 argv.setArg(flags.namespace, namespace.name);
-argv.setArg(flags.releaseTag, LOCAL_HEDERA_PLATFORM_VERSION);
+argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node for hedera app should have started successfully', () => {

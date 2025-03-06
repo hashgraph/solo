@@ -89,7 +89,7 @@ import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
-import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
 import {ShellRunner} from '../../core/shell_runner.js';
 
 @injectable()
@@ -270,7 +270,7 @@ export class NodeCommandTasks {
           const retrievedReleaseTag = await shellRunner.run(
             `git -C ${localDataLibBuildPath} describe --tags --abbrev=0`,
           );
-          const expectedReleaseTag = releaseTag ? releaseTag : LOCAL_HEDERA_PLATFORM_VERSION;
+          const expectedReleaseTag = releaseTag ? releaseTag : TEST_LOCAL_HEDERA_PLATFORM_VERSION;
           if (retrievedReleaseTag.join('\n') !== expectedReleaseTag) {
             this.logger.showUser(
               chalk.cyan(
