@@ -349,7 +349,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (e) {
-      throw new SoloError('Error installing relays', e);
+      throw new SoloError(`Error deploying relay: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -470,16 +470,10 @@ export class RelayCommand extends BaseCommand {
               self.logger.info("==== Running 'relay deploy' ===", {argv});
               self.logger.info(argv);
 
-              await self
-                .deploy(argv)
-                .then(r => {
-                  self.logger.info('==== Finished running `relay deploy`====');
-
-                  if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
-                })
-                .catch(err => {
-                  throw new SoloError(`Error deploying relay: ${err.message}`, err);
-                });
+              await self.deploy(argv).then(r => {
+                self.logger.info('==== Finished running `relay deploy`====');
+                if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
+              });
             },
           })
           .command({
