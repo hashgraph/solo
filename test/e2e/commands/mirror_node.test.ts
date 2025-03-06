@@ -15,7 +15,7 @@ import {
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
-import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
+import {PrivateKey, Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
@@ -54,6 +54,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     const k8Factory = bootstrapResp.opts.k8Factory;
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
     const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
+    const accountCmd = bootstrapResp.cmd.accountCmd;
     const downloader = new PackageDownloader(mirrorNodeCmd.logger);
     const accountManager = bootstrapResp.opts.accountManager;
 
@@ -161,6 +162,14 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
     it('Create topic and submit message should success', async () => {
       try {
+        // generate a new user account as operator instead of using default genesis account
+        await accountCmd.create(argv.build());
+
+        // @ts-ignore to access the private property
+        const accountInfo = accountCmd.accountInfo;
+        const privateKey = PrivateKey.fromStringED25519(accountInfo.privateKey);
+        accountManager._nodeClient.setOperator(accountInfo.accountId, privateKey);
+
         // Create a new public topic and submit a message
         const txResponse = await new TopicCreateTransaction().execute(accountManager._nodeClient);
         const receipt = await txResponse.getReceipt(accountManager._nodeClient);
