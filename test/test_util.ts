@@ -34,7 +34,7 @@ import {type ProfileManager} from '../src/core/profile_manager.js';
 import {type LeaseManager} from '../src/core/lease/lease_manager.js';
 import {type CertificateManager} from '../src/core/certificate_manager.js';
 import {type LocalConfig} from '../src/core/config/local_config.js';
-import {RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
+import {type RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
 import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';
 import {type ConfigManager} from '../src/core/config_manager.js';

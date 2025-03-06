@@ -104,7 +104,6 @@ describe('NetworkCommand', function networkCommand() {
   });
 
   it('deployment create should succeed', async () => {
-
     expect(await deploymentCmd.create(argv.build())).to.be.true;
     argv.setArg(flags.nodeAliasesUnparsed, undefined);
     configManager.reset();
