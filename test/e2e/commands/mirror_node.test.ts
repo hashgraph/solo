@@ -162,7 +162,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
     it('Create topic and submit message should success', async () => {
       try {
-        const clusterRefs = accountCmd.getClusterRefs();
+        const clusterRefs: ClusterRefs = mirrorNodeCmd.getClusterRefs();
         await accountManager.loadNodeClient(
           namespace,
           clusterRefs,
