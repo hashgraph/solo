@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
+import {type ArgvStruct, type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -16,6 +16,7 @@ import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {type SoloListrTaskWrapper} from '../../types/index.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 
@@ -31,7 +32,7 @@ export class ClusterCommandConfigs {
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
   }
 
-  public async connectConfigBuilder(argv, ctx, task) {
+  public async connectConfigBuilder(argv: ArgvStruct, ctx: ClusterConnectContext): Promise<ClusterConnectConfigClass> {
     const config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
     // set config in the context for later tasks to use
     ctx.config = config;
@@ -39,7 +40,11 @@ export class ClusterCommandConfigs {
     return ctx.config;
   }
 
-  public async setupConfigBuilder(argv, ctx, task) {
+  public async setupConfigBuilder(
+    argv: ArgvStruct,
+    ctx: ClusterSetupContext,
+    task: SoloListrTaskWrapper<ClusterSetupContext>,
+  ): Promise<ClusterSetupConfigClass> {
     const configManager = this.configManager;
     configManager.update(argv);
     flags.disablePrompts([flags.chartDirectory]);
@@ -69,7 +74,11 @@ export class ClusterCommandConfigs {
     return ctx.config;
   }
 
-  public async resetConfigBuilder(argv, ctx, task) {
+  public async resetConfigBuilder(
+    argv: ArgvStruct,
+    ctx: ClusterResetContext,
+    task: SoloListrTaskWrapper<ClusterResetContext>,
+  ): Promise<ClusterResetConfigClass> {
     if (!argv[flags.force.name]) {
       const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
         default: false,
@@ -84,8 +93,8 @@ export class ClusterCommandConfigs {
     this.configManager.update(argv);
 
     ctx.config = {
-      clusterName: this.configManager.getFlag(flags.clusterRef) as string,
-      clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
+      clusterName: this.configManager.getFlag(flags.clusterRef),
+      clusterSetupNamespace: this.configManager.getFlag<NamespaceName>(flags.clusterSetupNamespace),
     } as ClusterResetConfigClass;
 
     ctx.isChartInstalled = await this.chartManager.isChartInstalled(
@@ -110,6 +119,10 @@ export interface ClusterConnectConfigClass {
   clusterName: string;
 }
 
+export interface ClusterConnectContext {
+  config: ClusterConnectConfigClass;
+}
+
 export interface ClusterSetupConfigClass {
   chartDir: string;
   clusterSetupNamespace: NamespaceName;
@@ -118,9 +131,21 @@ export interface ClusterSetupConfigClass {
   soloChartVersion: string;
 }
 
+export interface ClusterSetupContext {
+  config: ClusterSetupConfigClass;
+  chartPath: string;
+  isChartInstalled: boolean;
+  valuesArg: string;
+}
+
 export interface ClusterResetConfigClass {
   clusterName: string;
-  clusterSetupNamespace: string;
+  clusterSetupNamespace: NamespaceName;
+}
+
+export interface ClusterResetContext {
+  config: ClusterResetConfigClass;
+  isChartInstalled: boolean;
 }
 
 export interface SelectClusterContextContext {

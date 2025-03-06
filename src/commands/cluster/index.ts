@@ -9,6 +9,7 @@ import {type ClusterCommandHandlers} from './handlers.js';
 import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type AnyYargs} from '../../types/aliases.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -26,7 +27,7 @@ export class ClusterCommand extends BaseCommand {
     return {
       command: 'cluster',
       desc: 'Manage solo testing cluster',
-      builder: (yargs: any) => {
+      builder: (yargs: AnyYargs) => {
         return yargs
           .command(
             new YargsCommand(

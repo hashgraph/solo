@@ -1,11 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
-import {type ListrTaskWrapper} from 'listr2';
-import {type ConfigBuilder} from '../../types/aliases.js';
-import {type BaseCommand} from '../base.js';
+import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
 import {prepareChartPath, splitFlagInput} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
@@ -17,7 +14,7 @@ import {RemoteConfigManager} from '../../core/config/remote/remote_config_manage
 import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
-import {type SelectClusterContextContext} from './configs.js';
+import {type ClusterResetContext, type ClusterSetupContext, type SelectClusterContextContext} from './configs.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -62,15 +59,15 @@ export class ClusterCommandTasks {
     this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
   }
 
-  public testConnectionToCluster(
+  private testConnectionToCluster(
     cluster: string,
     localConfig: LocalConfig,
-    parentTask: ListrTaskWrapper<any, any, any>,
-  ) {
+    parentTask: SoloListrTaskWrapper<SelectClusterContextContext>,
+  ): SoloListrTask<SelectClusterContextContext> {
     const self = this;
     return {
       title: `Test connection to cluster: ${chalk.cyan(cluster)}`,
-      task: async (_, subTask: ListrTaskWrapper<any, any, any>) => {
+      task: async (_, task) => {
         let context = localConfig.clusterRefs[cluster];
         if (!context) {
           const isQuiet = self.configManager.getFlag(flags.quiet);
@@ -83,23 +80,23 @@ export class ClusterCommandTasks {
           localConfig.clusterRefs[cluster] = context;
         }
         if (!(await self.k8Factory.default().contexts().testContextConnection(context))) {
-          subTask.title = `${subTask.title} - ${chalk.red('Cluster connection failed')}`;
+          task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
           throw new SoloError(`${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context, cluster)}`);
         }
       },
     };
   }
 
-  public validateRemoteConfigForCluster(
+  private validateRemoteConfigForCluster(
     cluster: string,
     currentClusterName: string,
     localConfig: LocalConfig,
     currentRemoteConfig: RemoteConfigDataWrapper,
-  ) {
+  ): SoloListrTask<AnyListrContext> {
     const self = this;
     return {
       title: `Pull and validate remote configuration for cluster: ${chalk.cyan(cluster)}`,
-      task: async (_, subTask: ListrTaskWrapper<any, any, any>) => {
+      task: async () => {
         const context = localConfig.clusterRefs[cluster];
         self.k8Factory.default().contexts().updateCurrent(context);
         const remoteConfigFromOtherCluster = await self.remoteConfigManager.get();
@@ -110,17 +107,18 @@ export class ClusterCommandTasks {
     };
   }
 
-  public readClustersFromRemoteConfig(argv) {
+  public readClustersFromRemoteConfig(): SoloListrTask<SelectClusterContextContext> {
     const self = this;
     return {
       title: 'Read clusters from remote config',
-      task: async (ctx, task) => {
+      task: async (_, task) => {
         const localConfig = this.localConfig;
         const currentClusterName = this.k8Factory.default().clusters().readCurrent();
         const currentRemoteConfig: RemoteConfigDataWrapper = await this.remoteConfigManager.get();
-        const subTasks = [];
         const remoteConfigClusters = Object.keys(currentRemoteConfig.clusters);
         const otherRemoteConfigClusters: string[] = remoteConfigClusters.filter(c => c !== currentClusterName);
+
+        const subTasks: SoloListrTask<SelectClusterContextContext>[] = [];
 
         // Validate connections for the other clusters
         for (const cluster of otherRemoteConfigClusters) {
@@ -143,66 +141,69 @@ export class ClusterCommandTasks {
   }
 
   public updateLocalConfig(): SoloListrTask<SelectClusterContextContext> {
-    return new Task('Update local configuration', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.logger.info('Compare local and remote configuration...');
-      const configManager = this.configManager;
-      const isQuiet = configManager.getFlag(flags.quiet);
+    return {
+      title: 'Update local configuration',
+      task: async (ctx, task) => {
+        this.logger.info('Compare local and remote configuration...');
+        const configManager = this.configManager;
+        const isQuiet = configManager.getFlag(flags.quiet);
 
-      await this.remoteConfigManager.modify(async remoteConfig => {
-        // Update current deployment with cluster list from remoteConfig
-        const localConfig = this.localConfig;
-        const localDeployments = localConfig.deployments;
-        const remoteClusterList: string[] = [];
-        let deploymentName;
-        const remoteNamespace = remoteConfig.metadata.namespace;
-        for (const deployment in localConfig.deployments) {
-          if (localConfig.deployments[deployment].namespace === remoteNamespace) {
-            deploymentName = deployment;
-            break;
-          }
-        }
-
-        if (localConfig.deployments[deploymentName]) {
-          for (const cluster of Object.keys(remoteConfig.clusters)) {
-            if (localConfig.deployments[deploymentName].namespace === remoteConfig.clusters[cluster].valueOf()) {
-              remoteClusterList.push(cluster);
+        await this.remoteConfigManager.modify(async remoteConfig => {
+          // Update current deployment with cluster list from remoteConfig
+          const localConfig = this.localConfig;
+          const localDeployments = localConfig.deployments;
+          const remoteClusterList: string[] = [];
+          let deploymentName: string;
+          const remoteNamespace = remoteConfig.metadata.namespace;
+          for (const deployment in localConfig.deployments) {
+            if (localConfig.deployments[deployment].namespace === remoteNamespace) {
+              deploymentName = deployment;
+              break;
             }
           }
-          ctx.config.clusters = remoteClusterList;
-          localDeployments[deploymentName].clusters = ctx.config.clusters;
-        } else {
-          const clusters = Object.keys(remoteConfig.clusters);
-          localDeployments[deploymentName] = {clusters, namespace: remoteNamespace};
-          ctx.config.clusters = clusters;
-        }
 
-        localConfig.setDeployments(localDeployments);
-
-        const contexts = splitFlagInput(configManager.getFlag(flags.context));
-
-        for (let i = 0; i < ctx.config.clusters.length; i++) {
-          const cluster = ctx.config.clusters[i];
-          const context = contexts[i];
-
-          // If a context is provided, use it to update the mapping
-          if (context) {
-            localConfig.clusterRefs[cluster] = context;
-          } else if (!localConfig.clusterRefs[cluster]) {
-            // In quiet mode, use the currently selected context to update the mapping
-            if (isQuiet) {
-              localConfig.clusterRefs[cluster] = this.k8Factory.default().contexts().readCurrent();
+          if (localConfig.deployments[deploymentName]) {
+            for (const cluster of Object.keys(remoteConfig.clusters)) {
+              if (localConfig.deployments[deploymentName].namespace === remoteConfig.clusters[cluster].valueOf()) {
+                remoteClusterList.push(cluster);
+              }
             }
+            ctx.config.clusters = remoteClusterList;
+            localDeployments[deploymentName].clusters = ctx.config.clusters;
+          } else {
+            const clusters = Object.keys(remoteConfig.clusters);
+            localDeployments[deploymentName] = {clusters, namespace: remoteNamespace};
+            ctx.config.clusters = clusters;
+          }
 
-            // Prompt the user to select a context if mapping value is missing
-            else {
-              localConfig.clusterRefs[cluster] = await this.promptForContext(task, cluster);
+          localConfig.setDeployments(localDeployments);
+
+          const contexts = splitFlagInput(configManager.getFlag(flags.context));
+
+          for (let i = 0; i < ctx.config.clusters.length; i++) {
+            const cluster = ctx.config.clusters[i];
+            const context = contexts[i];
+
+            // If a context is provided, use it to update the mapping
+            if (context) {
+              localConfig.clusterRefs[cluster] = context;
+            } else if (!localConfig.clusterRefs[cluster]) {
+              // In quiet mode, use the currently selected context to update the mapping
+              if (isQuiet) {
+                localConfig.clusterRefs[cluster] = this.k8Factory.default().contexts().readCurrent();
+              }
+
+              // Prompt the user to select a context if mapping value is missing
+              else {
+                localConfig.clusterRefs[cluster] = await this.promptForContext(task, cluster);
+              }
             }
           }
-        }
-        this.logger.info('Update local configuration...');
-        await localConfig.write();
-      });
-    });
+          this.logger.info('Update local configuration...');
+          await localConfig.write();
+        });
+      },
+    };
   }
 
   private async getSelectedContext(
@@ -210,8 +211,8 @@ export class ClusterCommandTasks {
     selectedCluster: string,
     localConfig: LocalConfig,
     isQuiet: boolean,
-  ) {
-    let selectedContext;
+  ): Promise<string> {
+    let selectedContext: string;
     if (isQuiet) {
       selectedContext = this.k8Factory.default().contexts().readCurrent();
     } else {
@@ -221,7 +222,10 @@ export class ClusterCommandTasks {
     return selectedContext;
   }
 
-  private async promptForContext(task: SoloListrTaskWrapper<SelectClusterContextContext>, cluster: string) {
+  private async promptForContext(
+    task: SoloListrTaskWrapper<SelectClusterContextContext>,
+    cluster: string,
+  ): Promise<string> {
     const kubeContexts = this.k8Factory.default().contexts().list();
     return flags.context.prompt(task, kubeContexts, cluster);
   }
@@ -231,7 +235,7 @@ export class ClusterCommandTasks {
     clusters: string[],
     localConfig: LocalConfig,
     isQuiet: boolean,
-  ) {
+  ): Promise<string> {
     const selectedCluster = clusters[0];
 
     if (localConfig.clusterRefs[selectedCluster]) {
@@ -250,14 +254,12 @@ export class ClusterCommandTasks {
    * @param [chartDir] - local charts directory (default is empty)
    * @param [prometheusStackEnabled] - a bool to denote whether to install prometheus stack
    * @param [minioEnabled] - a bool to denote whether to install minio
-   * @param [certManagerEnabled] - a bool to denote whether to install cert manager
-   * @param [certManagerCrdsEnabled] - a bool to denote whether to install cert manager CRDs
    */
   private prepareValuesArg(
     chartDir = flags.chartDirectory.definition.defaultValue as string,
     prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
     minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
-  ) {
+  ): string {
     let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
@@ -362,44 +364,53 @@ export class ClusterCommandTasks {
     };
   }
 
-  public initialize(argv: any, configInit: ConfigBuilder) {
+  public initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
     const {requiredFlags, optionalFlags} = argv;
 
     argv.flags = [...requiredFlags, ...optionalFlags];
 
-    return new Task('Initialize', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      if (argv[flags.devMode.name]) {
-        this.logger.setDevMode(true);
-      }
+    return {
+      title: 'Initialize',
+      task: async (ctx, task) => {
+        if (argv[flags.devMode.name]) {
+          this.logger.setDevMode(true);
+        }
 
-      ctx.config = await configInit(argv, ctx, task);
-    });
+        ctx.config = await configInit(argv, ctx, task);
+      },
+    };
   }
 
-  public showClusterList() {
-    return new Task('List all available clusters', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      this.logger.showList('Clusters', this.k8Factory.default().clusters().list());
-    });
+  public showClusterList(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'List all available clusters',
+      task: async () => {
+        this.logger.showList('Clusters', this.k8Factory.default().clusters().list());
+      },
+    };
   }
 
-  public getClusterInfo() {
-    return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      try {
-        const clusterName = this.k8Factory.default().clusters().readCurrent();
-        this.logger.showUser(`Cluster Name (${clusterName})`);
-        this.logger.showUser('\n');
-      } catch (e: Error | unknown) {
-        this.logger.showUserError(e);
-      }
-    });
+  public getClusterInfo(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Get cluster info',
+      task: async () => {
+        try {
+          const clusterName = this.k8Factory.default().clusters().readCurrent();
+          this.logger.showUser(`Cluster Name (${clusterName})`);
+          this.logger.showUser('\n');
+        } catch (e) {
+          this.logger.showUserError(e);
+        }
+      },
+    };
   }
 
-  public prepareChartValues(argv) {
+  public prepareChartValues(): SoloListrTask<ClusterSetupContext> {
     const self = this;
 
-    return new Task(
-      'Prepare chart values',
-      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return {
+      title: 'Prepare chart values',
+      task: async ctx => {
         ctx.chartPath = await prepareChartPath(
           this.helm,
           ctx.config.chartDir,
@@ -432,15 +443,15 @@ export class ClusterCommandTasks {
           ctx.config.deployMinio,
         );
       },
-      ctx => ctx.isChartInstalled,
-    );
+      skip: ctx => ctx.isChartInstalled,
+    };
   }
 
-  public installClusterChart(argv) {
+  public installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterSetupContext> {
     const self = this;
-    return new Task(
-      `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return {
+      title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
+      task: async ctx => {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
         const version = ctx.config.soloChartVersion;
         const valuesArg = ctx.valuesArg;
@@ -455,7 +466,7 @@ export class ClusterCommandTasks {
             valuesArg,
             this.k8Factory.default().contexts().readCurrent(),
           );
-        } catch (e: Error | unknown) {
+        } catch (e) {
           // if error, uninstall the chart and rethrow the error
           self.logger.debug(
             `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
@@ -478,23 +489,25 @@ export class ClusterCommandTasks {
           await this.showInstalledChartList(clusterSetupNamespace);
         }
       },
-      ctx => ctx.isChartInstalled,
-    );
+      skip: ctx => ctx.isChartInstalled,
+    };
   }
 
-  public acquireNewLease(argv) {
-    return new Task('Acquire new lease', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      const lease = await this.leaseManager.create();
-      return ListrLease.newAcquireLeaseTask(lease, task);
-    });
+  public acquireNewLease(): SoloListrTask<ClusterResetContext> {
+    return {
+      title: 'Acquire new lease',
+      task: async (_, task) => {
+        const lease = await this.leaseManager.create();
+        return ListrLease.newAcquireLeaseTask(lease, task);
+      },
+    };
   }
 
-  public uninstallClusterChart(argv) {
+  public uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterResetContext> {
     const self = this;
-
-    return new Task(
-      `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return {
+      title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
+      task: async (ctx, task) => {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
         if (!argv.force && (await self.clusterChecks.isRemoteConfigPresentInAnyNamespace())) {
@@ -518,7 +531,7 @@ export class ClusterCommandTasks {
           await this.showInstalledChartList(clusterSetupNamespace);
         }
       },
-      ctx => !ctx.isChartInstalled,
-    );
+      skip: ctx => !ctx.isChartInstalled,
+    };
   }
 }

@@ -15,6 +15,7 @@ import {CommandHandler} from '../../core/command_handler.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ClusterCommandConfigs} from './configs.js';
+import {type ArgvStruct} from '../../types/aliases.js';
 
 @injectable()
 export class ClusterCommandHandlers extends CommandHandler {
@@ -38,7 +39,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     this.configs = patchInject(configs, InjectTokens.ClusterCommandConfigs, this.constructor.name);
   }
 
-  async connect(argv: any) {
+  public async connect(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     await this.commandAction(
@@ -49,7 +50,7 @@ export class ClusterCommandHandlers extends CommandHandler {
         this.localConfig.promptLocalConfigTask(this.k8Factory),
         this.tasks.selectContext(),
         ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
-        this.tasks.readClustersFromRemoteConfig(argv),
+        this.tasks.readClustersFromRemoteConfig(),
         this.tasks.updateLocalConfig(),
       ],
       {
@@ -63,7 +64,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async list(argv: any) {
+  public async list(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     await this.commandAction(
@@ -80,7 +81,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async info(argv: any) {
+  public async info(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     await this.commandAction(
@@ -97,14 +98,14 @@ export class ClusterCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async setup(argv: any) {
+  public async setup(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
     try {
       await this.commandAction(
         argv,
         [
           this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs)),
-          this.tasks.prepareChartValues(argv),
+          this.tasks.prepareChartValues(),
           this.tasks.installClusterChart(argv),
         ],
         {
@@ -114,21 +115,21 @@ export class ClusterCommandHandlers extends CommandHandler {
         'cluster setup',
         null,
       );
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError('Error on cluster setup', e);
     }
 
     return true;
   }
 
-  async reset(argv: any) {
+  public async reset(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
     try {
       await this.commandAction(
         argv,
         [
           this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs)),
-          this.tasks.acquireNewLease(argv),
+          this.tasks.acquireNewLease(),
           this.tasks.uninstallClusterChart(argv),
         ],
         {
@@ -138,7 +139,7 @@ export class ClusterCommandHandlers extends CommandHandler {
         'cluster reset',
         null,
       );
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError('Error on cluster reset', e);
     }
     return true;
