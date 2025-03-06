@@ -61,7 +61,7 @@ major areas of concern, the runtime state API should separate data into logical 
 a single area of responsibility (eg: deployment). 
 
 [todo]: <> (Move the X to the technical design doc)
-### Example API Definition (Interface)
+#### Example API Definition (Interface)
 
 ```typescript
 import {NamespaceName} from "./namespace_name.js";
