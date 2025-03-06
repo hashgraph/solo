@@ -44,7 +44,6 @@ export default [
           source: 'string',
           content: 'SPDX-License-Identifier: Apache-2.0',
           style: 'line',
-          trailingNewlines: 2,
         },
       ],
       'prettier/prettier': 'error',
