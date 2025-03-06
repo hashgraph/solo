@@ -6,7 +6,6 @@ import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {connectConfigBuilder, defaultConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
@@ -57,16 +56,16 @@ export class ClusterCommandHandlers extends CommandHandler {
       null,
     );
 
-    await action(argv, this);
     return true;
   }
 
   async disconnect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [
-        this.tasks.initialize(argv, defaultConfigBuilder.bind(this)),
+        this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this)),
         this.tasks.disconnectClusterRef(),
         this.tasks.saveLocalConfig(),
       ],
@@ -121,19 +120,18 @@ export class ClusterCommandHandlers extends CommandHandler {
     try {
       await this.commandAction(
         argv,
-      [
-        this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs)),
-        this.tasks.prepareChartValues(argv),
-        this.tasks.installClusterChart(argv),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'cluster setup',
-      null,
-    );
-
+        [
+          this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs)),
+          this.tasks.prepareChartValues(argv),
+          this.tasks.installClusterChart(argv),
+        ],
+        {
+          concurrent: false,
+          rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+        },
+        'cluster setup',
+        null,
+      );
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster setup', e);
     }
@@ -147,18 +145,18 @@ export class ClusterCommandHandlers extends CommandHandler {
     try {
       await this.commandAction(
         argv,
-      [
-        this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs)),
-        this.tasks.acquireNewLease(argv),
-        this.tasks.uninstallClusterChart(argv),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'cluster reset',
-      null,
-    );
+        [
+          this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs)),
+          this.tasks.acquireNewLease(argv),
+          this.tasks.uninstallClusterChart(argv),
+        ],
+        {
+          concurrent: false,
+          rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+        },
+        'cluster reset',
+        null,
+      );
     } catch (e: Error | any) {
       throw new SoloError('Error on cluster reset', e);
     }

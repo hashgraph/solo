@@ -20,6 +20,8 @@ import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_co
 import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
 import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
 import {ErrorMessages} from '../../core/error_messages.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
@@ -46,7 +48,9 @@ export class ClusterCommandConfigs {
     }
 
     this.configManager.update(argv);
-    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, ['selectedContext']) as ClusterRefConnectConfigClass;
+    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, [
+      'selectedContext',
+    ]) as ClusterRefConnectConfigClass;
 
     ctx.config.selectedContext = ctx.config.context;
     if (!ctx.config.selectedContext) {
