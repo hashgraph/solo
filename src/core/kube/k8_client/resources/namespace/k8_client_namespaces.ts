@@ -6,8 +6,8 @@ import {type V1Status, type CoreV1Api} from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {SoloError} from '../../../../errors.js';
 import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
-import {ResourceDeleteError} from '../../../errors/resource_operation_errors.js';
-import {ResourceType} from '../../../resources/resource_type.js';
+import {sleep} from '../../../../helpers.js';
+import {Duration} from '../../../../time/duration.js';
 
 export class K8ClientNamespaces implements Namespaces {
   constructor(private readonly kubeClient: CoreV1Api) {}
@@ -26,6 +26,21 @@ export class K8ClientNamespaces implements Namespaces {
   public async delete(namespace: NamespaceName): Promise<boolean> {
     try {
       const resp: {response: any; body?: V1Status} = await this.kubeClient.deleteNamespace(namespace.name);
+      try {
+        let namespaceExists = true;
+        while (namespaceExists) {
+          const response = await this.kubeClient.readNamespace(namespace.name);
+
+          if (!response?.body?.metadata?.deletionTimestamp) {
+            namespaceExists = false;
+          } else {
+            await sleep(Duration.ofSeconds(1));
+          }
+        }
+      } catch {
+        // The namespace has been deleted
+      }
+
       return resp.response.statusCode === StatusCodes.OK;
     } catch {
       return false;

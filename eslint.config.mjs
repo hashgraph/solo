@@ -19,7 +19,7 @@ export default [
     files: ['**/*.ts', '**/*.tsx'],
   })),
   {
-    ignores: ['docs/**/*', 'dist/*', '**/dist/*', '.github/workflows/autogen/**/*'],
+    ignores: ['docs/**/*', 'dist/*', '**/dist/*'],
   },
   {
     // all files not excluded, mostly js files
@@ -103,6 +103,7 @@ export default [
           ignores: ['fs.cpSync', 'CryptoKey', 'fetch'],
         },
       ],
+      'no-prototype-builtins': 'off',
     },
   },
   {

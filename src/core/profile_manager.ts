@@ -25,12 +25,14 @@ import * as versions from '../../version.js';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {type ConsensusNode} from './model/consensus_node.js';
+import {type K8Factory} from './kube/k8_factory.js';
 
 @injectable()
 export class ProfileManager {
   private readonly logger: SoloLogger;
   private readonly configManager: ConfigManager;
   private readonly cacheDir: DirPath;
+  private readonly k8Factory: K8Factory;
 
   private profiles: Map<string, AnyObject>;
   private profileFile: Optional<string>;
@@ -39,10 +41,12 @@ export class ProfileManager {
     @inject(InjectTokens.SoloLogger) logger?: SoloLogger,
     @inject(InjectTokens.ConfigManager) configManager?: ConfigManager,
     @inject(InjectTokens.CacheDir) cacheDir?: DirPath,
+    @inject(InjectTokens.K8Factory) k8Factory?: K8Factory,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.cacheDir = path.resolve(patchInject(cacheDir, InjectTokens.CacheDir, this.constructor.name));
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
 
     this.profiles = new Map();
   }
@@ -56,7 +60,7 @@ export class ProfileManager {
    * @throws {IllegalArgumentError} if the profile file is not found.
    */
   loadProfiles(forceReload = false): Map<string, AnyObject> {
-    const profileFile = this.configManager.getFlag<string>(flags.profileFile);
+    const profileFile = this.configManager.getFlagFile(flags.profileFile);
     if (!profileFile) throw new MissingArgumentError('profileFile is required');
 
     // return the cached value as quickly as possible
@@ -151,7 +155,6 @@ export class ProfileManager {
    * @param itemPath - item path in the YAML, if empty then root of the YAML object will be used
    * @param items - the element object
    * @param yamlRoot - root of the YAML object to update
-   * @private
    */
   _setChartItems(itemPath: string, items: any, yamlRoot: AnyObject) {
     if (!items) return;
@@ -174,12 +177,12 @@ export class ProfileManager {
     }
   }
 
-  resourcesForConsensusPod(
+  async resourcesForConsensusPod(
     profile: AnyObject,
     consensusNodes: ConsensusNode[],
     nodeAliases: NodeAliases,
     yamlRoot: AnyObject,
-  ): AnyObject {
+  ): Promise<AnyObject> {
     if (!profile) throw new MissingArgumentError('profile is required');
 
     const accountMap = getNodeAccountMap(nodeAliases);
@@ -200,17 +203,18 @@ export class ProfileManager {
       fs.mkdirSync(stagingDir, {recursive: true});
     }
 
-    const configTxtPath = this.prepareConfigTxt(
+    const configTxtPath = await this.prepareConfigTxt(
       accountMap,
       consensusNodes,
       stagingDir,
       this.configManager.getFlag(flags.releaseTag),
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId),
+      this.configManager.getFlag(flags.loadBalancerEnabled),
     );
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
-      const filePath = this.configManager.getFlag<string>(flag);
+      const filePath = this.configManager.getFlagFile(flag);
       if (!filePath) {
         throw new SoloError(`Configuration file path is missing for: ${flag.name}`);
       }
@@ -321,7 +325,7 @@ export class ProfileManager {
 
     // generate the YAML
     const yamlRoot = {};
-    this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot);
+    await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot);
     this.resourcesForHaProxyPod(profile, yamlRoot);
     this.resourcesForEnvoyProxyPod(profile, yamlRoot);
     this.resourcesForMinioTenantPod(profile, yamlRoot);
@@ -450,15 +454,17 @@ export class ProfileManager {
    * @param releaseTagOverride - release tag override
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
+   * @param [loadBalancerEnabled] - whether the load balancer is enabled (flag is not set by default)
    * @returns the config.txt file path
    */
-  prepareConfigTxt(
+  async prepareConfigTxt(
     nodeAccountMap: Map<NodeAlias, string>,
     consensusNodes: ConsensusNode[],
     destPath: string,
     releaseTagOverride: string,
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
+    loadBalancerEnabled: boolean = false,
   ) {
     let releaseTag = releaseTagOverride;
     if (!nodeAccountMap || nodeAccountMap.size === 0) {
@@ -469,6 +475,11 @@ export class ProfileManager {
 
     if (!fs.existsSync(destPath)) {
       throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath);
+    }
+
+    const configFilePath = path.join(destPath, 'config.txt');
+    if (fs.existsSync(configFilePath)) {
+      fs.unlinkSync(configFilePath);
     }
 
     // init variables
@@ -492,7 +503,13 @@ export class ProfileManager {
           consensusNode.name as NodeAlias,
         );
 
-        const externalIP = consensusNode.fullyQualifiedDomainName;
+        // const externalIP = consensusNode.fullyQualifiedDomainName;
+        const externalIP = await helpers.getExternalAddress(
+          consensusNode,
+          this.k8Factory.getK8(consensusNode.context),
+          loadBalancerEnabled,
+        );
+
         const account = nodeAccountMap.get(consensusNode.name as NodeAlias);
 
         configLines.push(
@@ -507,9 +524,7 @@ export class ProfileManager {
         configLines.push(`nextNodeId, ${nodeSeq}`);
       }
 
-      const configFilePath = path.join(destPath, 'config.txt');
       fs.writeFileSync(configFilePath, configLines.join('\n'));
-
       return configFilePath;
     } catch (e: Error | unknown) {
       throw new SoloError(

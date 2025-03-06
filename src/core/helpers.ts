@@ -5,50 +5,81 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
+import {MissingArgumentError, SoloError} from './errors.js';
 import * as semver from 'semver';
-import {SoloError} from './errors.js';
 import {Templates} from './templates.js';
-import {ROOT_DIR} from './constants.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
-import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
+import paths from 'path';
 import {type ConsensusNode} from './model/consensus_node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type K8} from './kube/k8.js';
+import {type Helm} from './helm.js';
+import {type K8Factory} from './kube/k8_factory.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
   let internalIp = '';
 
-  // for versions that satisfy 0.59.x
-  if (semver.satisfies(releaseVersion, '^0.59.0', {includePrerelease: true})) {
+  // for versions that satisfy 0.58.5+
+  // @ts-expect-error TS2353: Object literal may only specify known properties
+  if (semver.gte(releaseVersion, '0.58.5', {includePrerelease: true})) {
     internalIp = '127.0.0.1';
   }
-
-  // versions less than 0.59.0
-  else if (
-    semver.lt(
-      releaseVersion,
-      '0.59.0',
-      // @ts-expect-error TS2353: Object literal may only specify known properties
-      {includePrerelease: true},
-    )
-  ) {
+  // versions less than 0.58.5
+  else {
     internalIp = Templates.renderFullyQualifiedNetworkPodName(namespaceName, nodeAlias);
   }
 
-  // versions greater than 0.59.0
-  else {
-    internalIp = '127.0.0.1';
+  return internalIp;
+}
+
+export async function getExternalAddress(
+  consensusNode: ConsensusNode,
+  k8: K8,
+  useLoadBalancer: boolean,
+): Promise<string> {
+  if (useLoadBalancer) {
+    return resolveLoadBalancerAddress(consensusNode, k8);
   }
 
-  return internalIp;
+  return consensusNode.fullyQualifiedDomainName;
+}
+
+async function resolveLoadBalancerAddress(consensusNode: ConsensusNode, k8: K8): Promise<string> {
+  const ns = NamespaceName.of(consensusNode.namespace);
+  const serviceList = await k8
+    .services()
+    .list(ns, [`solo.hedera.com/node-id=${consensusNode.nodeId},solo.hedera.com/type=network-node-svc`]);
+
+  if (serviceList && serviceList.length > 0) {
+    const svc = serviceList[0];
+
+    if (!svc.metadata.name.startsWith('network-node')) {
+      throw new SoloError(`Service found is not a network node service: ${svc.metadata.name}`);
+    }
+
+    if (svc.status?.loadBalancer?.ingress && svc.status.loadBalancer.ingress.length > 0) {
+      for (let i = 0; i < svc.status.loadBalancer.ingress.length; i++) {
+        const ingress = svc.status.loadBalancer.ingress[i];
+        if (ingress.hostname) {
+          return ingress.hostname;
+        } else if (ingress.ip) {
+          return ingress.ip;
+        }
+      }
+    }
+  }
+
+  return consensusNode.fullyQualifiedDomainName;
 }
 
 export function sleep(duration: Duration) {
@@ -392,6 +423,32 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
   }
 }
 
+export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: string, chartReleaseName: string) {
+  if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
+  if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
+
+  if (chartDir) {
+    const chartPath = path.join(chartDir, chartReleaseName);
+    await helm.dependency('update', chartPath);
+    return chartPath;
+  }
+
+  return `${chartRepo}/${chartReleaseName}`;
+}
+
+export function prepareValuesFiles(valuesFile: string) {
+  let valuesArg = '';
+  if (valuesFile) {
+    const valuesFiles = valuesFile.split(',');
+    valuesFiles.forEach(vf => {
+      const vfp = paths.resolve(vf);
+      valuesArg += ` --values ${vfp}`;
+    });
+  }
+
+  return valuesArg;
+}
+
 export function populateHelmArgs(valuesMapping: Record<string, string | boolean | number>): string {
   let valuesArg = '';
 
@@ -428,4 +485,29 @@ export function getSoloVersion(): Version {
   const packageJsonPath = path.resolve(__dirname, '../../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   return packageJson.version;
+}
+
+/**
+ * Helper for making deep-clones, works for objects and arrays, ideally with non-class data
+ *
+ * @param obj - object to be cloned
+ * @returns the cloned object
+ */
+export function deepClone<T = AnyObject>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+/**
+ * Check if the namespace exists in the context of given consensus nodes
+ * @param consensusNodes
+ * @param k8Factory
+ * @param namespace
+ */
+export async function checkNamespace(consensusNodes: ConsensusNode[], k8Factory: K8Factory, namespace: NamespaceName) {
+  for (const consensusNode of consensusNodes) {
+    const k8 = k8Factory.getK8(consensusNode.context);
+    if (!(await k8.namespaces().has(namespace))) {
+      throw new SoloError(`namespace ${namespace} does not exist in context ${consensusNode.context}`);
+    }
+  }
 }

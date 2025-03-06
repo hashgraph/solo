@@ -42,12 +42,21 @@ export class K8ClientIngresses implements Ingresses {
   }
 
   public async update(namespace: NamespaceName, name: string, patch: object): Promise<void> {
-    let ingresses: string[];
-    try {
-      ingresses = await this.listForAllNamespaces();
-    } catch (e) {
-      throw new ResourceReadError(ResourceType.INGRESS, undefined, '', e);
-    }
+    const ingresses = [];
+    // find the ingresses that match the specified name
+    await this.networkingApi
+      .listIngressForAllNamespaces()
+      .then(response => {
+        response.body.items.forEach(ingress => {
+          const currentIngressName = ingress.metadata.name;
+          if (currentIngressName.includes(name)) {
+            ingresses.push(currentIngressName);
+          }
+        });
+      })
+      .catch(err => {
+        throw new SoloError(`Error listing Ingresses: ${err}`);
+      });
 
     for (const ingressName of ingresses) {
       let result: {response: any; body?: V1Ingress};

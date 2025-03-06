@@ -1,6 +1,6 @@
 # Instructions for developers working on solo project
 
-Below we describe how you can set up local environment and contribute to `solo`.
+Below we describe how you can set up a local environment and contribute to `solo`.
 
 * Clone the repo
 * In order to support ES6 modules with `jest`, set an env variable `NODE_OPTIONS` as below:

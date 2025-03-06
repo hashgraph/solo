@@ -7,7 +7,7 @@ import {expect} from 'chai';
 import {LocalConfig} from '../../../src/core/config/local_config.js';
 import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {MissingArgumentError, SoloError} from '../../../src/core/errors.js';
-import {getTestCacheDir, testLogger, testLocalConfigData} from '../../test_util.js';
+import {getTestCacheDir, getTestLogger, testLocalConfigData} from '../../test_util.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
 import {ErrorMessages} from '../../../src/core/error_messages.js';
 
@@ -119,7 +119,7 @@ describe('LocalConfig', () => {
     expect(localConfig.clusterRefs).to.eq(newClusterMappings);
 
     await localConfig.write();
-    const newConfig = new LocalConfig(filePath, testLogger, configManager);
+    const newConfig = new LocalConfig(filePath, getTestLogger(), configManager);
     expect(newConfig.clusterRefs).to.deep.eq(newClusterMappings);
   });
 

@@ -4,7 +4,6 @@
 
 /**
  * Enumerations that represent the component types used in remote config
- * {@link ComponentsDataWrapper}
  */
 export enum ComponentType {
   ConsensusNode = 'consensusNodes',
@@ -17,13 +16,12 @@ export enum ComponentType {
 
 /**
  * Enumerations that represent the state of consensus node in remote config
- * {@link ConsensusNodeComponent}
  */
 export enum ConsensusNodeStates {
   REQUESTED = 'requested',
   INITIALIZED = 'initialized',
   SETUP = 'setup',
   STARTED = 'started',
-  FREEZED = 'freezed',
+  FROZEN = 'frozen',
   STOPPED = 'stopped',
 }

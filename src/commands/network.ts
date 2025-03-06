@@ -1,7 +1,8 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer';
+import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
+import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
@@ -9,8 +10,14 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
-import * as helpers from '../core/helpers.js';
-import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {
+  addDebugOptions,
+  resolveValidJsonFilePath,
+  validatePath,
+  sleep,
+  parseNodeAliases,
+  prepareChartPath,
+} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
@@ -25,7 +32,7 @@ import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
 import {v4 as uuidv4} from 'uuid';
-import {type SoloListrTask} from '../types/index.js';
+import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
@@ -33,6 +40,9 @@ import {type ConsensusNode} from '../core/model/consensus_node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {Duration} from '../core/time/duration.js';
+import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
+import {PodName} from '../core/kube/resources/pod/pod_name.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -61,19 +71,18 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsKeyPath: string;
   genesisThrottlesFile: string;
   resolvedThrottlesFile: string;
-  getUnusedConfigs: () => string[];
   haproxyIps: string;
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
   storageType: constants.StorageType;
-  gcsAccessKey: string;
-  gcsSecrets: string;
+  gcsWriteAccessKey: string;
+  gcsWriteSecrets: string;
   gcsEndpoint: string;
   gcsBucket: string;
   gcsBucketPrefix: string;
-  awsAccessKey: string;
-  awsSecrets: string;
+  awsWriteAccessKey: string;
+  awsWriteSecrets: string;
   awsEndpoint: string;
   awsBucket: string;
   awsBucketPrefix: string;
@@ -82,6 +91,18 @@ export interface NetworkDeployConfigClass {
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRefs: ClusterRefs;
+}
+
+export interface NetworkDestroyContext {
+  config: {
+    deletePvcs: boolean;
+    deleteSecrets: boolean;
+    namespace: NamespaceName;
+    enableTimeout: boolean;
+    force: boolean;
+    contexts: string[];
+  };
+  checkTimeout: boolean;
 }
 
 export class NetworkCommand extends BaseCommand {
@@ -146,19 +167,55 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.gcsAccessKey,
-      flags.gcsSecrets,
+      flags.gcsWriteAccessKey,
+      flags.gcsWriteSecrets,
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
-      flags.awsAccessKey,
-      flags.awsSecrets,
+      flags.awsWriteAccessKey,
+      flags.awsWriteSecrets,
       flags.awsEndpoint,
       flags.awsBucket,
       flags.awsBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
     ];
+  }
+
+  private waitForNetworkPods() {
+    const self = this;
+    return {
+      title: 'Check node pods are running',
+      task: (ctx, task) => {
+        const subTasks: any[] = [];
+        const config = ctx.config;
+
+        // nodes
+        for (const consensusNode of config.consensusNodes) {
+          subTasks.push({
+            title: `Check Node: ${chalk.yellow(consensusNode.name)}, Cluster: ${chalk.yellow(consensusNode.cluster)}`,
+            task: async () =>
+              await self.k8Factory
+                .getK8(consensusNode.context)
+                .pods()
+                .waitForRunningPhase(
+                  config.namespace,
+                  [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
+                  constants.PODS_RUNNING_MAX_ATTEMPTS,
+                  constants.PODS_RUNNING_DELAY,
+                ),
+          });
+        }
+
+        // set up the sub-tasks
+        return task.newListr(subTasks, {
+          concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+          rendererOptions: {
+            collapseSubtasks: false,
+          },
+        });
+      },
+    };
   }
 
   async prepareMinioSecrets(config: NetworkDeployConfigClass, minioAccessKey: string, minioSecretKey: string) {
@@ -189,22 +246,22 @@ export class NetworkCommand extends BaseCommand {
     const namespace = config.namespace;
 
     // Generating cloud storage secrets
-    const {gcsAccessKey, gcsSecrets, gcsEndpoint, awsAccessKey, awsSecrets, awsEndpoint} = config;
+    const {gcsWriteAccessKey, gcsWriteSecrets, gcsEndpoint, awsWriteAccessKey, awsWriteSecrets, awsEndpoint} = config;
     const cloudData = {};
     if (
       config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsAccessKey);
-      cloudData['S3_SECRET_KEY'] = Base64.encode(awsSecrets);
+      cloudData['S3_ACCESS_KEY'] = Base64.encode(awsWriteAccessKey);
+      cloudData['S3_SECRET_KEY'] = Base64.encode(awsWriteSecrets);
       cloudData['S3_ENDPOINT'] = Base64.encode(awsEndpoint);
     }
     if (
       config.storageType === constants.StorageType.GCS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsAccessKey);
-      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsSecrets);
+      cloudData['GCS_ACCESS_KEY'] = Base64.encode(gcsWriteAccessKey);
+      cloudData['GCS_SECRET_KEY'] = Base64.encode(gcsWriteSecrets);
       cloudData['GCS_ENDPOINT'] = Base64.encode(gcsEndpoint);
     }
 
@@ -290,13 +347,13 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    gcsAccessKey: string;
-    gcsSecrets: string;
+    gcsWriteAccessKey: string;
+    gcsWriteSecrets: string;
     gcsEndpoint: string;
     gcsBucket: string;
     gcsBucketPrefix: string;
-    awsAccessKey: string;
-    awsSecrets: string;
+    awsWriteAccessKey: string;
+    awsWriteSecrets: string;
     awsEndpoint: string;
     awsBucket: string;
     awsBucketPrefix: string;
@@ -344,13 +401,13 @@ export class NetworkCommand extends BaseCommand {
     envoyIpsParsed?: Record<NodeAlias, IP>;
     storageType: constants.StorageType;
     resolvedThrottlesFile: string;
-    gcsAccessKey: string;
-    gcsSecrets: string;
+    gcsWriteAccessKey: string;
+    gcsWriteSecrets: string;
     gcsEndpoint: string;
     gcsBucket: string;
     gcsBucketPrefix: string;
-    awsAccessKey: string;
-    awsSecrets: string;
+    awsWriteAccessKey: string;
+    awsWriteSecrets: string;
     awsEndpoint: string;
     awsBucket: string;
     awsBucketPrefix: string;
@@ -383,8 +440,8 @@ export class NetworkCommand extends BaseCommand {
     // add debug options to the debug node
     config.consensusNodes.filter(consensusNode => {
       if (consensusNode.name === config.debugNodeAlias) {
-        config.consensusNodes[consensusNode.cluster] = addDebugOptions(
-          config.consensusNodes[consensusNode.cluster],
+        valuesArgs[consensusNode.cluster] = addDebugOptions(
+          valuesArgs[consensusNode.cluster],
           config.debugNodeAlias,
           extraEnvIndex,
         );
@@ -492,7 +549,8 @@ export class NetworkCommand extends BaseCommand {
         clusterRef =>
           (valuesArgs[clusterRef] +=
             ' --set "defaults.haproxy.service.type=LoadBalancer"' +
-            ' --set "defaults.envoyProxy.service.type=LoadBalancer"'),
+            ' --set "defaults.envoyProxy.service.type=LoadBalancer"' +
+            ' --set "defaults.consensus.service.type=LoadBalancer"'),
       );
     }
 
@@ -505,7 +563,6 @@ export class NetworkCommand extends BaseCommand {
    * @param consensusNodes - the consensus nodes to iterate over
    * @param valuesArgs - the values arguments to add to
    * @param templateString - the template string to add
-   * @private
    */
   private addArgForEachRecord(
     records: Record<NodeAlias, string>,
@@ -567,8 +624,8 @@ export class NetworkCommand extends BaseCommand {
       flags.haproxyIps,
       flags.envoyIps,
       flags.storageType,
-      flags.gcsAccessKey,
-      flags.gcsSecrets,
+      flags.gcsWriteAccessKey,
+      flags.gcsWriteSecrets,
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
@@ -587,7 +644,7 @@ export class NetworkCommand extends BaseCommand {
     this.configManager.setFlag(flags.namespace, namespace);
 
     // create a config object for subsequent steps
-    const config: NetworkDeployConfigClass = this.getConfig(
+    const config: NetworkDeployConfigClass = this.configManager.getConfig(
       NetworkCommand.DEPLOY_CONFIGS_NAME,
       NetworkCommand.DEPLOY_FLAGS_LIST,
       [
@@ -605,7 +662,7 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
 
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -616,7 +673,8 @@ export class NetworkCommand extends BaseCommand {
     }
 
     // compute values
-    config.chartPath = await this.prepareChartPath(
+    config.chartPath = await prepareChartPath(
+      this.helm,
       config.chartDirectory,
       constants.SOLO_TESTING_CHART_URL,
       constants.SOLO_DEPLOYMENT_CHART,
@@ -632,9 +690,9 @@ export class NetworkCommand extends BaseCommand {
       flags.genesisThrottlesFile.definition.defaultValue as string,
     );
 
-    config.consensusNodes = this.getConsensusNodes();
-    config.contexts = this.getContexts();
-    config.clusterRefs = this.getClusterRefs();
+    config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    config.contexts = this.remoteConfigManager.getContexts();
+    config.clusterRefs = this.remoteConfigManager.getClusterRefs();
     if (config.nodeAliases.length === 0) {
       config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
       if (config.nodeAliases.length === 0) {
@@ -669,37 +727,58 @@ export class NetworkCommand extends BaseCommand {
     return config;
   }
 
-  async destroyTask(ctx: any, task: any) {
+  async destroyTask(ctx: NetworkDestroyContext, task: SoloListrTaskWrapper<NetworkDestroyContext>) {
     const self = this;
     task.title = `Uninstalling chart ${constants.SOLO_DEPLOYMENT_CHART}`;
-    await self.chartManager.uninstall(
-      ctx.config.namespace,
-      constants.SOLO_DEPLOYMENT_CHART,
-      this.k8Factory.default().contexts().readCurrent(),
+
+    // Uninstall all 'solo deployment' charts for each cluster using the contexts
+    await Promise.all(
+      ctx.config.contexts.map(context => {
+        return self.chartManager.uninstall(
+          ctx.config.namespace,
+          constants.SOLO_DEPLOYMENT_CHART,
+          this.k8Factory.getK8(context).contexts().readCurrent(),
+        );
+      }),
     );
 
+    // Delete PVCs inside each cluster
     if (ctx.config.deletePvcs) {
-      const pvcs = await self.k8Factory.default().pvcs().list(ctx.config.namespace, []);
       task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`;
-      if (pvcs) {
-        for (const pvc of pvcs) {
-          await self.k8Factory
-            .default()
-            .pvcs()
-            .delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc)));
-        }
-      }
+
+      await Promise.all(
+        ctx.config.contexts.map(async context => {
+          // Fetch all PVCs inside the namespace using the context
+          const pvcs = await this.k8Factory.getK8(context).pvcs().list(ctx.config.namespace, []);
+
+          // Delete all if found
+          return Promise.all(
+            pvcs.map(pvc =>
+              this.k8Factory
+                .getK8(context)
+                .pvcs()
+                .delete(PvcRef.of(ctx.config.namespace, PvcName.of(pvc))),
+            ),
+          );
+        }),
+      );
     }
 
+    // Delete Secrets inside each cluster
     if (ctx.config.deleteSecrets) {
       task.title = `Deleting secrets in namespace ${ctx.config.namespace}`;
-      const secrets = await self.k8Factory.default().secrets().list(ctx.config.namespace);
 
-      if (secrets) {
-        for (const secret of secrets) {
-          await self.k8Factory.default().secrets().delete(ctx.config.namespace, secret.name);
-        }
-      }
+      await Promise.all(
+        ctx.config.contexts.map(async context => {
+          // Fetch all Secrets inside the namespace using the context
+          const secrets = await this.k8Factory.getK8(context).secrets().list(ctx.config.namespace);
+
+          // Delete all if found
+          return Promise.all(
+            secrets.map(secret => this.k8Factory.getK8(context).secrets().delete(ctx.config.namespace, secret.name)),
+          );
+        }),
+      );
     }
   }
 
@@ -810,7 +889,7 @@ export class NetworkCommand extends BaseCommand {
                 await self.chartManager.uninstall(
                   config.namespace,
                   constants.SOLO_DEPLOYMENT_CHART,
-                  this.k8Factory.getK8(config.clusterRefs[clusterRef]).contexts().readCurrent(),
+                  config.clusterRefs[clusterRef],
                 );
               }
 
@@ -826,31 +905,54 @@ export class NetworkCommand extends BaseCommand {
           },
         },
         {
-          title: 'Check node pods are running',
+          title: 'Check for load balancer',
+          skip: ctx => ctx.config.loadBalancerEnabled === false,
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
-            // nodes
+            //Add check for network node service to be created and load balancer to be assigned (if load balancer is enabled)
             for (const consensusNode of config.consensusNodes) {
               subTasks.push({
-                title: `Check Node: ${chalk.yellow(consensusNode.name)}, Cluster: ${chalk.yellow(consensusNode.cluster)}`,
-                task: async () =>
-                  await self.k8Factory
-                    .getK8(consensusNode.context)
-                    .pods()
-                    .waitForRunningPhase(
-                      config.namespace,
-                      [`solo.hedera.com/node-name=${consensusNode.name}`, 'solo.hedera.com/type=network-node'],
-                      constants.PODS_RUNNING_MAX_ATTEMPTS,
-                      constants.PODS_RUNNING_DELAY,
-                    ),
+                title: `Load balancer is assigned for: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
+                task: async () => {
+                  let attempts = 0;
+                  let svc = null;
+
+                  while (attempts < constants.LOAD_BALANCER_CHECK_MAX_ATTEMPTS) {
+                    svc = await self.k8Factory
+                      .getK8(consensusNode.context)
+                      .services()
+                      .list(config.namespace, [
+                        `solo.hedera.com/node-id=${consensusNode.nodeId},solo.hedera.com/type=network-node-svc`,
+                      ]);
+
+                    if (svc && svc.length > 0 && svc[0].status?.loadBalancer?.ingress?.length > 0) {
+                      let shouldContinue = false;
+                      for (let i = 0; i < svc[0].status.loadBalancer.ingress.length; i++) {
+                        const ingress = svc[0].status.loadBalancer.ingress[i];
+                        if (!ingress.hostname && !ingress.ip) {
+                          shouldContinue = true; // try again if there is neither a hostname nor an ip
+                          break;
+                        }
+                      }
+                      if (shouldContinue) {
+                        continue;
+                      }
+                      return;
+                    }
+
+                    attempts++;
+                    await sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
+                  }
+                  throw new SoloError('Load balancer not found');
+                },
               });
             }
 
             // set up the sub-tasks
             return task.newListr(subTasks, {
-              concurrent: false, // no need to run concurrently since if one node is up, the rest should be up by then
+              concurrent: true,
               rendererOptions: {
                 collapseSubtasks: false,
               },
@@ -858,9 +960,57 @@ export class NetworkCommand extends BaseCommand {
           },
         },
         {
+          title: 'Redeploy chart with external IP address config',
+          skip: ctx => ctx.config.loadBalancerEnabled === false,
+          task: async (ctx, task) => {
+            // Update the valuesArgMap with the external IP addresses
+            // This regenerates the config.txt and genesis-network.json files with the external IP addresses
+            ctx.config.valuesArgMap = await this.prepareValuesArgMap(ctx.config);
+
+            // Perform a helm upgrade for each cluster
+            const subTasks: SoloListrTask<Context>[] = [];
+            const config = ctx.config;
+            for (const clusterRef of Object.keys(config.clusterRefs)) {
+              subTasks.push({
+                title: `Upgrade chart for cluster: ${chalk.yellow(clusterRef)}`,
+                task: async () => {
+                  await this.chartManager.upgrade(
+                    config.namespace,
+                    constants.SOLO_DEPLOYMENT_CHART,
+                    ctx.config.chartPath,
+                    config.soloChartVersion,
+                    config.valuesArgMap[clusterRef],
+                    config.clusterRefs[clusterRef],
+                  );
+
+                  const context = config.clusterRefs[clusterRef];
+                  const pods = await this.k8Factory
+                    .getK8(context)
+                    .pods()
+                    .list(ctx.config.namespace, ['solo.hedera.com/type=network-node']);
+
+                  for (const pod of pods) {
+                    const podRef = PodRef.of(ctx.config.namespace, PodName.of(pod.metadata.name));
+                    await this.k8Factory.getK8(context).pods().readByRef(podRef).killPod();
+                  }
+                },
+              });
+            }
+
+            // set up the sub-tasks
+            return task.newListr(subTasks, {
+              concurrent: true,
+              rendererOptions: {
+                collapseSubtasks: false,
+              },
+            });
+          },
+        },
+        self.waitForNetworkPods(),
+        {
           title: 'Check proxy pods are running',
           task: (ctx, task) => {
-            const subTasks: any[] = [];
+            const subTasks: SoloListrTask<Context>[] = [];
             const config = ctx.config;
 
             // HAProxy
@@ -909,7 +1059,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check auxiliary pods are ready',
           task: (_, task) => {
-            const subTasks = [];
+            const subTasks: SoloListrTask<Context>[] = [];
 
             // minio
             subTasks.push({
@@ -953,7 +1103,7 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
     } finally {
       await lease.release();
@@ -966,45 +1116,33 @@ export class NetworkCommand extends BaseCommand {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: {
-        deletePvcs: boolean;
-        deleteSecrets: boolean;
-        namespace: NamespaceName;
-        enableTimeout: boolean;
-        force: boolean;
-      };
-      checkTimeout: boolean;
-    }
-
     let networkDestroySuccess = true;
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<NetworkDestroyContext>(
       [
         {
           title: 'Initialize',
           task: async (ctx, task) => {
             if (!argv.force) {
-              const confirm = await task.prompt(ListrEnquirerPromptAdapter).run({
-                type: 'toggle',
+              const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
                 default: false,
                 message: 'Are you sure you would like to destroy the network components?',
               });
 
-              if (!confirm) {
-                process.exit(0);
+              if (!confirmResult) {
+                this.logger.logAndExitSuccess('Aborted application by user prompt');
               }
             }
 
             self.configManager.update(argv);
             await self.configManager.executePrompt(task, [flags.deletePvcs, flags.deleteSecrets]);
-            const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-              namespace,
+              namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
+              contexts: self.remoteConfigManager.getContexts(),
             };
 
             return ListrLease.newAcquireLeaseTask(lease, task);
@@ -1014,18 +1152,22 @@ export class NetworkCommand extends BaseCommand {
           title: 'Running sub-tasks to destroy network',
           task: async (ctx, task) => {
             if (ctx.config.enableTimeout) {
-              const timeoutId = setTimeout(() => {
+              const timeoutId = setTimeout(async () => {
                 const message = `\n\nUnable to finish network destroy in ${constants.NETWORK_DESTROY_WAIT_TIMEOUT} seconds\n\n`;
                 self.logger.error(message);
                 self.logger.showUser(chalk.red(message));
                 networkDestroySuccess = false;
 
                 if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
-                  self.k8Factory.default().namespaces().delete(ctx.config.namespace);
+                  await Promise.all(
+                    ctx.config.contexts.map(context =>
+                      self.k8Factory.getK8(context).namespaces().delete(ctx.config.namespace),
+                    ),
+                  );
                 } else {
                   // If the namespace is not being deleted,
                   // remove all components data from the remote configuration
-                  self.remoteConfigManager.deleteComponents();
+                  await self.remoteConfigManager.deleteComponents();
                 }
               }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
 
@@ -1046,10 +1188,11 @@ export class NetworkCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | unknown) {
+    } catch (e) {
       throw new SoloError('Error destroying network', e);
     } finally {
-      await lease.release();
+      // If the namespace is deleted, the lease can't be released
+      await lease.release().catch();
     }
 
     return networkDestroySuccess;
@@ -1084,26 +1227,12 @@ export class NetworkCommand extends BaseCommand {
                 ctx.config.chartPath,
                 config.soloChartVersion,
                 config.valuesArgMap[clusterRef],
-                this.k8Factory.default().contexts().readCurrent(),
+                config.clusterRefs[clusterRef],
               );
             }
           },
         },
-        {
-          title: 'Waiting for network pods to be running',
-          task: async ctx => {
-            const config = ctx.config;
-            await this.k8Factory
-              .default()
-              .pods()
-              .waitForRunningPhase(
-                config.namespace,
-                ['solo.hedera.com/type=network-node', 'solo.hedera.com/type=network-node'],
-                constants.PODS_RUNNING_MAX_ATTEMPTS,
-                constants.PODS_RUNNING_DELAY,
-              );
-          },
-        },
+        self.waitForNetworkPods(),
       ],
       {
         concurrent: false,
@@ -1137,20 +1266,20 @@ export class NetworkCommand extends BaseCommand {
             command: 'deploy',
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'network deploy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `network deploy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error deploying network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error deploying network: ${err.message}`, err);
                 });
             },
           })
@@ -1167,20 +1296,20 @@ export class NetworkCommand extends BaseCommand {
                 flags.deployment,
                 flags.quiet,
               ),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'network destroy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `network destroy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error destroying network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error destroying network: ${err.message}`, err);
                 });
             },
           })
@@ -1188,20 +1317,20 @@ export class NetworkCommand extends BaseCommand {
             command: 'refresh',
             desc: 'Refresh solo network deployment',
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'chart upgrade' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .refresh(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `chart upgrade`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error refreshing network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error refreshing network: ${err.message}`, err);
                 });
             },
           })

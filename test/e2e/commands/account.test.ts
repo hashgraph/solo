@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {it, describe, after, before} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {
@@ -19,7 +19,7 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {e2eTestSuite, getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, testLogger} from '../../test_util.js';
+import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, getTestLogger} from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -31,30 +31,40 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import * as helpers from '../../../src/core/helpers.js';
+import {Templates} from '../../../src/core/templates.js';
+import * as Base64 from 'js-base64';
+import {Argv} from '../../helpers/argv_wrapper.js';
+import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type SoloLogger} from '../../../src/core/logging.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const testName = 'account-cmd-e2e';
 const namespace: NamespaceName = NamespaceName.of(testName);
 const testSystemAccounts = [[3, 5]];
-const argv = getDefaultArgv(namespace);
-argv[flags.namespace.name] = namespace.name;
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
-argv[flags.generateGossipKeys.name] = true;
-argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterRef.name] = TEST_CLUSTER;
-argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
-// set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-argv[flags.chartDirectory.name] = process.env.SOLO_CHARTS_DIR ?? undefined;
+const argv = Argv.getDefaultArgv(namespace);
+argv.setArg(flags.forcePortForward, true);
+argv.setArg(flags.namespace, namespace.name);
+argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
+argv.setArg(flags.generateGossipKeys, true);
+argv.setArg(flags.generateTlsKeys, true);
+argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.loadBalancerEnabled, true);
+argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
+// enable load balancer for e2e tests
+argv.setArg(flags.loadBalancerEnabled, true);
 
-e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefined, undefined, true, bootstrapResp => {
+e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('AccountCommand', async () => {
     let accountCmd: AccountCommand;
     let k8Factory: K8Factory;
     let accountManager: AccountManager;
     let configManager: ConfigManager;
     let nodeCmd: NodeCommand;
+    let testLogger: SoloLogger;
 
     before(() => {
       accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
@@ -63,6 +73,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
       accountManager = bootstrapResp.opts.accountManager;
       configManager = bootstrapResp.opts.configManager;
       nodeCmd = bootstrapResp.cmd.nodeCmd;
+      testLogger = getTestLogger();
     });
 
     after(async function () {
@@ -75,7 +86,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
     });
 
     describe('node proxies should be UP', () => {
-      for (const nodeAlias of argv[flags.nodeAliasesUnparsed.name].split(',')) {
+      for (const nodeAlias of argv.getArg<string>(flags.nodeAliasesUnparsed).split(',')) {
         it(`proxy should be UP: ${nodeAlias} `, async () => {
           await k8Factory
             .default()
@@ -92,7 +103,7 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
     describe('account init command', () => {
       it('should succeed with init command', async () => {
-        const status = await accountCmd.init(argv);
+        const status = await accountCmd.init(argv.build());
         expect(status).to.be.ok;
       }).timeout(Duration.ofMinutes(3).toMillis());
 
@@ -103,13 +114,31 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv.getArg<DeploymentName>(flags.deployment),
+            argv.getArg<boolean>(flags.forcePortForward),
+          );
         });
 
         after(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
           await accountManager.close();
+        });
+
+        it('Node admin key should have been updated, not eqaul to genesis key', async () => {
+          const nodeAliases = helpers.parseNodeAliases(argv.getArg<string>(flags.nodeAliasesUnparsed));
+          for (const nodeAlias of nodeAliases) {
+            const keyFromK8 = await k8Factory
+              .default()
+              .secrets()
+              .read(namespace, Templates.renderNodeAdminKeyName(nodeAlias));
+            const privateKey = Base64.decode(keyFromK8.data.privateKey);
+
+            expect(privateKey.toString()).not.to.equal(genesisKey.toString());
+          }
         });
 
         for (const [start, end] of testSystemAccounts) {
@@ -135,8 +164,8 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('should create account with no options', async () => {
         try {
-          argv[flags.amount.name] = 200;
-          expect(await accountCmd.create(argv)).to.be.true;
+          argv.setArg(flags.amount, 200);
+          expect(await accountCmd.create(argv.build())).to.be.true;
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo;
@@ -157,11 +186,11 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('should create account with private key and hbar amount options', async () => {
         try {
-          argv[flags.ed25519PrivateKey.name] = constants.GENESIS_KEY;
-          argv[flags.amount.name] = 777;
-          configManager.update(argv);
+          argv.setArg(flags.ed25519PrivateKey, constants.GENESIS_KEY);
+          argv.setArg(flags.amount, 777);
+          configManager.update(argv.build());
 
-          expect(await accountCmd.create(argv)).to.be.true;
+          expect(await accountCmd.create(argv.build())).to.be.true;
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo;
@@ -179,16 +208,16 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('should update account-1', async () => {
         try {
-          argv[flags.amount.name] = 0;
-          argv[flags.accountId.name] = accountId1;
-          configManager.update(argv);
+          argv.setArg(flags.amount, 0);
+          argv.setArg(flags.accountId, accountId1);
+          configManager.update(argv.build());
 
-          expect(await accountCmd.update(argv)).to.be.true;
+          expect(await accountCmd.update(argv.build())).to.be.true;
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv[flags.accountId.name]);
+          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).not.to.be.null;
           expect(accountInfo.balance).to.equal(200);
@@ -200,17 +229,17 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('should update account-2 with accountId, amount, new private key, and standard out options', async () => {
         try {
-          argv[flags.accountId.name] = accountId2;
-          argv[flags.ed25519PrivateKey.name] = constants.GENESIS_KEY;
-          argv[flags.amount.name] = 333;
-          configManager.update(argv);
+          argv.setArg(flags.accountId, accountId2);
+          argv.setArg(flags.ed25519PrivateKey, constants.GENESIS_KEY);
+          argv.setArg(flags.amount, 333);
+          configManager.update(argv.build());
 
-          expect(await accountCmd.update(argv)).to.be.true;
+          expect(await accountCmd.update(argv.build())).to.be.true;
 
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv[flags.accountId.name]);
+          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).not.to.be.null;
           expect(accountInfo.balance).to.equal(1_110);
@@ -222,14 +251,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('should be able to get account-1', async () => {
         try {
-          argv[flags.accountId.name] = accountId1;
-          configManager.update(argv);
+          argv.setArg(flags.accountId, accountId1);
+          configManager.update(argv.build());
 
-          expect(await accountCmd.get(argv)).to.be.true;
-          // @ts-ignore to access the private property
+          expect(await accountCmd.get(argv.build())).to.be.true;
+          // @ts-expect-error - TS2341: to access private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv[flags.accountId.name]);
+          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).to.be.ok;
           expect(accountInfo.balance).to.equal(200);
@@ -241,14 +270,14 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('should be able to get account-2', async () => {
         try {
-          argv[flags.accountId.name] = accountId2;
-          configManager.update(argv);
+          argv.setArg(flags.accountId, accountId2);
+          configManager.update(argv.build());
 
-          expect(await accountCmd.get(argv)).to.be.true;
+          expect(await accountCmd.get(argv.build())).to.be.true;
           // @ts-ignore to access the private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv[flags.accountId.name]);
+          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).to.be.ok;
           expect(accountInfo.balance).to.equal(1_110);
@@ -262,11 +291,11 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
         const ecdsaPrivateKey = PrivateKey.generateECDSA();
 
         try {
-          argv[flags.ecdsaPrivateKey.name] = ecdsaPrivateKey.toString();
-          argv[flags.setAlias.name] = true;
-          configManager.update(argv);
+          argv.setArg(flags.ecdsaPrivateKey, ecdsaPrivateKey.toString());
+          argv.setArg(flags.setAlias, true);
+          configManager.update(argv.build());
 
-          expect(await accountCmd.create(argv)).to.be.true;
+          expect(await accountCmd.create(argv.build())).to.be.true;
 
           // @ts-ignore to access the private property
           const newAccountInfo = accountCmd.accountInfo;
@@ -281,8 +310,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv.getArg<DeploymentName>(flags.deployment),
+            argv.getArg<boolean>(flags.forcePortForward),
+          );
           const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
           expect(accountAliasInfo).not.to.be.null;
         } catch (e) {
@@ -308,8 +342,13 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
 
       it('Create new account', async () => {
         try {
-          const clusterRefs = accountCmd.getClusterRefs();
-          await accountManager.loadNodeClient(namespace, clusterRefs, argv[flags.deployment.name]);
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
+          await accountManager.loadNodeClient(
+            namespace,
+            clusterRefs,
+            argv.getArg(flags.deployment),
+            argv.getArg(flags.forcePortForward),
+          );
           const privateKey = PrivateKey.generate();
           const amount = 100;
 
@@ -366,6 +405,16 @@ e2eTestSuite(testName, argv, undefined, undefined, undefined, undefined, undefin
           networkCmd.logger.showUserError(e);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
+
+      // hitchhiker account test to test node freeze and restart
+      it('Freeze and restart all nodes should succeed', async () => {
+        try {
+          await nodeCmd.handlers.freeze(argv.build());
+          await nodeCmd.handlers.restart(argv.build());
+        } catch (e) {
+          networkCmd.logger.showUserError(e);
+        }
+      }).timeout(Duration.ofMinutes(4).toMillis());
     });
   });
 });

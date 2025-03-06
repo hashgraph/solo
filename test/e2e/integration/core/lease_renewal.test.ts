@@ -2,8 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {it, describe, before, after} from 'mocha';
-import {type ConfigManager} from '../../../../src/core/config_manager.js';
-import * as logging from '../../../../src/core/logging.js';
 import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
@@ -20,8 +18,6 @@ const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
 
 describe('LeaseRenewalService', async () => {
-  const testLogger = logging.NewLogger('debug', true);
-  const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory) as K8Factory;
   const renewalService: LeaseRenewalService = container.resolve(InjectTokens.LeaseRenewalService);
   const testNamespace = NamespaceName.of('lease-renewal-e2e');

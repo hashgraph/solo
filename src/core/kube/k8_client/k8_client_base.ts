@@ -61,7 +61,6 @@ export abstract class K8ClientBase {
    * Wraps the V1ObjectMeta object instance into a ObjectMeta instance.
    *
    * @param v1meta - the V1ObjectMeta object from the K8S API client.
-   * @protected
    */
   protected wrapObjectMeta(v1meta: V1ObjectMeta): ObjectMeta {
     if (!v1meta) {

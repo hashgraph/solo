@@ -27,21 +27,28 @@ import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {ContainerName} from '../../../../src/core/kube/resources/container/container_name.js';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
+import {LocalConfig} from '../../../../src/core/config/local_config.js';
+import {getTestCacheDir} from '../../../test_util.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
 
   let configManager: ConfigManager;
   let k8Factory: K8Factory;
+  let localConfig: LocalConfig;
+  const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`;
 
   before(async () => {
     configManager = container.resolve(InjectTokens.ConfigManager);
     configManager.update({[flags.namespace.name]: namespace});
     k8Factory = container.resolve(InjectTokens.K8Factory);
+    localConfig = new LocalConfig(filePath);
     await k8Factory.default().namespaces().create(namespace);
   });
 
-  after(async () => {
+  after(async function () {
+    this.timeout(Duration.ofMinutes(5).toMillis());
     await k8Factory.default().namespaces().delete(namespace);
   });
 
@@ -57,7 +64,7 @@ describe('RemoteConfigValidator', () => {
 
   const consensusNodeAliases = [nodeAlias] as NodeAliases;
 
-  // @ts-ignore
+  // @ts-expect-error - TS2673: Constructor of class ComponentsDataWrapper is private
   const components = new ComponentsDataWrapper(
     {[relayName]: new RelayComponent(relayName, cluster, namespace.name, consensusNodeAliases)},
     {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name)},
@@ -97,8 +104,8 @@ describe('RemoteConfigValidator', () => {
   describe('Relays validation', () => {
     it('should fail if component is not present', async () => {
       try {
-        // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8Factory));
+        // @ts-expect-error - TS2341: Property is private
+        await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8Factory, localConfig));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -109,16 +116,16 @@ describe('RemoteConfigValidator', () => {
       const [key, value] = constants.SOLO_RELAY_LABEL.split('=');
       await createPod(relayName, {[key]: value});
 
-      // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8Factory));
+      // @ts-expect-error - TS2341: Property is private
+      await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8Factory, localConfig));
     });
   });
 
   describe('HaProxies validation', () => {
     it('should fail if component is not present', async () => {
       try {
-        // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory));
+        // @ts-expect-error - TS2341: Property is private
+        await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory, localConfig));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -128,16 +135,16 @@ describe('RemoteConfigValidator', () => {
     it('should succeed if component is present', async () => {
       await createPod(haProxyName, {app: haProxyName});
 
-      // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory));
+      // @ts-expect-error - TS2341: Property is private
+      await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory, localConfig));
     });
   });
 
   describe('Mirror Node Components validation', () => {
     it('should fail if component is not present', async () => {
       try {
-        // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory));
+        // @ts-expect-error - TS2341: Property is private
+        await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory, localConfig));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -149,16 +156,16 @@ describe('RemoteConfigValidator', () => {
       const [key2, value2] = constants.SOLO_HEDERA_MIRROR_IMPORTER[1].split('=');
       await createPod(mirrorNodeName, {[key1]: value1, [key2]: value2});
 
-      // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory));
+      // @ts-expect-error - TS2341: Property is private
+      await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory, localConfig));
     });
   });
 
   describe('Envoy Proxies validation', () => {
     it('should fail if component is not present', async () => {
       try {
-        // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory));
+        // @ts-expect-error - TS2341: Property is private
+        await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory, localConfig));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -168,16 +175,16 @@ describe('RemoteConfigValidator', () => {
     it('should succeed if component is present', async () => {
       await createPod(envoyProxyName, {app: envoyProxyName});
 
-      // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory));
+      // @ts-expect-error - TS2341: Property is private
+      await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory, localConfig));
     });
   });
 
   describe('Consensus Nodes validation', () => {
     it('should fail if component is not present', async () => {
       try {
-        // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory));
+        // @ts-expect-error - TS2341: Property is private
+        await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory, localConfig));
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -187,16 +194,18 @@ describe('RemoteConfigValidator', () => {
     it('should succeed if component is present', async () => {
       await createPod(nodeAlias, {app: `network-${nodeAlias}`});
 
-      // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory));
+      // @ts-expect-error - TS2341: Property is private
+      await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory, localConfig));
     });
   });
 
   describe('Mirror Node Explorers validation', () => {
     it('should fail if component is not present', async () => {
       try {
-        // @ts-ignore
-        await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory));
+        await Promise.all(
+          // @ts-expect-error - TS2341: Property is private
+          RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory, localConfig),
+        );
         throw new Error();
       } catch (e) {
         expect(e).to.be.instanceOf(SoloError);
@@ -207,8 +216,10 @@ describe('RemoteConfigValidator', () => {
       const [key, value] = constants.SOLO_HEDERA_EXPLORER_LABEL.split('=');
       await createPod(mirrorNodeExplorerName, {[key]: value});
 
-      // @ts-ignore
-      await Promise.all(RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory));
+      await Promise.all(
+        // @ts-expect-error - TS2341: Property is private
+        RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory, localConfig),
+      );
     });
   });
 });

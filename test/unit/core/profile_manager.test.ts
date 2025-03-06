@@ -20,18 +20,22 @@ import {Templates} from '../../../src/core/templates.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
+import {KubeConfig} from '@kubernetes/client-node';
+import {MissingArgumentError} from '../../../src/core/errors.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
   const namespace = NamespaceName.of('test-namespace');
   const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
+  const kubeConfig = new KubeConfig();
+  kubeConfig.loadFromDefault();
   const consensusNodes: ConsensusNode[] = [
     {
       name: 'node1',
       nodeId: 1,
       namespace: namespace.name,
-      cluster: 'solo-cluster',
-      context: 'solo-cluster',
+      cluster: kubeConfig.getCurrentCluster().name,
+      context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
       fullyQualifiedDomainName: 'network-node1-svc.test-namespace.svc.cluster.local',
@@ -40,8 +44,8 @@ describe('ProfileManager', () => {
       name: 'node2',
       nodeId: 2,
       namespace: namespace.name,
-      cluster: 'solo-cluster',
-      context: 'solo-cluster',
+      cluster: kubeConfig.getCurrentCluster().name,
+      context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
       fullyQualifiedDomainName: 'network-node2-svc.test-namespace.svc.cluster.local',
@@ -50,8 +54,8 @@ describe('ProfileManager', () => {
       name: 'node3',
       nodeId: 3,
       namespace: namespace.name,
-      cluster: 'solo-cluster',
-      context: 'solo-cluster',
+      cluster: kubeConfig.getCurrentCluster().name,
+      context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-${nodeAlias}-svc.${namespace}.svc',
       fullyQualifiedDomainName: 'network-node3-svc.test-namespace.svc.cluster.local',
@@ -68,12 +72,12 @@ describe('ProfileManager', () => {
     configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
     configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
     cacheDir = configManager.getFlag<string>(flags.cacheDir) as string;
-    configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'));
-    configManager.setFlag(flags.applicationEnv, path.join(cacheDir, 'templates', 'application.env'));
-    configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'));
-    configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'));
-    configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates', 'log4j2.xml'));
-    configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates', 'settings.txt'));
+    configManager.setFlag(flags.apiPermissionProperties, flags.apiPermissionProperties.definition.defaultValue);
+    configManager.setFlag(flags.applicationEnv, flags.applicationEnv.definition.defaultValue);
+    configManager.setFlag(flags.applicationProperties, flags.applicationProperties.definition.defaultValue);
+    configManager.setFlag(flags.bootstrapProperties, flags.bootstrapProperties.definition.defaultValue);
+    configManager.setFlag(flags.log4j2Xml, flags.log4j2Xml.definition.defaultValue);
+    configManager.setFlag(flags.settingTxt, flags.settingTxt.definition.defaultValue);
     stagingDir = Templates.renderStagingDir(
       configManager.getFlag(flags.cacheDir),
       configManager.getFlag(flags.releaseTag),
@@ -224,17 +228,23 @@ describe('ProfileManager', () => {
   });
 
   describe('prepareConfigText', () => {
-    it('should write and return the path to the config.txt file', () => {
+    it('should write and return the path to the config.txt file', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       nodeAccountMap.set('node1', '0.0.3');
       nodeAccountMap.set('node2', '0.0.4');
       nodeAccountMap.set('node3', '0.0.5');
       const destPath = path.join(tmpDir, 'staging');
       fs.mkdirSync(destPath, {recursive: true});
-      profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, destPath, version.HEDERA_PLATFORM_VERSION);
+      const renderedConfigFile = await profileManager.prepareConfigTxt(
+        nodeAccountMap,
+        consensusNodes,
+        destPath,
+        version.HEDERA_PLATFORM_VERSION,
+      );
 
       // expect that the config.txt file was created and exists
       const configFile = path.join(destPath, 'config.txt');
+      expect(renderedConfigFile).to.equal(configFile);
       expect(fs.existsSync(configFile)).to.be.ok;
 
       const configText = fs.readFileSync(configFile).toString();
@@ -251,19 +261,27 @@ describe('ProfileManager', () => {
       expect(configText).to.include('node3');
     });
 
-    it('should fail when no nodeAliases', () => {
+    it('should fail when no nodeAliases', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
-      expect(() =>
-        profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, '', version.HEDERA_PLATFORM_VERSION),
-      ).to.throw('nodeAccountMap the map of node IDs to account IDs is required');
+      try {
+        await profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, '', version.HEDERA_PLATFORM_VERSION);
+      } catch (e) {
+        expect(e).to.be.instanceOf(MissingArgumentError);
+        expect(e.message).to.include('nodeAccountMap the map of node IDs to account IDs is required');
+      }
     });
 
-    it('should fail when destPath does not exist', () => {
+    it('should fail when destPath does not exist', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       nodeAccountMap.set('node1', '0.0.3');
       const destPath = path.join(tmpDir, 'missing-directory');
       try {
-        profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, destPath, version.HEDERA_PLATFORM_VERSION);
+        await profileManager.prepareConfigTxt(
+          nodeAccountMap,
+          consensusNodes,
+          destPath,
+          version.HEDERA_PLATFORM_VERSION,
+        );
       } catch (e) {
         expect(e.message).to.contain('config destPath does not exist');
         expect(e.message).to.contain(destPath);

@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {getDefaultArgv, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import {HEDERA_PLATFORM_VERSION_TAG, SOLO_TEST_CLUSTER, TEST_CLUSTER} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -33,21 +33,22 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv(namespace);
+const argv = Argv.getDefaultArgv(namespace);
 
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
-argv[flags.deployment.name] = 'deployment';
-argv[flags.generateGossipKeys.name] = true;
-argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterRef.name] = TEST_CLUSTER;
-argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
-argv[flags.force.name] = true;
-argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
-argv[flags.chartDirectory.name] = undefined;
+argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.nodeAliasesUnparsed, 'node1');
+argv.setArg(flags.deployment, 'deployment');
+argv.setArg(flags.generateGossipKeys, true);
+argv.setArg(flags.generateTlsKeys, true);
+argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.force, true);
+argv.setArg(flags.clusterSetupNamespace, constants.SOLO_SETUP_NAMESPACE.name);
+argv.setArg(flags.chartDirectory, undefined);
 
 describe('NetworkCommand unit tests', () => {
   describe('Chart Install Function is called correctly', () => {
@@ -60,7 +61,7 @@ describe('NetworkCommand unit tests', () => {
       opts.logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
 
       opts.configManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
-      opts.configManager.update(argv);
+      opts.configManager.update(argv.build());
 
       opts.k8Factory = sinon.stub() as unknown as K8Factory;
       const k8Stub = sinon.stub();
@@ -159,12 +160,13 @@ describe('NetworkCommand unit tests', () => {
     it('Install function is called with expected parameters', async () => {
       try {
         const networkCommand = new NetworkCommand(opts);
-        sinon.stub(networkCommand, 'getConsensusNodes').returns([]);
-        sinon.stub(networkCommand, 'getContexts').returns(['context1']);
-        sinon.stub(networkCommand, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
-        await networkCommand.deploy(argv);
+        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([]);
+        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
+        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
-        expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
+        await networkCommand.deploy(argv.build());
+
+        expect(opts.chartManager.install.args[0][0].name).to.equal(SOLO_TEST_CLUSTER);
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(opts.chartManager.install.args[0][2]).to.equal(
           constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
@@ -177,15 +179,15 @@ describe('NetworkCommand unit tests', () => {
 
     it('Should use local chart directory', async () => {
       try {
-        argv[flags.chartDirectory.name] = 'test-directory';
-        argv[flags.force.name] = true;
+        argv.setArg(flags.chartDirectory, 'test-directory');
+        argv.setArg(flags.force, true);
 
-        sinon.stub(NetworkCommand.prototype, 'getConsensusNodes').returns([]);
-        sinon.stub(NetworkCommand.prototype, 'getContexts').returns([]);
-        sinon.stub(NetworkCommand.prototype, 'getClusterRefs').returns({['solo-e2e']: 'context1'});
+        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([]);
+        opts.remoteConfigManager.getContexts = sinon.stub().returns([]);
+        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
-        await networkCommand.deploy(argv);
-        expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_TEST_CLUSTER);
+        await networkCommand.deploy(argv.build());
+        expect(opts.chartManager.install.args[0][0].name).to.equal(SOLO_TEST_CLUSTER);
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(opts.chartManager.install.args[0][2]).to.equal(
           path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
@@ -201,17 +203,20 @@ describe('NetworkCommand unit tests', () => {
         const common = path.join('test', 'data', 'test-values.yaml');
         const values1 = path.join('test', 'data', 'test-values1.yaml');
         const values2 = path.join('test', 'data', 'test-values2.yaml');
-        argv[flags.networkDeploymentValuesFile.name] = `${common},cluster=${values1},cluster=${values2}`;
-        argv[flags.chartDirectory.name] = 'test-directory';
-        argv[flags.force.name] = true;
+        argv.setArg(flags.networkDeploymentValuesFile, `${common},cluster=${values1},cluster=${values2}`);
+        argv.setArg(flags.chartDirectory, 'test-directory');
+        argv.setArg(flags.force, true);
 
         const task = sinon.stub();
 
-        sinon
-          .stub(NetworkCommand.prototype, 'getConsensusNodes')
+        opts.remoteConfigManager.getConsensusNodes = sinon
+          .stub()
           .returns([new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn')]);
+        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context-1']);
+        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
+
         const networkCommand = new NetworkCommand(opts);
-        const config = await networkCommand.prepareConfig(task, argv);
+        const config = await networkCommand.prepareConfig(task, argv.build());
 
         expect(config.valuesArgMap).to.not.empty;
         expect(config.valuesArgMap['cluster']).to.not.empty;

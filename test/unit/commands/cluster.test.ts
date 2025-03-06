@@ -6,13 +6,7 @@ import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
-import {
-  getDefaultArgv,
-  getTestCacheDir,
-  HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER,
-  testLocalConfigData,
-} from '../../test_util.js';
+import {getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, testLocalConfigData} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -49,6 +43,7 @@ import {ClusterChecks} from '../../../src/core/cluster_checks.js';
 import {K8ClientClusters} from '../../../src/core/kube/k8_client/resources/cluster/k8_client_clusters.js';
 import {K8ClientContexts} from '../../../src/core/kube/k8_client/resources/context/k8_client_contexts.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -66,19 +61,19 @@ const getBaseCommandOpts = (context: string) => {
 
 const testName = 'cluster-cmd-unit';
 const namespace = NamespaceName.of(testName);
-const argv = getDefaultArgv(namespace);
+const argv = Argv.getDefaultArgv(namespace);
 const sandbox = sinon.createSandbox();
 
-argv[flags.namespace.name] = namespace.name;
-argv[flags.deployment.name] = `${namespace.name}-deployment`;
-argv[flags.releaseTag.name] = HEDERA_PLATFORM_VERSION_TAG;
-argv[flags.nodeAliasesUnparsed.name] = 'node1';
-argv[flags.generateGossipKeys.name] = true;
-argv[flags.generateTlsKeys.name] = true;
-argv[flags.clusterRef.name] = TEST_CLUSTER;
-argv[flags.soloChartVersion.name] = version.SOLO_CHART_VERSION;
-argv[flags.force.name] = true;
-argv[flags.clusterSetupNamespace.name] = constants.SOLO_SETUP_NAMESPACE.name;
+argv.setArg(flags.namespace, namespace.name);
+argv.setArg(flags.deployment, `${namespace.name}-deployment`);
+argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.nodeAliasesUnparsed, 'node1');
+argv.setArg(flags.generateGossipKeys, true);
+argv.setArg(flags.generateTlsKeys, true);
+argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.force, true);
+argv.setArg(flags.clusterSetupNamespace, constants.SOLO_SETUP_NAMESPACE.name);
 
 describe('ClusterCommand unit tests', () => {
   before(() => {
@@ -113,7 +108,7 @@ describe('ClusterCommand unit tests', () => {
 
     it('Install function is called with expected parameters', async () => {
       const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.handlers.setup(argv);
+      await clusterCommand.handlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
@@ -124,11 +119,11 @@ describe('ClusterCommand unit tests', () => {
     });
 
     it('Should use local chart directory', async () => {
-      argv[flags.chartDirectory.name] = 'test-directory';
-      argv[flags.force.name] = true;
+      argv.setArg(flags.chartDirectory, 'test-directory');
+      argv.setArg(flags.force, true);
 
       const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.handlers.setup(argv);
+      await clusterCommand.handlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
         path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
@@ -213,7 +208,23 @@ describe('ClusterCommand unit tests', () => {
         configManager.getFlag.withArgs(stubbedFlags[i][0]).returns(stubbedFlags[i][1]);
       }
 
-      return {
+      container.unregister(InjectTokens.RemoteConfigManager);
+      container.registerInstance(InjectTokens.RemoteConfigManager, remoteConfigManagerStub);
+
+      container.unregister(InjectTokens.K8Factory);
+      container.registerInstance(InjectTokens.K8Factory, k8FactoryStub);
+
+      const localConfig = new LocalConfig(filePath);
+      container.unregister(InjectTokens.LocalConfig);
+      container.registerInstance(InjectTokens.LocalConfig, localConfig);
+
+      container.unregister(InjectTokens.ConfigManager);
+      container.registerInstance(InjectTokens.ConfigManager, configManager);
+
+      container.unregister(InjectTokens.SoloLogger);
+      container.registerInstance(InjectTokens.SoloLogger, loggerStub);
+
+      const options = {
         logger: loggerStub,
         helm: sandbox.createStubInstance(Helm),
         k8Factory: k8FactoryStub,
@@ -230,16 +241,17 @@ describe('ClusterCommand unit tests', () => {
         certificateManager: sandbox.createStubInstance(CertificateManager),
         remoteConfigManager: remoteConfigManagerStub,
       } as Opts;
+
+      return options;
     };
 
     describe('updateLocalConfig', () => {
       async function runUpdateLocalConfigTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8Factory);
+        tasks = container.resolve(ClusterCommandTasks);
 
-        // @ts-expect-error - TS2554: Expected 0 arguments, but got 1.
-        const taskObj = tasks.updateLocalConfig({});
+        const taskObj = tasks.updateLocalConfig();
 
         await taskObj.task({config: {}} as any, sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>);
         return command;
@@ -374,7 +386,7 @@ describe('ClusterCommand unit tests', () => {
       async function runSelectContextTask(opts) {
         command = new ClusterCommand(opts);
 
-        tasks = new ClusterCommandTasks(command, opts.k8Factory);
+        tasks = container.resolve(ClusterCommandTasks);
 
         // @ts-expect-error - TS2554: Expected 0 arguments, but got 1
         const taskObj = tasks.selectContext({});
@@ -507,7 +519,7 @@ describe('ClusterCommand unit tests', () => {
 
       async function runReadClustersFromRemoteConfigTask(opts) {
         command = new ClusterCommand(opts);
-        tasks = new ClusterCommandTasks(command, k8FactoryStub);
+        tasks = container.resolve(ClusterCommandTasks);
         const taskObj = tasks.readClustersFromRemoteConfig({});
         taskStub = sandbox.stub() as unknown as ListrTaskWrapper<any, any, any>;
         taskStub.newListr = sandbox.stub();

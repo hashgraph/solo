@@ -7,7 +7,7 @@ import * as constants from '../constants.js';
 
 import {type KeyManager} from '../key_manager.js';
 import {type ToJSON} from '../../types/index.js';
-import {type JsonString, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type JsonString, type NodeAlias} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_entry_data_wrapper.js';
 import {Templates} from '../templates.js';
 import path from 'path';

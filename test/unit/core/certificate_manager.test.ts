@@ -14,9 +14,10 @@ import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
 import {K8ClientSecrets} from '../../../src/core/kube/k8_client/resources/secret/k8_client_secrets.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {Argv} from '../../helpers/argv_wrapper.js';
 
 describe('Certificate Manager', () => {
-  const argv = {};
+  const argv = Argv.initializeEmpty();
 
   const k8InitSpy = new K8Client(undefined);
 
@@ -26,9 +27,9 @@ describe('Certificate Manager', () => {
     resetForTest();
     sinon.stub(K8Client.prototype, 'init').returns(k8InitSpy);
     sinon.stub(K8ClientSecrets.prototype, 'create').resolves(true);
-    argv[flags.namespace.name] = 'namespace';
+    argv.setArg(flags.namespace, 'namespace');
     const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-    configManager.update(argv);
+    configManager.update(argv.build());
     certificateManager = container.resolve(InjectTokens.CertificateManager);
   });
 
@@ -39,7 +40,7 @@ describe('Certificate Manager', () => {
   it('should throw if and error if nodeAlias is not provided', async () => {
     const input = '=/usr/bin/fake.cert';
 
-    // @ts-ignore to access private method
+    // @ts-expect-error - TS2341: to access private property
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
       'Failed to parse input =/usr/bin/fake.cert of type testing on =/usr/bin/fake.cert, index 0',
@@ -49,7 +50,7 @@ describe('Certificate Manager', () => {
   it('should throw if and error if path is not provided', async () => {
     const input = 'node=';
 
-    // @ts-ignore to access private method
+    // @ts-expect-error - TS2341: to access private property
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
       'Failed to parse input node= of type testing on node=, index 0',
@@ -59,7 +60,7 @@ describe('Certificate Manager', () => {
   it('should throw if and error if type is not valid', () => {
     const input = 'node=/invalid/path';
 
-    // @ts-ignore to access private method
+    // @ts-expect-error - TS2341: to access private property
     expect(() => certificateManager.parseAndValidate(input, 'testing')).to.throw(
       SoloError,
       "File doesn't exist on path node=/invalid/path input of type testing on node=/invalid/path, index 0",

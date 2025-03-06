@@ -56,9 +56,9 @@ export const HEDERA_NODE_SIDECARS = [
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = NamespaceName.of('solo-setup');
 export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts';
-export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
 export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup';
 export const SOLO_DEPLOYMENT_CHART = 'solo-deployment';
+export const SOLO_CERT_MANAGER_CHART = 'solo-cert-manager';
 export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay';
 export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts';
@@ -69,6 +69,11 @@ export const HEDERA_EXPLORER_RELEASE_NAME = 'hedera-explorer';
 export const SOLO_RELAY_LABEL = 'app=hedera-json-rpc-relay';
 export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/component=hedera-explorer';
 
+export const INGRESS_CONTROLLER_CHART_URL = 'https://haproxy-ingress.github.io/charts';
+export const INGRESS_CONTROLLER_RELEASE_NAME = 'haproxy-ingress';
+export const INGRESS_CONTROLLER_NAME = 'haproxy-ingress.github.io/controller';
+
+export const CERT_MANAGER_NAME_SPACE = 'cert-manager';
 export const SOLO_HEDERA_MIRROR_IMPORTER = [
   'app.kubernetes.io/component=importer',
   'app.kubernetes.io/instance=mirror',
@@ -76,8 +81,13 @@ export const SOLO_HEDERA_MIRROR_IMPORTER = [
 
 export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(JSON_RPC_RELAY_CHART, JSON_RPC_RELAY_CHART_URL)
-  .set(MIRROR_NODE_RELEASE_NAME, MIRROR_NODE_CHART_URL);
+  .set(MIRROR_NODE_RELEASE_NAME, MIRROR_NODE_CHART_URL)
+  .set(INGRESS_CONTROLLER_RELEASE_NAME, INGRESS_CONTROLLER_CHART_URL);
 
+export const MIRROR_INGRESS_CLASS_NAME = 'mirror-ingress-class';
+export const MIRROR_INGRESS_CONTROLLER = 'mirror-ingress-controller';
+export const EXPLORER_INGRESS_CLASS_NAME = 'explorer-ingress-class';
+export const EXPLORER_INGRESS_CONTROLLER = 'explorer-ingress-controller';
 // ------------------- Hedera Account related ---------------------------------------------------------------------------------
 export const OPERATOR_ID = process.env.SOLO_OPERATOR_ID || '0.0.2';
 export const OPERATOR_KEY =
@@ -113,12 +123,11 @@ export const POD_CONDITION_STATUS_TRUE = 'True';
 
 export const EXPLORER_VALUES_FILE = path.join(RESOURCES_DIR, 'hedera-explorer-values.yaml');
 export const MIRROR_NODE_VALUES_FILE = path.join(RESOURCES_DIR, 'mirror-node-values.yaml');
-
 export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod';
 
 /**
  * Listr related
- * @return a object that defines the default color options
+ * @returns a object that defines the default color options
  */
 export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
@@ -163,7 +172,7 @@ export const PROFILE_TINY = 'tiny';
 export const PROFILE_LOCAL = 'local';
 
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE];
-export const DEFAULT_PROFILE_FILE = path.join(SOLO_CACHE_DIR, 'profiles', 'custom-spec.yaml');
+export const DEFAULT_PROFILE_FILE = path.join('profiles', 'custom-spec.yaml');
 
 export const STANDARD_DATAMASK = '***';
 
@@ -190,7 +199,7 @@ export const JVM_DEBUG_PORT = 5005;
 
 export const PODS_RUNNING_MAX_ATTEMPTS = +process.env.PODS_RUNNING_MAX_ATTEMPTS || 60 * 15;
 export const PODS_RUNNING_DELAY = +process.env.PODS_RUNNING_DELAY || 1000;
-export const NETWORK_NODE_ACTIVE_MAX_ATTEMPTS = +process.env.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS || 120;
+export const NETWORK_NODE_ACTIVE_MAX_ATTEMPTS = +process.env.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS || 300;
 export const NETWORK_NODE_ACTIVE_DELAY = +process.env.NETWORK_NODE_ACTIVE_DELAY || 1_000;
 export const NETWORK_NODE_ACTIVE_TIMEOUT = +process.env.NETWORK_NODE_ACTIVE_TIMEOUT || 1_000;
 export const NETWORK_PROXY_MAX_ATTEMPTS = +process.env.NETWORK_PROXY_MAX_ATTEMPTS || 300;
@@ -203,6 +212,9 @@ export const RELAY_PODS_READY_MAX_ATTEMPTS = +process.env.RELAY_PODS_READY_MAX_A
 export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_000;
 export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const LOCAL_BUILD_COPY_RETRY = +process.env.LOCAL_BUILD_COPY_RETRY || 3;
+
+export const LOAD_BALANCER_CHECK_DELAY_SECS = +process.env.LOAD_BALANCER_CHECK_DELAY_SECS || 5;
+export const LOAD_BALANCER_CHECK_MAX_ATTEMPTS = +process.env.LOAD_BALANCER_CHECK_MAX_ATTEMPTS || 60;
 
 export const NETWORK_DESTROY_WAIT_TIMEOUT = +process.env.NETWORK_DESTROY_WAIT_TIMEOUT || 120;
 

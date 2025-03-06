@@ -12,5 +12,9 @@ export class ConsensusNode {
     public readonly dnsBaseDomain: string,
     public readonly dnsConsensusNodePattern: string,
     public readonly fullyQualifiedDomainName: string,
-  ) {}
+  ) {
+    if (!context) {
+      throw new Error(`ConsensusNode context cannot be empty or null. Call stack: ${new Error().stack}`);
+    }
+  }
 }

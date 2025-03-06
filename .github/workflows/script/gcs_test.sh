@@ -26,7 +26,7 @@ else
 fi
 
 if [ -z "${STORAGE_TYPE}" ]; then
-  storageType="aws_only"
+  storageType="minio_only"
 else
   storageType=${STORAGE_TYPE}
 fi
@@ -43,16 +43,16 @@ else
   if [ "${storageType}" == "aws_only" ]; then
     STORAGE_OPTIONS=(
         "--aws-endpoint" "https://storage.googleapis.com"
-        "--aws-access-key" "${GCS_ACCESS_KEY}"
-        "--aws-secrets" "${GCS_SECRET_KEY}"
+        "--aws-write-access-key" "${GCS_ACCESS_KEY}"
+        "--aws-write-secrets" "${GCS_SECRET_KEY}"
         "--aws-bucket" "${streamBucket}"
         "--aws-bucket-prefix" "${PREFIX}"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
     STORAGE_OPTIONS=(
         "--gcs-endpoint" "https://storage.googleapis.com"
-        "--gcs-access-key" "${GCS_ACCESS_KEY}"
-        "--gcs-secrets" "${GCS_SECRET_KEY}"
+        "--gcs-write-access-key" "${GCS_ACCESS_KEY}"
+        "--gcs-write-secrets" "${GCS_SECRET_KEY}"
         "--gcs-bucket" "${streamBucket}"
         "--gcs-bucket-prefix" "${PREFIX}"
     )
@@ -61,8 +61,8 @@ else
   if [ "${storageType}" == "aws_only" ] || [ "${storageType}" == "gcs_only" ]; then
     MIRROR_STORAGE_OPTIONS=(
         "--storage-endpoint" "https://storage.googleapis.com"
-        "--storage-access-key" "${GCS_ACCESS_KEY}"
-        "--storage-secrets" "${GCS_SECRET_KEY}"
+        "--storage-read-access-key" "${GCS_ACCESS_KEY}"
+        "--storage-read-secrets" "${GCS_SECRET_KEY}"
         "--storage-bucket" "${streamBucket}"
         "--storage-bucket-prefix" "${PREFIX}"
     )
@@ -88,7 +88,7 @@ npm run solo-test -- init
 npm run solo-test -- cluster setup \
   -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1
-npm run solo-test -- deployment create -n "${SOLO_NAMESPACE}" --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- deployment create -i node1 -n "${SOLO_NAMESPACE}" --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" \
   --storage-type "${storageType}" \
   "${STORAGE_OPTIONS[@]}" \
@@ -97,11 +97,11 @@ npm run solo-test -- network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" \
 
 npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
-npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" \
+npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} \
   --storage-type "${storageType}" \
   "${MIRROR_STORAGE_OPTIONS[@]}" \
 
-npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME}
 
 kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 

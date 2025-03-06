@@ -1,0 +1,111 @@
+version: 3
+output: prefixed
+dotenv:
+  - .env
+silent: false
+
+env:
+  HUGO_ENVIRONMENT: production
+  HUGO_ENV: production
+  HUGO_BASE_URL: https://hashgraph.github.io/solo
+  HUGO_ORIGIN: https://hashgraph.github.io
+  HUGO_HOST: hashgraph.github.io
+  HUGO_BASEPATH: /solo
+
+tasks:
+  default:
+    cmds:
+      - task: "check-doc-dir"
+      - task: "clean"
+      - task: "install"
+      - task: "build"
+
+  start:
+    cmds:
+      - task: "default"
+      - hugo server --disableFastRender --ignoreCache
+
+  check-doc-dir:
+    status:
+      - |
+        if [ "$(basename "$PWD")" != "site" ]; then
+          exit 1
+        fi
+    cmds:
+      - |
+        echo "Error: Must be in the 'docs/site' directory."
+        exit 1
+
+  clean:
+    cmds:
+      - rm -Rf content/Classes
+      - rm -f content/Developer/DEV.md
+      - rm -f content/User/README.md
+      - rm -f content/User/SoloCommands.md
+      - rm -Rf public
+      - rm -Rf themes
+      - rm -f .hugo_build.lock
+
+  build:
+    cmds:
+      - task: "build:typedoc"
+      - task: "build:copy"
+      - task: "build:help"
+      - task: "build:hugo"
+
+  build:help:
+    dir: ../..
+    cmds:
+      - chmod 755 docs/site/generate_help.sh
+      - npm run build
+      - docs/site/generate_help.sh
+      - npx eslint --fix .
+
+  build:hugo:
+    cmds:
+      - echo "base_url  $HUGO_BASE_URL"
+      - echo "origin    $HUGO_ORIGIN"
+      - echo "host      $HUGO_HOST"
+      - echo "base_path $HUGO_BASEPATH"
+      - mkdir -p themes/hugo-geekdoc
+      - curl -L https://github.com/thegeeklab/hugo-geekdoc/releases/latest/download/hugo-geekdoc.tar.gz | tar -xz -C themes/hugo-geekdoc/ --strip-components=1
+      - hugo version
+      - hugo config
+      - hugo --gc --minify --baseURL "$HUGO_BASE_URL/"
+
+  build:typedoc:
+    dir: ../..
+    cmds:
+      - npx typedoc --excludeExternals --out docs/site/public/static/Classes --entryPoints ./solo.ts --entryPoints ./src/index.ts --entryPointStrategy expand ./src
+
+  build:copy:
+    cmds:
+      - mkdir -p content/Developer
+      - cp ../../DEV.md content/Developer/DEV.md
+      - mkdir -p content/User
+      - mkdir -p content/User/README
+      - cp ../../README.md content/User/README/README.md
+      - mkdir -p content/User/README/README/images
+      - cp ../../images/DockerDesktop.png content/User/README/README/images/DockerDesktop.png
+      - chmod -R 755 content/User/README
+
+  install:
+    cmds:
+      - task: "install:hugo"
+      - task: "install:typedoc"
+      - task: "install:solo"
+
+  install:hugo:
+    status:
+      - command -v hugo
+    cmds:
+      - go install github.com/gohugoio/hugo@v0.124.1
+
+  install:typedoc:
+    cmds:
+      - npx typedoc --version
+
+  install:solo:
+    dir: ../..
+    cmds:
+      - npm install

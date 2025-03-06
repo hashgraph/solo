@@ -41,7 +41,7 @@ import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type ClusterRef, type DeploymentName, type ClusterRefs} from './config/remote/types.js';
+import {type ClusterRefs, type DeploymentName} from './config/remote/types.js';
 import {type Service} from './kube/resources/service/service.js';
 import {SoloService} from './model/solo_service.js';
 
@@ -55,6 +55,7 @@ const REJECTED = 'rejected';
 @injectable()
 export class AccountManager {
   private _portForwards: ExtendedNetServer[];
+  private _forcePortForward: boolean = false;
   public _nodeClient: Client | null;
 
   constructor(
@@ -167,14 +168,16 @@ export class AccountManager {
   /**
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
-   * @param clusterRefs
-   * @param deployment
-   * @param context
+   * @param clusterRefs - the cluster references to use
+   * @param deployment - k8 deployment name
+   * @param context - k8 context name
+   * @param forcePortForward - whether to force the port forward
    */
   async loadNodeClient(
     namespace: NamespaceName,
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
+    forcePortForward?: boolean,
     context?: Optional<string>,
   ) {
     try {
@@ -185,7 +188,7 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context);
+        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
@@ -193,7 +196,7 @@ export class AccountManager {
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context);
+          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
         }
       }
 
@@ -212,6 +215,7 @@ export class AccountManager {
    * @param [clusterRefs]
    * @param [deployment]
    * @param [context]
+   * @param forcePortForward - whether to force the port forward
    */
   async refreshNodeClient(
     namespace: NamespaceName,
@@ -219,9 +223,13 @@ export class AccountManager {
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
     context?: Optional<string>,
+    forcePortForward?: boolean,
   ) {
     try {
       await this.close();
+      if (forcePortForward !== undefined) {
+        this._forcePortForward = forcePortForward;
+      }
 
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace, context);
       const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs, deployment);
@@ -249,7 +257,7 @@ export class AccountManager {
    * @returns whether to use the local host port forward
    */
   private shouldUseLocalHostPortForward(networkNodeServices: NetworkNodeServices) {
-    return !networkNodeServices.haProxyLoadBalancerIp;
+    return this._forcePortForward || !networkNodeServices.haProxyLoadBalancerIp;
   }
 
   /**
@@ -332,7 +340,6 @@ export class AccountManager {
   /**
    * pings the node client at a set interval, can throw an exception if the ping fails
    * @param operatorId
-   * @private
    */
   private startIntervalPinger(operatorId: string) {
     const interval = constants.NODE_CLIENT_PING_INTERVAL;
@@ -385,7 +392,7 @@ export class AccountManager {
       if (this._portForwards.length < totalNodes) {
         this._portForwards.push(
           await this.k8Factory
-            .default()
+            .getK8(networkNodeService.context)
             .pods()
             .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
             .portForward(localPort, port),
@@ -408,7 +415,6 @@ export class AccountManager {
    * @param obj - the object containing the network node service and the account id
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
-   * @private
    */
   private async testNodeClientConnection(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
     const maxRetries = constants.NODE_CLIENT_PING_MAX_RETRIES;
@@ -563,7 +569,6 @@ export class AccountManager {
           .pods()
           .list(namespace, ['solo.hedera.com/type=network-node']);
         for (const pod of pods) {
-          // eslint-disable-next-line no-prototype-builtins
           if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
             // TODO Review why this fixes issue
             continue;
@@ -593,6 +598,7 @@ export class AccountManager {
    * @param currentSet - the accounts to update
    * @param updateSecrets - whether to delete the secret prior to creating a new secret
    * @param resultTracker - an object to keep track of the results from the accounts that are being updated
+   * @param contexts
    * @returns the updated resultTracker object
    */
   async updateSpecialAccountsKeys(
@@ -604,6 +610,7 @@ export class AccountManager {
       rejectedCount: number;
       fulfilledCount: number;
     },
+    contexts: string[],
   ) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY);
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
@@ -618,6 +625,7 @@ export class AccountManager {
           AccountId.fromString(`${realm}.${shard}.${accountNum}`),
           genesisKey,
           updateSecrets,
+          contexts,
         ),
       );
     }
@@ -657,7 +665,8 @@ export class AccountManager {
    * @param namespace - the namespace of the nodes network
    * @param accountId - the account that will get its keys updated
    * @param genesisKey - the genesis key to compare against
-   * @param updateSecrets - whether to delete the secret prior to creating a new secret
+   * @param updateSecrets - whether to delete the secret before creating a new secret
+   * @param [contexts]
    * @returns the result of the call
    */
   async updateAccountKeys(
@@ -665,11 +674,12 @@ export class AccountManager {
     accountId: AccountId,
     genesisKey: PrivateKey,
     updateSecrets: boolean,
+    contexts?: string[],
   ): Promise<{value: string; status: string} | {reason: string; value: string; status: string}> {
     let keys: Key[];
     try {
       keys = await this.getAccountKeys(accountId);
-    } catch (e: Error | any) {
+    } catch (e) {
       this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`);
       return {
         status: REJECTED,
@@ -704,37 +714,35 @@ export class AccountManager {
     };
 
     try {
-      const createdOrUpdated = updateSecrets
-        ? await this.k8Factory
-            .default()
-            .secrets()
-            .replace(
-              namespace,
-              Templates.renderAccountKeySecretName(accountId),
-              SecretType.OPAQUE,
-              data,
-              Templates.renderAccountKeySecretLabelObject(accountId),
-            )
-        : await this.k8Factory
-            .default()
-            .secrets()
-            .create(
-              namespace,
-              Templates.renderAccountKeySecretName(accountId),
-              SecretType.OPAQUE,
-              data,
-              Templates.renderAccountKeySecretLabelObject(accountId),
-            );
+      for (const context of contexts) {
+        const secretName = Templates.renderAccountKeySecretName(accountId);
+        const secretLabels = Templates.renderAccountKeySecretLabelObject(accountId);
+        const secretType = SecretType.OPAQUE;
 
-      if (!createdOrUpdated) {
-        this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
-        return {
-          status: REJECTED,
-          reason: REASON_FAILED_TO_CREATE_K8S_S_KEY,
-          value: accountId.toString(),
-        };
+        let createdOrUpdated: boolean;
+
+        if (updateSecrets) {
+          createdOrUpdated = await this.k8Factory
+            .getK8(context)
+            .secrets()
+            .replace(namespace, secretName, secretType, data, secretLabels);
+        } else {
+          createdOrUpdated = await this.k8Factory
+            .getK8(context)
+            .secrets()
+            .create(namespace, secretName, secretType, data, secretLabels);
+        }
+
+        if (!createdOrUpdated) {
+          this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
+          return {
+            status: REJECTED,
+            reason: REASON_FAILED_TO_CREATE_K8S_S_KEY,
+            value: accountId.toString(),
+          };
+        }
       }
-    } catch (e: Error | any) {
+    } catch (e) {
       this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${e.toString()}`);
       return {
         status: REJECTED,
@@ -938,10 +946,8 @@ export class AccountManager {
         .addHbarTransfer(toAccountId, new Hbar(hbarAmount))
         .freezeWith(this._nodeClient);
 
-      // @ts-ignore
       const txResponse = await transaction.execute(this._nodeClient);
 
-      // @ts-ignore
       const receipt = await txResponse.getReceipt(this._nodeClient);
 
       this.logger.debug(
@@ -949,7 +955,7 @@ export class AccountManager {
       );
 
       return receipt.status === Status.Success;
-    } catch (e: Error | any) {
+    } catch (e) {
       const errorMessage = `transfer amount failed with an error: ${e.toString()}`;
       this.logger.error(errorMessage);
       throw new SoloError(errorMessage, e);
@@ -959,14 +965,25 @@ export class AccountManager {
   /**
    * Fetch and prepare address book as a base64 string
    */
-  async prepareAddressBookBase64() {
+  async prepareAddressBookBase64(
+    namespace: NamespaceName,
+    clusterRefs?: ClusterRefs,
+    deployment?: DeploymentName,
+    operatorId?: string,
+    operatorKey?: string,
+    forcePortForward?: boolean,
+    context?: string,
+  ) {
     // fetch AddressBook
-    const fileQuery = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK);
-    const addressBookBytes = await fileQuery.execute(this._nodeClient);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
+    const client = this._nodeClient;
 
-    // convert addressBook into base64
-    // @ts-ignore
-    return Base64.encode(addressBookBytes);
+    if (operatorId && operatorKey) {
+      client.setOperator(operatorId, operatorKey);
+    }
+
+    const query = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK);
+    return Buffer.from(await query.execute(client)).toString('base64');
   }
 
   async getFileContents(
@@ -974,8 +991,10 @@ export class AccountManager {
     fileNum: number,
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
+    forcePortForward?: boolean,
+    context?: string,
   ) {
-    await this.loadNodeClient(namespace, clusterRefs, deployment);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);
@@ -987,7 +1006,6 @@ export class AccountManager {
    * @param obj - the network node object where the key is the network endpoint and the value is the account id
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
-   * @private
    */
   private async pingNetworkNode(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
     let nodeClient: Client;

@@ -423,7 +423,7 @@ export class KeyManager {
    * @param keysDir - keys directory
    * @param curDate - current date
    * @param [allNodeAliases] - includes the nodeAliases to get new keys as well as existing nodeAliases that will be included in the public.pfx file
-   * @return a list of subtasks
+   * @returns a list of subtasks
    */
   taskGenerateGossipKeys(
     nodeAliases: NodeAliases,
@@ -466,7 +466,7 @@ export class KeyManager {
    * @param nodeAliases
    * @param keysDir keys directory
    * @param curDate current date
-   * @return return a list of subtasks
+   * @returns return a list of subtasks
    */
   taskGenerateTLSKeys(nodeAliases: NodeAliases, keysDir: string, curDate = new Date()) {
     // check if nodeAliases is an array of strings

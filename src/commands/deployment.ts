@@ -11,7 +11,6 @@ import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type CommandFlag} from '../types/flag_types.js';
-import {type CommandBuilder} from '../types/aliases.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error_messages.js';
 import {splitFlagInput} from '../core/helpers.js';
@@ -26,7 +25,7 @@ export class DeploymentCommand extends BaseCommand {
   constructor(opts: Opts) {
     super(opts);
 
-    this.tasks = new ClusterCommandTasks(this, this.k8Factory);
+    this.tasks = container.resolve(ClusterCommandTasks);
   }
 
   private static get DEPLOY_FLAGS_LIST(): CommandFlag[] {
@@ -97,7 +96,7 @@ export class DeploymentCommand extends BaseCommand {
         this.localConfig.promptLocalConfigTask(self.k8Factory),
         {
           title: 'Add new deployment to local config',
-          task: async (ctx, task) => {
+          task: async ctx => {
             const {deployments} = this.localConfig;
             const {deployment, namespace: configNamespace, deploymentClusters} = ctx.config;
             deployments[deployment] = {
@@ -105,6 +104,12 @@ export class DeploymentCommand extends BaseCommand {
               clusters: deploymentClusters,
             };
             this.localConfig.setDeployments(deployments);
+
+            // update clusterRefs
+            const currentClusterRefs = this.localConfig.clusterRefs;
+            currentClusterRefs[ctx.config.clusterRef] = ctx.config.context;
+            this.localConfig.setClusterRefs(currentClusterRefs);
+
             await this.localConfig.write();
           },
         },
@@ -236,7 +241,7 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
-  public getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  public getCommandDefinition() {
     const self = this;
     return {
       command: 'deployment',
@@ -247,20 +252,20 @@ export class DeploymentCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates solo deployment',
             builder: y => flags.setCommandFlags(y, ...DeploymentCommand.DEPLOY_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .create(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error creating deployment: ${err.message}`, err);
                 });
             },
           })
@@ -268,20 +273,20 @@ export class DeploymentCommand extends BaseCommand {
             command: 'list',
             desc: 'List solo deployments inside a cluster',
             builder: y => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
-            handler: argv => {
+            handler: async argv => {
               self.logger.info("==== Running 'deployment list' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .list(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment list`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error listing deployments: ${err.message}`, err);
                 });
             },
           })

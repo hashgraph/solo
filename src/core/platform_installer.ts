@@ -7,7 +7,7 @@ import * as path from 'path';
 import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
 import * as constants from './constants.js';
 import {type ConfigManager} from './config_manager.js';
-import {type K8Factory} from '../core/kube/k8_factory.js';
+import {type K8Factory} from './kube/k8_factory.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
@@ -92,7 +92,7 @@ export class PlatformInstaller {
     try {
       const scriptName = 'extract-platform.sh';
       const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyFiles(podRef, [sourcePath], constants.HEDERA_USER_HOME_DIR);
+      await this.copyFiles(podRef, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
 
       // wait a few seconds before calling the script to avoid "No such file" error
       await sleep(Duration.ofSeconds(2));
@@ -107,7 +107,7 @@ export class PlatformInstaller {
 
       return true;
     } catch (e) {
-      const message = `failed to extract platform code in this pod '${podRef.name}': ${e.message}`;
+      const message = `failed to extract platform code in this pod '${podRef}' while using the '${context}' context: ${e.message}`;
       this.logger.error(message, e);
       throw new SoloError(message, e);
     }
@@ -318,7 +318,7 @@ export class PlatformInstaller {
    * @param stagingDir - staging directory path
    * @param podRef - pod reference
    * @param isGenesis - true if this is `solo node setup` and we are at genesis
-   * @private
+   * @param context
    */
   private async copyConfigurationFiles(stagingDir: string, podRef: PodRef, isGenesis: boolean, context?: string) {
     if (isGenesis) {
