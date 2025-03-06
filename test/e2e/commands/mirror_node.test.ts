@@ -178,7 +178,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         client.setOperator(accountInfo.accountId, privateKey);
 
         // Create a new public topic and submit a message
-        const txResponse = await new TopicCreateTransaction().execute(client);
+        const txResponse = await new TopicCreateTransaction().setAdminKey(privateKey)
+          .setSubmitKey(privateKey)
+          .execute(client);
         const receipt = await txResponse.getReceipt(client);
         newTopicId = receipt.topicId;
         mirrorNodeCmd.logger.debug(`Newly created topic ID is: ${newTopicId}`);

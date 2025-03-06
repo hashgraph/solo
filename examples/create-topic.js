@@ -29,7 +29,7 @@ async function main() {
   const TEST_MESSAGE = 'Hello World';
   try {
     // create topic
-    let transaction = await new TopicCreateTransaction().freezeWithSigner(wallet);
+    let transaction = await new TopicCreateTransaction().setAdminKey(process.env.OPERATOR_KEY).freezeWithSigner(wallet);
     transaction = await transaction.signWithSigner(wallet);
     const createResponse = await transaction.executeWithSigner(wallet);
     const createReceipt = await createResponse.getReceiptWithSigner(wallet);
