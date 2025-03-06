@@ -10,8 +10,14 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
-import * as helpers from '../core/helpers.js';
-import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {
+  addDebugOptions,
+  resolveValidJsonFilePath,
+  validatePath,
+  sleep,
+  parseNodeAliases,
+  prepareChartPath,
+} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
@@ -65,7 +71,6 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsKeyPath: string;
   genesisThrottlesFile: string;
   resolvedThrottlesFile: string;
-  getUnusedConfigs: () => string[];
   haproxyIps: string;
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
@@ -639,7 +644,7 @@ export class NetworkCommand extends BaseCommand {
     this.configManager.setFlag(flags.namespace, namespace);
 
     // create a config object for subsequent steps
-    const config: NetworkDeployConfigClass = this.getConfig(
+    const config: NetworkDeployConfigClass = this.configManager.getConfig(
       NetworkCommand.DEPLOY_CONFIGS_NAME,
       NetworkCommand.DEPLOY_FLAGS_LIST,
       [
@@ -657,7 +662,7 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
 
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -668,7 +673,8 @@ export class NetworkCommand extends BaseCommand {
     }
 
     // compute values
-    config.chartPath = await this.prepareChartPath(
+    config.chartPath = await prepareChartPath(
+      this.helm,
       config.chartDirectory,
       constants.SOLO_TESTING_CHART_URL,
       constants.SOLO_DEPLOYMENT_CHART,
@@ -684,9 +690,9 @@ export class NetworkCommand extends BaseCommand {
       flags.genesisThrottlesFile.definition.defaultValue as string,
     );
 
-    config.consensusNodes = this.getConsensusNodes();
-    config.contexts = this.getContexts();
-    config.clusterRefs = this.getClusterRefs();
+    config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    config.contexts = this.remoteConfigManager.getContexts();
+    config.clusterRefs = this.remoteConfigManager.getClusterRefs();
     if (config.nodeAliases.length === 0) {
       config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
       if (config.nodeAliases.length === 0) {
@@ -937,7 +943,7 @@ export class NetworkCommand extends BaseCommand {
                     }
 
                     attempts++;
-                    await helpers.sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
+                    await sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
                   }
                   throw new SoloError('Load balancer not found');
                 },
@@ -1123,7 +1129,7 @@ export class NetworkCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                process.exit(0);
+                this.logger.logAndExitSuccess('Aborted application by user prompt');
               }
             }
 
@@ -1260,20 +1266,20 @@ export class NetworkCommand extends BaseCommand {
             command: 'deploy',
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster setup`",
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'network deploy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `network deploy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error deploying network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error deploying network: ${err.message}`, err);
                 });
             },
           })
@@ -1290,20 +1296,20 @@ export class NetworkCommand extends BaseCommand {
                 flags.deployment,
                 flags.quiet,
               ),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'network destroy' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `network destroy`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error destroying network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error destroying network: ${err.message}`, err);
                 });
             },
           })
@@ -1311,20 +1317,20 @@ export class NetworkCommand extends BaseCommand {
             command: 'refresh',
             desc: 'Refresh solo network deployment',
             builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: (argv: any) => {
+            handler: async (argv: any) => {
               self.logger.info("==== Running 'chart upgrade' ===");
               self.logger.info(argv);
 
-              self
+              await self
                 .refresh(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `chart upgrade`====');
 
-                  if (!r) process.exit(1);
+                  if (!r) throw new SoloError('Error refreshing network, expected return value to be true');
                 })
                 .catch(err => {
                   self.logger.showUserError(err);
-                  process.exit(1);
+                  throw new SoloError(`Error refreshing network: ${err.message}`, err);
                 });
             },
           })

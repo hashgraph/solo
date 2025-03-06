@@ -70,7 +70,7 @@ permissions:
 env:
   #CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
   CG_EXEC: "ionice -c 2 -n 2 nice -n 19"
-  SOLO_CLUSTER_DUALITY: 1
+  SOLO_CLUSTER_DUALITY: ${{ inputs.npm-test-script == 'test-e2e-dual-cluster-full' && 2 || 1 }}
 
 jobs:
   e2e-test:
@@ -201,12 +201,9 @@ jobs:
 
       - name: Run E2E Tests
         run: |
-          echo "SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1"
-          SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
-
-#      - name: Sleep on Failure
-#        if: ${{ failure() }}
-#        run: sleep 3600
+          echo SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 > .env
+          cat .env
+          ${{ env.CG_EXEC }} npm run ${{ inputs.npm-test-script }}
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}

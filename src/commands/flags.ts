@@ -202,6 +202,24 @@ export class Flags {
     },
   };
 
+  static readonly mirrorNamespace: CommandFlag = {
+    constName: 'mirrorNamespace',
+    name: 'mirror-namespace',
+    definition: {
+      describe: 'Namespace to use for the Mirror Node deployment, a new one will be created if it does not exist',
+      type: 'string',
+    },
+    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        'solo',
+        'Enter mirror node namespace name: ',
+        'namespace cannot be empty',
+        Flags.mirrorNamespace.name,
+      );
+    },
+  };
   /**
    * Parse the values files input string that includes the cluster reference and the values file path
    * <p>It supports input as below:
@@ -898,7 +916,7 @@ export class Flags {
     name: 'application-properties',
     definition: {
       describe: 'application.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
+      defaultValue: path.join('templates', 'application.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -911,7 +929,7 @@ export class Flags {
       describe:
         'the application.env file for the node provides environment variables to the solo-container' +
         ' to be used when the hedera platform is started',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.env'),
+      defaultValue: path.join('templates', 'application.env'),
       type: 'string',
     },
     prompt: undefined,
@@ -922,7 +940,7 @@ export class Flags {
     name: 'api-permission-properties',
     definition: {
       describe: 'api-permission.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
+      defaultValue: path.join('templates', 'api-permission.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -933,7 +951,7 @@ export class Flags {
     name: 'bootstrap-properties',
     definition: {
       describe: 'bootstrap.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
+      defaultValue: path.join('templates', 'bootstrap.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -955,7 +973,7 @@ export class Flags {
     name: 'settings-txt',
     definition: {
       describe: 'settings.txt file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
+      defaultValue: path.join('templates', 'settings.txt'),
       type: 'string',
     },
     prompt: undefined,
@@ -1067,7 +1085,7 @@ export class Flags {
     name: 'log4j2-xml',
     definition: {
       describe: 'log4j2.xml file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
+      defaultValue: path.join('templates', 'log4j2.xml'),
       type: 'string',
     },
     prompt: undefined,
@@ -1497,7 +1515,7 @@ export class Flags {
     constName: 'contextName',
     name: 'context',
     definition: {
-      describe: 'The Kubernetes context name to be used. Multiple contexts can be separated by a comma',
+      describe: 'The Kubernetes context name to be used',
       defaultValue: '',
       type: 'string',
     },
@@ -1569,7 +1587,7 @@ export class Flags {
       describe:
         'TLS Certificate path for the gRPC ' +
         '(e.g. "node1=/Users/username/node1-grpc.cert" ' +
-        'with multiple nodes comma seperated)',
+        'with multiple nodes comma separated)',
       defaultValue: '',
       type: 'string',
     },
@@ -1592,7 +1610,7 @@ export class Flags {
       describe:
         'TLS Certificate path for gRPC Web ' +
         '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
-        'with multiple nodes comma seperated)',
+        'with multiple nodes comma separated)',
       defaultValue: '',
       type: 'string',
     },
@@ -2094,6 +2112,7 @@ export class Flags {
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
+    Flags.mirrorNamespace,
     Flags.namespace,
     Flags.networkDeploymentValuesFile,
     Flags.newAccountNumber,

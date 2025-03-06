@@ -5,6 +5,7 @@ import 'chai-as-promised';
 
 import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
+import 'dotenv/config';
 
 import fs from 'fs';
 import os from 'os';
@@ -17,7 +18,7 @@ import {NodeCommand} from '../src/commands/node/index.js';
 import {type DependencyManager} from '../src/core/dependency_managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
-import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR, SOLO_TEST_CLUSTER} from '../src/core/constants.js';
+import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
 import * as NodeCommandConfigs from '../src/commands/node/configs.js';
@@ -51,15 +52,19 @@ import {ContainerRef} from '../src/core/kube/resources/container/container_ref.j
 import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
+import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
 import {Argv} from './helpers/argv_wrapper.js';
 import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 
-export const TEST_CLUSTER = 'kind-' + SOLO_TEST_CLUSTER;
+export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
+export const TEST_CLUSTER = SOLO_TEST_CLUSTER.startsWith('kind-') ? SOLO_TEST_CLUSTER : `kind-${SOLO_TEST_CLUSTER}`;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
 
-export let testLogger: SoloLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+export function getTestLogger() {
+  return container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+}
 
 export function getTestCacheDir(testName?: string) {
   const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR;
@@ -149,7 +154,7 @@ export function bootstrapTestVariables(
   const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
-  testLogger = container.resolve(InjectTokens.SoloLogger);
+  const testLogger: SoloLogger = getTestLogger();
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -226,6 +231,8 @@ export function e2eTestSuite(
     opts: {k8Factory, chartManager},
   } = bootstrapResp;
 
+  const testLogger: SoloLogger = getTestLogger();
+
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
@@ -269,9 +276,10 @@ export function e2eTestSuite(
 
       it('generate key files', async () => {
         expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
-        expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
+        expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
           flags.devMode.constName,
           flags.quiet.constName,
+          flags.namespace.constName,
           'consensusNodes',
           'contexts',
         ]);
@@ -280,7 +288,7 @@ export function e2eTestSuite(
       it('should succeed with network deploy', async () => {
         await networkCmd.deploy(argv.build());
 
-        expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+        expect(networkCmd.configManager.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
           flags.apiPermissionProperties.constName,
           flags.applicationEnv.constName,
           flags.applicationProperties.constName,
@@ -308,7 +316,7 @@ export function e2eTestSuite(
           // cache this, because `solo node setup.finalize()` will reset it to false
           try {
             expect(await nodeCmd.handlers.setup(argv.build())).to.be.true;
-            expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
+            expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
               flags.quiet.constName,
               flags.devMode.constName,
               flags.adminPublicKeys.constName,
@@ -360,7 +368,7 @@ export function balanceQueryShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        cmd.getClusterRefs(),
+        cmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -390,7 +398,7 @@ export function accountCreationShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        nodeCmd.getClusterRefs(),
+        nodeCmd.getRemoteConfigManager().getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;

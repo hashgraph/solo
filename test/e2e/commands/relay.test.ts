@@ -37,7 +37,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     const configManager = bootstrapResp.opts.configManager;
     const relayCmd = new RelayCommand(bootstrapResp.opts);
 
-    after(async () => {
+    after(async function () {
+      this.timeout(Duration.ofMinutes(5).toMillis());
       await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
       await k8Factory.default().namespaces().delete(namespace);
     });
@@ -57,7 +58,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         relayCmd.logger.showUserError(e);
         expect.fail();
       }
-      expect(relayCmd.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+      expect(relayCmd.configManager.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.deployment.constName,
         flags.profileFile.constName,
         flags.profileName.constName,

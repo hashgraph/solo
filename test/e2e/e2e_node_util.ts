@@ -19,6 +19,7 @@ import {type ListrTaskWrapper} from 'listr2';
 import {type ConfigManager} from '../../src/core/config_manager.js';
 import {type K8Factory} from '../../src/core/kube/k8_factory.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
+import {NodeCommandTasks} from '../../src/commands/node/tasks.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
@@ -119,8 +120,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
       function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: NamespaceName, nodeAlias: NodeAlias) {
         it(`${nodeAlias} should be running`, async () => {
           try {
-            // @ts-ignore to access tasks which is a private property
-            expect((await nodeCmd.tasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
+            const nodeTasks = container.resolve(NodeCommandTasks);
+            expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
               `network-${nodeAlias}-0`,
             );
           } catch (e) {
@@ -136,7 +137,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         it(`${nodeAlias} refresh should succeed`, async () => {
           try {
             expect(await nodeCmd.handlers.refresh(argv.build())).to.be.true;
-            expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
+            expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
               flags.devMode.constName,
               flags.quiet.constName,
               'contexts',
@@ -152,11 +153,12 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
       }
 
       function nodeShouldNotBeActive(nodeCmd: NodeCommand, nodeAlias: NodeAlias) {
+        const nodeTasks = container.resolve(NodeCommandTasks);
         it(`${nodeAlias} should not be ACTIVE`, async () => {
           expect(2);
           try {
             await expect(
-              nodeCmd.tasks._checkNetworkNodeActiveness(
+              nodeTasks._checkNetworkNodeActiveness(
                 namespace,
                 nodeAlias,
                 {title: ''} as ListrTaskWrapper<any, any, any>,

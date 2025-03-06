@@ -42,6 +42,8 @@ export class Middlewares {
      * @param yargs - listr Yargs
      */
     return (argv: any, yargs: any): AnyObject => {
+      logger.debug('Processing arguments and displaying header');
+
       // set cluster and namespace in the global configManager from kubernetes context
       // so that we don't need to prompt the user
       const k8 = k8Factory.default();
@@ -96,11 +98,14 @@ export class Middlewares {
    */
   public loadRemoteConfig() {
     const remoteConfigManager = this.remoteConfigManager;
+    const logger = this.logger;
 
     /**
      * @param argv - listr Argv
      */
     return async (argv: any): Promise<AnyObject> => {
+      logger.debug('Loading remote config');
+
       const command = argv._[0];
       const subCommand = argv._[1];
       const skip =
@@ -112,6 +117,10 @@ export class Middlewares {
         (command === 'cluster' && subCommand === 'setup') ||
         (command === 'deployment' && subCommand === 'create') ||
         (command === 'deployment' && subCommand === 'list');
+
+      if (command === 'node' && subCommand === 'keys') {
+        await remoteConfigManager.loadAndValidate(argv, false);
+      }
 
       if (!skip) {
         await remoteConfigManager.loadAndValidate(argv);

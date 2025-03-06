@@ -1,42 +1,55 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type BaseCommand, type CommandHandlers} from '../base.js';
+import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {connectConfigBuilder, resetConfigBuilder, setupConfigBuilder} from './configs.js';
 import {SoloError} from '../../core/errors.js';
-import {type CommandFlag} from '../../types/flag_types.js';
-import {type ArgvStruct, type AnyObject} from '../../types/aliases.js';
-import {type IClusterCommandHandlers} from './interfaces/tasks.js';
-import {type IClusterCommandTasks} from './interfaces/handlers.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {CommandHandler} from '../../core/command_handler.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type ClusterCommandConfigs} from './configs.js';
+import {type ArgvStruct} from '../../types/aliases.js';
 
-export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandHandlers {
-  public readonly parent: BaseCommand;
-  public readonly tasks: IClusterCommandTasks;
-  public readonly remoteConfigManager: RemoteConfigManager;
-  public readonly getConfig: (configName: string, flags: CommandFlag[], extraProperties?: string[]) => AnyObject;
+@injectable()
+export class ClusterCommandHandlers extends CommandHandler {
+  constructor(
+    @inject(InjectTokens.ClusterCommandTasks) private readonly tasks: ClusterCommandTasks,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
+    @inject(InjectTokens.ClusterCommandConfigs) private readonly configs: ClusterCommandConfigs,
+  ) {
+    super();
 
-  public constructor(parent: BaseCommand, tasks: IClusterCommandTasks, remoteConfigManager: RemoteConfigManager) {
-    this.parent = parent;
-    this.tasks = tasks;
-    this.remoteConfigManager = remoteConfigManager;
-    this.getConfig = parent.getConfig.bind(parent);
+    this.tasks = patchInject(tasks, InjectTokens.ClusterCommandTasks, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.configs = patchInject(configs, InjectTokens.ClusterCommandConfigs, this.constructor.name);
   }
 
   public async connect(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [
-        this.tasks.initialize(argv, connectConfigBuilder.bind(this)),
-        this.parent.setupHomeDirectoryTask(),
-        this.parent.getLocalConfig().promptLocalConfigTask(this.parent.getK8Factory()),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
+        this.setupHomeDirectoryTask(),
+        this.localConfig.promptLocalConfigTask(this.k8Factory),
         this.tasks.selectContext(),
-        ListrRemoteConfig.loadRemoteConfig(this.parent, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         this.tasks.readClustersFromRemoteConfig(),
         this.tasks.updateLocalConfig(),
       ],
@@ -48,14 +61,14 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
       null,
     );
 
-    await action(argv, this);
     return true;
   }
 
   public async list(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [this.tasks.showClusterList()],
       {
         concurrent: false,
@@ -65,14 +78,14 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
       null,
     );
 
-    await action(argv, this);
     return true;
   }
 
   public async info(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
-    const action = this.parent.commandActionBuilder(
+    await this.commandAction(
+      argv,
       [this.tasks.getClusterInfo()],
       {
         concurrent: false,
@@ -82,29 +95,26 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
       null,
     );
 
-    await action(argv, this);
     return true;
   }
 
   public async setup(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
-
-    const action = this.parent.commandActionBuilder(
-      [
-        this.tasks.initialize(argv, setupConfigBuilder.bind(this)),
-        this.tasks.prepareChartValues(),
-        this.tasks.installClusterChart(argv),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'cluster setup',
-      null,
-    );
-
     try {
-      await action(argv, this);
+      await this.commandAction(
+        argv,
+        [
+          this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs)),
+          this.tasks.prepareChartValues(argv),
+          this.tasks.installClusterChart(argv),
+        ],
+        {
+          concurrent: false,
+          rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+        },
+        'cluster setup',
+        null,
+      );
     } catch (e) {
       throw new SoloError('Error on cluster setup', e);
     }
@@ -114,23 +124,21 @@ export class ClusterCommandHandlers implements CommandHandlers, IClusterCommandH
 
   public async reset(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
-
-    const action = this.parent.commandActionBuilder(
-      [
-        this.tasks.initialize(argv, resetConfigBuilder.bind(this)),
-        this.tasks.acquireNewLease(),
-        this.tasks.uninstallClusterChart(argv),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-      'cluster reset',
-      null,
-    );
-
     try {
-      await action(argv, this);
+      await this.commandAction(
+        argv,
+        [
+          this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs)),
+          this.tasks.acquireNewLease(),
+          this.tasks.uninstallClusterChart(argv),
+        ],
+        {
+          concurrent: false,
+          rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+        },
+        'cluster reset',
+        null,
+      );
     } catch (e) {
       throw new SoloError('Error on cluster reset', e);
     }

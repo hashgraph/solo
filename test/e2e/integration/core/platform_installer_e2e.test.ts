@@ -7,7 +7,7 @@ import {expect} from 'chai';
 import * as constants from '../../../../src/core/constants.js';
 import * as fs from 'fs';
 
-import {e2eTestSuite, getTestCacheDir, TEST_CLUSTER, testLogger} from '../../../test_util.js';
+import {e2eTestSuite, getTestCacheDir, TEST_CLUSTER, getTestLogger} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {Duration} from '../../../../src/core/time/duration.js';
@@ -102,7 +102,7 @@ e2eTestSuite(namespace.name, argv, {startNodes: false}, bootstrapResp => {
           .containers()
           .readByRef(ContainerRef.of(podRef, constants.ROOT_CONTAINER))
           .execContainer(`ls -la ${constants.HEDERA_HAPI_PATH}`);
-        testLogger.showUser(outputs);
+        getTestLogger().showUser(outputs);
       }).timeout(Duration.ofMinutes(1).toMillis());
     });
   });
