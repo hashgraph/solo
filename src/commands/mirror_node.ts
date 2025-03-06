@@ -483,7 +483,9 @@ export class MirrorNodeCommand extends BaseCommand {
                     await self.k8Factory
                       .getK8(ctx.config.clusterContext)
                       .pods()
-                      .waitForReadyStatus(
+                      // TODO: change back to .waitForReadyStatus once bug for ipV4Address is null is fixed in Mirror Node
+                      //   discovered in v0.124.1. fixed in: https://github.com/hiero-ledger/hiero-mirror-node/issues/10553
+                      .waitForRunningPhase(
                         ctx.config.namespace,
                         ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
                         constants.PODS_READY_MAX_ATTEMPTS,
