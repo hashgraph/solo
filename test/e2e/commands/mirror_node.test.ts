@@ -162,6 +162,13 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
     it('Create topic and submit message should success', async () => {
       try {
+        const clusterRefs = accountCmd.getClusterRefs();
+        await accountManager.loadNodeClient(
+          namespace,
+          clusterRefs,
+          argv.getArg<DeploymentName>(flags.deployment),
+          argv.getArg<boolean>(flags.forcePortForward),
+        );
         // generate a new user account as operator instead of using default genesis account
         await accountCmd.create(argv.build());
 
