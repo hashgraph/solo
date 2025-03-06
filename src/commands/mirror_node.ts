@@ -370,7 +370,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     const consensusNodes = this.remoteConfigManager.getConsensusNodes();
                     const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
                     const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
-                    ctx.addressBook = await self.accountManager.prepareAddressBookBase64( // TODO: 555
+                    ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
                       ctx.config.namespace,
                       this.remoteConfigManager.getClusterRefs(),
                       deployment,

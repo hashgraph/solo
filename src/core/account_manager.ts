@@ -978,11 +978,11 @@ export class AccountManager {
   async prepareAddressBookBase64(
     namespace: NamespaceName,
     clusterRefs: ClusterRefs,
+    deployment: DeploymentName,
+    operatorId: string,
+    operatorKey: string,
+    forcePortForward: boolean,
     context: string,
-    deployment?: DeploymentName,
-    operatorId?: string,
-    operatorKey?: string,
-    forcePortForward?: boolean,
   ): Promise<string> {
     // fetch AddressBook
     await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
