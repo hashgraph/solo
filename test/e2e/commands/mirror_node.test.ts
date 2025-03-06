@@ -55,7 +55,6 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     const k8Factory = bootstrapResp.opts.k8Factory;
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
     const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
-    const accountCmd = bootstrapResp.cmd.accountCmd;
     const downloader = new PackageDownloader(mirrorNodeCmd.logger);
     const accountManager = bootstrapResp.opts.accountManager;
 
