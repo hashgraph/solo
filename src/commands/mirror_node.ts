@@ -546,6 +546,7 @@ export class MirrorNodeCommand extends BaseCommand {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
                     const namespace = ctx.config.namespace;
+                    const clusterContext = ctx.config.clusterContext;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -557,6 +558,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       namespace,
                       feesFileIdNum,
                       clusterRefs,
+                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
@@ -564,6 +566,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       namespace,
                       exchangeRatesFileIdNum,
                       clusterRefs,
+                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
