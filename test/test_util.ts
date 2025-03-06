@@ -235,8 +235,44 @@ export function e2eTestSuite(
   const {
     namespace,
     cmd: {initCmd, clusterCmd, networkCmd, nodeCmd, deploymentCmd},
-    opts: {k8Factory, chartManager},
+    opts: {k8Factory, chartManager, remoteConfigManager},
   } = bootstrapResp;
+
+  const nodeAliases = argv.getArg<string>(flags.nodeAliasesUnparsed).split(',') as NodeAliases;
+  const clusterRef = argv.getArg<ClusterRef>(flags.clusterRef);
+  const context = k8Factory.default().contexts().readCurrent();
+
+  const consensusNodes = nodeAliases.map(nodeAlias => {
+    return {
+      name: nodeAlias,
+      namespace: namespace.name,
+      nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
+      cluster: clusterRef,
+      context: context,
+      dnsBaseDomain: 'cluster.local',
+      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
+      fullyQualifiedDomainName: Templates.renderConsensusNodeFullyQualifiedDomainName(
+        nodeAlias,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
+        namespace.name,
+        clusterRef,
+        'cluster.local',
+        'network-{nodeAlias}-svc.{namespace}.svc',
+      ),
+    } as ConsensusNode;
+  });
+
+  const contexts = [context];
+  const clusterRefs = {[clusterRef]: context} as ClusterRefs;
+
+  nodeCmd.handlers.consensusNodes = consensusNodes;
+  nodeCmd.handlers.contexts = contexts;
+  // @ts-expect-error - TS2341: to mock
+  nodeCmd.handlers.init = sinon.stub().returns();
+
+  remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
+  remoteConfigManager.getContexts = sinon.stub().returns(contexts);
+  remoteConfigManager.getClusterRefs = sinon.stub().returns(clusterRefs);
 
   const testLogger: SoloLogger = getTestLogger();
 
@@ -293,37 +329,6 @@ export function e2eTestSuite(
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('should succeed with network deploy', async () => {
-        const nodeAliases = argv.getArg<string>(flags.nodeAliasesUnparsed).split(',') as NodeAliases;
-        const clusterRef = argv.getArg<ClusterRef>(flags.clusterRef);
-        const context = k8Factory.default().contexts().readCurrent();
-
-        const consensusNodes = nodeAliases.map(nodeAlias => {
-          return {
-            name: nodeAlias,
-            namespace: namespace.name,
-            nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
-            cluster: clusterRef,
-            context: context,
-            dnsBaseDomain: 'cluster.local',
-            dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
-            fullyQualifiedDomainName: Templates.renderConsensusNodeFullyQualifiedDomainName(
-              nodeAlias,
-              Templates.nodeIdFromNodeAlias(nodeAlias),
-              namespace.name,
-              clusterRef,
-              'cluster.local',
-              'network-{nodeAlias}-svc.{namespace}.svc',
-            ),
-          } as ConsensusNode;
-        });
-
-        const contexts = [context];
-        const clusterRefs = {[clusterRef]: context} as ClusterRefs;
-
-        sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
-        sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
-        sinon.stub(RemoteConfigManager.prototype, 'getClusterRefs').returns(clusterRefs);
-
         await networkCmd.deploy(argv.build());
 
         expect(networkCmd.configManager.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
@@ -342,6 +347,7 @@ export function e2eTestSuite(
           flags.grpcWebTlsKeyPath.constName,
           flags.gcsWriteAccessKey.constName,
           flags.gcsWriteSecrets.constName,
+          flags.nodeAliasesUnparsed.constName,
           flags.gcsEndpoint.constName,
           flags.awsWriteAccessKey.constName,
           flags.awsWriteSecrets.constName,

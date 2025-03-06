@@ -664,6 +664,7 @@ export class NetworkCommand extends BaseCommand {
     if (promptForNodeAliases) {
       config.nodeAliases = this.remoteConfigManager.getConsensusNodes().map(node => node.name);
       this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
+      argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases;
     } else {
       config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
     }
@@ -697,6 +698,7 @@ export class NetworkCommand extends BaseCommand {
     config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
+
     if (config.nodeAliases.length === 0) {
       config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
       if (config.nodeAliases.length === 0) {

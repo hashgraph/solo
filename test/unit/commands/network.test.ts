@@ -181,10 +181,6 @@ describe('NetworkCommand unit tests', () => {
       try {
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
-
-        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
-        opts.remoteConfigManager.getContexts = sinon.stub().returns([]);
-        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
         await networkCommand.deploy(argv.build());
         expect(opts.chartManager.install.args[0][0].name).to.equal(SOLO_TEST_CLUSTER);

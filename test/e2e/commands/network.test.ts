@@ -22,7 +22,6 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 import {Argv} from '../../helpers/argv_wrapper.js';
 import sinon from 'sinon';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {NodeCommandHandlers} from '../../../src/commands/node/handlers.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Templates} from '../../../src/core/templates.js';
 import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
@@ -51,7 +50,7 @@ describe('NetworkCommand', function networkCommand() {
   argv.setArg(flags.quiet, true);
 
   const {
-    opts: {k8Factory, accountManager, configManager, chartManager},
+    opts: {k8Factory, accountManager, configManager, chartManager, remoteConfigManager},
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
 
@@ -83,6 +82,10 @@ describe('NetworkCommand', function networkCommand() {
   const contexts = [context];
   const clusterRefs = {[clusterRef]: context} as ClusterRefs;
 
+  remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
+  remoteConfigManager.getContexts = sinon.stub().returns(contexts);
+  remoteConfigManager.getClusterRefs = sinon.stub().returns(clusterRefs);
+
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
@@ -101,11 +104,6 @@ describe('NetworkCommand', function networkCommand() {
   });
 
   it('deployment create should succeed', async () => {
-    sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
-    sinon.stub(RemoteConfigManager.prototype, 'getClusterRefs').returns(clusterRefs);
-    sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
-
-    sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
 
     expect(await deploymentCmd.create(argv.build())).to.be.true;
     argv.setArg(flags.nodeAliasesUnparsed, undefined);
@@ -114,22 +112,11 @@ describe('NetworkCommand', function networkCommand() {
   });
 
   it('keys should be generated', async () => {
-    // @ts-expect-error - TS2740: to mock
-    sinon.stub(NodeCommandHandlers.prototype, 'init').returns();
-    sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
-    sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
-
-    nodeCmd.handlers.consensusNodes = consensusNodes;
-
     expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
   });
 
   it('network deploy command should succeed', async () => {
     try {
-      sinon.stub(RemoteConfigManager.prototype, 'getConsensusNodes').returns(consensusNodes);
-      sinon.stub(RemoteConfigManager.prototype, 'getContexts').returns(contexts);
-      sinon.stub(RemoteConfigManager.prototype, 'getClusterRefs').returns(clusterRefs);
-
       expect(await networkCmd.deploy(argv.build())).to.be.true;
 
       // check pod names should match expected values
