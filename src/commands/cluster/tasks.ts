@@ -445,7 +445,10 @@ export class ClusterCommandTasks {
             // ignore error during uninstall since we are doing the best-effort uninstall here
           }
 
-          throw new SoloError(`Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e);
+          throw new SoloError(
+            `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
+            e,
+          );
         }
 
         if (argv.dev) {
