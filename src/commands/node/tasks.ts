@@ -268,14 +268,25 @@ export class NodeCommandTasks {
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
           const shellRunner = new ShellRunner();
-          const retrievedReleaseTag = await shellRunner.run(
-            `git -C ${localDataLibBuildPath} describe --tags --abbrev=0`,
-          );
-          const expectedReleaseTag = releaseTag ? releaseTag : HEDERA_PLATFORM_VERSION;
-          if (retrievedReleaseTag.join('\n') !== expectedReleaseTag) {
-            this.logger.showUser(
-              chalk.cyan(
-                `Checkout version ${retrievedReleaseTag} does not match the release version ${expectedReleaseTag}`,
+          try {
+            const retrievedReleaseTag = await shellRunner.run(
+              `git -C ${localDataLibBuildPath} describe --tags --abbrev=0`,
+            );
+            const expectedReleaseTag = releaseTag ? releaseTag : HEDERA_PLATFORM_VERSION;
+            if (retrievedReleaseTag.join('\n') !== expectedReleaseTag) {
+              this.logger.showUser(
+                chalk.cyan(
+                  `Checkout version ${retrievedReleaseTag} does not match the release version ${expectedReleaseTag}`,
+                ),
+              );
+            }
+          } catch {
+            // if we can't find the release tag in the local build path directory, we will skip the check and continue
+            self.logger.warn('Could not find release tag in local build path directory');
+            self.logger.showUser(
+              chalk.yellowBright(
+                'The release tag could not be verified, please ensure that the release tag passed on the command line ' +
+                  'matches the release tag of the code in the local build path directory',
               ),
             );
           }
