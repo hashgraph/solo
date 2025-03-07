@@ -296,14 +296,14 @@ export class ClusterCommandTasks {
           }
         }
 
-          // If one or more clusters are provided, use the first one to determine the context
+        // If one or more clusters are provided, use the first one to determine the context
         // from the mapping in the LocalConfig
         else if (clusters.length) {
           selectedCluster = clusters[0];
           selectedContext = await this.selectContextForFirstCluster(task, clusters, localConfig, isQuiet);
         }
 
-          // If a deployment name is provided, get the clusters associated with the deployment from the LocalConfig
+        // If a deployment name is provided, get the clusters associated with the deployment from the LocalConfig
         // and select the context from the mapping, corresponding to the first deployment cluster
         else if (deploymentName) {
           const deployment = localConfig.deployments[deploymentName];

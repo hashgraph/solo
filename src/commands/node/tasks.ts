@@ -466,7 +466,7 @@ export class NodeCommandTasks {
     if (!success) {
       throw new SoloError(
         `node '${nodeAlias}' is not ${NodeStatusEnums[status]}` +
-        `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`,
+          `[ attempt = ${chalk.blueBright(`${attempt}/${maxAttempts}`)} ]`,
       );
     }
 
@@ -1031,21 +1031,21 @@ export class NodeCommandTasks {
 
       return localBuildPath !== ''
         ? self._uploadPlatformSoftware(
-          ctx.config[aliasesField],
-          podRefs,
-          task,
-          localBuildPath,
-          ctx.config.consensusNodes,
-          releaseTag,
-        )
+            ctx.config[aliasesField],
+            podRefs,
+            task,
+            localBuildPath,
+            ctx.config.consensusNodes,
+            releaseTag,
+          )
         : self._fetchPlatformSoftware(
-          ctx.config[aliasesField],
-          podRefs,
-          releaseTag,
-          task,
-          this.platformInstaller,
-          ctx.config.consensusNodes,
-        );
+            ctx.config[aliasesField],
+            podRefs,
+            releaseTag,
+            task,
+            this.platformInstaller,
+            ctx.config.consensusNodes,
+          );
     });
   }
 

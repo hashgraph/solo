@@ -85,7 +85,7 @@ export class InitCommand extends BaseCommand {
             self.logger.showUser(
               chalk.grey(
                 `Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: ${constants.SOLO_HOME_DIR}\n` +
-                "If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.",
+                  "If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.",
               ),
             );
             self.logger.showUser(
