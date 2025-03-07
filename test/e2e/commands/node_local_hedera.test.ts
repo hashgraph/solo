@@ -35,10 +35,7 @@ argv.setArg(flags.quiet, true);
 
 let k8Factory: K8Factory;
 console.log('Starting local build for Hedera app');
-argv.setArg(
-  flags.localBuildPath,
-  'node1=../hiero-consensus-node/hedera-node/data/,../hiero-consensus-node/hedera-node/data',
-);
+argv.setArg(flags.localBuildPath, 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data');
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
@@ -108,7 +105,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       expect(balance.hbars).to.be.eql(Hbar.from(accountInfo.balance, HbarUnit.Hbar));
     }).timeout(Duration.ofMinutes(10).toMillis());
 
-    xit('get the logs and delete the namespace', async () => {
+    it('get the logs and delete the namespace', async () => {
       await accountManager.close();
       await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
       await k8Factory.default().namespaces().delete(namespace);
