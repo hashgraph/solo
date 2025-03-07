@@ -1,8 +1,9 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type V1Lease, type V1Status} from '@kubernetes/client-node';
+import {type V1Status} from '@kubernetes/client-node';
 import {type NamespaceName} from '../namespace/namespace_name.js';
+import {type Lease} from './lease.js';
 
 export interface Leases {
   /**
@@ -13,7 +14,7 @@ export interface Leases {
    * @param durationSeconds - the duration of the lease in seconds\
    * @returns the created lease
    */
-  create(namespace: NamespaceName, leaseName: string, holderName: string, durationSeconds: number): Promise<V1Lease>;
+  create(namespace: NamespaceName, leaseName: string, holderName: string, durationSeconds: number): Promise<Lease>;
 
   /**
    * Delete a lease
@@ -39,7 +40,7 @@ export interface Leases {
    * @param lease - the lease object
    * @returns the renewed lease
    */
-  renew(namespace: NamespaceName, leaseName: string, lease: V1Lease): Promise<V1Lease>;
+  renew(namespace: NamespaceName, leaseName: string, lease: Lease): Promise<Lease>;
 
   /**
    * Transfer a lease
@@ -47,5 +48,5 @@ export interface Leases {
    * @param newHolderName - the name of the new lease holder
    * @returns the transferred lease
    */
-  transfer(lease: V1Lease, newHolderName: string): Promise<V1Lease>;
+  transfer(lease: Lease, newHolderName: string): Promise<Lease>;
 }
