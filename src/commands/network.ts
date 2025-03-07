@@ -5,7 +5,7 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError, UserBreak} from '../core/errors.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -324,9 +324,7 @@ export class NetworkCommand extends BaseCommand {
 
       await this.prepareBackupUploaderSecrets(config);
     } catch (e: Error | any) {
-      const errorMessage = 'failed to create Kubernetes storage secret ';
-      this.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError('Failed to create Kubernetes storage secret', e);
     }
   }
 
@@ -1129,7 +1127,7 @@ export class NetworkCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 
@@ -1278,7 +1276,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying network: ${err.message}`, err);
                 });
             },
@@ -1308,7 +1305,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error destroying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error destroying network: ${err.message}`, err);
                 });
             },
@@ -1329,7 +1325,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error refreshing network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error refreshing network: ${err.message}`, err);
                 });
             },

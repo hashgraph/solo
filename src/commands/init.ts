@@ -6,7 +6,7 @@ import path from 'path';
 import {BaseCommand} from './base.js';
 import fs from 'fs';
 import * as constants from '../core/constants.js';
-import {SoloError} from '../core/errors.js';
+import {SoloError, UserBreak} from '../core/errors.js';
 import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
 
@@ -100,11 +100,7 @@ export class InitCommand extends BaseCommand {
       },
     );
 
-    try {
-      await tasks.run();
-    } catch (e: Error | any) {
-      throw new SoloError('Error running init', e);
-    }
+    await tasks.run();
 
     return true;
   }
@@ -128,7 +124,6 @@ export class InitCommand extends BaseCommand {
             if (!r) throw new SoloError('Error running init, expected return value to be true');
           })
           .catch(err => {
-            self.logger.showUserError(err);
             throw new SoloError('Error running init', err);
           });
       },

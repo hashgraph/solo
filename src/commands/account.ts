@@ -117,6 +117,7 @@ export class AccountCommand extends BaseCommand {
         const privateKey = PrivateKey.fromStringDer(newAccountInfo.privateKey);
         newAccountInfo.privateKeyRaw = privateKey.toStringRaw();
       } catch {
+        // TODO should this error be thrown or just logged?
         this.logger.error(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`);
       }
     }
@@ -169,8 +170,7 @@ export class AccountCommand extends BaseCommand {
           ctx.accountInfo.privateKey,
         ))
       ) {
-        this.logger.error(`failed to update account keys for accountId ${ctx.accountInfo.accountId}`);
-        return false;
+        throw new SoloError(`failed to update account keys for accountId ${ctx.accountInfo.accountId}`);
       }
     } else {
       amount = amount || (flags.amount.definition.defaultValue as number);
@@ -183,8 +183,7 @@ export class AccountCommand extends BaseCommand {
 
     if (hbarAmount > 0) {
       if (!(await this.transferAmountFromOperator(ctx.accountInfo.accountId, hbarAmount))) {
-        this.logger.error(`failed to transfer amount for accountId ${ctx.accountInfo.accountId}`);
-        return false;
+        throw new SoloError(`failed to transfer amount for accountId ${ctx.accountInfo.accountId}`);
       }
       this.logger.debug(`sent transfer amount for account ${ctx.accountInfo.accountId}`);
     }
@@ -731,7 +730,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running init, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running init: ${err.message}`, err);
                 });
             },
@@ -751,7 +749,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running create, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running create: ${err.message}`, err);
                 });
             },
@@ -771,7 +768,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running update, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running update: ${err.message}`, err);
                 });
             },
@@ -791,7 +787,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running get, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running get: ${err.message}`, err);
                 });
             },
