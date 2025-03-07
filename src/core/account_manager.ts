@@ -581,7 +581,6 @@ export class AccountManager {
           .list(namespace, ['solo.hedera.com/type=network-node']);
         for (const pod of pods) {
           if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
-            // TODO Review why this fixes issue
             continue;
           }
           const podName = PodName.of(pod.metadata!.name);

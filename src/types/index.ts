@@ -80,8 +80,6 @@ export interface ToJSON {
 
 export type SoloListrTask<T> = ListrTask<T, any, any>;
 
-export type EmptyContextConfig = object;
-
 export type SoloListrTaskWrapper<T> = ListrTaskWrapper<T, any, any>;
 
 export interface ServiceEndpoint {
@@ -120,9 +118,4 @@ export interface GossipEndpoint {
   nodeId: number;
   hostname: string;
   port: number;
-}
-
-export interface NodeOverridesStructure {
-  interfaceBindings: GossipEndpoint[];
-  endpointOverrides: GossipEndpoint[];
 }

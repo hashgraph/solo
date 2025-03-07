@@ -11,14 +11,17 @@ import {EnvoyProxyComponent} from './components/envoy_proxy_component.js';
 import {ConsensusNodeComponent} from './components/consensus_node_component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror_node_explorer_component.js';
 import {
+  type ClusterRef,
   type Component,
+  type ComponentName,
   type ComponentsDataStructure,
   type IConsensusNodeComponent,
   type IRelayComponent,
-  type ComponentName,
   type NamespaceNameAsString,
 } from './types.js';
 import {type ToObject, type Validate} from '../../../types/index.js';
+import {Templates} from '../../templates.js';
+import {type NodeAliases} from '../../../types/aliases.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -49,8 +52,10 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   /* -------- Modifiers -------- */
 
   /** Used to add new component to their respective group. */
-  public add(serviceName: ComponentName, component: BaseComponent): void {
+  public add(component: BaseComponent): void {
     const self = this;
+
+    const serviceName = component.name;
 
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);
@@ -71,8 +76,10 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   /** Used to edit an existing component from their respective group. */
-  public edit(serviceName: ComponentName, component: BaseComponent): void {
+  public edit(component: BaseComponent): void {
     const self = this;
+
+    const serviceName = component.name;
 
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);
@@ -232,29 +239,23 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
   }
 
   public static initializeWithNodes(
-    nodeAliases: string[],
-    cluster: string,
+    nodeAliases: NodeAliases,
+    clusterRef: ClusterRef,
     namespace: NamespaceNameAsString,
   ): ComponentsDataWrapper {
     const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
-    nodeAliases.forEach((alias, index) => {
-      consensusNodeComponents[alias] = new ConsensusNodeComponent(
-        alias,
-        cluster,
+
+    nodeAliases.forEach(nodeAlias => {
+      consensusNodeComponents[nodeAlias] = new ConsensusNodeComponent(
+        nodeAlias,
+        clusterRef,
         namespace,
-        ConsensusNodeStates.REQUESTED,
-        index,
+        ConsensusNodeStates.NON_DEPLOYED,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
       );
     });
-    const componentDataWrapper = new ComponentsDataWrapper(
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      consensusNodeComponents,
-      undefined,
-    );
-    return componentDataWrapper;
+
+    return new ComponentsDataWrapper(undefined, undefined, undefined, undefined, consensusNodeComponents, undefined);
   }
 
   /** checks if component exists in the respective group */

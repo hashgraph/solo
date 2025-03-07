@@ -37,6 +37,11 @@ export class ClusterCommandHandlers extends CommandHandler {
     this.configs = patchInject(configs, InjectTokens.ClusterCommandConfigs, this.constructor.name);
   }
 
+  /**
+   * - Setup home directory.
+   * - Create new local config if needed.
+   * - Add new 'cluster-ref => context' mapping in the local config.
+   */
   async connect(argv: any) {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
@@ -44,6 +49,9 @@ export class ClusterCommandHandlers extends CommandHandler {
       argv,
       [
         this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this)),
+        this.setupHomeDirectoryTask(),
+        this.localConfig.createLocalConfigTask(),
+        this.tasks.validateClusterRefs(),
         this.tasks.connectClusterRef(),
         this.tasks.testConnectionToCluster(),
         this.tasks.saveLocalConfig(),
@@ -52,7 +60,7 @@ export class ClusterCommandHandlers extends CommandHandler {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'cluster connect',
+      'cluster-ref connect',
       null,
     );
 
@@ -73,7 +81,7 @@ export class ClusterCommandHandlers extends CommandHandler {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'cluster disconnect',
+      'cluster-ref disconnect',
       null,
     );
 

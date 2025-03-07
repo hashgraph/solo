@@ -39,5 +39,5 @@ export const RESET_FLAGS = {
 export const CONNECT_FLAGS = {
   requiredFlags: [flags.clusterRef],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [flags.devMode, flags.quiet, flags.context],
+  optionalFlags: [flags.devMode, flags.quiet, flags.context, flags.userEmailAddress],
 };

@@ -24,20 +24,24 @@ export class RemoteConfigValidator {
    * @param components - components to validate.
    * @param k8Factory - to validate the elements.
    * @param localConfig - to get the context from cluster
+   * @param skipConsensusNodes - whether to validate consensus nodes
    */
   public static async validateComponents(
     namespace: NamespaceName,
     components: ComponentsDataWrapper,
     k8Factory: K8Factory,
     localConfig: LocalConfig,
+    skipConsensusNodes: boolean,
   ): Promise<void> {
     await Promise.all([
       ...RemoteConfigValidator.validateRelays(namespace, components, k8Factory, localConfig),
       ...RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory, localConfig),
       ...RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory, localConfig),
       ...RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory, localConfig),
-      ...RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory, localConfig),
       ...RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory, localConfig),
+      ...(skipConsensusNodes
+        ? []
+        : RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory, localConfig)),
     ]);
   }
 

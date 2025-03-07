@@ -25,7 +25,7 @@ import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 
 import {type SoloLogger} from '../src/core/logging.js';
 import {type BaseCommand} from '../src/commands/base.js';
-import {type NodeAlias} from '../src/types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {type K8Factory} from '../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../src/core/account_manager.js';
@@ -52,9 +52,15 @@ import {ContainerRef} from '../src/core/kube/resources/container/container_ref.j
 import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
-import {K8Client} from '../src/core/kube/k8_client/k8_client.js';
 import {Argv} from './helpers/argv_wrapper.js';
-import {type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
+import {
+  type ClusterRef,
+  type ClusterRefs,
+  type DeploymentName,
+  type NamespaceNameAsString,
+} from '../src/core/config/remote/types.js';
+import {type ConsensusNode} from '../src/core/model/consensus_node.js';
+import sinon from 'sinon';
 
 export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
 export const TEST_CLUSTER = SOLO_TEST_CLUSTER.startsWith('kind-') ? SOLO_TEST_CLUSTER : `kind-${SOLO_TEST_CLUSTER}`;
@@ -181,6 +187,7 @@ export function bootstrapTestVariables(
   const nodeCmd: NodeCommand = nodeCmdArg || new NodeCommand(opts);
   const accountCmd: AccountCommand = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
   const deploymentCmd: DeploymentCommand = deploymentCmdArg || new DeploymentCommand(opts);
+
   return {
     namespace,
     deployment,
@@ -228,8 +235,44 @@ export function e2eTestSuite(
   const {
     namespace,
     cmd: {initCmd, clusterCmd, networkCmd, nodeCmd, deploymentCmd},
-    opts: {k8Factory, chartManager},
+    opts: {k8Factory, chartManager, remoteConfigManager},
   } = bootstrapResp;
+
+  const nodeAliases = argv.getArg<string>(flags.nodeAliasesUnparsed).split(',') as NodeAliases;
+  const clusterRef = argv.getArg<ClusterRef>(flags.clusterRef);
+  const context = k8Factory.default().contexts().readCurrent();
+
+  const consensusNodes = nodeAliases.map(nodeAlias => {
+    return {
+      name: nodeAlias,
+      namespace: namespace.name,
+      nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
+      cluster: clusterRef,
+      context: context,
+      dnsBaseDomain: 'cluster.local',
+      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
+      fullyQualifiedDomainName: Templates.renderConsensusNodeFullyQualifiedDomainName(
+        nodeAlias,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
+        namespace.name,
+        clusterRef,
+        'cluster.local',
+        'network-{nodeAlias}-svc.{namespace}.svc',
+      ),
+    } as ConsensusNode;
+  });
+
+  const contexts = [context];
+  const clusterRefs = {[clusterRef]: context} as ClusterRefs;
+
+  nodeCmd.handlers.consensusNodes = consensusNodes;
+  nodeCmd.handlers.contexts = contexts;
+  // @ts-expect-error - TS2341: to mock
+  nodeCmd.handlers.init = sinon.stub().returns();
+
+  remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
+  remoteConfigManager.getContexts = sinon.stub().returns(contexts);
+  remoteConfigManager.getClusterRefs = sinon.stub().returns(clusterRefs);
 
   const testLogger: SoloLogger = getTestLogger();
 
@@ -296,6 +339,7 @@ export function e2eTestSuite(
           flags.chainId.constName,
           flags.log4j2Xml.constName,
           flags.deployment.constName,
+          flags.nodeAliasesUnparsed.constName,
           flags.profileFile.constName,
           flags.profileName.constName,
           flags.quiet.constName,

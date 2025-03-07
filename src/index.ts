@@ -40,7 +40,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
     Container.getInstance().init();
   } catch (e) {
-    console.error(`Error initializing container: ${e.message}`, e);
+    console.error(`Error initializing container: ${e?.message}`, e);
     throw new SoloError('Error initializing container');
   }
 
@@ -126,8 +126,9 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
       );
 
     rootCmd.fail((msg, err) => {
+      console.error(msg, err);
       logger.logAndExitError(
-        new SoloError(`Error running Solo CLI, failure occurred: ${msg ? msg : ''} ${err.message}`, err),
+        new SoloError(`Error running Solo CLI, failure occurred: ${msg ? msg : ''} ${err?.message}`, err),
       );
     });
 
@@ -137,7 +138,8 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     logger.debug('Parsing root command (executing the commands)');
     return rootCmd.parse();
   } catch (e) {
-    logger.logAndExitError(new SoloError(`Error running Solo CLI: ${e.message}`, e));
+    console.error(e);
+    logger.logAndExitError(new SoloError(`Error running Solo CLI: ${e?.message}`, e));
     // technically unreachable, but helps TS understand that we're exiting
     throw e;
   }
