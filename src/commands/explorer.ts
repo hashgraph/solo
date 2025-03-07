@@ -14,7 +14,7 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
-import {prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
+import {prepareChartPath, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
@@ -227,6 +227,7 @@ export class ExplorerCommand extends BaseCommand {
               '  --set cert-manager.installCRDs=true',
               ctx.config.clusterContext,
             );
+            showVersionBanner(self.logger, constants.SOLO_CERT_MANAGER_CHART, soloChartVersion);
 
             // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
             await self.k8Factory
@@ -259,6 +260,7 @@ export class ExplorerCommand extends BaseCommand {
               soloCertManagerValuesArg,
               ctx.config.clusterContext,
             );
+            showVersionBanner(self.logger, constants.SOLO_CERT_MANAGER_CHART, soloChartVersion, 'Upgraded');
           },
           skip: ctx => !ctx.config.enableHederaExplorerTls,
         },
@@ -279,6 +281,7 @@ export class ExplorerCommand extends BaseCommand {
               exploreValuesArg,
               ctx.config.clusterContext,
             );
+            showVersionBanner(self.logger, constants.HEDERA_EXPLORER_RELEASE_NAME, config.hederaExplorerVersion);
           },
         },
         {
@@ -308,6 +311,7 @@ export class ExplorerCommand extends BaseCommand {
               explorerIngressControllerValuesArg,
               ctx.config.clusterContext,
             );
+            showVersionBanner(self.logger, constants.INGRESS_CONTROLLER_RELEASE_NAME, INGRESS_CONTROLLER_VERSION);
 
             // patch explorer ingress to use h1 protocol, haproxy ingress controller default backend protocol is h2
             // to support grpc over http/2
