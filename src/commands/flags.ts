@@ -2058,7 +2058,7 @@ export class Flags {
     constName: 'enableCertManager',
     name: 'enable-cert-manager',
     definition: {
-      describe: '',
+      describe: 'pass the flag to enable cert manager',
       defaultValue: false,
       type: 'boolean',
     },
@@ -2069,7 +2069,7 @@ export class Flags {
     constName: 'numberOfConsensusNodes',
     name: 'num-consensus-nodes',
     definition: {
-      describe: '',
+      describe: 'used to specify desired number of consensus nodes for pre-genesis deployments',
       type: 'number',
     },
     prompt: undefined,
@@ -2079,8 +2079,8 @@ export class Flags {
     constName: 'dnsBaseDomain',
     name: 'dns-base-domain',
     definition: {
-      describe: '',
-      defaultValue: '',
+      describe: 'base domain for the DNS',
+      defaultValue: 'cluster.local',
       type: 'string',
     },
     prompt: undefined,
@@ -2090,8 +2090,10 @@ export class Flags {
     constName: 'dnsConsensusNodePattern',
     name: 'dns-consensus-node-pattern',
     definition: {
-      describe: '',
-      defaultValue: '',
+      describe:
+        'pattern to construct the fully qualified domain name (FQDN) for the consensus node' +
+        '(ex. network-{nodeAlias}-svc.{namespace}.svc)',
+      defaultValue: 'network-{nodeAlias}-svc.{namespace}.svc',
       type: 'string',
     },
     prompt: undefined,
