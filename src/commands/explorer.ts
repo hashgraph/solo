@@ -14,6 +14,7 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
+import {prepareChartPath, prepareValuesFiles} from '../core/helpers.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
@@ -39,6 +40,7 @@ export interface ExplorerDeployConfigClass {
   tlsClusterIssuerType: string;
   valuesFile: string;
   valuesArg: string;
+  clusterSetupNamespace: NamespaceName;
   getUnusedConfigs: () => string[];
   soloChartVersion: string;
 }
@@ -93,11 +95,11 @@ export class ExplorerCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName);
     if (profileValuesFile) {
-      valuesArg += this.prepareValuesFiles(profileValuesFile);
+      valuesArg += prepareValuesFiles(profileValuesFile);
     }
 
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
 
     if (config.enableIngress) {
@@ -143,7 +145,7 @@ export class ExplorerCommand extends BaseCommand {
       valuesArg += ` --set certClusterIssuerType=${tlsClusterIssuerType}`;
     }
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
     return valuesArg;
   }
@@ -151,7 +153,7 @@ export class ExplorerCommand extends BaseCommand {
   async prepareValuesArg(config: ExplorerDeployConfigClass) {
     let valuesArg = '';
     if (config.valuesFile) {
-      valuesArg += this.prepareValuesFiles(config.valuesFile);
+      valuesArg += prepareValuesFiles(config.valuesFile);
     }
     return valuesArg;
   }
@@ -180,9 +182,11 @@ export class ExplorerCommand extends BaseCommand {
 
             await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);
 
-            ctx.config = this.getConfig(ExplorerCommand.DEPLOY_CONFIGS_NAME, ExplorerCommand.DEPLOY_FLAGS_LIST, [
-              'valuesArg',
-            ]) as ExplorerDeployConfigClass;
+            ctx.config = this.configManager.getConfig(
+              ExplorerCommand.DEPLOY_CONFIGS_NAME,
+              ExplorerCommand.DEPLOY_FLAGS_LIST,
+              ['valuesArg'],
+            ) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
             ctx.config.clusterContext = ctx.config.clusterRef
@@ -196,14 +200,15 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         {
           title: 'Install cert manager',
           task: async ctx => {
             const config = ctx.config;
             const {chartDirectory, soloChartVersion} = config;
 
-            const chartPath = await this.prepareChartPath(
+            const chartPath = await prepareChartPath(
+              self.helm,
               chartDirectory,
               constants.SOLO_TESTING_CHART_URL,
               constants.SOLO_CERT_MANAGER_CHART,
@@ -243,6 +248,9 @@ export class ExplorerCommand extends BaseCommand {
             // sleep for a few seconds to allow cert-manager to be ready
             await new Promise(resolve => setTimeout(resolve, 10000));
 
+            // sleep for a few seconds to allow cert-manager to be ready
+            await new Promise(resolve => setTimeout(resolve, 10000));
+
             await self.chartManager.upgrade(
               NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
               constants.SOLO_CERT_MANAGER_CHART,
@@ -260,7 +268,7 @@ export class ExplorerCommand extends BaseCommand {
           task: async ctx => {
             const config = ctx.config;
 
-            let exploreValuesArg = self.prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+            let exploreValuesArg = prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
             exploreValuesArg += await self.prepareHederaExplorerValuesArg(config);
 
             await self.chartManager.install(
@@ -285,7 +293,8 @@ export class ExplorerCommand extends BaseCommand {
             }
             explorerIngressControllerValuesArg += ` --set fullnameOverride=${constants.EXPLORER_INGRESS_CONTROLLER}`;
 
-            const ingressControllerChartPath = await self.prepareChartPath(
+            const ingressControllerChartPath = await prepareChartPath(
+              self.helm,
               '', // don't use chartPath which is for local solo-charts only
               constants.INGRESS_CONTROLLER_RELEASE_NAME,
               constants.INGRESS_CONTROLLER_RELEASE_NAME,
@@ -424,7 +433,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLease.newAcquireLeaseTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this, argv),
+        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
         {
           title: 'Destroy explorer',
           task: async ctx => {

@@ -26,6 +26,12 @@ import {NetworkNodes} from '../network_nodes.js';
 import {ClusterChecks} from '../cluster_checks.js';
 import {InjectTokens} from './inject_tokens.js';
 import {K8ClientFactory} from '../kube/k8_client/k8_client_factory.js';
+import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
+import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
+import {NodeCommandHandlers} from '../../commands/node/handlers.js';
+import {NodeCommandTasks} from '../../commands/node/tasks.js';
+import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
+import {NodeCommandConfigs} from '../../commands/node/configs.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -49,12 +55,14 @@ export class Container {
 
   /**
    * Initialize the container with the default dependencies
+   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
   init(
+    homeDir: string = constants.SOLO_HOME_DIR,
     cacheDir: string = constants.SOLO_CACHE_DIR,
     logLevel: string = 'debug',
     devMode: boolean = false,
@@ -119,7 +127,7 @@ export class Container {
     );
 
     // LocalConfig
-    const localConfigPath = normalize(path.join(cacheDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
+    const localConfigPath = normalize(path.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
     container.register(InjectTokens.LocalConfigFilePath, {useValue: localConfigPath});
     container.register(InjectTokens.LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
@@ -134,37 +142,67 @@ export class Container {
 
     container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container initialized');
     Container.isInitialized = true;
+
+    // Commands
+    container.register(
+      InjectTokens.ClusterCommandHandlers,
+      {useClass: ClusterCommandHandlers},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.ClusterCommandTasks,
+      {useClass: ClusterCommandTasks},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.NodeCommandHandlers,
+      {useClass: NodeCommandHandlers},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(InjectTokens.NodeCommandTasks, {useClass: NodeCommandTasks}, {lifecycle: Lifecycle.Singleton});
+    container.register(
+      InjectTokens.ClusterCommandConfigs,
+      {useClass: ClusterCommandConfigs},
+      {lifecycle: Lifecycle.Singleton},
+    );
+    container.register(
+      InjectTokens.NodeCommandConfigs,
+      {useClass: NodeCommandConfigs},
+      {lifecycle: Lifecycle.Singleton},
+    );
   }
 
   /**
    * clears the container registries and re-initializes the container
+   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
-  reset(cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
+  reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
     if (Container.instance && Container.isInitialized) {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Resetting container');
       container.reset();
       Container.isInitialized = false;
     }
-    Container.getInstance().init(cacheDir, logLevel, devMode, testLogger);
+    Container.getInstance().init(homeDir, cacheDir, logLevel, devMode, testLogger);
   }
 
   /**
    * clears the container instances, useful for testing when you are using container.registerInstance()
+   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
-  clearInstances(cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
+  clearInstances(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
       Container.isInitialized = false;
     } else {
-      Container.getInstance().init(cacheDir, logLevel, devMode, testLogger);
+      Container.getInstance().init(homeDir, cacheDir, logLevel, devMode, testLogger);
     }
   }
 

@@ -10,8 +10,14 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
-import * as helpers from '../core/helpers.js';
-import {addDebugOptions, resolveValidJsonFilePath, validatePath} from '../core/helpers.js';
+import {
+  addDebugOptions,
+  resolveValidJsonFilePath,
+  validatePath,
+  sleep,
+  parseNodeAliases,
+  prepareChartPath,
+} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
@@ -65,7 +71,6 @@ export interface NetworkDeployConfigClass {
   grpcWebTlsKeyPath: string;
   genesisThrottlesFile: string;
   resolvedThrottlesFile: string;
-  getUnusedConfigs: () => string[];
   haproxyIps: string;
   envoyIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
@@ -637,7 +642,7 @@ export class NetworkCommand extends BaseCommand {
     this.configManager.setFlag(flags.namespace, namespace);
 
     // create a config object for subsequent steps
-    const config: NetworkDeployConfigClass = this.getConfig(
+    const config: NetworkDeployConfigClass = this.configManager.getConfig(
       NetworkCommand.DEPLOY_CONFIGS_NAME,
       NetworkCommand.DEPLOY_FLAGS_LIST,
       [
@@ -655,7 +660,7 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    config.nodeAliases = helpers.parseNodeAliases(config.nodeAliasesUnparsed);
+    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
 
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
@@ -666,7 +671,8 @@ export class NetworkCommand extends BaseCommand {
     }
 
     // compute values
-    config.chartPath = await this.prepareChartPath(
+    config.chartPath = await prepareChartPath(
+      this.helm,
       config.chartDirectory,
       constants.SOLO_TESTING_CHART_URL,
       constants.SOLO_DEPLOYMENT_CHART,
@@ -682,9 +688,9 @@ export class NetworkCommand extends BaseCommand {
       flags.genesisThrottlesFile.definition.defaultValue as string,
     );
 
-    config.consensusNodes = this.getConsensusNodes();
-    config.contexts = this.getContexts();
-    config.clusterRefs = this.getClusterRefs();
+    config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    config.contexts = this.remoteConfigManager.getContexts();
+    config.clusterRefs = this.remoteConfigManager.getClusterRefs();
     if (config.nodeAliases.length === 0) {
       config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
       if (config.nodeAliases.length === 0) {
@@ -935,7 +941,7 @@ export class NetworkCommand extends BaseCommand {
                     }
 
                     attempts++;
-                    await helpers.sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
+                    await sleep(Duration.ofSeconds(constants.LOAD_BALANCER_CHECK_DELAY_SECS));
                   }
                   throw new SoloError('Load balancer not found');
                 },
