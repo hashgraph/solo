@@ -9,7 +9,7 @@ env:
   SOLO_DEPLOYMENT: solo-deployment
   # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: v0.58.0
-  HEDERA_SERVICES_ROOT: "/Users/user/source/hedera-services"
+  HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
   # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
   # DEBUG_NODE_ALIAS: "node2"
   # SOLO_CHARTS_DIR_FLAG: "--chart-directory /Users/user/source/solo-charts/charts"

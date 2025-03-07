@@ -8,9 +8,9 @@
 #####  Project Files  ######
 ############################
 
-/src/**                                         @hashgraph/release-engineering @leninmehedy
-/test/**                                        @hashgraph/release-engineering @leninmehedy
-/resources/**                                   @hashgraph/release-engineering @leninmehedy
+/src/**                                         @hashgraph/release-engineering
+/test/**                                        @hashgraph/release-engineering
+/resources/**                                   @hashgraph/release-engineering
 
 #########################
 #####  Core Files  ######
