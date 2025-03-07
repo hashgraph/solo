@@ -6,7 +6,7 @@ import {SoloLogger} from './logging.js';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {Listr} from 'listr2';
 import {SoloError} from './errors.js';
-import {type Lease} from './lease/lease.js';
+import {type LeaseService} from './lease/lease_service.js';
 import * as constants from './constants.js';
 import fs from 'fs';
 import {Task} from './task.js';
@@ -34,7 +34,7 @@ export class CommandHandler {
     actionTasks: any,
     options: any,
     errorString: string,
-    lease: Lease | null,
+    lease: LeaseService | null,
   ): Promise<void> {
     const tasks = new Listr([...actionTasks], options);
     try {

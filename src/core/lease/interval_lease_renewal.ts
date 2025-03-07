@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type Lease, type LeaseRenewalService} from './lease.js';
+import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
 import {Duration} from '../time/duration.js';
 import {injectable} from 'tsyringe-neo';
 
@@ -12,13 +12,13 @@ import {injectable} from 'tsyringe-neo';
 @injectable()
 export class IntervalLeaseRenewalService implements LeaseRenewalService {
   /** The internal registry used to track all non-cancelled lease renewals. */
-  private readonly _scheduledLeases: Map<number, Lease>;
+  private readonly _scheduledLeases: Map<number, LeaseService>;
 
   /**
    * Constructs a new interval lease renewal service.
    */
   constructor() {
-    this._scheduledLeases = new Map<number, Lease>();
+    this._scheduledLeases = new Map<number, LeaseService>();
   }
 
   /**
@@ -39,7 +39,7 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
    * @param lease - the lease to be renewed.
    * @returns the unique identifier of the scheduled lease renewal. The unique identifier is the ID of the setInterval() timeout.
    */
-  public async schedule(lease: Lease): Promise<number> {
+  public async schedule(lease: LeaseService): Promise<number> {
     const renewalDelay = this.calculateRenewalDelay(lease);
     const timeout = setInterval(() => lease.tryRenew(), renewalDelay.toMillis());
     const scheduleId = Number(timeout);
@@ -90,7 +90,7 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
    * @param lease - the lease to be renewed.
    * @returns the delay in milliseconds.
    */
-  public calculateRenewalDelay(lease: Lease): Duration {
+  public calculateRenewalDelay(lease: LeaseService): Duration {
     return Duration.ofSeconds(lease.durationSeconds * 0.5);
   }
 }

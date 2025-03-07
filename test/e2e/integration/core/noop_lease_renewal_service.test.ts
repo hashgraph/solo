@@ -1,7 +1,7 @@
 /**
  * SPDX-License-Identifier: Apache-2.0
  */
-import {type Lease, type LeaseRenewalService} from '../../../../src/core/lease/lease.js';
+import {type LeaseService, type LeaseRenewalService} from '../../../../src/core/lease/lease_service.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 
 export class NoopLeaseRenewalService implements LeaseRenewalService {
@@ -18,7 +18,7 @@ export class NoopLeaseRenewalService implements LeaseRenewalService {
     return scheduleId > 0;
   }
 
-  public async schedule(lease: Lease): Promise<number> {
+  public async schedule(lease: LeaseService): Promise<number> {
     return Atomics.add(this.counter, 0, 1);
   }
 
@@ -30,7 +30,7 @@ export class NoopLeaseRenewalService implements LeaseRenewalService {
     return new Map<number, boolean>();
   }
 
-  public calculateRenewalDelay(lease: Lease): Duration {
+  public calculateRenewalDelay(lease: LeaseService): Duration {
     return Duration.ofSeconds(10);
   }
 }

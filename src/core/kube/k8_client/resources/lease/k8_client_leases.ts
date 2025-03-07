@@ -19,6 +19,8 @@ import {container} from 'tsyringe-neo';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
 import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
+import {K8ClientLease} from './k8_client_lease.js';
+import {type Lease} from '../../../resources/lease/lease.js';
 
 export class K8ClientLeases implements Leases {
   private readonly logger: SoloLogger;
@@ -32,7 +34,7 @@ export class K8ClientLeases implements Leases {
     leaseName: string,
     holderName: string,
     durationSeconds: number,
-  ): Promise<V1Lease> {
+  ): Promise<Lease> {
     const lease = new V1Lease();
 
     const metadata = new V1ObjectMeta();
@@ -52,7 +54,7 @@ export class K8ClientLeases implements Leases {
 
     this.handleKubernetesClientError(response, body, 'Failed to create namespaced lease');
 
-    return body as V1Lease;
+    return K8ClientLease.fromV1Lease(body as V1Lease);
   }
 
   public async delete(namespace: NamespaceName, name: string): Promise<V1Status> {
@@ -82,30 +84,32 @@ export class K8ClientLeases implements Leases {
     return body as V1Lease;
   }
 
-  public async renew(namespace: NamespaceName, leaseName: string, lease: V1Lease): Promise<V1Lease> {
-    lease.spec.renewTime = new V1MicroTime();
+  public async renew(namespace: NamespaceName, leaseName: string, lease: Lease): Promise<Lease> {
+    const v1Lease = K8ClientLease.toV1Lease(lease);
+    v1Lease.spec.renewTime = new V1MicroTime();
 
     const {response, body} = await this.coordinationApiClient
-      .replaceNamespacedLease(leaseName, namespace.name, lease)
+      .replaceNamespacedLease(leaseName, namespace.name, v1Lease)
       .catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to renew namespaced lease');
 
-    return body as V1Lease;
+    return K8ClientLease.fromV1Lease(body as V1Lease);
   }
 
-  public async transfer(lease: V1Lease, newHolderName: string): Promise<V1Lease> {
-    lease.spec.leaseTransitions++;
-    lease.spec.renewTime = new V1MicroTime();
-    lease.spec.holderIdentity = newHolderName;
+  public async transfer(lease: Lease, newHolderName: string): Promise<Lease> {
+    const v1Lease = K8ClientLease.toV1Lease(lease);
+    v1Lease.spec.leaseTransitions++;
+    v1Lease.spec.renewTime = new V1MicroTime();
+    v1Lease.spec.holderIdentity = newHolderName;
 
     const {response, body} = await this.coordinationApiClient
-      .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
+      .replaceNamespacedLease(v1Lease.metadata.name, v1Lease.metadata.namespace, v1Lease)
       .catch(e => e);
 
     this.handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease');
 
-    return body as V1Lease;
+    return K8ClientLease.fromV1Lease(body as V1Lease);
   }
 
   /**
