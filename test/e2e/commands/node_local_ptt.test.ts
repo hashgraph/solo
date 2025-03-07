@@ -26,11 +26,11 @@ argv.setArg(flags.quiet, true);
 console.log('Starting local build for Platform app');
 argv.setArg(
   flags.localBuildPath,
-  '../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data',
+  '../hiero-consensus-node/platform-sdk/sdk/data,node1=../hiero-consensus-node/platform-sdk/sdk/data,node2=../hiero-consensus-node/platform-sdk/sdk/data',
 );
 argv.setArg(
   flags.appConfig,
-  '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json',
+  '../hiero-consensus-node/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json',
 );
 
 argv.setArg(flags.app, 'PlatformTestingTool.jar');

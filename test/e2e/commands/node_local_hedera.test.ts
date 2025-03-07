@@ -35,7 +35,10 @@ argv.setArg(flags.quiet, true);
 
 let k8Factory: K8Factory;
 console.log('Starting local build for Hedera app');
-argv.setArg(flags.localBuildPath, 'node1=../hedera-services/hedera-node/data/,../hedera-services/hedera-node/data');
+argv.setArg(
+  flags.localBuildPath,
+  'node1=../hiero-consensus-node/hedera-node/data/,../hiero-consensus-node/hedera-node/data',
+);
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
