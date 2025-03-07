@@ -6,7 +6,7 @@ import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
-import {SoloError} from '../../core/errors.js';
+import {SoloError, UserBreak} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type DeploymentName} from '../../core/config/remote/types.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -44,7 +44,7 @@ export class ClusterCommandConfigs {
 
   public async connectConfigBuilder(argv, ctx, task) {
     if (!this.localConfig.configFileExists()) {
-      this.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST);
     }
 
     this.configManager.update(argv);
@@ -110,7 +110,7 @@ export class ClusterCommandConfigs {
       });
 
       if (!confirmResult) {
-        this.logger.logAndExitSuccess('Aborted application by user prompt');
+        throw new UserBreak('Aborted application by user prompt');
       }
     }
 

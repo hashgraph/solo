@@ -40,4 +40,5 @@ export const InjectTokens = {
   NodeCommandHandlers: Symbol.for('NodeCommandHandlers'),
   ClusterCommandConfigs: Symbol.for('ClusterCommandConfigs'),
   NodeCommandConfigs: Symbol.for('NodeCommandConfigs'),
+  ErrorHandler: Symbol.for('ErrorHandler'),
 };

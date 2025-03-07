@@ -4,7 +4,7 @@
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
-import {SoloError, MissingArgumentError} from '../core/errors.js';
+import {SoloError, MissingArgumentError, UserBreak} from '../core/errors.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand, type Opts} from './base.js';
@@ -372,9 +372,7 @@ export class ExplorerCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('explorer deployment has completed');
     } catch (e) {
-      const message = `Error deploying explorer: ${e.message}`;
-      self.logger.error(message, e);
-      throw new SoloError(message, e);
+      throw new SoloError(`Error deploying explorer: ${e.message}`, e);
     } finally {
       await lease.release();
     }
@@ -406,7 +404,7 @@ export class ExplorerCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 
@@ -509,7 +507,6 @@ export class ExplorerCommand extends BaseCommand {
                   if (!r) throw new Error('Explorer deployment failed, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Explorer deployment failed: ${err.message}`, err);
                 });
             },
@@ -537,7 +534,6 @@ export class ExplorerCommand extends BaseCommand {
                   if (!r) throw new SoloError('Explorer destruction failed, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Explorer destruction failed: ${err.message}`, err);
                 });
             },

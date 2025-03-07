@@ -4,7 +4,7 @@
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError, UserBreak} from '../core/errors.js';
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
@@ -578,7 +578,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp,
                                                                                    entity_id, transaction_type)
                                                       VALUES (decode('${exchangeRates}', 'hex'), ${
-                                                        timestamp + '000001'
+                                                              timestamp + '000001'
                                                       }, ${exchangeRatesFileIdNum}, 17);`;
                     const sqlQuery = [importFeesQuery, importExchangeRatesQuery].join('\n');
 
@@ -599,7 +599,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       self.logger.showUser(
                         chalk.cyan(
                           'Please run the following SQL script against the external database ' +
-                            'to enable Mirror Node to function correctly:',
+                          'to enable Mirror Node to function correctly:',
                         ),
                         chalk.yellow(databaseSeedingQueryPath),
                       );
@@ -669,9 +669,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      const message = `Error deploying mirror node: ${e.message}`;
-      self.logger.error(message, e);
-      throw new SoloError(message, e);
+      throw new SoloError(`Error deploying mirror node: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -705,7 +703,7 @@ export class MirrorNodeCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 
@@ -841,7 +839,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying mirror node, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying mirror node: ${err.message}`, err);
                 });
             },
@@ -869,7 +866,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error destroying mirror node, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error destroying mirror node: ${err.message}`, err);
                 });
             },

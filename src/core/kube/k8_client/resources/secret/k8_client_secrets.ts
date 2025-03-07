@@ -15,6 +15,7 @@ import {ResourceType} from '../../../resources/resource_type.js';
 import {ResourceOperation} from '../../../resources/resource_operation.js';
 import {Duration} from '../../../../time/duration.js';
 import {type SecretType} from '../../../resources/secret/secret_type.js';
+import {SoloError} from '../../../../errors.js';
 
 export class K8ClientSecrets implements Secrets {
   public constructor(private readonly kubeClient: CoreV1Api) {}
@@ -64,7 +65,9 @@ export class K8ClientSecrets implements Secrets {
     type: string;
     labels: Record<string, string>;
   }> {
-    const {response, body} = await this.kubeClient.readNamespacedSecret(name, namespace.name).catch(e => e);
+    const {response, body} = await this.kubeClient.readNamespacedSecret(name, namespace.name).catch(e => {
+      throw new SoloError(`Error reading namespaced secret: ${e.message}`, e);
+    });
     KubeApiResponse.check(response, ResourceOperation.READ, ResourceType.SECRET, namespace, name);
     return {
       name: body.metadata!.name as string,

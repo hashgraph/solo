@@ -32,6 +32,7 @@ import {NodeCommandHandlers} from '../../commands/node/handlers.js';
 import {NodeCommandTasks} from '../../commands/node/tasks.js';
 import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
+import {ErrorHandler} from '../error_handler.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -170,6 +171,8 @@ export class Container {
       {useClass: NodeCommandConfigs},
       {lifecycle: Lifecycle.Singleton},
     );
+
+    container.register(InjectTokens.ErrorHandler, {useClass: ErrorHandler}, {lifecycle: Lifecycle.Singleton});
   }
 
   /**
