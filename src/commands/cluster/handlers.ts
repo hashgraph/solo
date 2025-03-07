@@ -5,7 +5,6 @@ import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
-import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -44,13 +43,10 @@ export class ClusterCommandHandlers extends CommandHandler {
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
-        this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(this.k8Factory),
-        this.tasks.selectContext(),
-        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
-        this.tasks.readClustersFromRemoteConfig(argv),
-        this.tasks.updateLocalConfig(),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this)),
+        this.tasks.connectClusterRef(),
+        this.tasks.testConnectionToCluster(),
+        this.tasks.saveLocalConfig(),
       ],
       {
         concurrent: false,
@@ -63,8 +59,29 @@ export class ClusterCommandHandlers extends CommandHandler {
     return true;
   }
 
+  async disconnect(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
+
+    await this.commandAction(
+      argv,
+      [
+        this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this)),
+        this.tasks.disconnectClusterRef(),
+        this.tasks.saveLocalConfig(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'cluster disconnect',
+      null,
+    );
+
+    return true;
+  }
+
   async list(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.NO_FLAGS);
 
     await this.commandAction(
       argv,
@@ -81,11 +98,11 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async info(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
 
     await this.commandAction(
       argv,
-      [this.tasks.getClusterInfo()],
+      [this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this.configs)), this.tasks.getClusterInfo()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -98,7 +115,8 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async setup(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.SETUP_FLAGS);
+
     try {
       await this.commandAction(
         argv,
@@ -122,7 +140,8 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async reset(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.RESET_FLAGS);
+
     try {
       await this.commandAction(
         argv,

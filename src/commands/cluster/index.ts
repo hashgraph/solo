@@ -6,7 +6,6 @@ import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand, type Opts} from './../base.js';
 import {type ClusterCommandHandlers} from './handlers.js';
-import {DEFAULT_FLAGS, RESET_FLAGS, SETUP_FLAGS} from './flags.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 
@@ -32,11 +31,22 @@ export class ClusterCommand extends BaseCommand {
             new YargsCommand(
               {
                 command: 'connect',
-                description: 'updates the local configuration by connecting a deployment to a k8s context',
+                description: 'associates a cluster reference to a k8s context',
                 commandDef: this,
                 handler: 'connect',
               },
               ContextFlags.CONNECT_FLAGS,
+            ),
+          )
+          .command(
+            new YargsCommand(
+              {
+                command: 'disconnect',
+                description: 'dissociates a cluster reference from a k8s context',
+                commandDef: this,
+                handler: 'disconnect',
+              },
+              ContextFlags.DEFAULT_FLAGS,
             ),
           )
           .command(
@@ -47,7 +57,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'list',
               },
-              DEFAULT_FLAGS,
+              ContextFlags.NO_FLAGS,
             ),
           )
           .command(
@@ -58,7 +68,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'info',
               },
-              DEFAULT_FLAGS,
+              ContextFlags.DEFAULT_FLAGS,
             ),
           )
           .command(
@@ -69,7 +79,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'setup',
               },
-              SETUP_FLAGS,
+              ContextFlags.SETUP_FLAGS,
             ),
           )
           .command(
@@ -80,7 +90,7 @@ export class ClusterCommand extends BaseCommand {
                 commandDef: this,
                 handler: 'reset',
               },
-              RESET_FLAGS,
+              ContextFlags.RESET_FLAGS,
             ),
           )
           .demandCommand(1, 'Select a context command');

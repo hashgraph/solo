@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {type NodeAlias} from '../../types/aliases.js';
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -16,8 +15,16 @@ import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_config_class.js';
+import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
+import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
+import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
+import {ErrorMessages} from '../../core/error_messages.js';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
+export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 @injectable()
 export class ClusterCommandConfigs {
@@ -25,17 +32,43 @@ export class ClusterCommandConfigs {
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
   }
 
   public async connectConfigBuilder(argv, ctx, task) {
-    const config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
-    // set config in the context for later tasks to use
-    ctx.config = config;
+    if (!this.localConfig.configFileExists()) {
+      this.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
+    }
 
+    this.configManager.update(argv);
+    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, [
+      'selectedContext',
+    ]) as ClusterRefConnectConfigClass;
+
+    ctx.config.selectedContext = ctx.config.context;
+    if (!ctx.config.selectedContext) {
+      const isQuiet = this.configManager.getFlag(flags.quiet);
+      if (isQuiet) {
+        ctx.config.selectedContext = this.k8Factory.default().contexts().readCurrent();
+      } else {
+        const kubeContexts = this.k8Factory.default().contexts().list();
+        ctx.config.selectedContext = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+      }
+    }
+
+    return ctx.config;
+  }
+
+  public async defaultConfigBuilder(argv, ctx, task) {
+    this.configManager.update(argv);
+    ctx.config = this.configManager.getConfig(DEFAULT_CONFIGS_NAME, argv.flags, []) as ClusterRefDefaultConfigClass;
     return ctx.config;
   }
 
@@ -98,39 +131,4 @@ export class ClusterCommandConfigs {
 
     return ctx.config;
   }
-}
-
-export interface ClusterConnectConfigClass {
-  app: string;
-  cacheDir: string;
-  devMode: boolean;
-  namespace: string;
-  nodeAlias: NodeAlias;
-  context: string;
-  clusterName: string;
-}
-
-export interface ClusterSetupConfigClass {
-  chartDir: string;
-  clusterSetupNamespace: NamespaceName;
-  deployMinio: boolean;
-  deployPrometheusStack: boolean;
-  soloChartVersion: string;
-}
-
-export interface ClusterResetConfigClass {
-  clusterName: string;
-  clusterSetupNamespace: string;
-}
-
-export interface SelectClusterContextContext {
-  config: {
-    quiet: boolean;
-    namespace: NamespaceName;
-    clusterName: string;
-    context: string;
-    clusters: string[];
-    deployment: DeploymentName;
-    deploymentClusters: string[];
-  };
 }
