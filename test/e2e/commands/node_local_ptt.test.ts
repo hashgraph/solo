@@ -4,10 +4,10 @@
 import {describe} from 'mocha';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, TEST_CLUSTER} from '../../test_util.js';
+import {e2eTestSuite, getTestCluster} from '../../test_util.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
-import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
@@ -19,23 +19,23 @@ const argv = Argv.getDefaultArgv(namespace);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2,node3');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 argv.setArg(flags.quiet, true);
 
 console.log('Starting local build for Platform app');
 argv.setArg(
   flags.localBuildPath,
-  '../hedera-services/platform-sdk/sdk/data,node1=../hedera-services/platform-sdk/sdk/data,node2=../hedera-services/platform-sdk/sdk/data',
+  '../hiero-consensus-node/platform-sdk/sdk/data,node1=../hiero-consensus-node/platform-sdk/sdk/data,node2=../hiero-consensus-node/platform-sdk/sdk/data',
 );
 argv.setArg(
   flags.appConfig,
-  '../hedera-services/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json',
+  '../hiero-consensus-node/platform-sdk/platform-apps/tests/PlatformTestingTool/src/main/resources/FCMFCQ-Basic-2.5k-5m.json',
 );
 
 argv.setArg(flags.app, 'PlatformTestingTool.jar');
 argv.setArg(flags.namespace, namespace.name);
-argv.setArg(flags.releaseTag, LOCAL_HEDERA_PLATFORM_VERSION);
+argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node for platform app should start successfully', () => {

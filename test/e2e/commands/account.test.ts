@@ -19,7 +19,7 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, getTestLogger} from '../../test_util.js';
+import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster} from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -50,7 +50,7 @@ argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.loadBalancerEnabled, true);
 argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);

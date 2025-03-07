@@ -5,7 +5,7 @@ import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../../src/commands/flags.js';
-import {e2eTestSuite, TEST_CLUSTER} from '../../../test_util.js';
+import {e2eTestSuite, getTestCluster} from '../../../test_util.js';
 import * as version from '../../../../version.js';
 import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
@@ -20,7 +20,7 @@ const argv = Argv.getDefaultArgv(namespace);
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.deployment, `${namespace.name}-deployment`);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1');
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
