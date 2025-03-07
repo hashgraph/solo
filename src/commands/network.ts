@@ -319,9 +319,7 @@ export class NetworkCommand extends BaseCommand {
 
       await this.prepareBackupUploaderSecrets(config);
     } catch (e: Error | any) {
-      const errorMessage = 'failed to create Kubernetes storage secret ';
-      this.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError('Failed to create Kubernetes storage secret', e);
     }
   }
 
@@ -1272,7 +1270,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying network: ${err.message}`, err);
                 });
             },
@@ -1302,7 +1299,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error destroying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error destroying network: ${err.message}`, err);
                 });
             },
@@ -1323,7 +1319,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error refreshing network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error refreshing network: ${err.message}`, err);
                 });
             },

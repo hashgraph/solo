@@ -665,9 +665,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      const message = `Error deploying mirror node: ${e.message}`;
-      self.logger.error(message, e);
-      throw new SoloError(message, e);
+      throw new SoloError(`Error deploying mirror node: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -837,7 +835,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying mirror node, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying mirror node: ${err.message}`, err);
                 });
             },
@@ -865,7 +862,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error destroying mirror node, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error destroying mirror node: ${err.message}`, err);
                 });
             },

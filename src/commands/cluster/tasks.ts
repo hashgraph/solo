@@ -363,13 +363,9 @@ export class ClusterCommandTasks {
 
   getClusterInfo() {
     return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      try {
-        const clusterName = this.parent.getK8Factory().default().clusters().readCurrent();
-        this.parent.logger.showUser(`Cluster Name (${clusterName})`);
-        this.parent.logger.showUser('\n');
-      } catch (e: Error | unknown) {
-        this.parent.logger.showUserError(e);
-      }
+      const clusterName = this.parent.getK8Factory().default().clusters().readCurrent();
+      this.parent.logger.showUser(`Cluster Name (${clusterName})`);
+      this.parent.logger.showUser('\n');
     });
   }
 
@@ -437,10 +433,6 @@ export class ClusterCommandTasks {
             );
         } catch (e: Error | unknown) {
           // if error, uninstall the chart and rethrow the error
-          parent.logger.debug(
-            `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
-            e,
-          );
           try {
             await parent
               .getChartManager()
@@ -453,7 +445,7 @@ export class ClusterCommandTasks {
             // ignore error during uninstall since we are doing the best-effort uninstall here
           }
 
-          throw e;
+          throw new SoloError(`Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`, e);
         }
 
         if (argv.dev) {

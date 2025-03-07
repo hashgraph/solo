@@ -363,9 +363,7 @@ export class ExplorerCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('explorer deployment has completed');
     } catch (e) {
-      const message = `Error deploying explorer: ${e.message}`;
-      self.logger.error(message, e);
-      throw new SoloError(message, e);
+      throw new SoloError(`Error deploying explorer: ${e.message}`, e);
     } finally {
       await lease.release();
     }
@@ -500,7 +498,6 @@ export class ExplorerCommand extends BaseCommand {
                   if (!r) throw new Error('Explorer deployment failed, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Explorer deployment failed: ${err.message}`, err);
                 });
             },
@@ -528,7 +525,6 @@ export class ExplorerCommand extends BaseCommand {
                   if (!r) throw new SoloError('Explorer destruction failed, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Explorer destruction failed: ${err.message}`, err);
                 });
             },

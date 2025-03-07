@@ -442,7 +442,7 @@ export class NodeCommandTasks {
         if (!response) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error('empty response'); // Guard
+          throw new SoloError('empty response'); // Guard
         }
 
         const statusLine = response.split('\n').find(line => line.startsWith('platform_PlatformStatus'));
@@ -450,7 +450,7 @@ export class NodeCommandTasks {
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error('missing status line'); // Guard
+          throw new SoloError('missing status line'); // Guard
         }
 
         const statusNumber = parseInt(statusLine.split(' ').pop());
@@ -725,7 +725,6 @@ export class NodeCommandTasks {
           prepareUpgradeReceipt.status.toString(),
         );
       } catch (e) {
-        self.logger.error(`Error in prepare upgrade: ${e.message}`, e);
         throw new SoloError(`Error in prepare upgrade: ${e.message}`, e);
       }
     });
@@ -762,7 +761,6 @@ export class NodeCommandTasks {
           freezeUpgradeReceipt.status.toString(),
         );
       } catch (e) {
-        self.logger.error(`Error in freeze upgrade: ${e.message}`, e);
         throw new SoloError(`Error in freeze upgrade: ${e.message}`, e);
       }
     });
@@ -798,7 +796,6 @@ export class NodeCommandTasks {
           freezeOnlyReceipt.status.toString(),
         );
       } catch (e) {
-        self.logger.error(`Error in sending freeze transaction: ${e.message}`, e);
         throw new SoloError(`Error in sending freeze transaction: ${e.message}`, e);
       }
     });
@@ -934,7 +931,7 @@ export class NodeCommandTasks {
               undefined,
               context,
             );
-          } catch (_) {
+          } catch (e: Error | any) {
             ctx.config.skipStop = true;
           }
         },
@@ -1649,8 +1646,6 @@ export class NodeCommandTasks {
         const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient);
         self.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`);
       } catch (e) {
-        self.logger.error(`Error updating node to network: ${e.message}`, e);
-        self.logger.error(e.stack);
         throw new SoloError(`Error updating node to network: ${e.message}`, e);
       }
     });
@@ -2033,7 +2028,6 @@ export class NodeCommandTasks {
 
         this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`);
       } catch (e) {
-        this.logger.error(`Error deleting node from network: ${e.message}`, e);
         throw new SoloError(`Error deleting node from network: ${e.message}`, e);
       }
     });
@@ -2057,7 +2051,6 @@ export class NodeCommandTasks {
         const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient);
         this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`);
       } catch (e) {
-        this.logger.error(`Error adding node to network: ${e.message}`, e);
         throw new SoloError(`Error adding node to network: ${e.message}`, e);
       }
     });

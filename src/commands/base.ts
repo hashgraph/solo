@@ -312,7 +312,6 @@ export abstract class BaseCommand extends ShellRunner {
       try {
         await tasks.run();
       } catch (e: Error | any) {
-        commandDef.parent.logger.error(`${errorString}: ${e.message}`, e);
         throw new SoloError(`${errorString}: ${e.message}`, e);
       } finally {
         const promises = [];
@@ -348,7 +347,6 @@ export abstract class BaseCommand extends ShellRunner {
         self.logger.debug(`OK: setup directory: ${dirPath}`);
       });
     } catch (e: Error | any) {
-      this.logger.error(e);
       throw new SoloError(`failed to create directory: ${e.message}`, e);
     }
 
