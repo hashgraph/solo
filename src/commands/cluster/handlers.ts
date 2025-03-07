@@ -110,7 +110,7 @@ export class ClusterCommandHandlers extends CommandHandler {
 
     await this.commandAction(
       argv,
-      [this.tasks.getClusterInfo()],
+      [this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this.configs)), this.tasks.getClusterInfo()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -123,7 +123,8 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async setup(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.SETUP_FLAGS);
+
     try {
       await this.commandAction(
         argv,
@@ -147,7 +148,8 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   async reset(argv: any) {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.RESET_FLAGS);
+
     try {
       await this.commandAction(
         argv,

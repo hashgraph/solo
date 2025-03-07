@@ -15,7 +15,9 @@ import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {ErrorMessages} from '../../core/error_messages.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
@@ -26,14 +28,21 @@ export class ClusterCommandConfigs {
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
   }
 
   public async connectConfigBuilder(argv, ctx, task) {
+    if (!this.localConfig.configFileExists()) {
+      this.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
+    }
+
     this.configManager.update(argv);
     ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
 

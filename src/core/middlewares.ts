@@ -111,6 +111,7 @@ export class Middlewares {
       const skip =
         command === 'init' ||
         (command === 'cluster-ref' && subCommand === 'connect') ||
+        (command === 'cluster-ref' && subCommand === 'disconnect') ||
         (command === 'cluster-ref' && subCommand === 'info') ||
         (command === 'cluster-ref' && subCommand === 'list') ||
         (command === 'cluster-ref' && subCommand === 'setup') ||
