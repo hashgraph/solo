@@ -46,13 +46,13 @@ export class ClusterCommandConfigs {
     this.configManager.update(argv);
     ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
 
-    if (!ctx.config.contextName) {
+    if (!ctx.config.context) {
       const isQuiet = this.configManager.getFlag(flags.quiet);
       if (isQuiet) {
-        ctx.config.contextName = this.k8Factory.default().contexts().readCurrent();
+        ctx.config.context = this.k8Factory.default().contexts().readCurrent();
       } else {
         const kubeContexts = this.k8Factory.default().contexts().list();
-        ctx.config.contextName = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+        ctx.config.context = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
       }
     }
 
@@ -132,7 +132,7 @@ export interface ClusterRefConnectConfigClass {
   quiet: boolean;
   userEmailAddress: EmailAddress;
   clusterRef: ClusterRef;
-  contextName: string;
+  context: string;
 }
 
 export interface ClusterRefConnectContext {

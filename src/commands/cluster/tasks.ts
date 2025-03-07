@@ -56,7 +56,7 @@ export class ClusterCommandTasks {
       task: async (ctx, task) => {
         task.title += ctx.config.clusterRef;
 
-        this.localConfig.clusterRefs[ctx.config.clusterRef] = ctx.config.contextName;
+        this.localConfig.clusterRefs[ctx.config.clusterRef] = ctx.config.context;
       },
     };
   }
@@ -87,11 +87,11 @@ export class ClusterCommandTasks {
       task: async (ctx, task) => {
         task.title += clusterRef ?? ctx.config.clusterRef;
         try {
-          await self.k8Factory.getK8(ctx.config.contextName).namespaces().list();
+          await self.k8Factory.getK8(ctx.config.context).namespaces().list();
         } catch {
           task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
           throw new SoloError(
-            `${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(ctx.config.contextName, ctx.config.clusterRef)}`,
+            `${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(ctx.config.context, ctx.config.clusterRef)}`,
           );
         }
       },
