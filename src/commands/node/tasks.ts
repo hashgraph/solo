@@ -1090,6 +1090,7 @@ export class NodeCommandTasks {
         );
       }
 
+      // TODO: during `node add` ctx.config.nodeAliases is empty, since ctx.config.nodeAliasesUnparsed is empty
       await this.generateNodeOverridesJson(ctx.config.namespace, ctx.config.nodeAliases, ctx.config.stagingDir);
 
       const consensusNodes = ctx.config.consensusNodes;
@@ -1123,8 +1124,8 @@ export class NodeCommandTasks {
 
     const nodeOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
-    const nodeOverridesJson = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
-    fs.writeFileSync(nodeOverridesJson, nodeOverridesModel.toYAML());
+    const nodeOverridesYaml = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
+    fs.writeFileSync(nodeOverridesYaml, nodeOverridesModel.toYAML());
   }
 
   /**
