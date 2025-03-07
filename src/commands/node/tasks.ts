@@ -826,10 +826,6 @@ export class NodeCommandTasks {
         .readByRef(containerRef)
         .copyFrom(`${constants.HEDERA_HAPI_PATH}/data/upgrade/current/config.txt`, config.stagingDir);
 
-      // set the config.txt to empty so that the nodes will pull from state, this is needed for v0.58.3+
-      // const configTxtPath: string = path.join(config.stagingDir, 'config.txt');
-      // fs.writeFileSync(configTxtPath, '');
-
       // if directory data/upgrade/current/data/keys does not exist, then use data/upgrade/current
       let keyDir = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/keys`;
       if (!(await k8.containers().readByRef(containerRef).hasDir(keyDir))) {
