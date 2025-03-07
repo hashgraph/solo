@@ -4,7 +4,7 @@
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
-import {SoloError, MissingArgumentError} from '../core/errors.js';
+import {SoloError, MissingArgumentError, UserBreak} from '../core/errors.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand, type Opts} from './base.js';
@@ -404,7 +404,7 @@ export class ExplorerCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.info('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 

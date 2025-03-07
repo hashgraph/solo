@@ -5,7 +5,7 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError, UserBreak} from '../core/errors.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -1127,7 +1127,7 @@ export class NetworkCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.info('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 

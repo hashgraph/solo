@@ -12,7 +12,7 @@ import path from 'path';
 import chalk from 'chalk';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {ErrorMessages} from '../../core/error_messages.js';
-import {SoloError} from '../../core/errors.js';
+import {SoloError, UserBreak} from '../../core/errors.js';
 import {RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {type RemoteConfigDataWrapper} from '../../core/config/remote/remote_config_data_wrapper.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
@@ -528,7 +528,7 @@ export class ClusterCommandTasks {
           });
 
           if (!confirm) {
-            self.logger.logAndExitSuccess('Aborted application by user prompt');
+            throw new UserBreak('Aborted application by user prompt');
           }
         }
         await self.chartManager.uninstall(

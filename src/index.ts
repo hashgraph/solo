@@ -34,7 +34,7 @@ import {Container} from './core/dependency_injection/container_init.js';
 import {InjectTokens} from './core/dependency_injection/inject_tokens.js';
 import {type Opts} from './commands/base.js';
 import {Middlewares} from './core/middlewares.js';
-import {SoloError} from './core/errors.js';
+import {SoloError, UserBreak} from './core/errors.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
@@ -65,7 +65,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
     logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
     logger.showUser(chalk.cyan('**********************************************************************************'));
-    logger.info('displayed version information, exiting');
+    throw new UserBreak('displayed version information, exiting');
   }
 
   // prepare dependency manger registry
