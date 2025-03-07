@@ -187,8 +187,10 @@ jobs:
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         run: |
           cd ..
-          git clone https://github.com/hashgraph/hedera-services.git --depth 1 --branch v0.58.3
-          cd hedera-services
+          # TODO revert before merge
+          # git clone https://github.com/hiero-ledger/hiero-consensus-node.git --depth 1 --branch v0.58.10
+          git clone https://github.com/hiero-ledger/hiero-consensus-node.git --depth 1 --branch jeromy-v0.58.10-debug
+          cd hiero-consensus-node
           ls -ltr
           ${{ env.CG_EXEC }} ./gradlew assemble --stacktrace --info
           cd ../solo

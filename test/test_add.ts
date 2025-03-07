@@ -17,7 +17,7 @@ import * as NodeCommandConfigs from '../src/commands/node/configs.js';
 import {type NodeAlias} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {Duration} from '../src/core/time/duration.js';
-import {LOCAL_HEDERA_PLATFORM_VERSION} from '../version.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../version_test.js';
 import {NamespaceName} from '../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
@@ -43,7 +43,7 @@ export function testNodeAdd(
   argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
   argv.setArg(
     flags.releaseTag,
-    !localBuildPath || localBuildPath === '' ? HEDERA_PLATFORM_VERSION_TAG : LOCAL_HEDERA_PLATFORM_VERSION,
+    !localBuildPath || localBuildPath === '' ? HEDERA_PLATFORM_VERSION_TAG : TEST_LOCAL_HEDERA_PLATFORM_VERSION,
   );
   argv.setArg(flags.namespace, namespace.name);
   argv.setArg(flags.force, true);

@@ -35,7 +35,7 @@ import {
   PrivateKey,
   Timestamp,
 } from '@hashgraph/sdk';
-import {MissingArgumentError, SoloError} from '../../core/errors.js';
+import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -90,7 +90,7 @@ import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
-import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell_runner.js';
 
 @injectable()
@@ -271,7 +271,7 @@ export class NodeCommandTasks {
           const retrievedReleaseTag = await shellRunner.run(
             `git -C ${localDataLibBuildPath} describe --tags --abbrev=0`,
           );
-          const expectedReleaseTag = releaseTag ? releaseTag : LOCAL_HEDERA_PLATFORM_VERSION;
+          const expectedReleaseTag = releaseTag ? releaseTag : HEDERA_PLATFORM_VERSION;
           if (retrievedReleaseTag.join('\n') !== expectedReleaseTag) {
             this.logger.showUser(
               chalk.cyan(
@@ -1100,6 +1100,8 @@ export class NodeCommandTasks {
     });
   }
 
+  // generates the node overrides file.  This file is used to override the address book.  It is useful in cases where
+  // there is a hair pinning issue and the node needs to connect to itself via a different address.
   private async generateNodeOverridesJson(namespace: NamespaceName, nodeAliases: NodeAliases, stagingDir: string) {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
@@ -1544,6 +1546,9 @@ export class NodeCommandTasks {
       ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(
         (nodeAlias: NodeAlias) => nodeAlias !== ctx.config.nodeAlias,
       );
+      ctx.config.consensusNodes = ctx.config.consensusNodes.filter(
+        (consensusNode: ConsensusNode) => consensusNode.name !== ctx.config.nodeAlias,
+      );
     });
   }
 
@@ -1706,13 +1711,20 @@ export class NodeCommandTasks {
         // On Update and Delete
         for (let i = 0; i < index; i++) {
           const consensusNode = consensusNodes.find(node => node.nodeId === i);
+          if (!consensusNode) break; // break in the case that no consensus node is found, which can happen from a node delete
           const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
-          if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
+          // TODO the node array index in the set command will be different from the loop index in the case of multiple clusters
+          // TODO also, if a node delete has been ran, or a node add, then the node array will still have to be contiguous, but the nodeId will not match the index
+          if (
+            transactionType === NodeSubcommandType.UPDATE &&
+            config.newAccountNumber &&
+            i === Templates.nodeIdFromNodeAlias(config.nodeAlias)
+          ) {
             // for the case of updating node
             // use new account number for this node id
             valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
+              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.nodeAlias}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) {
             // for the case of deleting node
             valuesArgMap[clusterRef] +=
@@ -1721,6 +1733,11 @@ export class NodeCommandTasks {
             valuesArgMap[clusterRef] +=
               ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
           }
+        }
+
+        // now remove the deleted node from the serviceMap
+        if (transactionType === NodeSubcommandType.DELETE) {
+          config.serviceMap.delete(config.nodeAlias);
         }
 
         // When adding a new node
@@ -1770,7 +1787,7 @@ export class NodeCommandTasks {
         }
 
         // Add profile values files
-        const profileValuesFile = await self.profileManager.prepareValuesForNodeAdd(
+        const profileValuesFile = await self.profileManager.prepareValuesForNodeTransaction(
           path.join(config.stagingDir, 'config.txt'),
           path.join(config.stagingDir, 'templates', 'application.properties'),
         );

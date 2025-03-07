@@ -6,7 +6,7 @@ import {it, describe, after, before, afterEach, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {bootstrapTestVariables, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import {bootstrapTestVariables, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
@@ -39,7 +39,7 @@ describe('ClusterCommand', () => {
   argv.setArg(flags.nodeAliasesUnparsed, 'node1');
   argv.setArg(flags.generateGossipKeys, true);
   argv.setArg(flags.generateTlsKeys, true);
-  argv.setArg(flags.clusterRef, TEST_CLUSTER);
+  argv.setArg(flags.clusterRef, getTestCluster());
   argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
   argv.setArg(flags.force, true);
   argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);

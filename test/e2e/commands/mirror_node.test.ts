@@ -9,8 +9,8 @@ import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   e2eTestSuite,
+  getTestCluster,
   HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER,
 } from '../../test_util.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
@@ -40,7 +40,7 @@ argv.setArg(flags.forcePortForward, true);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1'); // use a single node to reduce resource during e2e tests
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
