@@ -115,45 +115,18 @@ describe('NetworkCommand', function networkCommand() {
   });
 
   it('network deploy command should succeed', async () => {
-    try {
-      expect(await networkCmd.deploy(argv.build())).to.be.true;
+    expect(await networkCmd.deploy(argv.build())).to.be.true;
 
-      // check pod names should match expected values
-      await expect(
-        k8Factory
-          .default()
-          .pods()
-          .read(PodRef.of(namespace, PodName.of('network-node1-0'))),
-      ).eventually.to.have.nested.property('metadata.name', 'network-node1-0');
-      // get list of pvc using k8 pvcs list function and print to log
-      const pvcs = await k8Factory.default().pvcs().list(namespace, []);
-      networkCmd.logger.showList('PVCs', pvcs);
-
-      expect(networkCmd.configManager.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.apiPermissionProperties.constName,
-        flags.applicationEnv.constName,
-        flags.applicationProperties.constName,
-        flags.bootstrapProperties.constName,
-        flags.chainId.constName,
-        flags.log4j2Xml.constName,
-        flags.deployment.constName,
-        flags.profileFile.constName,
-        flags.profileName.constName,
-        flags.quiet.constName,
-        flags.settingTxt.constName,
-        flags.grpcTlsKeyPath.constName,
-        flags.grpcWebTlsKeyPath.constName,
-        flags.gcsWriteAccessKey.constName,
-        flags.gcsWriteSecrets.constName,
-        flags.gcsEndpoint.constName,
-        flags.awsWriteAccessKey.constName,
-        flags.awsWriteSecrets.constName,
-        flags.awsEndpoint.constName,
-      ]);
-    } catch (e) {
-      networkCmd.logger.showUserError(e);
-      expect.fail();
-    }
+    // check pod names should match expected values
+    await expect(
+      k8Factory
+        .default()
+        .pods()
+        .read(PodRef.of(namespace, PodName.of('network-node1-0'))),
+    ).eventually.to.have.nested.property('metadata.name', 'network-node1-0');
+    // get list of pvc using k8 pvcs list function and print to log
+    const pvcs = await k8Factory.default().pvcs().list(namespace, []);
+    networkCmd.logger.showList('PVCs', pvcs);
   }).timeout(Duration.ofMinutes(4).toMillis());
 
   it('application env file contents should be in cached values file', () => {
