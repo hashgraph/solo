@@ -107,9 +107,14 @@ export class SoloLogger {
       let indent = '';
       stack.forEach(s => {
         console.log(indent + prefix + chalk.yellow(s.message));
-        console.log(indent + chalk.gray(s.stacktrace) + '\n');
-        indent += ' ';
-        prefix += 'Caused by: ';
+        // Remove everything after the first "Caused by: " and add indentation
+        const formattedStacktrace = s.stacktrace
+          .replace(/Caused by:.*/s, '')
+          .replace(/\n\s*/g, '\n' + indent)
+          .trim();
+        console.log(indent + chalk.gray(formattedStacktrace) + '\n');
+        indent += '  ';
+        prefix = 'Caused by: ';
       });
     } else {
       const lines: string[] = err.message.split('\n');
