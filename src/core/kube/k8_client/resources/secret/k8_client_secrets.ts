@@ -65,9 +65,7 @@ export class K8ClientSecrets implements Secrets {
     type: string;
     labels: Record<string, string>;
   }> {
-    const {response, body} = await this.kubeClient.readNamespacedSecret(name, namespace.name).catch(e => {
-      throw new SoloError(`Error reading namespaced secret: ${e.message}`, e);
-    });
+    const {response, body} = await this.kubeClient.readNamespacedSecret(name, namespace.name).catch(e => e);
     KubeApiResponse.check(response, ResourceOperation.READ, ResourceType.SECRET, namespace, name);
     return {
       name: body.metadata!.name as string,
