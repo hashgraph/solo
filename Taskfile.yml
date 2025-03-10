@@ -43,11 +43,11 @@ tasks:
       - npx typedoc --emit none
   test-setup:
     cmds:
-      - ./test/e2e/setup-e2e.sh
+      - sh {{.TASKFILE_DIR}}/test/e2e/setup-e2e.sh
 
   dual-cluster-setup:
     cmds:
-      - ./test/e2e/dual-cluster/setup-dual-e2e.sh
+      - sh {{.TASKFILE_DIR}}/test/e2e/dual-cluster/setup-dual-e2e.sh
 
   build:
     cmds:
