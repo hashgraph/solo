@@ -348,13 +348,13 @@ export class ProfileManager {
     await writeFile(applicationPropertiesPath, lines.join('\n'));
   }
 
-  public async prepareValuesForNodeAdd(configTxtPath: string, applicationPropertiesPath: string) {
+  public async prepareValuesForNodeTransaction(configTxtPath: string, applicationPropertiesPath: string) {
     const yamlRoot = {};
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot);
     await this.bumpHederaConfigVersion(applicationPropertiesPath);
     this._setFileContentsAsValue('hedera.configMaps.applicationProperties', applicationPropertiesPath, yamlRoot);
 
-    const cachedValuesFile = path.join(this.cacheDir, 'solo-node-add.yaml');
+    const cachedValuesFile = path.join(this.cacheDir, 'solo-node-transaction.yaml');
     return this.writeToYaml(cachedValuesFile, yamlRoot);
   }
 

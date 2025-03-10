@@ -4,7 +4,7 @@
 import {describe} from 'mocha';
 
 import {Flags} from '../../../src/commands/flags.js';
-import {getTestCacheDir, TEST_CLUSTER} from '../../test_util.js';
+import {getTestCacheDir, getTestCluster} from '../../test_util.js';
 import {getSoloVersion} from '../../../src/core/helpers.js';
 import * as constants from '../../../src/core/constants.js';
 import {main} from '../../../src/index.js';
@@ -30,7 +30,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   const namespace: NamespaceName = NamespaceName.of(testName);
   const deployment = `${testName}-deployment`;
   const testClusterRefs: ClusterRef[] = ['e2e-cluster-1', 'e2e-cluster-2'];
-  const testCluster = TEST_CLUSTER.includes('c1') ? TEST_CLUSTER : `${TEST_CLUSTER}-c1`;
+  const testCluster = getTestCluster().includes('c1') ? getTestCluster() : `${getTestCluster()}-c1`;
   const contexts: string[] = [`${testCluster}`, `${testCluster.replace('-c1', '-c2')}`];
   const nodeAliasesUnparsed = 'node1,node2';
   const nodeAliasesWithClusterRefsUnparsed = 'e2e-cluster-1=node1,e2e-cluster-2=node2';

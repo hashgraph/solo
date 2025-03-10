@@ -192,9 +192,10 @@ jobs:
       - name: Build Hedera code locally
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         run: |
+          export CONSENSUS_NODE_VERSION=$(grep 'TEST_LOCAL_HEDERA_PLATFORM_VERSION' version_test.ts | sed -E "s/.*'([^']+)';/\1/")
           cd ..
-          git clone https://github.com/hashgraph/hedera-services.git --depth 1 --branch v0.58.3
-          cd hedera-services
+          git clone https://github.com/hiero-ledger/hiero-consensus-node.git --depth 1 --branch ${CONSENSUS_NODE_VERSION}
+          cd hiero-consensus-node
           ls -ltr
           ${{ env.CG_EXEC }} ./gradlew assemble --stacktrace --info
           cd ../solo
