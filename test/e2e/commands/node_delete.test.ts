@@ -37,6 +37,7 @@ argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.quiet, true);
+argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node delete', async () => {

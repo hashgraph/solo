@@ -50,6 +50,7 @@ export function testNodeAdd(
   argv.setArg(flags.persistentVolumeClaims, true);
   argv.setArg(flags.localBuildPath, localBuildPath);
   argv.setArg(flags.quiet, true);
+  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 
   e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     describe(testDescription, async () => {
