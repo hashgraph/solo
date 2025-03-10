@@ -213,5 +213,5 @@ tasks:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Dual Cluster Full Test\"
         {{ .reporter_prefix }}='coverage/e2e-dual-cluster-full'
-        { .mocha_bin }} 'test/e2e/commands/dual_cluster_full.test.ts' 
+        {{ .mocha_bin }} 'test/e2e/commands/dual_cluster_full.test.ts' 
         {{ .reporter_options_prefix }}-e2e-dual-cluster-full.xml"
