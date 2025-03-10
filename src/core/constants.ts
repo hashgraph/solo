@@ -232,3 +232,10 @@ export const enum StorageType {
   GCS_ONLY = 'gcs_only',
   AWS_AND_GCS = 'aws_and_gcs',
 }
+
+export const CERT_MANAGER_CRDS = [
+  'certificaterequests.cert-manager.io',
+  'certificates.cert-manager.io',
+  'clusterissuers.cert-manager.io',
+  'issuers.cert-manager.io',
+];
