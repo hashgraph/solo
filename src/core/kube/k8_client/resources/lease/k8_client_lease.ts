@@ -21,6 +21,8 @@ export class K8ClientLease implements Lease {
       v1Lease.metadata.name,
       v1Lease.spec.holderIdentity,
       v1Lease.spec.leaseDurationSeconds,
+      v1Lease.spec.acquireTime,
+      v1Lease.spec.renewTime,
     );
   }
 
@@ -35,7 +37,8 @@ export class K8ClientLease implements Lease {
     const spec: V1LeaseSpec = new V1LeaseSpec();
     spec.holderIdentity = lease.holderName;
     spec.leaseDurationSeconds = lease.durationSeconds;
-    spec.acquireTime = new V1MicroTime();
+    spec.acquireTime = lease.acquireTime || new V1MicroTime();
+    spec.renewTime = lease.renewTime || new V1MicroTime();
     v1Lease.spec = spec;
 
     return v1Lease;
