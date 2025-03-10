@@ -4,13 +4,12 @@
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import {bootstrapTestVariables, getTestCluster, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import path from 'path';
 import fs from 'fs';
-import {NetworkCommand} from '../../../src/commands/network.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
@@ -21,7 +20,6 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import sinon from 'sinon';
-import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Templates} from '../../../src/core/templates.js';
 import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
@@ -56,7 +54,7 @@ describe('NetworkCommand', function networkCommand() {
 
   const nodeAlias = 'node1' as NodeAlias;
   const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
-  const clusterRef = TEST_CLUSTER;
+  const clusterRef = getTestCluster();
   const context = k8Factory.default().contexts().readCurrent();
 
   const consensusNodes = [

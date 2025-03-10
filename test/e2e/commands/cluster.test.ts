@@ -125,7 +125,7 @@ describe('ClusterCommand', () => {
   // 'solo cluster-ref connect' tests
   function getClusterConnectDefaultArgv(): {argv: Argv; clusterRef: string; contextName: string} {
     const clusterRef = TEST_CLUSTER;
-    const contextName = k8Factory.default().contexts().readCurrent();
+    const contextName = TEST_CONTEXT;
 
     const argv = Argv.initializeEmpty();
     argv.setArg(flags.clusterRef, clusterRef);
