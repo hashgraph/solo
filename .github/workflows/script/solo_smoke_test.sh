@@ -69,7 +69,7 @@ function start_contract_test ()
   echo "Wait a few seconds for background transactions to start"
   sleep 5
   echo "Run smart contract test"
-  task hh:test
+  npm run hh:test
   result=$?
 
   cd -
