@@ -7,6 +7,7 @@ import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {
   AccountCreateTransaction,
   AccountId,
+  type AccountInfo,
   AccountInfoQuery,
   AccountUpdateTransaction,
   Client,
@@ -29,7 +30,7 @@ import path from 'path';
 
 import {type SoloLogger} from './logging.js';
 import {type K8Factory} from './kube/k8_factory.js';
-import {type AccountIdWithKeyPairObject, type ExtendedNetServer, type Optional} from '../types/index.js';
+import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
@@ -44,6 +45,7 @@ import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {type ClusterRefs, type DeploymentName} from './config/remote/types.js';
 import {type Service} from './kube/resources/service/service.js';
 import {SoloService} from './model/solo_service.js';
+import {type RemoteConfigManager} from './config/remote/remote_config_manager.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -61,6 +63,7 @@ export class AccountManager {
   constructor(
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
     @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager?: RemoteConfigManager,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
@@ -73,28 +76,30 @@ export class AccountManager {
    * Gets the account keys from the Kubernetes secret from which it is stored
    * @param accountId - the account ID for which we want its keys
    * @param namespace - the namespace storing the secret
-   * @param [context]
    */
-  async getAccountKeysFromSecret(
+  public async getAccountKeysFromSecret(
     accountId: string,
     namespace: NamespaceName,
-    context?: Optional<string>,
   ): Promise<AccountIdWithKeyPairObject> {
-    try {
-      const k8 = this.k8Factory.getK8(context);
-      const secrets = await k8.secrets().list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
+    const contexts = this.remoteConfigManager.getContexts();
 
-      if (secrets.length > 0) {
-        const secret = secrets[0];
-        return {
-          accountId: secret.labels['solo.hedera.com/account-id'],
-          privateKey: Base64.decode(secret.data.privateKey),
-          publicKey: Base64.decode(secret.data.publicKey),
-        };
-      }
-    } catch (e) {
-      if (!(e instanceof ResourceNotFoundError)) {
-        throw e;
+    for (const context of contexts) {
+      try {
+        const secrets = await this.k8Factory
+          .getK8(context)
+          .secrets()
+          .list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
+
+        if (secrets.length) {
+          const secret = secrets[0];
+          return {
+            accountId: secret.labels['solo.hedera.com/account-id'],
+            privateKey: Base64.decode(secret.data.privateKey),
+            publicKey: Base64.decode(secret.data.publicKey),
+          };
+        }
+      } catch (e) {
+        if (!(e instanceof ResourceNotFoundError)) throw e;
       }
     }
 
@@ -111,11 +116,10 @@ export class AccountManager {
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, ed25519PrivateKey, publicKey
    * @param namespace - the namespace that the secret is in
-   * @param [context]
    */
-  async getTreasuryAccountKeys(namespace: NamespaceName, context?: Optional<string>) {
+  public async getTreasuryAccountKeys(namespace: NamespaceName) {
     // check to see if the treasure account is in the secrets
-    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace, context);
+    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace);
   }
 
   /**
@@ -123,7 +127,7 @@ export class AccountManager {
    * @param [accountRange]
    * @returns an array of arrays of numbers representing the accounts to update
    */
-  batchAccounts(accountRange = constants.SYSTEM_ACCOUNTS) {
+  public batchAccounts(accountRange = constants.SYSTEM_ACCOUNTS): number[][] {
     const batchSize = constants.ACCOUNT_UPDATE_BATCH_SIZE as number;
     const batchSets: number[][] = [];
 
@@ -152,7 +156,7 @@ export class AccountManager {
   }
 
   /** stops and closes the port forwards and the _nodeClient */
-  async close() {
+  public async close(): Promise<void> {
     this._nodeClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
@@ -168,17 +172,17 @@ export class AccountManager {
   /**
    * loads and initializes the Node Client
    * @param namespace - the namespace of the network
-   * @param clusterRefs - the cluster references to use
-   * @param deployment - k8 deployment name
-   * @param context - k8 context name
-   * @param forcePortForward - whether to force the port forward
+   * @param [clusterRefs] - the cluster references to use
+   * @param [deployment] - k8 deployment name
+   * @param [forcePortForward] - whether to force the port forward
+   * @param [context] - k8 context name
    */
-  async loadNodeClient(
+  public async loadNodeClient(
     namespace: NamespaceName,
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
     forcePortForward?: boolean,
-    context?: Optional<string>,
+    context?: string,
   ) {
     try {
       this.logger.debug(
@@ -222,7 +226,7 @@ export class AccountManager {
     skipNodeAlias?: NodeAlias,
     clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
-    context?: Optional<string>,
+    context?: string,
     forcePortForward?: boolean,
   ) {
     try {
@@ -231,7 +235,7 @@ export class AccountManager {
         this._forcePortForward = forcePortForward;
       }
 
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace, context);
+      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
       const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs, deployment);
 
       this._nodeClient = await this._getNodeClient(
@@ -332,7 +336,7 @@ export class AccountManager {
       this.startIntervalPinger(operatorId);
 
       return this._nodeClient;
-    } catch (e: Error | any) {
+    } catch (e) {
       throw new SoloError(`failed to setup node client: ${e.message}`, e);
     }
   }
@@ -340,9 +344,8 @@ export class AccountManager {
   /**
    * pings the node client at a set interval, can throw an exception if the ping fails
    * @param operatorId
-   * @private
    */
-  private startIntervalPinger(operatorId: string) {
+  private startIntervalPinger(operatorId: string): void {
     const interval = constants.NODE_CLIENT_PING_INTERVAL;
     const intervalId = setInterval(async () => {
       if (this._nodeClient || !this._nodeClient?.isClientShutDown) {
@@ -354,7 +357,7 @@ export class AccountManager {
           if (!constants.SKIP_NODE_PING) {
             await this._nodeClient.ping(AccountId.fromString(operatorId));
           }
-        } catch (e: Error | any) {
+        } catch (e) {
           const message = `failed to ping node client while running the interval pinger: ${e.message}`;
           this.logger.error(message, e);
           throw new SoloError(message, e);
@@ -363,9 +366,14 @@ export class AccountManager {
     }, interval);
   }
 
-  private async configureNodeAccess(networkNodeService: NetworkNodeServices, localPort: number, totalNodes: number) {
+  private async configureNodeAccess(
+    networkNodeService: NetworkNodeServices,
+    localPort: number,
+    totalNodes: number,
+  ): Promise<Record<SdkNetworkEndpoint, AccountId>> {
     this.logger.debug(`configuring node access for node: ${networkNodeService.nodeAlias}`);
-    const obj = {} as Record<SdkNetworkEndpoint, AccountId>;
+
+    const obj: Record<SdkNetworkEndpoint, AccountId> = {};
     const port = +networkNodeService.haProxyGrpcPort;
     const accountId = AccountId.fromString(networkNodeService.accountId as string);
 
@@ -416,9 +424,11 @@ export class AccountManager {
    * @param obj - the object containing the network node service and the account id
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
-   * @private
    */
-  private async testNodeClientConnection(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
+  private async testNodeClientConnection(
+    obj: Record<SdkNetworkEndpoint, AccountId>,
+    accountId: AccountId,
+  ): Promise<void> {
     const maxRetries = constants.NODE_CLIENT_PING_MAX_RETRIES;
     const sleepInterval = constants.NODE_CLIENT_PING_RETRY_INTERVAL;
 
@@ -435,7 +445,7 @@ export class AccountManager {
           success = true;
 
           return;
-        } catch (e: Error | any) {
+        } catch (e) {
           this.logger.error(`failed to ping network node: ${Object.keys(obj)[0]}, ${e.message}`);
           currentRetry++;
           await sleep(Duration.ofMillis(sleepInterval));
@@ -457,11 +467,11 @@ export class AccountManager {
   /**
    * Gets a Map of the Hedera node services and the attributes needed, throws a SoloError if anything fails
    * @param namespace - the namespace of the solo network deployment
-   * @param clusterRefs - the cluster references to use
-   * @param deployment - the deployment to use
+   * @param [clusterRefs] - the cluster references to use
+   * @param [deployment] - the deployment to use
    * @returns a map of the network node services
    */
-  async getNodeServiceMap(namespace: NamespaceName, clusterRefs?: ClusterRefs, deployment?: string) {
+  public async getNodeServiceMap(namespace: NamespaceName, clusterRefs: ClusterRefs, deployment?: string) {
     const labelSelector = 'solo.hedera.com/node-name';
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
@@ -477,7 +487,7 @@ export class AccountManager {
 
       // retrieve the list of services and build custom objects for the attributes we need
       for (const service of services) {
-        let nodeId;
+        let nodeId: string | number;
         const clusterRef = service.clusterRef;
 
         let serviceBuilder = new NetworkNodeServicesBuilder(
@@ -514,7 +524,6 @@ export class AccountManager {
               .withHaProxyAppSelector(service.spec!.selector!.app)
               .withHaProxyName(service.metadata!.name as string)
               .withHaProxyClusterIp(service.spec!.clusterIP as string)
-              // @ts-ignore
               .withHaProxyLoadBalancerIp(
                 service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
               )
@@ -600,10 +609,9 @@ export class AccountManager {
    * @param currentSet - the accounts to update
    * @param updateSecrets - whether to delete the secret prior to creating a new secret
    * @param resultTracker - an object to keep track of the results from the accounts that are being updated
-   * @param contexts
    * @returns the updated resultTracker object
    */
-  async updateSpecialAccountsKeys(
+  public async updateSpecialAccountsKeys(
     namespace: NamespaceName,
     currentSet: number[],
     updateSecrets: boolean,
@@ -612,7 +620,6 @@ export class AccountManager {
       rejectedCount: number;
       fulfilledCount: number;
     },
-    contexts: string[],
   ) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY);
     const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
@@ -627,21 +634,20 @@ export class AccountManager {
           AccountId.fromString(`${realm}.${shard}.${accountNum}`),
           genesisKey,
           updateSecrets,
-          contexts,
         ),
       );
     }
 
     await Promise.allSettled(accountUpdatePromiseArray).then(results => {
       for (const result of results) {
-        // @ts-ignore
+        // @ts-expect-error - TS2339: to avoid type mismatch
         switch (result.value.status) {
           case REJECTED:
-            // @ts-ignore
+            // @ts-expect-error - TS2339: to avoid type mismatch
             if (result.value.reason === REASON_SKIPPED) {
               resultTracker.skippedCount++;
             } else {
-              // @ts-ignore
+              // @ts-expect-error - TS2339: to avoid type mismatch
               this.logger.error(`REJECT: ${result.value.reason}: ${result.value.value}`);
               resultTracker.rejectedCount++;
             }
@@ -668,15 +674,13 @@ export class AccountManager {
    * @param accountId - the account that will get its keys updated
    * @param genesisKey - the genesis key to compare against
    * @param updateSecrets - whether to delete the secret before creating a new secret
-   * @param [contexts]
    * @returns the result of the call
    */
-  async updateAccountKeys(
+  public async updateAccountKeys(
     namespace: NamespaceName,
     accountId: AccountId,
     genesisKey: PrivateKey,
     updateSecrets: boolean,
-    contexts?: string[],
   ): Promise<{value: string; status: string} | {reason: string; value: string; status: string}> {
     let keys: Key[];
     try {
@@ -716,6 +720,7 @@ export class AccountManager {
     };
 
     try {
+      const contexts = this.remoteConfigManager.getContexts();
       for (const context of contexts) {
         const secretName = Templates.renderAccountKeySecretName(accountId);
         const secretLabels = Templates.renderAccountKeySecretLabelObject(accountId);
@@ -762,7 +767,7 @@ export class AccountManager {
           value: accountId.toString(),
         };
       }
-    } catch (e: Error | any) {
+    } catch (e) {
       this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`);
       return {
         status: REJECTED,
@@ -782,7 +787,7 @@ export class AccountManager {
    * @param accountId - the account
    * @returns the private key of the account
    */
-  async accountInfoQuery(accountId: AccountId | string) {
+  public async accountInfoQuery(accountId: AccountId | string): Promise<AccountInfo> {
     if (!this._nodeClient) {
       throw new MissingArgumentError('node client is not initialized');
     }
@@ -799,7 +804,7 @@ export class AccountManager {
    * @param accountId - the account
    * @returns the private key of the account
    */
-  async getAccountKeys(accountId: AccountId | string) {
+  async getAccountKeys(accountId: AccountId | string): Promise<Key[]> {
     const accountInfo = await this.accountInfoQuery(accountId);
 
     let keys: Key[] = [];
@@ -823,7 +828,7 @@ export class AccountManager {
     accountId: AccountId | string,
     newPrivateKey: PrivateKey | string,
     oldPrivateKey: PrivateKey | string,
-  ) {
+  ): Promise<boolean> {
     if (typeof newPrivateKey === 'string') {
       newPrivateKey = PrivateKey.fromStringED25519(newPrivateKey);
     }
@@ -842,11 +847,9 @@ export class AccountManager {
     const signTx = await (await transaction.sign(oldPrivateKey)).sign(newPrivateKey);
 
     // SIgn the transaction with the client operator private key and submit to a Hedera network
-    // @ts-ignore
     const txResponse = await signTx.execute(this._nodeClient);
 
     // Request the receipt of the transaction
-    // @ts-ignore
     const receipt = await txResponse.getReceipt(this._nodeClient);
 
     return receipt.status === Status.Success;
@@ -858,9 +861,16 @@ export class AccountManager {
    * @param privateKey - the private key of type PrivateKey
    * @param amount - the amount of HBAR to add to the account
    * @param [setAlias] - whether to set the alias of the account to the public key, requires the ed25519PrivateKey supplied to be ECDSA
+   * @param context
    * @returns a custom object with the account information in it
    */
-  async createNewAccount(namespace: NamespaceName, privateKey: PrivateKey, amount: number, setAlias = false) {
+  async createNewAccount(
+    namespace: NamespaceName,
+    privateKey: PrivateKey,
+    amount: number,
+    setAlias = false,
+    context: string,
+  ) {
     const newAccountTransaction = new AccountCreateTransaction()
       .setKey(privateKey)
       .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar));
@@ -869,11 +879,9 @@ export class AccountManager {
       newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress());
     }
 
-    // @ts-ignore
     const newAccountResponse = await newAccountTransaction.execute(this._nodeClient);
 
     // Get the new account ID
-    // @ts-ignore
     const transactionReceipt = await newAccountResponse.getReceipt(this._nodeClient);
     const accountInfo: {
       accountId: string;
@@ -899,7 +907,7 @@ export class AccountManager {
 
     try {
       const accountSecretCreated = await this.k8Factory
-        .default()
+        .getK8(context)
         .secrets()
         .createOrReplace(
           namespace,
@@ -921,7 +929,7 @@ export class AccountManager {
           `failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`,
         );
       }
-    } catch (e: Error | any) {
+    } catch (e) {
       if (e instanceof SoloError) {
         throw e;
       }
@@ -969,13 +977,13 @@ export class AccountManager {
    */
   async prepareAddressBookBase64(
     namespace: NamespaceName,
-    clusterRefs?: ClusterRefs,
-    deployment?: DeploymentName,
-    operatorId?: string,
-    operatorKey?: string,
-    forcePortForward?: boolean,
-    context?: string,
-  ) {
+    clusterRefs: ClusterRefs,
+    deployment: DeploymentName,
+    operatorId: string,
+    operatorKey: string,
+    forcePortForward: boolean,
+    context: string,
+  ): Promise<string> {
     // fetch AddressBook
     await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
     const client = this._nodeClient;
@@ -991,11 +999,11 @@ export class AccountManager {
   async getFileContents(
     namespace: NamespaceName,
     fileNum: number,
-    clusterRefs?: ClusterRefs,
+    clusterRefs: ClusterRefs,
+    context: string,
     deployment?: DeploymentName,
     forcePortForward?: boolean,
-    context?: string,
-  ) {
+  ): Promise<string> {
     await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);
@@ -1008,7 +1016,6 @@ export class AccountManager {
    * @param obj - the network node object where the key is the network endpoint and the value is the account id
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
-   * @private
    */
   private async pingNetworkNode(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
     let nodeClient: Client;

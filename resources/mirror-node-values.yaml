@@ -115,6 +115,17 @@ rest:
     enabled: false
   redis:
     enabled: true
+restjava:
+  nodeSelector: {}
+  tolerations:
+    - key: "solo-scheduling.io/os"
+      operator: "Equal"
+      value: "linux"
+      effect: "NoSchedule"
+    - key: "solo-scheduling.io/role"
+      operator: "Equal"
+      value: "network"
+      effect: "NoSchedule"
 web3:
   nodeSelector: {}
   tolerations:
@@ -163,7 +174,7 @@ monitor:
                   transferTypes:
                     - CRYPTO
                 receiptPercent: 1
-                tps: 10
+                tps: 1
                 type: CRYPTO_TRANSFER
           subscribe:
             grpc:

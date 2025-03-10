@@ -20,8 +20,6 @@ import {Templates} from '../../../src/core/templates.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
-import sinon from 'sinon';
-import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {KubeConfig} from '@kubernetes/client-node';
 import {MissingArgumentError} from '../../../src/core/errors.js';
 
@@ -74,12 +72,12 @@ describe('ProfileManager', () => {
     configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
     configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
     cacheDir = configManager.getFlag<string>(flags.cacheDir) as string;
-    configManager.setFlag(flags.apiPermissionProperties, path.join(cacheDir, 'templates', 'api-permission.properties'));
-    configManager.setFlag(flags.applicationEnv, path.join(cacheDir, 'templates', 'application.env'));
-    configManager.setFlag(flags.applicationProperties, path.join(cacheDir, 'templates', 'application.properties'));
-    configManager.setFlag(flags.bootstrapProperties, path.join(cacheDir, 'templates', 'bootstrap.properties'));
-    configManager.setFlag(flags.log4j2Xml, path.join(cacheDir, 'templates', 'log4j2.xml'));
-    configManager.setFlag(flags.settingTxt, path.join(cacheDir, 'templates', 'settings.txt'));
+    configManager.setFlag(flags.apiPermissionProperties, flags.apiPermissionProperties.definition.defaultValue);
+    configManager.setFlag(flags.applicationEnv, flags.applicationEnv.definition.defaultValue);
+    configManager.setFlag(flags.applicationProperties, flags.applicationProperties.definition.defaultValue);
+    configManager.setFlag(flags.bootstrapProperties, flags.bootstrapProperties.definition.defaultValue);
+    configManager.setFlag(flags.log4j2Xml, flags.log4j2Xml.definition.defaultValue);
+    configManager.setFlag(flags.settingTxt, flags.settingTxt.definition.defaultValue);
     stagingDir = Templates.renderStagingDir(
       configManager.getFlag(flags.cacheDir),
       configManager.getFlag(flags.releaseTag),

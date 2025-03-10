@@ -43,16 +43,16 @@ else
   if [ "${storageType}" == "aws_only" ]; then
     STORAGE_OPTIONS=(
         "--aws-endpoint" "https://storage.googleapis.com"
-        "--aws-access-key" "${GCS_ACCESS_KEY}"
-        "--aws-secrets" "${GCS_SECRET_KEY}"
+        "--aws-write-access-key" "${GCS_ACCESS_KEY}"
+        "--aws-write-secrets" "${GCS_SECRET_KEY}"
         "--aws-bucket" "${streamBucket}"
         "--aws-bucket-prefix" "${PREFIX}"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
     STORAGE_OPTIONS=(
         "--gcs-endpoint" "https://storage.googleapis.com"
-        "--gcs-access-key" "${GCS_ACCESS_KEY}"
-        "--gcs-secrets" "${GCS_SECRET_KEY}"
+        "--gcs-write-access-key" "${GCS_ACCESS_KEY}"
+        "--gcs-write-secrets" "${GCS_SECRET_KEY}"
         "--gcs-bucket" "${streamBucket}"
         "--gcs-bucket-prefix" "${PREFIX}"
     )
@@ -61,8 +61,8 @@ else
   if [ "${storageType}" == "aws_only" ] || [ "${storageType}" == "gcs_only" ]; then
     MIRROR_STORAGE_OPTIONS=(
         "--storage-endpoint" "https://storage.googleapis.com"
-        "--storage-access-key" "${GCS_ACCESS_KEY}"
-        "--storage-secrets" "${GCS_SECRET_KEY}"
+        "--storage-read-access-key" "${GCS_ACCESS_KEY}"
+        "--storage-read-secrets" "${GCS_SECRET_KEY}"
         "--storage-bucket" "${streamBucket}"
         "--storage-bucket-prefix" "${PREFIX}"
     )

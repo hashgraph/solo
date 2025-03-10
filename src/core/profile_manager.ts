@@ -60,7 +60,7 @@ export class ProfileManager {
    * @throws {IllegalArgumentError} if the profile file is not found.
    */
   loadProfiles(forceReload = false): Map<string, AnyObject> {
-    const profileFile = this.configManager.getFlag<string>(flags.profileFile);
+    const profileFile = this.configManager.getFlagFile(flags.profileFile);
     if (!profileFile) throw new MissingArgumentError('profileFile is required');
 
     // return the cached value as quickly as possible
@@ -155,7 +155,6 @@ export class ProfileManager {
    * @param itemPath - item path in the YAML, if empty then root of the YAML object will be used
    * @param items - the element object
    * @param yamlRoot - root of the YAML object to update
-   * @private
    */
   _setChartItems(itemPath: string, items: any, yamlRoot: AnyObject) {
     if (!items) return;
@@ -215,7 +214,7 @@ export class ProfileManager {
     );
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
-      const filePath = this.configManager.getFlag<string>(flag);
+      const filePath = this.configManager.getFlagFile(flag);
       if (!filePath) {
         throw new SoloError(`Configuration file path is missing for: ${flag.name}`);
       }

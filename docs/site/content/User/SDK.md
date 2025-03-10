@@ -28,7 +28,7 @@ The output would be similar to the following:
 }
 ```
 
-Then use the following commmand to get private key of the account `0.0.1007`:
+Then use the following command to get private key of the account `0.0.1007`:
 
 ```bash
  task solo-test -- account get --account-id 0.0.1007 -n solo-e2e --private-key

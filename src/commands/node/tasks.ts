@@ -35,7 +35,7 @@ import {
   PrivateKey,
   Timestamp,
 } from '@hashgraph/sdk';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
+import {MissingArgumentError, SoloError} from '../../core/errors.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -45,6 +45,7 @@ import {
   getNodeAccountMap,
   prepareEndpoints,
   renameAndCopyFile,
+  showVersionBanner,
   sleep,
   splitFlagInput,
 } from '../../core/helpers.js';
@@ -65,7 +66,6 @@ import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdate
 import {type Lease} from '../../core/lease/lease.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
-import {BaseCommand} from '../base.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
 import {NodeOverridesModel} from '../../core/node_overrides_model.js';
@@ -76,66 +76,54 @@ import {NetworkNodes} from '../../core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {ConsensusNode} from '../../core/model/consensus_node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
+import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {type LocalConfig} from '../../core/config/local_config.js';
+import {BaseCommand} from '../base.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
 import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version.js';
+import {ShellRunner} from '../../core/shell_runner.js';
 
+@injectable()
 export class NodeCommandTasks {
-  private readonly accountManager: AccountManager;
-  private readonly configManager: ConfigManager;
-  private readonly keyManager: KeyManager;
-  private readonly profileManager: ProfileManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly logger: SoloLogger;
-  private readonly k8Factory: K8Factory;
-  private readonly parent: BaseCommand;
-  private readonly chartManager: ChartManager;
-  private readonly certificateManager: CertificateManager;
-
-  constructor(opts: {
-    logger: SoloLogger;
-    accountManager: AccountManager;
-    configManager: ConfigManager;
-    k8Factory: K8Factory;
-    platformInstaller: PlatformInstaller;
-    keyManager: KeyManager;
-    profileManager: ProfileManager;
-    chartManager: ChartManager;
-    certificateManager: CertificateManager;
-    parent: BaseCommand;
-  }) {
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager as any);
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!opts || !opts.logger) throw new Error('An instance of core/Logger is required');
-    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.profileManager)
-      throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
-    if (!opts || !opts.certificateManager)
-      throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
-    if (!opts || !opts.parent)
-      throw new IllegalArgumentError('An instance of parents as BaseCommand is required', opts.parent);
-
-    this.accountManager = opts.accountManager;
-    this.configManager = opts.configManager;
-    this.logger = opts.logger;
-    this.k8Factory = opts.k8Factory;
-
-    this.platformInstaller = opts.platformInstaller;
-    this.profileManager = opts.profileManager;
-    this.keyManager = opts.keyManager;
-    this.chartManager = opts.chartManager;
-    this.certificateManager = opts.certificateManager;
-    this.parent = opts.parent;
+  constructor(
+    @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
+    @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
+    @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
+    @inject(InjectTokens.PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
+    @inject(InjectTokens.KeyManager) private readonly keyManager: KeyManager,
+    @inject(InjectTokens.ProfileManager) private readonly profileManager: ProfileManager,
+    @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+    @inject(InjectTokens.CertificateManager) private readonly certificateManager: CertificateManager,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+  ) {
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.platformInstaller = patchInject(platformInstaller, InjectTokens.PlatformInstaller, this.constructor.name);
+    this.keyManager = patchInject(keyManager, InjectTokens.KeyManager, this.constructor.name);
+    this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
+    this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.certificateManager = patchInject(certificateManager, InjectTokens.CertificateManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
   }
 
   private async _prepareUpgradeZip(stagingDir: string) {
@@ -239,6 +227,7 @@ export class NodeCommandTasks {
     task: ListrTaskWrapper<any, any, any>,
     localBuildPath: string,
     consensusNodes: Optional<ConsensusNode[]>,
+    releaseTag: string,
   ) {
     const subTasks = [];
 
@@ -278,6 +267,19 @@ export class NodeCommandTasks {
       subTasks.push({
         title: `Copy local build to Node: ${chalk.yellow(nodeAlias)} from ${localDataLibBuildPath}`,
         task: async () => {
+          const shellRunner = new ShellRunner();
+          const retrievedReleaseTag = await shellRunner.run(
+            `git -C ${localDataLibBuildPath} describe --tags --abbrev=0`,
+          );
+          const expectedReleaseTag = releaseTag ? releaseTag : LOCAL_HEDERA_PLATFORM_VERSION;
+          if (retrievedReleaseTag.join('\n') !== expectedReleaseTag) {
+            this.logger.showUser(
+              chalk.cyan(
+                `Checkout version ${retrievedReleaseTag} does not match the release version ${expectedReleaseTag}`,
+              ),
+            );
+          }
+
           // retry copying the build to the node to handle edge cases during performance testing
           let error: Error | null = null;
           let i = 0;
@@ -398,7 +400,7 @@ export class NodeCommandTasks {
     const podRef = PodRef.of(namespace, podName);
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`;
 
-    const consensusNodes = this.parent.getConsensusNodes();
+    const consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
     let attempt = 0;
     let success = false;
@@ -582,7 +584,7 @@ export class NodeCommandTasks {
       const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
       await this.accountManager.loadNodeClient(
         namespace,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         deploymentName,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
         context,
@@ -748,6 +750,42 @@ export class NodeCommandTasks {
       } catch (e) {
         self.logger.error(`Error in freeze upgrade: ${e.message}`, e);
         throw new SoloError(`Error in freeze upgrade: ${e.message}`, e);
+      }
+    });
+  }
+
+  sendFreezeTransaction(): Task {
+    const self = this;
+    return new Task('Send freeze only transaction', async ctx => {
+      const {freezeAdminPrivateKey} = ctx.config;
+      try {
+        const nodeClient = await this.accountManager.loadNodeClient(
+          ctx.config.namespace,
+          this.remoteConfigManager.getClusterRefs(),
+          ctx.config.deployment,
+        );
+        const futureDate = new Date();
+        self.logger.debug(`Current time: ${futureDate}`);
+
+        futureDate.setTime(futureDate.getTime() + 5000); // 5 seconds in the future
+        self.logger.debug(`Freeze time: ${futureDate}`);
+
+        nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey);
+        const freezeOnlyTransaction = await new FreezeTransaction()
+          .setFreezeType(FreezeType.FreezeOnly)
+          .setStartTimestamp(Timestamp.fromDate(futureDate))
+          .freezeWith(nodeClient)
+          .execute(nodeClient);
+
+        const freezeOnlyReceipt = await freezeOnlyTransaction.getReceipt(nodeClient);
+
+        self.logger.debug(
+          `sent prepare transaction [id: ${freezeOnlyTransaction.transactionId.toString()}]`,
+          freezeOnlyReceipt.status.toString(),
+        );
+      } catch (e) {
+        self.logger.error(`Error in sending freeze transaction: ${e.message}`, e);
+        throw new SoloError(`Error in sending freeze transaction: ${e.message}`, e);
       }
     });
   }
@@ -933,7 +971,7 @@ export class NodeCommandTasks {
     return new Task('Identify existing network nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const config = ctx.config;
       config.existingNodeAliases = [];
-      const clusterRefs = this.parent.getClusterRefs();
+      const clusterRefs = this.remoteConfigManager.getClusterRefs();
       config.serviceMap = await self.accountManager.getNodeServiceMap(config.namespace, clusterRefs, config.deployment);
       for (const networkNodeServices of config.serviceMap.values()) {
         config.existingNodeAliases.push(networkNodeServices.nodeAlias);
@@ -1002,6 +1040,7 @@ export class NodeCommandTasks {
             task,
             localBuildPath,
             ctx.config.consensusNodes,
+            releaseTag,
           )
         : self._fetchPlatformSoftware(
             ctx.config[aliasesField],
@@ -1018,7 +1057,7 @@ export class NodeCommandTasks {
     return new Task('Populate serviceMap', async ctx => {
       ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
         ctx.config.namespace,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         ctx.config.deployment,
       );
       ctx.config.podRefs[ctx.config.nodeAlias] = PodRef.of(
@@ -1065,7 +1104,7 @@ export class NodeCommandTasks {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.parent.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
 
@@ -1077,7 +1116,6 @@ export class NodeCommandTasks {
 
   /**
    * Generate genesis network json file
-   * @private
    * @param namespace - namespace
    * @param consensusNodes - consensus nodes
    * @param keysDir - keys directory
@@ -1092,7 +1130,7 @@ export class NodeCommandTasks {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
       namespace,
-      this.parent.getClusterRefs(),
+      this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
 
@@ -1249,7 +1287,7 @@ export class NodeCommandTasks {
       config.nodeClient = await self.accountManager.refreshNodeClient(
         config.namespace,
         skipNodeAlias,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
       );
 
@@ -1301,7 +1339,7 @@ export class NodeCommandTasks {
       await self.accountManager.refreshNodeClient(
         ctx.config.namespace,
         ctx.config.nodeAlias,
-        this.parent.getClusterRefs(),
+        this.remoteConfigManager.getClusterRefs(),
         this.configManager.getFlag<DeploymentName>(flags.deployment),
         context,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
@@ -1310,12 +1348,12 @@ export class NodeCommandTasks {
     });
   }
 
-  stopNodes() {
+  stopNodes(nodeAliasesProperty: string) {
     return new Task('Stopping nodes', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
       const subTasks = [];
       if (!ctx.config.skipStop) {
         await this.accountManager.close();
-        for (const nodeAlias of ctx.config.nodeAliases) {
+        for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
           const podRef = ctx.config.podRefs[nodeAlias];
           const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
           const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
@@ -1546,7 +1584,7 @@ export class NodeCommandTasks {
         config.nodeClient = await self.accountManager.refreshNodeClient(
           config.namespace,
           config.nodeAlias,
-          this.parent.getClusterRefs(),
+          this.remoteConfigManager.getClusterRefs(),
           this.configManager.getFlag<DeploymentName>(flags.deployment),
         );
       }
@@ -1639,13 +1677,13 @@ export class NodeCommandTasks {
         if (consensusNodes.length) {
           consensusNodes.forEach(node => (valuesArgMap[node.cluster] = ''));
         } else {
-          valuesArgMap[this.parent.getK8Factory().default().clusters().readCurrent()] = '';
+          valuesArgMap[this.k8Factory.default().clusters().readCurrent()] = '';
         }
 
-        const clusterRefs = this.parent.getClusterRefs() ?? {};
+        const clusterRefs = this.remoteConfigManager.getClusterRefs() ?? {};
         if (!Object.keys(clusterRefs).length) {
-          const clusterRef = this.parent.getK8Factory().default().clusters().readCurrent();
-          clusterRefs[clusterRef] = this.parent.getLocalConfig().clusterRefs[clusterRef];
+          const clusterRef = this.k8Factory.default().clusters().readCurrent();
+          clusterRefs[clusterRef] = this.localConfig.clusterRefs[clusterRef];
         }
 
         if (!config.serviceMap) {
@@ -1668,9 +1706,7 @@ export class NodeCommandTasks {
         // On Update and Delete
         for (let i = 0; i < index; i++) {
           const consensusNode = consensusNodes.find(node => node.nodeId === i);
-          const clusterRef = consensusNode
-            ? consensusNode.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
           if (transactionType === NodeSubcommandType.UPDATE && config.newAccountNumber && i === nodeId) {
             // for the case of updating node
@@ -1690,9 +1726,7 @@ export class NodeCommandTasks {
         // When adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const consensusNode = consensusNodes.find(node => node.nodeId === index);
-          const clusterRef = consensusNode
-            ? consensusNode.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
           valuesArgMap[clusterRef] +=
             ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
@@ -1712,7 +1746,7 @@ export class NodeCommandTasks {
           const consensusNodeInValues = consensusNodes.find(node => node.name === nodeAlias);
           const clusterForConsensusNodeInValues = consensusNodeInValues
             ? consensusNodeInValues.cluster
-            : this.parent.getK8Factory().default().clusters().readCurrent();
+            : this.k8Factory.default().clusters().readCurrent();
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
@@ -1757,21 +1791,20 @@ export class NodeCommandTasks {
 
         // Add Debug options
         const consensusNode = consensusNodes.find(node => node.name === config.debugNodeAlias);
-        const clusterRef = consensusNode
-          ? consensusNode.cluster
-          : this.parent.getK8Factory().default().clusters().readCurrent();
+        const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
 
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
         // Update charts
-        self.chartManager.upgrade(
+        await self.chartManager.upgrade(
           config.namespace,
           constants.SOLO_DEPLOYMENT_CHART,
           ctx.config.chartPath,
           config.soloChartVersion,
           valuesArgMap[clusterRef],
-          this.parent.getLocalConfig().clusterRefs[clusterRef],
+          this.localConfig.clusterRefs[clusterRef],
         );
+        showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
       },
       skip,
     };
@@ -1827,7 +1860,7 @@ export class NodeCommandTasks {
       'Kill nodes to pick up updated configMaps',
       async (ctx: {config: {serviceMap: Map<NodeAlias, NetworkNodeServices>} & AnyObject}) => {
         const config = ctx.config;
-        const clusterRefs = this.parent.getClusterRefs();
+        const clusterRefs = this.remoteConfigManager.getClusterRefs();
         // the updated node will have a new pod ID if its account ID changed which is a label
         config.serviceMap = await this.accountManager.getNodeServiceMap(
           config.namespace,
@@ -2040,8 +2073,8 @@ export class NodeCommandTasks {
 
       const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
       ctx.config = config;
-      config.consensusNodes = this.parent.getConsensusNodes();
-      config.contexts = this.parent.getContexts();
+      config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+      config.contexts = this.remoteConfigManager.getContexts();
 
       for (const flag of allRequiredFlags) {
         if (typeof config[flag.constName] === 'undefined') {
@@ -2071,7 +2104,7 @@ export class NodeCommandTasks {
 
         task.title += `: ${nodeAlias}`;
 
-        await this.parent.getRemoteConfigManager().modify(async remoteConfig => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.add(
             nodeAlias,
             new ConsensusNodeComponent(
@@ -2094,7 +2127,7 @@ export class NodeCommandTasks {
           );
         });
 
-        ctx.config.consensusNodes = this.parent.getConsensusNodes();
+        ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
         // if the consensusNodes does not contain the nodeAlias then add it
         if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
           ctx.config.consensusNodes.push(

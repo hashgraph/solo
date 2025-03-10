@@ -19,7 +19,7 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, testLogger} from '../../test_util.js';
+import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER, getTestLogger} from '../../test_util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -36,6 +36,7 @@ import {Templates} from '../../../src/core/templates.js';
 import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type SoloLogger} from '../../../src/core/logging.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -63,6 +64,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     let accountManager: AccountManager;
     let configManager: ConfigManager;
     let nodeCmd: NodeCommand;
+    let testLogger: SoloLogger;
 
     before(() => {
       accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
@@ -71,6 +73,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       accountManager = bootstrapResp.opts.accountManager;
       configManager = bootstrapResp.opts.configManager;
       nodeCmd = bootstrapResp.cmd.nodeCmd;
+      testLogger = getTestLogger();
     });
 
     after(async function () {
@@ -111,7 +114,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          const clusterRefs = accountCmd.getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -307,7 +310,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          const clusterRefs = accountCmd.getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -339,7 +342,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
       it('Create new account', async () => {
         try {
-          const clusterRefs = accountCmd.getClusterRefs();
+          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
             clusterRefs,
@@ -402,6 +405,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           networkCmd.logger.showUserError(e);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
+
+      // hitchhiker account test to test node freeze and restart
+      it('Freeze and restart all nodes should succeed', async () => {
+        try {
+          await nodeCmd.handlers.freeze(argv.build());
+          await nodeCmd.handlers.restart(argv.build());
+        } catch (e) {
+          networkCmd.logger.showUserError(e);
+        }
+      }).timeout(Duration.ofMinutes(4).toMillis());
     });
   });
 });

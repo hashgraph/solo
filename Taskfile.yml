@@ -9,6 +9,18 @@ vars:
   reporter_options_prefix: --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit
 
 tasks:
+  install:
+    desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
+    deps:
+      - task: "init"
+    cmds:
+      - task: "cluster:create"
+      - task: "solo:init"
+      - task: "solo:cluster:setup"
+      - task: "solo:deployment:create"
+      - task: "solo:keys"
+      - task: "solo:network:deploy"
+
   solo-test:
     cmds:
       - npx tsx --no-deprecation --no-warnings solo.ts {{ .CLI_ARGS }}

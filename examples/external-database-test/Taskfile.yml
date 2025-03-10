@@ -46,6 +46,7 @@ tasks:
       - task: "solo:node:start"
       - task: "solo:external-database"
       - task: "solo:mirror-node"
+      - task: "solo:explorer"
       - name: "Copy database-seeding-query.sql inside the database pod"
         cmd: |
           kubectl cp {{.HOME}}/.solo/cache/database-seeding-query.sql {{.postgres_container_name}}:/tmp/database-seeding-query.sql \

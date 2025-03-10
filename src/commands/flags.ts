@@ -202,6 +202,24 @@ export class Flags {
     },
   };
 
+  static readonly mirrorNamespace: CommandFlag = {
+    constName: 'mirrorNamespace',
+    name: 'mirror-namespace',
+    definition: {
+      describe: 'Namespace to use for the Mirror Node deployment, a new one will be created if it does not exist',
+      type: 'string',
+    },
+    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptText(
+        task,
+        input,
+        'solo',
+        'Enter mirror node namespace name: ',
+        'namespace cannot be empty',
+        Flags.mirrorNamespace.name,
+      );
+    },
+  };
   /**
    * Parse the values files input string that includes the cluster reference and the values file path
    * <p>It supports input as below:
@@ -574,7 +592,6 @@ export class Flags {
     definition: {
       describe: 'Local chart directory path (e.g. ~/solo-charts/charts',
       defaultValue: '',
-      alias: 'd',
       type: 'string',
     },
     prompt: async function promptChartDir(task: ListrTaskWrapper<any, any, any>, input: any) {
@@ -899,7 +916,7 @@ export class Flags {
     name: 'application-properties',
     definition: {
       describe: 'application.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.properties'),
+      defaultValue: path.join('templates', 'application.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -912,7 +929,7 @@ export class Flags {
       describe:
         'the application.env file for the node provides environment variables to the solo-container' +
         ' to be used when the hedera platform is started',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'application.env'),
+      defaultValue: path.join('templates', 'application.env'),
       type: 'string',
     },
     prompt: undefined,
@@ -923,7 +940,7 @@ export class Flags {
     name: 'api-permission-properties',
     definition: {
       describe: 'api-permission.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'api-permission.properties'),
+      defaultValue: path.join('templates', 'api-permission.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -934,7 +951,7 @@ export class Flags {
     name: 'bootstrap-properties',
     definition: {
       describe: 'bootstrap.properties file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'bootstrap.properties'),
+      defaultValue: path.join('templates', 'bootstrap.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -956,7 +973,7 @@ export class Flags {
     name: 'settings-txt',
     definition: {
       describe: 'settings.txt file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'settings.txt'),
+      defaultValue: path.join('templates', 'settings.txt'),
       type: 'string',
     },
     prompt: undefined,
@@ -1068,7 +1085,7 @@ export class Flags {
     name: 'log4j2-xml',
     definition: {
       describe: 'log4j2.xml file for node',
-      defaultValue: path.join(constants.SOLO_CACHE_DIR, 'templates', 'log4j2.xml'),
+      defaultValue: path.join('templates', 'log4j2.xml'),
       type: 'string',
     },
     prompt: undefined,
@@ -1495,10 +1512,10 @@ export class Flags {
   };
 
   static readonly context: CommandFlag = {
-    constName: 'contextName',
+    constName: 'context',
     name: 'context',
     definition: {
-      describe: 'The Kubernetes context name to be used. Multiple contexts can be separated by a comma',
+      describe: 'The Kubernetes context name to be used',
       defaultValue: '',
       type: 'string',
     },
@@ -1515,6 +1532,7 @@ export class Flags {
     name: 'deployment',
     definition: {
       describe: 'The name the user will reference locally to link to a deployment',
+      alias: 'd',
       defaultValue: '',
       type: 'string',
     },
@@ -1569,7 +1587,7 @@ export class Flags {
       describe:
         'TLS Certificate path for the gRPC ' +
         '(e.g. "node1=/Users/username/node1-grpc.cert" ' +
-        'with multiple nodes comma seperated)',
+        'with multiple nodes comma separated)',
       defaultValue: '',
       type: 'string',
     },
@@ -1592,7 +1610,7 @@ export class Flags {
       describe:
         'TLS Certificate path for gRPC Web ' +
         '(e.g. "node1=/Users/username/node1-grpc-web.cert" ' +
-        'with multiple nodes comma seperated)',
+        'with multiple nodes comma separated)',
       defaultValue: '',
       type: 'string',
     },
@@ -1822,24 +1840,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsAccessKey: CommandFlag = {
-    constName: 'gcsAccessKey',
-    name: 'gcs-access-key',
+  static readonly gcsWriteAccessKey: CommandFlag = {
+    constName: 'gcsWriteAccessKey',
+    name: 'gcs-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'gcs storage access key',
+      describe: 'gcs storage access key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly gcsSecrets: CommandFlag = {
-    constName: 'gcsSecrets',
-    name: 'gcs-secrets',
+  static readonly gcsWriteSecrets: CommandFlag = {
+    constName: 'gcsWriteSecrets',
+    name: 'gcs-write-secrets',
     definition: {
       defaultValue: '',
-      describe: 'gcs storage secret key',
+      describe: 'gcs storage secret key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -1881,24 +1899,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsAccessKey: CommandFlag = {
-    constName: 'awsAccessKey',
-    name: 'aws-access-key',
+  static readonly awsWriteAccessKey: CommandFlag = {
+    constName: 'awsWriteAccessKey',
+    name: 'aws-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'aws storage access key',
+      describe: 'aws storage access key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly awsSecrets: CommandFlag = {
-    constName: 'awsSecrets',
-    name: 'aws-secrets',
+  static readonly awsWriteSecrets: CommandFlag = {
+    constName: 'awsWriteSecrets',
+    name: 'aws-write-secrets',
     definition: {
       defaultValue: '',
-      describe: 'aws storage secret key',
+      describe: 'aws storage secret key for write access',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -1964,24 +1982,24 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageAccessKey: CommandFlag = {
-    constName: 'storageAccessKey',
-    name: 'storage-access-key',
+  static readonly storageReadAccessKey: CommandFlag = {
+    constName: 'storageReadAccessKey',
+    name: 'storage-read-access-key',
     definition: {
       defaultValue: '',
-      describe: 'storage access key for mirror node importer',
+      describe: 'storage read access key for mirror node importer',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly storageSecrets: CommandFlag = {
-    constName: 'storageSecrets',
-    name: 'storage-secrets',
+  static readonly storageReadSecrets: CommandFlag = {
+    constName: 'storageReadSecrets',
+    name: 'storage-read-secrets',
     definition: {
       defaultValue: '',
-      describe: 'storage secret key for mirror node importer',
+      describe: 'storage read-secret key for mirror node importer',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2094,6 +2112,7 @@ export class Flags {
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
+    Flags.mirrorNamespace,
     Flags.namespace,
     Flags.networkDeploymentValuesFile,
     Flags.newAccountNumber,
@@ -2118,18 +2137,18 @@ export class Flags {
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
-    Flags.gcsAccessKey,
-    Flags.gcsSecrets,
+    Flags.gcsWriteAccessKey,
+    Flags.gcsWriteSecrets,
     Flags.gcsEndpoint,
     Flags.gcsBucket,
     Flags.gcsBucketPrefix,
-    Flags.awsAccessKey,
-    Flags.awsSecrets,
+    Flags.awsWriteAccessKey,
+    Flags.awsWriteSecrets,
     Flags.awsEndpoint,
     Flags.awsBucket,
     Flags.awsBucketPrefix,
-    Flags.storageAccessKey,
-    Flags.storageSecrets,
+    Flags.storageReadAccessKey,
+    Flags.storageReadSecrets,
     Flags.storageEndpoint,
     Flags.storageBucket,
     Flags.storageBucketPrefix,

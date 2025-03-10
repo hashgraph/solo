@@ -95,7 +95,7 @@ describe('NetworkCommand', function networkCommand() {
       const pvcs = await k8Factory.default().pvcs().list(namespace, []);
       networkCmd.logger.showList('PVCs', pvcs);
 
-      expect(networkCmd.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
+      expect(networkCmd.configManager.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
         flags.apiPermissionProperties.constName,
         flags.applicationEnv.constName,
         flags.applicationProperties.constName,
@@ -109,11 +109,11 @@ describe('NetworkCommand', function networkCommand() {
         flags.settingTxt.constName,
         flags.grpcTlsKeyPath.constName,
         flags.grpcWebTlsKeyPath.constName,
-        flags.gcsAccessKey.constName,
-        flags.gcsSecrets.constName,
+        flags.gcsWriteAccessKey.constName,
+        flags.gcsWriteSecrets.constName,
         flags.gcsEndpoint.constName,
-        flags.awsAccessKey.constName,
-        flags.awsSecrets.constName,
+        flags.awsWriteAccessKey.constName,
+        flags.awsWriteSecrets.constName,
         flags.awsEndpoint.constName,
       ]);
     } catch (e) {

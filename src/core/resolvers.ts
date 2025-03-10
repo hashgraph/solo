@@ -31,7 +31,9 @@ export async function promptTheUserForDeployment(
   configManager: ConfigManager,
   task?: SoloListrTaskWrapper<any>,
 ): Promise<Optional<DeploymentName>> {
-  if (configManager.getFlag(flags.deployment)) return undefined;
+  if (configManager.getFlag(flags.deployment)) {
+    return configManager.getFlag<DeploymentName>(flags.deployment);
+  }
 
   if (!task) {
     const isQuiet = configManager.getFlag<boolean>(flags.quiet);

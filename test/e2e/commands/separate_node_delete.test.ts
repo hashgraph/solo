@@ -69,7 +69,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       await nodeCmd.handlers.deletePrepare(argvPrepare.build());
       await nodeCmd.handlers.deleteSubmitTransactions(argvExecute.build());
       await nodeCmd.handlers.deleteExecute(argvExecute.build());
-      expect(nodeCmd.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
+      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
         flags.devMode.constName,
         flags.force.constName,
         flags.quiet.constName,

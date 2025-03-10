@@ -3,7 +3,7 @@
  */
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type V1Lease} from '@kubernetes/client-node';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type K8Factory} from '../kube/k8_factory.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
 import {sleep} from '../helpers.js';
