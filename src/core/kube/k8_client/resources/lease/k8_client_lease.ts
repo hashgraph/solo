@@ -38,7 +38,7 @@ export class K8ClientLease implements Lease {
     spec.holderIdentity = lease.holderName;
     spec.leaseDurationSeconds = lease.durationSeconds;
     spec.acquireTime = lease.acquireTime || new V1MicroTime();
-    spec.renewTime = lease.renewTime || new V1MicroTime();
+    spec.renewTime = lease.renewTime;
     v1Lease.spec = spec;
 
     return v1Lease;

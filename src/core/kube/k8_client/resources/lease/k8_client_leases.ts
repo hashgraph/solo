@@ -85,7 +85,7 @@ export class K8ClientLeases implements Leases {
   }
 
   public async renew(namespace: NamespaceName, leaseName: string, lease: Lease): Promise<Lease> {
-    const v1Lease = K8ClientLease.toV1Lease(lease);
+    const v1Lease: V1Lease = K8ClientLease.toV1Lease(lease);
     v1Lease.spec.renewTime = new V1MicroTime();
 
     const {response, body} = await this.coordinationApiClient
