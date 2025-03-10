@@ -339,7 +339,6 @@ export function e2eTestSuite(
           flags.chainId.constName,
           flags.log4j2Xml.constName,
           flags.deployment.constName,
-          flags.nodeAliasesUnparsed.constName,
           flags.profileFile.constName,
           flags.profileName.constName,
           flags.quiet.constName,
