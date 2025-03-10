@@ -23,23 +23,23 @@ tasks:
 
   solo-test:
     cmds:
-      - npx tsx --no-deprecation --no-warnings solo.ts {{ .CLI_ARGS }}
+      - npx tsx --no-deprecation --no-warnings {{.TASKFILE_DIR}}/solo.ts {{ .CLI_ARGS }}
   solo:
     cmds:
-      - node --no-deprecation --no-warnings dist/solo.js {{ .CLI_ARGS }}
+      - node --no-deprecation --no-warnings {{.TASKFILE_DIR}}/dist/solo.js {{ .CLI_ARGS }}
   check:
     cmds:
       - npx remark . --quiet --frail
       - npx eslint .
       - npx tsc
-      - npx madge --circular src/*
+      - npx madge --circular {{.TASKFILE_DIR}}/src/*
       - npx typedoc --emit none
   format:
     cmds:
       - npx remark . --quiet --frail --output
-      - npx eslint --fix .
+      - npx eslint --fix {{.TASKFILE_DIR}}
       - npx tsc
-      - npx madge --circular src/*
+      - npx madge --circular {{.TASKFILE_DIR}}/src/*
       - npx typedoc --emit none
   test-setup:
     cmds:
@@ -48,7 +48,7 @@ tasks:
     cmds:
       - rm -Rf dist
       - npx tsc
-      - node resources/post-build-script.js
+      - node {{.TASKFILE_DIR}}/resources/post-build-script.js
 
   # TESTING COMMANDS
   test:
