@@ -2,7 +2,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {Flags as flags} from '../../src/commands/flags.js';
-import {getTestCacheDir, TEST_CLUSTER} from '../test_util.js';
+import {getTestCacheDir, getTestCluster} from '../test_util.js';
 import {K8Client} from '../../src/core/kube/k8_client/k8_client.js';
 import {type NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
 import {type CommandFlag} from '../../src/types/flag_types.js';
@@ -57,8 +57,8 @@ export class Argv {
     argv.setArg(flags.cacheDir, cacheDir);
     argv.deployment = currentDeployment;
     argv.setArg(flags.deployment, currentDeployment);
-    argv.setArg(flags.clusterRef, TEST_CLUSTER);
-    argv.setArg(flags.deploymentClusters, [TEST_CLUSTER]);
+    argv.setArg(flags.clusterRef, getTestCluster());
+    argv.setArg(flags.deploymentClusters, [getTestCluster()]);
     argv.setArg(flags.context, new K8Client(undefined).contexts().readCurrent());
     return argv;
   }

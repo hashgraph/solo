@@ -43,7 +43,7 @@ solo node logs -i node1 -n solo-e2e
 
 ### 2. Using IntelliJ remote debug with Solo
 
-NOTE: the hedera-services path referenced '../hedera-services/hedera-node/data' may
+NOTE: the hiero-consensus-node path referenced '../hiero-consensus-node/hedera-node/data' may
 need to be updated based on what directory you are currently in.  This also assumes that you have done an assemble/build and the directory contents are up-to-date.
 
 Setup a Intellij run/debug configuration for remote JVM Debug as shown in the below screenshot:
@@ -66,7 +66,7 @@ Example 1: attach jvm debugger to a hedera node
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 solo network deploy -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hiero-consensus-node/hedera-node/data -n "${SOLO_NAMESPACE}"
 solo node start -i node1,node2,node3 --debug-node-alias node2 -n "${SOLO_NAMESPACE}"
 ```
 
@@ -90,9 +90,9 @@ Example 2: attach jvm debugger with node add operation
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 solo network deploy -i node1,node2,node3 --pvcs -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hiero-consensus-node/hedera-node/data -n "${SOLO_NAMESPACE}"
 solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
-solo node add --gossip-keys --tls-keys --debug-node-alias node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}" --pvcs true
+solo node add --gossip-keys --tls-keys --debug-node-alias node4 --local-build-path ../hiero-consensus-node/hedera-node/data -n "${SOLO_NAMESPACE}" --pvcs true
 ```
 
 Example 3: attach jvm debugger with node update operation
@@ -101,9 +101,9 @@ Example 3: attach jvm debugger with node update operation
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hiero-consensus-node/hedera-node/data -n "${SOLO_NAMESPACE}"
 solo node start -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
-solo node update --node-alias node2  --debug-node-alias node2 --local-build-path ../hedera-services/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem  -n "${SOLO_NAMESPACE}"
+solo node update --node-alias node2  --debug-node-alias node2 --local-build-path ../hiero-consensus-node/hedera-node/data --new-account-number 0.0.7 --gossip-public-key ./s-public-node2.pem --gossip-private-key ./s-private-node2.pem  -n "${SOLO_NAMESPACE}"
 ```
 
 Example 4: attach jvm debugger with node delete operation
@@ -112,7 +112,7 @@ Example 4: attach jvm debugger with node delete operation
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 solo network deploy -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3,node4 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3,node4 --local-build-path ../hiero-consensus-node/hedera-node/data -n "${SOLO_NAMESPACE}"
 solo node start -i node1,node2,node3,node4 -n "${SOLO_NAMESPACE}"
 solo node delete --node-alias node2  --debug-node-alias node3 -n "${SOLO_NAMESPACE}"
 ```
@@ -145,7 +145,7 @@ Later, user can use the following command to upload the state files to the netwo
 ./test/e2e/setup-e2e.sh
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 solo network deploy -i node1,node2,node3 -n "${SOLO_NAMESPACE}"
-solo node setup -i node1,node2,node3 --local-build-path ../hedera-services/hedera-node/data -n "${SOLO_NAMESPACE}"
+solo node setup -i node1,node2,node3 --local-build-path ../hiero-consensus-node/hedera-node/data -n "${SOLO_NAMESPACE}"
 
 # start network with pre-existing state files
 solo node start -i node1,node2 -n solo-e2e --state-file network-node1-0-state.zip

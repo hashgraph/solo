@@ -7,7 +7,7 @@ import {expect} from 'chai';
 import * as fs from 'fs';
 import {type LocalConfig} from '../../../../src/core/config/local_config.js';
 import {type RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
-import {e2eTestSuite, getTestCacheDir, TEST_CLUSTER} from '../../../test_util.js';
+import {e2eTestSuite, getTestCacheDir, getTestCluster} from '../../../test_util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 
@@ -30,7 +30,7 @@ argv.setArg(flags.namespace, namespace.name);
 const deploymentName = `${namespace.name}-deployment`;
 argv.setArg(flags.deployment, `${namespace.name}-deployment`);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1');
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
