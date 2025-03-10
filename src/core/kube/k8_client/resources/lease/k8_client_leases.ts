@@ -65,7 +65,7 @@ export class K8ClientLeases implements Leases {
     return body as V1Status;
   }
 
-  public async read(namespace: NamespaceName, leaseName: string, timesCalled?: number): Promise<any> {
+  public async read(namespace: NamespaceName, leaseName: string, timesCalled?: number): Promise<Lease> {
     const {response, body} = await this.coordinationApiClient
       .readNamespacedLease(leaseName, namespace.name)
       .catch(e => e);
@@ -81,7 +81,7 @@ export class K8ClientLeases implements Leases {
 
     this.handleKubernetesClientError(response, body, 'Failed to read namespaced lease');
 
-    return body as V1Lease;
+    return K8ClientLease.fromV1Lease(body);
   }
 
   public async renew(namespace: NamespaceName, leaseName: string, lease: Lease): Promise<Lease> {

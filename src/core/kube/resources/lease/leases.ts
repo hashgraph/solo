@@ -29,9 +29,9 @@ export interface Leases {
    * @param namespace - the namespace to list leases in
    * @param leaseName - the name of the lease
    * @param timesCalled - the number of times this function has been called
-   * @returns a list of lease names
+   * @returns a lease with the specified name
    */
-  read(namespace: NamespaceName, leaseName: string, timesCalled?: number): Promise<any>;
+  read(namespace: NamespaceName, leaseName: string, timesCalled?: number): Promise<Lease>;
 
   /**
    * Renew a lease
