@@ -179,7 +179,6 @@ export class RemoteConfigManager {
 
       return false;
     } catch (e) {
-      // throw new SoloError('Failed to load remote config from cluster', e);
       const newError = new SoloError('Failed to load remote config from cluster', e);
       // TODO: throw newError instead of showUserError()
       this.logger.showUserError(newError);
@@ -241,7 +240,6 @@ export class RemoteConfigManager {
     }
 
     if (!(await self.load())) {
-      // throw new SoloError('Failed to load remote config');
       const newError = new SoloError('Failed to load remote config');
       // TODO throw newError instead of showUserError()
       self.logger.showUserError(newError);
@@ -394,7 +392,6 @@ export class RemoteConfigManager {
         .configMaps()
         .read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
       if (!configMap) {
-        // throw new SoloError(`Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`);
         // TODO throw newError instead of showUserError()
         const newError = new SoloError(
           `Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`,
@@ -403,10 +400,6 @@ export class RemoteConfigManager {
       }
       return configMap;
     } catch (e) {
-      // throw new SoloError(
-      //   `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
-      //   e,
-      // );
       const newError = new SoloError(
         `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
         e,
