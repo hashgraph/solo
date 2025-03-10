@@ -31,6 +31,25 @@ env:
   MIRROR_RELEASE_NAME: mirror
   SOLO_EMAIL: john@doe.com
 
+  SOLO_NETWORK_SIZE: 2
+  SOLO_NAMESPACE: solo-e2e
+  SOLO_DEPLOYMENT: solo-deployment
+  # SOLO_CHART_VERSION: 0.39.0
+  # CONSENSUS_NODE_VERSION: v0.58.0
+  HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
+  # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
+  # DEBUG_NODE_ALIAS: "node2"
+  # SOLO_CHARTS_DIR_FLAG: "--chart-directory /Users/user/source/solo-charts/charts"
+  # LOAD_BALANCER_FLAG: "--load-balancer"
+  ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
+  TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
+  # NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1="
+  ENABLE_EXPLORER_INGRESS: "--enable-ingress"
+  ENABLE_MIRROR_INGRESS: "--enable-ingress"
+  EXPLORER_NAME_SPACE: "explorer-name-space"
+  EXPLORER_DEPLOYMENT: "explorer-deployment"
+  EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
+
 tasks:
   solo:
     cmds:
