@@ -3,7 +3,9 @@
  */
 import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
 import {Duration} from '../time/duration.js';
-import {injectable} from 'tsyringe-neo';
+import {container, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../dependency_injection/inject_tokens.js';
+import {type SoloLogger} from '../logging.js';
 
 /**
  * Implements a lease renewal service which utilizes a setInterval() based approach to renew leases at regular intervals.
@@ -40,8 +42,15 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
    * @returns the unique identifier of the scheduled lease renewal. The unique identifier is the ID of the setInterval() timeout.
    */
   public async schedule(lease: LeaseService): Promise<number> {
-    const renewalDelay = this.calculateRenewalDelay(lease);
-    const timeout = setInterval(() => lease.tryRenew(), renewalDelay.toMillis());
+    const renewalDelay: Duration = this.calculateRenewalDelay(lease);
+    const timeout: NodeJS.Timeout = setInterval(() => {
+      lease
+        .tryRenew()
+        .then()
+        .catch(e => {
+          container.resolve<SoloLogger>(InjectTokens.SoloLogger).error('Failed to renew lease', e);
+        });
+    }, renewalDelay.toMillis());
     const scheduleId = Number(timeout);
 
     this._scheduledLeases.set(scheduleId, lease);

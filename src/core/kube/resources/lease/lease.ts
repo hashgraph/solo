@@ -36,4 +36,9 @@ export interface Lease {
    * The time the lease was renewed
    */
   readonly renewTime?: Date;
+
+  /**
+   * The resource version of the lease
+   */
+  readonly resourceVersion?: string;
 }

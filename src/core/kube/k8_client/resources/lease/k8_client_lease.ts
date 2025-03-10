@@ -13,6 +13,7 @@ export class K8ClientLease implements Lease {
     public readonly durationSeconds: number,
     public readonly acquireTime?: Date,
     public readonly renewTime?: Date,
+    public readonly resourceVersion?: string,
   ) {}
 
   public static fromV1Lease(v1Lease: V1Lease): Lease {
@@ -23,6 +24,7 @@ export class K8ClientLease implements Lease {
       v1Lease.spec.leaseDurationSeconds,
       v1Lease.spec.acquireTime,
       v1Lease.spec.renewTime,
+      v1Lease.metadata.resourceVersion,
     );
   }
 
@@ -32,6 +34,7 @@ export class K8ClientLease implements Lease {
     const metadata: V1ObjectMeta = new V1ObjectMeta();
     metadata.name = lease.leaseName;
     metadata.namespace = lease.namespace.name;
+    metadata.resourceVersion = lease.resourceVersion;
     v1Lease.metadata = metadata;
 
     const spec: V1LeaseSpec = new V1LeaseSpec();

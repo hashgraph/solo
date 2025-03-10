@@ -3,6 +3,7 @@
  */
 
 export class SoloError extends Error {
+  public readonly statusCode: number | undefined;
   /**
    * Create a custom error object
    *
@@ -19,7 +20,7 @@ export class SoloError extends Error {
   ) {
     super(message);
     this.name = this.constructor.name;
-
+    this.statusCode = cause.statusCode;
     Error.captureStackTrace(this, this.constructor);
     if (cause) {
       this.cause = cause;

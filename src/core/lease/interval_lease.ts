@@ -129,18 +129,51 @@ export class IntervalLease implements LeaseService {
    * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during acquisition.
    */
   async acquire(): Promise<void> {
-    const lease = await this.retrieveLease();
+    let lease: Lease;
+    try {
+      lease = await this.retrieveLease();
+    } catch (e) {
+      throw new LeaseAcquisitionError(
+        `failed to read during acquire, the lease named '${this.leaseName}' in the ` +
+          `'${this.namespace}' namespace, caused by: ${e.message}`,
+        e,
+      );
+    }
 
     if (!lease || this.heldBySameProcess(lease)) {
-      return this.createOrRenewLease(lease);
+      try {
+        return await this.createOrRenewLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to create or renew during acquire, the lease named '${this.leaseName}' in the ` +
+            `'${this.namespace}' namespace`,
+          e,
+        );
+      }
     } else if (IntervalLease.checkExpiration(lease)) {
-      return this.transferLease(lease);
+      try {
+        return await this.transferLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
+            `'${this.namespace}' namespace`,
+          e,
+        );
+      }
     }
 
     const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
 
     if (this.heldBySameMachineIdentity(lease) && !otherHolder.isProcessAlive()) {
-      return this.transferLease(lease);
+      try {
+        return await this.transferLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
+            `'${this.namespace}' namespace, other holder: '${otherHolder.username}'`,
+          e,
+        );
+      }
     }
 
     throw new LeaseAcquisitionError(
@@ -173,10 +206,26 @@ export class IntervalLease implements LeaseService {
    * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during renewal.
    */
   async renew(): Promise<void> {
-    const lease = await this.retrieveLease();
+    let lease: Lease;
+    try {
+      lease = await this.retrieveLease();
+    } catch (e) {
+      throw new LeaseAcquisitionError(
+        `failed to read the lease named '${this.leaseName}' in the ` +
+          `'${this.namespace}' namespace, caused by: ${e.message}`,
+        e,
+      );
+    }
 
     if (!lease || this.heldBySameProcess(lease)) {
-      return await this.createOrRenewLease(lease);
+      try {
+        return await this.createOrRenewLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to create or renew the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
+          e,
+        );
+      }
     }
 
     throw new LeaseAcquisitionError(
@@ -209,7 +258,16 @@ export class IntervalLease implements LeaseService {
    * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
    */
   async release(): Promise<void> {
-    const lease = await this.retrieveLease();
+    let lease: Lease;
+    try {
+      lease = await this.retrieveLease();
+    } catch (e) {
+      throw new LeaseAcquisitionError(
+        `during release, failed to read the lease named '${this.leaseName}' in the ` +
+          `'${this.namespace}' namespace, caused by: ${e.message}`,
+        e,
+      );
+    }
 
     if (this.scheduleId) {
       await this.renewalService.cancel(this.scheduleId);
@@ -292,7 +350,7 @@ export class IntervalLease implements LeaseService {
         );
       }
 
-      if (e.meta.statusCode !== StatusCodes.NOT_FOUND) {
+      if (e.statusCode !== StatusCodes.NOT_FOUND) {
         throw new LeaseAcquisitionError(
           'failed to read existing leases, unexpected server response of ' + `'${e.meta.statusCode}' received`,
           e,
