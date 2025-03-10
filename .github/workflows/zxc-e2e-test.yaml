@@ -186,9 +186,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          token: ${{ secrets.GH_ACCESS_TOKEN }}
           repository: 'hashgraph/solo-charts'    # Replace with actual org/repo
           ref: '0117-D-network-pod-recycle'      # Branch, tag, or commit SHA
-          token: ${{ secrets.GH_ACCESS_TOKEN }}
 
       - name: Build Hedera code locally
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
