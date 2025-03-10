@@ -62,11 +62,18 @@ import {
 import {type ConsensusNode} from '../src/core/model/consensus_node.js';
 import sinon from 'sinon';
 
-export const SOLO_TEST_CLUSTER = process.env.SOLO_TEST_CLUSTER || 'solo-e2e';
-export const TEST_CLUSTER = SOLO_TEST_CLUSTER.startsWith('kind-') ? SOLO_TEST_CLUSTER : `kind-${SOLO_TEST_CLUSTER}`;
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
+
+export function getTestCluster(): ClusterRef {
+  const soloTestCluster: ClusterRef =
+    process.env.SOLO_TEST_CLUSTER ||
+    container.resolve<K8Factory>(InjectTokens.K8Factory).default().clusters().readCurrent() ||
+    'solo-e2e';
+
+  return soloTestCluster.startsWith('kind-') ? soloTestCluster : `kind-${soloTestCluster}`;
+}
 
 export function getTestLogger() {
   return container.resolve<SoloLogger>(InjectTokens.SoloLogger);

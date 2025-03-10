@@ -152,18 +152,14 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       }
     }).timeout(defaultTimeout);
 
-    it('config.txt should be changed with new account id', async () => {
+    it('the consensus nodes accountId should be the newAccountId', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
-      const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
-      const podName: PodName = PodName.of(pods[0].metadata.name);
-      const podRef: PodRef = PodRef.of(namespace, podName);
-      const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
-      const tmpDir: string = getTmpDir();
-      await k8Factory.default().containers().readByRef(containerRef).copyFrom(`${HEDERA_HAPI_PATH}/config.txt`, tmpDir);
-      const configTxt: string = fs.readFileSync(`${tmpDir}/config.txt`, 'utf8');
-      console.log('config.txt:', configTxt);
-
-      expect(configTxt).to.contain(newAccountId);
+      const pods: V1Pod[] = await k8Factory
+        .default()
+        .pods()
+        .list(namespace, [`solo.hedera.com/node-name=${updateNodeId}`]);
+      const accountId: string = pods[0].metadata.labels['solo.hedera.com/account-id'];
+      expect(accountId).to.equal(newAccountId);
     }).timeout(Duration.ofMinutes(10).toMillis());
   });
 });

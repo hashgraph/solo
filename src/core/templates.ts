@@ -273,7 +273,6 @@ export class Templates {
    * @param dnsBaseDomain - the base domain of the cluster
    * @param dnsConsensusNodePattern - the pattern to use for the consensus node
    */
-  // TODO @Lenin, needs testing
   static renderConsensusNodeFullyQualifiedDomainName(
     nodeAlias: string,
     nodeId: number,
