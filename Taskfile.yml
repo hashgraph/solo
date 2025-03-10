@@ -44,6 +44,11 @@ tasks:
   test-setup:
     cmds:
       - ./test/e2e/setup-e2e.sh
+
+  dual-cluster-setup:
+    cmds:
+      - ./test/e2e/dual-cluster/setup-dual-e2e.sh
+
   build:
     cmds:
       - rm -Rf dist
@@ -203,3 +208,10 @@ tasks:
         {{ .reporter_prefix }}='coverage/e2e-relay'
         {{ .mocha_bin }} 'test/e2e/commands/relay.test.ts'
         {{ .reporter_options_prefix }}-e2e-relay.xml"
+
+  test-e2e-dual-cluster-full:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Dual Cluster Full Test\"
+        {{ .reporter_prefix }}='coverage/e2e-dual-cluster-full'
+        { .mocha_bin }} 'test/e2e/commands/dual_cluster_full.test.ts' 
+        {{ .reporter_options_prefix }}-e2e-dual-cluster-full.xml"

@@ -10,16 +10,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "scripts": {
-    "test-e2e-dual-cluster-full": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E Dual Cluster Full Test\" c8 --report-dir='coverage/e2e-dual-cluster-full' mocha 'test/e2e/commands/dual_cluster_full.test.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-dual-cluster-full.xml",
-    "solo-test": "tsx --no-deprecation --no-warnings solo.ts",
-    "solo": "node --no-deprecation --no-warnings dist/solo.js",
-    "check": "remark . --quiet --frail && eslint . && tsc && madge --circular src/* && npx typedoc --emit none",
-    "format": "remark . --quiet --frail --output && eslint --fix . && tsc && madge --circular src/* && npx typedoc --emit none",
-    "test-setup": "./test/e2e/setup-e2e.sh",
-    "dual-cluster-setup": "./test/e2e/dual-cluster/setup-dual-e2e.sh",
-    "build": "rm -Rf dist && tsc && node resources/post-build-script.js"
-  },
+  "scripts": {},
   "keywords": [
     "solo",
     "solo-charts",
