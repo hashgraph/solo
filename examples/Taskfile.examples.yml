@@ -15,13 +15,15 @@ tasks:
       - task: "start"
 
   install:
-    desc: solo init, solo cluster create, solo node keys, solo network deploy
+    desc: solo init, solo cluster-ref create, solo node keys, solo network deploy
     deps:
       - task: "init"
     cmds:
       - task: "solo:init"
       - task: "solo:cluster:setup"
+      - task: "solo:cluster-ref:connect"
       - task: "solo:deployment:create"
+      - task: "solo:deployment:add-cluster"
       - task: "solo:keys"
       - task: "solo:network:deploy"
 

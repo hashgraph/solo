@@ -160,7 +160,7 @@ describe('NetworkCommand unit tests', () => {
     it('Install function is called with expected parameters', async () => {
       try {
         const networkCommand = new NetworkCommand(opts);
-        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([]);
+        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
         opts.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
         opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
@@ -181,11 +181,12 @@ describe('NetworkCommand unit tests', () => {
       try {
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
-
-        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([]);
-        opts.remoteConfigManager.getContexts = sinon.stub().returns([]);
-        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
         const networkCommand = new NetworkCommand(opts);
+
+        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
+        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
+        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
+
         await networkCommand.deploy(argv.build());
         expect(opts.chartManager.install.args[0][0].name).to.equal('solo-e2e');
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);

@@ -8,20 +8,19 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_config_class.js';
-import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
-import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
-import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
 import {ErrorMessages} from '../../core/error_messages.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
+import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_config_class.js';
+import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
+import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
+import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
 export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
@@ -48,18 +47,15 @@ export class ClusterCommandConfigs {
     }
 
     this.configManager.update(argv);
-    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, [
-      'selectedContext',
-    ]) as ClusterRefConnectConfigClass;
+    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
 
-    ctx.config.selectedContext = ctx.config.context;
-    if (!ctx.config.selectedContext) {
+    if (!ctx.config.context) {
       const isQuiet = this.configManager.getFlag(flags.quiet);
       if (isQuiet) {
-        ctx.config.selectedContext = this.k8Factory.default().contexts().readCurrent();
+        ctx.config.context = this.k8Factory.default().contexts().readCurrent();
       } else {
         const kubeContexts = this.k8Factory.default().contexts().list();
-        ctx.config.selectedContext = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+        ctx.config.context = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
       }
     }
 

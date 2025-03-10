@@ -110,21 +110,23 @@ export class Middlewares {
       const subCommand = argv._[1];
       const skip =
         command === 'init' ||
-        (command === 'node' && subCommand === 'keys') ||
-        (command === 'cluster' && subCommand === 'connect') ||
-        (command === 'cluster' && subCommand === 'disconnect') ||
-        (command === 'cluster' && subCommand === 'info') ||
-        (command === 'cluster' && subCommand === 'list') ||
-        (command === 'cluster' && subCommand === 'setup') ||
+        (command === 'cluster-ref' && subCommand === 'connect') ||
+        (command === 'cluster-ref' && subCommand === 'disconnect') ||
+        (command === 'cluster-ref' && subCommand === 'info') ||
+        (command === 'cluster-ref' && subCommand === 'list') ||
+        (command === 'cluster-ref' && subCommand === 'setup') ||
+        (command === 'deployment' && subCommand === 'add-cluster') ||
         (command === 'deployment' && subCommand === 'create') ||
         (command === 'deployment' && subCommand === 'list');
 
-      if (command === 'node' && subCommand === 'keys') {
-        await remoteConfigManager.loadAndValidate(argv, false);
-      }
+      // Load but don't validate if command is 'node keys'
+      const validateRemoteConfig = !(command === 'node' && subCommand === 'keys');
+
+      // Skip validation for consensus nodes if the command is 'network deploy'
+      const skipConsensusNodeValidation = command === 'network' && subCommand === 'deploy';
 
       if (!skip) {
-        await remoteConfigManager.loadAndValidate(argv);
+        await remoteConfigManager.loadAndValidate(argv, validateRemoteConfig, skipConsensusNodeValidation);
       }
 
       return argv;
