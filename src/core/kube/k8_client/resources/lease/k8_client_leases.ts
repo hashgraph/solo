@@ -46,21 +46,17 @@ export class K8ClientLeases implements Leases {
     spec.acquireTime = new V1MicroTime();
     lease.spec = spec;
 
-    const {response, body} = await this.coordinationApiClient.createNamespacedLease(namespace.name, lease).catch(e => {
-      throw new SoloError(`Error creating namespaced lease: ${e.message}`, e);
-    });
-
-    this.handleKubernetesClientError(response, body, 'Failed to create namespaced lease');
+    const {response, body} = await this.coordinationApiClient
+      .createNamespacedLease(namespace.name, lease)
+      .catch(e => e);
+    this.handleKubernetesClientError(response, 'Failed to create namespaced lease');
 
     return body as V1Lease;
   }
 
   public async delete(namespace: NamespaceName, name: string): Promise<V1Status> {
-    const {response, body} = await this.coordinationApiClient.deleteNamespacedLease(name, namespace.name).catch(e => {
-      throw new SoloError(`Error deleting namespaced lease: ${e.message}`, e);
-    });
-
-    this.handleKubernetesClientError(response, body, 'Failed to delete namespaced lease');
+    const {response, body} = await this.coordinationApiClient.deleteNamespacedLease(name, namespace.name).catch(e => e);
+    this.handleKubernetesClientError(response, 'Failed to delete namespaced lease');
 
     return body as V1Status;
   }
@@ -68,9 +64,7 @@ export class K8ClientLeases implements Leases {
   public async read(namespace: NamespaceName, leaseName: string, timesCalled?: number): Promise<any> {
     const {response, body} = await this.coordinationApiClient
       .readNamespacedLease(leaseName, namespace.name)
-      .catch(e => {
-        throw new SoloError(`Error reading namespaced lease: ${e.message}`, e);
-      });
+      .catch(e => e);
 
     if (response?.statusCode === StatusCodes.INTERNAL_SERVER_ERROR && timesCalled < 4) {
       // could be k8s control plane has no resources available
@@ -81,7 +75,7 @@ export class K8ClientLeases implements Leases {
       return await this.read(namespace, leaseName, timesCalled + 1);
     }
 
-    this.handleKubernetesClientError(response, body, 'Failed to read namespaced lease');
+    this.handleKubernetesClientError(response, 'Failed to read namespaced lease');
 
     return body as V1Lease;
   }
@@ -91,11 +85,9 @@ export class K8ClientLeases implements Leases {
 
     const {response, body} = await this.coordinationApiClient
       .replaceNamespacedLease(leaseName, namespace.name, lease)
-      .catch(e => {
-        throw new SoloError(`Error replacing namespaced lease: ${e.message}`, e);
-      });
+      .catch(e => e);
 
-    this.handleKubernetesClientError(response, body, 'Failed to renew namespaced lease');
+    this.handleKubernetesClientError(response, 'Failed to renew namespaced lease');
 
     return body as V1Lease;
   }
@@ -107,33 +99,24 @@ export class K8ClientLeases implements Leases {
 
     const {response, body} = await this.coordinationApiClient
       .replaceNamespacedLease(lease.metadata.name, lease.metadata.namespace, lease)
-      .catch(e => {
-        throw new SoloError(`Error replacing namespaced lease: ${e.message}`, e);
-      });
+      .catch(e => e);
 
-    this.handleKubernetesClientError(response, body, 'Failed to transfer namespaced lease');
+    this.handleKubernetesClientError(response, 'Failed to transfer namespaced lease');
 
     return body as V1Lease;
   }
 
   /**
    * @param response - response object from the kubeclient call
-   * @param error - body of the response becomes the error if the status is not OK
    * @param errorMessage - the error message to be passed in case it fails
    *
    * @throws SoloError - if the status code is not OK
    */
-  private handleKubernetesClientError(
-    response: http.IncomingMessage,
-    error: Error | unknown,
-    errorMessage: string,
-  ): void {
+  private handleKubernetesClientError(response: http.IncomingMessage, errorMessage: string): void {
     const statusCode = +response?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
 
     if (statusCode <= StatusCodes.ACCEPTED) return;
     errorMessage += `, statusCode: ${statusCode}`;
-    this.logger.error(errorMessage, error);
-
     throw new SoloError(errorMessage, errorMessage, {statusCode: statusCode});
   }
 }

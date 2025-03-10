@@ -159,9 +159,7 @@ export class K8ClientContainer implements Container {
         self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream);
       });
     } catch (e) {
-      const errorMessage = `${messagePrefix}failed to download file: ${e.message}`;
-      self.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError(`${messagePrefix}failed to download file: ${e.message}`, e);
     }
   }
 
@@ -248,9 +246,7 @@ export class K8ClientContainer implements Container {
         self.registerErrorStreamOnError(localContext, messagePrefix, inputPassthroughStream);
       });
     } catch (e) {
-      const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`;
-      self.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError(`${messagePrefix} failed to upload file: ${e.message}`, e);
     }
   }
 
@@ -378,12 +374,10 @@ export class K8ClientContainer implements Container {
         }
       }
     } catch (e) {
-      const error = new SoloError(
+      throw new SoloError(
         `unable to check file in '${this.containerRef.parentRef.name}':${this.containerRef.name}' - ${destPath}: ${e.message}`,
         e,
       );
-      this.logger.error(error.message, error);
-      throw error;
     }
 
     return false;

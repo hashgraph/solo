@@ -108,7 +108,6 @@ export class PlatformInstaller {
       return true;
     } catch (e) {
       const message = `failed to extract platform code in this pod '${podRef}' while using the '${context}' context: ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }
@@ -202,7 +201,6 @@ export class PlatformInstaller {
       }
     } catch (e: Error | any) {
       const message = `failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(consensusNode.name as NodeAlias)}': ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }
@@ -242,7 +240,6 @@ export class PlatformInstaller {
         }
       }
     } catch (e: Error | any) {
-      this.logger.error('failed to copy TLS keys to secret', e);
       throw new SoloError('failed to copy TLS keys to secret', e);
     }
   }

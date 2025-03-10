@@ -40,7 +40,6 @@ export class CommandHandler {
     try {
       await tasks.run();
     } catch (e: Error | any) {
-      this.logger.error(`${errorString}: ${e.message}`, e);
       throw new SoloError(`${errorString}: ${e.message}`, e);
     } finally {
       const promises = [];
@@ -72,7 +71,6 @@ export class CommandHandler {
         self.logger.debug(`OK: setup directory: ${dirPath}`);
       });
     } catch (e: Error | any) {
-      self.logger.error(e);
       throw new SoloError(`failed to create directory: ${e.message}`, e);
     }
 

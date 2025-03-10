@@ -179,7 +179,11 @@ export class RemoteConfigManager {
 
       return false;
     } catch (e) {
-      throw new SoloError('Failed to load remote config from cluster', e);
+      // throw new SoloError('Failed to load remote config from cluster', e);
+      const newError = new SoloError('Failed to load remote config from cluster', e);
+      // TODO: throw newError instead of showUserError()
+      this.logger.showUserError(newError);
+      return false;
     }
   }
 
@@ -237,7 +241,11 @@ export class RemoteConfigManager {
     }
 
     if (!(await self.load())) {
-      throw new SoloError('Failed to load remote config');
+      // throw new SoloError('Failed to load remote config');
+      const newError = new SoloError('Failed to load remote config');
+      // TODO throw newError instead of showUserError()
+      self.logger.showUserError(newError);
+      return;
     }
     self.logger.info('Remote config loaded');
     if (!validate) {
@@ -386,14 +394,25 @@ export class RemoteConfigManager {
         .configMaps()
         .read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
       if (!configMap) {
-        throw new SoloError(`Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`);
+        // throw new SoloError(`Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`);
+        // TODO throw newError instead of showUserError()
+        const newError = new SoloError(
+          `Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`,
+        );
+        this.logger.showUserError(newError);
       }
       return configMap;
     } catch (e) {
-      throw new SoloError(
+      // throw new SoloError(
+      //   `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
+      //   e,
+      // );
+      const newError = new SoloError(
         `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
         e,
       );
+      this.logger.showUserError(newError);
+      return null;
     }
   }
 
@@ -448,7 +467,6 @@ export class RemoteConfigManager {
     }
 
     if (!currentDeployment) {
-      this.logger.error('Selected deployment name is not set in local config', this.localConfig);
       throw new SoloError('Selected deployment name is not set in local config');
     }
 
@@ -468,7 +486,6 @@ export class RemoteConfigManager {
     }
 
     if (!context) {
-      this.logger.error("Context is not passed and default one can't be acquired", this.localConfig);
       throw new SoloError("Context is not passed and default one can't be acquired");
     }
 

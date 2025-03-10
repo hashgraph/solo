@@ -91,7 +91,6 @@ export class CertificateManager {
       const errorMessage =
         'failed to copy tls certificate to secret ' +
         `'${Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)}': ${e.message}`;
-      this.logger.error(errorMessage, e);
       throw new SoloError(errorMessage, e);
     }
   }

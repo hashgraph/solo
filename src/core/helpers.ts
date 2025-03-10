@@ -248,8 +248,6 @@ export function renameAndCopyFile(srcFilePath: string, expectedBaseName: string,
   // copy public key and private key to key directory
   fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), err => {
     if (err) {
-      // @ts-ignore
-      logger.error(`Error copying file: ${err.message}`);
       throw new SoloError(`Error copying file: ${err.message}`);
     }
   });

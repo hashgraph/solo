@@ -62,7 +62,6 @@ export class K8ClientPod implements Pod {
         return;
       }
 
-      this.logger.error(errorMessage, e);
       throw new SoloError(errorMessage, e);
     }
   }
@@ -87,7 +86,6 @@ export class K8ClientPod implements Pod {
       return server.listen(localPort, constants.LOCAL_HOST);
     } catch (e) {
       const message = `failed to start port-forwarder [${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }
