@@ -32,7 +32,7 @@ import {type CommandFlag} from '../types/flag_types.js';
 import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
-import {extractContextFromConsensusNodes} from '../core/helpers.js';
+import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
 
 export interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -409,6 +409,11 @@ export class MirrorNodeCommand extends BaseCommand {
                       mirrorIngressControllerValuesArg,
                       ctx.config.clusterContext,
                     );
+                    showVersionBanner(
+                      self.logger,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                      INGRESS_CONTROLLER_VERSION,
+                    );
                   },
                   skip: ctx => !ctx.config.enableIngress,
                 },
@@ -423,6 +428,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.valuesArg,
                       ctx.config.clusterContext,
                     );
+                    showVersionBanner(self.logger, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.mirrorNodeVersion);
 
                     if (ctx.config.enableIngress) {
                       // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller

@@ -5,7 +5,7 @@ import {Task} from '../../core/task.js';
 import {Flags as flags} from '../flags.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {type ConfigBuilder} from '../../types/aliases.js';
-import {prepareChartPath} from '../../core/helpers.js';
+import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
 import chalk from 'chalk';
@@ -29,6 +29,7 @@ import {type Helm} from '../../core/helm.js';
 import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {SOLO_CLUSTER_SETUP_CHART} from '../../core/constants.js';
 
 @injectable()
 export class ClusterCommandTasks {
@@ -258,6 +259,7 @@ export class ClusterCommandTasks {
             valuesArg,
             this.k8Factory.default().contexts().readCurrent(),
           );
+          showVersionBanner(self.logger, SOLO_CLUSTER_SETUP_CHART, version);
         } catch (e: Error | unknown) {
           // if error, uninstall the chart and rethrow the error
           self.logger.debug(
