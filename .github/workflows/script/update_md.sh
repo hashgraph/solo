@@ -30,7 +30,7 @@ export SOLO_CLUSTER_REF_CONNECT_OUTPUT=$( cat cluster-ref-connect.log | tee test
 solo deployment create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" | tee deployment-create.log
 export SOLO_DEPLOYMENT_CREATE_OUTPUT=$( cat deployment-create.log | tee test.log )
 
-solo deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 3 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc | tee deployment-add-cluster.log
+solo deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 3 | tee deployment-add-cluster.log
 export SOLO_DEPLOYMENT_ADD_CLUSTER_OUTPUT=$( cat deployment-add-cluster.log | tee test.log )
 
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}" | tee keys.log

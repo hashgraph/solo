@@ -209,7 +209,7 @@ tasks:
         fi
         NODE_COUNT=$(echo "{{ .node_identifiers }}" | awk -F',' '{print NF}')
         echo "NODE_COUNT=${NODE_COUNT}"
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment add-cluster --cluster-ref ${CLUSTER_REF} --deployment "${SOLO_DEPLOYMENT}" --num-consensus-nodes ${NODE_COUNT} --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment add-cluster --cluster-ref ${CLUSTER_REF} --deployment "${SOLO_DEPLOYMENT}" --num-consensus-nodes ${NODE_COUNT}
 
   solo:keys:
     silent: true

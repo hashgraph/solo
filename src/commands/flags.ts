@@ -2058,7 +2058,7 @@ export class Flags {
     constName: 'enableCertManager',
     name: 'enable-cert-manager',
     definition: {
-      describe: 'pass the flag to enable cert manager',
+      describe: 'Pass the flag to enable cert manager',
       defaultValue: false,
       type: 'boolean',
     },
@@ -2069,7 +2069,7 @@ export class Flags {
     constName: 'numberOfConsensusNodes',
     name: 'num-consensus-nodes',
     definition: {
-      describe: 'used to specify desired number of consensus nodes for pre-genesis deployments',
+      describe: 'Used to specify desired number of consensus nodes for pre-genesis deployments',
       type: 'number',
     },
     prompt: undefined,
@@ -2079,7 +2079,7 @@ export class Flags {
     constName: 'dnsBaseDomain',
     name: 'dns-base-domain',
     definition: {
-      describe: 'base domain for the DNS',
+      describe: 'Base domain for the DNS is the suffix used to construct the fully qualified domain name (FQDN)',
       defaultValue: 'cluster.local',
       type: 'string',
     },
@@ -2091,8 +2091,8 @@ export class Flags {
     name: 'dns-consensus-node-pattern',
     definition: {
       describe:
-        'pattern to construct the fully qualified domain name (FQDN) for the consensus node' +
-        '(ex. network-{nodeAlias}-svc.{namespace}.svc)',
+        'Pattern to construct the prefix for the fully qualified domain name (FQDN) for the consensus node, ' +
+        'the suffix is provided by the --dns-base-domain option (ex. network-{nodeAlias}-svc.{namespace}.svc)',
       defaultValue: 'network-{nodeAlias}-svc.{namespace}.svc',
       type: 'string',
     },

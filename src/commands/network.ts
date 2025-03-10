@@ -152,7 +152,6 @@ export class NetworkCommand extends BaseCommand {
       flags.loadBalancerEnabled,
       flags.log4j2Xml,
       flags.deployment,
-      flags.nodeAliasesUnparsed,
       flags.persistentVolumeClaims,
       flags.profileFile,
       flags.profileName,
@@ -629,7 +628,6 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
-      flags.nodeAliasesUnparsed,
     ];
 
     // disable the prompts that we don't want to prompt the user for
