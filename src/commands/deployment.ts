@@ -22,7 +22,7 @@ import {ConsensusNodeComponent} from '../core/config/remote/components/consensus
 import {Cluster} from '../core/config/remote/cluster.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 
-export interface DeploymentAddClusterConfig {
+interface DeploymentAddClusterConfig {
   quiet: boolean;
   context: string;
   namespace: NamespaceName;

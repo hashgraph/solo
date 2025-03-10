@@ -14,7 +14,6 @@ import {ErrorMessages} from '../../core/error_messages.js';
 import {SoloError} from '../../core/errors.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {type ClusterRefConnectContext} from './configs.js';
 import {type ClusterRef} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -30,6 +29,7 @@ import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {SOLO_CLUSTER_SETUP_CHART} from '../../core/constants.js';
+import {type ClusterRefConnectContext} from './config_interfaces/cluster_ref_connect_context.js';
 
 @injectable()
 export class ClusterCommandTasks {
