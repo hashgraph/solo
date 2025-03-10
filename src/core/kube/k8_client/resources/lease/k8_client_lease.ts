@@ -25,14 +25,14 @@ export class K8ClientLease implements Lease {
   }
 
   public static toV1Lease(lease: Lease): V1Lease {
-    const v1Lease = new V1Lease();
+    const v1Lease: V1Lease = new V1Lease();
 
-    const metadata = new V1ObjectMeta();
+    const metadata: V1ObjectMeta = new V1ObjectMeta();
     metadata.name = lease.leaseName;
     metadata.namespace = lease.namespace.name;
     v1Lease.metadata = metadata;
 
-    const spec = new V1LeaseSpec();
+    const spec: V1LeaseSpec = new V1LeaseSpec();
     spec.holderIdentity = lease.holderName;
     spec.leaseDurationSeconds = lease.durationSeconds;
     spec.acquireTime = new V1MicroTime();
