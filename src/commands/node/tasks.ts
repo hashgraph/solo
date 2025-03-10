@@ -1808,7 +1808,7 @@ export class NodeCommandTasks {
         if (profileValuesFile) {
           const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
             clusterRefs,
-            config.chartDirectory,
+            undefined, // do not trigger of adding default value file for chart upgrade due to node add or delete
             profileValuesFile,
             config.valuesFile,
           );
