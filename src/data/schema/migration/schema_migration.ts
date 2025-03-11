@@ -2,6 +2,10 @@
 
 import {type VersionRange} from '../../../business/utils/version_range.js';
 
+/**
+ * Represents a schema migration which can be applied to a source object to bring it up to date with the schema version
+ * of this migration.
+ */
 export interface SchemaMigration {
   /**
    * The resulting schema version after the migration.

@@ -22,7 +22,18 @@ export interface ConfigSource extends ConfigAccessor {
   readonly ordinal: number;
 
   /**
+   * The prefix that is used to filter configuration
+   * keys that are read from the configuration source.
+   */
+  readonly prefix: string;
+
+  /**
    * The backend that is used to read and write configuration data.
    */
   readonly backend: StorageBackend;
+
+  /**
+   * Loads the configuration data from the configuration source.
+   */
+  load(): Promise<void>;
 }
