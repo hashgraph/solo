@@ -63,7 +63,7 @@ import {
 import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
-import {type Lease} from '../../core/lease/lease.js';
+import {type LeaseService} from '../../core/lease/lease_service.js';
 import {ListrLease} from '../../core/lease/listr_lease.js';
 import {Duration} from '../../core/time/duration.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
@@ -2067,7 +2067,7 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null, shouldLoadNodeClient = true) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: LeaseService | null, shouldLoadNodeClient = true) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 

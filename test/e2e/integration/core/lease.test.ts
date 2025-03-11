@@ -79,7 +79,7 @@ describe('Lease', async () => {
       expect(await lease.isAcquired()).to.be.true;
       expect(await lease.isExpired()).to.be.false;
 
-      expect(newLease.release()).to.be.rejectedWith(LeaseRelinquishmentError);
+      await expect(newLease.release()).to.be.rejectedWith(LeaseRelinquishmentError);
       expect(await lease.isAcquired()).to.be.true;
       expect(await lease.isExpired()).to.be.false;
 

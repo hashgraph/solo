@@ -5,7 +5,7 @@ import {Flags as flags} from '../../commands/flags.js';
 import {type ConfigManager} from '../config_manager.js';
 import {type K8Factory} from '../kube/k8_factory.js';
 import {type SoloLogger} from '../logging.js';
-import {type Lease, type LeaseRenewalService} from './lease.js';
+import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
 import {IntervalLease} from './interval_lease.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
@@ -44,7 +44,7 @@ export class LeaseManager {
    *
    * @returns a new lease instance.
    */
-  public async create(): Promise<Lease> {
+  public async create(): Promise<LeaseService> {
     return new IntervalLease(
       this.k8Factory,
       this._renewalService,
