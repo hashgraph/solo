@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
+
 import {type StorageBackend} from './storage_backend.js';
 
+/**
+ * ObjectStorageBackend extends the StorageBackend interface to provide additional methods for reading and writing
+ * configuration data as plain javascript objects.
+ *
+ * Implementations of this interface should read and write from the underlying storage medium by using the
+ * {@link StorageBackend.readBytes} and {@link StorageBackend.writeBytes} methods.
+ */
 export interface ObjectStorageBackend extends StorageBackend {
   /**
    * Reads the persisted data from the storage backend and marshals it into a plain javascript object.
