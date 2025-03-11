@@ -251,6 +251,8 @@ export function e2eTestSuite(
         );
       });
 
+      // TODO: add rest of prerequisites for setup
+
       after(async function () {
         this.timeout(Duration.ofMinutes(5).toMillis());
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);

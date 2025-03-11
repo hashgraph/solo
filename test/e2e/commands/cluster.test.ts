@@ -45,7 +45,6 @@ describe('ClusterCommand', () => {
   argv.setArg(flags.clusterRef, getTestCluster());
   argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
   argv.setArg(flags.force, true);
-  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 
   const bootstrapResp = bootstrapTestVariables(testName, argv, {});
   const k8Factory = bootstrapResp.opts.k8Factory;
@@ -128,7 +127,6 @@ describe('ClusterCommand', () => {
 
     const argv = Argv.initializeEmpty();
     argv.setArg(flags.clusterRef, clusterRef);
-    argv.setArg(flags.quiet, true);
     argv.setArg(flags.context, contextName);
     argv.setArg(flags.userEmailAddress, 'test@test.com');
     return {argv, clusterRef, contextName};

@@ -31,7 +31,6 @@ argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 
 e2eTestSuite(namespace.name, argv, {startNodes: false}, bootstrapResp => {
   describe('Platform Installer E2E', async () => {

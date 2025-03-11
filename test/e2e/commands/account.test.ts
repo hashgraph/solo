@@ -49,7 +49,6 @@ argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.loadBalancerEnabled, true);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 // enable load balancer for e2e tests
 argv.setArg(flags.loadBalancerEnabled, true);
 

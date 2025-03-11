@@ -39,7 +39,6 @@ export function testNodeAdd(
   argv.setArg(flags.generateGossipKeys, true);
   argv.setArg(flags.generateTlsKeys, true);
   // set the env variable SOLO_CHARTS_DIR if developer wants to use local Solo charts
-  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
   argv.setArg(
     flags.releaseTag,
     !localBuildPath || localBuildPath === '' ? HEDERA_PLATFORM_VERSION_TAG : TEST_LOCAL_HEDERA_PLATFORM_VERSION,
@@ -48,7 +47,6 @@ export function testNodeAdd(
   argv.setArg(flags.force, true);
   argv.setArg(flags.persistentVolumeClaims, true);
   argv.setArg(flags.localBuildPath, localBuildPath);
-  argv.setArg(flags.quiet, true);
 
   e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     describe(testDescription, async () => {

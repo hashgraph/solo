@@ -43,8 +43,6 @@ argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
-argv.setArg(flags.quiet, true);
 argv.setArg(flags.pinger, true);
 argv.setArg(flags.enableHederaExplorerTls, true);
 argv.setArg(flags.enableIngress, true);

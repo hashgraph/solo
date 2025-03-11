@@ -19,8 +19,6 @@ argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2,node3');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.clusterRef, getTestCluster());
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
-argv.setArg(flags.quiet, true);
 
 console.log('Starting local build for Platform app');
 argv.setArg(

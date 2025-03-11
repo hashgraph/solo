@@ -29,8 +29,6 @@ argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.clusterRef, getTestCluster());
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
-argv.setArg(flags.quiet, true);
 
 let k8Factory: K8Factory;
 console.log('Starting local build for Hedera app');

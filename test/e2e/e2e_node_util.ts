@@ -39,8 +39,6 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
   argv.setArg(flags.generateTlsKeys, true);
   argv.setArg(flags.clusterRef, getTestCluster());
   argv.setArg(flags.devMode, true);
-  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
-  argv.setArg(flags.quiet, true);
 
   e2eTestSuite(testName, argv, {}, bootstrapResp => {
     const defaultTimeout = Duration.ofMinutes(2).toMillis();

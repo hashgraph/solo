@@ -43,8 +43,6 @@ describe('NetworkCommand', function networkCommand() {
   argv.setArg(flags.force, true);
   argv.setArg(flags.applicationEnv, applicationEnvFilePath);
   argv.setArg(flags.loadBalancerEnabled, true);
-  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
-  argv.setArg(flags.quiet, true);
 
   const {
     opts: {k8Factory, accountManager, configManager, chartManager, remoteConfigManager},

@@ -26,7 +26,6 @@ argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.persistentVolumeClaims, true);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined);
 argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.namespace, namespace.name);
 

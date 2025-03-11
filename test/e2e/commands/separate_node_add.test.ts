@@ -30,12 +30,10 @@ argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
 argv.setArg(flags.stakeAmounts, '1500,1');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.force, true);
 argv.setArg(flags.persistentVolumeClaims, true);
-argv.setArg(flags.quiet, true);
 
 const argvPrepare = argv.clone();
 
