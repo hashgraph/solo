@@ -117,7 +117,7 @@ export class AccountCommand extends BaseCommand {
         const privateKey = PrivateKey.fromStringDer(newAccountInfo.privateKey);
         newAccountInfo.privateKeyRaw = privateKey.toStringRaw();
       } catch {
-        throw new SoloError(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`);
+        this.logger.error(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`);
       }
     }
 
