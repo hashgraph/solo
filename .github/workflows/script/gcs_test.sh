@@ -95,7 +95,7 @@ npm run solo-test -- deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --
 
 npm run solo-test -- node keys --gossip-keys --tls-keys -i node1 --deployment "${SOLO_DEPLOYMENT}"
 
-npm run solo-test -- network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" \
+npm run solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" \
   --storage-type "${storageType}" \
   "${STORAGE_OPTIONS[@]}" \
   --backup-bucket "${streamBackupBucket}" \
