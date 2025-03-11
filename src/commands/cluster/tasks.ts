@@ -147,10 +147,6 @@ export class ClusterCommandTasks {
     return {
       title: 'Initialize',
       task: async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-        if (argv[flags.devMode.name]) {
-          this.logger.setDevMode(true);
-        }
-
         ctx.config = await configInit(argv, ctx, task);
       },
     };

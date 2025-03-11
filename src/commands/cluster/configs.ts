@@ -46,19 +46,18 @@ export class ClusterCommandConfigs {
       throw new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST);
     }
 
-    this.configManager.update(argv);
-    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
-
-    if (!ctx.config.context) {
+    if (!argv[flags.context.name]) {
       const isQuiet = this.configManager.getFlag(flags.quiet);
       if (isQuiet) {
-        ctx.config.context = this.k8Factory.default().contexts().readCurrent();
+        argv[flags.context.name] = this.k8Factory.default().contexts().readCurrent();
       } else {
         const kubeContexts = this.k8Factory.default().contexts().list();
-        ctx.config.context = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+        argv[flags.context.name] = await flags.context.prompt(task, kubeContexts, argv[flags.clusterRef.name]);
       }
     }
 
+    this.configManager.update(argv);
+    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
     return ctx.config;
   }
 
