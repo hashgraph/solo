@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Flags as flags} from '../../src/commands/flags.js';
 import {getTestCacheDir, getTestCluster} from '../test_util.js';
 import {K8Client} from '../../src/core/kube/k8_client/k8_client.js';

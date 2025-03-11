@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {expect} from 'chai';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 

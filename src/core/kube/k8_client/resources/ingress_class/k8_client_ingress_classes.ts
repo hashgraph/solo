@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type IngressClasses} from '../../../resources/ingress_class/ingress_classes.js';
 import {type IngressClass} from '../../../resources/ingress_class/ingress_class.js';
 import {type V1IngressClass, type NetworkingV1Api} from '@kubernetes/client-node';

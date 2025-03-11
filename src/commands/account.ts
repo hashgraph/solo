@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import chalk from 'chalk';
 import {BaseCommand, type Opts} from './base.js';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';

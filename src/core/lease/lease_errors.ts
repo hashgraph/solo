@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {SoloError} from '../errors.js';
 
 export class LeaseAcquisitionError extends SoloError {

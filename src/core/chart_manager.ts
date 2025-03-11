@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as constants from './constants.js';
 import {type Helm} from './helm.js';
 import chalk from 'chalk';

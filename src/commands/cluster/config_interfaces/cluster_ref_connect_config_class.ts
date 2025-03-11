@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ClusterRef, type EmailAddress} from '../../../core/config/remote/types.js';
 
 export interface ClusterRefConnectConfigClass {

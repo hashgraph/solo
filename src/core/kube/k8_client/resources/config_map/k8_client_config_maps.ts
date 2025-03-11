@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type CoreV1Api, V1ConfigMap, V1ObjectMeta} from '@kubernetes/client-node';
 import {type ConfigMaps} from '../../../resources/config_map/config_maps.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';

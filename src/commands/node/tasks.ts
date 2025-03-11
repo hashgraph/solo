@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type AccountManager} from '../../core/account_manager.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type KeyManager} from '../../core/key_manager.js';

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as constants from './constants.js';
 import {ShellRunner} from './shell_runner.js';
 import {Templates} from './templates.js';

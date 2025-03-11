@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as constants from '../../constants.js';
 import {MissingArgumentError, SoloError} from '../../errors.js';
 import {RemoteConfigDataWrapper} from './remote_config_data_wrapper.js';

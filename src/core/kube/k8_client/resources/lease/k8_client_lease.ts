@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {V1Lease, V1LeaseSpec, V1MicroTime, V1ObjectMeta} from '@kubernetes/client-node';
 import {type Lease} from '../../../resources/lease/lease.js';
 import {NamespaceName} from '../../../resources/namespace/namespace_name.js';

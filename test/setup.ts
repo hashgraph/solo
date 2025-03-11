@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 // eslint-disable-next-line n/no-extraneous-import
 import 'reflect-metadata';
 import * as chai from 'chai';

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type PodRef} from '../pod/pod_ref.js';
 import {type ContainerName} from './container_name.js';
 import {NestedResourceRef} from '../nested_resource_ref.js';

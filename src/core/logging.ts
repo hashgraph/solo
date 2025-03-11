@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as winston from 'winston';
 import {v4 as uuidv4} from 'uuid';
 import * as util from 'util';

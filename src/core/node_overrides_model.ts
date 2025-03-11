@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as yaml from 'yaml';
 import * as constants from './constants.js';
 import {Templates} from './templates.js';

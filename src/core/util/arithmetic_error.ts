@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 /**
  * Thrown when an arithmetic operation fails due to NaN, Infinity, Division by Zero, or other arithmetic errors.

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Service} from '../../../resources/service/service.js';
 import {type ObjectMeta} from '../../../resources/object_meta.js';
 import {type ServiceSpec} from '../../../resources/service/service_spec.js';

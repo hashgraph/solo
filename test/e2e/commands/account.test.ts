@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 

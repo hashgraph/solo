@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ResourceRef} from './resource_ref.js';
 import {type ResourceName} from './resource_name.js';
 import {MissingParentResourceRefError} from '../errors/missing_parent_resource_error.js';

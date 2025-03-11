@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {spawn} from 'child_process';
 import chalk from 'chalk';
 import {type SoloLogger} from './logging.js';
