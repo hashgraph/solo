@@ -215,19 +215,30 @@ export class ExplorerCommand extends BaseCommand {
             );
 
             const soloCertManagerValuesArg = await self.prepareCertManagerChartValuesArg(config);
+            // check if CRDs of cert-manager are already installed
+            let needInstall = false;
+            for (const crd of constants.CERT_MANAGER_CRDS) {
+              const crdExists = await self.k8Factory.getK8(ctx.config.clusterContext).crds().ifExists(crd);
+              if (!crdExists) {
+                needInstall = true;
+                break;
+              }
+            }
 
-            // if cert-manager isn't already installed we want to install it separate from the certificate issuers
-            // as they will fail to be created due to the order of the installation being dependent on the cert-manager
-            // being installed first
-            await self.chartManager.install(
-              NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
-              constants.SOLO_CERT_MANAGER_CHART,
-              chartPath,
-              soloChartVersion,
-              '  --set cert-manager.installCRDs=true',
-              ctx.config.clusterContext,
-            );
-            showVersionBanner(self.logger, constants.SOLO_CERT_MANAGER_CHART, soloChartVersion);
+            if (needInstall) {
+              // if cert-manager isn't already installed we want to install it separate from the certificate issuers
+              // as they will fail to be created due to the order of the installation being dependent on the cert-manager
+              // being installed first
+              await self.chartManager.install(
+                NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
+                constants.SOLO_CERT_MANAGER_CHART,
+                chartPath,
+                soloChartVersion,
+                '  --set cert-manager.installCRDs=true',
+                ctx.config.clusterContext,
+              );
+              showVersionBanner(self.logger, constants.SOLO_CERT_MANAGER_CHART, soloChartVersion);
+            }
 
             // wait cert-manager to be ready to proceed, otherwise may get error of "failed calling webhook"
             await self.k8Factory
@@ -242,12 +253,6 @@ export class ExplorerCommand extends BaseCommand {
                 constants.PODS_READY_MAX_ATTEMPTS,
                 constants.PODS_READY_DELAY,
               );
-
-            // sleep for a few seconds to allow cert-manager to be ready
-            await new Promise(resolve => setTimeout(resolve, 10000));
-
-            // sleep for a few seconds to allow cert-manager to be ready
-            await new Promise(resolve => setTimeout(resolve, 10000));
 
             // sleep for a few seconds to allow cert-manager to be ready
             await new Promise(resolve => setTimeout(resolve, 10000));
@@ -575,10 +580,7 @@ export class ExplorerCommand extends BaseCommand {
             config: {namespace},
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
-          remoteConfig.components.add(
-            'mirrorNodeExplorer',
-            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name),
-          );
+          remoteConfig.components.add(new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name));
         });
       },
     };

@@ -15,9 +15,13 @@ SOLO_DEVELOPMENT=solo-deployment
 kind delete cluster -n "${SOLO_CLUSTER_NAME}" 
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 solo init
-solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+solo cluster-ref setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+
+solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
+solo deployment create --namespace "${SOLO_NAMESPACE}" --deployment "${SOLO_DEVELOPMENT}"
+solo deployment add-cluster --deployment "${SOLO_DEVELOPMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 3
+
 solo node keys --gossip-keys --tls-keys -i node1,node2,node3 
-solo deployment create --namespace "${SOLO_NAMESPACE}"  --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --cluster-ref kind-"${SOLO_CLUSTER_NAME}" --deployment "${SOLO_DEVELOPMENT}" --node-aliases node1,node2,node3
 solo network deploy --deployment "${SOLO_DEVELOPMENT}" -i node1,node2,node3 --app PlatformTestingTool.jar
 
 # option 1) if all nodes are running the same version of platform testing app

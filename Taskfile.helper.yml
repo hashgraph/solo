@@ -190,7 +190,7 @@ tasks:
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} task solo -- init --dev
 
-  solo:deployment:create:
+  solo:cluster-ref:connect:
     silent: true
     internal: true
     deps:
@@ -207,7 +207,37 @@ tasks:
         else
           export CLUSTER_REF="kind-${SOLO_CLUSTER_NAME}"
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} task solo -- deployment create -n {{ .SOLO_NAMESPACE }} --context ${CONTEXT} --email {{ .SOLO_EMAIL }} --deployment-clusters ${CLUSTER_REF} --cluster-ref ${CLUSTER_REF} --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} task solo -- cluster-ref connect --cluster-ref ${CLUSTER_REF} --context ${CONTEXT} --email {{ .SOLO_EMAIL }}
+
+  solo:deployment:create:
+    silent: true
+    internal: true
+    deps:
+      - task: "init"
+    cmds:
+      - |
+        if [[ "${CLUSTER_REF}" != "" ]]; then
+          echo "CLUSTER_REF=${CLUSTER_REF}"
+        else
+          export CLUSTER_REF="kind-${SOLO_CLUSTER_NAME}"
+        fi
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} task solo -- deployment create -n {{ .SOLO_NAMESPACE }} --deployment "${SOLO_DEPLOYMENT}"
+
+  solo:deployment:add-cluster:
+    silent: true
+    internal: true
+    deps:
+      - task: "init"
+    cmds:
+      - |
+        if [[ "${CLUSTER_REF}" != "" ]]; then
+          echo "CLUSTER_REF=${CLUSTER_REF}"
+        else
+          export CLUSTER_REF="kind-${SOLO_CLUSTER_NAME}"
+        fi
+        NODE_COUNT=$(echo "{{ .node_identifiers }}" | awk -F',' '{print NF}')
+        echo "NODE_COUNT=${NODE_COUNT}"
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} task solo -- deployment add-cluster --cluster-ref ${CLUSTER_REF} --deployment "${SOLO_DEPLOYMENT}" --num-consensus-nodes ${NODE_COUNT}
 
   solo:keys:
     silent: true
@@ -402,7 +432,7 @@ tasks:
     cmds:
       - |
         export MINIO_FLAG=$(cat {{ .minio_flag_file }})
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} task solo -- cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${MINIO_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${CLUSTER_TLS_FLAGS} -q --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} task solo -- cluster-ref setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${MINIO_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${CLUSTER_TLS_FLAGS} -q --dev
 
   solo:node:addresses:
     internal: true

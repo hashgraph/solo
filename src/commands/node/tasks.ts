@@ -1808,7 +1808,7 @@ export class NodeCommandTasks {
         if (profileValuesFile) {
           const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
             clusterRefs,
-            config.chartDirectory,
+            undefined, // do not trigger of adding default value file for chart upgrade due to node add or delete
             profileValuesFile,
             config.valuesFile,
           );
@@ -2136,7 +2136,6 @@ export class NodeCommandTasks {
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.add(
-            nodeAlias,
             new ConsensusNodeComponent(
               nodeAlias,
               clusterRef,
@@ -2146,15 +2145,9 @@ export class NodeCommandTasks {
             ),
           );
 
-          remoteConfig.components.add(
-            `envoy-proxy-${nodeAlias}`,
-            new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterRef, namespace),
-          );
+          remoteConfig.components.add(new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterRef, namespace));
 
-          remoteConfig.components.add(
-            `haproxy-${nodeAlias}`,
-            new HaProxyComponent(`haproxy-${nodeAlias}`, clusterRef, namespace),
-          );
+          remoteConfig.components.add(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterRef, namespace));
         });
 
         ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
@@ -2168,14 +2161,14 @@ export class NodeCommandTasks {
               ctx.config.consensusNodes[0].cluster,
               ctx.config.consensusNodes[0].context,
               'cluster.local',
-              'network-${nodeAlias}-svc.${namespace}.svc',
+              'network-{nodeAlias}-svc.{namespace}.svc',
               Templates.renderConsensusNodeFullyQualifiedDomainName(
                 ctx.config.nodeAlias as NodeAlias,
                 Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
                 ctx.config.namespace.name as NamespaceNameAsString,
                 ctx.config.consensusNodes[0].cluster,
                 'cluster.local',
-                'network-${nodeAlias}-svc.${namespace}.svc',
+                'network-{nodeAlias}-svc.{namespace}.svc',
               ),
             ),
           );

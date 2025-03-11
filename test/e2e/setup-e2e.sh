@@ -29,7 +29,7 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}" --image "${KIND_IMAGE}" --config "
 # --chart-directory ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
 task build
-task solo -- init || exit 1 # cache args for subsequent commands
-task solo -- cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" || exit 1
+task solo-test -- init || exit 1 # cache args for subsequent commands
+task solo-test -- cluster-ref setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" || exit 1
 helm list --all-namespaces
 sleep 10 # give time for solo-setup to finish deploying

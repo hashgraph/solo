@@ -13,7 +13,7 @@ import {type Leases} from './resources/lease/leases.js';
 import {type IngressClasses} from './resources/ingress_class/ingress_classes.js';
 import {type Secrets} from './resources/secret/secrets.js';
 import {type Ingresses} from './resources/ingress/ingresses.js';
-import {type NamespaceName} from './resources/namespace/namespace_name.js';
+import {type Crds} from './resources/crd/crds.js';
 
 export interface K8 {
   /**
@@ -87,4 +87,10 @@ export interface K8 {
    * @returns an object instance providing ingress operations
    */
   ingresses(): Ingresses;
+
+  /**
+   * Fluent accessor for reading and manipulating custom resource definitions in the kubernetes cluster.
+   * @returns an object instance providing crd operations
+   */
+  crds(): Crds;
 }

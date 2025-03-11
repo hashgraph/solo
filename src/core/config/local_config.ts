@@ -10,14 +10,12 @@ import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
-import {type DeploymentName, type EmailAddress, type Version, type ClusterRefs} from './remote/types.js';
+import {type EmailAddress, type Version, type ClusterRefs, type ClusterRef} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import {type K8Factory} from '../kube/k8_factory.js';
 import * as helpers from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 @injectable()
@@ -131,88 +129,41 @@ export class LocalConfig implements LocalConfigData {
       clusterRefs: this.clusterRefs,
       soloVersion: this.soloVersion,
     });
+
     await fs.promises.writeFile(this.filePath, yamlContent);
 
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
 
-  public promptLocalConfigTask(k8Factory: K8Factory): SoloListrTask<any> {
+  public createLocalConfigTask(): SoloListrTask<{
+    config: {
+      quiet: boolean;
+      userEmailAddress: EmailAddress;
+      clusterRef: ClusterRef;
+      contextName: string;
+    };
+  }> {
     const self = this;
 
     return {
       title: 'Prompt local configuration',
       skip: this.skipPromptTask,
-      task: async (_, task): Promise<void> => {
-        if (self.configFileExists()) {
-          self.configManager.setFlag(flags.userEmailAddress, self.userEmailAddress);
+      task: async (ctx, task): Promise<void> => {
+        const config = ctx.config;
+
+        if (self.configFileExists() && !config.userEmailAddress) {
+          config.userEmailAddress = self.userEmailAddress;
         }
 
-        const isQuiet = self.configManager.getFlag<boolean>(flags.quiet);
-        const contexts = self.configManager.getFlag<string>(flags.context);
-        const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
-        const namespace = self.configManager.getFlag<NamespaceName>(flags.namespace);
-        let userEmailAddress = self.configManager.getFlag<EmailAddress>(flags.userEmailAddress);
-        let deploymentClusters: string = self.configManager.getFlag<string>(flags.deploymentClusters);
-
-        if (!userEmailAddress) {
-          if (isQuiet) throw new SoloError(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL);
-          userEmailAddress = await flags.userEmailAddress.prompt(task, userEmailAddress);
-          self.configManager.setFlag(flags.userEmailAddress, userEmailAddress);
+        if (!config.userEmailAddress) {
+          if (config.quiet) throw new SoloError(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL);
+          config.userEmailAddress = await flags.userEmailAddress.prompt(task, config.userEmailAddress);
         }
 
-        if (!deploymentName) throw new SoloError('Deployment name was not specified');
-
-        if (!deploymentClusters) {
-          if (isQuiet) {
-            deploymentClusters = k8Factory.default().clusters().readCurrent();
-          } else {
-            deploymentClusters = await flags.deploymentClusters.prompt(task, deploymentClusters);
-          }
-          self.configManager.setFlag(flags.deploymentClusters, deploymentClusters);
-        }
-
-        const parsedClusterRefs = helpers.splitFlagInput(deploymentClusters);
-
-        const deployments: Deployments = {
-          [deploymentName]: {
-            clusters: parsedClusterRefs,
-            namespace: namespace.name,
-          },
-        };
-
-        const parsedContexts = helpers.splitFlagInput(contexts);
-
-        if (parsedContexts.length < parsedClusterRefs.length) {
-          if (!isQuiet) {
-            const promptedContexts: string[] = [];
-            for (const clusterRef of parsedClusterRefs) {
-              const kubeContexts = k8Factory.default().contexts().list();
-              const context: string = await flags.context.prompt(task, kubeContexts, clusterRef);
-              self.clusterRefs[clusterRef] = context;
-              promptedContexts.push(context);
-
-              self.configManager.setFlag(flags.context, context);
-            }
-            self.configManager.setFlag(flags.context, promptedContexts.join(','));
-          } else {
-            const context = k8Factory.default().contexts().readCurrent();
-            for (const clusterRef of parsedClusterRefs) {
-              self.clusterRefs[clusterRef] = context;
-            }
-            self.configManager.setFlag(flags.context, context);
-          }
-        } else {
-          for (let i = 0; i < parsedClusterRefs.length; i++) {
-            const clusterRef = parsedClusterRefs[i];
-            self.clusterRefs[clusterRef] = parsedContexts[i];
-
-            self.configManager.setFlag(flags.context, parsedContexts[i]);
-          }
-        }
-
-        self.userEmailAddress = userEmailAddress;
-        self.deployments = deployments;
+        self.userEmailAddress = config.userEmailAddress;
         self.soloVersion = helpers.getSoloVersion();
+        self.clusterRefs = {};
+        self.deployments = {};
 
         self.validate();
         await self.write();
