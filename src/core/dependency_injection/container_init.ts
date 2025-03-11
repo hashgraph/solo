@@ -113,12 +113,12 @@ export class Container {
     container.register(InjectTokens.ProfileManager, {useClass: ProfileManager}, {lifecycle: Lifecycle.Singleton});
     // LeaseRenewalService
     container.register(
-      InjectTokens.LeaseRenewalService,
+      InjectTokens.LockRenewalService,
       {useClass: IntervalLockRenewalService},
       {lifecycle: Lifecycle.Singleton},
     );
 
-    container.register(InjectTokens.LeaseManager, {useClass: LockManager}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.LockManager, {useClass: LockManager}, {lifecycle: Lifecycle.Singleton});
     container.register(
       InjectTokens.CertificateManager,
       {useClass: CertificateManager},

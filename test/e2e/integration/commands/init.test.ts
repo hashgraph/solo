@@ -47,7 +47,7 @@ describe('InitCommand', () => {
     k8Factory = container.resolve(InjectTokens.K8Factory);
     localConfig = new LocalConfig(path.join(BASE_TEST_DIR, DEFAULT_LOCAL_CONFIG_FILE));
     remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
-    leaseManager = container.resolve(InjectTokens.LeaseManager);
+    leaseManager = container.resolve(InjectTokens.LockManager);
 
     // @ts-ignore
     initCmd = new InitCommand({

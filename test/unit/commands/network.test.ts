@@ -146,7 +146,7 @@ describe('NetworkCommand unit tests', () => {
 
       opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
 
-      opts.leaseManager = container.resolve<LockManager>(InjectTokens.LeaseManager);
+      opts.leaseManager = container.resolve<LockManager>(InjectTokens.LockManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
 
       GenesisNetworkDataConstructor.initialize = sinon.stub().returns(null);

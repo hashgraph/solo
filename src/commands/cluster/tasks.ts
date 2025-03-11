@@ -40,14 +40,14 @@ export class ClusterCommandTasks {
     @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
-    @inject(InjectTokens.LeaseManager) private readonly leaseManager: LockManager,
+    @inject(InjectTokens.LockManager) private readonly leaseManager: LockManager,
     @inject(InjectTokens.Helm) private readonly helm: Helm,
   ) {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
-    this.leaseManager = patchInject(leaseManager, InjectTokens.LeaseManager, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, InjectTokens.LockManager, this.constructor.name);
     this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
   }
 

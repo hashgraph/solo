@@ -18,7 +18,7 @@ const leaseDuration = 4;
 
 describe('LeaseRenewalService', async () => {
   const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory) as K8Factory;
-  const renewalService: LockRenewalService = container.resolve(InjectTokens.LeaseRenewalService);
+  const renewalService: LockRenewalService = container.resolve(InjectTokens.LockRenewalService);
   const testNamespace = NamespaceName.of('lease-renewal-e2e');
 
   before(async function () {

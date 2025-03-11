@@ -162,7 +162,7 @@ export function bootstrapTestVariables(
   const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
   const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
   const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
-  const leaseManager: LockManager = container.resolve(InjectTokens.LeaseManager);
+  const leaseManager: LockManager = container.resolve(InjectTokens.LockManager);
   const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);

@@ -27,12 +27,12 @@ export class LockManager {
    * @param configManager - the configuration manager.
    */
   constructor(
-    @inject(InjectTokens.LeaseRenewalService) private readonly _renewalService?: LockRenewalService,
+    @inject(InjectTokens.LockRenewalService) private readonly _renewalService?: LockRenewalService,
     @inject(InjectTokens.SoloLogger) private readonly _logger?: SoloLogger,
     @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
     @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this._renewalService = patchInject(_renewalService, InjectTokens.LeaseRenewalService, this.constructor.name);
+    this._renewalService = patchInject(_renewalService, InjectTokens.LockRenewalService, this.constructor.name);
     this._logger = patchInject(_logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);

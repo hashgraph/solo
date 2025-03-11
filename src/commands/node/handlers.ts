@@ -31,13 +31,13 @@ export class NodeCommandHandlers extends CommandHandler {
   public consensusNodes: ConsensusNode[];
 
   constructor(
-    @inject(InjectTokens.LeaseManager) private readonly leaseManager: LockManager,
+    @inject(InjectTokens.LockManager) private readonly leaseManager: LockManager,
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.NodeCommandTasks) private readonly tasks: NodeCommandTasks,
     @inject(InjectTokens.NodeCommandConfigs) private readonly configs: NodeCommandConfigs,
   ) {
     super();
-    this.leaseManager = patchInject(leaseManager, InjectTokens.LeaseManager, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, InjectTokens.LockManager, this.constructor.name);
     this.configs = patchInject(configs, InjectTokens.NodeCommandConfigs, this.constructor.name);
     this.remoteConfigManager = patchInject(
       remoteConfigManager,
