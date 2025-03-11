@@ -2,15 +2,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {MissingArgumentError, SoloError} from '../errors.js';
-import {type V1Lease} from '@kubernetes/client-node';
 import {type K8Factory} from '../kube/k8_factory.js';
 import {LeaseHolder} from './lease_holder.js';
 import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
-import {type Lease, type LeaseRenewalService} from './lease.js';
+import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
 import {StatusCodes} from 'http-status-codes';
 import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
+import {type Lease} from '../kube/resources/lease/lease.js';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -20,7 +20,7 @@ import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js'
  *
  * @public
  */
-export class IntervalLease implements Lease {
+export class IntervalLease implements LeaseService {
   /** The default duration in seconds for which the lease is to be held before being considered expired. */
   public static readonly DEFAULT_LEASE_DURATION = 20;
 
@@ -129,18 +129,51 @@ export class IntervalLease implements Lease {
    * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during acquisition.
    */
   async acquire(): Promise<void> {
-    const lease = await this.retrieveLease();
-
-    if (!lease || this.heldBySameProcess(lease)) {
-      return this.createOrRenewLease(lease);
-    } else if (IntervalLease.checkExpiration(lease)) {
-      return this.transferLease(lease);
+    let lease: Lease;
+    try {
+      lease = await this.retrieveLease();
+    } catch (e) {
+      throw new LeaseAcquisitionError(
+        `failed to read during acquire, the lease named '${this.leaseName}' in the ` +
+          `'${this.namespace}' namespace, caused by: ${e.message}`,
+        e,
+      );
     }
 
-    const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
+    if (!lease || this.heldBySameProcess(lease)) {
+      try {
+        return await this.createOrRenewLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to create or renew during acquire, the lease named '${this.leaseName}' in the ` +
+            `'${this.namespace}' namespace`,
+          e,
+        );
+      }
+    } else if (IntervalLease.checkExpiration(lease)) {
+      try {
+        return await this.transferLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
+            `'${this.namespace}' namespace`,
+          e,
+        );
+      }
+    }
+
+    const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
 
     if (this.heldBySameMachineIdentity(lease) && !otherHolder.isProcessAlive()) {
-      return this.transferLease(lease);
+      try {
+        return await this.transferLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
+            `'${this.namespace}' namespace, other holder: '${otherHolder.username}'`,
+          e,
+        );
+      }
     }
 
     throw new LeaseAcquisitionError(
@@ -173,10 +206,26 @@ export class IntervalLease implements Lease {
    * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during renewal.
    */
   async renew(): Promise<void> {
-    const lease = await this.retrieveLease();
+    let lease: Lease;
+    try {
+      lease = await this.retrieveLease();
+    } catch (e) {
+      throw new LeaseAcquisitionError(
+        `failed to read the lease named '${this.leaseName}' in the ` +
+          `'${this.namespace}' namespace, caused by: ${e.message}`,
+        e,
+      );
+    }
 
     if (!lease || this.heldBySameProcess(lease)) {
-      return await this.createOrRenewLease(lease);
+      try {
+        return await this.createOrRenewLease(lease);
+      } catch (e) {
+        throw new LeaseAcquisitionError(
+          `failed to create or renew the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
+          e,
+        );
+      }
     }
 
     throw new LeaseAcquisitionError(
@@ -209,11 +258,20 @@ export class IntervalLease implements Lease {
    * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
    */
   async release(): Promise<void> {
-    const lease = await this.retrieveLease();
+    let lease: Lease;
+    try {
+      lease = await this.retrieveLease();
+    } catch (e) {
+      throw new LeaseAcquisitionError(
+        `during release, failed to read the lease named '${this.leaseName}' in the ` +
+          `'${this.namespace}' namespace, caused by: ${e.message}`,
+        e,
+      );
+    }
 
     if (this.scheduleId) {
       await this.renewalService.cancel(this.scheduleId);
-      // Needed to ensure any pending renewals are truly cancelled before proceeding to delete the Lease.
+      // Needed to ensure any pending renewals are truly cancelled before proceeding to delete the LeaseService.
       // This is required because clearInterval() is not guaranteed to abort any pending interval.
       await sleep(this.renewalService.calculateRenewalDelay(this));
     }
@@ -224,7 +282,7 @@ export class IntervalLease implements Lease {
       return;
     }
 
-    const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
+    const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
 
     if (this.heldBySameProcess(lease) || IntervalLease.checkExpiration(lease)) {
       return await this.deleteLease();
@@ -280,7 +338,7 @@ export class IntervalLease implements Lease {
    * @returns the Kubernetes lease object if it exists; otherwise, null.
    * @throws LeaseAcquisitionError - If an error occurs during retrieval.
    */
-  private async retrieveLease(): Promise<V1Lease> {
+  private async retrieveLease(): Promise<Lease> {
     try {
       return await this.k8Factory.default().leases().read(this.namespace, this.leaseName);
     } catch (e: any) {
@@ -292,7 +350,7 @@ export class IntervalLease implements Lease {
         );
       }
 
-      if (e.meta.statusCode !== StatusCodes.NOT_FOUND) {
+      if (e.statusCode !== StatusCodes.NOT_FOUND) {
         throw new LeaseAcquisitionError(
           'failed to read existing leases, unexpected server response of ' + `'${e.meta.statusCode}' received`,
           e,
@@ -308,7 +366,7 @@ export class IntervalLease implements Lease {
    *
    * @param lease - The lease to be created or renewed.
    */
-  private async createOrRenewLease(lease: V1Lease): Promise<void> {
+  private async createOrRenewLease(lease: Lease): Promise<void> {
     try {
       if (!lease) {
         await this.k8Factory
@@ -335,7 +393,7 @@ export class IntervalLease implements Lease {
    *
    * @param lease - The lease to be transferred.
    */
-  private async transferLease(lease: V1Lease): Promise<void> {
+  private async transferLease(lease: Lease): Promise<void> {
     try {
       await this.k8Factory.default().leases().transfer(lease, this.leaseHolder.toJson());
 
@@ -370,10 +428,10 @@ export class IntervalLease implements Lease {
    * @param lease - The lease to be checked for expiration.
    * @returns true if the lease has expired; otherwise, false.
    */
-  private static checkExpiration(lease: V1Lease): boolean {
+  private static checkExpiration(lease: Lease): boolean {
     const now = Duration.ofMillis(Date.now());
-    const durationSec = lease.spec.leaseDurationSeconds || IntervalLease.DEFAULT_LEASE_DURATION;
-    const lastRenewalTime = lease.spec?.renewTime || lease.spec?.acquireTime;
+    const durationSec = lease.durationSeconds || IntervalLease.DEFAULT_LEASE_DURATION;
+    const lastRenewalTime = lease.renewTime || lease.acquireTime;
     const lastRenewal = Duration.ofMillis(new Date(lastRenewalTime).valueOf());
     const deltaSec = now.minus(lastRenewal).seconds;
     return deltaSec > durationSec;
@@ -386,8 +444,8 @@ export class IntervalLease implements Lease {
    * @param lease - The lease to be checked for ownership.
    * @returns true if the lease is held by the same process; otherwise, false.
    */
-  private heldBySameProcess(lease: V1Lease): boolean {
-    const holder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
+  private heldBySameProcess(lease: Lease): boolean {
+    const holder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
     return this.leaseHolder.equals(holder);
   }
 
@@ -398,8 +456,8 @@ export class IntervalLease implements Lease {
    * @param lease - The lease to be checked for ownership.
    * @returns true if the lease is held by the same user and machine; otherwise, false.
    */
-  private heldBySameMachineIdentity(lease: V1Lease): boolean {
-    const holder: LeaseHolder = LeaseHolder.fromJson(lease.spec.holderIdentity);
+  private heldBySameMachineIdentity(lease: Lease): boolean {
+    const holder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
     return this.leaseHolder.isSameMachineIdentity(holder);
   }
 }
