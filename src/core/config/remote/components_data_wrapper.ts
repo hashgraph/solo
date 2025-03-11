@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ComponentType, ConsensusNodeStates} from './enumerations.js';
 import {SoloError} from '../../errors.js';
 import {BaseComponent} from './components/base_component.js';

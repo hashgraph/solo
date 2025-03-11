@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {it, describe, before, after} from 'mocha';
 import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {expect} from 'chai';
@@ -79,7 +78,7 @@ describe('Lease', async () => {
       expect(await lease.isAcquired()).to.be.true;
       expect(await lease.isExpired()).to.be.false;
 
-      expect(newLease.release()).to.be.rejectedWith(LeaseRelinquishmentError);
+      await expect(newLease.release()).to.be.rejectedWith(LeaseRelinquishmentError);
       expect(await lease.isAcquired()).to.be.true;
       expect(await lease.isExpired()).to.be.false;
 

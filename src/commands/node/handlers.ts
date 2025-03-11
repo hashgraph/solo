@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import * as helpers from '../../core/helpers.js';
 import * as NodeFlags from './flags.js';
@@ -10,7 +8,7 @@ import {type LeaseManager} from '../../core/lease/lease_manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
-import {type Lease} from '../../core/lease/lease.js';
+import {type LeaseService} from '../../core/lease/lease_service.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
@@ -61,7 +59,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
   /** ******** Task Lists **********/
 
-  deletePrepareTaskList(argv: any, lease: Lease) {
+  deletePrepareTaskList(argv: any, lease: LeaseService) {
     return [
       this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -104,7 +102,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  addPrepareTasks(argv: any, lease: Lease) {
+  addPrepareTasks(argv: any, lease: LeaseService) {
     return [
       this.tasks.initialize(argv, this.configs.addConfigBuilder.bind(this.configs), lease),
       // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
@@ -159,7 +157,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  updatePrepareTasks(argv, lease: Lease) {
+  updatePrepareTasks(argv, lease: LeaseService) {
     return [
       this.tasks.initialize(argv, this.configs.updateConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -203,7 +201,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  upgradePrepareTasks(argv, lease: Lease) {
+  upgradePrepareTasks(argv, lease: LeaseService) {
     return [
       this.tasks.initialize(argv, this.configs.upgradeConfigBuilder.bind(this.configs), lease),
       this.validateAllNodeStates({excludedStates: []}),

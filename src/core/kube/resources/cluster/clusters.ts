@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 export interface Clusters {
   /**
    * Returns a list of clusters that are in the kubeconfig file

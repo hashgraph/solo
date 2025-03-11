@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {expect} from 'chai';

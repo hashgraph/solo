@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Pod} from '../../../resources/pod/pod.js';
 import {type ExtendedNetServer} from '../../../../../types/index.js';
 import {type PodRef} from '../../../resources/pod/pod_ref.js';

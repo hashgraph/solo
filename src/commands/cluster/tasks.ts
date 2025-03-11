@@ -1,10 +1,7 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
-import {Task} from '../../core/task.js';
+// SPDX-License-Identifier: Apache-2.0
+
 import {Flags as flags} from '../flags.js';
-import {type ListrTaskWrapper} from 'listr2';
-import {type ConfigBuilder} from '../../types/aliases.js';
+import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
 import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
@@ -30,6 +27,9 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {SOLO_CLUSTER_SETUP_CHART} from '../../core/constants.js';
 import {type ClusterRefConnectContext} from './config_interfaces/cluster_ref_connect_context.js';
+import {type ClusterRefDefaultContext} from './config_interfaces/cluster_ref_default_context.js';
+import {type ClusterRefSetupContext} from './config_interfaces/cluster_ref_setup_context.js';
+import {type ClusterRefResetContext} from './config_interfaces/cluster_ref_reset_context.js';
 
 @injectable()
 export class ClusterCommandTasks {
@@ -71,10 +71,10 @@ export class ClusterCommandTasks {
     };
   }
 
-  public disconnectClusterRef() {
+  public disconnectClusterRef(): SoloListrTask<ClusterRefDefaultContext> {
     return {
       title: 'Remove cluster reference ',
-      task: async (ctx, task: ListrTaskWrapper<any, any, any>) => {
+      task: async (ctx, task) => {
         task.title += ctx.config.clusterRef;
         delete this.localConfig.clusterRefs[ctx.config.clusterRef];
       },
@@ -125,7 +125,7 @@ export class ClusterCommandTasks {
     chartDir = flags.chartDirectory.definition.defaultValue as string,
     prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
     minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
-  ) {
+  ): string {
     let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
@@ -139,14 +139,14 @@ export class ClusterCommandTasks {
     this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
   }
 
-  public initialize(argv: any, configInit: ConfigBuilder) {
+  public initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
     const {requiredFlags, optionalFlags} = argv;
 
     argv.flags = [...requiredFlags, ...optionalFlags];
 
     return {
       title: 'Initialize',
-      task: async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+      task: async (ctx, task) => {
         if (argv[flags.devMode.name]) {
           this.logger.setDevMode(true);
         }
@@ -156,54 +156,62 @@ export class ClusterCommandTasks {
     };
   }
 
-  public showClusterList() {
-    return new Task('List all available clusters', async () => {
-      const clusterRefs = this.localConfig.clusterRefs;
-      const clusterList = Object.entries(clusterRefs).map(
-        ([clusterName, clusterContext]) => `${clusterName}:${clusterContext}`,
-      );
-      this.logger.showList('Cluster references and the respective contexts', clusterList);
-    });
+  public showClusterList(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'List all available clusters',
+      task: async () => {
+        const clusterRefs = this.localConfig.clusterRefs;
+        const clusterList = Object.entries(clusterRefs).map(
+          ([clusterName, clusterContext]) => `${clusterName}:${clusterContext}`,
+        );
+        this.logger.showList('Cluster references and the respective contexts', clusterList);
+      },
+    };
   }
 
-  public getClusterInfo() {
-    return new Task('Get cluster info', async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
-      const clusterRef = ctx.config.clusterRef;
-      const clusterRefs = this.localConfig.clusterRefs;
-      const deployments = this.localConfig.deployments;
+  public getClusterInfo(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Get cluster info',
+      task: async (ctx, task) => {
+        const clusterRef = ctx.config.clusterRef;
+        const clusterRefs = this.localConfig.clusterRefs;
+        const deployments = this.localConfig.deployments;
 
-      if (!clusterRefs[clusterRef]) {
-        throw new Error(`Cluster "${clusterRef}" not found in the LocalConfig`);
-      }
+        if (!clusterRefs[clusterRef]) {
+          throw new Error(`Cluster "${clusterRef}" not found in the LocalConfig`);
+        }
 
-      const context = clusterRefs[clusterRef];
-      const deploymentsWithSelectedCluster = Object.entries(deployments)
-        .filter(([_, deployment]) => deployment.clusters.includes(clusterRef))
-        .map(([deploymentName, deployment]) => ({
-          name: deploymentName,
-          namespace: deployment.namespace || 'default',
-        }));
+        const context = clusterRefs[clusterRef];
+        const deploymentsWithSelectedCluster = Object.entries(deployments)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          .filter(([_, deployment]) => deployment.clusters.includes(clusterRef))
+          .map(([deploymentName, deployment]) => ({
+            name: deploymentName,
+            namespace: deployment.namespace || 'default',
+          }));
 
-      task.output =
-        `Cluster Reference: ${clusterRef}\n` + `Associated Context: ${context}\n` + 'Deployments using this Cluster:';
+        task.output =
+          `Cluster Reference: ${clusterRef}\n` + `Associated Context: ${context}\n` + 'Deployments using this Cluster:';
 
-      if (deploymentsWithSelectedCluster.length) {
-        task.output +=
-          '\n' + deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n');
-      } else {
-        task.output += '\n  - None';
-      }
+        if (deploymentsWithSelectedCluster.length) {
+          task.output +=
+            '\n' +
+            deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n');
+        } else {
+          task.output += '\n  - None';
+        }
 
-      this.logger.showUser(task.output);
-    });
+        this.logger.showUser(task.output);
+      },
+    };
   }
 
-  public prepareChartValues(argv) {
+  public prepareChartValues(): SoloListrTask<ClusterRefSetupContext> {
     const self = this;
 
-    return new Task(
-      'Prepare chart values',
-      async (ctx: any) => {
+    return {
+      title: 'Prepare chart values',
+      task: async ctx => {
         ctx.chartPath = await prepareChartPath(
           this.helm,
           ctx.config.chartDir,
@@ -236,15 +244,15 @@ export class ClusterCommandTasks {
           ctx.config.deployMinio,
         );
       },
-      ctx => ctx.isChartInstalled,
-    );
+      skip: ctx => ctx.isChartInstalled,
+    };
   }
 
-  public installClusterChart(argv) {
+  public installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterRefSetupContext> {
     const self = this;
-    return new Task(
-      `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return {
+      title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
+      task: async ctx => {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
         const version = ctx.config.soloChartVersion;
         const valuesArg = ctx.valuesArg;
@@ -260,7 +268,7 @@ export class ClusterCommandTasks {
             this.k8Factory.default().contexts().readCurrent(),
           );
           showVersionBanner(self.logger, SOLO_CLUSTER_SETUP_CHART, version);
-        } catch (e: Error | unknown) {
+        } catch (e) {
           // if error, uninstall the chart and rethrow the error
           self.logger.debug(
             `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
@@ -283,23 +291,25 @@ export class ClusterCommandTasks {
           await this.showInstalledChartList(clusterSetupNamespace);
         }
       },
-      ctx => ctx.isChartInstalled,
-    );
+      skip: ctx => ctx.isChartInstalled,
+    };
   }
 
-  public acquireNewLease(argv) {
-    return new Task('Acquire new lease', async (_: any, task: ListrTaskWrapper<any, any, any>) => {
-      const lease = await this.leaseManager.create();
-      return ListrLease.newAcquireLeaseTask(lease, task);
-    });
+  public acquireNewLease(): SoloListrTask<ClusterRefResetContext> {
+    return {
+      title: 'Acquire new lease',
+      task: async (_, task) => {
+        const lease = await this.leaseManager.create();
+        return ListrLease.newAcquireLeaseTask(lease, task);
+      },
+    };
   }
 
-  public uninstallClusterChart(argv) {
+  public uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterRefResetContext> {
     const self = this;
-
-    return new Task(
-      `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-      async (ctx: any, task: ListrTaskWrapper<any, any, any>) => {
+    return {
+      title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
+      task: async (ctx, task) => {
         const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
 
         if (!argv.force && (await self.clusterChecks.isRemoteConfigPresentInAnyNamespace())) {
@@ -323,7 +333,7 @@ export class ClusterCommandTasks {
           await this.showInstalledChartList(clusterSetupNamespace);
         }
       },
-      ctx => !ctx.isChartInstalled,
-    );
+      skip: ctx => !ctx.isChartInstalled,
+    };
   }
 }

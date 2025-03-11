@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {IllegalArgumentError} from '../../core/errors.js';
 import {type AccountManager} from '../../core/account_manager.js';

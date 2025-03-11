@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ProcessOutput} from 'listr2';
 import {type SoloLogger} from './logging.js';
 

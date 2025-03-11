@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as fs from 'fs';
 import {Listr} from 'listr2';
 import * as path from 'path';

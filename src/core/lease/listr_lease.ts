@@ -1,9 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ListrTaskWrapper} from 'listr2';
 import chalk from 'chalk';
-import {type Lease} from './lease.js';
+import {type LeaseService} from './lease_service.js';
 import {LeaseAcquisitionError} from './lease_errors.js';
 
 /**
@@ -33,7 +32,7 @@ export class ListrLease {
    * @param task - the parent task to which the lease acquisition task will be added.
    * @returns a new Listr2 task for acquiring a lease with retry logic.
    */
-  public static newAcquireLeaseTask(lease: Lease, task: ListrTaskWrapper<any, any, any>) {
+  public static newAcquireLeaseTask(lease: LeaseService, task: ListrTaskWrapper<any, any, any>) {
     return task.newListr(
       [
         {
@@ -60,7 +59,7 @@ export class ListrLease {
    * @param task - the task to be updated with the lease acquisition status.
    * @throws LeaseAcquisitionError if the lease could not be acquired after the maximum number of attempts or an unexpected error occurred.
    */
-  private static async acquireWithRetry(lease: Lease, task: ListrTaskWrapper<any, any, any>): Promise<void> {
+  private static async acquireWithRetry(lease: LeaseService, task: ListrTaskWrapper<any, any, any>): Promise<void> {
     const maxAttempts = +process.env.SOLO_LEASE_ACQUIRE_ATTEMPTS || ListrLease.DEFAULT_LEASE_ACQUIRE_ATTEMPTS;
     const title = task.title;
 

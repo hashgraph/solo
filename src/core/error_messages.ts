@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 export const ErrorMessages = {
   LOCAL_CONFIG_DOES_NOT_EXIST: 'Please create a local configuration first. Run "solo deployment create"',

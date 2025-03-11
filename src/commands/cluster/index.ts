@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs_command.js';
@@ -8,6 +6,7 @@ import {BaseCommand, type Opts} from './../base.js';
 import {type ClusterCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type AnyYargs} from '../../types/aliases.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -27,7 +26,7 @@ export class ClusterCommand extends BaseCommand {
     return {
       command: ClusterCommand.COMMAND_NAME,
       desc: 'Manage solo testing cluster',
-      builder: (yargs: any) => {
+      builder: (yargs: AnyYargs) => {
         return yargs
           .command(
             new YargsCommand(

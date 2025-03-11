@@ -1,18 +1,17 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {it, describe, before, after} from 'mocha';
 import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {expect} from 'chai';
 import {IntervalLease} from '../../../../src/core/lease/interval_lease.js';
 import {LeaseHolder} from '../../../../src/core/lease/lease_holder.js';
 import {sleep} from '../../../../src/core/helpers.js';
-import {type V1Lease} from '@kubernetes/client-node';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
-import {type LeaseRenewalService} from '../../../../src/core/lease/lease.js';
+import {type LeaseRenewalService} from '../../../../src/core/lease/lease_service.js';
+import {type Lease} from '../../../../src/core/kube/resources/lease/lease.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;
@@ -70,24 +69,24 @@ describe('LeaseRenewalService', async () => {
     expect(lease.scheduleId).to.not.be.null;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.true;
 
-    // @ts-ignore
-    let remoteObject: V1Lease = await lease.retrieveLease();
+    // @ts-expect-error - accessing private method for testing
+    let remoteObject: Lease = await lease.retrieveLease();
     expect(remoteObject).to.not.be.null;
-    expect(remoteObject?.spec?.renewTime).to.be.undefined;
-    expect(remoteObject?.spec?.acquireTime).to.not.be.undefined;
-    expect(remoteObject?.spec?.acquireTime).to.not.be.null;
+    expect(remoteObject?.renewTime).to.be.undefined;
+    expect(remoteObject?.acquireTime).to.not.be.undefined;
+    expect(remoteObject?.acquireTime).to.not.be.null;
 
-    const acquireTime = new Date(remoteObject?.spec?.acquireTime).valueOf();
+    const acquireTime = new Date(remoteObject?.acquireTime).valueOf();
     expect(acquireTime).to.be.greaterThan(0);
 
     await sleep(Duration.ofSeconds(lease.durationSeconds));
-    // @ts-ignore
+    // @ts-expect-error - accessing private method for testing
     remoteObject = await lease.retrieveLease();
     expect(remoteObject).to.not.be.null;
-    expect(remoteObject?.spec?.renewTime).to.not.be.undefined;
-    expect(remoteObject?.spec?.renewTime).to.not.be.null;
+    expect(remoteObject?.renewTime).to.not.be.undefined;
+    expect(remoteObject?.renewTime).to.not.be.null;
 
-    const renewTime = new Date(remoteObject?.spec?.renewTime).valueOf();
+    const renewTime = new Date(remoteObject?.renewTime).valueOf();
     expect(renewTime).to.be.greaterThan(acquireTime);
 
     await lease.release();
@@ -113,21 +112,21 @@ describe('LeaseRenewalService', async () => {
     expect(await renewalService.cancel(lease.scheduleId)).to.be.true;
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.false;
 
-    // @ts-ignore
-    let remoteObject: V1Lease = await lease.retrieveLease(k8Factory);
+    // @ts-expect-error - accessing private method for testing
+    let remoteObject: Lease = await lease.retrieveLease(k8Factory);
     expect(remoteObject).to.not.be.null;
-    expect(remoteObject?.spec?.renewTime).to.be.undefined;
-    expect(remoteObject?.spec?.acquireTime).to.not.be.undefined;
-    expect(remoteObject?.spec?.acquireTime).to.not.be.null;
+    expect(remoteObject?.renewTime).to.be.undefined;
+    expect(remoteObject?.acquireTime).to.not.be.undefined;
+    expect(remoteObject?.acquireTime).to.not.be.null;
 
-    const acquireTime = new Date(remoteObject?.spec?.acquireTime).valueOf();
+    const acquireTime = new Date(remoteObject?.acquireTime).valueOf();
     expect(acquireTime).to.be.greaterThan(0);
 
     await sleep(Duration.ofSeconds(lease.durationSeconds));
-    // @ts-ignore
+    // @ts-expect-error - accessing private method for testing
     remoteObject = await lease.retrieveLease();
     expect(remoteObject).to.not.be.null;
-    expect(remoteObject?.spec?.renewTime).to.be.undefined;
+    expect(remoteObject?.renewTime).to.be.undefined;
 
     await lease.release();
     expect(await renewalService.isScheduled(lease.scheduleId)).to.be.false;

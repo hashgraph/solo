@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as constants from '../../constants.js';
 import {MissingArgumentError, SoloError} from '../../errors.js';
 import {RemoteConfigDataWrapper} from './remote_config_data_wrapper.js';
@@ -21,7 +20,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {type AnyArgv, type AnyObject, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
+import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
@@ -103,7 +102,7 @@ export class RemoteConfigManager {
    * entry in the cluster with initial command history and metadata.
    */
   public async create(
-    argv: AnyArgv,
+    argv: ArgvStruct,
     state: DeploymentStates,
     nodeAliases: NodeAliases,
     namespace: NamespaceName,

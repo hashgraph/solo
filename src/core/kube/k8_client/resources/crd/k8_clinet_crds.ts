@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {SoloLogger} from '../../../../logging.js';
 import {type ApiextensionsV1Api} from '@kubernetes/client-node';
 import {container} from 'tsyringe-neo';

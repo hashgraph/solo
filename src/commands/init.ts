@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Listr} from 'listr2';
 import path from 'path';
 import {BaseCommand} from './base.js';

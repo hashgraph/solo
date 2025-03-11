@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as x509 from '@peculiar/x509';
 import crypto from 'crypto';
 import fs from 'fs';

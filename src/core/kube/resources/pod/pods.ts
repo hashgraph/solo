@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type V1Pod} from '@kubernetes/client-node';
 import {type NamespaceName} from '../namespace/namespace_name.js';
 import {type PodRef} from './pod_ref.js';

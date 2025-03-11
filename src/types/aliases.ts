@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type Stats} from 'node:fs';
 import {type ReadEntry} from 'tar';
@@ -31,8 +30,9 @@ export type Path = string;
 export type DirPath = string;
 
 export type AnyObject = Record<any, any>;
-export type AnyArgv = any;
 export type AnyYargs = any;
 export type AnyListrContext = any;
 
 export type SdkNetworkEndpoint = `${string}:${number}`;
+
+export type ArgvStruct = {_: string[]} & Record<string, any>;
