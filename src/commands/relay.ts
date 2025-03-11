@@ -11,7 +11,7 @@ import {Flags as flags} from './flags.js';
 import {getNodeAccountMap, prepareChartPath, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
@@ -252,7 +252,7 @@ export class RelayCommand extends BaseCommand {
 
             self.logger.debug('Initialized config', {config: ctx.config});
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -412,7 +412,7 @@ export class RelayCommand extends BaseCommand {
 
             self.logger.debug('Initialized config', {config: ctx.config});
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {

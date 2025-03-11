@@ -17,9 +17,9 @@ export interface Lease {
   readonly leaseName: string;
 
   /**
-   * The name of the lease-holder
+   * The identity of the lease-holder
    */
-  readonly holderName: string;
+  readonly holderIdentity: string;
 
   /**
    * The duration of the lease in seconds

@@ -62,8 +62,8 @@ import {
 import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
-import {type LeaseService} from '../../core/lease/lease_service.js';
-import {ListrLease} from '../../core/lease/listr_lease.js';
+import {type Lock} from '../../core/lock/lock.js';
+import {ListrLock} from '../../core/lock/listr_lock.js';
 import {Duration} from '../../core/time/duration.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
@@ -2073,7 +2073,7 @@ export class NodeCommandTasks {
     });
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: LeaseService | null, shouldLoadNodeClient = true) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: Lock | null, shouldLoadNodeClient = true) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -2114,7 +2114,7 @@ export class NodeCommandTasks {
       this.logger.debug('Initialized config', {config});
 
       if (lease) {
-        return ListrLease.newAcquireLeaseTask(lease, task);
+        return ListrLock.newAcquireLockTask(lease, task);
       }
     });
   }

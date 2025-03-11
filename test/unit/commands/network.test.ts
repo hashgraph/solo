@@ -13,12 +13,12 @@ import {type ChartManager} from '../../../src/core/chart_manager.js';
 import {type Helm} from '../../../src/core/helm.js';
 import path from 'path';
 import {NetworkCommand} from '../../../src/commands/network.js';
-import {type LeaseManager} from '../../../src/core/lease/lease_manager.js';
+import {type LockManager} from '../../../src/core/lock/lock_manager.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
 import {type ProfileManager} from '../../../src/core/profile_manager.js';
 import {type KeyManager} from '../../../src/core/key_manager.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
-import {ListrLease} from '../../../src/core/lease/listr_lease.js';
+import {ListrLock} from '../../../src/core/lock/listr_lock.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
 import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
@@ -117,7 +117,7 @@ describe('NetworkCommand unit tests', () => {
       opts.helm = container.resolve<Helm>(InjectTokens.Helm);
       opts.helm.dependency = sinon.stub();
 
-      ListrLease.newAcquireLeaseTask = sinon.stub().returns({
+      ListrLock.newAcquireLockTask = sinon.stub().returns({
         run: sinon.stub().returns({}),
       });
 
@@ -146,7 +146,7 @@ describe('NetworkCommand unit tests', () => {
 
       opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
 
-      opts.leaseManager = container.resolve<LeaseManager>(InjectTokens.LeaseManager);
+      opts.leaseManager = container.resolve<LockManager>(InjectTokens.LeaseManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
 
       GenesisNetworkDataConstructor.initialize = sinon.stub().returns(null);

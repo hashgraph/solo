@@ -21,7 +21,7 @@ import {type AccountManager} from './core/account_manager.js';
 import {type PlatformInstaller} from './core/platform_installer.js';
 import {type KeyManager} from './core/key_manager.js';
 import {type ProfileManager} from './core/profile_manager.js';
-import {type LeaseManager} from './core/lease/lease_manager.js';
+import {type LockManager} from './core/lock/lock_manager.js';
 import {type CertificateManager} from './core/certificate_manager.js';
 import {type LocalConfig} from './core/config/local_config.js';
 import {type RemoteConfigManager} from './core/config/remote/remote_config_manager.js';
@@ -81,7 +81,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
     const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
     const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
-    const leaseManager: LeaseManager = container.resolve(InjectTokens.LeaseManager);
+    const leaseManager: LockManager = container.resolve(InjectTokens.LeaseManager);
     const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
     const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);

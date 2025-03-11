@@ -4,11 +4,11 @@ import * as helpers from '../../core/helpers.js';
 import * as NodeFlags from './flags.js';
 import {type NodeCommandConfigs} from './configs.js';
 import * as constants from '../../core/constants.js';
-import {type LeaseManager} from '../../core/lease/lease_manager.js';
+import {type LockManager} from '../../core/lock/lock_manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
-import {type LeaseService} from '../../core/lease/lease_service.js';
+import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
@@ -31,7 +31,7 @@ export class NodeCommandHandlers extends CommandHandler {
   public consensusNodes: ConsensusNode[];
 
   constructor(
-    @inject(InjectTokens.LeaseManager) private readonly leaseManager: LeaseManager,
+    @inject(InjectTokens.LeaseManager) private readonly leaseManager: LockManager,
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.NodeCommandTasks) private readonly tasks: NodeCommandTasks,
     @inject(InjectTokens.NodeCommandConfigs) private readonly configs: NodeCommandConfigs,
@@ -59,7 +59,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
   /** ******** Task Lists **********/
 
-  deletePrepareTaskList(argv: any, lease: LeaseService) {
+  deletePrepareTaskList(argv: any, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -102,7 +102,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  addPrepareTasks(argv: any, lease: LeaseService) {
+  addPrepareTasks(argv: any, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.addConfigBuilder.bind(this.configs), lease),
       // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
@@ -157,7 +157,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  updatePrepareTasks(argv, lease: LeaseService) {
+  updatePrepareTasks(argv, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.updateConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -201,7 +201,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  upgradePrepareTasks(argv, lease: LeaseService) {
+  upgradePrepareTasks(argv, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.upgradeConfigBuilder.bind(this.configs), lease),
       this.validateAllNodeStates({excludedStates: []}),

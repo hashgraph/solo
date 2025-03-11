@@ -1,25 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
+import {type Lock} from './lock.js';
 import {Duration} from '../time/duration.js';
-import {container, injectable} from 'tsyringe-neo';
-import {InjectTokens} from '../dependency_injection/inject_tokens.js';
-import {type SoloLogger} from '../logging.js';
+import {injectable} from 'tsyringe-neo';
+import {type LockRenewalService} from './lock_renewal_service.js';
 
 /**
  * Implements a lease renewal service which utilizes a setInterval() based approach to renew leases at regular intervals.
  * The renewal delay is calculated as half the duration of the lease in seconds.
  */
 @injectable()
-export class IntervalLeaseRenewalService implements LeaseRenewalService {
+export class IntervalLockRenewalService implements LockRenewalService {
   /** The internal registry used to track all non-cancelled lease renewals. */
-  private readonly _scheduledLeases: Map<number, LeaseService>;
+  private readonly _scheduledLeases: Map<number, Lock>;
 
   /**
    * Constructs a new interval lease renewal service.
    */
   constructor() {
-    this._scheduledLeases = new Map<number, LeaseService>();
+    this._scheduledLeases = new Map<number, Lock>();
   }
 
   /**
@@ -34,25 +33,18 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
   }
 
   /**
-   * Schedules a lease renewal.
-   * This implementation uses the setInterval() method to renew the lease at regular intervals.
+   * Schedules a lock renewal.
+   * This implementation uses the setInterval() method to renew the lock at regular intervals.
    *
-   * @param lease - the lease to be renewed.
-   * @returns the unique identifier of the scheduled lease renewal. The unique identifier is the ID of the setInterval() timeout.
+   * @param lock - the lock to be renewed.
+   * @returns the unique identifier of the scheduled lock renewal. The unique identifier is the ID of the setInterval() timeout.
    */
-  public async schedule(lease: LeaseService): Promise<number> {
-    const renewalDelay: Duration = this.calculateRenewalDelay(lease);
-    const timeout: NodeJS.Timeout = setInterval(() => {
-      lease
-        .tryRenew()
-        .then()
-        .catch(e => {
-          container.resolve<SoloLogger>(InjectTokens.SoloLogger).error('Failed to renew lease', e);
-        });
-    }, renewalDelay.toMillis());
+  public async schedule(lock: Lock): Promise<number> {
+    const renewalDelay: Duration = this.calculateRenewalDelay(lock);
+    const timeout: NodeJS.Timeout = setInterval(() => lock.tryRenew(), renewalDelay.toMillis());
     const scheduleId = Number(timeout);
 
-    this._scheduledLeases.set(scheduleId, lease);
+    this._scheduledLeases.set(scheduleId, lock);
     return scheduleId;
   }
 
@@ -92,13 +84,13 @@ export class IntervalLeaseRenewalService implements LeaseRenewalService {
   }
 
   /**
-   * Calculates the delay before the next lease renewal.
-   * This implementation calculates the renewal delay as half the duration of the lease.
+   * Calculates the delay before the next lock renewal.
+   * This implementation calculates the renewal delay as half the duration of the lock.
    *
-   * @param lease - the lease to be renewed.
+   * @param lock - the lock to be renewed.
    * @returns the delay in milliseconds.
    */
-  public calculateRenewalDelay(lease: LeaseService): Duration {
-    return Duration.ofSeconds(lease.durationSeconds * 0.5);
+  public calculateRenewalDelay(lock: Lock): Duration {
+    return Duration.ofSeconds(lock.durationSeconds * 0.5);
   }
 }

@@ -12,7 +12,7 @@ import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {K8Client} from '../../../../src/core/kube/k8_client/k8_client.js';
 import {LocalConfig} from '../../../../src/core/config/local_config.js';
 import {type KeyManager} from '../../../../src/core/key_manager.js';
-import {type LeaseManager} from '../../../../src/core/lease/lease_manager.js';
+import {type LockManager} from '../../../../src/core/lock/lock_manager.js';
 import {type RemoteConfigManager} from '../../../../src/core/config/remote/remote_config_manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import sinon from 'sinon';
@@ -35,7 +35,7 @@ describe('InitCommand', () => {
 
   const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
 
-  let leaseManager: LeaseManager;
+  let leaseManager: LockManager;
   let remoteConfigManager: RemoteConfigManager;
 
   let sandbox = sinon.createSandbox();
