@@ -8,12 +8,16 @@ import {type NamespaceName} from '../../src/core/kube/resources/namespace/namesp
 import {type CommandFlag} from '../../src/types/flag_types.js';
 import {type AnyObject} from '../../src/types/aliases.js';
 import * as helpers from '../../src/core/helpers.js';
+import {type CloneTrait} from '../../src/types/traits/clone_trait.js';
 
-export class Argv {
+export class Argv implements CloneTrait<Argv> {
   // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
   private args: Record<CommandFlag, any> = {};
   public cacheDir?: string;
   public deployment?: string;
+
+  private command?: string;
+  private subcommand?: string;
 
   private constructor() {}
 
@@ -25,20 +29,35 @@ export class Argv {
     return this.args[flag.name];
   }
 
+  public setCommand(command: string, subcommand?: string): void {
+    this.command = command;
+    this.subcommand = subcommand;
+  }
+
   public build(): AnyObject {
-    return helpers.deepClone(this.args);
+    const rawArgs = helpers.deepClone<AnyObject>(this.args);
+
+    if (this.command) {
+      const _: string[] = [this.command];
+
+      if (this.subcommand) _.push(this.subcommand);
+
+      rawArgs._ = _;
+    }
+
+    return rawArgs;
   }
 
-  public static initializeEmpty(): Argv {
-    return new Argv();
-  }
-
-  public clone(): Argv {
+  public clone() {
     const cloned = new Argv();
     cloned.args = helpers.deepClone(this.args);
     cloned.cacheDir = this.cacheDir;
     cloned.deployment = this.deployment;
     return cloned;
+  }
+
+  public static initializeEmpty(): Argv {
+    return new Argv();
   }
 
   /** Get argv with defaults */

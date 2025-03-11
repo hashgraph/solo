@@ -14,9 +14,13 @@ import chalk from 'chalk';
  * Defines the core functionalities of 'init' command
  */
 export class InitCommand extends BaseCommand {
+  public static readonly COMMAND_NAME = 'init';
+
   /** Executes the init CLI command */
   async init(argv: any) {
     const self = this;
+    console.log(this);
+
     let cacheDir: string = this.configManager.getFlag<string>(flags.cacheDir) as string;
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR as string;
@@ -116,7 +120,7 @@ export class InitCommand extends BaseCommand {
   getCommandDefinition() {
     const self = this;
     return {
-      command: 'init',
+      command: InitCommand.COMMAND_NAME,
       desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y, flags.cacheDir);

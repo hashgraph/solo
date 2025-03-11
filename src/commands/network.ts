@@ -183,6 +183,8 @@ export class NetworkCommand extends BaseCommand {
     ];
   }
 
+  public static readonly COMMAND_NAME = 'network';
+
   private waitForNetworkPods() {
     const self = this;
     return {
@@ -1213,7 +1215,7 @@ export class NetworkCommand extends BaseCommand {
   } {
     const self = this;
     return {
-      command: 'network',
+      command: NetworkCommand.COMMAND_NAME,
       desc: 'Manage solo network deployment',
       builder: (yargs: any) => {
         return yargs

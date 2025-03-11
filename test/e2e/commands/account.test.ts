@@ -23,10 +23,7 @@ import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
-import {type AccountManager} from '../../../src/core/account_manager.js';
-import {type ConfigManager} from '../../../src/core/config_manager.js';
-import {type NodeCommand} from '../../../src/commands/node/index.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
@@ -60,19 +57,16 @@ argv.setArg(flags.loadBalancerEnabled, true);
 e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('AccountCommand', async () => {
     let accountCmd: AccountCommand;
-    let k8Factory: K8Factory;
-    let accountManager: AccountManager;
-    let configManager: ConfigManager;
-    let nodeCmd: NodeCommand;
     let testLogger: SoloLogger;
+
+    const {
+      opts: {k8Factory, accountManager, configManager, commandInvoker, remoteConfigManager},
+      cmd: {nodeCmd},
+    } = bootstrapResp;
 
     before(() => {
       accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
       bootstrapResp.cmd.accountCmd = accountCmd;
-      k8Factory = bootstrapResp.opts.k8Factory;
-      accountManager = bootstrapResp.opts.accountManager;
-      configManager = bootstrapResp.opts.configManager;
-      nodeCmd = bootstrapResp.cmd.nodeCmd;
       testLogger = getTestLogger();
     });
 
@@ -103,8 +97,13 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
     describe('account init command', () => {
       it('should succeed with init command', async () => {
-        const status = await accountCmd.init(argv.build());
-        expect(status).to.be.ok;
+        await commandInvoker.invoke({
+          argv: argv,
+          command: AccountCommand.COMMAND_NAME,
+          subcommand: 'init',
+          handler: accountCmd.init,
+          handlers: accountCmd,
+        });
       }).timeout(Duration.ofMinutes(3).toMillis());
 
       describe('special accounts should have new keys', () => {
@@ -114,10 +113,10 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
-          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
+
           await accountManager.loadNodeClient(
             namespace,
-            clusterRefs,
+            remoteConfigManager.getClusterRefs(),
             argv.getArg<DeploymentName>(flags.deployment),
             argv.getArg<boolean>(flags.forcePortForward),
           );
@@ -128,7 +127,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           await accountManager.close();
         });
 
-        it('Node admin key should have been updated, not eqaul to genesis key', async () => {
+        it('Node admin key should have been updated, not equal to genesis key', async () => {
           const nodeAliases = helpers.parseNodeAliases(argv.getArg<string>(flags.nodeAliasesUnparsed));
           for (const nodeAlias of nodeAliases) {
             const keyFromK8 = await k8Factory
@@ -147,9 +146,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
               expect(accountManager._nodeClient).not.to.be.null;
 
               const accountId = `${realm}.${shard}.${i}`;
-              nodeCmd.logger.info(`Fetching account keys: accountId ${accountId}`);
+              testLogger.info(`Fetching account keys: accountId ${accountId}`);
               const keys = await accountManager.getAccountKeys(accountId);
-              nodeCmd.logger.info(`Fetched account keys: accountId ${accountId}`);
+              testLogger.info(`Fetched account keys: accountId ${accountId}`);
 
               expect(keys.length).not.to.equal(0);
               expect(keys[0].toString()).not.to.equal(genesisKey.toString());
@@ -165,9 +164,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       it('should create account with no options', async () => {
         try {
           argv.setArg(flags.amount, 200);
-          expect(await accountCmd.create(argv.build())).to.be.true;
 
-          // @ts-ignore to access the private property
+          await commandInvoker.invoke({
+            argv: argv,
+            command: AccountCommand.COMMAND_NAME,
+            subcommand: 'create',
+            handler: accountCmd.create,
+            handlers: accountCmd,
+          });
+
+          // @ts-expect-error - TS2341: to access private property
           const accountInfo = accountCmd.accountInfo;
 
           expect(accountInfo).not.to.be.null;
@@ -188,11 +194,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         try {
           argv.setArg(flags.ed25519PrivateKey, constants.GENESIS_KEY);
           argv.setArg(flags.amount, 777);
-          configManager.update(argv.build());
 
-          expect(await accountCmd.create(argv.build())).to.be.true;
+          await commandInvoker.invoke({
+            argv: argv,
+            command: AccountCommand.COMMAND_NAME,
+            subcommand: 'create',
+            handler: accountCmd.create,
+            handlers: accountCmd,
+          });
 
-          // @ts-ignore to access the private property
+          // @ts-expect-error - TS2341: to access private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
           expect(accountInfo.accountId).not.to.be.null;
@@ -210,11 +221,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         try {
           argv.setArg(flags.amount, 0);
           argv.setArg(flags.accountId, accountId1);
-          configManager.update(argv.build());
 
-          expect(await accountCmd.update(argv.build())).to.be.true;
+          await commandInvoker.invoke({
+            argv: argv,
+            command: AccountCommand.COMMAND_NAME,
+            subcommand: 'update',
+            handler: accountCmd.update,
+            handlers: accountCmd,
+          });
 
-          // @ts-ignore to access the private property
+          // @ts-expect-error - TS2341: to access private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
           expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
@@ -232,11 +248,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv.setArg(flags.accountId, accountId2);
           argv.setArg(flags.ed25519PrivateKey, constants.GENESIS_KEY);
           argv.setArg(flags.amount, 333);
-          configManager.update(argv.build());
 
-          expect(await accountCmd.update(argv.build())).to.be.true;
+          await commandInvoker.invoke({
+            argv: argv,
+            command: AccountCommand.COMMAND_NAME,
+            subcommand: 'update',
+            handler: accountCmd.update,
+            handlers: accountCmd,
+          });
 
-          // @ts-ignore to access the private property
+          // @ts-expect-error - TS2341: to access private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
           expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
@@ -252,9 +273,15 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       it('should be able to get account-1', async () => {
         try {
           argv.setArg(flags.accountId, accountId1);
-          configManager.update(argv.build());
 
-          expect(await accountCmd.get(argv.build())).to.be.true;
+          await commandInvoker.invoke({
+            argv: argv,
+            command: AccountCommand.COMMAND_NAME,
+            subcommand: 'get',
+            handler: accountCmd.get,
+            handlers: accountCmd,
+          });
+
           // @ts-expect-error - TS2341: to access private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
@@ -271,10 +298,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       it('should be able to get account-2', async () => {
         try {
           argv.setArg(flags.accountId, accountId2);
-          configManager.update(argv.build());
 
-          expect(await accountCmd.get(argv.build())).to.be.true;
-          // @ts-ignore to access the private property
+          await commandInvoker.invoke({
+            argv: argv,
+            command: AccountCommand.COMMAND_NAME,
+            subcommand: 'get',
+            handler: accountCmd.get,
+            handlers: accountCmd,
+          });
+
+          // @ts-expect-error - TS2341: to access private property
           const accountInfo = accountCmd.accountInfo;
           expect(accountInfo).not.to.be.null;
           expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
@@ -293,11 +326,16 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         try {
           argv.setArg(flags.ecdsaPrivateKey, ecdsaPrivateKey.toString());
           argv.setArg(flags.setAlias, true);
-          configManager.update(argv.build());
 
-          expect(await accountCmd.create(argv.build())).to.be.true;
+          await commandInvoker.invoke({
+            argv: argv,
+            command: AccountCommand.COMMAND_NAME,
+            subcommand: 'create',
+            handler: accountCmd.create,
+            handlers: accountCmd,
+          });
 
-          // @ts-ignore to access the private property
+          // @ts-expect-error - TS2341: to access private property
           const newAccountInfo = accountCmd.accountInfo;
           expect(newAccountInfo).not.to.be.null;
           expect(newAccountInfo.accountId).not.to.be.null;
@@ -310,10 +348,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
           );
 
-          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
-            clusterRefs,
+            remoteConfigManager.getClusterRefs(),
             argv.getArg<DeploymentName>(flags.deployment),
             argv.getArg<boolean>(flags.forcePortForward),
           );
@@ -327,9 +364,6 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     });
 
     describe('Test SDK create account and submit transaction', () => {
-      const accountManager = bootstrapResp.opts.accountManager;
-      const networkCmd = bootstrapResp.cmd.networkCmd;
-
       let accountInfo: {
         accountId: string;
         privateKey: string;
@@ -342,12 +376,11 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
       it('Create new account', async () => {
         try {
-          const clusterRefs = accountCmd.getRemoteConfigManager().getClusterRefs();
           await accountManager.loadNodeClient(
             namespace,
-            clusterRefs,
-            argv.getArg(flags.deployment),
-            argv.getArg(flags.forcePortForward),
+            remoteConfigManager.getClusterRefs(),
+            argv.getArg<DeploymentName>(flags.deployment),
+            argv.getArg<boolean>(flags.forcePortForward),
           );
           const privateKey = PrivateKey.generate();
           const amount = 100;
@@ -369,11 +402,11 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           MY_ACCOUNT_ID = accountInfo.accountId;
           MY_PRIVATE_KEY = accountInfo.privateKey;
 
-          networkCmd.logger.info(`Account created: ${JSON.stringify(accountInfo)}`);
+          testLogger.info(`Account created: ${JSON.stringify(accountInfo)}`);
           expect(accountInfo.accountId).not.to.be.null;
           expect(accountInfo.balance).to.equal(amount);
         } catch (e) {
-          networkCmd.logger.showUserError(e);
+          testLogger.showUserError(e);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
@@ -402,17 +435,30 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
           expect(submitReceipt.status).to.deep.equal(Status.Success);
         } catch (e) {
-          networkCmd.logger.showUserError(e);
+          testLogger.showUserError(e);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       // hitchhiker account test to test node freeze and restart
       it('Freeze and restart all nodes should succeed', async () => {
         try {
-          await nodeCmd.handlers.freeze(argv.build());
-          await nodeCmd.handlers.restart(argv.build());
+          await commandInvoker.invoke({
+            argv: argv,
+            command: NodeCommand.COMMAND_NAME,
+            subcommand: 'freeze',
+            handler: nodeCmd.handlers.freeze,
+            handlers: nodeCmd.handlers,
+          });
+
+          await commandInvoker.invoke({
+            argv: argv,
+            command: NodeCommand.COMMAND_NAME,
+            subcommand: 'restart',
+            handler: nodeCmd.handlers.restart,
+            handlers: nodeCmd.handlers,
+          });
         } catch (e) {
-          networkCmd.logger.showUserError(e);
+          testLogger.showUserError(e);
         }
       }).timeout(Duration.ofMinutes(4).toMillis());
     });

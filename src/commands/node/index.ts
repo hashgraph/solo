@@ -41,6 +41,8 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = [];
   }
 
+  public static readonly COMMAND_NAME = 'node';
+
   /**
    * stops and closes the port forwards
    * - calls the accountManager.close()
@@ -65,7 +67,7 @@ export class NodeCommand extends BaseCommand {
   getCommandDefinition() {
     const self = this;
     return {
-      command: 'node',
+      command: NodeCommand.COMMAND_NAME,
       desc: 'Manage Hedera platform node in solo network',
       builder: (yargs: any) => {
         return yargs

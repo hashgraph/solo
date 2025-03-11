@@ -54,6 +54,8 @@ export class DeploymentCommand extends BaseCommand {
     this.tasks = container.resolve(ClusterCommandTasks);
   }
 
+  public static readonly COMMAND_NAME = 'deployment';
+
   private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment];
 
   private static ADD_CLUSTER_FLAGS_LIST = [
@@ -236,7 +238,7 @@ export class DeploymentCommand extends BaseCommand {
   public getCommandDefinition() {
     const self = this;
     return {
-      command: 'deployment',
+      command: DeploymentCommand.COMMAND_NAME,
       desc: 'Manage solo network deployment',
       builder: (yargs: AnyYargs) => {
         return yargs
