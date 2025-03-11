@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Ingresses} from '../../../resources/ingress/ingresses.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
 import {SoloLogger} from '../../../../logging.js';

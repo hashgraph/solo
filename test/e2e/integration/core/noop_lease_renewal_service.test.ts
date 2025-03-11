@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type LeaseService, type LeaseRenewalService} from '../../../../src/core/lease/lease_service.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
 import fs from 'fs';
 import * as yaml from 'yaml';

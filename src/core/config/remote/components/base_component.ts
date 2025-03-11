@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors.js';
 import {type ClusterRef, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';

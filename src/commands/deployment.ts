@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors.js';
 import {BaseCommand, type Opts} from './base.js';

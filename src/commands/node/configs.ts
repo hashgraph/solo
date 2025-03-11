@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
 import * as constants from '../../core/constants.js';

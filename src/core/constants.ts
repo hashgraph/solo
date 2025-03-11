@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';

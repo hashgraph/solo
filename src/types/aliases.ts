@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type Stats} from 'node:fs';
 import {type ReadEntry} from 'tar';

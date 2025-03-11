@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Flags as flags} from '../../../commands/flags.js';
 import {type ToObject} from '../../../types/index.js';
 import {type RemoteConfigCommonFlagsStruct} from './types.js';

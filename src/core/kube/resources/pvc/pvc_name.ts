@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {ResourceName} from '../resource_name.js';
 import {ResourceType} from '../resource_type.js';

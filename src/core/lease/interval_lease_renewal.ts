@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
 import {Duration} from '../time/duration.js';
 import {container, injectable} from 'tsyringe-neo';

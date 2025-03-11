@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {container, Lifecycle} from 'tsyringe-neo';
 import {SoloLogger} from '../logging.js';
 import {PackageDownloader} from '../package_downloader.js';

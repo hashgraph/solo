@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Namespaces} from '../../../resources/namespace/namespaces.js';
 import {type V1Status, type CoreV1Api} from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';

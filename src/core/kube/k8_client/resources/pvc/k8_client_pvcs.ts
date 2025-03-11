@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Pvcs} from '../../../resources/pvc/pvcs.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
 import {StatusCodes} from 'http-status-codes';

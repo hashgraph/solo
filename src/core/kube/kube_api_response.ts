@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import type http from 'node:http';
 import {type ResourceOperation} from './resources/resource_operation.js';
 import {type ResourceType} from './resources/resource_type.js';

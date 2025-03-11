@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type K8Factory} from '../kube/k8_factory.js';
 import {LeaseHolder} from './lease_holder.js';

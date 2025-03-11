@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ListrTaskWrapper} from 'listr2';
 
 export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any, data?: any) => Promise<any>;

@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import * as helpers from '../../core/helpers.js';
 import * as NodeFlags from './flags.js';

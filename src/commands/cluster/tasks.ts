@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Flags as flags} from '../flags.js';
 import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
 import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';

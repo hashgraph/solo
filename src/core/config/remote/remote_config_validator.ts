@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors.js';
 import {ConsensusNodeStates} from './enumerations.js';

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Flags as flags} from '../../commands/flags.js';
 import {type ConfigManager} from '../config_manager.js';
 import {type K8Factory} from '../kube/k8_factory.js';

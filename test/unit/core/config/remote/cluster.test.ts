@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {it} from 'mocha';
 import {expect} from 'chai';
 import {SoloError} from '../../../../../src/core/errors.js';

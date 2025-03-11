@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import globals from 'globals';
 import eslintJs from '@eslint/js';
 import nodePlugin from 'eslint-plugin-n';
@@ -42,6 +41,8 @@ export default [
         {
           source: 'string',
           content: 'SPDX-License-Identifier: Apache-2.0',
+          style: 'line',
+          trailingNewlines: 2,
         },
       ],
       'prettier/prettier': 'error',
