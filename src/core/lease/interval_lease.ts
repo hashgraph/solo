@@ -10,6 +10,9 @@ import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
 import {StatusCodes} from 'http-status-codes';
 import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 import {type Lease} from '../kube/resources/lease/lease.js';
+import {InjectTokens} from '../dependency_injection/inject_tokens.js';
+import {type SoloLogger} from '../logging.js';
+import {container} from 'tsyringe-neo';
 
 /**
  * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
@@ -246,6 +249,7 @@ export class IntervalLease implements LeaseService {
       await this.renew();
       return true;
     } catch (e: SoloError | any) {
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).error(`tryRenew failed: ${e.message}`, e);
       return false;
     }
   }
