@@ -8,6 +8,7 @@ import {BaseCommand, type Opts} from './../base.js';
 import {type ClusterCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {type AnyYargs} from '../../types/aliases.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -25,7 +26,7 @@ export class ClusterCommand extends BaseCommand {
     return {
       command: 'cluster-ref',
       desc: 'Manage solo testing cluster',
-      builder: (yargs: any) => {
+      builder: (yargs: AnyYargs) => {
         return yargs
           .command(
             new YargsCommand(

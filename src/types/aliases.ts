@@ -31,8 +31,9 @@ export type Path = string;
 export type DirPath = string;
 
 export type AnyObject = Record<any, any>;
-export type AnyArgv = any;
 export type AnyYargs = any;
 export type AnyListrContext = any;
 
 export type SdkNetworkEndpoint = `${string}:${number}`;
+
+export type ArgvStruct = {_: string[]} & Record<string, any>;
