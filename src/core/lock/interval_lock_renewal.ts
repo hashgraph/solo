@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type Lock} from './lock.js';
+import {type Lock, type LockRenewalService} from './lock.js';
 import {Duration} from '../time/duration.js';
 import {injectable} from 'tsyringe-neo';
-import {type LockRenewalService} from './lock_renewal_service.js';
 
 /**
  * Implements a lease renewal service which utilizes a setInterval() based approach to renew leases at regular intervals.

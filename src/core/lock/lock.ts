@@ -3,7 +3,7 @@
 import {type K8Factory} from '../kube/k8_factory.js';
 import {type LockHolder} from './lock_holder.js';
 import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
-import {type LockRenewalService} from './lock_renewal_service.js';
+import {type Duration} from '../time/duration.js';
 
 export interface Lock {
   readonly k8Factory: K8Factory;
@@ -77,4 +77,40 @@ export interface Lock {
    * @returns true if the lock is expired; otherwise, false.
    */
   isExpired(): Promise<boolean>;
+}
+
+export interface LockRenewalService {
+  /**
+   * Determines if a lease renewal is scheduled.
+   * @param scheduleId - the unique identifier of the scheduled lease renewal.
+   * @returns true if the lease renewal is scheduled; false otherwise.
+   */
+  isScheduled(scheduleId: number): Promise<boolean>;
+
+  /**
+   * Schedules a lease renewal.
+   * @param lease - the lease to be renewed.
+   * @returns the unique identifier of the scheduled lease renewal.
+   */
+  schedule(lease: Lock): Promise<number>;
+
+  /**
+   * Cancels a scheduled lease renewal.
+   * @param scheduleId - the unique identifier of the scheduled lease renewal.
+   * @returns true if the lease renewal was successfully cancelled; false otherwise.
+   */
+  cancel(scheduleId: number): Promise<boolean>;
+
+  /**
+   * Cancels all scheduled lease renewals.
+   * @returns a map of the unique identifiers of the scheduled lease renewals and their cancellation status.
+   */
+  cancelAll(): Promise<Map<number, boolean>>;
+
+  /**
+   * Calculates the delay before the next lease renewal.
+   * @param lease - the lease to be renewed.
+   * @returns the delay in milliseconds.
+   */
+  calculateRenewalDelay(lease: Lock): Duration;
 }

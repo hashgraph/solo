@@ -11,7 +11,7 @@ import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 import {type Lease} from '../../../../src/core/kube/resources/lease/lease.js';
-import {type LockRenewalService} from '../../../../src/core/lock/lock_renewal_service.js';
+import {type LockRenewalService} from '../../../../src/core/lock/lock.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;

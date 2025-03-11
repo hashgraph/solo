@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type Lock} from '../../../../src/core/lock/lock.js';
+import {type Lock, type LockRenewalService} from '../../../../src/core/lock/lock.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {type LockRenewalService} from '../../../../src/core/lock/lock_renewal_service.js';
 
 export class NoopLeaseRenewalService implements LockRenewalService {
   private readonly buffer: SharedArrayBuffer;
