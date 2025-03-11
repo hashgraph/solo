@@ -3,10 +3,7 @@
  */
 import {type NamespaceName} from '../../../core/kube/resources/namespace/namespace_name.js';
 
-export interface ClusterSetupConfigClass {
-  chartDir: string;
+export interface ClusterRefResetConfigClass {
+  clusterName: string;
   clusterSetupNamespace: NamespaceName;
-  deployMinio: boolean;
-  deployPrometheusStack: boolean;
-  soloChartVersion: string;
 }

@@ -2,7 +2,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import {Flags as flags} from '../flags.js';
-import {type ListrTaskWrapper} from 'listr2';
 import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
 import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
@@ -29,6 +28,9 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {SOLO_CLUSTER_SETUP_CHART} from '../../core/constants.js';
 import {type ClusterRefConnectContext} from './config_interfaces/cluster_ref_connect_context.js';
+import {type ClusterRefDefaultContext} from './config_interfaces/cluster_ref_default_context.js';
+import {type ClusterRefSetupContext} from './config_interfaces/cluster_ref_setup_context.js';
+import {type ClusterRefResetContext} from './config_interfaces/cluster_ref_reset_context.js';
 
 @injectable()
 export class ClusterCommandTasks {
@@ -70,10 +72,10 @@ export class ClusterCommandTasks {
     };
   }
 
-  public disconnectClusterRef() {
+  public disconnectClusterRef(): SoloListrTask<ClusterRefDefaultContext> {
     return {
       title: 'Remove cluster reference ',
-      task: async (ctx, task: ListrTaskWrapper<any, any, any>) => {
+      task: async (ctx, task) => {
         task.title += ctx.config.clusterRef;
         delete this.localConfig.clusterRefs[ctx.config.clusterRef];
       },
@@ -138,7 +140,7 @@ export class ClusterCommandTasks {
     this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
   }
 
-  public initialize(argv: any, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
+  public initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
     const {requiredFlags, optionalFlags} = argv;
 
     argv.flags = [...requiredFlags, ...optionalFlags];
@@ -182,6 +184,7 @@ export class ClusterCommandTasks {
 
         const context = clusterRefs[clusterRef];
         const deploymentsWithSelectedCluster = Object.entries(deployments)
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           .filter(([_, deployment]) => deployment.clusters.includes(clusterRef))
           .map(([deploymentName, deployment]) => ({
             name: deploymentName,
@@ -193,7 +196,8 @@ export class ClusterCommandTasks {
 
         if (deploymentsWithSelectedCluster.length) {
           task.output +=
-            '\n' + deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n');
+            '\n' +
+            deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n');
         } else {
           task.output += '\n  - None';
         }
@@ -203,7 +207,7 @@ export class ClusterCommandTasks {
     };
   }
 
-  public prepareChartValues(): SoloListrTask<ClusterSetupContext> {
+  public prepareChartValues(): SoloListrTask<ClusterRefSetupContext> {
     const self = this;
 
     return {
@@ -245,7 +249,7 @@ export class ClusterCommandTasks {
     };
   }
 
-  public installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterSetupContext> {
+  public installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterRefSetupContext> {
     const self = this;
     return {
       title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
@@ -292,7 +296,7 @@ export class ClusterCommandTasks {
     };
   }
 
-  public acquireNewLease(): SoloListrTask<ClusterResetContext> {
+  public acquireNewLease(): SoloListrTask<ClusterRefResetContext> {
     return {
       title: 'Acquire new lease',
       task: async (_, task) => {
@@ -302,7 +306,7 @@ export class ClusterCommandTasks {
     };
   }
 
-  public uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterResetContext> {
+  public uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterRefResetContext> {
     const self = this;
     return {
       title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
