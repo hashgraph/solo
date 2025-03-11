@@ -3,13 +3,12 @@
 import {readFileSync} from 'fs';
 import {dumpYaml, loadYaml} from '@kubernetes/client-node';
 import {expect} from 'chai';
-import {classToPlain, instanceToPlain, plainToClass} from 'class-transformer';
+import {instanceToPlain, plainToClass} from 'class-transformer';
 import {LocalConfig} from '../../../../../src/data/model/local/local_config.js';
 import {SemVer} from 'semver';
 import {beforeEach} from 'mocha';
 import {Deployment} from '../../../../../src/data/model/local/deployment.js';
-import {dump} from 'eslint-plugin-n/lib/types-code-path-analysis/debug-helpers.js';
-import exp from 'node:constants';
+import os from 'os';
 
 describe('LocalConfig', () => {
   const localConfigPath = 'test/data/local-config.yaml';
@@ -36,17 +35,27 @@ describe('LocalConfig', () => {
       }
 
       plainObject['deployments'] = rd;
+      plainObject['schemaVersion'] = 1;
+
+      plainObject['userIdentity'] = {
+        name: os.userInfo().username,
+        hostname: os.hostname(),
+      };
     });
 
     it('should transform plain to class', async () => {
       const lc = plainToClass(LocalConfig, plainObject);
       expect(lc).to.not.be.undefined.and.to.not.be.null;
+      expect(lc).to.be.instanceOf(LocalConfig);
+      expect(lc.soloVersion).to.be.instanceOf(SemVer);
       expect(lc.soloVersion).to.deep.equal(new SemVer('0.35.1'));
       expect(lc.deployments).to.have.lengthOf(2);
       expect(lc.deployments[0].name).to.equal('dual-cluster-full-deployment');
       expect(lc.deployments[1].name).to.equal('deployment');
       expect(lc.clusterRefs).to.be.instanceOf(Map);
       expect(lc.clusterRefs).to.have.lengthOf(4);
+      expect(lc.userIdentity).to.not.be.undefined.and.to.not.be.null;
+      expect(lc.userIdentity.name).to.be.equal(os.userInfo().username);
     });
 
     it('should transform class to plain', async () => {
@@ -61,7 +70,7 @@ describe('LocalConfig', () => {
       clusterRefs.set('e2e-cluster-1', 'kind-solo-e2e-c1');
       clusterRefs.set('e2e-cluster-2', 'kind-solo-e2e-c2');
 
-      const lc = new LocalConfig(new SemVer('0.35.1'), deployments, clusterRefs);
+      const lc = new LocalConfig(1, new SemVer('0.35.1'), deployments, clusterRefs);
       const newPlainObject: object = instanceToPlain(lc);
 
       expect(newPlainObject).to.not.be.undefined.and.to.not.be.null;
