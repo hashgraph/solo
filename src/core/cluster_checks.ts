@@ -8,7 +8,6 @@ import {inject, injectable} from 'tsyringe-neo';
 import {type K8Factory} from './kube/k8_factory.js';
 import {type Pod} from './kube/resources/pod/pod.js';
 import {type IngressClass} from './kube/resources/ingress_class/ingress_class.js';
-import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {type ConfigMap} from './kube/resources/config_map/config_map.js';
 
@@ -48,7 +47,7 @@ export class ClusterChecks {
   public async isMinioInstalled(namespace: NamespaceName): Promise<boolean> {
     try {
       // TODO DETECT THE OPERATOR
-      const pods: V1Pod[] = await this.k8Factory.default().pods().list(namespace, ['app=minio']);
+      const pods: Pod[] = await this.k8Factory.default().pods().list(namespace, ['app=minio']);
 
       return pods.length > 0;
     } catch (e) {
@@ -100,10 +99,7 @@ export class ClusterChecks {
    */
   public async isPrometheusInstalled(namespace: NamespaceName) {
     try {
-      const pods: V1Pod[] = await this.k8Factory
-        .default()
-        .pods()
-        .list(namespace, ['app.kubernetes.io/name=prometheus']);
+      const pods: Pod[] = await this.k8Factory.default().pods().list(namespace, ['app.kubernetes.io/name=prometheus']);
 
       return pods.length > 0;
     } catch (e) {

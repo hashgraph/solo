@@ -43,9 +43,9 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     return new K8ClientPod(podRef, this, this.kubeClient, this.kubeConfig);
   }
 
-  public async read(podRef: PodRef): Promise<V1Pod> {
-    const ns = podRef.namespace;
-    const fieldSelector = `metadata.name=${podRef.name}`;
+  public async read(podRef: PodRef): Promise<Pod> {
+    const ns: NamespaceName = podRef.namespace;
+    const fieldSelector: string = `metadata.name=${podRef.name}`;
 
     const resp = await this.kubeClient.listNamespacedPod(
       ns.name,
@@ -61,10 +61,12 @@ export class K8ClientPods extends K8ClientBase implements Pods {
       Duration.ofMinutes(5).toMillis(),
     );
 
-    return this.filterItem(resp.body.items, {name: podRef.name.toString()});
+    return this.filterItem(resp.body.items, {name: podRef.name.toString()})?.map((item: V1Pod) =>
+      K8ClientPod.fromV1Pod(item, this, this.kubeClient, this.kubeConfig),
+    )[0];
   }
 
-  public async list(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]> {
+  public async list(namespace: NamespaceName, labels: string[]): Promise<Pod[]> {
     const labelSelector: string = labels ? labels.join(',') : undefined;
 
     const result = await this.kubeClient.listNamespacedPod(
@@ -81,7 +83,9 @@ export class K8ClientPods extends K8ClientBase implements Pods {
       Duration.ofMinutes(5).toMillis(),
     );
 
-    return result.body.items;
+    return result?.body?.items?.map((item: V1Pod) =>
+      K8ClientPod.fromV1Pod(item, this, this.kubeClient, this.kubeConfig),
+    );
   }
 
   public async waitForReadyStatus(
@@ -89,7 +93,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     labels: string[],
     maxAttempts: number = 10,
     delay: number = 500,
-  ): Promise<V1Pod[]> {
+  ): Promise<Pod[]> {
     const podReadyCondition = new Map<string, string>().set(
       constants.POD_CONDITION_READY,
       constants.POD_CONDITION_STATUS_TRUE,
@@ -116,18 +120,18 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     labels: string[] = [],
     maxAttempts = 10,
     delay = 500,
-  ) {
+  ): Promise<Pod[]> {
     if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
 
     return await this.waitForRunningPhase(namespace, labels, maxAttempts, delay, pod => {
-      if (pod.status?.conditions?.length > 0) {
-        for (const cond of pod.status.conditions) {
+      if (pod.conditions?.length > 0) {
+        for (const cond of pod.conditions) {
           for (const entry of conditionsMap.entries()) {
             const condType = entry[0];
             const condStatus = entry[1];
             if (cond.type === condType && cond.status === condStatus) {
               this.logger.info(
-                `Pod condition met for ${pod.metadata?.name} [type: ${cond.type} status: ${cond.status}]`,
+                `Pod condition met for ${pod.podRef.name.name} [type: ${cond.type} status: ${cond.status}]`,
               );
               return true;
             }
@@ -144,19 +148,19 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     labels: string[],
     maxAttempts: number,
     delay: number,
-    podItemPredicate?: (items: V1Pod) => boolean,
-  ): Promise<V1Pod[]> {
-    const phases = [constants.POD_PHASE_RUNNING];
+    podItemPredicate?: (items: Pod) => boolean,
+  ): Promise<Pod[]> {
+    const phases: string[] = [constants.POD_PHASE_RUNNING];
     const labelSelector: string = labels ? labels.join(',') : undefined;
 
     this.logger.info(
       `waitForRunningPhase [labelSelector: ${labelSelector}, namespace:${namespace.name}, maxAttempts: ${maxAttempts}]`,
     );
 
-    return new Promise<V1Pod[]>((resolve, reject) => {
+    return new Promise<Pod[]>((resolve, reject) => {
       let attempts = 0;
 
-      const check = async (resolve: (items: V1Pod[]) => void, reject: (reason?: Error) => void) => {
+      const check = async (resolve: (items: Pod[]) => void, reject: (reason?: Error) => void) => {
         // wait for the pod to be available with the given status and labels
         try {
           const resp = await this.kubeClient.listNamespacedPod(
@@ -179,21 +183,28 @@ export class K8ClientPods extends K8ClientBase implements Pods {
           );
 
           if (resp.body?.items?.length === 1) {
-            let phaseMatchCount = 0;
-            let predicateMatchCount = 0;
+            let phaseMatchCount: number = 0;
+            let predicateMatchCount: number = 0;
 
             for (const item of resp.body.items) {
               if (phases.includes(item.status?.phase)) {
                 phaseMatchCount++;
               }
 
-              if (podItemPredicate && podItemPredicate(item)) {
+              if (
+                podItemPredicate &&
+                podItemPredicate(K8ClientPod.fromV1Pod(item, this, this.kubeClient, this.kubeConfig))
+              ) {
                 predicateMatchCount++;
               }
             }
 
             if (phaseMatchCount === 1 && (!podItemPredicate || predicateMatchCount === 1)) {
-              return resolve(resp.body.items);
+              return resolve(
+                resp?.body?.items?.map((item: V1Pod) =>
+                  K8ClientPod.fromV1Pod(item, this, this.kubeClient, this.kubeConfig),
+                ),
+              );
             }
           }
         } catch (e) {

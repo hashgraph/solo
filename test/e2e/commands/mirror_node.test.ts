@@ -29,6 +29,7 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 import {type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {GENESIS_KEY} from '../../../src/core/constants.js';
+import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -115,17 +116,13 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       );
       try {
         // find hedera explorer pod
-        const pods: V1Pod[] = await k8Factory
+        const pods: Pod[] = await k8Factory
           .default()
           .pods()
           .list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
-        const explorerPod = pods[0];
+        const explorerPod: Pod = pods[0];
 
-        portForwarder = await k8Factory
-          .default()
-          .pods()
-          .readByRef(PodRef.of(namespace, PodName.of(explorerPod.metadata.name)))
-          .portForward(8_080, 8_080);
+        portForwarder = await k8Factory.default().pods().readByRef(explorerPod.podRef).portForward(8_080, 8_080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running
