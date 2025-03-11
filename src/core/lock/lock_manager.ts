@@ -4,35 +4,35 @@ import {Flags as flags} from '../../commands/flags.js';
 import {type ConfigManager} from '../config_manager.js';
 import {type K8Factory} from '../kube/k8_factory.js';
 import {type SoloLogger} from '../logging.js';
-import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
-import {IntervalLease} from './interval_lease.js';
-import {LeaseHolder} from './lease_holder.js';
-import {LeaseAcquisitionError} from './lease_errors.js';
+import {type Lock, type LockRenewalService} from './lock.js';
+import {IntervalLock} from './interval_lock.js';
+import {LockHolder} from './lock_holder.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
 import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../dependency_injection/inject_tokens.js';
+import {LockAcquisitionError} from './lock_acquisition_error.js';
 
 /**
- * Manages the acquisition and renewal of leases.
+ * Manages the acquisition and renewal of locks.
  */
 @injectable()
-export class LeaseManager {
+export class LockManager {
   /**
-   * Creates a new lease manager.
+   * Creates a new lock manager.
    *
-   * @param _renewalService - the lease renewal service.
+   * @param _renewalService - the lock renewal service.
    * @param _logger - the logger.
    * @param k8Factory - the Kubernetes client.
    * @param configManager - the configuration manager.
    */
   constructor(
-    @inject(InjectTokens.LeaseRenewalService) private readonly _renewalService?: LeaseRenewalService,
+    @inject(InjectTokens.LockRenewalService) private readonly _renewalService?: LockRenewalService,
     @inject(InjectTokens.SoloLogger) private readonly _logger?: SoloLogger,
     @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
     @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
-    this._renewalService = patchInject(_renewalService, InjectTokens.LeaseRenewalService, this.constructor.name);
+    this._renewalService = patchInject(_renewalService, InjectTokens.LockRenewalService, this.constructor.name);
     this._logger = patchInject(_logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
@@ -43,13 +43,8 @@ export class LeaseManager {
    *
    * @returns a new lease instance.
    */
-  public async create(): Promise<LeaseService> {
-    return new IntervalLease(
-      this.k8Factory,
-      this._renewalService,
-      LeaseHolder.default(),
-      await this.currentNamespace(),
-    );
+  public async create(): Promise<Lock> {
+    return new IntervalLock(this.k8Factory, this._renewalService, LockHolder.default(), await this.currentNamespace());
   }
 
   /**
@@ -57,7 +52,7 @@ export class LeaseManager {
    *
    * @returns the lease renewal service.
    */
-  public get renewalService(): LeaseRenewalService {
+  public get renewalService(): LockRenewalService {
     return this._renewalService;
   }
 
@@ -74,7 +69,7 @@ export class LeaseManager {
    * Retrieves the user or configuration supplied namespace to use for lease acquisition.
    *
    * @returns the namespace to use for lease acquisition or null if no namespace is specified.
-   * @throws LeaseAcquisitionError if the namespace does not exist and cannot be created.
+   * @throws LockAcquisitionError if the namespace does not exist and cannot be created.
    */
   private async currentNamespace(): Promise<NamespaceName> {
     const deploymentNamespace = this.configManager.getFlag<NamespaceName>(flags.namespace);
@@ -89,7 +84,7 @@ export class LeaseManager {
       await this.k8Factory.default().namespaces().create(namespace);
 
       if (!(await this.k8Factory.default().namespaces().has(namespace))) {
-        throw new LeaseAcquisitionError(`failed to create the '${namespace}' namespace`);
+        throw new LockAcquisitionError(`failed to create the '${namespace}' namespace`);
       }
     }
 

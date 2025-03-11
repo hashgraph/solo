@@ -2,32 +2,33 @@
 
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type K8Factory} from '../kube/k8_factory.js';
-import {LeaseHolder} from './lease_holder.js';
-import {LeaseAcquisitionError, LeaseRelinquishmentError} from './lease_errors.js';
+import {LockHolder} from './lock_holder.js';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
-import {type LeaseService, type LeaseRenewalService} from './lease_service.js';
+import {type Lock, type LockRenewalService} from './lock.js';
 import {StatusCodes} from 'http-status-codes';
 import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
 import {type Lease} from '../kube/resources/lease/lease.js';
+import {LockAcquisitionError} from './lock_acquisition_error.js';
+import {LockRelinquishmentError} from './lock_relinquishment_error.js';
 import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 import {type SoloLogger} from '../logging.js';
 import {container} from 'tsyringe-neo';
 
 /**
- * Concrete implementation of a Kubernetes based time-based mutually exclusive lock via the Coordination API.
- * Applies a namespace/deployment wide lock to ensure that only one process, machine, and user can hold the lease at a time.
- * The lease is automatically renewed in the background to prevent expiration and ensure the holder maintains the lease.
- * If the process die, the lease is automatically released after the lease duration.
+ * Concrete implementation of a Kubernetes time-based mutually exclusive lock via the Coordination API.
+ * Applies a namespace/deployment wide lock to ensure that only one process, machine, and user can hold the lock at a time.
+ * The lock is automatically renewed in the background to prevent expiration and ensure the holder maintains the lock.
+ * If the process die, the lock is automatically released after the lock duration.
  *
  * @public
  */
-export class IntervalLease implements LeaseService {
-  /** The default duration in seconds for which the lease is to be held before being considered expired. */
+export class IntervalLock implements Lock {
+  /** The default duration in seconds for which the lock is to be held before being considered expired. */
   public static readonly DEFAULT_LEASE_DURATION = 20;
 
-  /** The holder of the lease. */
-  private readonly _leaseHolder: LeaseHolder;
+  /** The holder of the lock. */
+  private readonly _lockHolder: LockHolder;
 
   /** The namespace which contains the lease. */
   private readonly _namespace: NamespaceName;
@@ -43,26 +44,26 @@ export class IntervalLease implements LeaseService {
 
   /**
    * @param k8Factory - Injected kubernetes K8Factory need by the methods to create, renew, and delete leases.
-   * @param renewalService - Injected lease renewal service need to support automatic (background) lease renewals.
-   * @param leaseHolder - The holder of the lease.
+   * @param renewalService - Injected lock renewal service need to support automatic (background) lock renewals.
+   * @param lockHolder - The holder of the lock.
    * @param namespace - The namespace in which the lease is to be acquired.
    * @param leaseName - The name of the lease to be acquired; if not provided, the namespace is used.
-   * @param durationSeconds - The duration in seconds for which the lease is to be held; if not provided, the default value is used.
+   * @param durationSeconds - The duration in seconds for which the lock is to be held; if not provided, the default value is used.
    */
   public constructor(
     readonly k8Factory: K8Factory,
-    readonly renewalService: LeaseRenewalService,
-    leaseHolder: LeaseHolder,
+    readonly renewalService: LockRenewalService,
+    lockHolder: LockHolder,
     namespace: NamespaceName,
     leaseName: string | null = null,
     durationSeconds: number | null = null,
   ) {
     if (!k8Factory) throw new MissingArgumentError('k8Factory is required');
     if (!renewalService) throw new MissingArgumentError('renewalService is required');
-    if (!leaseHolder) throw new MissingArgumentError('_leaseHolder is required');
+    if (!lockHolder) throw new MissingArgumentError('_lockHolder is required');
     if (!namespace) throw new MissingArgumentError('_namespace is required');
 
-    this._leaseHolder = leaseHolder;
+    this._lockHolder = lockHolder;
     this._namespace = namespace;
 
     if (!leaseName) {
@@ -71,7 +72,7 @@ export class IntervalLease implements LeaseService {
 
     // In most production cases, the environment variable should be preferred over the constructor argument.
     if (!durationSeconds) {
-      this._durationSeconds = +process.env.SOLO_LEASE_DURATION || IntervalLease.DEFAULT_LEASE_DURATION;
+      this._durationSeconds = +process.env.SOLO_LEASE_DURATION || IntervalLock.DEFAULT_LEASE_DURATION;
     } else {
       this._durationSeconds = durationSeconds;
     }
@@ -85,10 +86,10 @@ export class IntervalLease implements LeaseService {
   }
 
   /**
-   * The holder of the lease.
+   * The holder of the lock.
    */
-  get leaseHolder(): LeaseHolder {
-    return this._leaseHolder;
+  get lockHolder(): LockHolder {
+    return this._lockHolder;
   }
 
   /**
@@ -124,18 +125,18 @@ export class IntervalLease implements LeaseService {
   }
 
   /**
-   * Acquires the lease. If the lease is already acquired, it checks if the lease is expired or held by the same process.
-   * If the lease is expired, it creates a new lease. If the lease is held by the same process, it renews the lease.
-   * If the lease is held by another process, then an exception is thrown.
+   * Acquires the lock. If the lock is already acquired, it checks if the lock is expired or held by the same process.
+   * If the lock is expired, it creates a new lock. If the lock is held by the same process, it renews the lock.
+   * If the lock is held by another process, then an exception is thrown.
    *
-   * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during acquisition.
+   * @throws LockAcquisitionError - If the lock is already acquired by another process or an error occurs during acquisition.
    */
   async acquire(): Promise<void> {
     let lease: Lease;
     try {
       lease = await this.retrieveLease();
     } catch (e) {
-      throw new LeaseAcquisitionError(
+      throw new LockAcquisitionError(
         `failed to read during acquire, the lease named '${this.leaseName}' in the ` +
           `'${this.namespace}' namespace, caused by: ${e.message}`,
         e,
@@ -146,17 +147,17 @@ export class IntervalLease implements LeaseService {
       try {
         return await this.createOrRenewLease(lease);
       } catch (e) {
-        throw new LeaseAcquisitionError(
+        throw new LockAcquisitionError(
           `failed to create or renew during acquire, the lease named '${this.leaseName}' in the ` +
             `'${this.namespace}' namespace`,
           e,
         );
       }
-    } else if (IntervalLease.checkExpiration(lease)) {
+    } else if (IntervalLock.checkExpiration(lease)) {
       try {
         return await this.transferLease(lease);
       } catch (e) {
-        throw new LeaseAcquisitionError(
+        throw new LockAcquisitionError(
           `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
             `'${this.namespace}' namespace`,
           e,
@@ -164,13 +165,13 @@ export class IntervalLease implements LeaseService {
       }
     }
 
-    const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
+    const otherHolder: LockHolder = LockHolder.fromJson(lease.holderIdentity);
 
     if (this.heldBySameMachineIdentity(lease) && !otherHolder.isProcessAlive()) {
       try {
         return await this.transferLease(lease);
       } catch (e) {
-        throw new LeaseAcquisitionError(
+        throw new LockAcquisitionError(
           `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
             `'${this.namespace}' namespace, other holder: '${otherHolder.username}'`,
           e,
@@ -178,19 +179,19 @@ export class IntervalLease implements LeaseService {
       }
     }
 
-    throw new LeaseAcquisitionError(
-      `acquire: lease already acquired by '${otherHolder.username}' on the ` +
+    throw new LockAcquisitionError(
+      `acquire: lock already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
-      {self: this.leaseHolder.toObject(), other: otherHolder.toObject()},
+      {self: this.lockHolder.toObject(), other: otherHolder.toObject()},
     );
   }
 
   /**
-   * Attempts to acquire the lease, by calling the acquire method. If an exception is thrown, it is caught and false is returned.
-   * If the lease is successfully acquired, true is returned; otherwise, false is returned.
+   * Attempts to acquire the lock, by calling the acquire method. If an exception is thrown, it is caught and false is returned.
+   * If the lock is successfully acquired, true is returned; otherwise, false is returned.
    *
-   * @returns true if the lease is successfully acquired; otherwise, false.
+   * @returns true if the lock is successfully acquired; otherwise, false.
    */
   async tryAcquire(): Promise<boolean> {
     try {
@@ -202,17 +203,17 @@ export class IntervalLease implements LeaseService {
   }
 
   /**
-   * Renews the lease. If the lease is expired or held by the same process, it creates or renews the lease.
-   * If the lease is held by another process, then an exception is thrown.
+   * Renews the lock. If the lock is expired or held by the same process, it creates or renews the lock.
+   * If the lock is held by another process, then an exception is thrown.
    *
-   * @throws LeaseAcquisitionError - If the lease is already acquired by another process or an error occurs during renewal.
+   * @throws LockAcquisitionError - If the lock is already acquired by another process or an error occurs during renewal.
    */
   async renew(): Promise<void> {
     let lease: Lease;
     try {
       lease = await this.retrieveLease();
     } catch (e) {
-      throw new LeaseAcquisitionError(
+      throw new LockAcquisitionError(
         `failed to read the lease named '${this.leaseName}' in the ` +
           `'${this.namespace}' namespace, caused by: ${e.message}`,
         e,
@@ -223,49 +224,49 @@ export class IntervalLease implements LeaseService {
       try {
         return await this.createOrRenewLease(lease);
       } catch (e) {
-        throw new LeaseAcquisitionError(
+        throw new LockAcquisitionError(
           `failed to create or renew the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
           e,
         );
       }
     }
 
-    throw new LeaseAcquisitionError(
-      `renew: lease already acquired by '${this._leaseHolder.username}' on the ` +
-        `'${this._leaseHolder.hostname}' machine (PID: '${this._leaseHolder.processId}')`,
+    throw new LockAcquisitionError(
+      `renew: lock already acquired by '${this._lockHolder.username}' on the ` +
+        `'${this._lockHolder.hostname}' machine (PID: '${this._lockHolder.processId}')`,
       null,
-      {self: this._leaseHolder.toObject(), other: this._leaseHolder.toObject()},
+      {self: this._lockHolder.toObject(), other: this._lockHolder.toObject()},
     );
   }
 
   /**
-   * Attempts to renew the lease, by calling the renew method. If an exception is thrown, it is caught and false is returned.
-   * If the lease is successfully renewed, true is returned; otherwise, false is returned.
+   * Attempts to renew the lock, by calling the renew method. If an exception is thrown, it is caught and false is returned.
+   * If the lock is successfully renewed, true is returned; otherwise, false is returned.
    *
-   * @returns true if the lease is successfully renewed; otherwise, false.
+   * @returns true if the lock is successfully renewed; otherwise, false.
    */
   async tryRenew(): Promise<boolean> {
     try {
       await this.renew();
       return true;
-    } catch (e: SoloError | any) {
+    } catch (e) {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).error(`tryRenew failed: ${e.message}`, e);
       return false;
     }
   }
 
   /**
-   * Releases the lease. If the lease is expired or held by the same process, it deletes the lease.
-   * If the lease is held by another process, then an exception is thrown.
+   * Releases the lock. If the lock is expired or held by the same process, it deletes the lock.
+   * If the lock is held by another process, then an exception is thrown.
    *
-   * @throws LeaseRelinquishmentError - If the lease is already acquired by another process or an error occurs during relinquishment.
+   * @throws LockRelinquishmentError - If the lock is already acquired by another process or an error occurs during relinquishment.
    */
   async release(): Promise<void> {
     let lease: Lease;
     try {
       lease = await this.retrieveLease();
     } catch (e) {
-      throw new LeaseAcquisitionError(
+      throw new LockAcquisitionError(
         `during release, failed to read the lease named '${this.leaseName}' in the ` +
           `'${this.namespace}' namespace, caused by: ${e.message}`,
         e,
@@ -285,68 +286,68 @@ export class IntervalLease implements LeaseService {
       return;
     }
 
-    const otherHolder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
+    const otherHolder: LockHolder = LockHolder.fromJson(lease.holderIdentity);
 
-    if (this.heldBySameProcess(lease) || IntervalLease.checkExpiration(lease)) {
+    if (this.heldBySameProcess(lease) || IntervalLock.checkExpiration(lease)) {
       return await this.deleteLease();
     }
 
-    throw new LeaseRelinquishmentError(
-      `release: lease already acquired by '${otherHolder.username}' on the ` +
+    throw new LockRelinquishmentError(
+      `release: lock already acquired by '${otherHolder.username}' on the ` +
         `'${otherHolder.hostname}' machine (PID: '${otherHolder.processId}')`,
       null,
-      {self: this._leaseHolder.toObject(), other: otherHolder.toObject()},
+      {self: this._lockHolder.toObject(), other: otherHolder.toObject()},
     );
   }
 
   /**
-   * Attempts to release the lease, by calling the release method. If an exception is thrown, it is caught and false is returned.
-   * If the lease is successfully released, true is returned; otherwise, false is returned.
+   * Attempts to release the lock, by calling the release method. If an exception is thrown, it is caught and false is returned.
+   * If the lock is successfully released, true is returned; otherwise, false is returned.
    *
-   * @returns true if the lease is successfully released; otherwise, false.
+   * @returns true if the lock is successfully released; otherwise, false.
    */
   async tryRelease(): Promise<boolean> {
     try {
       await this.release();
       return true;
-    } catch (e: SoloError | any) {
+    } catch {
       return false;
     }
   }
 
   /**
-   * Checks if the lease is acquired. If the lease is acquired and not expired, it returns true; otherwise, false.
+   * Checks if the lock is acquired. If the lock is acquired and not expired, it returns true; otherwise, false.
    *
-   * @returns true if the lease is acquired and not expired; otherwise, false.
+   * @returns true if the lock is acquired and not expired; otherwise, false.
    */
   async isAcquired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && !IntervalLease.checkExpiration(lease) && this.heldBySameProcess(lease);
+    return !!lease && !IntervalLock.checkExpiration(lease) && this.heldBySameProcess(lease);
   }
 
   /**
-   * Checks if the lease is expired. If the lease is expired, it returns true; otherwise, false.
-   * This method does not verify if the lease is acquired by the current process.
+   * Checks if the lock is expired. If the lock is expired, it returns true; otherwise, false.
+   * This method does not verify if the lock is acquired by the current process.
    *
-   * @returns true if the lease is expired; otherwise, false.
+   * @returns true if the lock is expired; otherwise, false.
    */
   async isExpired(): Promise<boolean> {
     const lease = await this.retrieveLease();
-    return !!lease && IntervalLease.checkExpiration(lease);
+    return !!lease && IntervalLock.checkExpiration(lease);
   }
 
   /**
    * Retrieves the lease from the Kubernetes API server.
    *
    * @returns the Kubernetes lease object if it exists; otherwise, null.
-   * @throws LeaseAcquisitionError - If an error occurs during retrieval.
+   * @throws LockAcquisitionError - If an error occurs during retrieval.
    */
   private async retrieveLease(): Promise<Lease> {
     try {
       return await this.k8Factory.default().leases().read(this.namespace, this.leaseName);
     } catch (e: any) {
       if (!(e instanceof SoloError)) {
-        throw new LeaseAcquisitionError(
+        throw new LockAcquisitionError(
           `failed to read the lease named '${this.leaseName}' in the ` +
             `'${this.namespace}' namespace, caused by: ${e.message}`,
           e,
@@ -354,7 +355,7 @@ export class IntervalLease implements LeaseService {
       }
 
       if (e.statusCode !== StatusCodes.NOT_FOUND) {
-        throw new LeaseAcquisitionError(
+        throw new LockAcquisitionError(
           'failed to read existing leases, unexpected server response of ' + `'${e.meta.statusCode}' received`,
           e,
         );
@@ -375,7 +376,7 @@ export class IntervalLease implements LeaseService {
         await this.k8Factory
           .default()
           .leases()
-          .create(this.namespace, this.leaseName, this.leaseHolder.toJson(), this.durationSeconds);
+          .create(this.namespace, this.leaseName, this.lockHolder.toJson(), this.durationSeconds);
       } else {
         await this.k8Factory.default().leases().renew(this.namespace, this.leaseName, lease);
       }
@@ -383,8 +384,8 @@ export class IntervalLease implements LeaseService {
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);
       }
-    } catch (e: any) {
-      throw new LeaseAcquisitionError(
+    } catch (e) {
+      throw new LockAcquisitionError(
         `failed to create or renew the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
         e,
       );
@@ -398,13 +399,13 @@ export class IntervalLease implements LeaseService {
    */
   private async transferLease(lease: Lease): Promise<void> {
     try {
-      await this.k8Factory.default().leases().transfer(lease, this.leaseHolder.toJson());
+      await this.k8Factory.default().leases().transfer(lease, this.lockHolder.toJson());
 
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);
       }
-    } catch (e: any) {
-      throw new LeaseAcquisitionError(
+    } catch (e) {
+      throw new LockAcquisitionError(
         `failed to transfer the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
         e,
       );
@@ -417,8 +418,8 @@ export class IntervalLease implements LeaseService {
   private async deleteLease(): Promise<void> {
     try {
       await this.k8Factory.default().leases().delete(this.namespace, this.leaseName);
-    } catch (e: any) {
-      throw new LeaseRelinquishmentError(
+    } catch (e) {
+      throw new LockRelinquishmentError(
         `failed to delete the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
         e,
       );
@@ -433,7 +434,7 @@ export class IntervalLease implements LeaseService {
    */
   private static checkExpiration(lease: Lease): boolean {
     const now = Duration.ofMillis(Date.now());
-    const durationSec = lease.durationSeconds || IntervalLease.DEFAULT_LEASE_DURATION;
+    const durationSec = lease.durationSeconds || IntervalLock.DEFAULT_LEASE_DURATION;
     const lastRenewalTime = lease.renewTime || lease.acquireTime;
     const lastRenewal = Duration.ofMillis(new Date(lastRenewalTime).valueOf());
     const deltaSec = now.minus(lastRenewal).seconds;
@@ -441,26 +442,26 @@ export class IntervalLease implements LeaseService {
   }
 
   /**
-   * Determines if the lease is held by the same process. This comparison is based on the user, machine, and
+   * Determines if the lock is held by the same process. This comparison is based on the user, machine, and
    * process identifier of the leaseholder.
    *
    * @param lease - The lease to be checked for ownership.
    * @returns true if the lease is held by the same process; otherwise, false.
    */
   private heldBySameProcess(lease: Lease): boolean {
-    const holder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
-    return this.leaseHolder.equals(holder);
+    const holder: LockHolder = LockHolder.fromJson(lease.holderIdentity);
+    return this.lockHolder.equals(holder);
   }
 
   /**
-   * Determines if the lease is held by the same machine identity. This comparison is based on the user and machine only.
+   * Determines if the lock is held by the same machine identity. This comparison is based on the user and machine only.
    * The process identifier is not considered in this comparison.
    *
    * @param lease - The lease to be checked for ownership.
    * @returns true if the lease is held by the same user and machine; otherwise, false.
    */
   private heldBySameMachineIdentity(lease: Lease): boolean {
-    const holder: LeaseHolder = LeaseHolder.fromJson(lease.holderName);
-    return this.leaseHolder.isSameMachineIdentity(holder);
+    const holder: LockHolder = LockHolder.fromJson(lease.holderIdentity);
+    return this.lockHolder.isSameMachineIdentity(holder);
   }
 }

@@ -10,7 +10,7 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import * as helpers from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
@@ -488,7 +488,7 @@ export class AccountCommand extends BaseCommand {
               config.contextName,
             );
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
