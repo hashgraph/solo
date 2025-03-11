@@ -8,6 +8,7 @@ import eslintPluginPrettier from 'eslint-plugin-prettier';
 import tsEslint from 'typescript-eslint';
 import headers from 'eslint-plugin-headers';
 import tsdoc from 'eslint-plugin-tsdoc';
+import unusedImports from 'eslint-plugin-unused-imports';
 
 export default [
   eslintJs.configs.recommended,
@@ -112,6 +113,7 @@ export default [
     files: ['**/*.ts'],
     plugins: {
       tsdoc: tsdoc,
+      'unused-imports': unusedImports,
     },
     languageOptions: {
       globals: {
@@ -155,6 +157,16 @@ export default [
         {
           selector: "ImportDeclaration[importKind='type'] ImportSpecifier",
           message: "Use `import {type X} from 'path';` instead of `import type {X} from 'path';`.",
+        },
+      ],
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
         },
       ],
     },
