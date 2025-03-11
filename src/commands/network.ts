@@ -1206,60 +1206,6 @@ export class NetworkCommand extends BaseCommand {
     return networkDestroySuccess;
   }
 
-  /** Run helm upgrade to refresh network components with new settings */
-  async refresh(argv: any) {
-    const self = this;
-    const lease = await self.leaseManager.create();
-
-    interface Context {
-      config: NetworkDeployConfigClass;
-    }
-
-    const tasks = new Listr<Context>(
-      [
-        {
-          title: 'Initialize',
-          task: async (ctx, task) => {
-            ctx.config = await self.prepareConfig(task, argv);
-            return ListrLease.newAcquireLeaseTask(lease, task);
-          },
-        },
-        {
-          title: `Upgrade chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
-          task: async ctx => {
-            const config = ctx.config;
-            for (const clusterRef of Object.keys(config.valuesArgMap)) {
-              await this.chartManager.upgrade(
-                config.namespace,
-                constants.SOLO_DEPLOYMENT_CHART,
-                ctx.config.chartPath,
-                config.soloChartVersion,
-                config.valuesArgMap[clusterRef],
-                config.clusterRefs[clusterRef],
-              );
-              showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
-            }
-          },
-        },
-        self.waitForNetworkPods(),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-    );
-
-    try {
-      await tasks.run();
-    } catch (e: Error | any) {
-      throw new SoloError(`Error upgrading chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
-    } finally {
-      await lease.release();
-    }
-
-    return true;
-  }
-
   getCommandDefinition(): {
     command: string;
     desc: string;
@@ -1319,27 +1265,6 @@ export class NetworkCommand extends BaseCommand {
                 .catch(err => {
                   self.logger.showUserError(err);
                   throw new SoloError(`Error destroying network: ${err.message}`, err);
-                });
-            },
-          })
-          .command({
-            command: 'refresh',
-            desc: 'Refresh solo network deployment',
-            builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: async (argv: any) => {
-              self.logger.info("==== Running 'chart upgrade' ===");
-              self.logger.info(argv);
-
-              await self
-                .refresh(argv)
-                .then(r => {
-                  self.logger.info('==== Finished running `chart upgrade`====');
-
-                  if (!r) throw new SoloError('Error refreshing network, expected return value to be true');
-                })
-                .catch(err => {
-                  self.logger.showUserError(err);
-                  throw new SoloError(`Error refreshing network: ${err.message}`, err);
                 });
             },
           })
