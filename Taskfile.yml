@@ -9,7 +9,7 @@ env:
   SOLO_DEPLOYMENT: solo-deployment
   # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: v0.58.0
-  HEDERA_SERVICES_ROOT: "/Users/user/source/hedera-services"
+  HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
   # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
   # DEBUG_NODE_ALIAS: "node2"
   # SOLO_CHARTS_DIR_FLAG: "--chart-directory /Users/user/source/solo-charts/charts"
@@ -39,14 +39,16 @@ tasks:
       - task: "start"
 
   install:
-    desc: create the cluster, solo init, solo cluster create, solo node keys, solo network deploy
+    desc: create the cluster, solo init, solo cluster-ref create, solo node keys, solo network deploy
     deps:
       - task: "init"
     cmds:
       - task: "cluster:create"
       - task: "solo:init"
       - task: "solo:cluster:setup"
+      - task: "solo:cluster-ref:connect"
       - task: "solo:deployment:create"
+      - task: "solo:deployment:add-cluster"
       - task: "solo:keys"
       - task: "solo:network:deploy"
 

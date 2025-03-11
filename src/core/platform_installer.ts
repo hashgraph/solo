@@ -323,8 +323,9 @@ export class PlatformInstaller {
       await this.copyFiles(podRef, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
     }
 
-    const nodeOverridesYaml = [path.join(stagingDir, constants.NODE_OVERRIDE_FILE)];
-    await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
+    // TODO: temporarily disable this until we add logic to only set this when the user provides the node override gossip endpoints for each node they want to override
+    // const nodeOverridesYaml = [path.join(stagingDir, constants.NODE_OVERRIDE_FILE)];
+    // await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
   }
 
   /**

@@ -11,33 +11,25 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import {RemoteConfigValidator} from './remote_config_validator.js';
 import {type K8Factory} from '../../kube/k8_factory.js';
-import {
-  type ClusterRef,
-  type ClusterRefs,
-  type Context,
-  type DeploymentName,
-  type NamespaceNameAsString,
-  type Version,
-} from './types.js';
+import {type ClusterRef, type ClusterRefs, type DeploymentName, type Version} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
-import {type DeploymentStructure} from '../local_config_data.js';
 import {type Optional} from '../../../types/index.js';
 import type * as k8s from '@kubernetes/client-node';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {type AnyObject, type NodeAlias} from '../../../types/aliases.js';
-import {NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
-import {ResourceNotFoundError} from '../../kube/errors/resource_operation_errors.js';
+import {type AnyArgv, type AnyObject, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
+import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
 import * as helpers from '../../helpers.js';
 import {ConsensusNode} from '../../model/consensus_node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
+import {type DeploymentStates} from './enumerations.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -110,42 +102,36 @@ export class RemoteConfigManager {
    * Gathers data from the local configuration and constructs a new ConfigMap
    * entry in the cluster with initial command history and metadata.
    */
-  private async create(argv: AnyObject): Promise<void> {
-    const clusters: Record<ClusterRef, Cluster> = {};
+  public async create(
+    argv: AnyArgv,
+    state: DeploymentStates,
+    nodeAliases: NodeAliases,
+    namespace: NamespaceName,
+    deployment: DeploymentName,
+    clusterRef: ClusterRef,
+    context: string,
+    dnsBaseDomain: string,
+    dnsConsensusNodePattern: string,
+  ): Promise<void> {
+    const clusters: Record<ClusterRef, Cluster> = {
+      [clusterRef]: new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
+    };
 
-    Object.entries(this.localConfig.deployments).forEach(
-      ([deployment, deploymentStructure]: [DeploymentName, DeploymentStructure]) => {
-        const namespace = deploymentStructure.namespace.toString();
-        deploymentStructure.clusters.forEach(
-          cluster => (clusters[cluster] = new Cluster(cluster, namespace, deployment)),
-        );
-      },
-    );
-
-    // temporary workaround until we can have `solo deployment add` command
-    const nodeAliases: string[] = helpers.splitFlagInput(this.configManager.getFlag(flags.nodeAliasesUnparsed));
-    const namespace = await this.getNamespace();
+    const lastUpdatedAt = new Date();
+    const email = this.localConfig.userEmailAddress;
+    const soloVersion = helpers.getSoloVersion();
+    const currentCommand: string = argv._.join(' ');
 
     this.remoteConfig = new RemoteConfigDataWrapper({
-      metadata: new RemoteConfigMetadata(
-        namespace.name,
-        this.configManager.getFlag<DeploymentName>(flags.deployment),
-        new Date(),
-        this.localConfig.userEmailAddress,
-        helpers.getSoloVersion(),
-      ),
       clusters,
-      commandHistory: ['deployment create'],
-      lastExecutedCommand: 'deployment create',
-      components: ComponentsDataWrapper.initializeWithNodes(
-        nodeAliases,
-        this.configManager.getFlag(flags.deploymentClusters),
-        namespace.name,
-      ),
+      metadata: new RemoteConfigMetadata(namespace.name, deployment, state, lastUpdatedAt, email, soloVersion),
+      commandHistory: [currentCommand],
+      lastExecutedCommand: currentCommand,
+      components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterRef, namespace.name),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
-    await this.createConfigMap();
+    await this.createConfigMap(context);
   }
 
   /**
@@ -190,17 +176,22 @@ export class RemoteConfigManager {
    * Loads the remote configuration, performs a validation and returns it
    * @returns RemoteConfigDataWrapper
    */
-  public async get(): Promise<RemoteConfigDataWrapper> {
-    await this.load();
+  public async get(context?: string): Promise<RemoteConfigDataWrapper> {
+    const namespace = this.configManager.getFlag<NamespaceName>(flags.namespace) ?? (await this.getNamespace());
+
+    await this.load(namespace, context);
     try {
       await RemoteConfigValidator.validateComponents(
-        this.configManager.getFlag(flags.namespace),
+        namespace,
         this.remoteConfig.components,
         this.k8Factory,
         this.localConfig,
+        false,
       );
     } catch {
-      throw new SoloError(ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8Factory.default().clusters().readCurrent()));
+      throw new SoloError(
+        ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8Factory.getK8(context).clusters().readCurrent()),
+      );
     }
     return this.remoteConfig;
   }
@@ -228,8 +219,13 @@ export class RemoteConfigManager {
    *
    * @param argv - arguments containing command input for historical reference.
    * @param validate - whether to validate the remote configuration.
+   * @param [skipConsensusNodesValidation] - whether or not to validate the consensusNodes
    */
-  public async loadAndValidate(argv: {_: string[]} & AnyObject, validate: boolean = true) {
+  public async loadAndValidate(
+    argv: {_: string[]} & AnyObject,
+    validate: boolean = true,
+    skipConsensusNodesValidation: boolean = true,
+  ) {
     const self = this;
     try {
       await self.setDefaultNamespaceAndDeploymentIfNotSet(argv);
@@ -255,6 +251,7 @@ export class RemoteConfigManager {
       self.remoteConfig.components,
       self.k8Factory,
       this.localConfig,
+      skipConsensusNodesValidation,
     );
 
     const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
@@ -323,37 +320,10 @@ export class RemoteConfigManager {
     }
   }
 
-  public async createAndValidate(
-    clusterRef: ClusterRef,
-    context: Context,
-    namespace: NamespaceNameAsString,
-    argv: AnyObject,
-  ) {
-    const self = this;
-    self.k8Factory.default().contexts().updateCurrent(context);
-
-    if (!(await self.k8Factory.default().namespaces().has(NamespaceName.of(namespace)))) {
-      await self.k8Factory.default().namespaces().create(NamespaceName.of(namespace));
-    }
-
-    const localConfigExists = this.localConfig.configFileExists();
-    if (!localConfigExists) {
-      throw new SoloError("Local config doesn't exist");
-    }
-
-    self.unload();
-    if (await self.load()) {
-      self.logger.showUser(chalk.red('Remote config already exists'));
-      throw new SoloError('Remote config already exists');
-    }
-
-    await self.create(argv);
-  }
-
   /* ---------- Utilities ---------- */
 
   /** Empties the component data inside the remote config */
-  public async deleteComponents() {
+  public async deleteComponents(): Promise<void> {
     await this.modify(async remoteConfig => {
       remoteConfig.components = ComponentsDataWrapper.initializeEmpty();
     });
@@ -361,10 +331,6 @@ export class RemoteConfigManager {
 
   public isLoaded(): boolean {
     return !!this.remoteConfig;
-  }
-
-  public unload() {
-    delete this.remoteConfig;
   }
 
   /**
@@ -412,9 +378,9 @@ export class RemoteConfigManager {
   /**
    * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
    */
-  private async createConfigMap(): Promise<void> {
+  public async createConfigMap(context?: string): Promise<void> {
     await this.k8Factory
-      .default()
+      .getK8(context)
       .configMaps()
       .create(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
         'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
@@ -431,7 +397,7 @@ export class RemoteConfigManager {
         const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
         const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
         const data = {
-          'remote-config-data': yaml.stringify(this.remoteConfig.toObject() as any),
+          'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
         };
 
         return this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data);
@@ -460,7 +426,7 @@ export class RemoteConfigManager {
     }
 
     if (!currentDeployment) {
-      throw new SoloError('Selected deployment name is not set in local config');
+      throw new SoloError(`Selected deployment name is not set in local config - ${deploymentName}`);
     }
 
     const namespace = currentDeployment.namespace;
@@ -529,14 +495,14 @@ export class RemoteConfigManager {
           // use local config to get the context
           this.localConfig.clusterRefs[node.cluster],
           clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
           Templates.renderConsensusNodeFullyQualifiedDomainName(
             node.name as NodeAlias,
             node.nodeId,
             node.namespace,
             node.cluster,
             clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc',
+            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
           ),
         ),
       );

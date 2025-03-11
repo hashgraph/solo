@@ -14,5 +14,5 @@ env:
   SOLO_HOME: "/Users/user/.solo-perf-test"
   # LOG4J2_FLAG: "--log4j2-xml {{.USER_WORKING_DIR}}/log4j2.xml"
   # APPLICATION_PROPERTIES_FLAG: "--application-properties {{.USER_WORKING_DIR}}/application.properties"
-  # HEDERA_SERVICES_ROOT: "/Users/user/source/hedera-services"
+  # HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
   # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"

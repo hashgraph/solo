@@ -473,7 +473,7 @@ Manage solo network deployment
 Commands:
   network deploy    Deploy solo network.  Requires the chart `solo-cluster-setup
                     ` to have been installed in the cluster.  If it hasn't the f
-                    ollowing command can be ran: `solo cluster setup`
+                    ollowing command can be ran: `solo cluster-ref setup`
   network destroy   Destroy solo network
   network refresh   Refresh solo network deployment
 

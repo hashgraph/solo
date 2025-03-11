@@ -6,7 +6,7 @@ import {expect} from 'chai';
 import each from 'mocha-each';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, TEST_CLUSTER} from '../../test_util.js';
+import {e2eTestSuite, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {RelayCommand} from '../../../src/commands/relay.js';
@@ -25,7 +25,7 @@ argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);

@@ -9,7 +9,7 @@ import {type ProfileManager} from '../core/profile_manager.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap, prepareChartPath} from '../core/helpers.js';
+import {getNodeAccountMap, prepareChartPath, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {ListrLease} from '../core/lease/listr_lease.js';
@@ -19,6 +19,7 @@ import * as Base64 from 'js-base64';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {type Optional} from '../types/index.js';
+import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -302,6 +303,8 @@ export class RelayCommand extends BaseCommand {
               kubeContext,
             );
 
+            showVersionBanner(self.logger, config.releaseName, HEDERA_JSON_RPC_RELAY_VERSION);
+
             await k8
               .pods()
               .waitForRunningPhase(
@@ -505,7 +508,7 @@ export class RelayCommand extends BaseCommand {
           } = ctx;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add('relay', new RelayComponent('relay', cluster, namespace.name, nodeAliases));
+          remoteConfig.components.add(new RelayComponent('relay', cluster, namespace.name, nodeAliases));
         });
       },
     };

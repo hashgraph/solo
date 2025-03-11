@@ -934,7 +934,6 @@ export class NodeCommandHandlers extends CommandHandler {
 
           for (const consensusNode of ctx.config.consensusNodes) {
             remoteConfig.components.edit(
-              consensusNode.name,
               new ConsensusNodeComponent(
                 consensusNode.name,
                 consensusNode.cluster,

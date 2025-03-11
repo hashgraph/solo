@@ -40,7 +40,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
     Container.getInstance().init();
   } catch (e) {
-    console.error(`Error initializing container: ${e.message}`, e);
+    console.error(`Error initializing container: ${e?.message}`, e);
     throw new SoloError('Error initializing container');
   }
 
