@@ -4,6 +4,8 @@ import {Exclude, Expose, Type} from 'class-transformer';
 import {RemoteConfigMetadata} from './remote_config_metadata.js';
 import {ApplicationVersions} from '../common/application_versions.js';
 import {Cluster} from '../common/cluster.js';
+import {DeploymentState} from './deployment_state.js';
+import {DeploymentHistory} from './deployment_history.js';
 
 @Exclude()
 export class RemoteConfig {
@@ -21,4 +23,28 @@ export class RemoteConfig {
   @Expose()
   @Type(() => Cluster)
   public clusters: Cluster[];
+
+  @Expose()
+  @Type(() => DeploymentState)
+  public state: DeploymentState;
+
+  @Expose()
+  @Type(() => DeploymentHistory)
+  public history: DeploymentHistory;
+
+  public constructor(
+    schemaVersion?: number,
+    metadata?: RemoteConfigMetadata,
+    versions?: ApplicationVersions,
+    clusters?: Cluster[],
+    state?: DeploymentState,
+    history?: DeploymentHistory,
+  ) {
+    this.schemaVersion = schemaVersion || 0;
+    this.metadata = metadata || new RemoteConfigMetadata();
+    this.versions = versions || new ApplicationVersions();
+    this.clusters = clusters || [];
+    this.state = state || new DeploymentState();
+    this.history = history || new DeploymentHistory();
+  }
 }

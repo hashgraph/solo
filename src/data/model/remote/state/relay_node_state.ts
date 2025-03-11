@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Exclude, Expose, Transform} from 'class-transformer';
-import {type DeploymentPhase} from '../deployment_phase.js';
 import {Transformations} from '../../utils/transformations.js';
+import {type DeploymentPhase} from '../deployment_phase.js';
 
 @Exclude()
-export class ConsensusNodeState {
-  @Expose()
-  public id: number;
-
+export class RelayNodeState {
   @Expose()
   public name: string;
 
@@ -19,14 +16,23 @@ export class ConsensusNodeState {
   public cluster: string;
 
   @Expose()
+  public consensusNodeIds: number[];
+
+  @Expose()
   @Transform(Transformations.DeploymentPhase)
   public phase: DeploymentPhase;
 
-  public constructor(id?: number, name?: string, namespace?: string, cluster?: string, phase?: DeploymentPhase) {
-    this.id = id;
+  public constructor(
+    name?: string,
+    namespace?: string,
+    cluster?: string,
+    consensusNodeIds?: number[],
+    phase?: DeploymentPhase,
+  ) {
     this.name = name;
     this.namespace = namespace;
     this.cluster = cluster;
+    this.consensusNodeIds = consensusNodeIds;
     this.phase = phase;
   }
 }

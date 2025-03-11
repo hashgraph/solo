@@ -9,4 +9,9 @@ export class DeploymentHistory {
 
   @Expose()
   public lastExecutedCommand: string;
+
+  public constructor(commands?: string[], lastExecutedCommand?: string) {
+    this.commands = commands || [];
+    this.lastExecutedCommand = lastExecutedCommand;
+  }
 }

@@ -44,9 +44,3 @@ export enum LedgerPhase {
    */
   FROZEN = 'frozen',
 }
-
-// deployment create
-// deployment cluster-add
-// deployment node-modify --taints key=value:NoSchedule --labels key=value --annotations key=value
-// deployment recover-snapshot --round-number 1
-// network deploy
