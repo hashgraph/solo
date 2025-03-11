@@ -19,6 +19,10 @@ import {type SkipCheck, type TaskFunction} from '../types/aliases.js';
  * limitations under the License.
  *
  */
+
+/**
+ * @deprecated
+ */
 export class Task {
   constructor(
     public title: string,

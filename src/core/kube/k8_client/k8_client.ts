@@ -28,7 +28,8 @@ import {type Secrets} from '../resources/secret/secrets.js';
 import {K8ClientSecrets} from './resources/secret/k8_client_secrets.js';
 import {type Ingresses} from '../resources/ingress/ingresses.js';
 import {K8ClientIngresses} from './resources/ingress/k8_client_ingresses.js';
-import {type NamespaceName} from '../resources/namespace/namespace_name.js';
+import {type Crds} from '../resources/crd/crds.js';
+import {K8ClientCRDs} from './resources/crd/k8_clinet_crds.js';
 
 /**
  * A kubernetes API wrapper class providing custom functionalities required by solo
@@ -40,6 +41,7 @@ export class K8Client implements K8 {
   private kubeConfig!: k8s.KubeConfig;
   private kubeClient!: k8s.CoreV1Api;
   private coordinationApiClient!: k8s.CoordinationV1Api;
+  private extensionApi!: k8s.ApiextensionsV1Api;
   private networkingApi!: k8s.NetworkingV1Api;
 
   private k8Leases: Leases;
@@ -54,6 +56,7 @@ export class K8Client implements K8 {
   private k8IngressClasses: IngressClasses;
   private k8Secrets: Secrets;
   private k8Ingresses: Ingresses;
+  private k8CRDs: Crds;
 
   /**
    * Create a new k8Factory client for the given context, if context is undefined it will use the current context in kubeconfig
@@ -78,6 +81,7 @@ export class K8Client implements K8 {
     this.kubeClient = this.kubeConfig.makeApiClient(k8s.CoreV1Api);
     this.networkingApi = this.kubeConfig.makeApiClient(k8s.NetworkingV1Api);
     this.coordinationApiClient = this.kubeConfig.makeApiClient(k8s.CoordinationV1Api);
+    this.extensionApi = this.kubeConfig.makeApiClient(k8s.ApiextensionsV1Api);
 
     this.k8Clusters = new K8ClientClusters(this.kubeConfig);
     this.k8ConfigMaps = new K8ClientConfigMaps(this.kubeClient);
@@ -91,6 +95,7 @@ export class K8Client implements K8 {
     this.k8IngressClasses = new K8ClientIngressClasses(this.networkingApi);
     this.k8Secrets = new K8ClientSecrets(this.kubeClient);
     this.k8Ingresses = new K8ClientIngresses(this.networkingApi);
+    this.k8CRDs = new K8ClientCRDs(this.extensionApi);
 
     return this;
   }
@@ -158,5 +163,9 @@ export class K8Client implements K8 {
 
   public ingresses(): Ingresses {
     return this.k8Ingresses;
+  }
+
+  public crds(): Crds {
+    return this.k8CRDs;
   }
 }

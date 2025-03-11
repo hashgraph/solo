@@ -9,16 +9,18 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloError} from '../../core/errors.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type DeploymentName} from '../../core/config/remote/types.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {type SoloListrTaskWrapper} from '../../types/index.js';
+import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_config_class.js';
+import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
+import {SoloListrTask, SoloListrTaskWrapper} from '../../types/index.js';
 
 export const CONNECT_CONFIGS_NAME = 'connectConfig';
+export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
 
 @injectable()
 export class ClusterCommandConfigs {
@@ -26,17 +28,44 @@ export class ClusterCommandConfigs {
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
   }
 
-  public async connectConfigBuilder(argv: ArgvStruct, ctx: ClusterConnectContext): Promise<ClusterConnectConfigClass> {
-    const config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterConnectConfigClass;
-    // set config in the context for later tasks to use
-    ctx.config = config;
+  public async connectConfigBuilder(
+    argv: ArgvStruct,
+    ctx: ClusterConnectContext,
+    task: SoloListrTaskWrapper<ClusterConnectContext>,
+  ): Promise<ClusterConnectConfigClass> {
+    if (!this.localConfig.configFileExists()) {
+      this.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
+    }
 
+    this.configManager.update(argv);
+    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
+
+    if (!ctx.config.context) {
+      const isQuiet = this.configManager.getFlag(flags.quiet);
+      if (isQuiet) {
+        ctx.config.context = this.k8Factory.default().contexts().readCurrent();
+      } else {
+        const kubeContexts = this.k8Factory.default().contexts().list();
+        ctx.config.context = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+      }
+    }
+
+    return ctx.config;
+  }
+
+  public async defaultConfigBuilder(argv: ArgvStruct, ctx: ClusterRefDefaultContext) {
+    this.configManager.update(argv);
+    ctx.config = this.configManager.getConfig(DEFAULT_CONFIGS_NAME, argv.flags, []) as ClusterRefDefaultConfigClass;
     return ctx.config;
   }
 

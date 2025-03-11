@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-* install taskfile: `npm install -g taskfile-cli`
+* install taskfile: `npm install -g @go-task/cli`
 
 ## Running the examples with Taskfile
 
@@ -13,7 +13,7 @@
 NOTES:
 
 * Some of these examples are for running against large clusters with a lot of resources available.
-* the `env` environment variables if set in your shell will take precedence over what is in the Taskfile.yml. e.g. `export HEDERA_SERVICES_ROOT=<path-to-hedera-services-root>`
+* the `env` environment variables if set in your shell will take precedence over what is in the Taskfile.yml. e.g. `export HEDERA_SERVICES_ROOT=<path-to-hiero-consensus-node-root>`
 
 ## Customizing the examples
 

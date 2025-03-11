@@ -5,7 +5,6 @@ import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
-import {ListrRemoteConfig} from '../../core/config/remote/listr_config_tasks.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
 import {SoloError} from '../../core/errors.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -39,25 +38,51 @@ export class ClusterCommandHandlers extends CommandHandler {
     this.configs = patchInject(configs, InjectTokens.ClusterCommandConfigs, this.constructor.name);
   }
 
+  /**
+   * - Setup home directory.
+   * - Create new local config if needed.
+   * - Add new 'cluster-ref => context' mapping in the local config.
+   */
   public async connect(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
 
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this)),
         this.setupHomeDirectoryTask(),
-        this.localConfig.promptLocalConfigTask(this.k8Factory),
-        this.tasks.selectContext(),
-        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
-        this.tasks.readClustersFromRemoteConfig(),
-        this.tasks.updateLocalConfig(),
+        this.localConfig.createLocalConfigTask(),
+        this.tasks.validateClusterRefs(),
+        this.tasks.connectClusterRef(),
+        this.tasks.testConnectionToCluster(),
+        this.tasks.saveLocalConfig(),
       ],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
       },
-      'cluster connect',
+      'cluster-ref connect',
+      null,
+    );
+
+    return true;
+  }
+
+  public async disconnect(argv: any) {
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
+
+    await this.commandAction(
+      argv,
+      [
+        this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this)),
+        this.tasks.disconnectClusterRef(),
+        this.tasks.saveLocalConfig(),
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+      'cluster-ref disconnect',
       null,
     );
 
@@ -65,7 +90,7 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   public async list(argv: ArgvStruct): Promise<boolean> {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.NO_FLAGS);
 
     await this.commandAction(
       argv,
@@ -82,11 +107,11 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   public async info(argv: ArgvStruct): Promise<boolean> {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.DEFAULT_FLAGS);
 
     await this.commandAction(
       argv,
-      [this.tasks.getClusterInfo()],
+      [this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this.configs)), this.tasks.getClusterInfo()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -99,13 +124,14 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   public async setup(argv: ArgvStruct): Promise<boolean> {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.SETUP_FLAGS);
+
     try {
       await this.commandAction(
         argv,
         [
           this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs)),
-          this.tasks.prepareChartValues(),
+          this.tasks.prepareChartValues(argv),
           this.tasks.installClusterChart(argv),
         ],
         {
@@ -123,13 +149,14 @@ export class ClusterCommandHandlers extends CommandHandler {
   }
 
   public async reset(argv: ArgvStruct): Promise<boolean> {
-    argv = helpers.addFlagsToArgv(argv, ContextFlags.CONNECT_FLAGS);
+    argv = helpers.addFlagsToArgv(argv, ContextFlags.RESET_FLAGS);
+
     try {
       await this.commandAction(
         argv,
         [
           this.tasks.initialize(argv, this.configs.resetConfigBuilder.bind(this.configs)),
-          this.tasks.acquireNewLease(),
+          this.tasks.acquireNewLease(argv),
           this.tasks.uninstallClusterChart(argv),
         ],
         {

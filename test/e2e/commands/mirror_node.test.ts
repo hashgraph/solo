@@ -9,13 +9,13 @@ import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
   e2eTestSuite,
+  getTestCluster,
   HEDERA_PLATFORM_VERSION_TAG,
-  TEST_CLUSTER,
 } from '../../test_util.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror_node.js';
-import {Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
+import {PrivateKey, Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {PackageDownloader} from '../../../src/core/package_downloader.js';
@@ -29,6 +29,7 @@ import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {GENESIS_KEY} from '../../../src/core/constants.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -39,7 +40,7 @@ argv.setArg(flags.forcePortForward, true);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1'); // use a single node to reduce resource during e2e tests
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
-argv.setArg(flags.clusterRef, TEST_CLUSTER);
+argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
@@ -154,7 +155,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     it('Create topic and submit message should success', async () => {
       try {
         // Create a new public topic and submit a message
-        const txResponse = await new TopicCreateTransaction().execute(accountManager._nodeClient);
+        const txResponse = await new TopicCreateTransaction()
+          .setAdminKey(PrivateKey.fromStringED25519(GENESIS_KEY))
+          .execute(accountManager._nodeClient);
         const receipt = await txResponse.getReceipt(accountManager._nodeClient);
         newTopicId = receipt.topicId;
         mirrorNodeCmd.logger.debug(`Newly created topic ID is: ${newTopicId}`);

@@ -1512,7 +1512,7 @@ export class Flags {
   };
 
   static readonly context: CommandFlag = {
-    constName: 'contextName',
+    constName: 'context',
     name: 'context',
     definition: {
       describe: 'The Kubernetes context name to be used',
@@ -2052,6 +2052,53 @@ export class Flags {
     prompt: undefined,
   };
 
+  // --------------- Add Cluster --------------- //
+
+  static readonly enableCertManager: CommandFlag = {
+    constName: 'enableCertManager',
+    name: 'enable-cert-manager',
+    definition: {
+      describe: 'Pass the flag to enable cert manager',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  static readonly numberOfConsensusNodes: CommandFlag = {
+    constName: 'numberOfConsensusNodes',
+    name: 'num-consensus-nodes',
+    definition: {
+      describe: 'Used to specify desired number of consensus nodes for pre-genesis deployments',
+      type: 'number',
+    },
+    prompt: undefined,
+  };
+
+  static readonly dnsBaseDomain: CommandFlag = {
+    constName: 'dnsBaseDomain',
+    name: 'dns-base-domain',
+    definition: {
+      describe: 'Base domain for the DNS is the suffix used to construct the fully qualified domain name (FQDN)',
+      defaultValue: 'cluster.local',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  static readonly dnsConsensusNodePattern: CommandFlag = {
+    constName: 'dnsConsensusNodePattern',
+    name: 'dns-consensus-node-pattern',
+    definition: {
+      describe:
+        'Pattern to construct the prefix for the fully qualified domain name (FQDN) for the consensus node, ' +
+        'the suffix is provided by the --dns-base-domain option (ex. network-{nodeAlias}-svc.{namespace}.svc)',
+      defaultValue: 'network-{nodeAlias}-svc.{namespace}.svc',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
@@ -2167,6 +2214,10 @@ export class Flags {
     Flags.externalDatabaseOwnerPassword,
     Flags.externalDatabaseReadonlyUsername,
     Flags.externalDatabaseReadonlyPassword,
+    Flags.enableCertManager,
+    Flags.numberOfConsensusNodes,
+    Flags.dnsBaseDomain,
+    Flags.dnsConsensusNodePattern,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

@@ -4,7 +4,7 @@
 import {describe} from 'mocha';
 
 import {Flags} from '../../../src/commands/flags.js';
-import {getTestCacheDir, TEST_CLUSTER} from '../../test_util.js';
+import {getTestCacheDir, getTestCluster} from '../../test_util.js';
 import {getSoloVersion} from '../../../src/core/helpers.js';
 import * as constants from '../../../src/core/constants.js';
 import {main} from '../../../src/index.js';
@@ -30,7 +30,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   const namespace: NamespaceName = NamespaceName.of(testName);
   const deployment = `${testName}-deployment`;
   const testClusterRefs: ClusterRef[] = ['e2e-cluster-1', 'e2e-cluster-2'];
-  const testCluster = TEST_CLUSTER.includes('c1') ? TEST_CLUSTER : `${TEST_CLUSTER}-c1`;
+  const testCluster = getTestCluster().includes('c1') ? getTestCluster() : `${getTestCluster()}-c1`;
   const contexts: string[] = [`${testCluster}`, `${testCluster.replace('-c1', '-c2')}`];
   const nodeAliasesUnparsed = 'node1,node2';
   const nodeAliasesWithClusterRefsUnparsed = 'e2e-cluster-1=node1,e2e-cluster-2=node2';
@@ -79,7 +79,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   // solo deployment add-cluster --deployment(*) --cluster-ref(#) --enable-cert-manager
   //  --num-consensus-nodes N --dns-base-domain us-west-2.gcp.charlie.sphere
-  //  --dns-consensus-node-pattern "${nodeId}.consensus.prod"
+  //  --dns-consensus-node-pattern "{nodeId}.consensus.prod"
   //   1. Add the specified cluster-ref to the deployment
   //   2. Fail if the cluster-ref does not exist in the local configuration
   //   3. Fail if the deployment does not exist in the local configuration
@@ -93,9 +93,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   //   11. Saves the Remote Config to the ConfigMap in the namespace of the deployment for each cluster-ref added
 
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster1 --enable-cert-manager
-  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-${nodeAlias}-svc.${namespace}.svc
+  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster2 --enable-cert-manager
-  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-${nodeAlias}-svc.${namespace}.svc
+  //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
 
   // TODO remove once `solo cluster-ref connect' is implemented
   it(`${testName}: manually modify local config`, async () => {
@@ -231,6 +231,7 @@ async function manuallyCreateRemoteConfigConfigMap(
     deploymentName: ${deployment}
     lastUpdatedAt: 2025-02-14T22:10:13.586000Z
     lastUpdateBy: john@doe.com
+    state: "post-genesis"
     soloChartVersion: ""
     hederaPlatformVersion: ""
     hederaMirrorNodeChartVersion: ""
@@ -244,13 +245,13 @@ async function manuallyCreateRemoteConfigConfigMap(
       namespace: ${namespace.name}
       deployment: ${deployment}
       dnsBaseDomain: cluster.local
-      dnsConsensusNodePattern: network-\${nodeAlias}-svc.\${namespace}.svc
+      dnsConsensusNodePattern: network-{nodeAlias}-svc.{namespace}.svc
     ${testClusterRefs[1]}:
       name: ${testClusterRefs[1]}
       namespace: ${namespace.name}
       deployment: ${deployment}
       dnsBaseDomain: cluster.local
-      dnsConsensusNodePattern: network-\${nodeAlias}-svc.\${namespace}.svc
+      dnsConsensusNodePattern: network-{nodeAlias}-svc.{namespace}.svc
   components:
     relays: {}
     haProxies: {}

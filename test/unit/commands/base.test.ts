@@ -23,6 +23,7 @@ import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
 import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -160,7 +161,7 @@ describe('BaseCommand', () => {
 
       const mockecConsensusNodes = [
         new ConsensusNode(
-          'name',
+          'name' as NodeAlias,
           0,
           'namespace',
           'cluster',

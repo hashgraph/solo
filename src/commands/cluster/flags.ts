@@ -4,10 +4,16 @@
 
 import {Flags as flags} from '../flags.js';
 
-export const DEFAULT_FLAGS = {
+export const NO_FLAGS = {
   requiredFlags: [],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [],
+  optionalFlags: [flags.devMode, flags.quiet],
+};
+
+export const DEFAULT_FLAGS = {
+  requiredFlags: [flags.clusterRef],
+  requiredFlagsWithDisabledPrompt: [],
+  optionalFlags: [flags.devMode, flags.quiet],
 };
 
 export const SETUP_FLAGS = {
@@ -31,15 +37,7 @@ export const RESET_FLAGS = {
 };
 
 export const CONNECT_FLAGS = {
-  requiredFlags: [],
+  requiredFlags: [flags.clusterRef],
   requiredFlagsWithDisabledPrompt: [],
-  optionalFlags: [
-    flags.devMode,
-    flags.deployment,
-    flags.quiet,
-    flags.clusterRef,
-    flags.context,
-    flags.namespace,
-    flags.userEmailAddress,
-  ],
+  optionalFlags: [flags.devMode, flags.quiet, flags.context, flags.userEmailAddress],
 };
