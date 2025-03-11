@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {Exclude, Expose, Transform, TransformationType, type TransformFnParams, Type} from 'class-transformer';
+import {Exclude, Expose, Transform, Type} from 'class-transformer';
 import {SemVer} from 'semver';
 import {Deployment} from './deployment.js';
-import {UserIdentity} from './user_identity.js';
+import {Transformations} from '../utils/transformations.js';
+import {UserIdentity} from '../common/user_identity.js';
 
 @Exclude()
 export class LocalConfig {
@@ -11,16 +12,7 @@ export class LocalConfig {
   public schemaVersion: number;
 
   @Expose()
-  @Transform(({value, type}: TransformFnParams) => {
-    switch (type) {
-      case TransformationType.PLAIN_TO_CLASS:
-        return new SemVer(value);
-      case TransformationType.CLASS_TO_PLAIN:
-        return value.toString();
-      default:
-        return value;
-    }
-  })
+  @Transform(Transformations.SemVer)
   public soloVersion: SemVer;
 
   @Expose()
