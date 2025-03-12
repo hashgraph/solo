@@ -7,7 +7,6 @@ import {ComponentsDataWrapper} from './components_data_wrapper.js';
 import * as constants from '../../constants.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
 import {type ClusterRef, type RemoteConfigDataStructure, type Version} from './types.js';
-import type * as k8s from '@kubernetes/client-node';
 import {type ToObject, type Validate} from '../../../types/index.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type RemoteConfigData} from './remote_config_data.js';
