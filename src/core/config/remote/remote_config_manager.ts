@@ -29,6 +29,7 @@ import {ConsensusNode} from '../../model/consensus_node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 import {type DeploymentStates} from './enumerations.js';
+import {type ConfigMap} from '../../kube/resources/config_map/config_map.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -345,7 +346,7 @@ export class RemoteConfigManager {
    * @returns the remote configuration data.
    * @throws if the ConfigMap could not be read and the error is not a 404 status, will throw a SoloError {@link SoloError}
    */
-  public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<k8s.V1ConfigMap> {
+  public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<ConfigMap> {
     if (!namespace) {
       namespace = await this.getNamespace();
     }
