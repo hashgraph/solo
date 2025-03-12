@@ -17,22 +17,7 @@ function migrateVersionPrefix(version: string): string {
   return parts.join('.');
 }
 
-function migrate(plainObject: object): void {
-  plainObject['schemaVersion'] = 0;
-  const meta: object = plainObject['metadata'];
-  meta['lastUpdatedBy'] = {
-    name: os.userInfo().username,
-    hostname: os.hostname(),
-  };
-
-  const clusters: object = plainObject['clusters'];
-  const clustersArray: object[] = [];
-  for (const key in clusters) {
-    expect(clusters[key]).to.not.be.undefined.and.to.not.be.null;
-    const cluster = clusters[key];
-    clustersArray.push(cluster);
-  }
-
+function migrateVersions(plainObject: object) {
   plainObject['versions'] = {};
   plainObject['versions']['cli'] = migrateVersionPrefix(plainObject['metadata']?.['soloVersion'] || '0.0.0');
   plainObject['versions']['chart'] = migrateVersionPrefix(plainObject['metadata']?.['soloChartVersion'] || '0.0.0');
@@ -47,18 +32,42 @@ function migrate(plainObject: object): void {
       plainObject['flags']?.['hederaExplorerVersion'] ||
       '0.0.0',
   );
-
   plainObject['versions']['jsonRpcRelayChart'] = migrateVersionPrefix(
     plainObject['metadata']?.['hederaJsonRpcRelayChartVersion'] || plainObject['flags']?.['relayReleaseTag'] || '0.0.0',
   );
+}
 
+function migrateClusters(plainObject: object) {
+  const clusters: object = plainObject['clusters'];
+  const clustersArray: object[] = [];
+  for (const key in clusters) {
+    expect(clusters[key]).to.not.be.undefined.and.to.not.be.null;
+    const cluster = clusters[key];
+    clustersArray.push(cluster);
+  }
+  plainObject['clusters'] = clustersArray;
+}
+
+function migrateHistory(plainObject: object) {
   plainObject['history'] = {};
   plainObject['history']['commands'] = [];
   for (const historyItem of plainObject['commandHistory']) {
     plainObject['history']['commands'].push(historyItem);
   }
+}
 
-  plainObject['clusters'] = clustersArray;
+function migrate(plainObject: object): void {
+  plainObject['schemaVersion'] = 0;
+
+  const meta: object = plainObject['metadata'];
+  meta['lastUpdatedBy'] = {
+    name: os.userInfo().username,
+    hostname: os.hostname(),
+  };
+
+  migrateClusters(plainObject);
+  migrateVersions(plainObject);
+  migrateHistory(plainObject);
 }
 
 describe('RemoteConfig', () => {
