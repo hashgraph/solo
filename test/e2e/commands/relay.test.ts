@@ -28,7 +28,6 @@ argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
-argv.setArg(flags.quiet, true);
 
 e2eTestSuite(testName, argv, {}, bootstrapResp => {
   const {

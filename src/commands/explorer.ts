@@ -179,6 +179,7 @@ export class ExplorerCommand extends BaseCommand {
               flags.mirrorNamespace,
               flags.tlsClusterIssuerType,
               flags.valuesFile,
+              flags.profileFile,
             ]);
 
             await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);

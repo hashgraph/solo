@@ -32,7 +32,6 @@ describe('ClusterCommand', () => {
     logging.SoloLogger.prototype.showJSON.restore();
   });
 
-  const TEST_CONTEXT = getTestCluster();
   const TEST_CLUSTER = getTestCluster();
   const testName = 'cluster-cmd-e2e';
   const namespace = NamespaceName.of(testName);
@@ -43,7 +42,7 @@ describe('ClusterCommand', () => {
   argv.setArg(flags.nodeAliasesUnparsed, 'node1');
   argv.setArg(flags.generateGossipKeys, true);
   argv.setArg(flags.generateTlsKeys, true);
-  argv.setArg(flags.clusterRef, getTestCluster());
+  argv.setArg(flags.clusterRef, TEST_CLUSTER);
   argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
   argv.setArg(flags.force, true);
 
@@ -141,20 +140,19 @@ describe('ClusterCommand', () => {
 
   // helm list would return an empty list if given invalid namespace
   it('solo cluster reset should fail with invalid cluster name', async () => {
-    argv.setArg(flags.clusterSetupNamespace, 'INVALID');
+    const invalidArgv = argv.clone();
+    invalidArgv.setArg(flags.clusterSetupNamespace, 'INVALID');
 
     try {
-      await expect(
-        commandInvoker.invoke({
-          argv: argv,
-          command: ClusterCommand.COMMAND_NAME,
-          subcommand: 'reset',
-          callback: async argv => clusterCmd.handlers.reset(argv),
-        }),
-      ).to.be.rejectedWith('Error on cluster reset');
-    } catch (e) {
-      clusterCmd.logger.showUserError(e);
+      await commandInvoker.invoke({
+        argv: invalidArgv,
+        command: ClusterCommand.COMMAND_NAME,
+        subcommand: 'reset',
+        callback: async argv => clusterCmd.handlers.reset(argv),
+      });
       expect.fail();
+    } catch (e) {
+      expect(e.message).to.include('Error on cluster reset');
     }
   }).timeout(Duration.ofMinutes(1).toMillis());
 
@@ -172,7 +170,7 @@ describe('ClusterCommand', () => {
   // 'solo cluster-ref connect' tests
   function getClusterConnectDefaultArgv(): {argv: Argv; clusterRef: string; contextName: string} {
     const clusterRef = TEST_CLUSTER;
-    const contextName = TEST_CONTEXT;
+    const contextName = k8Factory.default().contexts().readCurrent();
 
     const argv = Argv.initializeEmpty();
     argv.setArg(flags.clusterRef, clusterRef);
