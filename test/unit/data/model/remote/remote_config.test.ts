@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {readFileSync} from 'fs';
-import {dumpYaml, loadYaml} from '@kubernetes/client-node';
+import {loadYaml} from '@kubernetes/client-node';
 import {expect} from 'chai';
 import {beforeEach} from 'mocha';
 import os from 'os';
