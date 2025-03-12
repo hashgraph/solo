@@ -5,25 +5,29 @@ import {LocalConfig} from '../../../model/local/local_config.js';
 import {type Version} from '../../../../../business/utils/version.js';
 import {type ClassConstructor} from '../../../../../business/utils/class_constructor.type.js';
 import {type SchemaMigration} from '../../api/schema_migration.js';
+import {injectable} from 'tsyringe-neo';
 
+@injectable()
 export class LocalConfigSchema implements Schema<LocalConfig> {
-  get name(): string {
+  public constructor() {}
+
+  public get name(): string {
     return LocalConfig.name;
   }
 
-  get version(): Version<number> {
+  public get version(): Version<number> {
     return LocalConfig.SCHEMA_VERSION;
   }
 
-  get classCtor(): ClassConstructor<LocalConfig> {
+  public get classCtor(): ClassConstructor<LocalConfig> {
     return LocalConfig;
   }
 
-  get migrations(): SchemaMigration[] {
+  public get migrations(): SchemaMigration[] {
     return [];
   }
 
-  transform(data: object, sourceVersion?: Version<number>): LocalConfig {
+  public transform(data: object, sourceVersion?: Version<number>): LocalConfig {
     return undefined;
   }
 }
