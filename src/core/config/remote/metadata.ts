@@ -2,7 +2,6 @@
 
 import {Migration} from './migration.js';
 import {SoloError} from '../../errors/SoloError.js';
-import * as k8s from '@kubernetes/client-node';
 import {
   type DeploymentName,
   type EmailAddress,
@@ -125,7 +124,7 @@ export class RemoteConfigMetadata
       namespace: this.namespace,
       deploymentName: this.deploymentName,
       state: this.state,
-      lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),
+      lastUpdatedAt: this.lastUpdatedAt,
       lastUpdateBy: this.lastUpdateBy,
       soloChartVersion: this.soloChartVersion,
       hederaPlatformVersion: this.hederaPlatformVersion,

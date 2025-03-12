@@ -8,8 +8,9 @@ import {inject, injectable} from 'tsyringe-neo';
 import {type K8Factory} from './kube/k8_factory.js';
 import {type Pod} from './kube/resources/pod/pod.js';
 import {type IngressClass} from './kube/resources/ingress_class/ingress_class.js';
-import {type V1Pod, type V1ConfigMap} from '@kubernetes/client-node';
+import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type ConfigMap} from './kube/resources/config_map/config_map.js';
 
 /**
  * Class to check if certain components are installed in the cluster.
@@ -79,7 +80,7 @@ export class ClusterChecks {
    */
   public async isRemoteConfigPresentInAnyNamespace() {
     try {
-      const configmaps: V1ConfigMap[] = await this.k8Factory
+      const configmaps: ConfigMap[] = await this.k8Factory
         .default()
         .configMaps()
         .listForAllNamespaces([constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
@@ -120,7 +121,7 @@ export class ClusterChecks {
    */
   public async isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean> {
     try {
-      const configmaps: V1ConfigMap[] = await this.k8Factory
+      const configmaps: ConfigMap[] = await this.k8Factory
         .default()
         .configMaps()
         .list(namespace, [constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
