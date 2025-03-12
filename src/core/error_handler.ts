@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {patchInject} from './dependency_injection/container_helper.js';

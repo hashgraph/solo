@@ -927,7 +927,7 @@ export class NodeCommandTasks {
               undefined,
               context,
             );
-          } catch (e: Error | any) {
+          } catch {
             ctx.config.skipStop = true;
           }
         },

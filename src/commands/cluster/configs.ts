@@ -66,7 +66,11 @@ export class ClusterCommandConfigs {
     }
 
     this.configManager.update(argv);
-    ctx.config = this.configManager.getConfig(ClusterCommandConfigs.CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
+    ctx.config = this.configManager.getConfig(
+      ClusterCommandConfigs.CONNECT_CONFIGS_NAME,
+      argv.flags,
+      [],
+    ) as ClusterRefConnectConfigClass;
     return ctx.config;
   }
 

@@ -99,7 +99,11 @@ export class InitCommand extends BaseCommand {
       },
     );
 
-    await tasks.run();
+    try {
+      await tasks.run();
+    } catch (e: Error | any) {
+      throw new SoloError('Error running init', e);
+    }
 
     return true;
   }

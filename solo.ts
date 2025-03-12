@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // SPDX-License-Identifier: Apache-2.0
 
+import sourceMapSupport from 'source-map-support';
+sourceMapSupport.install(); // Enable source maps for error stack traces
 import * as fnm from './src/index.js';
 import {type SoloLogger} from './src/core/logging.js';
 import {InjectTokens} from './src/core/dependency_injection/inject_tokens.js';
