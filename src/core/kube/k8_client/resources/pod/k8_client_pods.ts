@@ -61,9 +61,12 @@ export class K8ClientPods extends K8ClientBase implements Pods {
       Duration.ofMinutes(5).toMillis(),
     );
 
-    return this.filterItem(resp.body.items, {name: podRef.name.toString()})?.map((item: V1Pod) =>
-      K8ClientPod.fromV1Pod(item, this, this.kubeClient, this.kubeConfig),
-    )[0];
+    return K8ClientPod.fromV1Pod(
+      this.filterItem(resp.body.items, {name: podRef.name.toString()}),
+      this,
+      this.kubeClient,
+      this.kubeConfig,
+    );
   }
 
   public async list(namespace: NamespaceName, labels: string[]): Promise<Pod[]> {

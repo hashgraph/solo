@@ -214,8 +214,10 @@ export class K8ClientPod implements Pod {
   }
 
   public static fromV1Pod(v1Pod: V1Pod, pods: Pods, coreV1Api: CoreV1Api, kubeConfig: KubeConfig): Pod {
+    if (!v1Pod) return null;
+
     return new K8ClientPod(
-      PodRef.of(NamespaceName.of(v1Pod.metadata.namespace), PodName.of(v1Pod.metadata.name)),
+      PodRef.of(NamespaceName.of(v1Pod.metadata?.namespace), PodName.of(v1Pod.metadata?.name)),
       pods,
       coreV1Api,
       kubeConfig,
