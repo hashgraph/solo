@@ -1,15 +1,16 @@
 # Data Layer Architecture
 
-Solo internally maintains several critical path data models which support various features. 
-As of the v0.35 release train of Solo, these models are not clearly defined and documented. These 
-models are also intermingled in public/private API implementations, user input/output 
-implementations, business logic implementations, runtime introspection implementations, and other 
+Solo internally maintains several critical path data models which support various features.
+As of the v0.35 release train of Solo, these models are not clearly defined and documented. These
+models are also intermingled in public/private API implementations, user input/output
+implementations, business logic implementations, runtime introspection implementations, and other
 such areas.
 
 The goal of this document is to present a clear and concise definition of the internal data models
 and propose a plan to refactor the codebase to separate these models from the rest of the codebase.
 
-[todo]: <> (Move the problem statement and areas for improvement to the technical design doc)
+\[todo]: <> "Move the problem statement and areas for improvement to the technical design doc"
+
 ## Problem Statement
 
 The current state of the Solo codebase is such that the internal data models are not clearly defined
@@ -30,7 +31,7 @@ and documented. This leads to several issues:
 3. Distinction between types of internal data.
 4. Documentation of the internal data models.
 5. Separation of data objects used to read/write configuration from business objects used to represent the state of the system.
-6. Separation of internal objects model and persistence. 
+6. Separation of internal objects model and persistence.
 7. Schema Migration support (currently missing).
 
 ## Configuration
@@ -39,16 +40,16 @@ and documented. This leads to several issues:
 
 Solo uses a hierarchical configuration system to manage configuration values. Configuration values can
 be set in multiple places, and Solo follows a specific order of precedence to determine the effective
-value. 
+value.
 
 Configuration values can be set in the following places:
 
 * Default Values (constants)
-* Environment Variables 
+* Environment Variables
 * Local Configuration File
 * Remote Configuration File (Deployment Specific)
 
-The configuration values must be addressable using a hierarchical key syntax. Solo follows the 
+The configuration values must be addressable using a hierarchical key syntax. Solo follows the
 Eclipse MicroProfile Config Specification for the key syntax and other recommendations.
 
 All implementations should adhere to the following requirements:
@@ -70,18 +71,19 @@ All implementations should adhere to the following requirements:
 * Configuration key/value pairs must support mapping to strongly typed objects.
   * Implementations may provide an object mapper implementation, but it is not required.
 
-For example, the key `deployment.network.realm` represents a hierarchical structure with three 
-levels: `deployment`, `network`, and `realm`. The `realm` key has no children and has a directly 
-assigned value, so it is a leaf node in the hierarchy. The `network` key has children and a parent, 
+For example, the key `deployment.network.realm` represents a hierarchical structure with three
+levels: `deployment`, `network`, and `realm`. The `realm` key has no children and has a directly
+assigned value, so it is a leaf node in the hierarchy. The `network` key has children and a parent,
 so it is an intermediate node in the hierarchy. The `deployment` key has children but no parent, so
 it is a root node in the hierarchy.
 
-See the [Eclipse MicroProfile Config Specification](https://download.eclipse.org/microprofile/microprofile-config-3.1/microprofile-config-spec-3.1.html#_rationale) 
+See the [Eclipse MicroProfile Config Specification](https://download.eclipse.org/microprofile/microprofile-config-3.1/microprofile-config-spec-3.1.html#_rationale)
 for additional details and rationale.
 
 #### Configuration Format Examples
 
 ##### YAML
+
 ```yaml
 deployment:
   network:
@@ -89,6 +91,7 @@ deployment:
 ```
 
 ##### JSON
+
 ```json
 {
   "deployment": {
@@ -100,11 +103,13 @@ deployment:
 ```
 
 ##### Environment Variable
+
 ```bash
 export SOLO_DEPLOYMENT_NETWORK_REALM=1
 ```
 
 ##### Default Value
+
 ```typescript
 export class DeploymentConfig {
   public static readonly DEFAULT_NETWORK_REALM: number = 0;
@@ -113,9 +118,9 @@ export class DeploymentConfig {
 
 ### Order of Precedence
 
-A given configuration value can be set in multiple places. When a configuration value is set in 
+A given configuration value can be set in multiple places. When a configuration value is set in
 multiple places, Solo will follow a specific order of precedence to determine the effective value.
-Configuration sources with a higher precedence will override configuration sources with a lower 
+Configuration sources with a higher precedence will override configuration sources with a lower
 precedence. Complex configuration values (e.g., objects, arrays) will NOT be merged together and
 the higher precedence value will completely replace the lower precedence value.
 
@@ -175,6 +180,4 @@ In this case, the effective value of `deployment.network.realm` will be `1`.
 
 In this case, the effective value of `deployment.network.realm` will be `0`.
 
-
 ## Schema Migration
-

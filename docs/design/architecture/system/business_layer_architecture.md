@@ -30,37 +30,38 @@ Runtime state is broken down the following areas of concerns:
 ### Standards
 
 Solo depends on several types of internal state when executing business logic. The majority of this
-state is either projected or computed. In order to maintain consistency, clarity, and reusability 
-of the business logic, the runtime state needs to be clearly defined, properly encapsulated, 
+state is either projected or computed. In order to maintain consistency, clarity, and reusability
+of the business logic, the runtime state needs to be clearly defined, properly encapsulated,
 and well documented.
 
-Runtime state should be declared as a clearly defined interfaces and abstract classes designed for 
+Runtime state should be declared as a clearly defined interfaces and abstract classes designed for
 injection into other business logic components. The concrete implementations should never be directly
-referenced by any other system components. Construction of runtime state implementations may be 
-handled by injected factory classes. All logic necessary to construct the runtime state from 
+referenced by any other system components. Construction of runtime state implementations may be
+handled by injected factory classes. All logic necessary to construct the runtime state from
 the data layer, other business objects, the workflow layer, or the presentation layer should be
-self-contained within this model. Implementations of runtime state which represent data supplied by 
-other layers (eg: projected configuration) must be immutable. Mutations to configuration data from 
-mutable data sources (eg: local or remote configuration) should be handled by well-defined methods 
+self-contained within this model. Implementations of runtime state which represent data supplied by
+other layers (eg: projected configuration) must be immutable. Mutations to configuration data from
+mutable data sources (eg: local or remote configuration) should be handled by well-defined methods
 which delegate to the data layer.
 
-Computed state may or may be directly mutated. It is the responsibility of each interface or API 
+Computed state may or may be directly mutated. It is the responsibility of each interface or API
 to clearly define and communicate the mutability of the computed state for which the component is
-responsible. 
+responsible.
 
-Indirect user input originates from the workflow layer. The workflow layer is responsible for 
+Indirect user input originates from the workflow layer. The workflow layer is responsible for
 instantiating the appropriate objects and passing them to the business logic calls as required. It
 is the responsibility of the runtime state module to clearly define a well documented API for consumption
 by the workflow layer.
 
 All runtime state APIs must clearly separate the concerns of projected configuration, introspected
 state, computed state, and indirect user input. This separation is critical to ensure that the business
-logic is clear, concise, and maintainable. Additionally, this API should provide hints to both the 
-workflow layer and the business logic as to the type and source of a given piece of state. Within the 
+logic is clear, concise, and maintainable. Additionally, this API should provide hints to both the
+workflow layer and the business logic as to the type and source of a given piece of state. Within the
 major areas of concern, the runtime state API should separate data into logical groupings which represent
-a single area of responsibility (eg: deployment). 
+a single area of responsibility (eg: deployment).
 
-[todo]: <> (Move the X to the technical design doc)
+\[todo]: <> "Move the X to the technical design doc"
+
 #### Example API Definition (Interface)
 
 ```typescript

@@ -1,17 +1,16 @@
 # Architecture Overview
 
-
 ## N-Tier Design
 
 * Presentation Layer
-  * CLI Application 
+  * CLI Application
     * Prompted User Inputs
     * Command Line Arguments
   * RESTful API Server
     * HTTP Request Payloads and Query Strings
   * GitHub Actions
   * Electron UI Application
-* Workflow Layer 
+* Workflow Layer
   * Workflow Inputs
     * User Supplied Inputs
     * Business Layer Outputs
@@ -21,14 +20,14 @@
   * Workflow State
     * Computed
     * Business Layer Data Objects
-  * Facade Pattern for Underlying Workflow Engines 
-     * Listr2
-     * Headless
+  * Facade Pattern for Underlying Workflow Engines
+    * Listr2
+    * Headless
 * Business Layer (Discrete Low Level "god" Functions)
   * Deployment Model
     * Data Objects
     * Requirements API
-    * Components API 
+    * Components API
       * Rules
       * Templates
   * Deployment Migration
@@ -51,7 +50,7 @@
   * Error Handling
     * Standardized Error Classes
   * Runtime State
-    * Introspected 
+    * Introspected
     * Computed
     * Indirect User Supplied Input
 * Data Layer
