@@ -12,7 +12,6 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';

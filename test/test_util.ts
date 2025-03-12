@@ -21,7 +21,6 @@ import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/c
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
 import {type SoloLogger} from '../src/core/logging.js';
-import {type BaseCommand} from '../src/commands/base.js';
 import {type NodeAlias} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {type K8Factory} from '../src/core/kube/k8_factory.js';

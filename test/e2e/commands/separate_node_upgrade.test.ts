@@ -5,7 +5,6 @@ import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';

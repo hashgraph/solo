@@ -13,7 +13,6 @@ import {
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
-import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
