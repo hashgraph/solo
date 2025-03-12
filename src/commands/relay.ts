@@ -34,6 +34,8 @@ export class RelayCommand extends BaseCommand {
     this.accountManager = opts.accountManager;
   }
 
+  public static readonly COMMAND_NAME = 'relay';
+
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
   }
@@ -399,7 +401,7 @@ export class RelayCommand extends BaseCommand {
             } as RelayDestroyConfigClass;
 
             if (ctx.config.clusterRef) {
-              const context = self.getRemoteConfigManager().getClusterRefs()[ctx.config.clusterRef];
+              const context = self.remoteConfigManager.getClusterRefs()[ctx.config.clusterRef];
               if (context) ctx.config.context = context;
             }
 
@@ -454,7 +456,7 @@ export class RelayCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'relay',
+      command: RelayCommand.COMMAND_NAME,
       desc: 'Manage JSON RPC relays in solo network',
       builder: (yargs: any) => {
         return yargs

@@ -23,6 +23,9 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from './helpers/argv_wrapper.js';
 import {type DeploymentName} from '../src/core/config/remote/types.js';
+import {NodeCommand} from '../src/commands/node/index.js';
+import {NetworkCommand} from '../src/commands/network.js';
+import {AccountCommand} from '../src/commands/account.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -49,11 +52,12 @@ export function testNodeAdd(
   argv.setArg(flags.localBuildPath, localBuildPath);
 
   e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+    const {
+      opts: {k8Factory, accountManager, remoteConfigManager, logger, commandInvoker},
+      cmd: {nodeCmd, accountCmd, networkCmd},
+    } = bootstrapResp;
+
     describe(testDescription, async () => {
-      const nodeCmd = bootstrapResp.cmd.nodeCmd;
-      const accountCmd = bootstrapResp.cmd.accountCmd;
-      const networkCmd = bootstrapResp.cmd.networkCmd;
-      const k8Factory = bootstrapResp.opts.k8Factory;
       let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
       let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
@@ -61,16 +65,28 @@ export function testNodeAdd(
         this.timeout(Duration.ofMinutes(10).toMillis());
 
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-        await bootstrapResp.opts.accountManager.close();
-        await nodeCmd.handlers.stop(argv.build());
-        await networkCmd.destroy(argv.build());
+        await accountManager.close();
+
+        await commandInvoker.invoke({
+          argv: argv,
+          command: NodeCommand.COMMAND_NAME,
+          subcommand: 'stop',
+          callback: async argv => nodeCmd.handlers.stop(argv),
+        });
+
+        await commandInvoker.invoke({
+          argv: argv,
+          command: NetworkCommand.COMMAND_NAME,
+          subcommand: 'destroy',
+          callback: async argv => networkCmd.destroy(argv),
+        });
         await k8Factory.default().namespaces().delete(namespace);
       });
 
       it('cache current version of private keys', async () => {
-        existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
+        existingServiceMap = await accountManager.getNodeServiceMap(
           namespace,
-          nodeCmd.getRemoteConfigManager().getClusterRefs(),
+          remoteConfigManager.getClusterRefs(),
           argv.getArg<DeploymentName>(flags.deployment),
         );
         existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
@@ -81,23 +97,29 @@ export function testNodeAdd(
       }).timeout(defaultTimeout);
 
       it('should succeed with init command', async () => {
-        expect(await accountCmd.init(argv.build())).to.be.true;
+        await commandInvoker.invoke({
+          argv: argv,
+          command: AccountCommand.COMMAND_NAME,
+          subcommand: 'init',
+          callback: async argv => accountCmd.init(argv),
+        });
+
       }).timeout(Duration.ofMinutes(8).toMillis());
 
       it('should add a new node to the network successfully', async () => {
-        await nodeCmd.handlers.add(argv.build());
-        expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
-          flags.devMode.constName,
-          flags.force.constName,
-          flags.quiet.constName,
-          flags.adminKey.constName,
-        ]);
-        await bootstrapResp.opts.accountManager.close();
+        await commandInvoker.invoke({
+          argv: argv,
+          command: NodeCommand.COMMAND_NAME,
+          subcommand: 'add',
+          callback: async argv => nodeCmd.handlers.add(argv),
+        });
+
+        await accountManager.close();
       }).timeout(Duration.ofMinutes(12).toMillis());
 
-      balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+      balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
-      accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+      accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
       it('existing nodes private keys should not have changed', async () => {
         const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(

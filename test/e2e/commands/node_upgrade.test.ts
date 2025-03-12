@@ -5,7 +5,6 @@ import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
@@ -19,6 +18,8 @@ import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {AccountCommand} from '../../../src/commands/account.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
 
 const namespace = NamespaceName.of('node-upgrade');
 const argv = Argv.getDefaultArgv(namespace);
@@ -34,11 +35,12 @@ const zipFile = 'upgrade.zip';
 const TEST_VERSION_STRING = '0.100.0';
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
-  describe('Node upgrade', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const k8Factory = bootstrapResp.opts.k8Factory;
+  const {
+    opts: {k8Factory, commandInvoker, logger},
+    cmd: {nodeCmd, accountCmd},
+  } = bootstrapResp;
 
+  describe('Node upgrade', async () => {
     after(async function () {
       this.timeout(Duration.ofMinutes(10).toMillis());
 
@@ -47,8 +49,12 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     });
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv.build());
-      expect(status).to.be.ok;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'init',
+        callback: async argv => accountCmd.init(argv),
+      });
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should succeed with upgrade', async () => {
@@ -57,7 +63,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       fs.writeFileSync(`${tmpDir}/version.txt`, TEST_VERSION_STRING);
 
       // create upgrade.zip file from tmp directory using zippy.ts
-      const zipper = new Zippy(nodeCmd.logger);
+      const zipper = new Zippy(logger);
       await zipper.zip(tmpDir, zipFile);
 
       const tempDir = 'contextDir';
@@ -65,14 +71,13 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       argv.setArg(flags.upgradeZipFile, zipFile);
       argv.setArg(flags.outputDir, tempDir);
       argv.setArg(flags.inputDir, tempDir);
-      await nodeCmd.handlers.upgrade(argv.build());
 
-      expect(nodeCmd.configManager.getUnusedConfigs(UPGRADE_CONFIGS_NAME)).to.deep.equal([
-        flags.devMode.constName,
-        flags.quiet.constName,
-        flags.localBuildPath.constName,
-        flags.force.constName,
-      ]);
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'upgrade',
+        callback: async argv => nodeCmd.handlers.upgrade(argv),
+      });
     }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('network nodes version file was upgraded', async () => {

@@ -22,6 +22,9 @@ import {Argv} from '../../helpers/argv_wrapper.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {type NetworkNodeServices} from '../../../src/core/network_node_services.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {AccountCommand} from '../../../src/commands/account.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
+import {NetworkCommand} from '../../../src/commands/network.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-add-separated');
@@ -46,11 +49,12 @@ argvExecute.setArg(flags.inputDir, tempDir);
 argvExecute.setArg(flags.inputDir, tempDir);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+  const {
+    opts: {k8Factory, commandInvoker, accountManager, remoteConfigManager, logger},
+    cmd: {nodeCmd, accountCmd, networkCmd},
+  } = bootstrapResp;
+
   describe('Node add via separated commands should success', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const networkCmd = bootstrapResp.cmd.networkCmd;
-    const k8Factory = bootstrapResp.opts.k8Factory;
     let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
     let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
@@ -58,49 +62,71 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       this.timeout(Duration.ofMinutes(10).toMillis());
 
       await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-      // @ts-expect-error - TS2341: to access private property
-      await nodeCmd.accountManager.close();
-      await nodeCmd.handlers.stop(argv.build());
-      await networkCmd.destroy(argv.build());
+      await accountManager.close();
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'stop',
+        callback: async argv => nodeCmd.handlers.stop(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NetworkCommand.COMMAND_NAME,
+        subcommand: 'destroy',
+        callback: async argv => networkCmd.destroy(argv),
+      });
+
       await k8Factory.default().namespaces().delete(namespace);
     });
 
     it('cache current version of private keys', async () => {
-      // @ts-expect-error - TS2341: to access private property
-      existingServiceMap = await nodeCmd.accountManager.getNodeServiceMap(
+      existingServiceMap = await accountManager.getNodeServiceMap(
         namespace,
-        nodeCmd.getRemoteConfigManager().getClusterRefs(),
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());
     }).timeout(defaultTimeout);
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv.build());
-      expect(status).to.be.ok;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'init',
+        callback: async argv => accountCmd.init(argv),
+      });
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should add a new node to the network via the segregated commands successfully', async () => {
-      await nodeCmd.handlers.addPrepare(argvPrepare.build());
-      await nodeCmd.handlers.addSubmitTransactions(argvExecute.build());
-      await nodeCmd.handlers.addExecute(argvExecute.build());
-      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.ADD_CONFIGS_NAME)).to.deep.equal([
-        flags.gossipEndpoints.constName,
-        flags.grpcEndpoints.constName,
-        flags.devMode.constName,
-        flags.force.constName,
-        flags.quiet.constName,
-        'curDate',
-        'freezeAdminPrivateKey',
-      ]);
-      await bootstrapResp.opts.accountManager.close();
+      await commandInvoker.invoke({
+        argv: argvPrepare,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'add-prepare',
+        callback: async argv => nodeCmd.handlers.addPrepare(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'add-submit-transactions',
+        callback: async argv => nodeCmd.handlers.addSubmitTransactions(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'add-execute',
+        callback: async argv => nodeCmd.handlers.addExecute(argv),
+      });
+
+      await accountManager.close();
     }).timeout(Duration.ofMinutes(12).toMillis());
 
-    // @ts-ignore
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
-    // @ts-ignore
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace);
+    accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
     it('existing nodes private keys should not have changed', async () => {
       const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(

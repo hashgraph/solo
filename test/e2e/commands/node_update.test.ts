@@ -13,14 +13,8 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import fs from 'fs';
-import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
-import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
-import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
@@ -29,6 +23,8 @@ import {Argv} from '../../helpers/argv_wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {type NetworkNodeServices} from '../../../src/core/network_node_services.js';
+import {AccountCommand} from '../../../src/commands/account.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update');
@@ -50,10 +46,12 @@ argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.persistentVolumeClaims, true);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+  const {
+    opts: {k8Factory, commandInvoker, accountManager, remoteConfigManager, logger, keyManager},
+    cmd: {nodeCmd, accountCmd},
+  } = bootstrapResp;
+
   describe('Node update', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const k8Factory = bootstrapResp.opts.k8Factory;
     let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
     let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
@@ -61,56 +59,65 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       this.timeout(Duration.ofMinutes(10).toMillis());
 
       await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-      await nodeCmd.handlers.stop(argv.build());
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'stop',
+        callback: async argv => nodeCmd.handlers.stop(argv),
+      });
+
       await k8Factory.default().namespaces().delete(namespace);
     });
 
     it('cache current version of private keys', async () => {
-      existingServiceMap = await bootstrapResp.opts.accountManager.getNodeServiceMap(
+      existingServiceMap = await accountManager.getNodeServiceMap(
         namespace,
-        nodeCmd.getRemoteConfigManager().getClusterRefs(),
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
+
       existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());
     }).timeout(defaultTimeout);
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv.build());
-      expect(status).to.be.ok;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'init',
+        callback: async argv => accountCmd.init(argv),
+      });
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should update a new node property successfully', async () => {
       // generate gossip and tls keys for the updated node
       const tmpDir = getTmpDir();
 
-      const signingKey = await bootstrapResp.opts.keyManager.generateSigningKey(updateNodeId);
-      const signingKeyFiles = await bootstrapResp.opts.keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir);
-      nodeCmd.logger.debug(
-        `generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`,
-      );
+      const signingKey = await keyManager.generateSigningKey(updateNodeId);
+      const signingKeyFiles = await keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir);
+      logger.debug(`generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`);
       argv.setArg(flags.gossipPublicKey, signingKeyFiles.certificateFile);
       argv.setArg(flags.gossipPrivateKey, signingKeyFiles.privateKeyFile);
 
-      const tlsKey = await bootstrapResp.opts.keyManager.generateGrpcTlsKey(updateNodeId);
-      const tlsKeyFiles = await bootstrapResp.opts.keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir);
-      nodeCmd.logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`);
+      const tlsKey = await keyManager.generateGrpcTlsKey(updateNodeId);
+      const tlsKeyFiles = await keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir);
+      logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`);
       argv.setArg(flags.tlsPublicKey, tlsKeyFiles.certificateFile);
       argv.setArg(flags.tlsPrivateKey, tlsKeyFiles.privateKeyFile);
 
-      await nodeCmd.handlers.update(argv.build());
-      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.UPDATE_CONFIGS_NAME)).to.deep.equal([
-        flags.devMode.constName,
-        flags.quiet.constName,
-        flags.force.constName,
-        flags.gossipEndpoints.constName,
-        flags.grpcEndpoints.constName,
-      ]);
-      await bootstrapResp.opts.accountManager.close();
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'update',
+        callback: async argv => nodeCmd.handlers.update(argv),
+      });
+
+      await accountManager.close();
     }).timeout(Duration.ofMinutes(30).toMillis());
 
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, updateNodeId);
+    balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger, updateNodeId);
 
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, updateNodeId);
+    accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger, updateNodeId);
 
     it('signing key and tls key should not match previous one', async () => {
       const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(

@@ -5,7 +5,6 @@ import {describe} from 'mocha';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getTestCluster} from '../../test_util.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
@@ -36,11 +35,9 @@ argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node for platform app should start successfully', () => {
-    let k8Factory: K8Factory;
-
-    before(() => {
-      k8Factory = bootstrapResp.opts.k8Factory;
-    });
+    const {
+      opts: {k8Factory},
+    } = bootstrapResp;
 
     it('get the logs and delete the namespace', async () => {
       await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);

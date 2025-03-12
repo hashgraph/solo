@@ -16,7 +16,6 @@ import {Argv} from '../../helpers/argv_wrapper.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';
-import {AccountCommand} from '../../../src/commands/account.js';
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 
 describe('ClusterCommand', () => {

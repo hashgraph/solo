@@ -182,13 +182,6 @@ export function bootstrapTestVariables(
     commandInvoker,
   };
 
-  const initCmd: InitCommand = initCmdArg || new InitCommand(opts);
-  const clusterCmd: ClusterCommand = clusterCmdArg || new ClusterCommand(opts);
-  const networkCmd: NetworkCommand = networkCmdArg || new NetworkCommand(opts);
-  const nodeCmd: NodeCommand = nodeCmdArg || new NodeCommand(opts);
-  const accountCmd: AccountCommand = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
-  const deploymentCmd: DeploymentCommand = deploymentCmdArg || new DeploymentCommand(opts);
-
   return {
     namespace,
     deployment,
@@ -197,12 +190,12 @@ export function bootstrapTestVariables(
       accountManager,
     },
     cmd: {
-      initCmd,
-      clusterCmd,
-      networkCmd,
-      nodeCmd,
-      accountCmd,
-      deploymentCmd,
+      initCmd: initCmdArg || new InitCommand(opts),
+      clusterCmd: clusterCmdArg || new ClusterCommand(opts),
+      networkCmd: networkCmdArg || new NetworkCommand(opts),
+      nodeCmd: nodeCmdArg || new NodeCommand(opts),
+      accountCmd: accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS),
+      deploymentCmd: deploymentCmdArg || new DeploymentCommand(opts),
     },
   };
 }
@@ -221,7 +214,7 @@ export function e2eTestSuite(
     startNodes,
   }: Cmd & {startNodes?: boolean},
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
-) {
+): void {
   if (typeof startNodes !== 'boolean') startNodes = true;
 
   const bootstrapResp = bootstrapTestVariables(testName, argv, {
@@ -382,7 +375,7 @@ export function balanceQueryShouldSucceed(
   remoteConfigManager: RemoteConfigManager,
   logger: SoloLogger,
   skipNodeAlias?: NodeAlias,
-) {
+): void {
   it('Balance query should succeed', async () => {
     try {
       const argv = Argv.getDefaultArgv(namespace);
@@ -411,17 +404,18 @@ export function balanceQueryShouldSucceed(
 
 export function accountCreationShouldSucceed(
   accountManager: AccountManager,
-  nodeCmd: BaseCommand,
   namespace: NamespaceName,
+  remoteConfigManager: RemoteConfigManager,
+  logger: SoloLogger,
   skipNodeAlias?: NodeAlias,
-) {
+): void {
   it('Account creation should succeed', async () => {
     try {
       const argv = Argv.getDefaultArgv(namespace);
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        nodeCmd.getRemoteConfigManager().getClusterRefs(),
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -445,7 +439,7 @@ export function accountCreationShouldSucceed(
       expect(accountInfo.accountId).not.to.be.null;
       expect(accountInfo.balance).to.equal(amount);
     } catch (e) {
-      nodeCmd.logger.showUserError(e);
+      logger.showUserError(e);
       expect.fail();
     }
   }).timeout(Duration.ofMinutes(2).toMillis());
@@ -497,7 +491,7 @@ async function addKeyHashToMap(
   uniqueNodeDestDir: string,
   keyHashMap: Map<string, string>,
   privateKeyFileName: string,
-) {
+): Promise<void> {
   await k8Factory
     .default()
     .containers()

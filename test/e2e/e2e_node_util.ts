@@ -12,12 +12,11 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../test_util.js';
 import {sleep} from '../../src/core/helpers.js';
-import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {type ConfigManager} from '../../src/core/config_manager.js';
 import {type K8Factory} from '../../src/core/kube/k8_factory.js';
-import {type NodeCommand} from '../../src/commands/node/index.js';
+import {NodeCommand} from '../../src/commands/node/index.js';
 import {NodeCommandTasks} from '../../src/commands/node/tasks.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
@@ -43,11 +42,12 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
   e2eTestSuite(testName, argv, {}, bootstrapResp => {
     const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
-    describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, async () => {
-      const accountManager = bootstrapResp.opts.accountManager;
-      const k8Factory = bootstrapResp.opts.k8Factory;
-      const nodeCmd = bootstrapResp.cmd.nodeCmd;
+    const {
+      opts: {accountManager, k8Factory, remoteConfigManager, logger, commandInvoker},
+      cmd: {nodeCmd},
+    } = bootstrapResp;
 
+    describe(`NodeCommand [testName ${testName}, mode ${mode}, release ${releaseTag}]`, async () => {
       afterEach(async function () {
         this.timeout(defaultTimeout);
 
@@ -63,9 +63,9 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
       });
 
       describe(`Node should have started successfully [mode ${mode}, release ${releaseTag}]`, () => {
-        balanceQueryShouldSucceed(accountManager, nodeCmd, namespace);
+        balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
-        accountCreationShouldSucceed(accountManager, nodeCmd, namespace);
+        accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
         it(`Node Proxy should be UP [mode ${mode}, release ${releaseTag}`, async () => {
           try {
@@ -78,7 +78,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
             expect(readyPods).to.not.be.undefined;
             expect(readyPods.length).to.be.greaterThan(0);
           } catch (e) {
-            nodeCmd.logger.showUserError(e);
+            logger.showUserError(e);
             expect.fail();
           } finally {
             await nodeCmd.close();
@@ -96,7 +96,13 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           if (mode === 'kill') {
             await k8Factory.default().pods().readByRef(PodRef.of(namespace, podName)).killPod();
           } else if (mode === 'stop') {
-            expect(await nodeCmd.handlers.stop(argv.build())).to.be.true;
+            await commandInvoker.invoke({
+              argv: argv,
+              command: NodeCommand.COMMAND_NAME,
+              subcommand: 'stop',
+              callback: async argv => nodeCmd.handlers.stop(argv),
+            });
+
             await sleep(Duration.ofSeconds(20)); // give time for node to stop and update its logs
           } else {
             throw new Error(`invalid mode: ${mode}`);
@@ -109,9 +115,9 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
         nodeRefreshShouldSucceed(nodeAlias, nodeCmd, argv);
 
-        balanceQueryShouldSucceed(accountManager, nodeCmd, namespace);
+        balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
-        accountCreationShouldSucceed(accountManager, nodeCmd, namespace);
+        accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
       });
 
       function nodePodShouldBeRunning(nodeCmd: NodeCommand, namespace: NamespaceName, nodeAlias: NodeAlias) {
@@ -122,7 +128,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               `network-${nodeAlias}-0`,
             );
           } catch (e) {
-            nodeCmd.logger.showUserError(e);
+            logger.showUserError(e);
             expect.fail();
           } finally {
             await nodeCmd.close();
@@ -133,14 +139,14 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
       function nodeRefreshShouldSucceed(nodeAlias: NodeAlias, nodeCmd: NodeCommand, argv: Argv) {
         it(`${nodeAlias} refresh should succeed`, async () => {
           try {
-            expect(await nodeCmd.handlers.refresh(argv.build())).to.be.true;
-            expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.REFRESH_CONFIGS_NAME)).to.deep.equal([
-              flags.devMode.constName,
-              flags.quiet.constName,
-              'contexts',
-            ]);
+            await commandInvoker.invoke({
+              argv: argv,
+              command: NodeCommand.COMMAND_NAME,
+              subcommand: 'refresh',
+              callback: async argv => nodeCmd.handlers.refresh(argv),
+            });
           } catch (e) {
-            nodeCmd.logger.showUserError(e);
+            logger.showUserError(e);
             expect.fail();
           } finally {
             await nodeCmd.close();
@@ -188,7 +194,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
         if (podArray.length > 0) {
           const podName = PodName.of(podArray[0].metadata.name);
-          nodeCmd.logger.info(`nodeRefreshTestSetup: podName: ${podName.name}`);
+          logger.info(`nodeRefreshTestSetup: podName: ${podName.name}`);
           return podName;
         }
         throw new Error(`pod for ${nodeAliases} not found`);

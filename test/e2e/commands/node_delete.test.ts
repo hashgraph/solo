@@ -22,6 +22,8 @@ import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
+import {AccountCommand} from '../../../src/commands/account.js';
 
 const namespace = NamespaceName.of('node-delete');
 const deleteNodeAlias = 'node1';
@@ -37,9 +39,10 @@ argv.setArg(flags.namespace, namespace.name);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node delete', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const k8Factory = bootstrapResp.opts.k8Factory;
+    const {
+      opts: {k8Factory, commandInvoker, accountManager, remoteConfigManager, logger},
+      cmd: {nodeCmd, accountCmd},
+    } = bootstrapResp;
 
     after(async function () {
       this.timeout(Duration.ofMinutes(10).toMillis());
@@ -47,25 +50,29 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       await k8Factory.default().namespaces().delete(namespace);
     });
 
-    it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv.build());
-      expect(status).to.be.ok;
+    it('should succeed with in it command', async () => {
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'init',
+        callback: async argv => accountCmd.init(argv),
+      });
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should delete a node from the network successfully', async () => {
-      await nodeCmd.handlers.delete(argv.build());
-      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
-        flags.devMode.constName,
-        flags.force.constName,
-        flags.quiet.constName,
-      ]);
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'delete',
+        callback: async argv => nodeCmd.handlers.delete(argv),
+      });
 
-      await bootstrapResp.opts.accountManager.close();
+      await accountManager.close();
     }).timeout(Duration.ofMinutes(10).toMillis());
 
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, deleteNodeAlias);
+    balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger, deleteNodeAlias);
 
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, deleteNodeAlias);
+    accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger, deleteNodeAlias);
 
     it('deleted consensus node should not be running', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias

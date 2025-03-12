@@ -6,21 +6,19 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getTestCluster} from '../../test_util.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
-import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
 import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {Duration} from '../../../src/core/time/duration.js';
-import {type NodeCommand} from '../../../src/commands/node/index.js';
-import {type AccountCommand} from '../../../src/commands/account.js';
-import {type AccountManager} from '../../../src/core/account_manager.js';
+import {AccountCommand} from '../../../src/commands/account.js';
 import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
 
 const namespace = NamespaceName.of('local-hedera-app');
 const argv = Argv.getDefaultArgv(namespace);
@@ -30,7 +28,6 @@ argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.clusterRef, getTestCluster());
 
-let k8Factory: K8Factory;
 console.log('Starting local build for Hedera app');
 argv.setArg(
   flags.localBuildPath,
@@ -41,23 +38,17 @@ argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node for hedera app should have started successfully', () => {
-    let nodeCmd: NodeCommand;
-    let accountCmd: AccountCommand;
-    let accountManager: AccountManager;
-
-    before(() => {
-      nodeCmd = bootstrapResp.cmd.nodeCmd;
-      accountCmd = bootstrapResp.cmd.accountCmd;
-      accountManager = bootstrapResp.manager.accountManager;
-      k8Factory = bootstrapResp.opts.k8Factory;
-    });
+    const {
+      opts: {k8Factory, commandInvoker, remoteConfigManager},
+      cmd: {nodeCmd, accountCmd},
+      manager: {accountManager},
+    } = bootstrapResp;
 
     it('save the state and restart the node with saved state', async () => {
       // create an account so later we can verify its balance after restart
-      const clusterRefs: ClusterRefs = nodeCmd.getRemoteConfigManager().getClusterRefs();
       await accountManager.loadNodeClient(
         namespace,
-        clusterRefs,
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
         argv.getArg<boolean>(flags.forcePortForward),
       );
@@ -78,22 +69,52 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       };
 
       // create more transactions to save more round of states
-      await accountCmd.create(argv.build());
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'create',
+        callback: async argv => accountCmd.create(argv),
+      });
+
       await sleep(Duration.ofMillis(3));
-      await accountCmd.create(argv.build());
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'create',
+        callback: async argv => accountCmd.create(argv),
+      });
+
       await sleep(Duration.ofMillis(3));
 
       // stop network and save the state
-      await nodeCmd.handlers.stop(argv.build());
-      await nodeCmd.handlers.states(argv.build());
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'stop',
+        callback: async argv => nodeCmd.handlers.stop(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'states',
+        callback: async argv => nodeCmd.handlers.states(argv),
+      });
 
       argv.setArg(flags.stateFile, path.join(SOLO_LOGS_DIR, namespace.name, 'network-node1-0-state.zip'));
-      await nodeCmd.handlers.start(argv.build());
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'start',
+        callback: async argv => nodeCmd.handlers.start(argv),
+      });
 
       // check balance of accountInfo.accountId
       await accountManager.loadNodeClient(
         namespace,
-        clusterRefs,
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
         argv.getArg<boolean>(flags.forcePortForward),
       );

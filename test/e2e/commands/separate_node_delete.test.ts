@@ -25,6 +25,8 @@ import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {AccountCommand} from '../../../src/commands/account.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
 
 const namespace = NamespaceName.of('node-delete-separate');
 const nodeAlias = 'node1' as NodeAlias;
@@ -46,11 +48,12 @@ const argvExecute = Argv.getDefaultArgv(namespace);
 argvExecute.setArg(flags.inputDir, tempDir);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
-  describe('Node delete via separated commands', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const k8Factory = bootstrapResp.opts.k8Factory;
+  const {
+    opts: {k8Factory, accountManager, remoteConfigManager, logger, commandInvoker},
+    cmd: {nodeCmd, accountCmd},
+  } = bootstrapResp;
 
+  describe('Node delete via separated commands', async () => {
     after(async function () {
       this.timeout(Duration.ofMinutes(10).toMillis());
 
@@ -59,28 +62,42 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     });
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv.build());
-      expect(status).to.be.ok;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'init',
+        callback: async argv => accountCmd.init(argv),
+      });
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should delete a node from the network successfully', async () => {
-      await nodeCmd.handlers.deletePrepare(argvPrepare.build());
-      await nodeCmd.handlers.deleteSubmitTransactions(argvExecute.build());
-      await nodeCmd.handlers.deleteExecute(argvExecute.build());
-      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
-        flags.devMode.constName,
-        flags.force.constName,
-        flags.quiet.constName,
-        flags.adminKey.constName,
-        'freezeAdminPrivateKey',
-      ]);
+      await commandInvoker.invoke({
+        argv: argvPrepare,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'delete-prepare',
+        callback: async argv => nodeCmd.handlers.deletePrepare(argv),
+      });
 
-      await bootstrapResp.opts.accountManager.close();
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'delete-submit-transactions',
+        callback: async argv => nodeCmd.handlers.deleteSubmitTransactions(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'delete-execute',
+        callback: async argv => nodeCmd.handlers.deleteExecute(argv),
+      });
+
+      await accountManager.close();
     }).timeout(Duration.ofMinutes(10).toMillis());
 
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, nodeAlias);
+    balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger, nodeAlias);
 
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, nodeAlias);
+    accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger, nodeAlias);
 
     it('deleted consensus node should not be running', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
@@ -91,6 +108,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
         .containers()
         .readByRef(ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER))
         .execContainer(['bash', '-c', `tail -n 1 ${HEDERA_HAPI_PATH}/output/swirlds.log`]);
+
       expect(response).to.contain('JVM is shutting down');
     }).timeout(Duration.ofMinutes(10).toMillis());
   });

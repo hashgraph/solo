@@ -26,10 +26,9 @@ import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {GENESIS_KEY} from '../../../src/core/constants.js';
-import {AccountCommand} from '../../../src/commands/account.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -56,7 +55,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
     const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
-    const downloader = new PackageDownloader(mirrorNodeCmd.logger);
+    const downloader = new PackageDownloader(logger);
 
     const testMessage = 'Mirror node test message';
     let portForwarder = null;
@@ -171,8 +170,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     }).timeout(Duration.ofMinutes(1).toMillis());
 
     // trigger some extra transactions to trigger MirrorNode to fetch the transactions
-    accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace);
-    accountCreationShouldSucceed(accountManager, mirrorNodeCmd, namespace);
+    accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
+    accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
     it('Check submit message result should success', async () => {
       try {
