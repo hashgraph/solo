@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import {pipeline as streamPipeline} from 'node:stream/promises';

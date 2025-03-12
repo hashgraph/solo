@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import chalk from 'chalk';
 import {BaseCommand, type Opts} from './base.js';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
@@ -11,8 +10,8 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import * as helpers from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
-import {ListrLease} from '../core/lease/listr_lease.js';
-import {type AnyArgv, type AnyYargs, type NodeAliases} from '../types/aliases.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
+import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
@@ -193,7 +192,7 @@ export class AccountCommand extends BaseCommand {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount);
   }
 
-  public async init(argv: AnyArgv): Promise<boolean> {
+  public async init(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     interface Config {
@@ -413,14 +412,14 @@ export class AccountCommand extends BaseCommand {
     } finally {
       await this.closeConnections();
       // create two accounts to force the handler to trigger
-      await self.create({});
-      await self.create({});
+      await self.create({} as ArgvStruct);
+      await self.create({} as ArgvStruct);
     }
 
     return true;
   }
 
-  public async create(argv: AnyArgv): Promise<boolean> {
+  public async create(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
@@ -487,7 +486,7 @@ export class AccountCommand extends BaseCommand {
               config.contextName,
             );
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -535,7 +534,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  public async update(argv: AnyArgv): Promise<boolean> {
+  public async update(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     const tasks = new Listr<UpdateAccountContext>(
@@ -623,7 +622,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  public async get(argv: AnyArgv): Promise<boolean> {
+  public async get(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     interface Config {
@@ -718,7 +717,7 @@ export class AccountCommand extends BaseCommand {
             command: 'init',
             desc: 'Initialize system accounts with new keys',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.INIT_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
 
@@ -737,7 +736,7 @@ export class AccountCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be generated for you, otherwise you may supply either a ECDSA or ED25519 private key',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.CREATE_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account create' ===");
               self.logger.info(argv);
 
@@ -756,7 +755,7 @@ export class AccountCommand extends BaseCommand {
             command: 'update',
             desc: 'Updates an existing account with the provided info, if you want to update the private key, you can supply either ECDSA or ED25519 but not both\n',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.UPDATE_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account update' ===");
               self.logger.info(argv);
 
@@ -775,7 +774,7 @@ export class AccountCommand extends BaseCommand {
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.GET_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);
 

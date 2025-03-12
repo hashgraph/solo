@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {registerDecorator, type ValidationOptions, type ValidationArguments} from 'class-validator';
 
 const isObject = obj => obj === Object(obj);

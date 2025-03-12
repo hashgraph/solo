@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ObjectMeta} from '../../resources/object_meta.js';
 import {type NamespaceName} from '../../resources/namespace/namespace_name.js';
 

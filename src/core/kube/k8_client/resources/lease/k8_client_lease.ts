@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {V1Lease, V1LeaseSpec, V1MicroTime, V1ObjectMeta} from '@kubernetes/client-node';
 import {type Lease} from '../../../resources/lease/lease.js';
 import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
@@ -9,7 +8,7 @@ export class K8ClientLease implements Lease {
   public constructor(
     public readonly namespace: NamespaceName,
     public readonly leaseName: string,
-    public readonly holderName: string,
+    public readonly holderIdentity: string,
     public readonly durationSeconds: number,
     public readonly acquireTime?: Date,
     public readonly renewTime?: Date,
@@ -38,7 +37,7 @@ export class K8ClientLease implements Lease {
     v1Lease.metadata = metadata;
 
     const spec: V1LeaseSpec = new V1LeaseSpec();
-    spec.holderIdentity = lease.holderName;
+    spec.holderIdentity = lease.holderIdentity;
     spec.leaseDurationSeconds = lease.durationSeconds;
     spec.acquireTime = lease.acquireTime || new V1MicroTime();
     spec.renewTime = lease.renewTime;

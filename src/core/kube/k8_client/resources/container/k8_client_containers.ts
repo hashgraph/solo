@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Containers} from '../../../resources/container/containers.js';
 import {type ContainerRef} from '../../../resources/container/container_ref.js';
 import {type Container} from '../../../resources/container/container.js';

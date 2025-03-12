@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type K8Factory} from '../k8_factory.js';
 import {type K8} from '../k8.js';
 import {K8Client} from './k8_client.js';

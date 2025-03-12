@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {testNodeAdd} from '../../test_add.js';
 import {Duration} from '../../../src/core/time/duration.js';
 

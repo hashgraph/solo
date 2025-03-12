@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {MissingArgumentError} from '../errors.js';
 import os from 'node:os';
@@ -10,7 +8,7 @@ import process from 'node:process';
  * A representation of a leaseholder who is identified by a username, hostname, and process id (PID). This implementation
  * is serializable to/from a JSON object and is comparable to other leaseholders.
  */
-export class LeaseHolder {
+export class LockHolder {
   /** The user's identity which is typically the OS login username. */
   private readonly _username: string;
 
@@ -44,8 +42,8 @@ export class LeaseHolder {
    * @param username - the user's identity.
    * @returns a new leaseholder instance.
    */
-  public static of(username: string): LeaseHolder {
-    return new LeaseHolder(username, os.hostname(), process.pid);
+  public static of(username: string): LockHolder {
+    return new LockHolder(username, os.hostname(), process.pid);
   }
 
   /**
@@ -53,8 +51,8 @@ export class LeaseHolder {
    * current process's PID.
    * @returns a new leaseholder instance.
    */
-  public static default(): LeaseHolder {
-    return LeaseHolder.of(os.userInfo().username);
+  public static default(): LockHolder {
+    return LockHolder.of(os.userInfo().username);
   }
 
   /**
@@ -99,7 +97,7 @@ export class LeaseHolder {
    * @param other - the other leaseholder to compare.
    * @returns true if the leaseholders are equal; false otherwise.
    */
-  public equals(other: LeaseHolder): boolean {
+  public equals(other: LockHolder): boolean {
     return this.username === other.username && this.hostname === other.hostname && this.processId === other.processId;
   }
 
@@ -109,7 +107,7 @@ export class LeaseHolder {
    * @param other - the other leaseholder to compare.
    * @returns true if the leaseholders are the same machine; false otherwise.
    */
-  public isSameMachineIdentity(other: LeaseHolder): boolean {
+  public isSameMachineIdentity(other: LockHolder): boolean {
     return this.username === other.username && this.hostname === other.hostname;
   }
 
@@ -139,8 +137,8 @@ export class LeaseHolder {
    * @param json - the JSON string representation of a leaseholder.
    * @returns a new leaseholder instance.
    */
-  public static fromJson(json: string): LeaseHolder {
-    const obj: ReturnType<LeaseHolder['toObject']> = JSON.parse(json);
-    return new LeaseHolder(obj.username, obj.hostname, obj.pid);
+  public static fromJson(json: string): LockHolder {
+    const obj: ReturnType<LockHolder['toObject']> = JSON.parse(json);
+    return new LockHolder(obj.username, obj.hostname, obj.pid);
   }
 }

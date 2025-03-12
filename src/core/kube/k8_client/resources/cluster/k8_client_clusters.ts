@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Clusters} from '../../../resources/cluster/clusters.js';
 import {type KubeConfig} from '@kubernetes/client-node';
 import {IllegalArgumentError} from '../../../../errors.js';

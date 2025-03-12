@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import sinon from 'sinon';
 import {expect} from 'chai';
 import {afterEach, beforeEach, describe, it} from 'mocha';

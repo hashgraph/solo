@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ClusterRef, type DeploymentName} from '../config/remote/types.js';
 import {type ObjectMeta} from '../kube/resources/object_meta.js';
 import {type ServiceSpec} from '../kube/resources/service/service_spec.js';

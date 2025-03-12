@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {container} from 'tsyringe-neo';
 import type * as WebSocket from 'ws';
 import * as tar from 'tar';

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as x509 from '@peculiar/x509';
 import os from 'os';
 import path from 'path';

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {AccountId, PrivateKey, PublicKey} from '@hashgraph/sdk';
 import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
 import * as constants from '../constants.js';

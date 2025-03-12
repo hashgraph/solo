@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Secrets} from '../../../resources/secret/secrets.js';
 import {type CoreV1Api, V1ObjectMeta, V1Secret} from '@kubernetes/client-node';
 import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';

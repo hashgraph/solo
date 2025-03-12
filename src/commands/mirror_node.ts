@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
@@ -14,7 +13,7 @@ import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
 import {type CommandBuilder, type NodeAlias} from '../types/aliases.js';
 import {PodName} from '../core/kube/resources/pod/pod_name.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 import * as fs from 'node:fs';
@@ -354,7 +353,7 @@ export class MirrorNodeCommand extends BaseCommand {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -743,7 +742,7 @@ export class MirrorNodeCommand extends BaseCommand {
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
             );
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {

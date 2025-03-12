@@ -1,10 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {SoloError} from '../core/errors.js';
 import {ShellRunner} from '../core/shell_runner.js';
-import {type LeaseManager} from '../core/lease/lease_manager.js';
+import {type LockManager} from '../core/lock/lock_manager.js';
 import {type LocalConfig} from '../core/config/local_config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
 import {type Helm} from '../core/helm.js';
@@ -38,7 +36,7 @@ export interface Opts {
   keyManager: KeyManager;
   accountManager: AccountManager;
   profileManager: ProfileManager;
-  leaseManager: LeaseManager;
+  leaseManager: LockManager;
   certificateManager: CertificateManager;
   localConfig: LocalConfig;
   remoteConfigManager: RemoteConfigManager;
@@ -50,7 +48,7 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly chartManager: ChartManager;
   public readonly configManager: ConfigManager;
   protected readonly depManager: DependencyManager;
-  protected readonly leaseManager: LeaseManager;
+  protected readonly leaseManager: LockManager;
   public readonly localConfig: LocalConfig;
   protected readonly remoteConfigManager: RemoteConfigManager;
 
@@ -156,7 +154,7 @@ export abstract class BaseCommand extends ShellRunner {
     return valuesFiles;
   }
 
-  public getLeaseManager(): LeaseManager {
+  public getLeaseManager(): LockManager {
     return this.leaseManager;
   }
 

@@ -1,12 +1,11 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Flags as flags} from '../../src/commands/flags.js';
 import {getTestCacheDir, getTestCluster} from '../test_util.js';
 import {K8Client} from '../../src/core/kube/k8_client/k8_client.js';
 import {type NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
 import {type CommandFlag} from '../../src/types/flag_types.js';
-import {type AnyObject} from '../../src/types/aliases.js';
+import {type ArgvStruct} from '../../src/types/aliases.js';
 import * as helpers from '../../src/core/helpers.js';
 
 export class Argv {
@@ -25,8 +24,8 @@ export class Argv {
     return this.args[flag.name];
   }
 
-  public build(): AnyObject {
-    return helpers.deepClone(this.args);
+  public build(): ArgvStruct {
+    return helpers.deepClone(this.args) as ArgvStruct;
   }
 
   public static initializeEmpty(): Argv {

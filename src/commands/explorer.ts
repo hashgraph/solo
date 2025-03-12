@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
@@ -11,7 +10,7 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {prepareChartPath, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
@@ -197,7 +196,7 @@ export class ExplorerCommand extends BaseCommand {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
@@ -439,7 +438,7 @@ export class ExplorerCommand extends BaseCommand {
               throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),

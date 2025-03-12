@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Templates} from '../../../src/core/templates.js';
 import {expect} from 'chai';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';

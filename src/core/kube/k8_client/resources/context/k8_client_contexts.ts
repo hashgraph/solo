@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Contexts} from '../../../resources/context/contexts.js';
 import {type KubeConfig, CoreV1Api} from '@kubernetes/client-node';
 import {NamespaceName} from '../../../resources/namespace/namespace_name.js';

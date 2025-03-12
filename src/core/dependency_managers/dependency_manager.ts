@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import os from 'os';
 import {SoloError} from '../errors.js';
 import {ShellRunner} from '../shell_runner.js';

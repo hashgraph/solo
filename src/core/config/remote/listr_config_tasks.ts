@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type SoloListrTask} from '../../../types/index.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {type RemoteConfigManager} from './remote_config_manager.js';

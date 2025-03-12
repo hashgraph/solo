@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 export enum SecretType {
   OPAQUE = 'Opaque',
   DOCKER_CONFIG_JSON = 'kubernetes.io/dockerconfigjson',
