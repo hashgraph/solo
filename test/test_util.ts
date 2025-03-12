@@ -28,7 +28,7 @@ import {type K8Factory} from '../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../src/core/account_manager.js';
 import {type PlatformInstaller} from '../src/core/platform_installer.js';
 import {type ProfileManager} from '../src/core/profile_manager.js';
-import {type LeaseManager} from '../src/core/lease/lease_manager.js';
+import {type LockManager} from '../src/core/lock/lock_manager.js';
 import {type CertificateManager} from '../src/core/certificate_manager.js';
 import {type LocalConfig} from '../src/core/config/local_config.js';
 import {type RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
@@ -96,7 +96,7 @@ interface TestOpts {
   accountManager: AccountManager;
   cacheDir: string;
   profileManager: ProfileManager;
-  leaseManager: LeaseManager;
+  leaseManager: LockManager;
   certificateManager: CertificateManager;
   remoteConfigManager: RemoteConfigManager;
   localConfig: LocalConfig;
@@ -155,7 +155,7 @@ export function bootstrapTestVariables(
   const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
   const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
   const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
-  const leaseManager: LeaseManager = container.resolve(InjectTokens.LeaseManager);
+  const leaseManager: LockManager = container.resolve(InjectTokens.LockManager);
   const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);

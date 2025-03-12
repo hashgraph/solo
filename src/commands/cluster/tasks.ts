@@ -6,7 +6,7 @@ import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import path from 'path';
 import chalk from 'chalk';
-import {ListrLease} from '../../core/lease/listr_lease.js';
+import {ListrLock} from '../../core/lock/listr_lock.js';
 import {ErrorMessages} from '../../core/error_messages.js';
 import {SoloError} from '../../core/errors.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
@@ -20,7 +20,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
-import {type LeaseManager} from '../../core/lease/lease_manager.js';
+import {type LockManager} from '../../core/lock/lock_manager.js';
 import {type Helm} from '../../core/helm.js';
 import {type ClusterChecks} from '../../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
@@ -40,14 +40,14 @@ export class ClusterCommandTasks {
     @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
-    @inject(InjectTokens.LeaseManager) private readonly leaseManager: LeaseManager,
+    @inject(InjectTokens.LockManager) private readonly leaseManager: LockManager,
     @inject(InjectTokens.Helm) private readonly helm: Helm,
   ) {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
-    this.leaseManager = patchInject(leaseManager, InjectTokens.LeaseManager, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, InjectTokens.LockManager, this.constructor.name);
     this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
   }
 
@@ -300,7 +300,7 @@ export class ClusterCommandTasks {
       title: 'Acquire new lease',
       task: async (_, task) => {
         const lease = await this.leaseManager.create();
-        return ListrLease.newAcquireLeaseTask(lease, task);
+        return ListrLock.newAcquireLockTask(lease, task);
       },
     };
   }

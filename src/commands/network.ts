@@ -26,7 +26,7 @@ import {type PlatformInstaller} from '../core/platform_installer.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
@@ -804,7 +804,7 @@ export class NetworkCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             ctx.config = await self.prepareConfig(task, argv, true);
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -1154,7 +1154,7 @@ export class NetworkCommand extends BaseCommand {
               contexts: self.remoteConfigManager.getContexts(),
             };
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
