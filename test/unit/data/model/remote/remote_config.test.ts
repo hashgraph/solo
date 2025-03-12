@@ -56,6 +56,28 @@ function migrateHistory(plainObject: object) {
   }
 }
 
+function migrateConsensusNodes(plainObject: object) {}
+
+function migrateHaProxies(plainObject: object) {}
+
+function migrateEnvoyProxies(plainObject: object) {}
+
+function migrateMirrorNodes(plainObject: object) {}
+
+function migrateExplorers(plainObject: object) {}
+
+function migrateJsonRpcRelays(plainObject: object) {}
+
+function migrateState(plainObject: object) {
+  plainObject['state'] = {};
+  migrateConsensusNodes(plainObject);
+  migrateHaProxies(plainObject);
+  migrateEnvoyProxies(plainObject);
+  migrateMirrorNodes(plainObject);
+  migrateExplorers(plainObject);
+  migrateJsonRpcRelays(plainObject);
+}
+
 function migrate(plainObject: object): void {
   plainObject['schemaVersion'] = 0;
 
@@ -68,6 +90,7 @@ function migrate(plainObject: object): void {
   migrateClusters(plainObject);
   migrateVersions(plainObject);
   migrateHistory(plainObject);
+  migrateState(plainObject);
 }
 
 describe('RemoteConfig', () => {
