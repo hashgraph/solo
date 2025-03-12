@@ -32,6 +32,7 @@ import {NodeCommandTasks} from '../../commands/node/tasks.js';
 import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error_handler.js';
+import {CTObjectMapper} from '../../data/mapper/impl/ct_object_mapper.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -83,6 +84,9 @@ export class Container {
       container.register(InjectTokens.SoloLogger, {useClass: SoloLogger}, {lifecycle: Lifecycle.Singleton});
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using default logger');
     }
+
+    // Data Layer ObjectMapper
+    container.register(InjectTokens.ObjectMapper, {useClass: CTObjectMapper}, {lifecycle: Lifecycle.Singleton});
 
     container.register(InjectTokens.PackageDownloader, {useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.Zippy, {useClass: Zippy}, {lifecycle: Lifecycle.Singleton});
