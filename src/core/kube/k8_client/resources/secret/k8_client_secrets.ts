@@ -14,7 +14,6 @@ import {ResourceType} from '../../../resources/resource_type.js';
 import {ResourceOperation} from '../../../resources/resource_operation.js';
 import {Duration} from '../../../../time/duration.js';
 import {type SecretType} from '../../../resources/secret/secret_type.js';
-import {SoloError} from '../../../../errors/SoloError.js';
 
 export class K8ClientSecrets implements Secrets {
   public constructor(private readonly kubeClient: CoreV1Api) {}

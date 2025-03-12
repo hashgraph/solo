@@ -16,7 +16,6 @@ import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
 import {type Optional} from '../../../types/index.js';
-import type * as k8s from '@kubernetes/client-node';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';

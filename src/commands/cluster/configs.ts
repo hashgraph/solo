@@ -9,7 +9,6 @@ import {SoloError} from '../../core/errors/SoloError.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {ErrorMessages} from '../../core/error_messages.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
