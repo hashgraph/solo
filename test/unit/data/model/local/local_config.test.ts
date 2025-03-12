@@ -4,11 +4,11 @@ import {readFileSync} from 'fs';
 import {dumpYaml, loadYaml} from '@kubernetes/client-node';
 import {expect} from 'chai';
 import {instanceToPlain, plainToClass} from 'class-transformer';
-import {LocalConfig} from '../../../../../src/data/model/local/local_config.js';
 import {SemVer} from 'semver';
 import {beforeEach} from 'mocha';
-import {Deployment} from '../../../../../src/data/model/local/deployment.js';
 import os from 'os';
+import {LocalConfig} from '../../../../../src/data/schema/model/local/local_config.js';
+import {Deployment} from '../../../../../src/data/schema/model/local/deployment.js';
 
 describe('LocalConfig', () => {
   const localConfigPath = 'test/data/local-config.yaml';
