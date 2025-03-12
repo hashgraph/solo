@@ -10,9 +10,7 @@ import {
   e2eTestSuite,
   HEDERA_PLATFORM_VERSION_TAG,
 } from '../../test_util.js';
-import {getTmpDir} from '../../../src/core/helpers.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import fs from 'fs';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';

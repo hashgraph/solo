@@ -5,7 +5,7 @@ import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
-import {HEDERA_PLATFORM_VERSION_TAG, getTestCacheDir, getTestCluster, testLocalConfigData} from '../../test_util.js';
+import {HEDERA_PLATFORM_VERSION_TAG, getTestCluster} from '../../test_util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';

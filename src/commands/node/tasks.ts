@@ -34,7 +34,7 @@ import {
   PrivateKey,
   Timestamp,
 } from '@hashgraph/sdk';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
+import {MissingArgumentError, SoloError} from '../../core/errors.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
