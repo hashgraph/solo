@@ -51,10 +51,6 @@ export class ClusterCommandConfigs {
     ctx: ClusterRefConnectContext,
     task: SoloListrTaskWrapper<ClusterRefConnectContext>,
   ): Promise<ClusterRefConnectConfigClass> {
-    if (!this.localConfig.configFileExists()) {
-      throw new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST);
-    }
-
     // Apply changes to argv[context] before the config is initiated, because the `context` field is immutable
     if (!argv[flags.context.name]) {
       const isQuiet = this.configManager.getFlag(flags.quiet);

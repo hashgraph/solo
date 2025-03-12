@@ -163,6 +163,7 @@ export class NetworkCommand extends BaseCommand {
       flags.releaseTag,
       flags.settingTxt,
       flags.networkDeploymentValuesFile,
+      flags.nodeAliasesUnparsed,
       flags.grpcTlsCertificatePath,
       flags.grpcWebTlsCertificatePath,
       flags.grpcTlsKeyPath,
