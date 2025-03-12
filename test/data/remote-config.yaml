@@ -1,0 +1,59 @@
+metadata:
+  namespace: solo-alpha-prod
+  deploymentName: alpha-prod
+  lastUpdatedAt: 2025-02-17T02:25:26.149000Z
+  lastUpdateBy: nathan@swirldslabs.com
+  soloChartVersion: ""
+  hederaPlatformVersion: ""
+  hederaMirrorNodeChartVersion: ""
+  hederaExplorerChartVersion: ""
+  hederaJsonRpcRelayChartVersion: ""
+  soloVersion: 0.34.0
+version: 1.0.0
+clusters:
+  gke-alpha-prod-us-central1:
+    name: gke-alpha-prod-us-central1
+    namespace: solo-alpha-prod
+    deployment: alpha-prod
+    dnsBaseDomain: cluster.local
+    dnsConsensusNodePattern: network-${nodeAlias}-svc.${namespace}.svc
+components:
+  relays: {}
+  haProxies: {}
+  mirrorNodes: {}
+  envoyProxies: {}
+  consensusNodes:
+    node1:
+      name: node1
+      cluster: gke-alpha-prod-us-central1
+      namespace: solo-alpha-prod
+      state: requested
+      nodeId: 0
+    node2:
+      name: node2
+      cluster: gke-alpha-prod-us-central1
+      namespace: solo-alpha-prod
+      state: requested
+      nodeId: 1
+    node3:
+      name: node3
+      cluster: gke-alpha-prod-us-central1
+      namespace: solo-alpha-prod
+      state: requested
+      nodeId: 2
+    node4:
+      name: node4
+      cluster: gke-alpha-prod-us-central1
+      namespace: solo-alpha-prod
+      state: requested
+      nodeId: 3
+  mirrorNodeExplorers: {}
+commandHistory:
+  - deployment create
+lastExecutedCommand: deployment create
+flags:
+  nodeAliasesUnparsed: node1,node2,node3,node4
+  releaseTag: v0.58.10
+  relayReleaseTag: v0.63.2
+  hederaExplorerVersion: 24.12.0
+  mirrorNodeVersion: v0.122
