@@ -7,6 +7,7 @@ import {beforeEach} from 'mocha';
 import os from 'os';
 import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote_config.js';
 import {instanceToPlain, plainToClass} from 'class-transformer';
+import {LedgerPhase} from '../../../../../src/data/schema/model/remote/ledger_phase.js';
 
 function migrateVersionPrefix(version: string): string {
   const strippedVersionPrefix: string = version.replace(/^v/, '');
@@ -56,20 +57,33 @@ function migrateHistory(plainObject: object) {
   }
 }
 
-function migrateConsensusNodes(plainObject: object) {}
+function migrateConsensusNodes(plainObject: object) {
+  plainObject['state']['consensusNodes'] = {};
+}
 
-function migrateHaProxies(plainObject: object) {}
+function migrateHaProxies(plainObject: object) {
+  plainObject['state']['haProxies'] = {};
+}
 
-function migrateEnvoyProxies(plainObject: object) {}
+function migrateEnvoyProxies(plainObject: object) {
+  plainObject['state']['envoyProxies'] = {};
+}
 
-function migrateMirrorNodes(plainObject: object) {}
+function migrateMirrorNodes(plainObject: object) {
+  plainObject['state']['mirrorNodes'] = {};
+}
 
-function migrateExplorers(plainObject: object) {}
+function migrateExplorers(plainObject: object) {
+  plainObject['state']['explorers'] = {};
+}
 
-function migrateJsonRpcRelays(plainObject: object) {}
+function migrateJsonRpcRelays(plainObject: object) {
+  plainObject['state']['relayNodes'] = {};
+}
 
 function migrateState(plainObject: object) {
   plainObject['state'] = {};
+  plainObject['state']['ledgerPhase'] = LedgerPhase.UNINITIALIZED;
   migrateConsensusNodes(plainObject);
   migrateHaProxies(plainObject);
   migrateEnvoyProxies(plainObject);
