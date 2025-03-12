@@ -9,7 +9,7 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 import {v4 as uuid4} from 'uuid';
-import {SoloError} from '../../../../src/core/errors.js';
+import {SoloError} from '../../../../src/core/errors/SoloError.js';
 import * as constants from '../../../../src/core/constants.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {type ConfigManager} from '../../../../src/core/config_manager.js';

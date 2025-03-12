@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Migration} from './migration.js';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
 import * as k8s from '@kubernetes/client-node';
 import {
   type DeploymentName,

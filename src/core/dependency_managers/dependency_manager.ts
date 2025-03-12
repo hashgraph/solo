@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import os from 'os';
-import {SoloError} from '../errors.js';
+import {SoloError} from '../errors/SoloError.js';
 import {ShellRunner} from '../shell_runner.js';
 import {HelmDependencyManager} from './helm_dependency_manager.js';
 import {type ListrTask} from 'listr2';

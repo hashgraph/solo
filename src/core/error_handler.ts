@@ -4,7 +4,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {type SoloLogger} from './logging.js';
-import {UserBreak} from './errors.js';
+import {UserBreak} from './errors/UserBreak.js';
 
 @injectable()
 export class ErrorHandler {

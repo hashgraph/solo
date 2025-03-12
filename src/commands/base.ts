@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../core/errors.js';
+import {SoloError} from '../core/errors/SoloError.js';
 import {ShellRunner} from '../core/shell_runner.js';
 import {type LockManager} from '../core/lock/lock_manager.js';
 import {type LocalConfig} from '../core/config/local_config.js';

@@ -5,13 +5,11 @@ import * as fs from 'fs';
 import {pipeline as streamPipeline} from 'node:stream/promises';
 import got from 'got';
 import path from 'path';
-import {
-  DataValidationError,
-  SoloError,
-  IllegalArgumentError,
-  MissingArgumentError,
-  ResourceNotFoundError,
-} from './errors.js';
+import {DataValidationError} from './errors/DataValidationError.js';
+import {SoloError} from './errors/SoloError.js';
+import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
+import {ResourceNotFoundError} from './errors/ResourceNotFoundError.js';
 import * as https from 'https';
 import * as http from 'http';
 import {Templates} from './templates.js';

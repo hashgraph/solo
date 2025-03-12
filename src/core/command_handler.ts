@@ -4,7 +4,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {Listr} from 'listr2';
-import {SoloError} from './errors.js';
+import {SoloError} from './errors/SoloError.js';
 import {type Lock} from './lock/lock.js';
 import * as constants from './constants.js';
 import fs from 'fs';

@@ -12,7 +12,7 @@ import {
 } from '@kubernetes/client-node';
 import {Duration} from '../../../../time/duration.js';
 import {type Pvc} from '../../../resources/pvc/pvc.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {KubeApiResponse} from '../../../kube_api_response.js';
 import {ResourceOperation} from '../../../resources/resource_operation.js';
 import {ResourceType} from '../../../resources/resource_type.js';

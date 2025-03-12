@@ -13,7 +13,7 @@ import {
 import {ResourceType} from '../../../resources/resource_type.js';
 import {ResourceOperation} from '../../../resources/resource_operation.js';
 import {KubeApiResponse} from '../../../kube_api_response.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
 

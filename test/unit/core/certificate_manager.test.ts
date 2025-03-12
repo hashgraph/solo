@@ -8,7 +8,7 @@ import {type ConfigManager} from '../../../src/core/config_manager.js';
 import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
 import {type CertificateManager} from '../../../src/core/certificate_manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {SoloError} from '../../../src/core/errors.js';
+import {SoloError} from '../../../src/core/errors/SoloError.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test_container.js';
 import {K8ClientSecrets} from '../../../src/core/kube/k8_client/resources/secret/k8_client_secrets.js';

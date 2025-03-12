@@ -6,7 +6,8 @@ import path from 'path';
 import {type CommandFlag} from '../types/flag_types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
-import {IllegalArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
+import {SoloError} from '../core/errors/SoloError.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {
   select as selectPrompt,

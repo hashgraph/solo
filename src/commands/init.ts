@@ -5,7 +5,8 @@ import path from 'path';
 import {BaseCommand} from './base.js';
 import fs from 'fs';
 import * as constants from '../core/constants.js';
-import {SoloError, UserBreak} from '../core/errors.js';
+import {SoloError} from '../core/errors/SoloError.js';
+import {UserBreak} from '../core/errors/UserBreak.js';
 import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
 
