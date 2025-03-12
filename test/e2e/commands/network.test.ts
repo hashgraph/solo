@@ -45,41 +45,9 @@ describe('NetworkCommand', function networkCommand() {
   argv.setArg(flags.loadBalancerEnabled, true);
 
   const {
-    opts: {k8Factory, accountManager, configManager, chartManager, remoteConfigManager},
+    opts: {k8Factory, accountManager, configManager, chartManager},
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
-
-  const nodeAlias = 'node1' as NodeAlias;
-  const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
-  const clusterRef = getTestCluster();
-  const context = k8Factory.default().contexts().readCurrent();
-
-  const consensusNodes = [
-    {
-      name: nodeAlias,
-      namespace: namespace.name,
-      nodeId,
-      cluster: clusterRef,
-      context,
-      dnsBaseDomain: 'cluster.local',
-      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
-      fullyQualifiedDomainName: Templates.renderConsensusNodeFullyQualifiedDomainName(
-        nodeAlias,
-        Templates.nodeIdFromNodeAlias(nodeAlias),
-        namespace.name,
-        clusterRef,
-        'cluster.local',
-        'network-{nodeAlias}-svc.{namespace}.svc',
-      ),
-    },
-  ] as ConsensusNode[];
-
-  const contexts = [context];
-  const clusterRefs = {[clusterRef]: context} as ClusterRefs;
-
-  remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
-  remoteConfigManager.getContexts = sinon.stub().returns(contexts);
-  remoteConfigManager.getClusterRefs = sinon.stub().returns(clusterRefs);
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());

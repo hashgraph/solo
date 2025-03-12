@@ -38,7 +38,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this)),
+        this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
         this.setupHomeDirectoryTask(),
         this.localConfig.createLocalConfigTask(),
         this.tasks.validateClusterRefs(),
@@ -63,7 +63,7 @@ export class ClusterCommandHandlers extends CommandHandler {
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this)),
+        this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this.configs)),
         this.tasks.disconnectClusterRef(),
         this.tasks.saveLocalConfig(),
       ],

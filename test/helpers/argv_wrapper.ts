@@ -5,13 +5,12 @@ import {getTestCacheDir, getTestCluster} from '../test_util.js';
 import {K8Client} from '../../src/core/kube/k8_client/k8_client.js';
 import {type NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
 import {type CommandFlag} from '../../src/types/flag_types.js';
-import {type ArgvStruct, NodeAliases} from '../../src/types/aliases.js';
+import {type ArgvStruct} from '../../src/types/aliases.js';
 import * as helpers from '../../src/core/helpers.js';
 import {type CloneTrait} from '../../src/types/traits/clone_trait.js';
 
 export class Argv implements CloneTrait<Argv> {
-  // @ts-expect-error - TS2344: Type CommandFlag does not satisfy the constraint string | number | symbol
-  private args: Record<CommandFlag, any> = {};
+  private args: Record<string, any> = {};
   public cacheDir?: string;
   public deployment?: string;
 
@@ -36,13 +35,11 @@ export class Argv implements CloneTrait<Argv> {
   public build(): ArgvStruct {
     if (this.getArg<string>(flags.nodeAliasesUnparsed)?.split(',')?.length) {
       const nodeAliases = helpers.parseNodeAliases(this.getArg(flags.nodeAliasesUnparsed));
-      this.setArg(flags.numberOfConsensusNodes, nodeAliases.length + 1);
+      this.setArg(flags.numberOfConsensusNodes, nodeAliases.length);
     }
 
-    // @ts-expect-error - TS2352: object entries can't detect key as command flag
-    const entries = Object.entries(helpers.deepClone(this.args)) as [CommandFlag, any][];
-
-    const rawArgs = entries.map(([flag, value]) => ({[flag.name]: value})) as any as ArgvStruct;
+    // @ts-expect-error - TS2322: the '_' field is filled during command invocation for Argv reusability
+    const rawArgs: ArgvStruct = helpers.deepClone(this.args);
 
     const _: string[] = [this.command];
     if (this.subcommand) _.push(this.subcommand);

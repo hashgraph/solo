@@ -265,8 +265,7 @@ export function e2eTestSuite(
         await commandInvoker.invoke({
           argv: argv,
           command: InitCommand.COMMAND_NAME,
-          handler: initCmd.init,
-          handlers: initCmd,
+          callback: async argv => initCmd.init(argv),
         });
 
         if (await k8Factory.default().namespaces().has(namespace)) {
@@ -285,19 +284,35 @@ export function e2eTestSuite(
             argv: argv,
             command: ClusterCommand.COMMAND_NAME,
             subcommand: 'setup',
-            handler: clusterCmd.handlers.setup,
-            handlers: clusterCmd.handlers,
+            callback: async argv => clusterCmd.handlers.setup(argv),
           });
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
+
+      it("should success with 'cluster-ref connect'", async () => {
+        await commandInvoker.invoke({
+          argv: argv,
+          command: ClusterCommand.COMMAND_NAME,
+          subcommand: 'connect',
+          callback: async argv => clusterCmd.handlers.connect(argv),
+        });
+      });
 
       it('should succeed with deployment create', async () => {
         await commandInvoker.invoke({
           argv: argv,
           command: DeploymentCommand.COMMAND_NAME,
           subcommand: 'create',
-          handler: deploymentCmd.create,
-          handlers: deploymentCmd,
+          callback: async argv => deploymentCmd.create(argv),
+        });
+      });
+
+      it("should succeed with 'deployment add-cluster'", async () => {
+        await commandInvoker.invoke({
+          argv: argv,
+          command: DeploymentCommand.COMMAND_NAME,
+          subcommand: 'add-cluster',
+          callback: async argv => deploymentCmd.addCluster(argv),
         });
       });
 
@@ -306,8 +321,7 @@ export function e2eTestSuite(
           argv: argv,
           command: NodeCommand.COMMAND_NAME,
           subcommand: 'keys',
-          handler: nodeCmd.handlers.keys,
-          handlers: nodeCmd.handlers,
+          callback: async argv => nodeCmd.handlers.keys(argv),
         });
       }).timeout(Duration.ofMinutes(2).toMillis());
 
@@ -316,8 +330,7 @@ export function e2eTestSuite(
           argv: argv,
           command: NetworkCommand.COMMAND_NAME,
           subcommand: 'deploy',
-          handler: networkCmd.deploy,
-          handlers: networkCmd,
+          callback: async argv => networkCmd.deploy(argv),
         });
       }).timeout(Duration.ofMinutes(5).toMillis());
 
@@ -328,8 +341,7 @@ export function e2eTestSuite(
             argv: argv,
             command: NodeCommand.COMMAND_NAME,
             subcommand: 'setup',
-            handler: nodeCmd.handlers.setup,
-            handlers: nodeCmd.handlers,
+            callback: async argv => nodeCmd.handlers.setup(argv),
           });
         }).timeout(Duration.ofMinutes(4).toMillis());
 
@@ -338,8 +350,7 @@ export function e2eTestSuite(
             argv: argv,
             command: NodeCommand.COMMAND_NAME,
             subcommand: 'start',
-            handler: nodeCmd.handlers.start,
-            handlers: nodeCmd.handlers,
+            callback: async argv => nodeCmd.handlers.start(argv),
           });
         }).timeout(Duration.ofMinutes(30).toMillis());
 
@@ -348,8 +359,7 @@ export function e2eTestSuite(
             argv: argv,
             command: NodeCommand.COMMAND_NAME,
             subcommand: 'logs',
-            handler: nodeCmd.handlers.logs,
-            handlers: nodeCmd.handlers,
+            callback: async argv => nodeCmd.handlers.logs(argv),
           });
 
           const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log');

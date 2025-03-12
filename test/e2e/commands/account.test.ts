@@ -48,9 +48,9 @@ argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
-argv.setArg(flags.loadBalancerEnabled, true);
+
 // enable load balancer for e2e tests
-argv.setArg(flags.loadBalancerEnabled, true);
+// argv.setArg(flags.loadBalancerEnabled, true);
 
 e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('AccountCommand', async () => {
@@ -99,8 +99,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv: argv,
           command: AccountCommand.COMMAND_NAME,
           subcommand: 'init',
-          handler: accountCmd.init,
-          handlers: accountCmd,
+          callback: async argv => accountCmd.init(argv),
         });
       }).timeout(Duration.ofMinutes(3).toMillis());
 
@@ -167,8 +166,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: AccountCommand.COMMAND_NAME,
             subcommand: 'create',
-            handler: accountCmd.create,
-            handlers: accountCmd,
+            callback: async argv => accountCmd.create(argv),
           });
 
           // @ts-expect-error - TS2341: to access private property
@@ -197,8 +195,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: AccountCommand.COMMAND_NAME,
             subcommand: 'create',
-            handler: accountCmd.create,
-            handlers: accountCmd,
+            callback: async argv => accountCmd.create(argv),
           });
 
           // @ts-expect-error - TS2341: to access private property
@@ -224,8 +221,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: AccountCommand.COMMAND_NAME,
             subcommand: 'update',
-            handler: accountCmd.update,
-            handlers: accountCmd,
+            callback: async argv => accountCmd.update(argv),
           });
 
           // @ts-expect-error - TS2341: to access private property
@@ -251,8 +247,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: AccountCommand.COMMAND_NAME,
             subcommand: 'update',
-            handler: accountCmd.update,
-            handlers: accountCmd,
+            callback: async argv => accountCmd.update(argv),
           });
 
           // @ts-expect-error - TS2341: to access private property
@@ -276,8 +271,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: AccountCommand.COMMAND_NAME,
             subcommand: 'get',
-            handler: accountCmd.get,
-            handlers: accountCmd,
+            callback: async argv => accountCmd.get(argv),
           });
 
           // @ts-expect-error - TS2341: to access private property
@@ -301,8 +295,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: AccountCommand.COMMAND_NAME,
             subcommand: 'get',
-            handler: accountCmd.get,
-            handlers: accountCmd,
+            callback: async argv => accountCmd.get(argv),
           });
 
           // @ts-expect-error - TS2341: to access private property
@@ -329,8 +322,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: AccountCommand.COMMAND_NAME,
             subcommand: 'create',
-            handler: accountCmd.create,
-            handlers: accountCmd,
+            callback: async argv => accountCmd.create(argv),
           });
 
           // @ts-expect-error - TS2341: to access private property
@@ -444,16 +436,14 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             argv: argv,
             command: NodeCommand.COMMAND_NAME,
             subcommand: 'freeze',
-            handler: nodeCmd.handlers.freeze,
-            handlers: nodeCmd.handlers,
+            callback: async argv => nodeCmd.handlers.freeze(argv),
           });
 
           await commandInvoker.invoke({
             argv: argv,
             command: NodeCommand.COMMAND_NAME,
             subcommand: 'restart',
-            handler: nodeCmd.handlers.restart,
-            handlers: nodeCmd.handlers,
+            callback: async argv => nodeCmd.handlers.restart(argv),
           });
         } catch (e) {
           testLogger.showUserError(e);
