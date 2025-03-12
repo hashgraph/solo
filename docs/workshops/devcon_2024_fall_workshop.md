@@ -2,11 +2,11 @@
 
 # Objective
 
-- Run a network (1~3 nodes) locally on the laptop using [**Solo**](https://github.com/hashgraph/solo)
-- Option 1: Use v0.54.0-alpha.4
-- Option 2: Use local Hedera build (develop?)
-- Optional: deploy Mirror Node & Explorer
-- Optional: deploy JSON RPC Relay
+* Run a network (1~3 nodes) locally on the laptop using [**Solo**](https://github.com/hashgraph/solo)
+* Option 1: Use v0.54.0-alpha.4
+* Option 2: Use local Hedera build (develop?)
+* Optional: deploy Mirror Node & Explorer
+* Optional: deploy JSON RPC Relay
 
 Demo: https://www.loom.com/share/46a0eadb13ef432b8efc8d4307031d4e?sid=79c04de3-c0f6-4858-b289-165b2d67cf08
 
@@ -34,7 +34,7 @@ kind delete cluster -n solo-e2e
 
 ### Prerequisites: [Solo Workshop - Prerequisites (MacOS)](https://www.notion.so/Solo-Workshop-Prerequisites-MacOS-311aa63815de4f16bfb950441eb2b6f3?pvs=21)
 
----
+***
 
 ## 1. Create local kubernetes cluster
 
@@ -101,7 +101,7 @@ crictl images
 
 ### 1.4 View k8s cluster using `k9s`
 
-***** In a the second terminal (or window), run the following command to check your k8s cluster**..***
+\*\*\*\*\* In a the second terminal (or window), run the following command to check your k8s cluster\*\*..\*\*\*
 
 ```bash
 k9s -A
@@ -115,7 +115,7 @@ If you only see a list of namespaces, then just select the namespace ‘all’ a
 
 ![image.png](images/devcon_2024_fall_workshop/screenshot_section_1_4_1_view_k8s_cluster.png)
 
----
+***
 
 ## 2. Install Solo And Setup Cluster Resources
 
@@ -184,7 +184,7 @@ Watch your `k9s` terminal and ensure status of all pods are `Running` as below i
 
 ![image.png](images/devcon_2024_fall_workshop/screenshot_section_2_4_2_deploy_shared_components.png)
 
----
+***
 
 ## 3. Run Hedera Platform and Services Assemble
 
@@ -330,7 +330,7 @@ Check your other terminal where you ran `k9s` command and you will be see a set 
 
 ![image.png](images/devcon_2024_fall_workshop/screenshot_section_3_7_verify_network_provisioned.png)
 
----
+***
 
 ## 4. View Hedera Explorer
 
@@ -498,9 +498,9 @@ prom-operator
 
 ### 6.6 Login to Grafana
 
-- Visit: [`http://localhost:8081/login`](http://localhost:8081/login)
-    - Enter username: `admin` and password: `prom-operator`
-    - Click `Home -> Dashboard`
+* Visit: [`http://localhost:8081/login`](http://localhost:8081/login)
+  * Enter username: `admin` and password: `prom-operator`
+  * Click `Home -> Dashboard`
 
 #### Checkpoint
 
@@ -540,7 +540,7 @@ Feel free to zoom to ~67% for better view. Also select `Last 15 minutes` on the 
 
 #### Checkpoint
 
-***** You should be able to see some metrics and your familiar Network Health dashboard with data from `solo` provisioned your very own Hedera Network! *****
+\*\*\*\*\* You should be able to see some metrics and your familiar Network Health dashboard with data from `solo` provisioned your very own Hedera Network! \*\*\*\*\*
 
 ![Screenshot 2024-04-29 at 6.25.11 AM.png](images/devcon_2024_fall_workshop/screenshot_section_6_9_1_view_performance_metrics.png)
 

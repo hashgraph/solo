@@ -12,46 +12,46 @@ We have the following work almost complete for Node Add to be more reusable: htt
 
 ## add-prepare
 
-- Initialize
-- Check that PVCs are enabled
-- Identify existing network nodes
-- Determine new node account number
-- Generate Gossip key
-- Generate gRPC TLS key
-- Load signing key certificate
-- Compute mTLS certificate hash
-- Prepare gossip endpoints
-- Prepare grpc service endpoints
-- Prepare upgrade zip file for node upgrade process
-- Check existing nodes staked amount
+* Initialize
+* Check that PVCs are enabled
+* Identify existing network nodes
+* Determine new node account number
+* Generate Gossip key
+* Generate gRPC TLS key
+* Load signing key certificate
+* Compute mTLS certificate hash
+* Prepare gossip endpoints
+* Prepare grpc service endpoints
+* Prepare upgrade zip file for node upgrade process
+* Check existing nodes staked amount
 
 ## add-submit-transactions
 
-- Send node create transaction
-- Send prepare upgrade transaction
-- Send freeze upgrade transaction
+* Send node create transaction
+* Send prepare upgrade transaction
+* Send freeze upgrade transaction
 
 ## add-execute
 
-- Download generated files from an existing node
-- Prepare staging directory
-    - Copy Gossip keys to staging
-    - Copy gRPC TLS keys to staging
-- Copy node keys to secrets
-- Check network nodes are frozen
-- Get node logs and configs
-- Deploy new network node
-- Kill nodes to pick up updated configMaps
-- Check node pods are running
-- Fetch platform software into all network nodes
-- Download last state from an existing node
-- Upload last saved state to new network node
-- Setup new network node
-- Start network nodes
-- Check all nodes are ACTIVE
-- Check all node proxies are ACTIVE
-- Stake new node
-- Trigger stake weight calculate
+* Download generated files from an existing node
+* Prepare staging directory
+  * Copy Gossip keys to staging
+  * Copy gRPC TLS keys to staging
+* Copy node keys to secrets
+* Check network nodes are frozen
+* Get node logs and configs
+* Deploy new network node
+* Kill nodes to pick up updated configMaps
+* Check node pods are running
+* Fetch platform software into all network nodes
+* Download last state from an existing node
+* Upload last saved state to new network node
+* Setup new network node
+* Start network nodes
+* Check all nodes are ACTIVE
+* Check all node proxies are ACTIVE
+* Stake new node
+* Trigger stake weight calculate
 
 The intention was that the SDK team could use `solo node add-prepare` with some flags to do all of the K8s work as well as generate some output files that they can use when executing the NodeCreateTransaction.  They could then run `solo node add-execute` to apply all of the changes to K8s and then restart the network.
 
@@ -59,67 +59,67 @@ We created a Node Delete and Node Update issue similar to the one that is addres
 
 ## update
 
-- Initialize
-- Identify existing network nodes
-- Prepare gossip endpoints
-- Prepare grpc service endpoints
-- Load node admin key
-- Prepare upgrade zip file for node upgrade process
-- Check existing nodes staked amount
-- Send node update transaction
-- Send prepare upgrade transaction
-- Download generated files from an existing node
-- Send freeze upgrade transaction
-- Prepare staging directory
-    - Copy Gossip keys to staging
-    - Copy gRPC TLS keys to staging
-- Copy node keys to secrets
-- Check network nodes are frozen
-- Get node logs and configs
-- Update chart to use new configMap due to account number change
-- Kill nodes to pick up updated configMaps
-- Check node pods are ready
-- Fetch platform software into network nodes
-- Setup network nodes
-- Start network nodes
-- Check all nodes are ACTIVE
-- Check all node proxies are ACTIVE
-- Trigger stake weight calculate
-- Finalize
+* Initialize
+* Identify existing network nodes
+* Prepare gossip endpoints
+* Prepare grpc service endpoints
+* Load node admin key
+* Prepare upgrade zip file for node upgrade process
+* Check existing nodes staked amount
+* Send node update transaction
+* Send prepare upgrade transaction
+* Download generated files from an existing node
+* Send freeze upgrade transaction
+* Prepare staging directory
+  * Copy Gossip keys to staging
+  * Copy gRPC TLS keys to staging
+* Copy node keys to secrets
+* Check network nodes are frozen
+* Get node logs and configs
+* Update chart to use new configMap due to account number change
+* Kill nodes to pick up updated configMaps
+* Check node pods are ready
+* Fetch platform software into network nodes
+* Setup network nodes
+* Start network nodes
+* Check all nodes are ACTIVE
+* Check all node proxies are ACTIVE
+* Trigger stake weight calculate
+* Finalize
 
 ## delete-prepare
 
-- Initialize
-- Identify existing network nodes
-- Load node admin key
-- Prepare upgrade zip file for node upgrade process
-- Check existing nodes staked amount
+* Initialize
+* Identify existing network nodes
+* Load node admin key
+* Prepare upgrade zip file for node upgrade process
+* Check existing nodes staked amount
 
 ## delete-submit-transactions
 
-- Send node delete transaction
-- Send prepare upgrade transaction
-- Send freeze upgrade transaction
+* Send node delete transaction
+* Send prepare upgrade transaction
+* Send freeze upgrade transaction
 
 ## delete-execute
 
-- Download generated files from an existing node
-- Prepare staging directory
-    - Copy Gossip keys to staging
-    - Copy gRPC TLS keys to staging
-- Copy node keys to secrets
-- Check network nodes are frozen
-- Get node logs and configs
-- Update chart to use new configMap
-- Kill nodes to pick up updated configMaps
-- Check node pods are running
-- Fetch platform software into network nodes
-- Setup network nodes
-- Start network nodes
-- Check all nodes are ACTIVE
-- Check all node proxies are ACTIVE
-- Trigger stake weight calculate
-- Finalize
+* Download generated files from an existing node
+* Prepare staging directory
+  * Copy Gossip keys to staging
+  * Copy gRPC TLS keys to staging
+* Copy node keys to secrets
+* Check network nodes are frozen
+* Get node logs and configs
+* Update chart to use new configMap
+* Kill nodes to pick up updated configMaps
+* Check node pods are running
+* Fetch platform software into network nodes
+* Setup network nodes
+* Start network nodes
+* Check all nodes are ACTIVE
+* Check all node proxies are ACTIVE
+* Trigger stake weight calculate
+* Finalize
 
 ## Functionality Overlap Table
 
@@ -169,8 +169,8 @@ The following is the Freeze table that the Solo team wants to Solo to be able to
 
 TODO:
 
-- [ ]  Need command to wait for freeze
-- [ ]  Need command finish upgrade (pull upgrade/current files and apply them, etc)
-- [ ]  need restart command
-- [ ]  update and/or remove the node update / node delete change GHIssues
-- [ ]  update node add to allow more than one node at a time
+* \[ ]  Need command to wait for freeze
+* \[ ]  Need command finish upgrade (pull upgrade/current files and apply them, etc)
+* \[ ]  need restart command
+* \[ ]  update and/or remove the node update / node delete change GHIssues
+* \[ ]  update node add to allow more than one node at a time

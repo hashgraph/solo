@@ -24,8 +24,8 @@ It leverages existing Helm Charts to deploy various components such as hedera-mi
 
 At a high level, there are two main packages namely `commands` and `core` :
 
-- `core`: contains various reusable classes
-- `commands`: contains various command classes, command flags and prompts etc.
+* `core`: contains various reusable classes
+* `commands`: contains various command classes, command flags and prompts etc.
 
 ![Screenshot 2024-05-08 at 1.33.05 PM.png](images/onboarding_questions/screenshot_20240508_133305.png)
 
@@ -50,9 +50,9 @@ Certainly, someone will need some working knowledge about Kubernetes cluster to 
 
 Since `solo` leverages existing Helm charts, it is reasonably easy to seek help from respective teams that are maintaining those Helm charts:
 
-- https://github.com/hashgraph/full-stack-testing. (Release Engineering Team, @Nathan Klick)
-- https://github.com/hashgraph/hedera-json-rpc-relay (Smart Contract Team, @Nana)
-- https://github.com/hashgraph/hedera-mirror-node ( Mirror Node Team, @Steven Sheehy )
+* https://github.com/hashgraph/full-stack-testing. (Release Engineering Team, @Nathan Klick)
+* https://github.com/hashgraph/hedera-json-rpc-relay (Smart Contract Team, @Nana)
+* https://github.com/hashgraph/hedera-mirror-node ( Mirror Node Team, @Steven Sheehy )
 
 ### Showcasing existing tests and how to run them.
 
@@ -64,23 +64,23 @@ Our official docs site: https://hashgraph.github.io/solo/
 
 ### Where are we in the roadmap, what's been done, what's on deck and what's next?
 
-- **What’s been done  (As of May 2024)**
+* **What’s been done  (As of May 2024)**
 
   As of now a MVP is ready where `solo` can be used to deploy a test network, create accounts and use by developers for general testing of their application. Some core functionalities are as below:
 
-    - Deploy/Destroy/Add/Refresh consensus node including proxies and uploaders (record-stream, event-stream etc.)
-    - Create/Top-up/Update accounts
-    - Deploy/Destroy mirror-node components including explorer
-    - Deploy/Destroy one or more json-rpc-relays
-    - Connect Telemetry (Grafana, Prometheus, Tempo etc.)
-- **What’s on deck  (As of May 2024)**
-    - Ensure relays can connect to mirror node and are usable by developers for dApp development
-    - Allow `solo state` to be stored in the kubernetes cluster instead of storing on local machine
-    - Introduce `solo state lock` to support multi-user support to manage a single deployment in a remote cluster
-- **What’s next (As of May 2024)**
-    - `solo`
-        - Deterministic image support (This is necessary for `solo-operator` to support node upgrade process)
-        - Support Hedera Network deployment across multiple clusters
-    - `solo-operator`
-        - Deploy a Hedera network using deterministic image (some business logic from `solo` will be moved into `solo-operator`). This is to avoid building docker images on the machine as done by NMT currently.
-        - Upgrade an existing network (similar to the Mainnet upgrade protocol and process but without using NMT as it is done currently)
+  * Deploy/Destroy/Add/Refresh consensus node including proxies and uploaders (record-stream, event-stream etc.)
+  * Create/Top-up/Update accounts
+  * Deploy/Destroy mirror-node components including explorer
+  * Deploy/Destroy one or more json-rpc-relays
+  * Connect Telemetry (Grafana, Prometheus, Tempo etc.)
+* **What’s on deck  (As of May 2024)**
+  * Ensure relays can connect to mirror node and are usable by developers for dApp development
+  * Allow `solo state` to be stored in the kubernetes cluster instead of storing on local machine
+  * Introduce `solo state lock` to support multi-user support to manage a single deployment in a remote cluster
+* **What’s next (As of May 2024)**
+  * `solo`
+    * Deterministic image support (This is necessary for `solo-operator` to support node upgrade process)
+    * Support Hedera Network deployment across multiple clusters
+  * `solo-operator`
+    * Deploy a Hedera network using deterministic image (some business logic from `solo` will be moved into `solo-operator`). This is to avoid building docker images on the machine as done by NMT currently.
+    * Upgrade an existing network (similar to the Mainnet upgrade protocol and process but without using NMT as it is done currently)

@@ -261,7 +261,7 @@ Same as R4
 
 ### ~~R8. Support multiple namespaces for the same network~~
 
-~~Same as R2.~~
+\~~Same as R2.~~
 
 ### R9: Support caching various flags similar to how currently solo is caching
 
