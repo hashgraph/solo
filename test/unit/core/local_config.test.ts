@@ -182,7 +182,7 @@ describe('LocalConfig', () => {
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_GENERIC);
   });
 
-  xit('should throw a validation error if userEmailAddress is not a valid email', async () => {
+  it('should throw a validation error if userEmailAddress is not a valid email', async () => {
     await fs.promises.writeFile(filePath, stringify({...config, userEmailAddress: 'foo'}));
     expectFailedValidation(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL);
 

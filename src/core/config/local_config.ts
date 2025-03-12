@@ -20,12 +20,12 @@ import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
-  // @IsEmail(
-  //   {},
-  //   {
-  //     message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL,
-  //   },
-  // )
+  @IsEmail(
+    {},
+    {
+      message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL,
+    },
+  )
   userEmailAddress: EmailAddress;
 
   @IsString({message: ErrorMessages.LOCAL_CONFIG_INVALID_SOLO_VERSION})
@@ -83,6 +83,7 @@ export class LocalConfig implements LocalConfigData {
       this.deployments = {};
       this.clusterRefs = {};
       this.soloVersion = helpers.getSoloVersion();
+      this.userEmailAddress = 'john@doe.com';
     }
   }
 
