@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ClassConstructor} from '../../../business/utils/class_constructor.type.js';
+import {type ClassConstructor} from '../../../../business/utils/class_constructor.type.js';
 import {type SchemaMigration} from './schema_migration.js';
-import {type Version} from '../../../business/utils/version.js';
+import {type Version} from '../../../../business/utils/version.js';
 
 /**
  * Defines a schema which can be used to convert input data into a model instance.
@@ -18,7 +18,7 @@ export interface Schema<T> {
    * The current version of the schema. This is used to determine if the input data needs to be migrated before being
    * applied to a model.
    */
-  readonly version: number;
+  readonly version: Version<number>;
 
   /**
    * The class constructor for the model. This is used to create instances of the model from the input data.
