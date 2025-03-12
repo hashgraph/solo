@@ -60,6 +60,8 @@ export class ExplorerCommand extends BaseCommand {
     this.profileManager = opts.profileManager;
   }
 
+  public static readonly COMMAND_NAME = 'explorer';
+
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
   }
@@ -498,7 +500,7 @@ export class ExplorerCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'explorer',
+      command: ExplorerCommand.COMMAND_NAME,
       desc: 'Manage Explorer in solo network',
       builder: yargs => {
         return yargs

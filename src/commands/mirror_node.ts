@@ -83,6 +83,8 @@ export class MirrorNodeCommand extends BaseCommand {
     this.profileManager = opts.profileManager;
   }
 
+  public static readonly COMMAND_NAME = 'mirror-node';
+
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
   }
@@ -827,7 +829,7 @@ export class MirrorNodeCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'mirror-node',
+      command: MirrorNodeCommand.COMMAND_NAME,
       desc: 'Manage Hedera Mirror Node in solo network',
       builder: yargs => {
         return yargs

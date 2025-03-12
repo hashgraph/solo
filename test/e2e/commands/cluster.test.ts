@@ -16,6 +16,8 @@ import {Argv} from '../../helpers/argv_wrapper.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';
+import {AccountCommand} from '../../../src/commands/account.js';
+import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -46,12 +48,10 @@ describe('ClusterCommand', () => {
   argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
   argv.setArg(flags.force, true);
 
-  const bootstrapResp = bootstrapTestVariables(testName, argv, {});
-  const k8Factory = bootstrapResp.opts.k8Factory;
-  const configManager = bootstrapResp.opts.configManager;
-  const chartManager = bootstrapResp.opts.chartManager;
-
-  const clusterCmd = bootstrapResp.cmd.clusterCmd;
+  const {
+    opts: {k8Factory, configManager, chartManager, commandInvoker},
+    cmd: {clusterCmd},
+  } = bootstrapTestVariables(testName, argv, {});
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
@@ -59,7 +59,15 @@ describe('ClusterCommand', () => {
     await k8Factory.default().namespaces().delete(namespace);
     argv.setArg(flags.clusterSetupNamespace, constants.SOLO_SETUP_NAMESPACE.name);
     configManager.update(argv.build());
-    await clusterCmd.handlers.setup(argv.build()); // restore solo-cluster-setup for other e2e tests to leverage
+
+    // restore solo-cluster-setup for other e2e tests to leverage
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'setup',
+      callback: async argv => clusterCmd.handlers.setup(argv),
+    });
+
     do {
       await sleep(Duration.ofSeconds(5));
     } while (
@@ -76,26 +84,55 @@ describe('ClusterCommand', () => {
 
   it('should cleanup existing deployment', async () => {
     if (await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART)) {
-      expect(await clusterCmd.handlers.reset(argv.build())).to.be.true;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: ClusterCommand.COMMAND_NAME,
+        subcommand: 'reset',
+        callback: async argv => clusterCmd.handlers.reset(argv),
+      });
     }
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster setup should fail with invalid cluster name', async () => {
     argv.setArg(flags.clusterSetupNamespace, 'INVALID');
-    await expect(clusterCmd.handlers.setup(argv.build())).to.be.rejectedWith('Error on cluster setup');
+
+    expect(
+      commandInvoker.invoke({
+        argv: argv,
+        command: ClusterCommand.COMMAND_NAME,
+        subcommand: 'setup',
+        callback: async argv => clusterCmd.handlers.setup(argv),
+      }),
+    ).to.be.rejectedWith('Error on cluster setup');
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster setup should work with valid args', async () => {
     argv.setArg(flags.clusterSetupNamespace, namespace.name);
-    expect(await clusterCmd.handlers.setup(argv.build())).to.be.true;
+
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'setup',
+      callback: async argv => clusterCmd.handlers.setup(argv),
+    });
   }).timeout(Duration.ofMinutes(1).toMillis());
 
-  it('solo cluster info should work', () => {
-    expect(clusterCmd.handlers.info(argv.build())).to.be.ok;
+  it('solo cluster info should work', async () => {
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'info',
+      callback: async argv => clusterCmd.handlers.info(argv),
+    });
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('solo cluster list', async () => {
-    expect(clusterCmd.handlers.list(argv.build())).to.be.ok;
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'list',
+      callback: async argv => clusterCmd.handlers.list(argv),
+    });
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   it('function showInstalledChartList should return right true', async () => {
@@ -108,7 +145,14 @@ describe('ClusterCommand', () => {
     argv.setArg(flags.clusterSetupNamespace, 'INVALID');
 
     try {
-      await expect(clusterCmd.handlers.reset(argv.build())).to.be.rejectedWith('Error on cluster reset');
+      await expect(
+        commandInvoker.invoke({
+          argv: argv,
+          command: ClusterCommand.COMMAND_NAME,
+          subcommand: 'reset',
+          callback: async argv => clusterCmd.handlers.reset(argv),
+        }),
+      ).to.be.rejectedWith('Error on cluster reset');
     } catch (e) {
       clusterCmd.logger.showUserError(e);
       expect.fail();
@@ -117,7 +161,13 @@ describe('ClusterCommand', () => {
 
   it('solo cluster reset should work with valid args', async () => {
     argv.setArg(flags.clusterSetupNamespace, namespace.name);
-    expect(await clusterCmd.handlers.reset(argv.build())).to.be.true;
+
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'reset',
+      callback: async argv => clusterCmd.handlers.reset(argv),
+    });
   }).timeout(Duration.ofMinutes(1).toMillis());
 
   // 'solo cluster-ref connect' tests
@@ -135,7 +185,12 @@ describe('ClusterCommand', () => {
   it('cluster-ref connect should pass with correct data', async () => {
     const {argv, clusterRef, contextName} = getClusterConnectDefaultArgv();
 
-    await clusterCmd.handlers.connect(argv.build());
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'connect',
+      callback: async argv => clusterCmd.handlers.connect(argv),
+    });
 
     const localConfigPath = path.join(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
     const localConfigYaml = fs.readFileSync(localConfigPath).toString();
@@ -151,8 +206,19 @@ describe('ClusterCommand', () => {
     argv.setArg(flags.clusterRef, clusterRef);
 
     try {
-      await clusterCmd.handlers.connect(argv.build());
-      await clusterCmd.handlers.connect(argv.build());
+      await commandInvoker.invoke({
+        argv: argv,
+        command: ClusterCommand.COMMAND_NAME,
+        subcommand: 'connect',
+        callback: async argv => clusterCmd.handlers.connect(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: ClusterCommand.COMMAND_NAME,
+        subcommand: 'connect',
+        callback: async argv => clusterCmd.handlers.connect(argv),
+      });
       expect.fail();
     } catch (e) {
       expect(e.message).to.include(`Cluster ref ${clusterRef} already exists inside local config`);
@@ -167,7 +233,19 @@ describe('ClusterCommand', () => {
     argv.setArg(flags.context, contextName);
 
     try {
-      await clusterCmd.handlers.connect(argv.build());
+      await commandInvoker.invoke({
+        argv: argv,
+        command: ClusterCommand.COMMAND_NAME,
+        subcommand: 'connect',
+        callback: async argv => clusterCmd.handlers.connect(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argv,
+        command: ClusterCommand.COMMAND_NAME,
+        subcommand: 'connect',
+        callback: async argv => clusterCmd.handlers.connect(argv),
+      });
       expect.fail();
     } catch (e) {
       expect(e.message).to.include(`Context ${contextName} is not valid for cluster test-context-name`);

@@ -378,8 +378,9 @@ export function e2eTestSuite(
 
 export function balanceQueryShouldSucceed(
   accountManager: AccountManager,
-  cmd: BaseCommand,
   namespace: NamespaceName,
+  remoteConfigManager: RemoteConfigManager,
+  logger: SoloLogger,
   skipNodeAlias?: NodeAlias,
 ) {
   it('Balance query should succeed', async () => {
@@ -390,7 +391,7 @@ export function balanceQueryShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        cmd.getRemoteConfigManager().getClusterRefs(),
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -401,7 +402,7 @@ export function balanceQueryShouldSucceed(
 
       expect(balance.hbars).not.be.null;
     } catch (e) {
-      cmd.logger.showUserError(e);
+      logger.showUserError(e);
       expect.fail();
     }
     await sleep(Duration.ofSeconds(1));

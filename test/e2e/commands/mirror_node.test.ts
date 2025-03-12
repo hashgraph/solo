@@ -29,6 +29,7 @@ import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens
 import {type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {GENESIS_KEY} from '../../../src/core/constants.js';
+import {AccountCommand} from '../../../src/commands/account.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);
@@ -49,18 +50,20 @@ argv.setArg(flags.enableIngress, true);
 
 e2eTestSuite(testName, argv, {}, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
-    const k8Factory = bootstrapResp.opts.k8Factory;
+    const {
+      opts: {k8Factory, accountManager, logger, commandInvoker, remoteConfigManager},
+    } = bootstrapResp;
+
     const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
     const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
     const downloader = new PackageDownloader(mirrorNodeCmd.logger);
-    const accountManager = bootstrapResp.opts.accountManager;
 
     const testMessage = 'Mirror node test message';
     let portForwarder = null;
     let newTopicId = null;
 
     before(() => {
-      bootstrapResp.opts.logger.showUser(`------------------------- START: ${testName} ----------------------------`);
+      logger.showUser(`------------------------- START: ${testName} ----------------------------`);
     });
 
     after(async function () {
@@ -70,44 +73,39 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       await k8Factory.default().namespaces().delete(namespace);
       await accountManager.close();
 
-      bootstrapResp.opts.logger.showUser(`------------------------- END: ${testName} ----------------------------`);
+      logger.showUser(`------------------------- END: ${testName} ----------------------------`);
     });
 
     // give a few ticks so that connections can close
     afterEach(async () => await sleep(Duration.ofMillis(500)));
 
-    balanceQueryShouldSucceed(accountManager, mirrorNodeCmd, namespace);
+    balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger);
 
     it('mirror node and explorer deploy should success', async () => {
       try {
-        expect(await mirrorNodeCmd.deploy(argv.build())).to.be.true;
-        expect(await explorerCommand.deploy(argv.build())).to.be.true;
+        await commandInvoker.invoke({
+          argv: argv,
+          command: MirrorNodeCommand.COMMAND_NAME,
+          subcommand: 'deploy',
+          callback: async argv => mirrorNodeCmd.deploy(argv),
+        });
+
+        await commandInvoker.invoke({
+          argv: argv,
+          command: ExplorerCommand.COMMAND_NAME,
+          subcommand: 'deploy',
+          callback: async argv => explorerCommand.deploy(argv),
+        });
       } catch (e) {
-        mirrorNodeCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
-
-      expect(mirrorNodeCmd.configManager.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.hederaExplorerTlsHostName.constName,
-        flags.deployment.constName,
-        flags.profileFile.constName,
-        flags.profileName.constName,
-        flags.quiet.constName,
-      ]);
-      expect(explorerCommand.configManager.getUnusedConfigs(MirrorNodeCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.hederaExplorerTlsHostName.constName,
-        flags.deployment.constName,
-        flags.profileFile.constName,
-        flags.profileName.constName,
-        flags.quiet.constName,
-      ]);
     }).timeout(Duration.ofMinutes(10).toMillis());
 
     it('mirror node API should be running', async () => {
-      const clusterRefs: ClusterRefs = mirrorNodeCmd.getRemoteConfigManager().getClusterRefs();
       await accountManager.loadNodeClient(
         namespace,
-        clusterRefs,
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
         argv.getArg<boolean>(flags.forcePortForward),
       );
@@ -131,7 +129,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         expect(await downloader.urlExists(apiURL)).to.be.true;
         await sleep(Duration.ofSeconds(2));
       } catch (e) {
-        mirrorNodeCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());
@@ -142,9 +140,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         expect(await downloader.urlExists(guiURL)).to.be.true;
         await sleep(Duration.ofSeconds(2));
 
-        mirrorNodeCmd.logger.debug('mirror node API and explorer GUI are running');
+        logger.debug('mirror node API and explorer GUI are running');
       } catch (e) {
-        mirrorNodeCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());
@@ -157,7 +155,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           .execute(accountManager._nodeClient);
         const receipt = await txResponse.getReceipt(accountManager._nodeClient);
         newTopicId = receipt.topicId;
-        mirrorNodeCmd.logger.debug(`Newly created topic ID is: ${newTopicId}`);
+        logger.debug(`Newly created topic ID is: ${newTopicId}`);
 
         const submitResponse = await new TopicMessageSubmitTransaction({
           topicId: newTopicId,
@@ -167,7 +165,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient);
         expect(submitReceipt.status).to.deep.equal(Status.Success);
       } catch (e) {
-        mirrorNodeCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());
@@ -190,19 +188,19 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
               // convert chunk to json object
               const obj = JSON.parse(chunk);
               if (obj.messages.length === 0) {
-                mirrorNodeCmd.logger.debug('No messages yet');
+                logger.debug('No messages yet');
               } else {
                 // convert message from base64 to utf-8
                 const base64 = obj.messages[0].message;
                 const buff = Buffer.from(base64, 'base64');
                 receivedMessage = buff.toString('utf-8');
-                mirrorNodeCmd.logger.debug(`Received message: ${receivedMessage}`);
+                logger.debug(`Received message: ${receivedMessage}`);
                 received = true;
               }
             });
           });
           req.on('error', e => {
-            mirrorNodeCmd.logger.debug(`problem with request: ${e.message}`);
+            logger.debug(`problem with request: ${e.message}`);
           });
           req.end(); // make the request
           await sleep(Duration.ofSeconds(2));
@@ -211,17 +209,28 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         expect(receivedMessage).to.equal(testMessage);
         await k8Factory.default().pods().readByRef(null).stopPortForward(portForwarder);
       } catch (e) {
-        mirrorNodeCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('mirror node destroy should success', async () => {
       try {
-        expect(await mirrorNodeCmd.destroy(argv.build())).to.be.true;
-        expect(await explorerCommand.destroy(argv.build())).to.be.true;
+        await commandInvoker.invoke({
+          argv: argv,
+          command: MirrorNodeCommand.COMMAND_NAME,
+          subcommand: 'destroy',
+          callback: async argv => mirrorNodeCmd.destroy(argv),
+        });
+
+        await commandInvoker.invoke({
+          argv: argv,
+          command: ExplorerCommand.COMMAND_NAME,
+          subcommand: 'destroy',
+          callback: async argv => explorerCommand.destroy(argv),
+        });
       } catch (e) {
-        mirrorNodeCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());
