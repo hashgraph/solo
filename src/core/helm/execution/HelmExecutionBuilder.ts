@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { join } from 'path';
-import { HelmConfigurationException } from '../HelmConfigurationException.js';
-import { HelmExecution } from './HelmExecution.js';
+import {join} from 'path';
+import {HelmExecution} from './HelmExecution.js';
 
 /**
  * A builder for creating a helm command execution.
@@ -29,7 +28,7 @@ export class HelmExecutionBuilder {
   /**
    * The list of options and a list of their one or more values.
    */
-  private readonly _optionsWithMultipleValues: Array<{ key: string; value: string[] }> = [];
+  private readonly _optionsWithMultipleValues: Array<{key: string; value: string[]}> = [];
 
   /**
    * The flags to be passed to the helm command.
@@ -62,9 +61,10 @@ export class HelmExecutionBuilder {
     this.helmExecutable = helmExecutable;
 
     const workingDirectoryString = process.env.PWD;
-    this._workingDirectory = workingDirectoryString && workingDirectoryString.trim() !== ''
-      ? workingDirectoryString
-      : join(this.helmExecutable, '..');
+    this._workingDirectory =
+      workingDirectoryString && workingDirectoryString.trim() !== ''
+        ? workingDirectoryString
+        : join(this.helmExecutable, '..');
   }
 
   /**
@@ -110,7 +110,7 @@ export class HelmExecutionBuilder {
     if (!value) {
       throw new Error(HelmExecutionBuilder.VALUE_MUST_NOT_BE_NULL);
     }
-    this._optionsWithMultipleValues.push({ key: name, value });
+    this._optionsWithMultipleValues.push({key: name, value});
     return this;
   }
 
@@ -176,7 +176,7 @@ export class HelmExecutionBuilder {
    */
   build(): HelmExecution {
     const command = this.buildCommand();
-    const env: Record<string, string> = { ...process.env };
+    const env: Record<string, string> = {...process.env};
     this._environmentVariables.forEach((value, key) => {
       env[key] = value;
     });
@@ -214,4 +214,4 @@ export class HelmExecutionBuilder {
 
     return command;
   }
-} 
+}

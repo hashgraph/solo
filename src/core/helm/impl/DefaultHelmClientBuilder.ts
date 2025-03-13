@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmClient } from '../HelmClient.js';
-import { HelmClientBuilder } from '../HelmClientBuilder.js';
-import { KubeAuthentication } from '../request/authentication/KubeAuthentication.js';
-import { HelmSoftwareLoader } from '../resource/HelmSoftwareLoader.js';
+import {type HelmClient} from '../HelmClient.js';
+import {type HelmClientBuilder} from '../HelmClientBuilder.js';
+import {KubeAuthentication} from '../request/authentication/KubeAuthentication.js';
+import {DefaultHelmClient} from './DefaultHelmClient.js';
 
 /**
  * The default implementation of the HelmClientBuilder interface.
@@ -120,13 +120,9 @@ export class DefaultHelmClientBuilder implements HelmClientBuilder {
       this._kubeSkipTlsVerification,
       this._kubeTlsServerName,
       this._kubeToken,
-      this._kubeConfig
+      this._kubeConfig,
     );
 
-    return new DefaultHelmClient(
-      this._defaultNamespace,
-      this._workingDirectory,
-      authentication
-    );
+    return new DefaultHelmClient('helm', authentication, this._defaultNamespace, this._workingDirectory);
   }
-} 
+}

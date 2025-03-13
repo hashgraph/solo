@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
-import { HelmRequest } from '../HelmRequest.js';
-import { TestChartOptions } from '../../model/test/TestChartOptions.js';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
+import {type HelmRequest} from '../HelmRequest.js';
+import {TestChartOptions} from '../../model/test/TestChartOptions.js';
 
 /**
  * A request to test a Helm chart.
@@ -16,7 +16,7 @@ export class ChartTestRequest implements HelmRequest {
    */
   constructor(
     private readonly releaseName: string,
-    private readonly options: TestChartOptions = TestChartOptions.defaults()
+    private readonly options: TestChartOptions = TestChartOptions.defaults(),
   ) {
     if (!releaseName) {
       throw new Error('releaseName must not be null');
@@ -34,4 +34,4 @@ export class ChartTestRequest implements HelmRequest {
     this.options.apply(builder);
     builder.positional(this.releaseName);
   }
-} 
+}

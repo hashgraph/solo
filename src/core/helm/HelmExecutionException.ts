@@ -62,7 +62,7 @@ export class HelmExecutionException extends Error {
     exitCode: number,
     messageOrStdOutOrCause?: string | Error,
     stdErrOrCause?: string | Error,
-    stdErrParam?: string
+    stdErrParam?: string,
   ) {
     let message: string;
     let cause: Error | undefined;
@@ -140,4 +140,4 @@ export class HelmExecutionException extends Error {
   toString(): string {
     return `HelmExecutionException{message=${this.message}, exitCode=${this.getExitCode()}, stdOut='${this.getStdOut()}', stdErr='${this.getStdErr()}'}`;
   }
-} 
+}

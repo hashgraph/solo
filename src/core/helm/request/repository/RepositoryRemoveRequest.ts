@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
-import { HelmRequest } from '../HelmRequest.js';
-import { Repository } from '../../model/Repository.js';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
+import {type HelmRequest} from '../HelmRequest.js';
+import {type Repository} from '../../model/Repository.js';
 
 /**
  * A request to remove a Helm repository.
@@ -18,4 +18,4 @@ export class RepositoryRemoveRequest implements HelmRequest {
     builder.subcommands('repo', 'remove');
     builder.positional(this.repository.name);
   }
-} 
+}

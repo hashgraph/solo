@@ -47,6 +47,6 @@ export class ReleaseItemImpl implements ReleaseItem {
     public readonly updated: string,
     public readonly status: string,
     public readonly chart: string,
-    public readonly app_version: string
+    public readonly app_version: string,
   ) {}
-} 
+}

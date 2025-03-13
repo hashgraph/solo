@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
-import { HelmRequest } from '../HelmRequest.js';
-import { Chart } from '../../model/Chart.js';
-import { InstallChartOptions } from '../../model/install/InstallChartOptions.js';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
+import {type HelmRequest} from '../HelmRequest.js';
+import {type Chart} from '../../model/Chart.js';
+import {InstallChartOptions} from '../../model/install/InstallChartOptions.js';
 
 /**
  * A request to install a Helm chart.
@@ -19,7 +19,7 @@ export class ChartInstallRequest implements HelmRequest {
   constructor(
     private readonly releaseName: string,
     private readonly chart: Chart,
-    private readonly options: InstallChartOptions = InstallChartOptions.defaults()
+    private readonly options: InstallChartOptions = InstallChartOptions.defaults(),
   ) {
     if (!releaseName) {
       throw new Error('releaseName must not be null');
@@ -39,10 +39,9 @@ export class ChartInstallRequest implements HelmRequest {
     builder.subcommands('install');
     this.options.apply(builder);
 
-    const chartName = this.options.repo && this.options.repo.trim() !== '' 
-      ? this.chart.unqualified()
-      : this.chart.qualified();
+    const chartName =
+      this.options.repo && this.options.repo.trim() !== '' ? this.chart.unqualified() : this.chart.qualified();
 
     builder.positional(this.releaseName).positional(chartName);
   }
-} 
+}

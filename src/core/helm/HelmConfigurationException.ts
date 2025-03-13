@@ -30,19 +30,19 @@ export class HelmConfigurationException extends Error {
 
   // Implementation
   constructor(messageOrCause?: string | Error, cause?: Error) {
-  if (typeof messageOrCause === 'string') {
-  super(messageOrCause);
-  if (cause) {
-  this.cause = cause;
-  }
-  } else if (messageOrCause instanceof Error) {
-  super(messageOrCause.message);
-  this.cause = messageOrCause;
-  } else {
-  super();
-  }
-  this.name = 'HelmConfigurationException';
+    if (typeof messageOrCause === 'string') {
+      super(messageOrCause);
+      if (cause) {
+        this.cause = cause;
+      }
+    } else if (messageOrCause instanceof Error) {
+      super(messageOrCause.message);
+      this.cause = messageOrCause;
+    } else {
+      super();
+    }
+    this.name = 'HelmConfigurationException';
   }
 
   cause?: Error;
-} 
+}

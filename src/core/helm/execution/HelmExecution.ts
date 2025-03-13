@@ -1,26 +1,27 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { spawn, spawnSync, ChildProcess } from 'child_process';
-import { HelmExecutionException } from '../HelmExecutionException.js';
-import { HelmParserException } from '../HelmParserException.js';
-import { Duration } from '../../time/duration.js';
+import {spawn, spawnSync, type ChildProcess} from 'child_process';
+import {HelmExecutionException} from '../HelmExecutionException.js';
+import {HelmParserException} from '../HelmParserException.js';
+import {type Duration} from '../../time/duration.js';
 
 /**
  * Represents the execution of a helm command and is responsible for parsing the response.
  */
 export class HelmExecution {
-    /**
-     * The logger for this class which should be used for all logging.
-     */
+  /**
+   * The logger for this class which should be used for all logging.
+   */
   private static readonly MSG_TIMEOUT_ERROR = 'Timed out waiting for the process to complete';
-    /**
-     * The message for a timeout error.
-     */
-      private static readonly MSG_DESERIALIZATION_ERROR = 'Failed to deserialize the output into the specified class: %s';
-    /**
-     * The message for a deserialization error.
-     */
-  private static readonly MSG_LIST_DESERIALIZATION_ERROR = 'Failed to deserialize the output into a list of the specified class: %s';
+  /**
+   * The message for a timeout error.
+   */
+  private static readonly MSG_DESERIALIZATION_ERROR = 'Failed to deserialize the output into the specified class: %s';
+  /**
+   * The message for a deserialization error.
+   */
+  private static readonly MSG_LIST_DESERIALIZATION_ERROR =
+    'Failed to deserialize the output into a list of the specified class: %s';
 
   private readonly process: ChildProcess;
   private readonly workingDirectory: string;
@@ -37,7 +38,7 @@ export class HelmExecution {
     this.environmentVariables = environmentVariables;
     this.process = spawn(command[0], command.slice(1), {
       cwd: workingDirectory,
-      env: { ...process.env, ...environmentVariables }
+      env: {...process.env, ...environmentVariables},
     });
   }
 
@@ -47,7 +48,7 @@ export class HelmExecution {
    */
   async waitFor(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.process.on('close', (code) => {
+      this.process.on('close', code => {
         if (code !== 0) {
           reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
         } else {
@@ -68,12 +69,12 @@ export class HelmExecution {
       return true;
     }
 
-    const timeoutPromise = new Promise<boolean>((resolve) => {
+    const timeoutPromise = new Promise<boolean>(resolve => {
       setTimeout(() => resolve(false), timeout.toMillis());
     });
 
-    const successPromise = new Promise<boolean>((resolve) => {
-      this.process.on('close', (code) => {
+    const successPromise = new Promise<boolean>(resolve => {
+      this.process.on('close', code => {
         resolve(code === 0);
       });
     });
@@ -96,10 +97,10 @@ export class HelmExecution {
   async standardOutput(): Promise<string> {
     return new Promise((resolve, reject) => {
       let output = '';
-      this.process.stdout?.on('data', (data) => {
+      this.process.stdout?.on('data', data => {
         output += data.toString();
       });
-      this.process.on('close', (code) => {
+      this.process.on('close', code => {
         if (code !== 0) {
           reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
         } else {
@@ -116,10 +117,10 @@ export class HelmExecution {
   async standardError(): Promise<string> {
     return new Promise((resolve, reject) => {
       let output = '';
-      this.process.stderr?.on('data', (data) => {
+      this.process.stderr?.on('data', data => {
         output += data.toString();
       });
-      this.process.on('close', (code) => {
+      this.process.on('close', code => {
         if (code !== 0) {
           reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
         } else {
@@ -212,7 +213,7 @@ export class HelmExecution {
   standardOutputSync(): string {
     const result = spawnSync(this.process.spawnfile, this.process.spawnargs.slice(1), {
       cwd: this.workingDirectory,
-      env: { ...process.env, ...this.environmentVariables }
+      env: {...process.env, ...this.environmentVariables},
     });
 
     if (result.status !== 0) {
@@ -221,4 +222,4 @@ export class HelmExecution {
 
     return result.stdout.toString();
   }
-} 
+}

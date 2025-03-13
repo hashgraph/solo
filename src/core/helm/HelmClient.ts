@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { SemanticVersion } from './base/api/version/SemanticVersion.js';
-import { Chart } from './model/Chart.js';
-import { Repository } from './model/Repository.js';
-import { Release } from './model/chart/Release.js';
-import { InstallChartOptions } from './model/install/InstallChartOptions.js';
-import { ReleaseItem } from './model/release/ReleaseItem.js';
-import { TestChartOptions } from './model/test/TestChartOptions.js';
-import { DefaultHelmClientBuilder } from './impl/DefaultHelmClientBuilder.js';
-import { HelmClientBuilder } from './HelmClientBuilder.js';
+import {type SemanticVersion} from './base/api/version/SemanticVersion.js';
+import {type Chart} from './model/Chart.js';
+import {type Repository} from './model/Repository.js';
+import {type Release} from './model/chart/Release.js';
+import {type InstallChartOptions} from './model/install/InstallChartOptions.js';
+import {type ReleaseItem} from './model/release/ReleaseItem.js';
+import {type TestChartOptions} from './model/test/TestChartOptions.js';
+import {DefaultHelmClientBuilder} from './impl/DefaultHelmClientBuilder.js';
+import {type HelmClientBuilder} from './HelmClientBuilder.js';
 
 /**
  * The HelmClient is a bridge between TypeScript and the Helm CLI. The client is highly dependent on specific features
@@ -115,4 +115,4 @@ export function builder(): HelmClientBuilder {
  */
 export function defaultClient(): HelmClient {
   return builder().build();
-} 
+}

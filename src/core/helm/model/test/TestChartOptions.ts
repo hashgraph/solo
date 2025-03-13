@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
 
 /**
  * Options for testing a Helm chart.
@@ -15,7 +15,7 @@ export class TestChartOptions {
 
   constructor(
     public readonly filter?: string,
-    public readonly timeout?: string
+    public readonly timeout?: string,
   ) {}
 
   /**
@@ -67,9 +67,6 @@ export class TestChartOptionsBuilder {
    * Build the TestChartOptions instance.
    */
   build(): TestChartOptions {
-    return new TestChartOptions(
-      this._filter,
-      this._timeout
-    );
+    return new TestChartOptions(this._filter, this._timeout);
   }
-} 
+}

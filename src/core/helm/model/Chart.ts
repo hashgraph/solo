@@ -10,8 +10,8 @@ export class Chart {
    * @param repoName the name of repository which contains the Helm chart.
    */
   constructor(
-  public readonly name: string,
-  public readonly repoName?: string
+    public readonly name: string,
+    public readonly repoName?: string,
   ) {}
 
   /**
@@ -19,23 +19,23 @@ export class Chart {
    * If repoName is provided, returns "repoName/name", otherwise just returns "name".
    */
   toString(): string {
-  if (!this.repoName?.trim()) {
-  return this.name;
-  }
-  return `${this.repoName}/${this.name}`;
+    if (!this.repoName?.trim()) {
+      return this.name;
+    }
+    return `${this.repoName}/${this.name}`;
   }
 
   /**
    * Returns the qualified name of the chart (same as toString).
    */
   qualified(): string {
-  return this.toString();
+    return this.toString();
   }
 
   /**
    * Returns the unqualified name of the chart (just the name without the repo).
    */
   unqualified(): string {
-  return this.name;
+    return this.name;
   }
 }

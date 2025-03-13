@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
-import { HelmRequest } from '../HelmRequest.js';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
+import {type HelmRequest} from '../HelmRequest.js';
 
 /**
  * A request to update the dependencies of a Helm chart.
@@ -20,4 +20,4 @@ export class ChartDependencyUpdateRequest implements HelmRequest {
     builder.subcommands('dependency', 'update');
     builder.positional(this.chartName);
   }
-} 
+}

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
-import { HelmRequest } from '../HelmRequest.js';
-import { existsSync } from 'fs';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
+import {type HelmRequest} from '../HelmRequest.js';
+import {existsSync} from 'fs';
 
 /**
  * Authentication parameters for a Kubernetes cluster.
@@ -50,7 +50,7 @@ export class KubeAuthentication implements HelmRequest {
     public readonly skipTlsVerification?: boolean,
     public readonly tlsServerName?: string,
     public readonly token?: string,
-    public readonly configFile?: string
+    public readonly configFile?: string,
   ) {}
 
   apply(builder: HelmExecutionBuilder): void {
@@ -82,4 +82,4 @@ export class KubeAuthentication implements HelmRequest {
       builder.argument(KubeAuthentication.CONFIG_FILE_ARG_NAME, this.configFile);
     }
   }
-} 
+}

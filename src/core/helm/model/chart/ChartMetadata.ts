@@ -21,6 +21,6 @@ export class ChartMetadataImpl implements ChartMetadata {
    */
   constructor(
     public readonly version: string,
-    public readonly appVersion: string
+    public readonly appVersion: string,
   ) {}
-} 
+}

@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { SemanticVersion } from '../base/api/version/SemanticVersion.js';
+import {SemanticVersion} from '../base/api/version/SemanticVersion.js';
 
 /**
  * The response from the helm version command.
  */
 export class Version {
-  constructor(
-    public readonly version: string
-  ) {
+  constructor(public readonly version: string) {
     if (!version) {
       throw new Error('version must not be null');
     }
@@ -27,4 +25,4 @@ export class Version {
 
     return SemanticVersion.parse(safeVersion);
   }
-} 
+}

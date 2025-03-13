@@ -12,22 +12,22 @@ export class Repository {
    * @throws Error if any of the arguments are null or blank.
    */
   constructor(
-  public readonly name: string,
-  public readonly url: string
+    public readonly name: string,
+    public readonly url: string,
   ) {
-  if (!name) {
-  throw new Error("name must not be null");
-  }
-  if (!url) {
-  throw new Error("url must not be null");
-  }
+    if (!name) {
+      throw new Error('name must not be null');
+    }
+    if (!url) {
+      throw new Error('url must not be null');
+    }
 
-  if (!name.trim()) {
-  throw new Error("name must not be blank");
-  }
+    if (!name.trim()) {
+      throw new Error('name must not be blank');
+    }
 
-  if (!url.trim()) {
-  throw new Error("url must not be blank");
+    if (!url.trim()) {
+      throw new Error('url must not be blank');
+    }
   }
-  }
-} 
+}

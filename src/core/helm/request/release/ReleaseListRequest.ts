@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
-import { HelmRequest } from '../HelmRequest.js';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
+import {type HelmRequest} from '../HelmRequest.js';
 
 /**
  * A request to list all Helm releases.
@@ -18,4 +18,4 @@ export class ReleaseListRequest implements HelmRequest {
 
     builder.subcommands('list');
   }
-} 
+}

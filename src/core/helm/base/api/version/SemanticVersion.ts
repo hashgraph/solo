@@ -1,20 +1,6 @@
-/*
- * Copyright (C) 2022-2023 Hedera Hashgraph, LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// SPDX-License-Identifier: Apache-2.0
 
-import { InvalidSemanticVersionException } from './InvalidSemanticVersionException.js';
+import {InvalidSemanticVersionException} from './InvalidSemanticVersionException.js';
 
 /**
  * A standard representation of a semantic version number.
@@ -28,11 +14,13 @@ export class SemanticVersion {
   /**
    * A precompiled regular expression used to parse a semantic version string and extract the individual components.
    */
-  private static readonly SEMVER_PATTERN = new RegExp('^'
-    + '((\\d+)\\.(\\d+)\\.(\\d+))' // version string
-    + '(?:-([\\dA-Za-z]+(?:\\.[\\dA-Za-z]+)*))?' // prerelease suffix (optional)
-    + '(?:\\+([\\dA-Za-z\\-]+(?:\\.[\\dA-Za-z\\-]+)*))?' // build suffix (optional)
-    + '$');
+  private static readonly SEMVER_PATTERN = new RegExp(
+    '^' +
+      '((\\d+)\\.(\\d+)\\.(\\d+))' + // version string
+      '(?:-([\\dA-Za-z]+(?:\\.[\\dA-Za-z]+)*))?' + // prerelease suffix (optional)
+      '(?:\\+([\\dA-Za-z\\-]+(?:\\.[\\dA-Za-z\\-]+)*))?' + // build suffix (optional)
+      '$',
+  );
 
   /**
    * Constructs a new instance of a {@link SemanticVersion} with the supplied components.
@@ -48,7 +36,7 @@ export class SemanticVersion {
     private readonly _minor: number,
     private readonly _patch: number,
     private readonly _prerelease: string = '',
-    private readonly _build: string = ''
+    private readonly _build: string = '',
   ) {
     this._prerelease = SemanticVersion.nullToBlank(_prerelease);
     this._build = SemanticVersion.nullToBlank(_build);
@@ -84,27 +72,28 @@ export class SemanticVersion {
    */
   public static parse(version: string): SemanticVersion {
     if (!version) {
-    throw new Error('version cannot be null');
+      throw new Error('version cannot be null');
     }
 
     const matcher = version.trim().match(SemanticVersion.SEMVER_PATTERN);
 
     if (!matcher) {
-    throw new InvalidSemanticVersionException(
-        `The supplied version '${version}' is not a valid semantic version`);
+      throw new InvalidSemanticVersionException(`The supplied version '${version}' is not a valid semantic version`);
     }
 
     try {
-    const major = parseInt(matcher[2], 10);
-    const minor = parseInt(matcher[3], 10);
-    const patch = parseInt(matcher[4], 10);
-    const prerelease = SemanticVersion.nullToBlank(matcher[5]);
-    const build = SemanticVersion.nullToBlank(matcher[6]);
+      const major = parseInt(matcher[2], 10);
+      const minor = parseInt(matcher[3], 10);
+      const patch = parseInt(matcher[4], 10);
+      const prerelease = SemanticVersion.nullToBlank(matcher[5]);
+      const build = SemanticVersion.nullToBlank(matcher[6]);
 
-    return new SemanticVersion(major, minor, patch, prerelease, build);
+      return new SemanticVersion(major, minor, patch, prerelease, build);
     } catch (e) {
-    throw new InvalidSemanticVersionException(
-        `The supplied version '${version}' is not a valid semantic version`, e as Error);
+      throw new InvalidSemanticVersionException(
+        `The supplied version '${version}' is not a valid semantic version`,
+        e as Error,
+      );
     }
   }
 
@@ -135,27 +124,27 @@ export class SemanticVersion {
    */
   public compareTo(other: SemanticVersion | null): number {
     if (!other) {
-    return 1;
+      return 1;
     }
 
     let result = this._major - other._major;
     if (result !== 0) {
-    return result;
+      return result;
     }
 
     result = this._minor - other._minor;
     if (result !== 0) {
-    return result;
+      return result;
     }
 
     result = this._patch - other._patch;
     if (result !== 0) {
-    return result;
+      return result;
     }
 
     result = this.compareStrings(this._prerelease, other._prerelease);
     if (result !== 0) {
-    return result;
+      return result;
     }
 
     return this.compareStrings(this._build, other._build);
@@ -170,11 +159,13 @@ export class SemanticVersion {
   public equals(obj: unknown): boolean {
     if (this === obj) return true;
     if (!(obj instanceof SemanticVersion)) return false;
-    return this._major === obj._major
-    && this._minor === obj._minor
-    && this._patch === obj._patch
-    && this._prerelease === obj._prerelease
-    && this._build === obj._build;
+    return (
+      this._major === obj._major &&
+      this._minor === obj._minor &&
+      this._patch === obj._patch &&
+      this._prerelease === obj._prerelease &&
+      this._build === obj._build
+    );
   }
 
   /**
@@ -186,11 +177,11 @@ export class SemanticVersion {
     const parts = [`${this._major}.${this._minor}.${this._patch}`];
 
     if (this._prerelease && this._prerelease.trim()) {
-    parts.push('-', this._prerelease);
+      parts.push('-', this._prerelease);
     }
 
     if (this._build && this._build.trim()) {
-    parts.push('+', this._build);
+      parts.push('+', this._build);
     }
 
     return parts.join('');
@@ -217,4 +208,4 @@ export class SemanticVersion {
     if (a === b) return 0;
     return a < b ? -1 : 1;
   }
-} 
+}

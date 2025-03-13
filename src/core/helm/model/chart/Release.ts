@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { ChartInfo} from './ChartInfo.js';
-import { ReleaseInfo } from './ReleaseInfo.js';
+import {type ChartInfo} from './ChartInfo.js';
+import {type ReleaseInfo} from './ReleaseInfo.js';
 
 /**
  * Information about a Helm release.
@@ -13,4 +13,15 @@ export interface Release {
   info: ReleaseInfo;
   /** Information about the chart */
   chart: ChartInfo;
+}
+
+/**
+ * Implementation of the Release interface.
+ */
+export class ReleaseImpl implements Release {
+  constructor(
+    public readonly name: string,
+    public readonly info: ReleaseInfo,
+    public readonly chart: ChartInfo,
+  ) {}
 }

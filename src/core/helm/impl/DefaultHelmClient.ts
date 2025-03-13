@@ -1,28 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { join } from 'path';
-import { SemanticVersion } from '../base/api/version/SemanticVersion.js';
-import { HelmClient } from '../HelmClient.js';
-import { HelmExecution } from '../execution/HelmExecution.js';
-import { HelmExecutionBuilder } from '../execution/HelmExecutionBuilder.js';
-import { Chart } from '../model/Chart.js';
-import { Repository } from '../model/Repository.js';
-import { Version } from '../model/Version.js';
-import { Release, ReleaseImpl } from '../model/chart/Release.js';
-import { InstallChartOptions } from '../model/install/InstallChartOptions.js';
-import { ReleaseItem, ReleaseItemImpl } from '../model/release/ReleaseItem.js';
-import { TestChartOptions } from '../model/test/TestChartOptions.js';
-import { HelmRequest } from '../request/HelmRequest.js';
-import { KubeAuthentication } from '../request/authentication/KubeAuthentication.js';
-import { ChartDependencyUpdateRequest } from '../request/chart/ChartDependencyUpdateRequest.js';
-import { ChartInstallRequest } from '../request/chart/ChartInstallRequest.js';
-import { ChartTestRequest } from '../request/chart/ChartTestRequest.js';
-import { ChartUninstallRequest } from '../request/chart/ChartUninstallRequest.js';
-import { VersionRequest } from '../request/common/VersionRequest.js';
-import { ReleaseListRequest } from '../request/release/ReleaseListRequest.js';
-import { RepositoryAddRequest } from '../request/repository/RepositoryAddRequest.js';
-import { RepositoryListRequest } from '../request/repository/RepositoryListRequest.js';
-import { RepositoryRemoveRequest } from '../request/repository/RepositoryRemoveRequest.js';
+import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
+import {type HelmClient} from '../HelmClient.js';
+import {type HelmExecution} from '../execution/HelmExecution.js';
+import {HelmExecutionBuilder} from '../execution/HelmExecutionBuilder.js';
+import {type Chart} from '../model/Chart.js';
+import {Repository} from '../model/Repository.js';
+import {Version} from '../model/Version.js';
+import {type Release, ReleaseImpl} from '../model/chart/Release.js';
+import {type InstallChartOptions} from '../model/install/InstallChartOptions.js';
+import {type ReleaseItem, ReleaseItemImpl} from '../model/release/ReleaseItem.js';
+import {type TestChartOptions} from '../model/test/TestChartOptions.js';
+import {type HelmRequest} from '../request/HelmRequest.js';
+import {type KubeAuthentication} from '../request/authentication/KubeAuthentication.js';
+import {ChartDependencyUpdateRequest} from '../request/chart/ChartDependencyUpdateRequest.js';
+import {ChartInstallRequest} from '../request/chart/ChartInstallRequest.js';
+import {ChartTestRequest} from '../request/chart/ChartTestRequest.js';
+import {ChartUninstallRequest} from '../request/chart/ChartUninstallRequest.js';
+import {ReleaseListRequest} from '../request/release/ReleaseListRequest.js';
+import {RepositoryAddRequest} from '../request/repository/RepositoryAddRequest.js';
+import {RepositoryListRequest} from '../request/repository/RepositoryListRequest.js';
+import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveRequest.js';
 
 /**
  * The default implementation of the {@link HelmClient} interface.
@@ -65,11 +63,7 @@ export class DefaultHelmClient implements HelmClient {
    * @param authentication   the authentication configuration to use when executing Helm commands.
    * @param defaultNamespace the default namespace to use when executing Helm commands.
    */
-  constructor(
-    helmExecutable: string,
-    authentication: KubeAuthentication,
-    defaultNamespace?: string
-  );
+  constructor(helmExecutable: string, authentication: KubeAuthentication, defaultNamespace?: string);
 
   /**
    * Creates a new instance of the {@link DefaultHelmClient} class.
@@ -83,14 +77,14 @@ export class DefaultHelmClient implements HelmClient {
     helmExecutable: string,
     authentication: KubeAuthentication,
     defaultNamespace?: string,
-    workingDirectory?: string
+    workingDirectory?: string,
   );
 
   constructor(
     helmExecutable: string,
     authentication: KubeAuthentication,
     defaultNamespace?: string,
-    workingDirectory?: string
+    workingDirectory?: string,
   ) {
     if (!helmExecutable) {
       throw new Error('helmExecutable must not be null');
@@ -105,9 +99,7 @@ export class DefaultHelmClient implements HelmClient {
   }
 
   version(): SemanticVersion {
-    const execution = new HelmExecutionBuilder(this.helmExecutable)
-      .subcommands('version')
-      .build();
+    const execution = new HelmExecutionBuilder(this.helmExecutable).subcommands('version').build();
     const version = execution.standardOutputSync();
     return new Version(version).asSemanticVersion();
   }
@@ -117,14 +109,14 @@ export class DefaultHelmClient implements HelmClient {
   }
 
   async addRepository(repository: Repository): Promise<void> {
-    await this.executeInternal(new RepositoryAddRequest(repository), async (b) => {
+    await this.executeInternal(new RepositoryAddRequest(repository), async b => {
       await b.call();
       return null;
     });
   }
 
   async removeRepository(repository: Repository): Promise<void> {
-    await this.executeInternal(new RepositoryRemoveRequest(repository), async (b) => {
+    await this.executeInternal(new RepositoryRemoveRequest(repository), async b => {
       await b.call();
       return null;
     });
@@ -139,14 +131,14 @@ export class DefaultHelmClient implements HelmClient {
   }
 
   async uninstallChart(releaseName: string): Promise<void> {
-    await this.executeInternal(new ChartUninstallRequest(releaseName), async (b) => {
+    await this.executeInternal(new ChartUninstallRequest(releaseName), async b => {
       await b.call();
       return null;
     });
   }
 
   async testChart(releaseName: string, options: TestChartOptions): Promise<void> {
-    await this.executeInternal(new ChartTestRequest(releaseName, options), async (b) => {
+    await this.executeInternal(new ChartTestRequest(releaseName, options), async b => {
       await b.call();
       return null;
     });
@@ -157,7 +149,7 @@ export class DefaultHelmClient implements HelmClient {
   }
 
   async dependencyUpdate(chartName: string): Promise<void> {
-    await this.executeInternal(new ChartDependencyUpdateRequest(chartName), async (b) => {
+    await this.executeInternal(new ChartDependencyUpdateRequest(chartName), async b => {
       await b.call();
       return null;
     });
@@ -191,7 +183,7 @@ export class DefaultHelmClient implements HelmClient {
    * @return the response.
    */
   private async execute<T extends HelmRequest, R>(request: T, responseClass: new (...args: any[]) => R): Promise<R> {
-    return this.executeInternal(request, async (b) => b.responseAs(responseClass));
+    return this.executeInternal(request, async b => b.responseAs(responseClass));
   }
 
   /**
@@ -204,8 +196,11 @@ export class DefaultHelmClient implements HelmClient {
    * @param <R>           the type of the response.
    * @return a list of response objects.
    */
-  private async executeAsList<T extends HelmRequest, R>(request: T, responseClass: new (...args: any[]) => R): Promise<R[]> {
-    return this.executeInternal(request, async (b) => b.responseAsList(responseClass));
+  private async executeAsList<T extends HelmRequest, R>(
+    request: T,
+    responseClass: new (...args: any[]) => R,
+  ): Promise<R[]> {
+    return this.executeInternal(request, async b => b.responseAsList(responseClass));
   }
 
   /**
@@ -221,9 +216,9 @@ export class DefaultHelmClient implements HelmClient {
   private async executeWithNamespace<T extends HelmRequest, R>(
     namespace: string,
     request: T,
-    responseClass: new (...args: any[]) => R
+    responseClass: new (...args: any[]) => R,
   ): Promise<R> {
-    return this.executeInternalWithNamespace(namespace, request, async (b) => b.responseAs(responseClass));
+    return this.executeInternalWithNamespace(namespace, request, async b => b.responseAs(responseClass));
   }
 
   /**
@@ -239,14 +234,14 @@ export class DefaultHelmClient implements HelmClient {
   private async executeAsListWithNamespace<T extends HelmRequest, R>(
     namespace: string,
     request: T,
-    responseClass: new (...args: any[]) => R
+    responseClass: new (...args: any[]) => R,
   ): Promise<R[]> {
-    return this.executeInternalWithNamespace(namespace, request, async (b) => b.responseAsList(responseClass));
+    return this.executeInternalWithNamespace(namespace, request, async b => b.responseAsList(responseClass));
   }
 
   private async executeInternal<T extends HelmRequest, V>(
     request: T,
-    responseFn: (execution: HelmExecution) => Promise<V>
+    responseFn: (execution: HelmExecution) => Promise<V>,
   ): Promise<V> {
     const builder = new HelmExecutionBuilder(this.helmExecutable);
     this.applyBuilderDefaults(builder);
@@ -258,7 +253,7 @@ export class DefaultHelmClient implements HelmClient {
   private async executeInternalWithNamespace<T extends HelmRequest, V>(
     namespace: string,
     request: T,
-    responseFn: (execution: HelmExecution) => Promise<V>
+    responseFn: (execution: HelmExecution) => Promise<V>,
   ): Promise<V> {
     if (!namespace) {
       throw new Error(DefaultHelmClient.MSG_NAMESPACE_NOT_NULL);
@@ -270,4 +265,4 @@ export class DefaultHelmClient implements HelmClient {
     const execution = builder.build();
     return responseFn(execution);
   }
-} 
+}

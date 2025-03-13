@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
+import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
 
 /**
  * Options for installing a Helm chart.
@@ -30,7 +30,7 @@ export class InstallChartOptions {
     public readonly values?: string[],
     public readonly verify: boolean = false,
     public readonly version?: string,
-    public readonly waitFor: boolean = false
+    public readonly waitFor: boolean = false,
   ) {}
 
   /**
@@ -281,7 +281,7 @@ export class InstallChartOptionsBuilder {
       this._values,
       this._verify,
       this._version,
-      this._waitFor
+      this._waitFor,
     );
   }
-} 
+}
