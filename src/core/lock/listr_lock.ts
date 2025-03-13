@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ListrTaskWrapper} from 'listr2';
 import chalk from 'chalk';
 import {type Lock} from './lock.js';
 
 import {LockAcquisitionError} from './lock_acquisition_error.js';
+import {type SoloListrTaskWrapper} from '../../types/index.js';
 
 /**
  * A utility class for managing lock acquisition tasks in Listr2 based workflows.
@@ -33,7 +33,7 @@ export class ListrLock {
    * @param task - the parent task to which the lock acquisition task will be added.
    * @returns a new Listr2 task for acquiring a lock with retry logic.
    */
-  public static newAcquireLockTask(lock: Lock, task: ListrTaskWrapper<any, any, any>) {
+  public static newAcquireLockTask(lock: Lock, task: SoloListrTaskWrapper<any>) {
     return task.newListr(
       [
         {
@@ -60,7 +60,7 @@ export class ListrLock {
    * @param task - the task to be updated with the lock acquisition status.
    * @throws LockAcquisitionError if the lock could not be acquired after the maximum number of attempts or an unexpected error occurred.
    */
-  private static async acquireWithRetry(lock: Lock, task: ListrTaskWrapper<any, any, any>): Promise<void> {
+  private static async acquireWithRetry(lock: Lock, task: SoloListrTaskWrapper<any>): Promise<void> {
     const maxAttempts = +process.env.SOLO_LEASE_ACQUIRE_ATTEMPTS || ListrLock.DEFAULT_LOCK_ACQUIRE_ATTEMPTS;
     const title = task.title;
 

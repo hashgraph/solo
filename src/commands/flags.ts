@@ -4,7 +4,6 @@ import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import path from 'path';
 import {type CommandFlag} from '../types/flag_types.js';
-import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {IllegalArgumentError, SoloError} from '../core/errors.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -16,17 +15,18 @@ import {
 } from '@inquirer/prompts';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
-import {type AnyObject} from '../types/aliases.js';
+import {type AnyListrContext, type AnyObject} from '../types/aliases.js';
 import {type ClusterRef} from '../core/config/remote/types.js';
+import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 
 export class Flags {
   public static KEY_COMMON = '_COMMON_';
 
   private static async prompt(
     type: 'toggle' | 'input' | 'number',
-    task: ListrTaskWrapper<any, any, any>,
+    task: SoloListrTaskWrapper<AnyListrContext>,
     input: any,
-    defaultValue: any,
+    defaultValue: Optional<any>,
     promptMessage: string,
     emptyCheckMessage: string | null,
     flagName: string,
@@ -69,24 +69,24 @@ export class Flags {
   }
 
   private static async promptText(
-    task: ListrTaskWrapper<any, any, any>,
-    input: any,
-    defaultValue: any,
+    task: SoloListrTaskWrapper<AnyListrContext>,
+    input: string,
+    defaultValue: Optional<string>,
     promptMessage: string,
     emptyCheckMessage: string | null,
     flagName: string,
-  ) {
+  ): Promise<string> {
     return await Flags.prompt('input', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
   }
 
   private static async promptToggle(
-    task: ListrTaskWrapper<any, any, any>,
-    input: any,
-    defaultValue: any,
+    task: SoloListrTaskWrapper<AnyListrContext>,
+    input: boolean,
+    defaultValue: Optional<boolean>,
     promptMessage: string,
     emptyCheckMessage: string | null,
     flagName: string,
-  ) {
+  ): Promise<boolean> {
     return await Flags.prompt('toggle', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
   }
 
@@ -148,11 +148,11 @@ export class Flags {
       alias: 'c',
       type: 'string',
     },
-    prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptClusterRef(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.clusterRef.definition.defaultValue,
+        Flags.clusterRef.definition.defaultValue as string,
         'Enter cluster reference: ',
         'cluster reference cannot be empty',
         Flags.clusterRef.name,
@@ -169,7 +169,7 @@ export class Flags {
       alias: 's',
       type: 'string',
     },
-    prompt: async function promptClusterSetupNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptClusterSetupNamespace(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
@@ -189,7 +189,7 @@ export class Flags {
       alias: 'n',
       type: 'string',
     },
-    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNamespace(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
@@ -208,7 +208,7 @@ export class Flags {
       describe: 'Namespace to use for the Mirror Node deployment, a new one will be created if it does not exist',
       type: 'string',
     },
-    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNamespace(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
@@ -261,7 +261,7 @@ export class Flags {
       alias: 'f',
       type: 'string',
     },
-    prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptValuesFile(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return input; // no prompt is needed for values file
     },
   };
@@ -276,7 +276,7 @@ export class Flags {
       alias: 'f',
       type: 'string',
     },
-    prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptValuesFile(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       if (input) {
         Flags.parseValuesFilesInput(input); // validate input as early as possible by parsing it
       }
@@ -293,7 +293,7 @@ export class Flags {
       defaultValue: constants.DEFAULT_PROFILE_FILE,
       type: 'string',
     },
-    prompt: async function promptProfileFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptProfileFile(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       if (input && !fs.existsSync(input)) {
         input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, {
           default: Flags.valuesFile.definition.defaultValue as string,
@@ -318,7 +318,7 @@ export class Flags {
       type: 'string',
     },
     prompt: async function promptProfile(
-      task: ListrTaskWrapper<any, any, any>,
+      task: SoloListrTaskWrapper<AnyListrContext>,
       input: any,
       choices: string[] = constants.ALL_PROFILES,
     ) {
@@ -352,11 +352,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeployPrometheusStack(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployPrometheusStack(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployPrometheusStack.definition.defaultValue,
+        Flags.deployPrometheusStack.definition.defaultValue as boolean,
         'Would you like to deploy prometheus stack? ',
         null,
         Flags.deployPrometheusStack.name,
@@ -372,11 +372,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptEnablePrometheusSvcMonitor(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptEnablePrometheusSvcMonitor(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.enablePrometheusSvcMonitor.definition.defaultValue,
+        Flags.enablePrometheusSvcMonitor.definition.defaultValue as boolean,
         'Would you like to enable the Prometheus service monitor for the network nodes? ',
         null,
         Flags.enablePrometheusSvcMonitor.name,
@@ -392,11 +392,11 @@ export class Flags {
       defaultValue: true,
       type: 'boolean',
     },
-    prompt: async function promptDeployMinio(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployMinio(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployMinio.definition.defaultValue,
+        Flags.deployMinio.definition.defaultValue as boolean,
         'Would you like to deploy MinIO? ',
         null,
         Flags.deployMinio.name,
@@ -412,11 +412,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeployCertManager(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployCertManager(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployCertManager.definition.defaultValue,
+        Flags.deployCertManager.definition.defaultValue as boolean,
         'Would you like to deploy Cert Manager? ',
         null,
         Flags.deployCertManager.name,
@@ -436,11 +436,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeployCertManagerCrds(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployCertManagerCrds(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployCertManagerCrds.definition.defaultValue,
+        Flags.deployCertManagerCrds.definition.defaultValue as boolean,
         'Would you like to deploy Cert Manager CRDs? ',
         null,
         Flags.deployCertManagerCrds.name,
@@ -491,7 +491,7 @@ export class Flags {
       defaultValue: version.HEDERA_PLATFORM_VERSION,
       type: 'string',
     },
-    prompt: async function promptReleaseTag(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptReleaseTag(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
@@ -511,11 +511,11 @@ export class Flags {
       defaultValue: version.HEDERA_JSON_RPC_RELAY_VERSION,
       type: 'string',
     },
-    prompt: async function promptRelayReleaseTag(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptRelayReleaseTag(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.relayReleaseTag.definition.defaultValue,
+        Flags.relayReleaseTag.definition.defaultValue as string,
         'Enter relay release version: ',
         'relay-release-tag cannot be empty',
         Flags.relayReleaseTag.name,
@@ -531,7 +531,7 @@ export class Flags {
       defaultValue: constants.SOLO_CACHE_DIR,
       type: 'string',
     },
-    prompt: async function promptCacheDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptCacheDir(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
@@ -551,7 +551,7 @@ export class Flags {
       alias: 'i',
       type: 'string',
     },
-    prompt: async function promptNodeAliases(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNodeAliases(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.prompt(
         'input',
         task,
@@ -573,11 +573,11 @@ export class Flags {
       alias: 'f',
       type: 'boolean',
     },
-    prompt: async function promptForce(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptForce(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.force.definition.defaultValue,
+        Flags.force.definition.defaultValue as boolean,
         'Would you like to force changes? ',
         null,
         Flags.force.name,
@@ -593,7 +593,7 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptChartDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptChartDir(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       if (input === 'false') return '';
       try {
         if (input && !fs.existsSync(input)) {
@@ -623,7 +623,7 @@ export class Flags {
       alias: '',
       type: 'number',
     },
-    prompt: async function promptReplicaCount(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptReplicaCount(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.prompt(
         'number',
         task,
@@ -645,11 +645,11 @@ export class Flags {
       alias: 'l',
       type: 'string',
     },
-    prompt: async function promptChainId(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptChainId(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.chainId.definition.defaultValue,
+        Flags.chainId.definition.defaultValue as string,
         'Enter chain ID: ',
         null,
         Flags.chainId.name,
@@ -666,11 +666,11 @@ export class Flags {
       defaultValue: undefined,
       type: 'string',
     },
-    prompt: async function promptOperatorId(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptOperatorId(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.operatorId.definition.defaultValue,
+        Flags.operatorId.definition.defaultValue as string,
         'Enter operator ID: ',
         null,
         Flags.operatorId.name,
@@ -688,11 +688,11 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptOperatorKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptOperatorKey(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.operatorKey.definition.defaultValue,
+        Flags.operatorKey.definition.defaultValue as string,
         'Enter operator private key: ',
         null,
         Flags.operatorKey.name,
@@ -709,11 +709,11 @@ export class Flags {
       type: 'boolean',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPrivateKey(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.ed25519PrivateKey.definition.defaultValue,
+        Flags.ed25519PrivateKey.definition.defaultValue as string,
         'Enter the private key: ',
         null,
         Flags.ed25519PrivateKey.name,
@@ -729,11 +729,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptGenerateGossipKeys(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGenerateGossipKeys(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.generateGossipKeys.definition.defaultValue,
+        Flags.generateGossipKeys.definition.defaultValue as boolean,
         `Would you like to generate Gossip keys? ${typeof input} ${input} `,
         null,
         Flags.generateGossipKeys.name,
@@ -749,11 +749,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptGenerateTLSKeys(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGenerateTLSKeys(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.generateTlsKeys.definition.defaultValue,
+        Flags.generateTlsKeys.definition.defaultValue as boolean,
         'Would you like to generate TLS keys? ',
         null,
         Flags.generateTlsKeys.name,
@@ -781,7 +781,7 @@ export class Flags {
       defaultValue: 'self-signed',
       type: 'string',
     },
-    prompt: async function promptTlsClusterIssuerType(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptTlsClusterIssuerType(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       if (input) return;
       try {
         input = await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
@@ -807,11 +807,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptEnableHederaExplorerTls(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptEnableHederaExplorerTls(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.enableHederaExplorerTls.definition.defaultValue,
+        Flags.enableHederaExplorerTls.definition.defaultValue as boolean,
         'Would you like to enable the Hedera Explorer TLS? ',
         null,
         Flags.enableHederaExplorerTls.name,
@@ -838,11 +838,11 @@ export class Flags {
       defaultValue: 'explorer.solo.local',
       type: 'string',
     },
-    prompt: async function promptHederaExplorerTlsHostName(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptHederaExplorerTlsHostName(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.hederaExplorerTlsHostName.definition.defaultValue,
+        Flags.hederaExplorerTlsHostName.definition.defaultValue as string,
         'Enter the host name to use for the Hedera Explorer TLS: ',
         null,
         Flags.hederaExplorerTlsHostName.name,
@@ -858,11 +858,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeletePvcs(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeletePvcs(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deletePvcs.definition.defaultValue,
+        Flags.deletePvcs.definition.defaultValue as boolean,
         'Would you like to delete persistent volume claims upon uninstall? ',
         null,
         Flags.deletePvcs.name,
@@ -878,11 +878,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeleteSecrets(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeleteSecrets(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deleteSecrets.definition.defaultValue,
+        Flags.deleteSecrets.definition.defaultValue as boolean,
         'Would you like to delete secrets upon uninstall? ',
         null,
         Flags.deleteSecrets.name,
@@ -898,11 +898,11 @@ export class Flags {
       defaultValue: version.SOLO_CHART_VERSION,
       type: 'string',
     },
-    prompt: async function promptSoloChartVersion(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptSoloChartVersion(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.soloChartVersion.definition.defaultValue,
+        Flags.soloChartVersion.definition.defaultValue as string,
         'Enter solo testing chart version: ',
         null,
         Flags.soloChartVersion.name,
@@ -1099,11 +1099,11 @@ export class Flags {
       defaultValue: true,
       type: 'boolean',
     },
-    prompt: async function promptUpdateAccountKeys(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptUpdateAccountKeys(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.updateAccountKeys.definition.defaultValue,
+        Flags.updateAccountKeys.definition.defaultValue as boolean,
         'Would you like to updates the special account keys to new keys and stores their keys in a corresponding Kubernetes secret? ',
         null,
         Flags.updateAccountKeys.name,
@@ -1120,11 +1120,11 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPrivateKey(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.ed25519PrivateKey.definition.defaultValue,
+        Flags.ed25519PrivateKey.definition.defaultValue as string,
         'Enter the private key: ',
         null,
         Flags.ed25519PrivateKey.name,
@@ -1152,11 +1152,11 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPrivateKey(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.ed25519PrivateKey.definition.defaultValue,
+        Flags.ed25519PrivateKey.definition.defaultValue as string,
         'Enter the private key: ',
         null,
         Flags.ed25519PrivateKey.name,
@@ -1183,11 +1183,11 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptAccountId(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptAccountId(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.accountId.definition.defaultValue,
+        Flags.accountId.definition.defaultValue as string,
         'Enter the account id: ',
         null,
         Flags.accountId.name,
@@ -1203,7 +1203,7 @@ export class Flags {
       defaultValue: 100,
       type: 'number',
     },
-    prompt: async function promptAmount(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptAmount(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.prompt(
         'number',
         task,
@@ -1224,7 +1224,7 @@ export class Flags {
       defaultValue: 1,
       type: 'number',
     },
-    prompt: async function promptCreateAmount(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptCreateAmount(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.prompt(
         'number',
         task,
@@ -1244,11 +1244,11 @@ export class Flags {
       describe: 'Node alias (e.g. node99)',
       type: 'string',
     },
-    prompt: async function promptNewNodeAlias(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNewNodeAlias(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.nodeAlias.definition.defaultValue,
+        Flags.nodeAlias.definition.defaultValue as string,
         'Enter the new node id: ',
         null,
         Flags.nodeAlias.name,
@@ -1263,11 +1263,11 @@ export class Flags {
       describe: 'Comma separated gossip endpoints of the node(e.g. first one is internal, second one is external)',
       type: 'string',
     },
-    prompt: async function promptGossipEndpoints(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGossipEndpoints(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.gossipEndpoints.definition.defaultValue,
+        Flags.gossipEndpoints.definition.defaultValue as string,
         'Enter the gossip endpoints(comma separated): ',
         null,
         Flags.gossipEndpoints.name,
@@ -1282,11 +1282,11 @@ export class Flags {
       describe: 'Comma separated gRPC endpoints of the node (at most 8)',
       type: 'string',
     },
-    prompt: async function promptGrpcEndpoints(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcEndpoints(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcEndpoints.definition.defaultValue,
+        Flags.grpcEndpoints.definition.defaultValue as string,
         'Enter the gRPC endpoints(comma separated): ',
         null,
         Flags.grpcEndpoints.name,
@@ -1302,11 +1302,11 @@ export class Flags {
       defaultValue: constants.ENDPOINT_TYPE_FQDN,
       type: 'string',
     },
-    prompt: async function promptEndpointType(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptEndpointType(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.endpointType.definition.defaultValue,
+        Flags.endpointType.definition.defaultValue as string,
         'Enter the endpoint type(IP or FQDN): ',
         null,
         Flags.endpointType.name,
@@ -1322,11 +1322,11 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptPersistentVolumeClaims(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPersistentVolumeClaims(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.persistentVolumeClaims.definition.defaultValue,
+        Flags.persistentVolumeClaims.definition.defaultValue as boolean,
         'Would you like to enable persistent volume claims to store data outside the pod? ',
         null,
         Flags.persistentVolumeClaims.name,
@@ -1353,11 +1353,11 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptOutputDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptOutputDir(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.outputDir.definition.defaultValue,
+        Flags.outputDir.definition.defaultValue as boolean,
         'Enter path to directory to store the temporary context file',
         null,
         Flags.outputDir.name,
@@ -1373,11 +1373,11 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptInputDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptInputDir(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.inputDir.definition.defaultValue,
+        Flags.inputDir.definition.defaultValue as boolean,
         'Enter path to directory containing the temporary context file',
         null,
         Flags.inputDir.name,
@@ -1429,11 +1429,11 @@ export class Flags {
       defaultValue: version.MIRROR_NODE_VERSION,
       type: 'string',
     },
-    prompt: async function promptMirrorNodeVersion(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptMirrorNodeVersion(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.mirrorNodeVersion.definition.defaultValue,
+        Flags.mirrorNodeVersion.definition.defaultValue as boolean,
         'Would you like to choose mirror node version? ',
         null,
         Flags.mirrorNodeVersion.name,
@@ -1471,11 +1471,11 @@ export class Flags {
       defaultValue: version.HEDERA_EXPLORER_VERSION,
       type: 'string',
     },
-    prompt: async function promptHederaExplorerVersion(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptHederaExplorerVersion(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.hederaExplorerVersion.definition.defaultValue,
+        Flags.hederaExplorerVersion.definition.defaultValue as boolean,
         'Would you like to choose hedera explorer version? ',
         null,
         Flags.hederaExplorerVersion.name,
@@ -1490,7 +1490,7 @@ export class Flags {
       describe: 'User email address used for local configuration',
       type: 'string',
     },
-    prompt: async function promptUserEmailAddress(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptUserEmailAddress(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       if (input?.length) {
         return input;
       }
@@ -1518,7 +1518,11 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptContext(task: ListrTaskWrapper<any, any, any>, input: string[], cluster?: string) {
+    prompt: async function promptContext(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string[],
+      cluster?: string,
+    ) {
       return await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
         message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
         choices: input,
@@ -1535,11 +1539,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptDeployment(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployment(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.deployment.definition.defaultValue,
+        Flags.deployment.definition.defaultValue as string,
         'Enter the name of the deployment:',
         null,
         Flags.deployment.name,
@@ -1554,11 +1561,14 @@ export class Flags {
       describe: 'Solo deployment cluster list (comma separated)',
       type: 'string',
     },
-    prompt: async function promptDeploymentClusters(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeploymentClusters(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.deploymentClusters.definition.defaultValue,
+        Flags.deploymentClusters.definition.defaultValue as string,
         'Enter the Solo deployment cluster names (comma separated): ',
         null,
         Flags.deploymentClusters.name,
@@ -1590,11 +1600,11 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcTlsCertificatePath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcTlsCertificatePath(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcTlsCertificatePath.definition.defaultValue,
+        Flags.grpcTlsCertificatePath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate for gRPC (ex. nodeAlias=path )',
         null,
         Flags.grpcTlsCertificatePath.name,
@@ -1613,11 +1623,11 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsCertificatePath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsCertificatePath(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcWebTlsCertificatePath.definition.defaultValue,
+        Flags.grpcWebTlsCertificatePath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate for gGRPC web (ex. nodeAlias=path )',
         null,
         Flags.grpcWebTlsCertificatePath.name,
@@ -1647,11 +1657,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseHost.definition.defaultValue,
+        Flags.externalDatabaseHost.definition.defaultValue as string,
         'Enter host of the external database',
         null,
         Flags.externalDatabaseHost.name,
@@ -1667,11 +1680,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseOwnerUsername.definition.defaultValue,
+        Flags.externalDatabaseOwnerUsername.definition.defaultValue as string,
         'Enter username of the external database owner',
         null,
         Flags.externalDatabaseOwnerUsername.name,
@@ -1688,11 +1704,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseOwnerPassword.definition.defaultValue,
+        Flags.externalDatabaseOwnerPassword.definition.defaultValue as string,
         'Enter password of the external database owner',
         null,
         Flags.externalDatabaseOwnerPassword.name,
@@ -1708,11 +1727,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseReadonlyUsername.definition.defaultValue,
+        Flags.externalDatabaseReadonlyUsername.definition.defaultValue as string,
         'Enter username of the external database readonly user',
         null,
         Flags.externalDatabaseReadonlyUsername.name,
@@ -1729,11 +1751,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseReadonlyPassword.definition.defaultValue,
+        Flags.externalDatabaseReadonlyPassword.definition.defaultValue as string,
         'Enter password of the external database readonly user',
         null,
         Flags.externalDatabaseReadonlyPassword.name,
@@ -1755,11 +1780,11 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcTlsKeyPath(task: SoloListrTaskWrapper<AnyListrContext>, input: any) {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcTlsKeyPath.definition.defaultValue,
+        Flags.grpcTlsKeyPath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate key for gRPC (ex. nodeAlias=path )',
         null,
         Flags.grpcTlsKeyPath.name,
@@ -1779,11 +1804,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcWebTlsKeyPath.definition.defaultValue,
+        Flags.grpcWebTlsKeyPath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate key for gGRPC Web (ex. nodeAlias=path )',
         null,
         Flags.grpcWebTlsKeyPath.name,

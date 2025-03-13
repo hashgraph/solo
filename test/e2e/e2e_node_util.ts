@@ -14,7 +14,6 @@ import {
 import {sleep} from '../../src/core/helpers.js';
 import * as NodeCommandConfigs from '../../src/commands/node/configs.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
-import {type ListrTaskWrapper} from 'listr2';
 import {type ConfigManager} from '../../src/core/config_manager.js';
 import {type K8Factory} from '../../src/core/kube/k8_factory.js';
 import {type NodeCommand} from '../../src/commands/node/index.js';
@@ -28,6 +27,7 @@ import {type NetworkNodes} from '../../src/core/network_nodes.js';
 import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../helpers/argv_wrapper.js';
+import {type SoloListrTaskWrapper} from '../../src/types/index.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
@@ -160,7 +160,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               nodeTasks._checkNetworkNodeActiveness(
                 namespace,
                 nodeAlias,
-                {title: ''} as ListrTaskWrapper<any, any, any>,
+                {title: ''} as SoloListrTaskWrapper<any>,
                 '',
                 44,
                 undefined,

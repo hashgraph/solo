@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type Listr, type ListrTaskWrapper} from 'listr2';
+import {type Listr} from 'listr2';
 import {type Stats} from 'node:fs';
 import {type ReadEntry} from 'tar';
+import {type SoloListrTaskWrapper} from './index.js';
 
 export type NodeAlias = `node${number}`;
 export type NodeId = number;
@@ -17,7 +18,7 @@ export type SkipCheck = (ctx: any) => Promise<boolean> | boolean;
 
 export type TaskFunction = (
   ctx: any,
-  task: ListrTaskWrapper<any, any, any>,
+  task: SoloListrTaskWrapper<any>,
 ) => Promise<Listr<any, any, any>> | Listr<any, any, any> | Promise<void> | void;
 
 export type ConfigBuilder = (argv, ctx, task, configMaps?, shouldLoadNodeClient?) => Promise<any>;
