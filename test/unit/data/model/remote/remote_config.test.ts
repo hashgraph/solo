@@ -8,6 +8,7 @@ import os from 'os';
 import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote_config.js';
 import {instanceToPlain, plainToClass} from 'class-transformer';
 import {LedgerPhase} from '../../../../../src/data/schema/model/remote/ledger_phase.js';
+import {DeploymentPhase} from '../../../../../src/data/schema/model/remote/deployment_phase.js';
 
 function migrateVersionPrefix(version: string): string {
   const strippedVersionPrefix: string = version.replace(/^v/, '');
@@ -58,27 +59,44 @@ function migrateHistory(plainObject: object) {
 }
 
 function migrateConsensusNodes(plainObject: object) {
-  plainObject['state']['consensusNodes'] = {};
+  plainObject['state']['consensusNodes'] = [];
+  for (const plainConsensusNodeKey of Object.keys(plainObject['components']?.['consensusNodes'])) {
+    const oldConsensusNode: object = plainObject['components']['consensusNodes'][plainConsensusNodeKey];
+    let migratedState: string;
+    switch (oldConsensusNode['state']) {
+      case 'requested':
+        migratedState = DeploymentPhase.REQUESTED;
+        break;
+    }
+    const newConsensusNode: object = {
+      id: oldConsensusNode['nodeId'],
+      name: oldConsensusNode['name'],
+      namespace: oldConsensusNode['namespace'],
+      cluster: oldConsensusNode['cluster'],
+      phase: migratedState,
+    };
+    newConsensusNode['id'] = plainObject['state']['consensusNodes'].push(newConsensusNode);
+  }
 }
 
 function migrateHaProxies(plainObject: object) {
-  plainObject['state']['haProxies'] = {};
+  plainObject['state']['haProxies'] = [];
 }
 
 function migrateEnvoyProxies(plainObject: object) {
-  plainObject['state']['envoyProxies'] = {};
+  plainObject['state']['envoyProxies'] = [];
 }
 
 function migrateMirrorNodes(plainObject: object) {
-  plainObject['state']['mirrorNodes'] = {};
+  plainObject['state']['mirrorNodes'] = [];
 }
 
 function migrateExplorers(plainObject: object) {
-  plainObject['state']['explorers'] = {};
+  plainObject['state']['explorers'] = [];
 }
 
 function migrateJsonRpcRelays(plainObject: object) {
-  plainObject['state']['relayNodes'] = {};
+  plainObject['state']['relayNodes'] = [];
 }
 
 function migrateState(plainObject: object) {
@@ -108,7 +126,7 @@ function migrate(plainObject: object): void {
 }
 
 describe('RemoteConfig', () => {
-  const remoteConfigPath = 'test/data/v0-34-0-remote-config.yaml';
+  const remoteConfigPath = 'test/data/v0-35-1-remote-config.yaml';
 
   describe('Class Transformer', () => {
     let yamlData: string;
