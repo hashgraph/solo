@@ -3,7 +3,17 @@
 import {SemVer} from 'semver';
 
 export class Version<T extends SemVer | number> {
-  constructor(public readonly value: T) {}
+  constructor(public readonly value: T) {
+    if (Version.isSemVer(value) && !value) {
+      throw new RangeError('Invalid version');
+    }
+
+    if (Version.isNumeric(value)) {
+      if (!Number.isSafeInteger(value) || (value as number) < 0) {
+        throw new RangeError('Invalid version');
+      }
+    }
+  }
 
   public equals(other: Version<T>): boolean {
     if (Version.isSemVer(this.value) && Version.isSemVer(other.value)) {

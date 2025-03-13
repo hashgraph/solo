@@ -19,13 +19,14 @@ export interface ConfigProvider {
    * Registers the specified configuration with the provider.
    *
    * @param config - The configuration to be registered.
-   * @throws Error if a configuration has already been registered.
+   * @throws ConfigurationError if a configuration has already been registered.
    */
   register(config: Config): void;
 
   /**
    * Releases the configuration that is currently registered with the provider.
-   * @throws Error if a configuration has not been registered.
+   *
+   * @throws ConfigurationError if a configuration has not been registered.
    */
   release(): void;
 

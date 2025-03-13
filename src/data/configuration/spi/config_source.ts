@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type StorageBackend} from '../../backend/storage_backend.js';
+import {type StorageBackend} from '../../backend/api/storage_backend.js';
 import {type ConfigAccessor} from './config_accessor.js';
 
 /**

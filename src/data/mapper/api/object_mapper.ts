@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ClassConstructor} from '../../business/utils/class_constructor.type.js';
+import {type ClassConstructor} from '../../../business/utils/class_constructor.type.js';
 
 /**
  * The ObjectMapper interface defines the methods for converting between plain javascript objects and class instances.
@@ -13,13 +13,15 @@ export interface ObjectMapper {
    *
    * @param cls - The desired class of the resulting object instance.
    * @param obj - The plain javascript object to be converted.
+   * @throws ObjectMappingError if the mapping or a type conversion fails.
    */
-  fromObject<T extends R, R>(cls: ClassConstructor<T>, obj: object): R;
+  fromObject<T>(cls: ClassConstructor<T>, obj: object): T;
 
   /**
    * Converts an instance of a class into a plain javascript object.
    *
    * @param data - The object instance to be converted.
+   * @throws ObjectMappingError if the mapping or a type conversion fails.
    */
   toObject<T>(data: T): object;
 
@@ -28,13 +30,15 @@ export interface ObjectMapper {
    *
    * @param cls - The desired class of the resulting object instances.
    * @param arr - The array of plain javascript objects to be converted.
+   * @throws ObjectMappingError if the mapping or a type conversion fails.
    */
-  fromArray<T extends R, R>(cls: ClassConstructor<T>, arr: object[]): R[];
+  fromArray<T>(cls: ClassConstructor<T>, arr: object[]): T[];
 
   /**
    * Converts an array of instances of a class into an array of plain javascript objects.
    *
    * @param data - The array of object instances to be converted.
+   * @throws ObjectMappingError if the mapping or a type conversion fails.
    */
   toArray<T>(data: T[]): object[];
 }
