@@ -256,7 +256,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).not.to.be.null;
-          expect(accountInfo.balance).to.equal(1-110);
+          expect(accountInfo.balance).to.equal(1_110);
         } catch (e) {
           testLogger.showUserError(e);
           expect.fail();
@@ -304,7 +304,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).to.be.ok;
-          expect(accountInfo.balance).to.equal(1-110);
+          expect(accountInfo.balance).to.equal(1_110);
         } catch (e) {
           testLogger.showUserError(e);
           expect.fail();
