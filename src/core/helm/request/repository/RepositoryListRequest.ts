@@ -8,7 +8,6 @@ import {type HelmRequest} from '../HelmRequest.js';
  */
 export class RepositoryListRequest implements HelmRequest {
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('repo', 'list');
-    builder.argument('output', 'json');
+    builder.subcommands('repo', 'list').argument('output', 'json');
   }
 }

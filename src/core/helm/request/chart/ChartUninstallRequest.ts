@@ -17,7 +17,6 @@ export class ChartUninstallRequest implements HelmRequest {
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('uninstall');
-    builder.positional(this.releaseName);
+    builder.subcommands('uninstall').positional(this.releaseName);
   }
 }

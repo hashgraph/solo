@@ -35,7 +35,6 @@ public record ChartDependencyUpdateRequest(String chartName) implements HelmRequ
 
     @Override
     public void apply(HelmExecutionBuilder builder) {
-        builder.subcommands("dependency", "update");
-        builder.positional(chartName);
+        builder.subcommands("dependency", "update").positional(chartName);
     }
 }

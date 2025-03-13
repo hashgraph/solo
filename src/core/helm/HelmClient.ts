@@ -1,6 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type SemanticVersion} from './base/api/version/SemanticVersion.js';
+
+/**
+ * Type guard to assert a value is not null or undefined
+ */
+export function assertNotNull<T>(value: T | null | undefined, message: string): asserts value is T {
+  if (value === null || value === undefined) {
+    throw new Error(message);
+  }
+}
 import {type Chart} from './model/Chart.js';
 import {type Repository} from './model/Repository.js';
 import {type Release} from './model/chart/Release.js';

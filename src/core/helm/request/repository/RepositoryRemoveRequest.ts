@@ -15,7 +15,6 @@ export class RepositoryRemoveRequest implements HelmRequest {
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('repo', 'remove');
-    builder.positional(this.repository.name);
+    builder.subcommands('repo', 'remove').positional(this.repository.name);
   }
 }

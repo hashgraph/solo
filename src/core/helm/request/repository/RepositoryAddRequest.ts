@@ -21,8 +21,6 @@ export class RepositoryAddRequest implements HelmRequest {
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('repo', 'add');
-    builder.positional(this.repository.name);
-    builder.positional(this.repository.url);
+    builder.subcommands('repo', 'add').positional(this.repository.name).positional(this.repository.url);
   }
 }

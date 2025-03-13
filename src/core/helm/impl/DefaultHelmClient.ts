@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import * as path from 'path';
 import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
 import {type HelmClient} from '../HelmClient.js';
 import {type HelmExecution} from '../execution/HelmExecution.js';
@@ -92,7 +93,7 @@ export class DefaultHelmClient implements HelmClient {
     if (!authentication) {
       throw new Error('authentication must not be null');
     }
-    this.helmExecutable = helmExecutable;
+    this.helmExecutable = path.normalize(helmExecutable);
     this.authentication = authentication;
     this.defaultNamespace = defaultNamespace;
     this.workingDirectory = workingDirectory;

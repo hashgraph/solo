@@ -17,7 +17,6 @@ export class ChartDependencyUpdateRequest implements HelmRequest {
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('dependency', 'update');
-    builder.positional(this.chartName);
+    builder.subcommands('dependency', 'update').positional(this.chartName);
   }
 }
