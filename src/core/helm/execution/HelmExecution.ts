@@ -3,35 +3,23 @@
 import { spawn, spawnSync, ChildProcess } from 'child_process';
 import { HelmExecutionException } from '../HelmExecutionException.js';
 import { HelmParserException } from '../HelmParserException.js';
-
-/**
- * Represents a duration of time, similar to Java's Duration.
- */
-interface Duration {
-  /**
-   * Returns the duration in milliseconds.
-   * @returns The duration in milliseconds
-   */
-  toMillis(): number;
-}
-
-/**
- * Creates a Duration from milliseconds.
- * @param millis The duration in milliseconds
- * @returns A Duration object
- */
-export function ofMillis(millis: number): Duration {
-  return {
-    toMillis: () => millis
-  };
-}
+import { Duration } from '../../time/duration.js';
 
 /**
  * Represents the execution of a helm command and is responsible for parsing the response.
  */
 export class HelmExecution {
+    /**
+     * The logger for this class which should be used for all logging.
+     */
   private static readonly MSG_TIMEOUT_ERROR = 'Timed out waiting for the process to complete';
-  private static readonly MSG_DESERIALIZATION_ERROR = 'Failed to deserialize the output into the specified class: %s';
+    /**
+     * The message for a timeout error.
+     */
+      private static readonly MSG_DESERIALIZATION_ERROR = 'Failed to deserialize the output into the specified class: %s';
+    /**
+     * The message for a deserialization error.
+     */
   private static readonly MSG_LIST_DESERIALIZATION_ERROR = 'Failed to deserialize the output into a list of the specified class: %s';
 
   private readonly process: ChildProcess;
@@ -61,7 +49,7 @@ export class HelmExecution {
     return new Promise((resolve, reject) => {
       this.process.on('close', (code) => {
         if (code !== 0) {
-          reject(new HelmExecutionException(`Process exited with code ${code}`));
+          reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
         } else {
           resolve();
         }
@@ -113,7 +101,7 @@ export class HelmExecution {
       });
       this.process.on('close', (code) => {
         if (code !== 0) {
-          reject(new HelmExecutionException(`Process exited with code ${code}`));
+          reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
         } else {
           resolve(output);
         }
@@ -133,7 +121,7 @@ export class HelmExecution {
       });
       this.process.on('close', (code) => {
         if (code !== 0) {
-          reject(new HelmExecutionException(`Process exited with code ${code}`));
+          reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
         } else {
           resolve(output);
         }
@@ -164,7 +152,7 @@ export class HelmExecution {
   async responseAsTimeout<T>(responseClass: new () => T, timeout: Duration | null): Promise<T> {
     const success = await this.waitForTimeout(timeout);
     if (!success) {
-      throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
+      throw new HelmExecutionException(1, HelmExecution.MSG_TIMEOUT_ERROR, '', '');
     }
     return this.responseAs(responseClass);
   }
@@ -192,7 +180,7 @@ export class HelmExecution {
   async responseAsListTimeout<T>(responseClass: new () => T, timeout: Duration | null): Promise<T[]> {
     const success = await this.waitForTimeout(timeout);
     if (!success) {
-      throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
+      throw new HelmExecutionException(1, HelmExecution.MSG_TIMEOUT_ERROR, '', '');
     }
     return this.responseAsList(responseClass);
   }
@@ -213,7 +201,7 @@ export class HelmExecution {
   async callTimeout(timeout: Duration | null): Promise<void> {
     const success = await this.waitForTimeout(timeout);
     if (!success) {
-      throw new HelmExecutionException(HelmExecution.MSG_TIMEOUT_ERROR);
+      throw new HelmExecutionException(1, HelmExecution.MSG_TIMEOUT_ERROR, '', '');
     }
   }
 
@@ -228,7 +216,7 @@ export class HelmExecution {
     });
 
     if (result.status !== 0) {
-      throw new HelmExecutionException(`Process exited with code ${result.status}`);
+      throw new HelmExecutionException(result.status || 1, `Process exited with code ${result.status}`, '', '');
     }
 
     return result.stdout.toString();

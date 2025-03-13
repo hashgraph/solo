@@ -11,9 +11,13 @@ export class ChartUninstallRequest implements HelmRequest {
     if (!releaseName) {
       throw new Error('releaseName must not be null');
     }
+    if (releaseName.trim() === '') {
+      throw new Error('releaseName must not be null or blank');
+    }
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('uninstall', this.releaseName);
+    builder.subcommands('uninstall');
+    builder.positional(this.releaseName);
   }
 } 

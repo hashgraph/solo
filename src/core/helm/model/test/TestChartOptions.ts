@@ -6,6 +6,13 @@ import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
  * Options for testing a Helm chart.
  */
 export class TestChartOptions {
+  /**
+   * Returns a new instance of TestChartOptions with default values.
+   */
+  static defaults(): TestChartOptions {
+    return new TestChartOptions();
+  }
+
   constructor(
     public readonly filter?: string,
     public readonly timeout?: string

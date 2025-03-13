@@ -12,12 +12,10 @@ export class RepositoryRemoveRequest implements HelmRequest {
     if (!repository) {
       throw new Error('repository must not be null');
     }
-    if (!repository.name?.trim()) {
-      throw new Error('repository name must not be null or blank');
-    }
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('repo', 'remove', this.repository.name);
+    builder.subcommands('repo', 'remove');
+    builder.positional(this.repository.name);
   }
 } 

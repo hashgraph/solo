@@ -12,15 +12,17 @@ export class RepositoryAddRequest implements HelmRequest {
     if (!repository) {
       throw new Error('repository must not be null');
     }
-    if (!repository.name?.trim()) {
+    if (!repository.name || repository.name.trim() === '') {
       throw new Error('repository name must not be null or blank');
     }
-    if (!repository.url?.trim()) {
+    if (!repository.url || repository.url.trim() === '') {
       throw new Error('repository url must not be null or blank');
     }
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('repo', 'add', this.repository.name, this.repository.url);
+    builder.subcommands('repo', 'add');
+    builder.positional(this.repository.name);
+    builder.positional(this.repository.url);
   }
 } 

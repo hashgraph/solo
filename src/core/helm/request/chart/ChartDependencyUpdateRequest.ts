@@ -11,9 +11,13 @@ export class ChartDependencyUpdateRequest implements HelmRequest {
     if (!chartName) {
       throw new Error('chartName must not be null');
     }
+    if (chartName.trim() === '') {
+      throw new Error('chartName must not be blank');
+    }
   }
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('dependency', 'update', this.chartName);
+    builder.subcommands('dependency', 'update');
+    builder.positional(this.chartName);
   }
 } 

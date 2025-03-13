@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import { ChartInfo, ChartInfoImpl } from './ChartInfo.js';
-import { ReleaseInfo, ReleaseInfoImpl } from './ReleaseInfo.js';
+import { ChartInfo} from './ChartInfo.js';
+import { ReleaseInfo } from './ReleaseInfo.js';
 
 /**
  * Information about a Helm release.

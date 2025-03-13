@@ -10,9 +10,12 @@ export class ReleaseListRequest implements HelmRequest {
   constructor(private readonly allNamespaces: boolean) {}
 
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('list');
+    builder.argument('output', 'json');
+
     if (this.allNamespaces) {
-      builder.flag('all-namespaces');
+      builder.flag('--all-namespaces');
     }
+
+    builder.subcommands('list');
   }
 } 

@@ -6,6 +6,13 @@ import { HelmExecutionBuilder } from '../../execution/HelmExecutionBuilder.js';
  * Options for installing a Helm chart.
  */
 export class InstallChartOptions {
+  /**
+   * Returns a new instance of InstallChartOptions with default values.
+   */
+  static defaults(): InstallChartOptions {
+    return new InstallChartOptions();
+  }
+
   constructor(
     public readonly atomic: boolean = false,
     public readonly createNamespace: boolean = false,
