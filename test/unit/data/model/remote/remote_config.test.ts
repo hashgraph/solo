@@ -5,8 +5,8 @@ import {loadYaml} from '@kubernetes/client-node';
 import {expect} from 'chai';
 import {beforeEach} from 'mocha';
 import os from 'os';
-import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote_config.js';
 import {instanceToPlain, plainToClass} from 'class-transformer';
+import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote_config.js';
 import {LedgerPhase} from '../../../../../src/data/schema/model/remote/ledger_phase.js';
 import {DeploymentPhase} from '../../../../../src/data/schema/model/remote/deployment_phase.js';
 
@@ -19,89 +19,102 @@ function migrateVersionPrefix(version: string): string {
   return parts.join('.');
 }
 
-function migrateVersions(plainObject: object) {
-  plainObject['versions'] = {};
-  plainObject['versions']['cli'] = migrateVersionPrefix(plainObject['metadata']?.['soloVersion'] || '0.0.0');
-  plainObject['versions']['chart'] = migrateVersionPrefix(plainObject['metadata']?.['soloChartVersion'] || '0.0.0');
-  plainObject['versions']['consensusNode'] = migrateVersionPrefix(
-    plainObject['metadata']?.['hederaPlatformVersion'] || plainObject['flags']?.['releaseTag'] || '0.0.0',
+function migrateVersions(plainObject: any) {
+  plainObject.versions = {};
+  plainObject.versions.cli = migrateVersionPrefix(plainObject.metadata?.soloVersion || '0.0.0');
+  plainObject.versions.chart = migrateVersionPrefix(plainObject.metadata?.soloChartVersion || '0.0.0');
+  plainObject.versions.consensusNode = migrateVersionPrefix(
+    plainObject.metadata?.hederaPlatformVersion || plainObject.flags?.releaseTag || '0.0.0',
   );
-  plainObject['versions']['mirrorNodeChart'] = migrateVersionPrefix(
-    plainObject['metadata']?.['hederaMirrorNodeChartVersion'] || plainObject['flags']?.['mirrorNodeVersion'] || '0.0.0',
+  plainObject.versions.mirrorNodeChart = migrateVersionPrefix(
+    plainObject.metadata?.hederaMirrorNodeChartVersion || plainObject.flags?.mirrorNodeVersion || '0.0.0',
   );
-  plainObject['versions']['explorerChart'] = migrateVersionPrefix(
-    plainObject['metadata']?.['hederaExplorerChartVersion'] ||
-      plainObject['flags']?.['hederaExplorerVersion'] ||
-      '0.0.0',
+  plainObject.versions.explorerChart = migrateVersionPrefix(
+    plainObject.metadata?.hederaExplorerChartVersion || plainObject.flags?.hederaExplorerVersion || '0.0.0',
   );
-  plainObject['versions']['jsonRpcRelayChart'] = migrateVersionPrefix(
-    plainObject['metadata']?.['hederaJsonRpcRelayChartVersion'] || plainObject['flags']?.['relayReleaseTag'] || '0.0.0',
+  plainObject.versions.jsonRpcRelayChart = migrateVersionPrefix(
+    plainObject.metadata?.hederaJsonRpcRelayChartVersion || plainObject.flags?.relayReleaseTag || '0.0.0',
   );
 }
 
-function migrateClusters(plainObject: object) {
-  const clusters: object = plainObject['clusters'];
+function migrateClusters(plainObject: any) {
+  const clusters: object = plainObject.clusters;
   const clustersArray: object[] = [];
   for (const key in clusters) {
     expect(clusters[key]).to.not.be.undefined.and.to.not.be.null;
     const cluster = clusters[key];
     clustersArray.push(cluster);
   }
-  plainObject['clusters'] = clustersArray;
+  plainObject.clusters = clustersArray;
 }
 
-function migrateHistory(plainObject: object) {
-  plainObject['history'] = {};
-  plainObject['history']['commands'] = [];
-  for (const historyItem of plainObject['commandHistory']) {
-    plainObject['history']['commands'].push(historyItem);
+function migrateHistory(plainObject: any) {
+  plainObject.history = {};
+  plainObject.history.commands = [];
+  for (const historyItem of plainObject.commandHistory) {
+    plainObject.history.commands.push(historyItem);
   }
 }
 
-function migrateConsensusNodes(plainObject: object) {
-  plainObject['state']['consensusNodes'] = [];
-  for (const plainConsensusNodeKey of Object.keys(plainObject['components']?.['consensusNodes'])) {
-    const oldConsensusNode: object = plainObject['components']['consensusNodes'][plainConsensusNodeKey];
+function migrateConsensusNodes(plainObject: any) {
+  plainObject.state.consensusNodes = [];
+  for (const plainConsensusNodeKey of Object.keys(plainObject.components?.consensusNodes)) {
+    const oldConsensusNode = plainObject.components.consensusNodes[plainConsensusNodeKey];
     let migratedState: string;
-    switch (oldConsensusNode['state']) {
+    switch (oldConsensusNode.state) {
       case 'requested':
         migratedState = DeploymentPhase.REQUESTED;
         break;
+      case 'initialized':
+        migratedState = DeploymentPhase.DEPLOYED;
+        break;
+      case 'setup':
+        migratedState = DeploymentPhase.CONFIGURED;
+        break;
+      case 'started':
+        migratedState = DeploymentPhase.STARTED;
+        break;
+      case 'freezed':
+        migratedState = DeploymentPhase.FROZEN;
+        break;
+      case 'stopped':
+        migratedState = DeploymentPhase.STOPPED;
+        break;
     }
-    const newConsensusNode: object = {
-      id: oldConsensusNode['nodeId'],
-      name: oldConsensusNode['name'],
-      namespace: oldConsensusNode['namespace'],
-      cluster: oldConsensusNode['cluster'],
+    const newConsensusNode = {
+      id: oldConsensusNode.nodeId,
+      name: oldConsensusNode.name,
+      namespace: oldConsensusNode.namespace,
+      cluster: oldConsensusNode.cluster,
       phase: migratedState,
     };
-    newConsensusNode['id'] = plainObject['state']['consensusNodes'].push(newConsensusNode);
+    newConsensusNode.id = plainObject.state.consensusNodes.push(newConsensusNode);
   }
 }
 
-function migrateHaProxies(plainObject: object) {
-  plainObject['state']['haProxies'] = [];
+function migrateHaProxies(plainObject: any) {
+  plainObject.state.haProxies = [];
 }
 
-function migrateEnvoyProxies(plainObject: object) {
-  plainObject['state']['envoyProxies'] = [];
+function migrateEnvoyProxies(plainObject: any) {
+  plainObject.state.envoyProxies = [];
 }
 
-function migrateMirrorNodes(plainObject: object) {
-  plainObject['state']['mirrorNodes'] = [];
+function migrateMirrorNodes(plainObject: any) {
+  plainObject.state.mirrorNodes = [];
 }
 
-function migrateExplorers(plainObject: object) {
-  plainObject['state']['explorers'] = [];
+function migrateExplorers(plainObject: any) {
+  plainObject.state.explorers = [];
 }
 
-function migrateJsonRpcRelays(plainObject: object) {
-  plainObject['state']['relayNodes'] = [];
+function migrateJsonRpcRelays(plainObject: any) {
+  plainObject.state.relayNodes = [];
 }
 
-function migrateState(plainObject: object) {
-  plainObject['state'] = {};
-  plainObject['state']['ledgerPhase'] = LedgerPhase.UNINITIALIZED;
+function migrateState(plainObject: any) {
+  plainObject.state = {};
+  plainObject.state.ledgerPhase = LedgerPhase.UNINITIALIZED;
   migrateConsensusNodes(plainObject);
   migrateHaProxies(plainObject);
   migrateEnvoyProxies(plainObject);
@@ -110,11 +123,11 @@ function migrateState(plainObject: object) {
   migrateJsonRpcRelays(plainObject);
 }
 
-function migrate(plainObject: object): void {
-  plainObject['schemaVersion'] = 0;
+function migrate(plainObject: any): void {
+  plainObject.schemaVersion = 0;
 
-  const meta: object = plainObject['metadata'];
-  meta['lastUpdatedBy'] = {
+  const meta = plainObject.metadata;
+  meta.lastUpdatedBy = {
     name: os.userInfo().username,
     hostname: os.hostname(),
   };
