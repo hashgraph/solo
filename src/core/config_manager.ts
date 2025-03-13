@@ -26,6 +26,7 @@ import path from 'path';
 export class ConfigManager {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public config!: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected readonly _configMaps = new Map<string, any>();
 
   public constructor(@inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger) {
