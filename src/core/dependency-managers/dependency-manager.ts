@@ -4,10 +4,10 @@ import os from 'os';
 import {SoloError} from '../errors/solo-error.js';
 import {ShellRunner} from '../shell-runner.js';
 import {HelmDependencyManager} from './helm-dependency-manager.js';
-import {type ListrTask} from 'listr2';
 import {container, inject, injectable} from 'tsyringe-neo';
 import * as constants from '../constants.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
+import {type SoloListrTask} from '../../types/index.js';
 
 @injectable()
 export class DependencyManager extends ShellRunner {
@@ -50,7 +50,7 @@ export class DependencyManager extends ShellRunner {
       return {
         title: `Check dependency: ${dep} [OS: ${os.platform()}, Release: ${os.release()}, Arch: ${os.arch()}]`,
         task: () => this.checkDependency(dep),
-      } as ListrTask<T, any, any>;
+      } as SoloListrTask<T>;
     });
   }
 }

@@ -13,7 +13,6 @@ import {
 } from '../test-util.js';
 import {sleep} from '../../src/core/helpers.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
-import {type ListrTaskWrapper} from 'listr2';
 import {type ConfigManager} from '../../src/core/config-manager.js';
 import {type K8Factory} from '../../src/core/kube/k8-factory.js';
 import {NodeCommand} from '../../src/commands/node/index.js';
@@ -26,6 +25,7 @@ import {PodRef} from '../../src/core/kube/resources/pod/pod-ref.js';
 import {type NetworkNodes} from '../../src/core/network-nodes.js';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../helpers/argv-wrapper.js';
+import {type SoloListrTaskWrapper} from '../../src/types/index.js';
 import {type Pod} from '../../src/core/kube/resources/pod/pod.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
@@ -161,7 +161,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               nodeTasks._checkNetworkNodeActiveness(
                 namespace,
                 nodeAlias,
-                {title: ''} as ListrTaskWrapper<any, any, any>,
+                {title: ''} as SoloListrTaskWrapper<any>,
                 '',
                 44,
                 undefined,
