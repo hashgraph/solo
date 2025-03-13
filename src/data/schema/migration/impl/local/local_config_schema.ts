@@ -5,11 +5,17 @@ import {LocalConfig} from '../../../model/local/local_config.js';
 import {type Version} from '../../../../../business/utils/version.js';
 import {type ClassConstructor} from '../../../../../business/utils/class_constructor.type.js';
 import {type SchemaMigration} from '../../api/schema_migration.js';
-import {injectable} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../../../../../core/dependency_injection/inject_tokens.js';
+import {type ObjectMapper} from '../../../../mapper/api/object_mapper.js';
+import {SchemaBase} from '../../api/schema_base.js';
+import {LocalConfigV1Migration} from './local_config_v1_migration.js';
 
 @injectable()
-export class LocalConfigSchema implements Schema<LocalConfig> {
-  public constructor() {}
+export class LocalConfigSchema extends SchemaBase<LocalConfig> implements Schema<LocalConfig> {
+  public constructor(@inject(InjectTokens.ObjectMapper) mapper: ObjectMapper) {
+    super(mapper);
+  }
 
   public get name(): string {
     return LocalConfig.name;
@@ -24,10 +30,6 @@ export class LocalConfigSchema implements Schema<LocalConfig> {
   }
 
   public get migrations(): SchemaMigration[] {
-    return [];
-  }
-
-  public transform(data: object, sourceVersion?: Version<number>): LocalConfig {
-    return undefined;
+    return [new LocalConfigV1Migration()];
   }
 }

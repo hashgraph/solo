@@ -58,6 +58,7 @@
     "chalk": "^5.4.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "deep-clone": "^4.0.0",
     "dot-object": "^2.1.5",
     "dotenv": "^16.4.7",
     "elliptic": "^6.6.1",

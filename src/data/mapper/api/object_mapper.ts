@@ -15,7 +15,7 @@ export interface ObjectMapper {
    * @param obj - The plain javascript object to be converted.
    * @throws ObjectMappingError if the mapping or a type conversion fails.
    */
-  fromObject<T extends R, R>(cls: ClassConstructor<T>, obj: object): R;
+  fromObject<T>(cls: ClassConstructor<T>, obj: object): T;
 
   /**
    * Converts an instance of a class into a plain javascript object.
@@ -32,7 +32,7 @@ export interface ObjectMapper {
    * @param arr - The array of plain javascript objects to be converted.
    * @throws ObjectMappingError if the mapping or a type conversion fails.
    */
-  fromArray<T extends R, R>(cls: ClassConstructor<T>, arr: object[]): R[];
+  fromArray<T>(cls: ClassConstructor<T>, arr: object[]): T[];
 
   /**
    * Converts an array of instances of a class into an array of plain javascript objects.

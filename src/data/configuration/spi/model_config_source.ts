@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ConfigSource} from './config_source.js';
-import {type Schema} from '../../schema/migration/schema.js';
+import {type Schema} from '../../schema/migration/api/schema.js';
 
 export interface ModelConfigSource<T> extends ConfigSource {
   /**

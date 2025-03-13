@@ -40,5 +40,22 @@ export interface Schema<T> {
    *                        otherwise assumed based on the provided plain javascript object.
    * @returns an instance of the model class.
    */
-  transform(data: object, sourceVersion?: Version<number>): T;
+  transform(data: object, sourceVersion?: Version<number>): Promise<T>;
+
+  /**
+   * Validates the migrations for the schema. This method should be called during the application startup to ensure that
+   * the migrations are correctly defined.
+   *
+   * Due to the risk imposed by performing migrations on production data, we cannot afford to allow production code to
+   * ever perform a partial migration. A partial migration is defined as a series of migrations which result in the final
+   * migrated data being a version that is less than the current schema version. Executing a partial migration may
+   * leave the data in a state in which future modifications result in a corrupted object.
+   *
+   * Therefore, we should always ensure the migrations are correctly defined and that the migration sequence is unbroken.
+   * All actual migrations of data should validate the resulting object has reached the current schema version.
+   *
+   * The intent of this method is to ensure that the migrations are correctly defined during application startup and
+   * unit testing.
+   */
+  validateMigrations(): Promise<void>;
 }

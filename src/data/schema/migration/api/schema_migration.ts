@@ -19,8 +19,8 @@ export interface SchemaMigration {
   readonly range: VersionRange<number>;
 
   /**
-   * Migrates the given source object to match the new schema. The source object is not a copy of the original object and
-   * care must be taken to ensure that the original object is not modified.
+   * Migrates the given source object to match the new schema. The source object may not be a copy of the original
+   * object and care must be taken to ensure that the original object is not modified.
    *
    * @param source - the copy of the source object to migrate.
    * @returns a promise which resolves to the migrated object.
