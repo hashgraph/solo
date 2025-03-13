@@ -1,5 +1,5 @@
 userEmailAddress: joe@doe.com
-soloVersion: '0.0.0'
+soloVersion: '0.35.1'
 deployments:
   dual-cluster-full-deployment:
     clusters:

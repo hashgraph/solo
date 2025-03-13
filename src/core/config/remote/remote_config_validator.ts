@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as constants from '../../constants.js';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
 import {ConsensusNodeStates} from './enumerations.js';
 
 import {type K8Factory} from '../../kube/k8_factory.js';
 import {type ComponentsDataWrapper} from './components_data_wrapper.js';
 import {type BaseComponent} from './components/base_component.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
-import {type V1Pod} from '@kubernetes/client-node';
 import {type LocalConfig} from '../local_config.js';
+import {type Pod} from '../../kube/resources/pod/pod.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -54,7 +54,7 @@ export class RemoteConfigValidator {
       const context = localConfig.clusterRefs[component.cluster];
       const labels = [constants.SOLO_RELAY_LABEL];
       try {
-        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
+        const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
@@ -73,7 +73,7 @@ export class RemoteConfigValidator {
       const context = localConfig.clusterRefs[component.cluster];
       const labels = [`app=${component.name}`];
       try {
-        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
+        const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
@@ -92,7 +92,7 @@ export class RemoteConfigValidator {
       const context = localConfig.clusterRefs[component.cluster];
       const labels = constants.SOLO_HEDERA_MIRROR_IMPORTER;
       try {
-        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
+        const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
@@ -111,7 +111,7 @@ export class RemoteConfigValidator {
       const context = localConfig.clusterRefs[component.cluster];
       const labels = [`app=${component.name}`];
       try {
-        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
+        const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
@@ -132,7 +132,7 @@ export class RemoteConfigValidator {
       const context = localConfig.clusterRefs[component.cluster];
       const labels = [`app=network-${component.name}`];
       try {
-        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
+        const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {
@@ -151,7 +151,7 @@ export class RemoteConfigValidator {
       const context = localConfig.clusterRefs[component.cluster];
       const labels = [constants.SOLO_HEDERA_EXPLORER_LABEL];
       try {
-        const pods: V1Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
+        const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
       } catch (e) {

@@ -4,7 +4,7 @@ import {type ClusterCommandTasks} from './tasks.js';
 import * as helpers from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
-import {SoloError} from '../../core/errors.js';
+import {SoloError} from '../../core/errors/SoloError.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {CommandHandler} from '../../core/command_handler.js';

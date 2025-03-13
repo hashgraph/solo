@@ -4,7 +4,10 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
+import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
+import {SoloError} from '../core/errors/SoloError.js';
+import {UserBreak} from '../core/errors/UserBreak.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -41,9 +44,9 @@ import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js'
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Duration} from '../core/time/duration.js';
-import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
-import {PodName} from '../core/kube/resources/pod/pod_name.js';
+import {type PodRef} from '../core/kube/resources/pod/pod_ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
+import {type Pod} from '../core/kube/resources/pod/pod.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -162,6 +165,7 @@ export class NetworkCommand extends BaseCommand {
       flags.releaseTag,
       flags.settingTxt,
       flags.networkDeploymentValuesFile,
+      flags.nodeAliasesUnparsed,
       flags.grpcTlsCertificatePath,
       flags.grpcWebTlsCertificatePath,
       flags.grpcTlsKeyPath,
@@ -326,9 +330,7 @@ export class NetworkCommand extends BaseCommand {
 
       await this.prepareBackupUploaderSecrets(config);
     } catch (e: Error | any) {
-      const errorMessage = 'failed to create Kubernetes storage secret ';
-      this.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError('Failed to create Kubernetes storage secret', e);
     }
   }
 
@@ -1004,13 +1006,13 @@ export class NetworkCommand extends BaseCommand {
                   showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
 
                   const context = config.clusterRefs[clusterRef];
-                  const pods = await this.k8Factory
+                  const pods: Pod[] = await this.k8Factory
                     .getK8(context)
                     .pods()
                     .list(ctx.config.namespace, ['solo.hedera.com/type=network-node']);
 
                   for (const pod of pods) {
-                    const podRef = PodRef.of(ctx.config.namespace, PodName.of(pod.metadata.name));
+                    const podRef: PodRef = pod.podRef;
                     await this.k8Factory.getK8(context).pods().readByRef(podRef).killPod();
                   }
                 },
@@ -1149,7 +1151,7 @@ export class NetworkCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 
@@ -1260,7 +1262,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying network: ${err.message}`, err);
                 });
             },
@@ -1291,7 +1292,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error destroying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error destroying network: ${err.message}`, err);
                 });
             },

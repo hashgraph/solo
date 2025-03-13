@@ -4,11 +4,11 @@ import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
-import {SoloError} from '../../core/errors.js';
+import {UserBreak} from '../../core/errors/UserBreak.js';
+import {SoloError} from '../../core/errors/SoloError.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {ErrorMessages} from '../../core/error_messages.js';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
@@ -50,24 +50,23 @@ export class ClusterCommandConfigs {
     ctx: ClusterRefConnectContext,
     task: SoloListrTaskWrapper<ClusterRefConnectContext>,
   ): Promise<ClusterRefConnectConfigClass> {
-    this.configManager.update(argv);
+    // Apply changes to argv[context] before the config is initiated, because the `context` field is immutable
+    if (!argv[flags.context.name]) {
+      const isQuiet = this.configManager.getFlag(flags.quiet);
+      if (isQuiet) {
+        argv[flags.context.name] = this.k8Factory.default().contexts().readCurrent();
+      } else {
+        const kubeContexts = this.k8Factory.default().contexts().list();
+        argv[flags.context.name] = await flags.context.prompt(task, kubeContexts, argv[flags.clusterRef.name]);
+      }
+    }
 
+    this.configManager.update(argv);
     ctx.config = this.configManager.getConfig(
       ClusterCommandConfigs.CONNECT_CONFIGS_NAME,
       argv.flags,
       [],
     ) as ClusterRefConnectConfigClass;
-
-    if (!ctx.config.context) {
-      const isQuiet = this.configManager.getFlag(flags.quiet);
-      if (isQuiet) {
-        ctx.config.context = this.k8Factory.default().contexts().readCurrent();
-      } else {
-        const kubeContexts = this.k8Factory.default().contexts().list();
-        ctx.config.context = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
-      }
-    }
-
     return ctx.config;
   }
 
@@ -132,7 +131,7 @@ export class ClusterCommandConfigs {
       });
 
       if (!confirmResult) {
-        this.logger.logAndExitSuccess('Aborted application by user prompt');
+        throw new UserBreak('Aborted application by user prompt');
       }
     }
 

@@ -37,7 +37,7 @@
     "solo": "node --no-deprecation --no-warnings dist/solo.js",
     "check": "remark . --quiet --frail && eslint . && tsc && madge --circular src/* && npx typedoc --emit none",
     "format": "remark . --quiet --frail --output && eslint --fix . && tsc && madge --circular src/* && npx typedoc --emit none",
-    "test-setup": "./test/e2e/setup-e2e.sh",
+    "test-setup": "SOLO_CLUSTER_DUALITY=1 ./test/e2e/dual-cluster/setup-dual-e2e.sh",
     "dual-cluster-setup": "./test/e2e/dual-cluster/setup-dual-e2e.sh",
     "build": "rm -Rf dist && tsc && node resources/post-build-script.js"
   },
@@ -69,6 +69,7 @@
     "js-base64": "^3.7.7",
     "listr2": "^8.2.5",
     "semver": "^7.7.1",
+    "source-map-support": "^0.5.21",
     "stream-buffers": "^3.0.3",
     "tar": "^7.4.3",
     "tsyringe-neo": "^5.1.0",

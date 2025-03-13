@@ -8,17 +8,16 @@ import {e2eTestSuite, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_u
 import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {type PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
-import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 
 const namespace = NamespaceName.of('node-upgrade');
 const argv = Argv.getDefaultArgv(namespace);
@@ -86,9 +85,8 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     it('network nodes version file was upgraded', async () => {
       // copy the version.txt file from the pod data/upgrade/current directory
       const tmpDir: string = getTmpDir();
-      const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
-      const podName: PodName = PodName.of(pods[0].metadata.name);
-      const podRef: PodRef = PodRef.of(namespace, podName);
+      const pods: Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      const podRef: PodRef = pods[0].podRef;
       const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       await k8Factory
         .default()

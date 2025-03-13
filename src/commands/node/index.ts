@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {IllegalArgumentError} from '../../core/errors.js';
+import {IllegalArgumentError} from '../../core/errors/IllegalArgumentError.js';
 import {type AccountManager} from '../../core/account_manager.js';
 import {YargsCommand} from '../../core/yargs_command.js';
 import {BaseCommand, type Opts} from './../base.js';

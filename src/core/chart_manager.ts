@@ -3,7 +3,7 @@
 import * as constants from './constants.js';
 import {type Helm} from './helm.js';
 import chalk from 'chalk';
-import {SoloError} from './errors.js';
+import {SoloError} from './errors/SoloError.js';
 import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency_injection/container_helper.js';

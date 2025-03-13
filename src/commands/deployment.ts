@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Listr} from 'listr2';
-import {SoloError} from '../core/errors.js';
+import {SoloError} from '../core/errors/SoloError.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -184,9 +184,7 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
-
             await self.configManager.executePrompt(task, [flags.clusterRef]);
-
             ctx.config = {
               clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
             } as Config;
@@ -255,7 +253,6 @@ export class DeploymentCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error creating deployment: ${err.message}`, err);
                 });
             },
@@ -276,7 +273,6 @@ export class DeploymentCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error listing deployments: ${err.message}`, err);
                 });
             },

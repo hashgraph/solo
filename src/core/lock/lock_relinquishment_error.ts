@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../errors.js';
+import {SoloError} from '../errors/SoloError.js';
 
 export class LockRelinquishmentError extends SoloError {
   /**
