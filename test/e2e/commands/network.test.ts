@@ -99,8 +99,6 @@ describe('NetworkCommand', function networkCommand() {
   });
 
   it('keys should be generated', async () => {
-    expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
-
     await commandInvoker.invoke({
       argv: argv,
       command: NodeCommand.COMMAND_NAME,
