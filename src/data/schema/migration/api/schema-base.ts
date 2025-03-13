@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Schema} from './schema.js';
-import {type SchemaMigration} from './schema_migration.js';
+import {type SchemaMigration} from './schema-migration.js';
 import {Version} from '../../../../business/utils/version.js';
-import {type ClassConstructor} from '../../../../business/utils/class_constructor.type.js';
+import {type ClassConstructor} from '../../../../business/utils/class-constructor.type.js';
 import {deepClone} from 'deep-clone';
-import {type ObjectMapper} from '../../../mapper/api/object_mapper.js';
+import {type ObjectMapper} from '../../../mapper/api/object-mapper.js';
 
 export abstract class SchemaBase<T> implements Schema<T> {
   public abstract get classCtor(): ClassConstructor<T>;

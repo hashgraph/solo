@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ObjectMapper} from '../api/object_mapper.js';
-import {type ClassConstructor} from '../../../business/utils/class_constructor.type.js';
+import {type ObjectMapper} from '../api/object-mapper.js';
+import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
 import {instanceToPlain, plainToInstance} from 'class-transformer';
-import {ObjectMappingError} from '../api/object_mapping_error.js';
+import {ObjectMappingError} from '../api/object-mapping-error.js';
 import {injectable} from 'tsyringe-neo';
 
 @injectable()

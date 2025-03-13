@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-<<<<<<<< HEAD:src/data/mapper/object-mapper.ts
-import {type ClassConstructor} from '../../business/utils/class-constructor.type.js';
-========
-import {type ClassConstructor} from '../../../business/utils/class_constructor.type.js';
->>>>>>>> main:src/data/mapper/api/object_mapper.ts
+import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
 
 /**
  * The ObjectMapper interface defines the methods for converting between plain javascript objects and class instances.

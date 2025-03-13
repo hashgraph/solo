@@ -1,11 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-<<<<<<<< HEAD:src/data/schema/migration/schema-migration.ts
-import {type VersionRange} from '../../../business/utils/version-range.js';
-========
-import {type VersionRange} from '../../../../business/utils/version_range.js';
+import {type VersionRange} from '../../../../business/utils/version-range.js';
 import {type Version} from '../../../../business/utils/version.js';
->>>>>>>> main:src/data/schema/migration/api/schema_migration.ts
 
 /**
  * Represents a schema migration which can be applied to a source object to bring it up to date with the schema version

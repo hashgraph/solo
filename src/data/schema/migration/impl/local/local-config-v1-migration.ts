@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type SchemaMigration} from '../../api/schema_migration.js';
-import {VersionRange} from '../../../../../business/utils/version_range.js';
+import {type SchemaMigration} from '../../api/schema-migration.js';
+import {VersionRange} from '../../../../../business/utils/version-range.js';
 import {Version} from '../../../../../business/utils/version.js';
 import {deepClone} from 'deep-clone';
 
