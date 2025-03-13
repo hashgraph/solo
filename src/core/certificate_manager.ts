@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {MissingArgumentError, SoloError} from './errors.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
+import {SoloError} from './errors/SoloError.js';
 import {Flags as flags} from '../commands/flags.js';
 import fs from 'fs';
 import {Templates} from './templates.js';
@@ -90,7 +91,6 @@ export class CertificateManager {
       const errorMessage =
         'failed to copy tls certificate to secret ' +
         `'${Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)}': ${e.message}`;
-      this.logger.error(errorMessage, e);
       throw new SoloError(errorMessage, e);
     }
   }

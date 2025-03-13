@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Listr, type ListrTask} from 'listr2';
-import {MissingArgumentError, SoloError} from '../core/errors.js';
+import {SoloError} from '../core/errors/SoloError.js';
+import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
 import * as helpers from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
@@ -347,7 +348,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (e) {
-      throw new SoloError('Error installing relays', e);
+      throw new SoloError(`Error deploying relay: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -468,17 +469,10 @@ export class RelayCommand extends BaseCommand {
               self.logger.info("==== Running 'relay deploy' ===", {argv});
               self.logger.info(argv);
 
-              await self
-                .deploy(argv)
-                .then(r => {
-                  self.logger.info('==== Finished running `relay deploy`====');
-
-                  if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
-                })
-                .catch(err => {
-                  self.logger.showUserError(err);
-                  throw new SoloError(`Error deploying relay: ${err.message}`, err);
-                });
+              await self.deploy(argv).then(r => {
+                self.logger.info('==== Finished running `relay deploy`====');
+                if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
+              });
             },
           })
           .command({

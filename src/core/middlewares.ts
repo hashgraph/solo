@@ -25,6 +25,22 @@ export class Middlewares {
     this.logger = opts.logger;
   }
 
+  public setLoggerDevFlag() {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return (argv: any): AnyObject => {
+      if (argv.dev) {
+        logger.debug('Setting logger dev flag');
+        logger.setDevMode(argv.dev);
+      }
+
+      return argv;
+    };
+  }
+
   /**
    * Processes the Argv and display the command header
    *

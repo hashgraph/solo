@@ -22,7 +22,9 @@ import {
   Status,
   TransferTransaction,
 } from '@hashgraph/sdk';
-import {MissingArgumentError, ResourceNotFoundError, SoloError} from './errors.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
+import {ResourceNotFoundError} from './errors/ResourceNotFoundError.js';
+import {SoloError} from './errors/SoloError.js';
 import {Templates} from './templates.js';
 import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network_node_services.js';
 import path from 'path';
@@ -206,7 +208,6 @@ export class AccountManager {
       return this._nodeClient!;
     } catch (e) {
       const message = `failed to load node client: ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }
@@ -249,7 +250,6 @@ export class AccountManager {
       return this._nodeClient;
     } catch (e) {
       const message = `failed to refresh node client: ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }
@@ -358,7 +358,6 @@ export class AccountManager {
           }
         } catch (e) {
           const message = `failed to ping node client while running the interval pinger: ${e.message}`;
-          this.logger.error(message, e);
           throw new SoloError(message, e);
         }
       }
@@ -452,7 +451,6 @@ export class AccountManager {
       }
     } catch (e) {
       const message = `failed testing node client connection for network node: ${Object.keys(obj)[0]}, after ${maxRetries} retries: ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
 
@@ -966,9 +964,7 @@ export class AccountManager {
 
       return receipt.status === Status.Success;
     } catch (e) {
-      const errorMessage = `transfer amount failed with an error: ${e.toString()}`;
-      this.logger.error(errorMessage);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError(`transfer amount failed with an error: ${e.toString()}`, e);
     }
   }
 
@@ -1022,16 +1018,11 @@ export class AccountManager {
     try {
       nodeClient = Client.fromConfig({network: obj, scheduleNetworkUpdate: false});
       this.logger.debug(`pinging network node: ${Object.keys(obj)[0]}`);
-      try {
-        if (!constants.SKIP_NODE_PING) {
-          await nodeClient.ping(accountId);
-        }
-        this.logger.debug(`ping successful for network node: ${Object.keys(obj)[0]}`);
-      } catch (e) {
-        const message = `failed to ping network node: ${Object.keys(obj)[0]} ${e.message}`;
-        this.logger.error(message, e);
-        throw new SoloError(message, e);
+
+      if (!constants.SKIP_NODE_PING) {
+        await nodeClient.ping(accountId);
       }
+      this.logger.debug(`ping successful for network node: ${Object.keys(obj)[0]}`);
 
       return;
     } catch (e) {

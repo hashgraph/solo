@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {MissingArgumentError} from '../errors.js';
+import {MissingArgumentError} from '../errors/MissingArgumentError.js';
 import os from 'node:os';
 import process from 'node:process';
 

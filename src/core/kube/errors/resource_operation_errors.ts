@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
 import {ResourceOperation} from '../resources/resource_operation.js';
 import {type ResourceType} from '../resources/resource_type.js';
 import {type NamespaceName} from '../resources/namespace/namespace_name.js';

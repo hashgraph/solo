@@ -2,7 +2,7 @@
 
 import {it} from 'mocha';
 import {expect} from 'chai';
-import {SoloError} from '../../../../../src/core/errors.js';
+import {SoloError} from '../../../../../src/core/errors/SoloError.js';
 import {Cluster} from '../../../../../src/core/config/remote/cluster.js';
 import {type ClusterRef} from '../../../../../src/core/config/remote/types.js';
 
