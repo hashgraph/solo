@@ -178,8 +178,45 @@ describe('RemoteConfig', () => {
 
     it('should transform class to plain', async () => {
       const rc: RemoteConfig = plainToClass(RemoteConfig, plainObject);
-      const remoteConfigObject = instanceToPlain(rc);
-      expect(remoteConfigObject).to.not.be.undefined.and.to.not.be.null;
+      const plainRemoteConfigObject = instanceToPlain(rc);
+      expect(plainRemoteConfigObject).to.not.be.undefined.and.to.not.be.null;
+      expect(plainRemoteConfigObject.history.commands.length).to.be.equal(1);
+      expect(plainRemoteConfigObject.versions.cli).to.equal('0.34.0');
+      expect(plainRemoteConfigObject.versions.chart).to.equal('0.0.0');
+      expect(plainRemoteConfigObject.versions.consensusNode).to.equal('0.58.10');
+      expect(plainRemoteConfigObject.versions.mirrorNodeChart).to.equal('0.122.0');
+      expect(plainRemoteConfigObject.versions.explorerChart).to.equal('24.12.0');
+      expect(plainRemoteConfigObject.versions.jsonRpcRelayChart).to.equal('0.63.2');
+      expect(plainRemoteConfigObject.clusters.length).to.be.equal(1);
+      expect(plainRemoteConfigObject.state.consensusNodes.length).to.be.equal(4);
+      expect(plainRemoteConfigObject.state.consensusNodes[0].id).to.be.equal(0);
+      expect(plainRemoteConfigObject.state.consensusNodes[0].name).to.be.equal('node1');
+      expect(plainRemoteConfigObject.state.consensusNodes[0].namespace).to.be.equal('solo-alpha-prod');
+      expect(plainRemoteConfigObject.state.consensusNodes[0].cluster).to.be.equal('gke-alpha-prod-us-central1');
+      expect(plainRemoteConfigObject.state.consensusNodes[0].phase).to.be.equal(DeploymentPhase.REQUESTED);
+      expect(plainRemoteConfigObject.state.ledgerPhase).to.be.equal(LedgerPhase.UNINITIALIZED);
+    });
+
+    it('should be able to go from a class to an object back to a class', async () => {
+      const rc: RemoteConfig = plainToClass(RemoteConfig, plainObject);
+      const plainRemoteConfigObject = instanceToPlain(rc);
+      const rc2: RemoteConfig = plainToClass(RemoteConfig, plainRemoteConfigObject);
+      expect(rc2).to.not.be.undefined.and.to.not.be.null;
+      expect(rc2.history.commands.length).to.be.equal(1);
+      expect(rc2.versions.cli.version).to.equal('0.34.0');
+      expect(rc2.versions.chart.version).to.equal('0.0.0');
+      expect(rc2.versions.consensusNode.version).to.equal('0.58.10');
+      expect(rc2.versions.mirrorNodeChart.version).to.equal('0.122.0');
+      expect(rc2.versions.explorerChart.version).to.equal('24.12.0');
+      expect(rc2.versions.jsonRpcRelayChart.version).to.equal('0.63.2');
+      expect(rc2.clusters.length).to.be.equal(1);
+      expect(rc2.state.consensusNodes.length).to.be.equal(4);
+      expect(rc2.state.consensusNodes[0].id).to.be.equal(0);
+      expect(rc2.state.consensusNodes[0].name).to.be.equal('node1');
+      expect(rc2.state.consensusNodes[0].namespace).to.be.equal('solo-alpha-prod');
+      expect(rc2.state.consensusNodes[0].cluster).to.be.equal('gke-alpha-prod-us-central1');
+      expect(rc2.state.consensusNodes[0].phase).to.be.equal(DeploymentPhase.REQUESTED);
+      expect(rc2.state.ledgerPhase).to.be.equal(LedgerPhase.UNINITIALIZED);
     });
   });
 });
