@@ -98,6 +98,19 @@ describe('NetworkCommand', function networkCommand() {
     configManager.update(argv.build());
   });
 
+  it('deployment create should succeed', async () => {
+    await commandInvoker.invoke({
+      argv: argv,
+      command: DeploymentCommand.COMMAND_NAME,
+      subcommand: 'add-cluster',
+      callback: async argv => deploymentCmd.addCluster(argv),
+    });
+
+    argv.setArg(flags.nodeAliasesUnparsed, undefined);
+    configManager.reset();
+    configManager.update(argv.build());
+  });
+
   it('keys should be generated', async () => {
     await commandInvoker.invoke({
       argv: argv,
