@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type AccountId, type PublicKey} from '@hashgraph/sdk';
 import {
   type GenesisNetworkNodeStructure,

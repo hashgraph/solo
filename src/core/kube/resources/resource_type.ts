@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 export enum ResourceType {
   NAMESPACE = 'Namespace',
   CONFIG_MAP = 'ConfigMap',
@@ -24,4 +23,5 @@ export enum ResourceType {
   CLUSTER_ROLE_BINDING = 'ClusterRoleBinding',
   CLUSTER = 'Cluster',
   CONTAINER = 'Container',
+  LEASE = 'Lease',
 }

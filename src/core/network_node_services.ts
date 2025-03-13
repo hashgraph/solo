@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {type NodeAlias} from '../types/aliases.js';
 import {type PodName} from './kube/resources/pod/pod_name.js';

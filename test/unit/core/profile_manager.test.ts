@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {expect} from 'chai';
 import {after, describe, it} from 'mocha';
 
@@ -21,7 +20,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
 import {KubeConfig} from '@kubernetes/client-node';
-import {MissingArgumentError} from '../../../src/core/errors.js';
+import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;

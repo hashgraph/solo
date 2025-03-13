@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {container, Lifecycle} from 'tsyringe-neo';
 import {SoloLogger} from '../logging.js';
 import {PackageDownloader} from '../package_downloader.js';
@@ -14,8 +13,8 @@ import {AccountManager} from '../account_manager.js';
 import {PlatformInstaller} from '../platform_installer.js';
 import {KeyManager} from '../key_manager.js';
 import {ProfileManager} from '../profile_manager.js';
-import {IntervalLeaseRenewalService} from '../lease/interval_lease_renewal.js';
-import {LeaseManager} from '../lease/lease_manager.js';
+import {IntervalLockRenewalService} from '../lock/interval_lock_renewal.js';
+import {LockManager} from '../lock/lock_manager.js';
 import {CertificateManager} from '../certificate_manager.js';
 import path, {normalize} from 'path';
 import {LocalConfig} from '../config/local_config.js';
@@ -32,6 +31,7 @@ import {NodeCommandHandlers} from '../../commands/node/handlers.js';
 import {NodeCommandTasks} from '../../commands/node/tasks.js';
 import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
+import {ErrorHandler} from '../error_handler.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -114,12 +114,12 @@ export class Container {
     container.register(InjectTokens.ProfileManager, {useClass: ProfileManager}, {lifecycle: Lifecycle.Singleton});
     // LeaseRenewalService
     container.register(
-      InjectTokens.LeaseRenewalService,
-      {useClass: IntervalLeaseRenewalService},
+      InjectTokens.LockRenewalService,
+      {useClass: IntervalLockRenewalService},
       {lifecycle: Lifecycle.Singleton},
     );
 
-    container.register(InjectTokens.LeaseManager, {useClass: LeaseManager}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.LockManager, {useClass: LockManager}, {lifecycle: Lifecycle.Singleton});
     container.register(
       InjectTokens.CertificateManager,
       {useClass: CertificateManager},
@@ -170,6 +170,8 @@ export class Container {
       {useClass: NodeCommandConfigs},
       {lifecycle: Lifecycle.Singleton},
     );
+
+    container.register(InjectTokens.ErrorHandler, {useClass: ErrorHandler}, {lifecycle: Lifecycle.Singleton});
   }
 
   /**

@@ -1,7 +1,6 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
-import {SoloError} from '../../errors.js';
+// SPDX-License-Identifier: Apache-2.0
+
+import {SoloError} from '../../errors/SoloError.js';
 
 export class MissingResourceNameError extends SoloError {
   public static MISSING_RESOURCE_NAME = 'Name is required.';

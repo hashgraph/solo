@@ -1,32 +1,36 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {Flags as flags} from '../flags.js';
 import * as constants from '../../core/constants.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
-import {SoloError} from '../../core/errors.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
+import {UserBreak} from '../../core/errors/UserBreak.js';
+import {SoloError} from '../../core/errors/SoloError.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart_manager.js';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {ErrorMessages} from '../../core/error_messages.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type LocalConfig} from '../../core/config/local_config.js';
-import {type ClusterResetConfigClass} from './config_interfaces/cluster_reset_config_class.js';
-import {type ClusterSetupConfigClass} from './config_interfaces/cluster_setup_config_class.js';
-import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
+import {type ArgvStruct} from '../../types/aliases.js';
+import {type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ClusterRefDefaultConfigClass} from './config_interfaces/cluster_ref_default_config_class.js';
-
-export const CONNECT_CONFIGS_NAME = 'connectConfig';
-export const DEFAULT_CONFIGS_NAME = 'defaultConfig';
+import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {type ClusterRefResetContext} from './config_interfaces/cluster_ref_reset_context.js';
+import {type ClusterRefConnectContext} from './config_interfaces/cluster_ref_connect_context.js';
+import {type ClusterRefConnectConfigClass} from './config_interfaces/cluster_ref_connect_config_class.js';
+import {type ClusterRefDefaultContext} from './config_interfaces/cluster_ref_default_context.js';
+import {type ClusterRefSetupContext} from './config_interfaces/cluster_ref_setup_context.js';
+import {type ClusterRefSetupConfigClass} from './config_interfaces/cluster_ref_setup_config_class.js';
+import {type ClusterRefResetConfigClass} from './config_interfaces/cluster_ref_reset_config_class.js';
 
 @injectable()
 export class ClusterCommandConfigs {
+  private static readonly CONNECT_CONFIGS_NAME = 'connectConfig';
+  private static readonly DEFAULT_CONFIGS_NAME = 'defaultConfig';
+
   constructor(
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
@@ -41,34 +45,51 @@ export class ClusterCommandConfigs {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
   }
 
-  public async connectConfigBuilder(argv, ctx, task) {
-    if (!this.localConfig.configFileExists()) {
-      this.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
-    }
-
-    this.configManager.update(argv);
-    ctx.config = this.configManager.getConfig(CONNECT_CONFIGS_NAME, argv.flags, []) as ClusterRefConnectConfigClass;
-
-    if (!ctx.config.context) {
+  public async connectConfigBuilder(
+    argv: ArgvStruct,
+    ctx: ClusterRefConnectContext,
+    task: SoloListrTaskWrapper<ClusterRefConnectContext>,
+  ): Promise<ClusterRefConnectConfigClass> {
+    // Apply changes to argv[context] before the config is initiated, because the `context` field is immutable
+    if (!argv[flags.context.name]) {
       const isQuiet = this.configManager.getFlag(flags.quiet);
       if (isQuiet) {
-        ctx.config.context = this.k8Factory.default().contexts().readCurrent();
+        argv[flags.context.name] = this.k8Factory.default().contexts().readCurrent();
       } else {
         const kubeContexts = this.k8Factory.default().contexts().list();
-        ctx.config.context = await flags.context.prompt(task, kubeContexts, ctx.config.clusterRef);
+        argv[flags.context.name] = await flags.context.prompt(task, kubeContexts, argv[flags.clusterRef.name]);
       }
     }
 
-    return ctx.config;
-  }
-
-  public async defaultConfigBuilder(argv, ctx, task) {
     this.configManager.update(argv);
-    ctx.config = this.configManager.getConfig(DEFAULT_CONFIGS_NAME, argv.flags, []) as ClusterRefDefaultConfigClass;
+    ctx.config = this.configManager.getConfig(
+      ClusterCommandConfigs.CONNECT_CONFIGS_NAME,
+      argv.flags,
+      [],
+    ) as ClusterRefConnectConfigClass;
     return ctx.config;
   }
 
-  public async setupConfigBuilder(argv, ctx, task) {
+  public async defaultConfigBuilder(
+    argv: ArgvStruct,
+    ctx: ClusterRefDefaultContext,
+  ): Promise<ClusterRefDefaultConfigClass> {
+    this.configManager.update(argv);
+
+    ctx.config = this.configManager.getConfig(
+      ClusterCommandConfigs.DEFAULT_CONFIGS_NAME,
+      argv.flags,
+      [],
+    ) as ClusterRefDefaultConfigClass;
+
+    return ctx.config;
+  }
+
+  public async setupConfigBuilder(
+    argv: ArgvStruct,
+    ctx: ClusterRefSetupContext,
+    task: SoloListrTaskWrapper<ClusterRefSetupContext>,
+  ): Promise<ClusterRefSetupConfigClass> {
     const configManager = this.configManager;
     configManager.update(argv);
     flags.disablePrompts([flags.chartDirectory]);
@@ -86,7 +107,7 @@ export class ClusterCommandConfigs {
       deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
       deployPrometheusStack: configManager.getFlag(flags.deployPrometheusStack) as boolean,
       soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
-    } as ClusterSetupConfigClass;
+    } as ClusterRefSetupConfigClass;
 
     this.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
 
@@ -98,7 +119,11 @@ export class ClusterCommandConfigs {
     return ctx.config;
   }
 
-  public async resetConfigBuilder(argv, ctx, task) {
+  public async resetConfigBuilder(
+    argv: ArgvStruct,
+    ctx: ClusterRefResetContext,
+    task: SoloListrTaskWrapper<ClusterRefResetContext>,
+  ): Promise<ClusterRefResetConfigClass> {
     if (!argv[flags.force.name]) {
       const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
         default: false,
@@ -106,16 +131,16 @@ export class ClusterCommandConfigs {
       });
 
       if (!confirmResult) {
-        this.logger.logAndExitSuccess('Aborted application by user prompt');
+        throw new UserBreak('Aborted application by user prompt');
       }
     }
 
     this.configManager.update(argv);
 
     ctx.config = {
-      clusterName: this.configManager.getFlag(flags.clusterRef) as string,
-      clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace) as string,
-    } as ClusterResetConfigClass;
+      clusterName: this.configManager.getFlag(flags.clusterRef),
+      clusterSetupNamespace: this.configManager.getFlag<NamespaceName>(flags.clusterSetupNamespace),
+    } as ClusterRefResetConfigClass;
 
     ctx.isChartInstalled = await this.chartManager.isChartInstalled(
       ctx.config.clusterSetupNamespace,

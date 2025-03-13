@@ -1,17 +1,18 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
-import {SoloError, MissingArgumentError} from '../core/errors.js';
+import {SoloError} from '../core/errors/SoloError.js';
+import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
+import {UserBreak} from '../core/errors/UserBreak.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
 import {prepareChartPath, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
@@ -60,6 +61,8 @@ export class ExplorerCommand extends BaseCommand {
 
     this.profileManager = opts.profileManager;
   }
+
+  public static readonly COMMAND_NAME = 'explorer';
 
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
@@ -178,6 +181,7 @@ export class ExplorerCommand extends BaseCommand {
               flags.mirrorNamespace,
               flags.tlsClusterIssuerType,
               flags.valuesFile,
+              flags.profileFile,
             ]);
 
             await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);
@@ -197,7 +201,7 @@ export class ExplorerCommand extends BaseCommand {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
@@ -381,9 +385,7 @@ export class ExplorerCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('explorer deployment has completed');
     } catch (e) {
-      const message = `Error deploying explorer: ${e.message}`;
-      self.logger.error(message, e);
-      throw new SoloError(message, e);
+      throw new SoloError(`Error deploying explorer: ${e.message}`, e);
     } finally {
       await lease.release();
     }
@@ -415,7 +417,7 @@ export class ExplorerCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 
@@ -441,7 +443,7 @@ export class ExplorerCommand extends BaseCommand {
               throw new SoloError(`namespace ${namespace.name} does not exist`);
             }
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
@@ -499,7 +501,7 @@ export class ExplorerCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'explorer',
+      command: ExplorerCommand.COMMAND_NAME,
       desc: 'Manage Explorer in solo network',
       builder: yargs => {
         return yargs
@@ -518,7 +520,6 @@ export class ExplorerCommand extends BaseCommand {
                   if (!r) throw new Error('Explorer deployment failed, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Explorer deployment failed: ${err.message}`, err);
                 });
             },
@@ -546,7 +547,6 @@ export class ExplorerCommand extends BaseCommand {
                   if (!r) throw new SoloError('Explorer destruction failed, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Explorer destruction failed: ${err.message}`, err);
                 });
             },

@@ -1,7 +1,6 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
-import {it, describe, after, before} from 'mocha';
+// SPDX-License-Identifier: Apache-2.0
+
+import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 import each from 'mocha-each';
 
@@ -10,7 +9,7 @@ import net from 'net';
 import os from 'os';
 import path from 'path';
 import {v4 as uuid4} from 'uuid';
-import {SoloError} from '../../../../src/core/errors.js';
+import {SoloError} from '../../../../src/core/errors/SoloError.js';
 import * as constants from '../../../../src/core/constants.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {type ConfigManager} from '../../../../src/core/config_manager.js';
@@ -29,6 +28,7 @@ import {ServiceName} from '../../../../src/core/kube/resources/service/service_n
 import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
 import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
 import {Argv} from '../../../helpers/argv_wrapper.js';
+import {type Pod} from '../../../../src/core/kube/resources/pod/pod.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -134,17 +134,12 @@ describe('K8', () => {
   }).timeout(defaultTimeout);
 
   it('should be able to check if a path is directory inside a container', async () => {
-    const pods = await k8Factory
+    const pods: Pod[] = await k8Factory
       .default()
       .pods()
       .list(testNamespace, [`app=${podLabelValue}`]);
-    const podName = PodName.of(pods[0].metadata.name);
     expect(
-      await k8Factory
-        .default()
-        .containers()
-        .readByRef(ContainerRef.of(PodRef.of(testNamespace, podName), containerName))
-        .hasDir('/tmp'),
+      await k8Factory.default().containers().readByRef(ContainerRef.of(pods[0].podRef, containerName)).hasDir('/tmp'),
     ).to.be.true;
   }).timeout(defaultTimeout);
 
@@ -239,11 +234,11 @@ describe('K8', () => {
   }).timeout(defaultTimeout);
 
   it('should be able to cat a file inside the container', async () => {
-    const pods = await k8Factory
+    const pods: Pod[] = await k8Factory
       .default()
       .pods()
       .list(testNamespace, [`app=${podLabelValue}`]);
-    const podName = PodName.of(pods[0].metadata.name);
+    const podName: PodName = pods[0].podRef.name;
     const output = await k8Factory
       .default()
       .containers()

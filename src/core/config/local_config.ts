@@ -1,12 +1,12 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
 import {type Deployments, type LocalConfigData} from './local_config_data.js';
-import {MissingArgumentError, SoloError} from '../errors.js';
+import {MissingArgumentError} from '../errors/MissingArgumentError.js';
+import {SoloError} from '../errors/SoloError.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
@@ -63,6 +63,7 @@ export class LocalConfig implements LocalConfigData {
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 
     const allowedKeys = ['userEmailAddress', 'deployments', 'clusterRefs', 'soloVersion'];
+
     if (this.configFileExists()) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const parsedConfig = yaml.parse(fileContent);
@@ -77,6 +78,12 @@ export class LocalConfig implements LocalConfigData {
 
       this.validate();
       this.skipPromptTask = true;
+    } else {
+      // Initialize empty config
+      this.deployments = {};
+      this.clusterRefs = {};
+      this.soloVersion = helpers.getSoloVersion();
+      this.userEmailAddress = 'john@doe.com';
     }
   }
 

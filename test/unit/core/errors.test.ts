@@ -1,16 +1,13 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {
-  SoloError,
-  ResourceNotFoundError,
-  MissingArgumentError,
-  IllegalArgumentError,
-  DataValidationError,
-} from '../../../src/core/errors.js';
+import {SoloError} from '../../../src/core/errors/SoloError.js';
+import {ResourceNotFoundError} from '../../../src/core/errors/ResourceNotFoundError.js';
+import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
+import {IllegalArgumentError} from '../../../src/core/errors/IllegalArgumentError.js';
+import {DataValidationError} from '../../../src/core/errors/DataValidationError.js';
 
 describe('Errors', () => {
   const message = 'errorMessage';

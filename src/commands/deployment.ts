@@ -1,8 +1,7 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Listr} from 'listr2';
-import {SoloError} from '../core/errors.js';
+import {SoloError} from '../core/errors/SoloError.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -15,7 +14,7 @@ import {type NamespaceName} from '../core/kube/resources/namespace/namespace_nam
 import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
-import {type AnyArgv, type AnyYargs, type NodeAliases} from '../types/aliases.js';
+import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
 import {Templates} from '../core/templates.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
@@ -54,6 +53,8 @@ export class DeploymentCommand extends BaseCommand {
     this.tasks = container.resolve(ClusterCommandTasks);
   }
 
+  public static readonly COMMAND_NAME = 'deployment';
+
   private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment];
 
   private static ADD_CLUSTER_FLAGS_LIST = [
@@ -71,7 +72,7 @@ export class DeploymentCommand extends BaseCommand {
   /**
    * Create new deployment inside the local config
    */
-  public async create(argv: AnyArgv): Promise<boolean> {
+  public async create(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     interface Config {
@@ -139,7 +140,7 @@ export class DeploymentCommand extends BaseCommand {
   /**
    * Add new cluster for specified deployment, and create or edit the remote config
    */
-  public async addCluster(argv: AnyArgv): Promise<boolean> {
+  public async addCluster(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     const tasks = new Listr<DeploymentAddClusterContext>(
@@ -167,7 +168,7 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
-  private async list(argv: AnyArgv): Promise<boolean> {
+  private async list(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     interface Config {
@@ -185,9 +186,7 @@ export class DeploymentCommand extends BaseCommand {
           task: async (ctx, task) => {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
-
             await self.configManager.executePrompt(task, [flags.clusterRef]);
-
             ctx.config = {
               clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
             } as Config;
@@ -236,7 +235,7 @@ export class DeploymentCommand extends BaseCommand {
   public getCommandDefinition() {
     const self = this;
     return {
-      command: 'deployment',
+      command: DeploymentCommand.COMMAND_NAME,
       desc: 'Manage solo network deployment',
       builder: (yargs: AnyYargs) => {
         return yargs
@@ -244,7 +243,7 @@ export class DeploymentCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates solo deployment',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
 
@@ -256,7 +255,6 @@ export class DeploymentCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error creating deployment: ${err.message}`, err);
                 });
             },
@@ -277,7 +275,6 @@ export class DeploymentCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error listing deployments: ${err.message}`, err);
                 });
             },
@@ -286,7 +283,7 @@ export class DeploymentCommand extends BaseCommand {
             command: 'add-cluster',
             desc: 'Adds cluster to solo deployments',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment add-cluster' ===");
               self.logger.info(argv);
 
@@ -312,7 +309,7 @@ export class DeploymentCommand extends BaseCommand {
   /**
    * Initializes and populates the config and context for 'deployment add-cluster'
    */
-  public initializeClusterAddConfig(argv: any): SoloListrTask<DeploymentAddClusterContext> {
+  public initializeClusterAddConfig(argv: ArgvStruct): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'Initialize',
       task: async (ctx, task) => {
@@ -500,7 +497,7 @@ export class DeploymentCommand extends BaseCommand {
    * - if remote config not found, create new remote config for the deployment.
    * - if remote config is found, add the new data for the deployment.
    */
-  public createOrEditRemoteConfigForNewDeployment(argv: any): SoloListrTask<DeploymentAddClusterContext> {
+  public createOrEditRemoteConfigForNewDeployment(argv: ArgvStruct): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'create remote config for deployment',
       task: async (ctx, task) => {

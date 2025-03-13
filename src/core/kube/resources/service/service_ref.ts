@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type PodName} from '../pod/pod_name.js';
 import {type NamespaceName} from '../namespace/namespace_name.js';
 import {ResourceRef} from '../resource_ref.js';

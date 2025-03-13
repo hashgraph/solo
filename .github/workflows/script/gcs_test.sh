@@ -87,15 +87,15 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}"
 task solo-test -- init
 task solo-test -- cluster-ref setup \
   -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
-task solo-test -- node keys --gossip-keys --tls-keys -i node1
-
 task solo-test -- cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
 
 task solo-test -- deployment create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
 
 task solo-test -- deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 1
 
-task solo-test -- network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}" \
+task solo-test -- node keys --gossip-keys --tls-keys -i node1 --deployment "${SOLO_DEPLOYMENT}"
+
+task solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" \
   --storage-type "${storageType}" \
   "${STORAGE_OPTIONS[@]}" \
   --backup-bucket "${streamBackupBucket}" \

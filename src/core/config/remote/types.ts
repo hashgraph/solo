@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type NodeAliases} from '../../../types/aliases.js';
 import {type ComponentType, type ConsensusNodeStates, type DeploymentStates} from './enumerations.js';
 

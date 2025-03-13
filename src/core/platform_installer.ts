@@ -1,10 +1,11 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as fs from 'fs';
 import {Listr} from 'listr2';
 import * as path from 'path';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
+import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
+import {SoloError} from './errors/SoloError.js';
 import * as constants from './constants.js';
 import {type ConfigManager} from './config_manager.js';
 import {type K8Factory} from './kube/k8_factory.js';
@@ -108,7 +109,6 @@ export class PlatformInstaller {
       return true;
     } catch (e) {
       const message = `failed to extract platform code in this pod '${podRef}' while using the '${context}' context: ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }
@@ -202,7 +202,6 @@ export class PlatformInstaller {
       }
     } catch (e: Error | any) {
       const message = `failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(consensusNode.name as NodeAlias)}': ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }
@@ -242,7 +241,6 @@ export class PlatformInstaller {
         }
       }
     } catch (e: Error | any) {
-      this.logger.error('failed to copy TLS keys to secret', e);
       throw new SoloError('failed to copy TLS keys to secret', e);
     }
   }

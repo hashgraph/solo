@@ -1,11 +1,12 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as x509 from '@peculiar/x509';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {SoloError} from './errors/SoloError.js';
+import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
 import * as constants from './constants.js';
 import {type SoloLogger} from './logging.js';
 import {Templates} from './templates.js';

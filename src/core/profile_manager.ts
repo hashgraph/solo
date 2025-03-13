@@ -1,9 +1,10 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import fs from 'fs';
 import path from 'path';
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {SoloError} from './errors/SoloError.js';
+import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
 import * as yaml from 'yaml';
 import dot from 'dot-object';
 import * as semver from 'semver';

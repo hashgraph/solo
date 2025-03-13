@@ -1,14 +1,55 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ExtendedNetServer} from '../../../../types/index.js';
 import {type PodRef} from './pod_ref.js';
+import {type ContainerName} from '../container/container_name.js';
+import {type PodCondition} from './pod_condition.js';
 
 export interface Pod {
   /**
    * The pod reference
    */
-  podRef: PodRef;
+  readonly podRef: PodRef;
+
+  /**
+   * The labels of the pod
+   */
+  readonly labels?: Record<string, string>;
+
+  /**
+   * The command to run for the startup probe
+   */
+  readonly startupProbeCommand?: string[];
+
+  /**
+   * The container name
+   */
+  readonly containerName?: ContainerName;
+
+  /**
+   * The container image
+   */
+  readonly containerImage?: string;
+
+  /**
+   * The container command
+   */
+  readonly containerCommand?: string[];
+
+  /**
+   * The conditions of the pod
+   */
+  readonly conditions?: PodCondition[];
+
+  /**
+   * The pod IP
+   */
+  readonly podIp?: string;
+
+  /**
+   * The deletion timestamp of the pod
+   */
+  readonly deletionTimestamp?: Date;
 
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.

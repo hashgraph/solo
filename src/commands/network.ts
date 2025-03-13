@@ -1,11 +1,13 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
+import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
+import {SoloError} from '../core/errors/SoloError.js';
+import {UserBreak} from '../core/errors/UserBreak.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -27,7 +29,7 @@ import {type PlatformInstaller} from '../core/platform_installer.js';
 import {type ProfileManager} from '../core/profile_manager.js';
 import {type CertificateManager} from '../core/certificate_manager.js';
 import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
@@ -42,9 +44,9 @@ import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js'
 import {Base64} from 'js-base64';
 import {SecretType} from '../core/kube/resources/secret/secret_type.js';
 import {Duration} from '../core/time/duration.js';
-import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
-import {PodName} from '../core/kube/resources/pod/pod_name.js';
+import {type PodRef} from '../core/kube/resources/pod/pod_ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
+import {type Pod} from '../core/kube/resources/pod/pod.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -161,6 +163,7 @@ export class NetworkCommand extends BaseCommand {
       flags.releaseTag,
       flags.settingTxt,
       flags.networkDeploymentValuesFile,
+      flags.nodeAliasesUnparsed,
       flags.grpcTlsCertificatePath,
       flags.grpcWebTlsCertificatePath,
       flags.grpcTlsKeyPath,
@@ -182,6 +185,8 @@ export class NetworkCommand extends BaseCommand {
       flags.googleCredential,
     ];
   }
+
+  public static readonly COMMAND_NAME = 'network';
 
   private waitForNetworkPods() {
     const self = this;
@@ -325,9 +330,7 @@ export class NetworkCommand extends BaseCommand {
 
       await this.prepareBackupUploaderSecrets(config);
     } catch (e: Error | any) {
-      const errorMessage = 'failed to create Kubernetes storage secret ';
-      this.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError('Failed to create Kubernetes storage secret', e);
     }
   }
 
@@ -803,7 +806,7 @@ export class NetworkCommand extends BaseCommand {
           title: 'Initialize',
           task: async (ctx, task) => {
             ctx.config = await self.prepareConfig(task, argv, true);
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -992,13 +995,13 @@ export class NetworkCommand extends BaseCommand {
                   showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
 
                   const context = config.clusterRefs[clusterRef];
-                  const pods = await this.k8Factory
+                  const pods: Pod[] = await this.k8Factory
                     .getK8(context)
                     .pods()
                     .list(ctx.config.namespace, ['solo.hedera.com/type=network-node']);
 
                   for (const pod of pods) {
-                    const podRef = PodRef.of(ctx.config.namespace, PodName.of(pod.metadata.name));
+                    const podRef: PodRef = pod.podRef;
                     await this.k8Factory.getK8(context).pods().readByRef(podRef).killPod();
                   }
                 },
@@ -1137,7 +1140,7 @@ export class NetworkCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 
@@ -1153,7 +1156,7 @@ export class NetworkCommand extends BaseCommand {
               contexts: self.remoteConfigManager.getContexts(),
             };
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -1206,60 +1209,6 @@ export class NetworkCommand extends BaseCommand {
     return networkDestroySuccess;
   }
 
-  /** Run helm upgrade to refresh network components with new settings */
-  async refresh(argv: any) {
-    const self = this;
-    const lease = await self.leaseManager.create();
-
-    interface Context {
-      config: NetworkDeployConfigClass;
-    }
-
-    const tasks = new Listr<Context>(
-      [
-        {
-          title: 'Initialize',
-          task: async (ctx, task) => {
-            ctx.config = await self.prepareConfig(task, argv);
-            return ListrLease.newAcquireLeaseTask(lease, task);
-          },
-        },
-        {
-          title: `Upgrade chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
-          task: async ctx => {
-            const config = ctx.config;
-            for (const clusterRef of Object.keys(config.valuesArgMap)) {
-              await this.chartManager.upgrade(
-                config.namespace,
-                constants.SOLO_DEPLOYMENT_CHART,
-                ctx.config.chartPath,
-                config.soloChartVersion,
-                config.valuesArgMap[clusterRef],
-                config.clusterRefs[clusterRef],
-              );
-              showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
-            }
-          },
-        },
-        self.waitForNetworkPods(),
-      ],
-      {
-        concurrent: false,
-        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
-      },
-    );
-
-    try {
-      await tasks.run();
-    } catch (e: Error | any) {
-      throw new SoloError(`Error upgrading chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
-    } finally {
-      await lease.release();
-    }
-
-    return true;
-  }
-
   getCommandDefinition(): {
     command: string;
     desc: string;
@@ -1267,7 +1216,7 @@ export class NetworkCommand extends BaseCommand {
   } {
     const self = this;
     return {
-      command: 'network',
+      command: NetworkCommand.COMMAND_NAME,
       desc: 'Manage solo network deployment',
       builder: (yargs: any) => {
         return yargs
@@ -1287,7 +1236,6 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying network: ${err.message}`, err);
                 });
             },
@@ -1317,29 +1265,7 @@ export class NetworkCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error destroying network, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error destroying network: ${err.message}`, err);
-                });
-            },
-          })
-          .command({
-            command: 'refresh',
-            desc: 'Refresh solo network deployment',
-            builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
-            handler: async (argv: any) => {
-              self.logger.info("==== Running 'chart upgrade' ===");
-              self.logger.info(argv);
-
-              await self
-                .refresh(argv)
-                .then(r => {
-                  self.logger.info('==== Finished running `chart upgrade`====');
-
-                  if (!r) throw new SoloError('Error refreshing network, expected return value to be true');
-                })
-                .catch(err => {
-                  self.logger.showUserError(err);
-                  throw new SoloError(`Error refreshing network: ${err.message}`, err);
                 });
             },
           })

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {AccountId, PrivateKey, PublicKey} from '@hashgraph/sdk';
 import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
 import * as constants from '../constants.js';
@@ -12,7 +11,7 @@ import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_ent
 import {Templates} from '../templates.js';
 import path from 'path';
 import {type NetworkNodeServices} from '../network_node_services.js';
-import {SoloError} from '../errors.js';
+import {SoloError} from '../errors/SoloError.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account_manager.js';
 import {type ConsensusNode} from '../model/consensus_node.js';

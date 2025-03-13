@@ -1,7 +1,6 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
-import {SoloError} from '../../errors.js';
+// SPDX-License-Identifier: Apache-2.0
+
+import {SoloError} from '../../errors/SoloError.js';
 
 const RFC_1123_POSTFIX = (prefix: string) => `${prefix} is invalid, must be a valid RFC-1123 DNS label.  \` +
     "A DNS 1123 label must consist of lower case alphanumeric characters, '-' " +

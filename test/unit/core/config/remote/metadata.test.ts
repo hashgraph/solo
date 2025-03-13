@@ -1,10 +1,9 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 import {Migration} from '../../../../../src/core/config/remote/migration.js';
-import {SoloError} from '../../../../../src/core/errors.js';
+import {SoloError} from '../../../../../src/core/errors/SoloError.js';
 import {RemoteConfigMetadata} from '../../../../../src/core/config/remote/metadata.js';
 import {
   type EmailAddress,

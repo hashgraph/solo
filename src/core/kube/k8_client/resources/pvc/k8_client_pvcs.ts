@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Pvcs} from '../../../resources/pvc/pvcs.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
 import {StatusCodes} from 'http-status-codes';
@@ -13,7 +12,7 @@ import {
 } from '@kubernetes/client-node';
 import {Duration} from '../../../../time/duration.js';
 import {type Pvc} from '../../../resources/pvc/pvc.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {KubeApiResponse} from '../../../kube_api_response.js';
 import {ResourceOperation} from '../../../resources/resource_operation.js';
 import {ResourceType} from '../../../resources/resource_type.js';

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {describe} from 'mocha';
 
 import {Flags} from '../../../src/commands/flags.js';
@@ -295,7 +294,7 @@ function soloNetworkDeployArgv(deployment: string, namespace: NamespaceName): an
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
   argv.push(optionFromFlag(Flags.quiet));
-  // TOD add solo chart directory
+  // TODO add solo chart directory
   // TODO remove once the remote config manager is updated to pull the namespace from the local config
   argv.push(optionFromFlag(Flags.namespace));
   argv.push(namespace.name);

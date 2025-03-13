@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type CoreV1Api, V1ConfigMap, V1ObjectMeta} from '@kubernetes/client-node';
 import {type ConfigMaps} from '../../../resources/config_map/config_maps.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
@@ -14,9 +13,11 @@ import {
 import {ResourceType} from '../../../resources/resource_type.js';
 import {ResourceOperation} from '../../../resources/resource_operation.js';
 import {KubeApiResponse} from '../../../kube_api_response.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
+import {type ConfigMap} from '../../../resources/config_map/config_map.js';
+import {K8ClientConfigMap} from './k8_client_config_map.js';
 
 export class K8ClientConfigMaps implements ConfigMaps {
   private readonly logger: SoloLogger;
@@ -52,10 +53,10 @@ export class K8ClientConfigMaps implements ConfigMaps {
     }
   }
 
-  public async read(namespace: NamespaceName, name: string): Promise<V1ConfigMap> {
+  public async read(namespace: NamespaceName, name: string): Promise<ConfigMap> {
     const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, namespace.name).catch(e => e);
     KubeApiResponse.check(response, ResourceOperation.READ, ResourceType.CONFIG_MAP, namespace, name);
-    return body as V1ConfigMap;
+    return K8ClientConfigMap.fromV1ConfigMap(body);
   }
 
   public async replace(
@@ -69,7 +70,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
 
   public async exists(namespace: NamespaceName, name: string): Promise<boolean> {
     try {
-      const cm = await this.read(namespace, name);
+      const cm: ConfigMap = await this.read(namespace, name);
       return !!cm;
     } catch (e) {
       if (e instanceof ResourceNotFoundError) {
@@ -88,11 +89,11 @@ export class K8ClientConfigMaps implements ConfigMaps {
     forceReplace?: boolean,
     forceCreate?: boolean,
   ): Promise<boolean> {
-    const replace = await this.shouldReplace(namespace, name, forceReplace, forceCreate);
-    const configMap = new V1ConfigMap();
+    const replace: boolean = await this.shouldReplace(namespace, name, forceReplace, forceCreate);
+    const configMap: V1ConfigMap = new V1ConfigMap();
     configMap.data = data;
 
-    const metadata = new V1ObjectMeta();
+    const metadata: V1ObjectMeta = new V1ObjectMeta();
     metadata.name = name;
     metadata.namespace = namespace.name;
     metadata.labels = labels;
@@ -128,7 +129,7 @@ export class K8ClientConfigMaps implements ConfigMaps {
     return await this.exists(namespace, name);
   }
 
-  public async list(namespace: NamespaceName, labels: string[]): Promise<V1ConfigMap[]> {
+  public async list(namespace: NamespaceName, labels: string[]): Promise<ConfigMap[]> {
     const labelsSelector: string = labels ? labels.join(',') : undefined;
 
     let results: {response: any; body: any};
@@ -146,10 +147,12 @@ export class K8ClientConfigMaps implements ConfigMaps {
     }
 
     KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, namespace, '');
-    return results?.body?.items || [];
+    return (
+      results?.body?.items?.map((v1ConfigMap: V1ConfigMap) => K8ClientConfigMap.fromV1ConfigMap(v1ConfigMap)) || []
+    );
   }
 
-  public async listForAllNamespaces(labels: string[]): Promise<V1ConfigMap[]> {
+  public async listForAllNamespaces(labels: string[]): Promise<ConfigMap[]> {
     const labelsSelector: string = labels ? labels.join(',') : undefined;
 
     let results: {response: any; body: any};
@@ -160,10 +163,12 @@ export class K8ClientConfigMaps implements ConfigMaps {
     }
 
     KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, undefined, '');
-    return results?.body?.items || [];
+    return (
+      results?.body?.items?.map((v1ConfigMap: V1ConfigMap) => K8ClientConfigMap.fromV1ConfigMap(v1ConfigMap)) || []
+    );
   }
 
-  public async update(namespace: NamespaceName, name: string, data: Record<string, string>) {
+  public async update(namespace: NamespaceName, name: string, data: Record<string, string>): Promise<void> {
     if (!(await this.exists(namespace, name))) {
       throw new ResourceNotFoundError(ResourceOperation.READ, ResourceType.CONFIG_MAP, namespace, name);
     }

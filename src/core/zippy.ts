@@ -1,7 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+// SPDX-License-Identifier: Apache-2.0
+
+import {SoloError} from './errors/SoloError.js';
+import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 import * as tar from 'tar';

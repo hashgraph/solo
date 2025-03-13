@@ -1,9 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type ToObject} from '../../../types/index.js';
 import {type ClusterRef, type DeploymentName, type ICluster, type NamespaceNameAsString} from './types.js';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
 
 export class Cluster implements ICluster, ToObject<ICluster> {
   public constructor(

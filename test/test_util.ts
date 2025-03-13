@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import 'chai-as-promised';
 
 import {expect} from 'chai';
@@ -21,17 +20,14 @@ import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKe
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
-import * as NodeCommandConfigs from '../src/commands/node/configs.js';
-
 import {type SoloLogger} from '../src/core/logging.js';
-import {type BaseCommand} from '../src/commands/base.js';
-import {type NodeAlias, type NodeAliases} from '../src/types/aliases.js';
+import {type NodeAlias} from '../src/types/aliases.js';
 import {type NetworkNodeServices} from '../src/core/network_node_services.js';
 import {type K8Factory} from '../src/core/kube/k8_factory.js';
 import {type AccountManager} from '../src/core/account_manager.js';
 import {type PlatformInstaller} from '../src/core/platform_installer.js';
 import {type ProfileManager} from '../src/core/profile_manager.js';
-import {type LeaseManager} from '../src/core/lease/lease_manager.js';
+import {type LockManager} from '../src/core/lock/lock_manager.js';
 import {type CertificateManager} from '../src/core/certificate_manager.js';
 import {type LocalConfig} from '../src/core/config/local_config.js';
 import {type RemoteConfigManager} from '../src/core/config/remote/remote_config_manager.js';
@@ -53,14 +49,8 @@ import {type NetworkNodes} from '../src/core/network_nodes.js';
 import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv_wrapper.js';
-import {
-  type ClusterRef,
-  type ClusterRefs,
-  type DeploymentName,
-  type NamespaceNameAsString,
-} from '../src/core/config/remote/types.js';
-import {type ConsensusNode} from '../src/core/model/consensus_node.js';
-import sinon from 'sinon';
+import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
+import {CommandInvoker} from './helpers/command_invoker.js';
 
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
@@ -105,10 +95,11 @@ interface TestOpts {
   accountManager: AccountManager;
   cacheDir: string;
   profileManager: ProfileManager;
-  leaseManager: LeaseManager;
+  leaseManager: LockManager;
   certificateManager: CertificateManager;
   remoteConfigManager: RemoteConfigManager;
   localConfig: LocalConfig;
+  commandInvoker: CommandInvoker;
 }
 
 interface BootstrapResponse {
@@ -163,11 +154,12 @@ export function bootstrapTestVariables(
   const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
   const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
   const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
-  const leaseManager: LeaseManager = container.resolve(InjectTokens.LeaseManager);
+  const leaseManager: LockManager = container.resolve(InjectTokens.LockManager);
   const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
   const testLogger: SoloLogger = getTestLogger();
+  const commandInvoker = new CommandInvoker({configManager, remoteConfigManager, k8Factory, logger: testLogger});
 
   const opts: TestOpts = {
     logger: testLogger,
@@ -186,14 +178,8 @@ export function bootstrapTestVariables(
     certificateManager,
     localConfig,
     remoteConfigManager,
+    commandInvoker,
   };
-
-  const initCmd: InitCommand = initCmdArg || new InitCommand(opts);
-  const clusterCmd: ClusterCommand = clusterCmdArg || new ClusterCommand(opts);
-  const networkCmd: NetworkCommand = networkCmdArg || new NetworkCommand(opts);
-  const nodeCmd: NodeCommand = nodeCmdArg || new NodeCommand(opts);
-  const accountCmd: AccountCommand = accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS);
-  const deploymentCmd: DeploymentCommand = deploymentCmdArg || new DeploymentCommand(opts);
 
   return {
     namespace,
@@ -203,12 +189,12 @@ export function bootstrapTestVariables(
       accountManager,
     },
     cmd: {
-      initCmd,
-      clusterCmd,
-      networkCmd,
-      nodeCmd,
-      accountCmd,
-      deploymentCmd,
+      initCmd: initCmdArg || new InitCommand(opts),
+      clusterCmd: clusterCmdArg || new ClusterCommand(opts),
+      networkCmd: networkCmdArg || new NetworkCommand(opts),
+      nodeCmd: nodeCmdArg || new NodeCommand(opts),
+      accountCmd: accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS),
+      deploymentCmd: deploymentCmdArg || new DeploymentCommand(opts),
     },
   };
 }
@@ -227,7 +213,7 @@ export function e2eTestSuite(
     startNodes,
   }: Cmd & {startNodes?: boolean},
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
-) {
+): void {
   if (typeof startNodes !== 'boolean') startNodes = true;
 
   const bootstrapResp = bootstrapTestVariables(testName, argv, {
@@ -242,44 +228,8 @@ export function e2eTestSuite(
   const {
     namespace,
     cmd: {initCmd, clusterCmd, networkCmd, nodeCmd, deploymentCmd},
-    opts: {k8Factory, chartManager, remoteConfigManager},
+    opts: {k8Factory, chartManager, commandInvoker},
   } = bootstrapResp;
-
-  const nodeAliases = argv.getArg<string>(flags.nodeAliasesUnparsed).split(',') as NodeAliases;
-  const clusterRef = argv.getArg<ClusterRef>(flags.clusterRef);
-  const context = k8Factory.default().contexts().readCurrent();
-
-  const consensusNodes = nodeAliases.map(nodeAlias => {
-    return {
-      name: nodeAlias,
-      namespace: namespace.name,
-      nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
-      cluster: clusterRef,
-      context: context,
-      dnsBaseDomain: 'cluster.local',
-      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
-      fullyQualifiedDomainName: Templates.renderConsensusNodeFullyQualifiedDomainName(
-        nodeAlias,
-        Templates.nodeIdFromNodeAlias(nodeAlias),
-        namespace.name,
-        clusterRef,
-        'cluster.local',
-        'network-{nodeAlias}-svc.{namespace}.svc',
-      ),
-    } as ConsensusNode;
-  });
-
-  const contexts = [context];
-  const clusterRefs = {[clusterRef]: context} as ClusterRefs;
-
-  nodeCmd.handlers.consensusNodes = consensusNodes;
-  nodeCmd.handlers.contexts = contexts;
-  // @ts-expect-error - TS2341: to mock
-  nodeCmd.handlers.init = sinon.stub().returns();
-
-  remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
-  remoteConfigManager.getContexts = sinon.stub().returns(contexts);
-  remoteConfigManager.getClusterRefs = sinon.stub().returns(clusterRefs);
 
   const testLogger: SoloLogger = getTestLogger();
 
@@ -293,6 +243,8 @@ export function e2eTestSuite(
         );
       });
 
+      // TODO: add rest of prerequisites for setup
+
       after(async function () {
         this.timeout(Duration.ofMinutes(5).toMillis());
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
@@ -302,7 +254,11 @@ export function e2eTestSuite(
       });
 
       it('should cleanup previous deployment', async () => {
-        await initCmd.init(argv.build());
+        await commandInvoker.invoke({
+          argv: argv,
+          command: InitCommand.COMMAND_NAME,
+          callback: async argv => initCmd.init(argv),
+        });
 
         if (await k8Factory.default().namespaces().has(namespace)) {
           await k8Factory.default().namespaces().delete(namespace);
@@ -316,79 +272,87 @@ export function e2eTestSuite(
         if (
           !(await chartManager.isChartInstalled(constants.SOLO_SETUP_NAMESPACE, constants.SOLO_CLUSTER_SETUP_CHART))
         ) {
-          await clusterCmd.handlers.setup(argv.build());
+          await commandInvoker.invoke({
+            argv: argv,
+            command: ClusterCommand.COMMAND_NAME,
+            subcommand: 'setup',
+            callback: async argv => clusterCmd.handlers.setup(argv),
+          });
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
+      it("should success with 'cluster-ref connect'", async () => {
+        await commandInvoker.invoke({
+          argv: argv,
+          command: ClusterCommand.COMMAND_NAME,
+          subcommand: 'connect',
+          callback: async argv => clusterCmd.handlers.connect(argv),
+        });
+      });
+
       it('should succeed with deployment create', async () => {
-        expect(await deploymentCmd.create(argv.build())).to.be.true;
+        await commandInvoker.invoke({
+          argv: argv,
+          command: DeploymentCommand.COMMAND_NAME,
+          subcommand: 'create',
+          callback: async argv => deploymentCmd.create(argv),
+        });
+      });
+
+      it("should succeed with 'deployment add-cluster'", async () => {
+        await commandInvoker.invoke({
+          argv: argv,
+          command: DeploymentCommand.COMMAND_NAME,
+          subcommand: 'add-cluster',
+          callback: async argv => deploymentCmd.addCluster(argv),
+        });
       });
 
       it('generate key files', async () => {
-        expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
-        expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.KEYS_CONFIGS_NAME)).to.deep.equal([
-          flags.devMode.constName,
-          flags.quiet.constName,
-          flags.namespace.constName,
-          'consensusNodes',
-          'contexts',
-        ]);
+        await commandInvoker.invoke({
+          argv: argv,
+          command: NodeCommand.COMMAND_NAME,
+          subcommand: 'keys',
+          callback: async argv => nodeCmd.handlers.keys(argv),
+        });
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('should succeed with network deploy', async () => {
-        await networkCmd.deploy(argv.build());
-
-        expect(networkCmd.configManager.getUnusedConfigs(NetworkCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-          flags.apiPermissionProperties.constName,
-          flags.applicationEnv.constName,
-          flags.applicationProperties.constName,
-          flags.bootstrapProperties.constName,
-          flags.chainId.constName,
-          flags.log4j2Xml.constName,
-          flags.deployment.constName,
-          flags.profileFile.constName,
-          flags.profileName.constName,
-          flags.quiet.constName,
-          flags.settingTxt.constName,
-          flags.grpcTlsKeyPath.constName,
-          flags.grpcWebTlsKeyPath.constName,
-          flags.gcsWriteAccessKey.constName,
-          flags.gcsWriteSecrets.constName,
-          flags.gcsEndpoint.constName,
-          flags.awsWriteAccessKey.constName,
-          flags.awsWriteSecrets.constName,
-          flags.awsEndpoint.constName,
-        ]);
+        await commandInvoker.invoke({
+          argv: argv,
+          command: NetworkCommand.COMMAND_NAME,
+          subcommand: 'deploy',
+          callback: async argv => networkCmd.deploy(argv),
+        });
       }).timeout(Duration.ofMinutes(5).toMillis());
 
       if (startNodes) {
         it('should succeed with node setup command', async () => {
           // cache this, because `solo node setup.finalize()` will reset it to false
-          try {
-            expect(await nodeCmd.handlers.setup(argv.build())).to.be.true;
-            expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.SETUP_CONFIGS_NAME)).to.deep.equal([
-              flags.quiet.constName,
-              flags.devMode.constName,
-              flags.adminPublicKeys.constName,
-              'contexts',
-            ]);
-          } catch (e) {
-            nodeCmd.logger.showUserError(e);
-            expect.fail();
-          }
+          await commandInvoker.invoke({
+            argv: argv,
+            command: NodeCommand.COMMAND_NAME,
+            subcommand: 'setup',
+            callback: async argv => nodeCmd.handlers.setup(argv),
+          });
         }).timeout(Duration.ofMinutes(4).toMillis());
 
         it('should succeed with node start command', async () => {
-          try {
-            expect(await nodeCmd.handlers.start(argv.build())).to.be.true;
-          } catch (e) {
-            nodeCmd.logger.showUserError(e);
-            expect.fail();
-          }
+          await commandInvoker.invoke({
+            argv: argv,
+            command: NodeCommand.COMMAND_NAME,
+            subcommand: 'start',
+            callback: async argv => nodeCmd.handlers.start(argv),
+          });
         }).timeout(Duration.ofMinutes(30).toMillis());
 
         it('node log command should work', async () => {
-          expect(await nodeCmd.handlers.logs(argv.build())).to.be.true;
+          await commandInvoker.invoke({
+            argv: argv,
+            command: NodeCommand.COMMAND_NAME,
+            subcommand: 'logs',
+            callback: async argv => nodeCmd.handlers.logs(argv),
+          });
 
           const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log');
           const soloLog = fs.readFileSync(soloLogPath, 'utf8');
@@ -406,10 +370,11 @@ export function e2eTestSuite(
 
 export function balanceQueryShouldSucceed(
   accountManager: AccountManager,
-  cmd: BaseCommand,
   namespace: NamespaceName,
+  remoteConfigManager: RemoteConfigManager,
+  logger: SoloLogger,
   skipNodeAlias?: NodeAlias,
-) {
+): void {
   it('Balance query should succeed', async () => {
     try {
       const argv = Argv.getDefaultArgv(namespace);
@@ -418,7 +383,7 @@ export function balanceQueryShouldSucceed(
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        cmd.getRemoteConfigManager().getClusterRefs(),
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -429,7 +394,7 @@ export function balanceQueryShouldSucceed(
 
       expect(balance.hbars).not.be.null;
     } catch (e) {
-      cmd.logger.showUserError(e);
+      logger.showUserError(e);
       expect.fail();
     }
     await sleep(Duration.ofSeconds(1));
@@ -438,17 +403,18 @@ export function balanceQueryShouldSucceed(
 
 export function accountCreationShouldSucceed(
   accountManager: AccountManager,
-  nodeCmd: BaseCommand,
   namespace: NamespaceName,
+  remoteConfigManager: RemoteConfigManager,
+  logger: SoloLogger,
   skipNodeAlias?: NodeAlias,
-) {
+): void {
   it('Account creation should succeed', async () => {
     try {
       const argv = Argv.getDefaultArgv(namespace);
       await accountManager.refreshNodeClient(
         namespace,
         skipNodeAlias,
-        nodeCmd.getRemoteConfigManager().getClusterRefs(),
+        remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -472,7 +438,7 @@ export function accountCreationShouldSucceed(
       expect(accountInfo.accountId).not.to.be.null;
       expect(accountInfo.balance).to.equal(amount);
     } catch (e) {
-      nodeCmd.logger.showUserError(e);
+      logger.showUserError(e);
       expect.fail();
     }
   }).timeout(Duration.ofMinutes(2).toMillis());
@@ -524,7 +490,7 @@ async function addKeyHashToMap(
   uniqueNodeDestDir: string,
   keyHashMap: Map<string, string>,
   privateKeyFileName: string,
-) {
+): Promise<void> {
   await k8Factory
     .default()
     .containers()

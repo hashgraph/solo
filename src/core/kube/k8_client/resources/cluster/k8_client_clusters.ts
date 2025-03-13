@@ -1,9 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Clusters} from '../../../resources/cluster/clusters.js';
 import {type KubeConfig} from '@kubernetes/client-node';
-import {IllegalArgumentError} from '../../../../errors.js';
+import {IllegalArgumentError} from '../../../../errors/IllegalArgumentError.js';
 
 export class K8ClientClusters implements Clusters {
   public constructor(private readonly kubeConfig: KubeConfig) {

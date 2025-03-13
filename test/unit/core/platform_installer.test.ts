@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
@@ -9,7 +8,8 @@ import * as path from 'path';
 import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
 import {type PlatformInstaller} from '../../../src/core/platform_installer.js';
-import {IllegalArgumentError, MissingArgumentError} from '../../../src/core/errors.js';
+import {IllegalArgumentError} from '../../../src/core/errors/IllegalArgumentError.js';
+import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {container} from 'tsyringe-neo';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';

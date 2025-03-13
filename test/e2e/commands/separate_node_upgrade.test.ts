@@ -1,25 +1,24 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {after, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
-import {UPGRADE_CONFIGS_NAME} from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
+import {type PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
-import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {AccountCommand} from '../../../src/commands/account.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
+import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 
 const namespace = NamespaceName.of('node-upgrade');
 const argv = Argv.getDefaultArgv(namespace);
@@ -27,7 +26,6 @@ argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.persistentVolumeClaims, true);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ? process.env.SOLO_CHARTS_DIR : undefined);
 argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.namespace, namespace.name);
 
@@ -36,11 +34,12 @@ const zipFile = 'upgrade.zip';
 const TEST_VERSION_STRING = '0.100.0';
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
-  describe('Node upgrade', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const k8Factory = bootstrapResp.opts.k8Factory;
+  const {
+    opts: {k8Factory, logger, commandInvoker},
+    cmd: {nodeCmd, accountCmd},
+  } = bootstrapResp;
 
+  describe('Node upgrade', async () => {
     after(async function () {
       this.timeout(Duration.ofMinutes(10).toMillis());
 
@@ -49,8 +48,12 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     });
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv.build());
-      expect(status).to.be.ok;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'init',
+        callback: async argv => accountCmd.init(argv),
+      });
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should succeed with separate upgrade command', async () => {
@@ -59,7 +62,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       fs.writeFileSync(`${tmpDir}/version.txt`, TEST_VERSION_STRING);
 
       // create upgrade.zip file from tmp directory using zippy.ts
-      const zipper = new Zippy(nodeCmd.logger);
+      const zipper = new Zippy(logger);
       await zipper.zip(tmpDir, zipFile);
 
       const tempDir = 'contextDir';
@@ -71,25 +74,33 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       const argvExecute = Argv.getDefaultArgv(namespace);
       argvExecute.setArg(flags.inputDir, tempDir);
 
-      await nodeCmd.handlers.upgradePrepare(argvPrepare.build());
-      await nodeCmd.handlers.upgradeSubmitTransactions(argvExecute.build());
-      await nodeCmd.handlers.upgradeExecute(argvExecute.build());
+      await commandInvoker.invoke({
+        argv: argvPrepare,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'upgrade-prepare',
+        callback: async argv => nodeCmd.handlers.upgradePrepare(argv),
+      });
 
-      expect(nodeCmd.configManager.getUnusedConfigs(UPGRADE_CONFIGS_NAME)).to.deep.equal([
-        flags.devMode.constName,
-        flags.quiet.constName,
-        flags.localBuildPath.constName,
-        flags.force.constName,
-        'nodeClient',
-      ]);
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'upgrade-submit-transactions',
+        callback: async argv => nodeCmd.handlers.upgradeSubmitTransactions(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'upgrade-execute',
+        callback: async argv => nodeCmd.handlers.upgradeExecute(argv),
+      });
     }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('network nodes version file was upgraded', async () => {
       // copy the version.txt file from the pod data/upgrade/current directory
       const tmpDir: string = getTmpDir();
-      const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
-      const podName: PodName = PodName.of(pods[0].metadata.name);
-      const podRef: PodRef = PodRef.of(namespace, podName);
+      const pods: Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      const podRef: PodRef = pods[0].podRef;
       const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       await k8Factory
         .default()

@@ -1,16 +1,14 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {inject, injectable} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {Listr} from 'listr2';
-import {SoloError} from './errors.js';
-import {type Lease} from './lease/lease.js';
+import {SoloError} from './errors/SoloError.js';
+import {type Lock} from './lock/lock.js';
 import * as constants from './constants.js';
 import fs from 'fs';
 import {Task} from './task.js';
-import {type CommandFlag} from '../types/flag_types.js';
 import {ConfigManager} from './config_manager.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {AccountManager} from './account_manager.js';
@@ -34,13 +32,12 @@ export class CommandHandler {
     actionTasks: any,
     options: any,
     errorString: string,
-    lease: Lease | null,
+    lease: Lock | null,
   ): Promise<void> {
     const tasks = new Listr([...actionTasks], options);
     try {
       await tasks.run();
     } catch (e: Error | any) {
-      this.logger.error(`${errorString}: ${e.message}`, e);
       throw new SoloError(`${errorString}: ${e.message}`, e);
     } finally {
       const promises = [];
@@ -72,7 +69,6 @@ export class CommandHandler {
         self.logger.debug(`OK: setup directory: ${dirPath}`);
       });
     } catch (e: Error | any) {
-      self.logger.error(e);
       throw new SoloError(`failed to create directory: ${e.message}`, e);
     }
 

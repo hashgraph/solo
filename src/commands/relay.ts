@@ -1,8 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Listr, type ListrTask} from 'listr2';
-import {MissingArgumentError, SoloError} from '../core/errors.js';
+import {SoloError} from '../core/errors/SoloError.js';
+import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
 import * as helpers from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile_manager.js';
@@ -12,7 +12,7 @@ import {Flags as flags} from './flags.js';
 import {getNodeAccountMap, prepareChartPath, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {RelayComponent} from '../core/config/remote/components/relay_component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
@@ -34,6 +34,8 @@ export class RelayCommand extends BaseCommand {
     this.profileManager = opts.profileManager;
     this.accountManager = opts.accountManager;
   }
+
+  public static readonly COMMAND_NAME = 'relay';
 
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
@@ -253,7 +255,7 @@ export class RelayCommand extends BaseCommand {
 
             self.logger.debug('Initialized config', {config: ctx.config});
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -348,7 +350,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (e) {
-      throw new SoloError('Error installing relays', e);
+      throw new SoloError(`Error deploying relay: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -400,7 +402,7 @@ export class RelayCommand extends BaseCommand {
             } as RelayDestroyConfigClass;
 
             if (ctx.config.clusterRef) {
-              const context = self.getRemoteConfigManager().getClusterRefs()[ctx.config.clusterRef];
+              const context = self.remoteConfigManager.getClusterRefs()[ctx.config.clusterRef];
               if (context) ctx.config.context = context;
             }
 
@@ -413,7 +415,7 @@ export class RelayCommand extends BaseCommand {
 
             self.logger.debug('Initialized config', {config: ctx.config});
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -455,7 +457,7 @@ export class RelayCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'relay',
+      command: RelayCommand.COMMAND_NAME,
       desc: 'Manage JSON RPC relays in solo network',
       builder: (yargs: any) => {
         return yargs
@@ -469,17 +471,10 @@ export class RelayCommand extends BaseCommand {
               self.logger.info("==== Running 'relay deploy' ===", {argv});
               self.logger.info(argv);
 
-              await self
-                .deploy(argv)
-                .then(r => {
-                  self.logger.info('==== Finished running `relay deploy`====');
-
-                  if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
-                })
-                .catch(err => {
-                  self.logger.showUserError(err);
-                  throw new SoloError(`Error deploying relay: ${err.message}`, err);
-                });
+              await self.deploy(argv).then(r => {
+                self.logger.info('==== Finished running `relay deploy`====');
+                if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
+              });
             },
           })
           .command({

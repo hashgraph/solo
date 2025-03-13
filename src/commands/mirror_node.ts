@@ -1,10 +1,12 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
+import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
+import {SoloError} from '../core/errors/SoloError.js';
+import {UserBreak} from '../core/errors/UserBreak.js';
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type ProfileManager} from '../core/profile_manager.js';
@@ -13,8 +15,8 @@ import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
 import {type CommandBuilder, type NodeAlias} from '../types/aliases.js';
-import {PodName} from '../core/kube/resources/pod/pod_name.js';
-import {ListrLease} from '../core/lease/listr_lease.js';
+import {type PodName} from '../core/kube/resources/pod/pod_name.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
 import * as fs from 'node:fs';
@@ -33,6 +35,7 @@ import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
+import {type Pod} from '../core/kube/resources/pod/pod.js';
 
 export interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -83,6 +86,8 @@ export class MirrorNodeCommand extends BaseCommand {
     this.accountManager = opts.accountManager;
     this.profileManager = opts.profileManager;
   }
+
+  public static readonly COMMAND_NAME = 'mirror-node';
 
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
@@ -271,7 +276,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
-              const networkPods = await this.k8Factory
+              const networkPods: Pod[] = await this.k8Factory
                 .getK8(ctx.config.clusterContext)
                 .pods()
                 .list(namespace, ['solo.hedera.com/type=network-node']);
@@ -279,7 +284,7 @@ export class MirrorNodeCommand extends BaseCommand {
               if (networkPods.length) {
                 const pod = networkPods[0];
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.accountId=${startAccId}`;
-                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.status.podIP}`;
+                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.podIp}`;
                 ctx.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.nodes.0.nodeId=0';
 
                 const operatorId = ctx.config.operatorId || constants.OPERATOR_ID;
@@ -354,7 +359,7 @@ export class MirrorNodeCommand extends BaseCommand {
               throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
             }
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -613,14 +618,14 @@ export class MirrorNodeCommand extends BaseCommand {
                       return; //! stop the execution
                     }
 
-                    const pods = await this.k8Factory
+                    const pods: Pod[] = await this.k8Factory
                       .getK8(ctx.config.clusterContext)
                       .pods()
                       .list(namespace, ['app.kubernetes.io/name=postgres']);
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
-                    const postgresPodName = PodName.of(pods[0].metadata.name);
+                    const postgresPodName: PodName = pods[0].podRef.name;
                     const postgresContainerName = ContainerName.of('postgresql');
                     const postgresPodRef = PodRef.of(namespace, postgresPodName);
                     const containerRef = ContainerRef.of(postgresPodRef, postgresContainerName);
@@ -675,9 +680,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await tasks.run();
       self.logger.debug('mirror node deployment has completed');
     } catch (e) {
-      const message = `Error deploying mirror node: ${e.message}`;
-      self.logger.error(message, e);
-      throw new SoloError(message, e);
+      throw new SoloError(`Error deploying mirror node: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -711,7 +714,7 @@ export class MirrorNodeCommand extends BaseCommand {
               });
 
               if (!confirmResult) {
-                this.logger.logAndExitSuccess('Aborted application by user prompt');
+                throw new UserBreak('Aborted application by user prompt');
               }
             }
 
@@ -745,7 +748,7 @@ export class MirrorNodeCommand extends BaseCommand {
               self.configManager.getFlag<boolean>(flags.forcePortForward),
               ctx.config.clusterContext,
             );
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -828,7 +831,7 @@ export class MirrorNodeCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'mirror-node',
+      command: MirrorNodeCommand.COMMAND_NAME,
       desc: 'Manage Hedera Mirror Node in solo network',
       builder: yargs => {
         return yargs
@@ -847,7 +850,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error deploying mirror node, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error deploying mirror node: ${err.message}`, err);
                 });
             },
@@ -875,7 +877,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error destroying mirror node, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error destroying mirror node: ${err.message}`, err);
                 });
             },

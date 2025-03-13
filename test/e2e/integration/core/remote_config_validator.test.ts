@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
@@ -11,7 +10,7 @@ import {Flags as flags} from '../../../../src/commands/flags.js';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components_data_wrapper.js';
-import {SoloError} from '../../../../src/core/errors.js';
+import {SoloError} from '../../../../src/core/errors/SoloError.js';
 import {RelayComponent} from '../../../../src/core/config/remote/components/relay_component.js';
 import {HaProxyComponent} from '../../../../src/core/config/remote/components/ha_proxy_component.js';
 import {MirrorNodeComponent} from '../../../../src/core/config/remote/components/mirror_node_component.js';
@@ -19,7 +18,7 @@ import {ConsensusNodeComponent} from '../../../../src/core/config/remote/compone
 import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
 import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
 
-import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
+import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
@@ -41,7 +40,7 @@ describe('RemoteConfigValidator', () => {
 
   before(async () => {
     configManager = container.resolve(InjectTokens.ConfigManager);
-    configManager.update({[flags.namespace.name]: namespace});
+    configManager.update({[flags.namespace.name]: namespace} as ArgvStruct);
     k8Factory = container.resolve(InjectTokens.K8Factory);
     localConfig = new LocalConfig(filePath);
     await k8Factory.default().namespaces().create(namespace);

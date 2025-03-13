@@ -1,8 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as constants from '../../constants.js';
-import {MissingArgumentError, SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
+import {MissingArgumentError} from '../../errors/MissingArgumentError.js';
 import {RemoteConfigDataWrapper} from './remote_config_data_wrapper.js';
 import chalk from 'chalk';
 import {RemoteConfigMetadata} from './metadata.js';
@@ -16,12 +16,11 @@ import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config_manager.js';
 import {type LocalConfig} from '../local_config.js';
 import {type Optional} from '../../../types/index.js';
-import type * as k8s from '@kubernetes/client-node';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency_injection/container_helper.js';
 import {ErrorMessages} from '../../error_messages.js';
 import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
-import {type AnyArgv, type AnyObject, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
+import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
 import {Cluster} from './cluster.js';
@@ -30,6 +29,7 @@ import {ConsensusNode} from '../../model/consensus_node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 import {type DeploymentStates} from './enumerations.js';
+import {type ConfigMap} from '../../kube/resources/config_map/config_map.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -103,7 +103,7 @@ export class RemoteConfigManager {
    * entry in the cluster with initial command history and metadata.
    */
   public async create(
-    argv: AnyArgv,
+    argv: ArgvStruct,
     state: DeploymentStates,
     nodeAliases: NodeAliases,
     namespace: NamespaceName,
@@ -194,6 +194,11 @@ export class RemoteConfigManager {
       );
     }
     return this.remoteConfig;
+  }
+
+  /** Unload the remote config from the remote config manager. */
+  public unload(): void {
+    this.remoteConfig = undefined;
   }
 
   public static compare(remoteConfig1: RemoteConfigDataWrapper, remoteConfig2: RemoteConfigDataWrapper): boolean {
@@ -341,7 +346,7 @@ export class RemoteConfigManager {
    * @returns the remote configuration data.
    * @throws if the ConfigMap could not be read and the error is not a 404 status, will throw a SoloError {@link SoloError}
    */
-  public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<k8s.V1ConfigMap> {
+  public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<ConfigMap> {
     if (!namespace) {
       namespace = await this.getNamespace();
     }
@@ -366,7 +371,6 @@ export class RemoteConfigManager {
       }
       return configMap;
     } catch (e) {
-      // TODO throw newError instead of showUserError()
       const newError = new SoloError(
         `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
         e,
@@ -427,7 +431,6 @@ export class RemoteConfigManager {
     }
 
     if (!currentDeployment) {
-      this.logger.error('Selected deployment name is not set in local config', this.localConfig);
       throw new SoloError(`Selected deployment name is not set in local config - ${deploymentName}`);
     }
 
@@ -447,7 +450,6 @@ export class RemoteConfigManager {
     }
 
     if (!context) {
-      this.logger.error("Context is not passed and default one can't be acquired", this.localConfig);
       throw new SoloError("Context is not passed and default one can't be acquired");
     }
 

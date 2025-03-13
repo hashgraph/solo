@@ -1,8 +1,7 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as k8s from '@kubernetes/client-node';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
 import {type K8} from '../k8.js';
 import {type Namespaces} from '../resources/namespace/namespaces.js';
 import {K8ClientClusters} from './resources/cluster/k8_client_clusters.js';

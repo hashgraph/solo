@@ -1,9 +1,9 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import chalk from 'chalk';
 import {BaseCommand, type Opts} from './base.js';
-import {IllegalArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
+import {SoloError} from '../core/errors/SoloError.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
@@ -11,8 +11,8 @@ import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import * as helpers from '../core/helpers.js';
 import {type AccountManager} from '../core/account_manager.js';
 import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
-import {ListrLease} from '../core/lease/listr_lease.js';
-import {type AnyArgv, type AnyYargs, type NodeAliases} from '../types/aliases.js';
+import {ListrLock} from '../core/lock/listr_lock.js';
+import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
@@ -58,6 +58,8 @@ export class AccountCommand extends BaseCommand {
     this.accountInfo = null;
     this.systemAccounts = systemAccounts;
   }
+
+  public static readonly COMMAND_NAME = 'account';
 
   private static INIT_FLAGS_LIST = [flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef];
 
@@ -117,7 +119,7 @@ export class AccountCommand extends BaseCommand {
         const privateKey = PrivateKey.fromStringDer(newAccountInfo.privateKey);
         newAccountInfo.privateKeyRaw = privateKey.toStringRaw();
       } catch {
-        this.logger.error(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`);
+        throw new SoloError(`failed to retrieve EVM address for accountId ${newAccountInfo.accountId}`);
       }
     }
 
@@ -169,8 +171,7 @@ export class AccountCommand extends BaseCommand {
           ctx.accountInfo.privateKey,
         ))
       ) {
-        this.logger.error(`failed to update account keys for accountId ${ctx.accountInfo.accountId}`);
-        return false;
+        throw new SoloError(`failed to update account keys for accountId ${ctx.accountInfo.accountId}`);
       }
     } else {
       amount = amount || (flags.amount.definition.defaultValue as number);
@@ -183,8 +184,7 @@ export class AccountCommand extends BaseCommand {
 
     if (hbarAmount > 0) {
       if (!(await this.transferAmountFromOperator(ctx.accountInfo.accountId, hbarAmount))) {
-        this.logger.error(`failed to transfer amount for accountId ${ctx.accountInfo.accountId}`);
-        return false;
+        throw new SoloError(`failed to transfer amount for accountId ${ctx.accountInfo.accountId}`);
       }
       this.logger.debug(`sent transfer amount for account ${ctx.accountInfo.accountId}`);
     }
@@ -195,7 +195,7 @@ export class AccountCommand extends BaseCommand {
     return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount);
   }
 
-  public async init(argv: AnyArgv): Promise<boolean> {
+  public async init(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     interface Config {
@@ -415,14 +415,14 @@ export class AccountCommand extends BaseCommand {
     } finally {
       await this.closeConnections();
       // create two accounts to force the handler to trigger
-      await self.create({});
-      await self.create({});
+      await self.create({} as ArgvStruct);
+      await self.create({} as ArgvStruct);
     }
 
     return true;
   }
 
-  public async create(argv: AnyArgv): Promise<boolean> {
+  public async create(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
@@ -489,7 +489,7 @@ export class AccountCommand extends BaseCommand {
               config.contextName,
             );
 
-            return ListrLease.newAcquireLeaseTask(lease, task);
+            return ListrLock.newAcquireLockTask(lease, task);
           },
         },
         {
@@ -537,7 +537,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  public async update(argv: AnyArgv): Promise<boolean> {
+  public async update(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     const tasks = new Listr<UpdateAccountContext>(
@@ -625,7 +625,7 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  public async get(argv: AnyArgv): Promise<boolean> {
+  public async get(argv: ArgvStruct): Promise<boolean> {
     const self = this;
 
     interface Config {
@@ -712,7 +712,7 @@ export class AccountCommand extends BaseCommand {
   public getCommandDefinition() {
     const self = this;
     return {
-      command: 'account',
+      command: AccountCommand.COMMAND_NAME,
       desc: 'Manage Hedera accounts in solo network',
       builder: (yargs: AnyYargs) => {
         return yargs
@@ -720,7 +720,7 @@ export class AccountCommand extends BaseCommand {
             command: 'init',
             desc: 'Initialize system accounts with new keys',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.INIT_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
 
@@ -731,7 +731,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running init, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running init: ${err.message}`, err);
                 });
             },
@@ -740,7 +739,7 @@ export class AccountCommand extends BaseCommand {
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be generated for you, otherwise you may supply either a ECDSA or ED25519 private key',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.CREATE_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account create' ===");
               self.logger.info(argv);
 
@@ -751,7 +750,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running create, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running create: ${err.message}`, err);
                 });
             },
@@ -760,7 +758,7 @@ export class AccountCommand extends BaseCommand {
             command: 'update',
             desc: 'Updates an existing account with the provided info, if you want to update the private key, you can supply either ECDSA or ED25519 but not both\n',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.UPDATE_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account update' ===");
               self.logger.info(argv);
 
@@ -771,7 +769,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running update, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running update: ${err.message}`, err);
                 });
             },
@@ -780,7 +777,7 @@ export class AccountCommand extends BaseCommand {
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.GET_FLAGS_LIST),
-            handler: async (argv: AnyArgv) => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);
 
@@ -791,7 +788,6 @@ export class AccountCommand extends BaseCommand {
                   if (!r) throw new SoloError('Error running get, expected return value to be true');
                 })
                 .catch(err => {
-                  self.logger.showUserError(err);
                   throw new SoloError(`Error running get: ${err.message}`, err);
                 });
             },

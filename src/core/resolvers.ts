@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type LocalConfig} from './config/local_config.js';
 import {type DeploymentName} from './config/remote/types.js';
 import {type ConfigManager} from './config_manager.js';
@@ -8,7 +7,7 @@ import {Flags as flags} from '../commands/flags.js';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import {input as inputPrompt} from '@inquirer/prompts';
-import {SoloError} from './errors.js';
+import {SoloError} from './errors/SoloError.js';
 
 export async function resolveNamespaceFromDeployment(
   localConfig: LocalConfig,

@@ -1,11 +1,10 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
 import * as constants from '../../core/constants.js';
 import {PrivateKey} from '@hashgraph/sdk';
-import {SoloError} from '../../core/errors.js';
+import {SoloError} from '../../core/errors/SoloError.js';
 import * as helpers from '../../core/helpers.js';
 import path from 'path';
 import fs from 'fs';

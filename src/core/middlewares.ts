@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {Flags as flags} from '../commands/flags.js';
 import chalk from 'chalk';
@@ -25,6 +23,22 @@ export class Middlewares {
     this.remoteConfigManager = opts.remoteConfigManager;
     this.k8Factory = opts.k8Factory;
     this.logger = opts.logger;
+  }
+
+  public setLoggerDevFlag() {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return (argv: any): AnyObject => {
+      if (argv.dev) {
+        logger.debug('Setting logger dev flag');
+        logger.setDevMode(argv.dev);
+      }
+
+      return argv;
+    };
   }
 
   /**
@@ -108,6 +122,7 @@ export class Middlewares {
 
       const command = argv._[0];
       const subCommand = argv._[1];
+
       const skip =
         command === 'init' ||
         (command === 'cluster-ref' && subCommand === 'connect') ||

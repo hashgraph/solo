@@ -1,10 +1,12 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as x509 from '@peculiar/x509';
 import os from 'os';
 import path from 'path';
-import {DataValidationError, IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
+import {DataValidationError} from './errors/DataValidationError.js';
+import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
+import {SoloError} from './errors/SoloError.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import {type IP, type NodeAlias, type NodeAliases, type NodeId} from '../types/aliases.js';

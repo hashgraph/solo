@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type AccountManager} from '../../core/account_manager.js';
 import {type ConfigManager} from '../../core/config_manager.js';
 import {type KeyManager} from '../../core/key_manager.js';
@@ -35,7 +34,8 @@ import {
   PrivateKey,
   Timestamp,
 } from '@hashgraph/sdk';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../core/errors.js';
+import {SoloError} from '../../core/errors/SoloError.js';
+import {MissingArgumentError} from '../../core/errors/MissingArgumentError.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -63,8 +63,8 @@ import {
 import {PodName} from '../../core/kube/resources/pod/pod_name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
-import {type Lease} from '../../core/lease/lease.js';
-import {ListrLease} from '../../core/lease/listr_lease.js';
+import {type Lock} from '../../core/lock/lock.js';
+import {ListrLock} from '../../core/lock/listr_lock.js';
 import {Duration} from '../../core/time/duration.js';
 import {type NodeAddConfigClass} from './node_add_config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
@@ -439,7 +439,7 @@ export class NodeCommandTasks {
         if (!response) {
           task.title = `${title} - status ${chalk.yellow('UNKNOWN')}, attempt ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error('empty response'); // Guard
+          throw new SoloError('empty response'); // Guard
         }
 
         const statusLine = response.split('\n').find(line => line.startsWith('platform_PlatformStatus'));
@@ -447,7 +447,7 @@ export class NodeCommandTasks {
         if (!statusLine) {
           task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
           clearTimeout(timeoutId);
-          throw new Error('missing status line'); // Guard
+          throw new SoloError('missing status line'); // Guard
         }
 
         const statusNumber = parseInt(statusLine.split(' ').pop());
@@ -722,7 +722,6 @@ export class NodeCommandTasks {
           prepareUpgradeReceipt.status.toString(),
         );
       } catch (e) {
-        self.logger.error(`Error in prepare upgrade: ${e.message}`, e);
         throw new SoloError(`Error in prepare upgrade: ${e.message}`, e);
       }
     });
@@ -759,7 +758,6 @@ export class NodeCommandTasks {
           freezeUpgradeReceipt.status.toString(),
         );
       } catch (e) {
-        self.logger.error(`Error in freeze upgrade: ${e.message}`, e);
         throw new SoloError(`Error in freeze upgrade: ${e.message}`, e);
       }
     });
@@ -795,7 +793,6 @@ export class NodeCommandTasks {
           freezeOnlyReceipt.status.toString(),
         );
       } catch (e) {
-        self.logger.error(`Error in sending freeze transaction: ${e.message}`, e);
         throw new SoloError(`Error in sending freeze transaction: ${e.message}`, e);
       }
     });
@@ -931,7 +928,7 @@ export class NodeCommandTasks {
               undefined,
               context,
             );
-          } catch (_) {
+          } catch {
             ctx.config.skipStop = true;
           }
         },
@@ -1653,8 +1650,6 @@ export class NodeCommandTasks {
         const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient);
         self.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`);
       } catch (e) {
-        self.logger.error(`Error updating node to network: ${e.message}`, e);
-        self.logger.error(e.stack);
         throw new SoloError(`Error updating node to network: ${e.message}`, e);
       }
     });
@@ -2044,7 +2039,6 @@ export class NodeCommandTasks {
 
         this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`);
       } catch (e) {
-        this.logger.error(`Error deleting node from network: ${e.message}`, e);
         throw new SoloError(`Error deleting node from network: ${e.message}`, e);
       }
     });
@@ -2068,13 +2062,12 @@ export class NodeCommandTasks {
         const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient);
         this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`);
       } catch (e) {
-        this.logger.error(`Error adding node to network: ${e.message}`, e);
         throw new SoloError(`Error adding node to network: ${e.message}`, e);
       }
     });
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: Lease | null, shouldLoadNodeClient = true) {
+  initialize(argv: any, configInit: ConfigBuilder, lease: Lock | null, shouldLoadNodeClient = true) {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
@@ -2115,7 +2108,7 @@ export class NodeCommandTasks {
       this.logger.debug('Initialized config', {config});
 
       if (lease) {
-        return ListrLease.newAcquireLeaseTask(lease, task);
+        return ListrLock.newAcquireLockTask(lease, task);
       }
     });
   }

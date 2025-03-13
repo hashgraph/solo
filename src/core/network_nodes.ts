@@ -1,9 +1,7 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {PodRef} from './kube/resources/pod/pod_ref.js';
-import {PodName} from './kube/resources/pod/pod_name.js';
+import {type PodRef} from './kube/resources/pod/pod_ref.js';
 import path from 'path';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import fs from 'fs';
@@ -15,8 +13,8 @@ import {inject, injectable} from 'tsyringe-neo';
 import {type SoloLogger} from './logging.js';
 import {type K8Factory} from './kube/k8_factory.js';
 import {patchInject} from './dependency_injection/container_helper.js';
-import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type Pod} from './kube/resources/pod/pod.js';
 
 /**
  * Class to manage network nodes
@@ -38,11 +36,14 @@ export class NetworkNodes {
    * @returns a promise that resolves when the logs are downloaded
    */
   public async getLogs(namespace: NamespaceName, contexts?: string[]) {
-    const podsData: {pod: V1Pod; context?: string}[] = [];
+    const podsData: {pod: Pod; context?: string}[] = [];
 
     if (contexts) {
       for (const context of contexts) {
-        const pods = await this.k8Factory.getK8(context).pods().list(namespace, ['solo.hedera.com/type=network-node']);
+        const pods: Pod[] = await this.k8Factory
+          .getK8(context)
+          .pods()
+          .list(namespace, ['solo.hedera.com/type=network-node']);
         pods.forEach(pod => podsData.push({pod, context}));
       }
     } else {
@@ -59,9 +60,9 @@ export class NetworkNodes {
     return await Promise.all(promises);
   }
 
-  private async getLog(pod: V1Pod, namespace: NamespaceName, timeString: string, context?: string) {
-    const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
-    this.logger.debug(`getNodeLogs(${pod.metadata.name}): begin...`);
+  private async getLog(pod: Pod, namespace: NamespaceName, timeString: string, context?: string) {
+    const podRef: PodRef = pod.podRef;
+    this.logger.debug(`getNodeLogs(${pod.podRef.name.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace.name, timeString);
     try {
       if (!fs.existsSync(targetDir)) {
@@ -95,7 +96,7 @@ export class NetworkNodes {
       // and also delete namespace in the end
       this.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podRef}`, e);
     }
-    this.logger.debug(`getNodeLogs(${pod.metadata.name}): ...end`);
+    this.logger.debug(`getNodeLogs(${pod.podRef.name.name}): ...end`);
   }
 
   /**
@@ -106,7 +107,7 @@ export class NetworkNodes {
    * @returns a promise that resolves when the state files are downloaded
    */
   public async getStatesFromPod(namespace: NamespaceName, nodeAlias: string, context?: string) {
-    const pods: V1Pod[] = await this.k8Factory
+    const pods: Pod[] = await this.k8Factory
       .getK8(context)
       .pods()
       .list(namespace, [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node']);
@@ -119,9 +120,9 @@ export class NetworkNodes {
     return await Promise.all(promises);
   }
 
-  private async getState(pod: V1Pod, namespace: NamespaceName, context?: string) {
-    const podRef = PodRef.of(namespace, PodName.of(pod.metadata!.name));
-    this.logger.debug(`getNodeState(${pod.metadata.name}): begin...`);
+  private async getState(pod: Pod, namespace: NamespaceName, context?: string) {
+    const podRef: PodRef = pod.podRef;
+    this.logger.debug(`getNodeState(${pod.podRef.name.name}): begin...`);
     const targetDir = path.join(SOLO_LOGS_DIR, namespace.name);
     try {
       if (!fs.existsSync(targetDir)) {
@@ -138,6 +139,6 @@ export class NetworkNodes {
       this.logger.error(`failed to download state from pod ${podRef.name}`, e);
       this.logger.showUser(`Failed to download state from pod ${podRef.name}` + e);
     }
-    this.logger.debug(`getNodeState(${pod.metadata.name}): ...end`);
+    this.logger.debug(`getNodeState(${pod.podRef.name.name}): ...end`);
   }
 }

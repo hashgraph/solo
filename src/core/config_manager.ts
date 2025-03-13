@@ -1,8 +1,8 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {inject, injectable} from 'tsyringe-neo';
-import {SoloError, MissingArgumentError} from './errors.js';
+import {SoloError} from './errors/SoloError.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
 import {type SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';
@@ -13,7 +13,7 @@ import {patchInject} from './dependency_injection/container_helper.js';
 import * as constants from '../core/constants.js';
 import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type AnyArgv, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
+import {type ArgvStruct, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import path from 'path';
 
@@ -69,7 +69,7 @@ export class ConfigManager {
   }
 
   /** Update the config using the argv */
-  public update(argv: AnyArgv = {}): void {
+  public update(argv: ArgvStruct): void {
     if (!argv || Object.keys(argv).length === 0) return;
 
     for (const flag of flags.allFlags) {

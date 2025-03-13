@@ -1,6 +1,4 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 /**
  * Dependency injection tokens
@@ -14,7 +12,8 @@ export const InjectTokens = {
   HelmVersion: Symbol.for('HelmVersion'),
   CacheDir: Symbol.for('CacheDir'),
   LocalConfigFilePath: Symbol.for('LocalConfigFilePath'),
-  LeaseRenewalService: Symbol.for('LeaseRenewalService'),
+  LockRenewalService: Symbol.for('LockRenewalService'),
+  LockManager: Symbol.for('LockManager'),
   K8Factory: Symbol.for('K8Factory'),
   SoloLogger: Symbol.for('SoloLogger'),
   PackageDownloader: Symbol.for('PackageDownloader'),
@@ -28,7 +27,6 @@ export const InjectTokens = {
   PlatformInstaller: Symbol.for('PlatformInstaller'),
   KeyManager: Symbol.for('KeyManager'),
   ProfileManager: Symbol.for('ProfileManager'),
-  LeaseManager: Symbol.for('LeaseManager'),
   CertificateManager: Symbol.for('CertificateManager'),
   LocalConfig: Symbol.for('LocalConfig'),
   RemoteConfigManager: Symbol.for('RemoteConfigManager'),
@@ -40,4 +38,5 @@ export const InjectTokens = {
   NodeCommandHandlers: Symbol.for('NodeCommandHandlers'),
   ClusterCommandConfigs: Symbol.for('ClusterCommandConfigs'),
   NodeCommandConfigs: Symbol.for('NodeCommandConfigs'),
+  ErrorHandler: Symbol.for('ErrorHandler'),
 };

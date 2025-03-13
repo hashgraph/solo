@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type Services} from '../../../resources/service/services.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
 import {V1ObjectMeta, V1Service, V1ServicePort, V1ServiceSpec, type CoreV1Api} from '@kubernetes/client-node';
@@ -13,7 +12,7 @@ import {K8ClientService} from './k8_client_service.js';
 import {type ServiceSpec} from '../../../resources/service/service_spec.js';
 import {type ServiceStatus} from '../../../resources/service/service_status.js';
 import {type ServiceRef} from '../../../resources/service/service_ref.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {type IncomingMessage} from 'http';
 
 export class K8ClientServices extends K8ClientBase implements Services {

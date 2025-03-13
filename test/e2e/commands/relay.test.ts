@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {after, afterEach, describe} from 'mocha';
 import {expect} from 'chai';
 import each from 'mocha-each';
@@ -29,12 +28,13 @@ argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
-argv.setArg(flags.quiet, true);
 
 e2eTestSuite(testName, argv, {}, bootstrapResp => {
+  const {
+    opts: {k8Factory, logger, commandInvoker},
+  } = bootstrapResp;
+
   describe('RelayCommand', async () => {
-    const k8Factory = bootstrapResp.opts.k8Factory;
-    const configManager = bootstrapResp.opts.configManager;
     const relayCmd = new RelayCommand(bootstrapResp.opts);
 
     after(async function () {
@@ -49,28 +49,30 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       this.timeout(Duration.ofMinutes(5).toMillis());
 
       argv.setArg(flags.nodeAliasesUnparsed, relayNodes);
-      configManager.update(argv.build());
 
-      // test relay deploy
       try {
-        expect(await relayCmd.deploy(argv.build())).to.be.true;
+        await commandInvoker.invoke({
+          argv: argv,
+          command: RelayCommand.COMMAND_NAME,
+          subcommand: 'deploy',
+          callback: async argv => relayCmd.deploy(argv),
+        });
       } catch (e) {
-        relayCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
-      expect(relayCmd.configManager.getUnusedConfigs(RelayCommand.DEPLOY_CONFIGS_NAME)).to.deep.equal([
-        flags.deployment.constName,
-        flags.profileFile.constName,
-        flags.profileName.constName,
-        flags.quiet.constName,
-      ]);
       await sleep(Duration.ofMillis(500));
 
       // test relay destroy
       try {
-        expect(await relayCmd.destroy(argv.build())).to.be.true;
+        await commandInvoker.invoke({
+          argv: argv,
+          command: RelayCommand.COMMAND_NAME,
+          subcommand: 'destroy',
+          callback: async argv => relayCmd.destroy(argv),
+        });
       } catch (e) {
-        relayCmd.logger.showUserError(e);
+        logger.showUserError(e);
         expect.fail();
       }
     });

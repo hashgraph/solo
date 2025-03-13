@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
@@ -11,7 +10,7 @@ import {HaProxyComponent} from '../../../../../../src/core/config/remote/compone
 import {EnvoyProxyComponent} from '../../../../../../src/core/config/remote/components/envoy_proxy_component.js';
 import {MirrorNodeComponent} from '../../../../../../src/core/config/remote/components/mirror_node_component.js';
 import {MirrorNodeExplorerComponent} from '../../../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
-import {SoloError} from '../../../../../../src/core/errors.js';
+import {SoloError} from '../../../../../../src/core/errors/SoloError.js';
 import {ConsensusNodeStates} from '../../../../../../src/core/config/remote/enumerations.js';
 import {type NodeAliases} from '../../../../../../src/types/aliases.js';
 import {Templates} from '../../../../../../src/core/templates.js';

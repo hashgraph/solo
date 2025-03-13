@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {container} from 'tsyringe-neo';
 import type * as WebSocket from 'ws';
 import * as tar from 'tar';
@@ -8,7 +7,9 @@ import {type Container} from '../../../resources/container/container.js';
 import {type TarCreateFilter} from '../../../../../types/aliases.js';
 import {type TDirectoryData} from '../../../t_directory_data.js';
 import {type ContainerRef} from '../../../resources/container/container_ref.js';
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../../../errors.js';
+import {IllegalArgumentError} from '../../../../errors/IllegalArgumentError.js';
+import {MissingArgumentError} from '../../../../errors/MissingArgumentError.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import path from 'path';
 import fs from 'fs';
 import {type LocalContextObject} from '../../../../../types/index.js';
@@ -159,9 +160,7 @@ export class K8ClientContainer implements Container {
         self.registerErrorStreamOnError(localContext, messagePrefix, outputFileStream);
       });
     } catch (e) {
-      const errorMessage = `${messagePrefix}failed to download file: ${e.message}`;
-      self.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError(`${messagePrefix}failed to download file: ${e.message}`, e);
     }
   }
 
@@ -248,9 +247,7 @@ export class K8ClientContainer implements Container {
         self.registerErrorStreamOnError(localContext, messagePrefix, inputPassthroughStream);
       });
     } catch (e) {
-      const errorMessage = `${messagePrefix} failed to upload file: ${e.message}`;
-      self.logger.error(errorMessage, e);
-      throw new SoloError(errorMessage, e);
+      throw new SoloError(`${messagePrefix} failed to upload file: ${e.message}`, e);
     }
   }
 
@@ -378,12 +375,10 @@ export class K8ClientContainer implements Container {
         }
       }
     } catch (e) {
-      const error = new SoloError(
+      throw new SoloError(
         `unable to check file in '${this.containerRef.parentRef.name}':${this.containerRef.name}' - ${destPath}: ${e.message}`,
         e,
       );
-      this.logger.error(error.message, error);
-      throw error;
     }
 
     return false;

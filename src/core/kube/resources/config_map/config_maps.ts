@@ -1,8 +1,7 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
-import {type V1ConfigMap} from '@kubernetes/client-node';
+// SPDX-License-Identifier: Apache-2.0
+
 import {type NamespaceName} from '../namespace/namespace_name.js';
+import {type ConfigMap} from './config_map.js';
 
 export interface ConfigMaps {
   /**
@@ -45,7 +44,7 @@ export interface ConfigMaps {
    * @param namespace - for the config map
    * @param name - for the config name
    */
-  read(namespace: NamespaceName, name: string): Promise<V1ConfigMap>;
+  read(namespace: NamespaceName, name: string): Promise<ConfigMap>;
 
   /**
    * Replace an existing config map with a new one
@@ -82,7 +81,7 @@ export interface ConfigMaps {
    * @returns list of config maps
    * @throws SoloError if the list operation fails
    */
-  list(namespace: NamespaceName, labels: string[]): Promise<V1ConfigMap[]>;
+  list(namespace: NamespaceName, labels: string[]): Promise<ConfigMap[]>;
 
   /**
    * List all config maps in all namespaces for the given labels
@@ -90,7 +89,7 @@ export interface ConfigMaps {
    * @returns list of config maps
    * @throws SoloError if the list operation fails
    */
-  listForAllNamespaces(labels: string[]): Promise<V1ConfigMap[]>;
+  listForAllNamespaces(labels: string[]): Promise<ConfigMap[]>;
 
   /**
    * Patch a config map
