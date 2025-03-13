@@ -9,7 +9,6 @@ import {instanceToPlain, plainToClass} from 'class-transformer';
 import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote_config.js';
 import {LedgerPhase} from '../../../../../src/data/schema/model/remote/ledger_phase.js';
 import {DeploymentPhase} from '../../../../../src/data/schema/model/remote/deployment_phase.js';
-
 type MigrationCandidate = any;
 
 function migrateVersionPrefix(version: string): string {
@@ -90,7 +89,7 @@ function migrateConsensusNodes(plainObject: MigrationCandidate) {
       cluster: oldConsensusNode.cluster,
       phase: migratedState,
     };
-    newConsensusNode.id = plainObject.state.consensusNodes.push(newConsensusNode);
+    plainObject.state.consensusNodes.push(newConsensusNode);
   }
 }
 
@@ -167,6 +166,14 @@ describe('RemoteConfig', () => {
       expect(rc.versions.mirrorNodeChart.version).to.equal('0.122.0');
       expect(rc.versions.explorerChart.version).to.equal('24.12.0');
       expect(rc.versions.jsonRpcRelayChart.version).to.equal('0.63.2');
+      expect(rc.clusters.length).to.be.equal(1);
+      expect(rc.state.consensusNodes.length).to.be.equal(4);
+      expect(rc.state.consensusNodes[0].id).to.be.equal(0);
+      expect(rc.state.consensusNodes[0].name).to.be.equal('node1');
+      expect(rc.state.consensusNodes[0].namespace).to.be.equal('solo-alpha-prod');
+      expect(rc.state.consensusNodes[0].cluster).to.be.equal('gke-alpha-prod-us-central1');
+      expect(rc.state.consensusNodes[0].phase).to.be.equal(DeploymentPhase.REQUESTED);
+      expect(rc.state.ledgerPhase).to.be.equal(LedgerPhase.UNINITIALIZED);
     });
 
     it('should transform class to plain', async () => {
