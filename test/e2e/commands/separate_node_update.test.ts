@@ -18,12 +18,12 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
-import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {type NetworkNodeServices} from '../../../src/core/network_node_services.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update-separate');
@@ -148,11 +148,11 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('the consensus nodes accountId should be the newAccountId', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
-      const pods: V1Pod[] = await k8Factory
+      const pods: Pod[] = await k8Factory
         .default()
         .pods()
         .list(namespace, [`solo.hedera.com/node-name=${updateNodeId}`]);
-      const accountId: string = pods[0].metadata.labels['solo.hedera.com/account-id'];
+      const accountId: string = pods[0].labels['solo.hedera.com/account-id'];
       expect(accountId).to.equal(newAccountId);
     }).timeout(Duration.ofMinutes(10).toMillis());
   });
