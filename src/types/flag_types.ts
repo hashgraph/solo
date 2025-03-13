@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ListrTaskWrapper} from 'listr2';
+import {type SoloListrTaskWrapper} from './index.js';
 
-export type PromptFunction = (task: ListrTaskWrapper<any, any, any>, input: any, data?: any) => Promise<any>;
+export type PromptFunction = (task: SoloListrTaskWrapper<any>, input: any, data?: any) => Promise<any>;
 
 export interface CommandFlag {
   constName: string;

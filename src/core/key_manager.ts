@@ -13,8 +13,7 @@ import {Templates} from './templates.js';
 import * as helpers from './helpers.js';
 import chalk from 'chalk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
-import {type ListrTask} from 'listr2';
+import {type NodeKeyObject, type PrivateKeyAndCertificateObject, type SoloListrTask} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
@@ -439,7 +438,7 @@ export class KeyManager {
       );
     }
     const self = this;
-    const subTasks: ListrTask<any, any, any>[] = [];
+    const subTasks: SoloListrTask<any>[] = [];
 
     subTasks.push({
       title: 'Backup old files',
@@ -476,7 +475,7 @@ export class KeyManager {
     }
     const self = this;
     const nodeKeyFiles = new Map();
-    const subTasks: ListrTask<any, any, any>[] = [];
+    const subTasks: SoloListrTask<any>[] = [];
 
     subTasks.push({
       title: 'Backup old files',

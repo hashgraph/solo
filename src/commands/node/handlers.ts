@@ -14,10 +14,10 @@ import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
-import {type Listr, type ListrTask} from 'listr2';
+import {type Listr} from 'listr2';
 import chalk from 'chalk';
 import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
-import {type Optional} from '../../types/index.js';
+import {type Optional, type SoloListrTask} from '../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency_injection/container_helper.js';
 import {CommandHandler} from '../../core/command_handler.js';
@@ -897,7 +897,7 @@ export class NodeCommandHandlers extends CommandHandler {
   }
 
   /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public removeNodeAndProxies(): ListrTask<any, any, any> {
+  public removeNodeAndProxies(): SoloListrTask<any> {
     return {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       title: 'Remove node and proxies from remote config',
@@ -916,7 +916,7 @@ export class NodeCommandHandlers extends CommandHandler {
    *
    * @param state - to which to change the consensus node component
    */
-  public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
+  public changeAllNodeStates(state: ConsensusNodeStates): SoloListrTask<any> {
     interface Context {
       config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
@@ -958,7 +958,7 @@ export class NodeCommandHandlers extends CommandHandler {
   }: {
     acceptedStates?: ConsensusNodeStates[];
     excludedStates?: ConsensusNodeStates[];
-  }): ListrTask<any, any, any> {
+  }): SoloListrTask<any> {
     interface Context {
       config: {namespace: string; nodeAliases: NodeAliases};
     }
@@ -971,7 +971,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
         const components = this.remoteConfigManager.components;
 
-        const subTasks: ListrTask<Context, any, any>[] = nodeAliases.map(nodeAlias => ({
+        const subTasks: SoloListrTask<Context>[] = nodeAliases.map(nodeAlias => ({
           title: `Validating state for node ${nodeAlias}`,
           task: (_, task): void => {
             const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
@@ -1000,7 +1000,7 @@ export class NodeCommandHandlers extends CommandHandler {
   }: {
     acceptedStates?: ConsensusNodeStates[];
     excludedStates?: ConsensusNodeStates[];
-  }): ListrTask<any, any, any> {
+  }): SoloListrTask<any> {
     interface Context {
       config: {namespace: string; nodeAlias: NodeAlias};
     }

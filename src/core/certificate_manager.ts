@@ -10,13 +10,13 @@ import {GrpcProxyTlsEnums} from './enumerations.js';
 import {type ConfigManager} from './config_manager.js';
 import {type K8Factory} from './kube/k8_factory.js';
 import {type SoloLogger} from './logging.js';
-import {type ListrTaskWrapper} from 'listr2';
 import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency_injection/container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {type SoloListrTaskWrapper} from '../types/index.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets
@@ -107,7 +107,7 @@ export class CertificateManager {
    * @returns the build sub-tasks for creating the secrets
    */
   public buildCopyTlsCertificatesTasks(
-    task: ListrTaskWrapper<any, any, any>,
+    task: SoloListrTaskWrapper<any>,
     grpcTlsCertificatePathsUnparsed: string,
     grpcWebTlsCertificatePathsUnparsed: string,
     grpcTlsKeyPathsUnparsed: string,
