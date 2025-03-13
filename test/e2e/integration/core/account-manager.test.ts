@@ -39,8 +39,8 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       await accountManager.close();
       const podName = PodName.of('minio-console'); // use a svc that is less likely to be used by other tests
       const podRef = PodRef.of(namespace, podName);
-      const podPort = 9-090;
-      const localPort = 19-090;
+      const podPort = 9_090;
+      const localPort = 19_090;
 
       expect(
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager

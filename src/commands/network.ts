@@ -4,10 +4,10 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
-import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
-import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
-import {SoloError} from '../core/errors/SoloError.js';
-import {UserBreak} from '../core/errors/UserBreak.js';
+import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
+import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
+import {SoloError} from '../core/errors/solo-error.js';
+import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -1180,7 +1180,7 @@ export class NetworkCommand extends BaseCommand {
                   // remove all components data from the remote configuration
                   await self.remoteConfigManager.deleteComponents();
                 }
-              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1-000);
+              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
 
               await self.destroyTask(ctx, task);
 

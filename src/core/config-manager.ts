@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {inject, injectable} from 'tsyringe-neo';
-import {SoloError} from './errors/SoloError.js';
-import {MissingArgumentError} from './errors/MissingArgumentError.js';
+import {SoloError} from './errors/solo-error.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {type SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
 import * as paths from 'path';

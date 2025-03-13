@@ -10,7 +10,7 @@ import {ResourceReadError, ResourceUpdateError} from '../../../errors/resource-o
 import {ResourceType} from '../../../resources/resource-type.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';
 import {ResourceOperation} from '../../../resources/resource-operation.js';
-import {SoloError} from '../../../../errors/SoloError.js';
+import {SoloError} from '../../../../errors/solo-error.js';
 
 export class K8ClientIngresses implements Ingresses {
   private readonly logger: SoloLogger;

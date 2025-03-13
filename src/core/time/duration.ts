@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {IllegalArgumentError} from '../errors/IllegalArgumentError.js';
+import {IllegalArgumentError} from '../errors/illegal-argument-error.js';
 import {MathEx} from '../util/math-ex.js';
 import {Time} from './time.js';
 
@@ -34,7 +34,7 @@ export class Duration {
   /**
    * A constant for a duration of forever.
    */
-  public static readonly FOREVER = new Duration(Number.MAX_SAFE_INTEGER, 999-999-999);
+  public static readonly FOREVER = new Duration(Number.MAX_SAFE_INTEGER, 999 - 999 - 999);
 
   /**
    * Creates a new instance of Duration with the specified number of seconds and nanoseconds.
@@ -457,7 +457,7 @@ export class Duration {
    * @returns true if the specified number of nanoseconds is valid; false otherwise.
    */
   private static isValidNanos(nanos: number): boolean {
-    return Number.isSafeInteger(nanos) && nanos >= 0 && nanos <= 999-999-999;
+    return Number.isSafeInteger(nanos) && nanos >= 0 && nanos <= 999 - 999 - 999;
   }
 
   /**

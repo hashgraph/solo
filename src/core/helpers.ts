@@ -4,8 +4,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
-import {MissingArgumentError} from './errors/MissingArgumentError.js';
-import {SoloError} from './errors/SoloError.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
+import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
@@ -265,7 +265,7 @@ export function addDebugOptions(valuesArg: string, debugNodeAlias: NodeAlias, in
   if (debugNodeAlias) {
     const nodeId = Templates.nodeIdFromNodeAlias(debugNodeAlias);
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`;
-    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt-socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`;
+    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`;
   }
   return valuesArg;
 }
@@ -474,8 +474,8 @@ export function extractContextFromConsensusNodes(
 }
 
 export function getSoloVersion(): Version {
-  if (process.env.npm-package-version) {
-    return process.env.npm-package-version;
+  if (process.env.npm_package_version) {
+    return process.env.npm_package_version;
   }
 
   const __filename = fileURLToPath(import.meta.url);

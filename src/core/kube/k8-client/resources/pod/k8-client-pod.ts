@@ -3,7 +3,7 @@
 import {type Pod} from '../../../resources/pod/pod.js';
 import {type ExtendedNetServer} from '../../../../../types/index.js';
 import {PodRef} from '../../../resources/pod/pod-ref.js';
-import {SoloError} from '../../../../errors/SoloError.js';
+import {SoloError} from '../../../../errors/solo-error.js';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
 import {StatusCodes} from 'http-status-codes';

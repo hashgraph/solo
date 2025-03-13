@@ -3,9 +3,9 @@
 import * as fs from 'fs';
 import {Listr} from 'listr2';
 import * as path from 'path';
-import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
-import {MissingArgumentError} from './errors/MissingArgumentError.js';
-import {SoloError} from './errors/SoloError.js';
+import {IllegalArgumentError} from './errors/illegal-argument-error.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
+import {SoloError} from './errors/solo-error.js';
 import * as constants from './constants.js';
 import {type ConfigManager} from './config-manager.js';
 import {type K8Factory} from './kube/k8-factory.js';

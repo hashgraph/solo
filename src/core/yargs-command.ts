@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Flags as commandFlags} from '../commands/flags.js';
-import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
-import {SoloError} from './errors/SoloError.js';
+import {IllegalArgumentError} from './errors/illegal-argument-error.js';
+import {SoloError} from './errors/solo-error.js';
 import {type BaseCommand} from '../commands/base.js';
 import {type CommandFlag} from '../types/flag-types.js';
 

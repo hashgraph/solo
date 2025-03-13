@@ -114,7 +114,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           .list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod: Pod = pods[0];
 
-        portForwarder = await k8Factory.default().pods().readByRef(explorerPod.podRef).portForward(8-080, 8-080);
+        portForwarder = await k8Factory.default().pods().readByRef(explorerPod.podRef).portForward(8_080, 8_080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running

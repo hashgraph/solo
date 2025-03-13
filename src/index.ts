@@ -33,8 +33,8 @@ import {Container} from './core/dependency-injection/container-init.js';
 import {InjectTokens} from './core/dependency-injection/inject-tokens.js';
 import {type Opts} from './commands/base.js';
 import {Middlewares} from './core/middlewares.js';
-import {SoloError} from './core/errors/SoloError.js';
-import {UserBreak} from './core/errors/UserBreak.js';
+import {SoloError} from './core/errors/solo-error.js';
+import {UserBreak} from './core/errors/user-break.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {

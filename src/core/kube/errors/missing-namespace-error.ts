@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../../errors/SoloError.js';
+import {SoloError} from '../../errors/solo-error.js';
 
 export class MissingNamespaceError extends SoloError {
   public static MISSING_NAMESPACE = 'Namespace is required.';

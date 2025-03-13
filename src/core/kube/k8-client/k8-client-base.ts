@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {IllegalArgumentError} from '../../errors/IllegalArgumentError.js';
-import {MissingArgumentError} from '../../errors/MissingArgumentError.js';
-import {SoloError} from '../../errors/SoloError.js';
+import {IllegalArgumentError} from '../../errors/illegal-argument-error.js';
+import {MissingArgumentError} from '../../errors/missing-argument-error.js';
+import {SoloError} from '../../errors/solo-error.js';
 import {type V1ObjectMeta} from '@kubernetes/client-node';
 import {type ObjectMeta} from '../resources/object-meta.js';
 import {K8ClientObjectMeta} from './resources/k8-client-object-meta.js';

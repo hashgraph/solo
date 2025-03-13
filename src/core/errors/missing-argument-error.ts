@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from './SoloError.js';
+import {SoloError} from './solo-error.js';
 
 export class MissingArgumentError extends SoloError {
   /**

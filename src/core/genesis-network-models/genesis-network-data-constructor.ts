@@ -11,7 +11,7 @@ import {GenesisNetworkRosterEntryDataWrapper} from './genesis-network-roster-ent
 import {Templates} from '../templates.js';
 import path from 'path';
 import {type NetworkNodeServices} from '../network-node-services.js';
-import {SoloError} from '../errors/SoloError.js';
+import {SoloError} from '../errors/solo-error.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account-manager.js';
 import {type ConsensusNode} from '../model/consensus-node.js';

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Listr, type ListrTask} from 'listr2';
-import {SoloError} from '../core/errors/SoloError.js';
-import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
+import {SoloError} from '../core/errors/solo-error.js';
+import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import * as helpers from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile-manager.js';

@@ -2,8 +2,8 @@
 
 import chalk from 'chalk';
 import {BaseCommand, type Opts} from './base.js';
-import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
-import {SoloError} from '../core/errors/SoloError.js';
+import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';

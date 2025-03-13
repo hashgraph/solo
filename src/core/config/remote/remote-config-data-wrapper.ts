@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../../errors/SoloError.js';
+import {SoloError} from '../../errors/solo-error.js';
 import * as yaml from 'yaml';
 import {RemoteConfigMetadata} from './metadata.js';
 import {ComponentsDataWrapper} from './components-data-wrapper.js';

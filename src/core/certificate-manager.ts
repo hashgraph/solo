@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {MissingArgumentError} from './errors/MissingArgumentError.js';
-import {SoloError} from './errors/SoloError.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
+import {SoloError} from './errors/solo-error.js';
 import {Flags as flags} from '../commands/flags.js';
 import fs from 'fs';
 import {Templates} from './templates.js';

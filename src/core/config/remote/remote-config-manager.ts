@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as constants from '../../constants.js';
-import {SoloError} from '../../errors/SoloError.js';
-import {MissingArgumentError} from '../../errors/MissingArgumentError.js';
+import {SoloError} from '../../errors/solo-error.js';
+import {MissingArgumentError} from '../../errors/missing-argument-error.js';
 import {RemoteConfigDataWrapper} from './remote-config-data-wrapper.js';
 import chalk from 'chalk';
 import {RemoteConfigMetadata} from './metadata.js';

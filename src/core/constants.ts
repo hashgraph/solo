@@ -147,7 +147,7 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
   timer: {
     condition: (duration: number) => boolean;
     format: (duration: number) => any;
-    field: string | ((args-0: number) => string);
+    field: string | ((args_0: number) => string);
     args?: [number];
   };
   logger: ListrLogger;
@@ -176,12 +176,12 @@ export const STANDARD_DATAMASK = '***';
 
 // ------ Hedera SDK Related ------
 export const NODE_CLIENT_MAX_ATTEMPTS = +process.env.NODE_CLIENT_MAX_ATTEMPTS || 600;
-export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1-000;
-export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1-000;
-export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 600-000;
-export const NODE_CLIENT_PING_INTERVAL = +process.env.NODE_CLIENT_PING_INTERVAL || 30-000;
+export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1_000;
+export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1_000;
+export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 600_000;
+export const NODE_CLIENT_PING_INTERVAL = +process.env.NODE_CLIENT_PING_INTERVAL || 30_000;
 export const NODE_CLIENT_PING_MAX_RETRIES = +process.env.NODE_CLIENT_PING_MAX_RETRIES || 5;
-export const NODE_CLIENT_PING_RETRY_INTERVAL = +process.env.NODE_CLIENT_PING_RETRY_INTERVAL || 10-000;
+export const NODE_CLIENT_PING_RETRY_INTERVAL = +process.env.NODE_CLIENT_PING_RETRY_INTERVAL || 10_000;
 
 // ---- New Node Related ----
 export const ENDPOINT_TYPE_IP = 'IP';
@@ -198,17 +198,17 @@ export const JVM_DEBUG_PORT = 5005;
 export const PODS_RUNNING_MAX_ATTEMPTS = +process.env.PODS_RUNNING_MAX_ATTEMPTS || 60 * 15;
 export const PODS_RUNNING_DELAY = +process.env.PODS_RUNNING_DELAY || 1000;
 export const NETWORK_NODE_ACTIVE_MAX_ATTEMPTS = +process.env.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS || 300;
-export const NETWORK_NODE_ACTIVE_DELAY = +process.env.NETWORK_NODE_ACTIVE_DELAY || 1-000;
-export const NETWORK_NODE_ACTIVE_TIMEOUT = +process.env.NETWORK_NODE_ACTIVE_TIMEOUT || 1-000;
+export const NETWORK_NODE_ACTIVE_DELAY = +process.env.NETWORK_NODE_ACTIVE_DELAY || 1_000;
+export const NETWORK_NODE_ACTIVE_TIMEOUT = +process.env.NETWORK_NODE_ACTIVE_TIMEOUT || 1_000;
 export const NETWORK_PROXY_MAX_ATTEMPTS = +process.env.NETWORK_PROXY_MAX_ATTEMPTS || 300;
 export const NETWORK_PROXY_DELAY = +process.env.NETWORK_PROXY_DELAY || 2000;
 export const PODS_READY_MAX_ATTEMPTS = +process.env.PODS_READY_MAX_ATTEMPTS || 300;
-export const PODS_READY_DELAY = +process.env.PODS_READY_DELAY || 2-000;
+export const PODS_READY_DELAY = +process.env.PODS_READY_DELAY || 2_000;
 export const RELAY_PODS_RUNNING_MAX_ATTEMPTS = +process.env.RELAY_PODS_RUNNING_MAX_ATTEMPTS || 900;
-export const RELAY_PODS_RUNNING_DELAY = +process.env.RELAY_PODS_RUNNING_DELAY || 1-000;
+export const RELAY_PODS_RUNNING_DELAY = +process.env.RELAY_PODS_RUNNING_DELAY || 1_000;
 export const RELAY_PODS_READY_MAX_ATTEMPTS = +process.env.RELAY_PODS_READY_MAX_ATTEMPTS || 100;
-export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1-000;
-export const GRPC_PORT = +process.env.GRPC_PORT || 50-211;
+export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_000;
+export const GRPC_PORT = +process.env.GRPC_PORT || 50 - 211;
 export const LOCAL_BUILD_COPY_RETRY = +process.env.LOCAL_BUILD_COPY_RETRY || 3;
 
 export const LOAD_BALANCER_CHECK_DELAY_SECS = +process.env.LOAD_BALANCER_CHECK_DELAY_SECS || 5;

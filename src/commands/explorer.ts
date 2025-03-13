@@ -3,9 +3,9 @@
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
-import {SoloError} from '../core/errors/SoloError.js';
-import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
-import {UserBreak} from '../core/errors/UserBreak.js';
+import {SoloError} from '../core/errors/solo-error.js';
+import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
+import {UserBreak} from '../core/errors/user-break.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Opts} from './base.js';

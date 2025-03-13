@@ -20,7 +20,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {KubeConfig} from '@kubernetes/client-node';
-import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
+import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;

@@ -3,10 +3,10 @@
 import * as x509 from '@peculiar/x509';
 import os from 'os';
 import path from 'path';
-import {DataValidationError} from './errors/DataValidationError.js';
-import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
-import {MissingArgumentError} from './errors/MissingArgumentError.js';
-import {SoloError} from './errors/SoloError.js';
+import {DataValidationError} from './errors/data-validation-error.js';
+import {IllegalArgumentError} from './errors/illegal-argument-error.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
+import {SoloError} from './errors/solo-error.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import {type IP, type NodeAlias, type NodeAliases, type NodeId} from '../types/aliases.js';

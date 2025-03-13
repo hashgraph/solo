@@ -10,7 +10,7 @@ import {Flags as flags} from '../../../../src/commands/flags.js';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote-config-validator.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components-data-wrapper.js';
-import {SoloError} from '../../../../src/core/errors/SoloError.js';
+import {SoloError} from '../../../../src/core/errors/solo-error.js';
 import {RelayComponent} from '../../../../src/core/config/remote/components/relay-component.js';
 import {HaProxyComponent} from '../../../../src/core/config/remote/components/ha-proxy-component.js';
 import {MirrorNodeComponent} from '../../../../src/core/config/remote/components/mirror-node-component.js';

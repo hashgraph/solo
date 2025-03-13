@@ -22,9 +22,9 @@ import {
   Status,
   TransferTransaction,
 } from '@hashgraph/sdk';
-import {MissingArgumentError} from './errors/MissingArgumentError.js';
-import {ResourceNotFoundError} from './errors/ResourceNotFoundError.js';
-import {SoloError} from './errors/SoloError.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
+import {ResourceNotFoundError} from './errors/resource-not-found-error.js';
+import {SoloError} from './errors/solo-error.js';
 import {Templates} from './templates.js';
 import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network-node-services.js';
 import path from 'path';

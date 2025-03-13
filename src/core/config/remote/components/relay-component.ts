@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {ComponentType} from '../enumerations.js';
-import {SoloError} from '../../../errors/SoloError.js';
+import {SoloError} from '../../../errors/solo-error.js';
 import {BaseComponent} from './base-component.js';
 import {type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';

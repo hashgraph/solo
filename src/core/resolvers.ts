@@ -7,7 +7,7 @@ import {Flags as flags} from '../commands/flags.js';
 import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import {input as inputPrompt} from '@inquirer/prompts';
-import {SoloError} from './errors/SoloError.js';
+import {SoloError} from './errors/solo-error.js';
 
 export async function resolveNamespaceFromDeployment(
   localConfig: LocalConfig,

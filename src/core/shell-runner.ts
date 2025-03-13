@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn} from 'child-process';
+import {spawn} from 'child_process';
 import chalk from 'chalk';
 import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';

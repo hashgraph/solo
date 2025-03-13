@@ -11,7 +11,7 @@ import {
 import {type Leases} from '../../../resources/lease/leases.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import type http from 'node:http';
-import {SoloError} from '../../../../errors/SoloError.js';
+import {SoloError} from '../../../../errors/solo-error.js';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
 import {type SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
