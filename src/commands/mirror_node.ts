@@ -12,7 +12,7 @@ import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
 import {type CommandBuilder, type NodeAlias} from '../types/aliases.js';
-import {PodName} from '../core/kube/resources/pod/pod_name.js';
+import {type PodName} from '../core/kube/resources/pod/pod_name.js';
 import {ListrLock} from '../core/lock/listr_lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
@@ -32,6 +32,7 @@ import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
 import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
+import {type Pod} from '../core/kube/resources/pod/pod.js';
 
 export interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -270,7 +271,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
-              const networkPods = await this.k8Factory
+              const networkPods: Pod[] = await this.k8Factory
                 .getK8(ctx.config.clusterContext)
                 .pods()
                 .list(namespace, ['solo.hedera.com/type=network-node']);
@@ -278,7 +279,7 @@ export class MirrorNodeCommand extends BaseCommand {
               if (networkPods.length) {
                 const pod = networkPods[0];
                 ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.accountId=${startAccId}`;
-                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.status.podIP}`;
+                ctx.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.podIp}`;
                 ctx.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.nodes.0.nodeId=0';
 
                 const operatorId = ctx.config.operatorId || constants.OPERATOR_ID;
@@ -612,14 +613,14 @@ export class MirrorNodeCommand extends BaseCommand {
                       return; //! stop the execution
                     }
 
-                    const pods = await this.k8Factory
+                    const pods: Pod[] = await this.k8Factory
                       .getK8(ctx.config.clusterContext)
                       .pods()
                       .list(namespace, ['app.kubernetes.io/name=postgres']);
                     if (pods.length === 0) {
                       throw new SoloError('postgres pod not found');
                     }
-                    const postgresPodName = PodName.of(pods[0].metadata.name);
+                    const postgresPodName: PodName = pods[0].podRef.name;
                     const postgresContainerName = ContainerName.of('postgresql');
                     const postgresPodRef = PodRef.of(namespace, postgresPodName);
                     const containerRef = ContainerRef.of(postgresPodRef, postgresContainerName);
