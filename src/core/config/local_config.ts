@@ -3,18 +3,15 @@
 import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
 import fs from 'fs';
 import * as yaml from 'yaml';
-import {Flags as flags} from '../../commands/flags.js';
 import {type Deployments, type LocalConfigData} from './local_config_data.js';
 import {MissingArgumentError, SoloError} from '../errors.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
 import {type ConfigManager} from '../config_manager.js';
-import {type EmailAddress, type Version, type ClusterRefs, type ClusterRef} from './remote/types.js';
+import {type EmailAddress, type Version, type ClusterRefs} from './remote/types.js';
 import {ErrorMessages} from '../error_messages.js';
-import * as helpers from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency_injection/container_helper.js';
-import {type SoloListrTask} from '../../types/index.js';
 import {InjectTokens} from '../dependency_injection/inject_tokens.js';
 
 @injectable()
@@ -79,7 +76,7 @@ export class LocalConfig implements LocalConfigData {
     }
   }
 
-  private validate(): void {
+  public validate(): void {
     const errors = validateSync(this, {});
 
     if (errors.length) {
@@ -132,41 +129,5 @@ export class LocalConfig implements LocalConfigData {
     await fs.promises.writeFile(this.filePath, yamlContent);
 
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
-  }
-
-  public createLocalConfigTask(): SoloListrTask<{
-    config: {
-      quiet: boolean;
-      userEmailAddress: EmailAddress;
-      clusterRef: ClusterRef;
-      contextName: string;
-    };
-  }> {
-    const self = this;
-
-    return {
-      title: 'Prompt local configuration',
-      skip: this.skipPromptTask,
-      task: async (ctx, task): Promise<void> => {
-        const config = ctx.config;
-
-        if (self.configFileExists() && !config.userEmailAddress) {
-          config.userEmailAddress = self.userEmailAddress;
-        }
-
-        if (!config.userEmailAddress) {
-          if (config.quiet) throw new SoloError(ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL);
-          config.userEmailAddress = await flags.userEmailAddress.prompt(task, config.userEmailAddress);
-        }
-
-        self.userEmailAddress = config.userEmailAddress;
-        self.soloVersion = helpers.getSoloVersion();
-        self.clusterRefs = {};
-        self.deployments = {};
-
-        self.validate();
-        await self.write();
-      },
-    };
   }
 }

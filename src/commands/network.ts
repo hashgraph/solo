@@ -98,10 +98,12 @@ export interface NetworkDestroyContext {
   config: {
     deletePvcs: boolean;
     deleteSecrets: boolean;
+    deleteConfigMaps: boolean;
     namespace: NamespaceName;
     enableTimeout: boolean;
     force: boolean;
     contexts: string[];
+    deployment: string;
   };
   checkTimeout: boolean;
 }
@@ -748,6 +750,17 @@ export class NetworkCommand extends BaseCommand {
     );
 
     // Delete PVCs inside each cluster
+    if (ctx.config.deleteConfigMaps) {
+      task.title = `Deleting ConfigMaps in namespace ${ctx.config.namespace}`;
+      await Promise.all(
+        ctx.config.contexts.map(async context => {
+          // Delete all if found
+          this.k8Factory.getK8(context).configMaps().delete(ctx.config.namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
+        }),
+      );
+    }
+
+    // Delete PVCs inside each cluster
     if (ctx.config.deletePvcs) {
       task.title = `Deleting PVCs in namespace ${ctx.config.namespace}`;
 
@@ -1146,6 +1159,8 @@ export class NetworkCommand extends BaseCommand {
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
+              deleteConfigMaps: self.configManager.getFlag<boolean>(flags.deleteConfigMaps) as boolean,
+              deployment: self.configManager.getFlag<string>(flags.deployment) as string,
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
@@ -1153,6 +1168,14 @@ export class NetworkCommand extends BaseCommand {
             };
 
             return ListrLock.newAcquireLockTask(lease, task);
+          },
+        },
+        {
+          title: 'Remove deployment from local configuration',
+          task: async (ctx, task) => {
+            const deployments = self.localConfig.deployments;
+            delete deployments[ctx.config.deployment];
+            self.localConfig.setDeployments(deployments);
           },
         },
         {
@@ -1165,7 +1188,12 @@ export class NetworkCommand extends BaseCommand {
                 self.logger.showUser(chalk.red(message));
                 networkDestroySuccess = false;
 
-                if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
+                if (
+                  ctx.config.deletePvcs &&
+                  ctx.config.deleteSecrets &&
+                  ctx.config.deleteConfigMaps &&
+                  ctx.config.force
+                ) {
                   await Promise.all(
                     ctx.config.contexts.map(context =>
                       self.k8Factory.getK8(context).namespaces().delete(ctx.config.namespace),
@@ -1245,6 +1273,7 @@ export class NetworkCommand extends BaseCommand {
                 y,
                 flags.deletePvcs,
                 flags.deleteSecrets,
+                flags.deleteConfigMaps,
                 flags.enableTimeout,
                 flags.force,
                 flags.deployment,

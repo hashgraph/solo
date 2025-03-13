@@ -50,10 +50,6 @@ export class ClusterCommandConfigs {
     ctx: ClusterRefConnectContext,
     task: SoloListrTaskWrapper<ClusterRefConnectContext>,
   ): Promise<ClusterRefConnectConfigClass> {
-    if (!this.localConfig.configFileExists()) {
-      this.logger.logAndExitError(new SoloError(ErrorMessages.LOCAL_CONFIG_DOES_NOT_EXIST));
-    }
-
     this.configManager.update(argv);
 
     ctx.config = this.configManager.getConfig(

@@ -120,7 +120,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
 
       .middleware(
         // @ts-expect-error - TS2322: To assign middlewares
-        [middlewares.processArgumentsAndDisplayHeader(), middlewares.loadRemoteConfig()],
+        [middlewares.processArgumentsAndDisplayHeader(), middlewares.checkIfInitiated(), middlewares.loadRemoteConfig()],
         false, // applyBeforeValidate is false as otherwise middleware is called twice
       );
 

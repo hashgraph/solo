@@ -890,6 +890,26 @@ export class Flags {
     },
   };
 
+  static readonly deleteConfigMaps: CommandFlag = {
+    constName: 'deleteConfigMaps',
+    name: 'delete-configmaps',
+    definition: {
+      describe: 'Delete the network ConfigMaps',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: async function promptDeleteConfigMaps(task: ListrTaskWrapper<any, any, any>, input: any) {
+      return await Flags.promptToggle(
+        task,
+        input,
+        Flags.deleteConfigMaps.definition.defaultValue,
+        'Would you like to delete ConfigMaps upon uninstall? ',
+        null,
+        Flags.deleteConfigMaps.name,
+      );
+    },
+  };
+
   static readonly soloChartVersion: CommandFlag = {
     constName: 'soloChartVersion',
     name: 'solo-chart-version',
@@ -1487,6 +1507,7 @@ export class Flags {
     constName: 'userEmailAddress',
     name: 'email',
     definition: {
+      defaultValue: 'john@doe.com',
       describe: 'User email address used for local configuration',
       type: 'string',
     },
@@ -2119,6 +2140,7 @@ export class Flags {
     Flags.debugNodeAlias,
     Flags.deletePvcs,
     Flags.deleteSecrets,
+    Flags.deleteConfigMaps,
     Flags.deployCertManager,
     Flags.deployCertManagerCrds,
     Flags.deployJsonRpcRelay,
