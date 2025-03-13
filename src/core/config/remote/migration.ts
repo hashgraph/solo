@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../../errors/SoloError.js';
+import {SoloError} from '../../errors/solo-error.js';
 import {type EmailAddress, type IMigration, type Version} from './types.js';
 
 export class Migration implements IMigration {

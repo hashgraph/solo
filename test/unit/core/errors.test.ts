@@ -3,11 +3,11 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {SoloError} from '../../../src/core/errors/SoloError.js';
-import {ResourceNotFoundError} from '../../../src/core/errors/ResourceNotFoundError.js';
-import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
-import {IllegalArgumentError} from '../../../src/core/errors/IllegalArgumentError.js';
-import {DataValidationError} from '../../../src/core/errors/DataValidationError.js';
+import {SoloError} from '../../../src/core/errors/solo-error.js';
+import {ResourceNotFoundError} from '../../../src/core/errors/resource-not-found-error.js';
+import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
+import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
+import {DataValidationError} from '../../../src/core/errors/data-validation-error.js';
 
 describe('Errors', () => {
   const message = 'errorMessage';

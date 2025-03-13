@@ -3,10 +3,10 @@
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import path from 'path';
-import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandFlag} from '../types/flag-types.js';
 import fs from 'fs';
-import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
-import {SoloError} from '../core/errors/SoloError.js';
+import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {
   select as selectPrompt,

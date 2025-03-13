@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Listr} from 'listr2';
-import {SoloError} from '../core/errors/SoloError.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -9,15 +9,15 @@ import chalk from 'chalk';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
-import {ErrorMessages} from '../core/error_messages.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {type ClusterChecks} from '../core/cluster_checks.js';
+import {ErrorMessages} from '../core/error-messages.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
 import {Templates} from '../core/templates.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
+import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 

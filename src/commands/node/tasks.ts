@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type AccountManager} from '../../core/account_manager.js';
-import {type ConfigManager} from '../../core/config_manager.js';
-import {type KeyManager} from '../../core/key_manager.js';
-import {type ProfileManager} from '../../core/profile_manager.js';
-import {type PlatformInstaller} from '../../core/platform_installer.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
-import {type ChartManager} from '../../core/chart_manager.js';
-import {type CertificateManager} from '../../core/certificate_manager.js';
+import {type AccountManager} from '../../core/account-manager.js';
+import {type ConfigManager} from '../../core/config-manager.js';
+import {type KeyManager} from '../../core/key-manager.js';
+import {type ProfileManager} from '../../core/profile-manager.js';
+import {type PlatformInstaller} from '../../core/platform-installer.js';
+import {type K8Factory} from '../../core/kube/k8-factory.js';
+import {type ChartManager} from '../../core/chart-manager.js';
+import {type CertificateManager} from '../../core/certificate-manager.js';
 import {Zippy} from '../../core/zippy.js';
 import * as constants from '../../core/constants.js';
 import {
@@ -34,8 +34,8 @@ import {
   PrivateKey,
   Timestamp,
 } from '@hashgraph/sdk';
-import {SoloError} from '../../core/errors/SoloError.js';
-import {MissingArgumentError} from '../../core/errors/MissingArgumentError.js';
+import {SoloError} from '../../core/errors/solo-error.js';
+import {MissingArgumentError} from '../../core/errors/missing-argument-error.js';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -59,38 +59,38 @@ import {
   type NodeAliases,
   type SkipCheck,
 } from '../../types/aliases.js';
-import {PodName} from '../../core/kube/resources/pod/pod_name.js';
+import {PodName} from '../../core/kube/resources/pod/pod-name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lock} from '../../core/lock/lock.js';
-import {ListrLock} from '../../core/lock/listr_lock.js';
+import {ListrLock} from '../../core/lock/listr-lock.js';
 import {Duration} from '../../core/time/duration.js';
-import {type NodeAddConfigClass} from './node_add_config.js';
-import {GenesisNetworkDataConstructor} from '../../core/genesis_network_models/genesis_network_data_constructor.js';
-import {NodeOverridesModel} from '../../core/node_overrides_model.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../core/kube/resources/pod/pod_ref.js';
-import {ContainerRef} from '../../core/kube/resources/container/container_ref.js';
-import {NetworkNodes} from '../../core/network_nodes.js';
+import {type NodeAddConfigClass} from './node-add-config.js';
+import {GenesisNetworkDataConstructor} from '../../core/genesis-network-models/genesis-network-data-constructor.js';
+import {NodeOverridesModel} from '../../core/node-overrides-model.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../core/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../../core/kube/resources/container/container-ref.js';
+import {NetworkNodes} from '../../core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {ConsensusNode} from '../../core/model/consensus_node.js';
+import {patchInject} from '../../core/dependency-injection/container-helper.js';
+import {ConsensusNode} from '../../core/model/consensus-node.js';
 import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
-import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
-import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {type LocalConfig} from '../../core/config/local_config.js';
+import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
+import {type LocalConfig} from '../../core/config/local-config.js';
 import {BaseCommand} from '../base.js';
-import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
+import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
-import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy_proxy_component.js';
-import {HaProxyComponent} from '../../core/config/remote/components/ha_proxy_component.js';
-import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy-proxy-component.js';
+import {HaProxyComponent} from '../../core/config/remote/components/ha-proxy-component.js';
+import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
-import {ShellRunner} from '../../core/shell_runner.js';
+import {ShellRunner} from '../../core/shell-runner.js';
 import {type Listr} from 'listr2';
 
 @injectable()

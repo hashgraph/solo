@@ -2,23 +2,23 @@
 
 import chalk from 'chalk';
 import {BaseCommand, type Opts} from './base.js';
-import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
-import {SoloError} from '../core/errors/SoloError.js';
+import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
 import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import * as helpers from '../core/helpers.js';
-import {type AccountManager} from '../core/account_manager.js';
+import {type AccountManager} from '../core/account-manager.js';
 import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
-import {ListrLock} from '../core/lock/listr_lock.js';
+import {ListrLock} from '../core/lock/listr-lock.js';
 import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
-import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {SecretType} from '../core/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
 
 interface UpdateAccountConfig {

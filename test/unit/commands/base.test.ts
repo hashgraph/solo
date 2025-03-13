@@ -2,26 +2,26 @@
 
 import {expect} from 'chai';
 
-import {type DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
 import {type Helm} from '../../../src/core/helm.js';
-import {type ChartManager} from '../../../src/core/chart_manager.js';
-import {type ConfigManager} from '../../../src/core/config_manager.js';
-import {type LocalConfig} from '../../../src/core/config/local_config.js';
-import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
+import {type ChartManager} from '../../../src/core/chart-manager.js';
+import {type ConfigManager} from '../../../src/core/config-manager.js';
+import {type LocalConfig} from '../../../src/core/config/local-config.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
+import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {resetForTest} from '../../test_container.js';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_data_wrapper.js';
-import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
+import {resetForTest} from '../../test-container.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {ComponentsDataWrapper} from '../../../src/core/config/remote/components-data-wrapper.js';
+import {createComponentsDataWrapper} from '../core/config/remote/components-data-wrapper.test.js';
 import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
-import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 
 describe('BaseCommand', () => {

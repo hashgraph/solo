@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from '../namespace/namespace_name.js';
+import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type Pvc} from './pvc.js';
-import {type PvcRef} from './pvc_ref.js';
+import {type PvcRef} from './pvc-ref.js';
 
 export interface Pvcs {
   /**

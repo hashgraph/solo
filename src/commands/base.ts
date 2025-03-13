@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../core/errors/SoloError.js';
-import {ShellRunner} from '../core/shell_runner.js';
-import {type LockManager} from '../core/lock/lock_manager.js';
-import {type LocalConfig} from '../core/config/local_config.js';
-import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
+import {SoloError} from '../core/errors/solo-error.js';
+import {ShellRunner} from '../core/shell-runner.js';
+import {type LockManager} from '../core/lock/lock-manager.js';
+import {type LocalConfig} from '../core/config/local-config.js';
+import {type RemoteConfigManager} from '../core/config/remote/remote-config-manager.js';
 import {type Helm} from '../core/helm.js';
-import {type K8Factory} from '../core/kube/k8_factory.js';
-import {type ChartManager} from '../core/chart_manager.js';
-import {type ConfigManager} from '../core/config_manager.js';
-import {type DependencyManager} from '../core/dependency_managers/index.js';
+import {type K8Factory} from '../core/kube/k8-factory.js';
+import {type ChartManager} from '../core/chart-manager.js';
+import {type ConfigManager} from '../core/config-manager.js';
+import {type DependencyManager} from '../core/dependency-managers/index.js';
 import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
@@ -17,12 +17,12 @@ import {Task} from '../core/task.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
 import {type SoloLogger} from '../core/logging.js';
-import {type PackageDownloader} from '../core/package_downloader.js';
-import {type PlatformInstaller} from '../core/platform_installer.js';
-import {type KeyManager} from '../core/key_manager.js';
-import {type AccountManager} from '../core/account_manager.js';
-import {type ProfileManager} from '../core/profile_manager.js';
-import {type CertificateManager} from '../core/certificate_manager.js';
+import {type PackageDownloader} from '../core/package-downloader.js';
+import {type PlatformInstaller} from '../core/platform-installer.js';
+import {type KeyManager} from '../core/key-manager.js';
+import {type AccountManager} from '../core/account-manager.js';
+import {type ProfileManager} from '../core/profile-manager.js';
+import {type CertificateManager} from '../core/certificate-manager.js';
 
 export interface Opts {
   logger: SoloLogger;

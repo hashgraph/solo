@@ -8,7 +8,7 @@ import each from 'mocha-each';
 import * as constants from '../../../src/core/constants.js';
 import {Helm} from '../../../src/core/helm.js';
 import {Templates} from '../../../src/core/templates.js';
-import {ShellRunner} from '../../../src/core/shell_runner.js';
+import {ShellRunner} from '../../../src/core/shell-runner.js';
 
 describe('Helm platform specific tests', () => {
   each(['linux', 'windows', 'darwin']).describe('Helm on %s platform', osPlatform => {

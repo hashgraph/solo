@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {IllegalArgumentError} from '../errors/IllegalArgumentError.js';
-import {MathEx} from '../util/math_ex.js';
+import {IllegalArgumentError} from '../errors/illegal-argument-error.js';
+import {MathEx} from '../util/math-ex.js';
 import {Time} from './time.js';
 
 /**

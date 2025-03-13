@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Optional} from '../../../../types/index.js';
-import {type NamespaceName} from '../namespace/namespace_name.js';
-import {type SecretType} from './secret_type.js';
+import {type NamespaceName} from '../namespace/namespace-name.js';
+import {type SecretType} from './secret-type.js';
 
 export interface Secrets {
   /**

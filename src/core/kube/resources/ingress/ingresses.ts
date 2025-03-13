@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from '../namespace/namespace_name.js';
+import {type NamespaceName} from '../namespace/namespace-name.js';
 
 export interface Ingresses {
   /**

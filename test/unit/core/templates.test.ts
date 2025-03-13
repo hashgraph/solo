@@ -2,7 +2,7 @@
 
 import {Templates} from '../../../src/core/templates.js';
 import {expect} from 'chai';
-import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
+import {type ConsensusNode} from '../../../src/core/model/consensus-node.js';
 
 describe('core/templates', () => {
   const consensusNodes: ConsensusNode[] = [
