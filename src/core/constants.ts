@@ -208,7 +208,7 @@ export const RELAY_PODS_RUNNING_MAX_ATTEMPTS = +process.env.RELAY_PODS_RUNNING_M
 export const RELAY_PODS_RUNNING_DELAY = +process.env.RELAY_PODS_RUNNING_DELAY || 1_000;
 export const RELAY_PODS_READY_MAX_ATTEMPTS = +process.env.RELAY_PODS_READY_MAX_ATTEMPTS || 100;
 export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_000;
-export const GRPC_PORT = +process.env.GRPC_PORT || 50 - 211;
+export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const LOCAL_BUILD_COPY_RETRY = +process.env.LOCAL_BUILD_COPY_RETRY || 3;
 
 export const LOAD_BALANCER_CHECK_DELAY_SECS = +process.env.LOAD_BALANCER_CHECK_DELAY_SECS || 5;
@@ -225,10 +225,10 @@ export const MINIO_SECRET_NAME = 'minio-secrets';
 export const BACKUP_SECRET_NAME = 'backup-uploader-secrets';
 
 export const enum StorageType {
-  MINIO_ONLY = 'minio-only',
-  AWS_ONLY = 'aws-only',
-  GCS_ONLY = 'gcs-only',
-  AWS_AND_GCS = 'aws-and-gcs',
+  MINIO_ONLY = 'minio_only',
+  AWS_ONLY = 'aws_only',
+  GCS_ONLY = 'gcs_only',
+  AWS_AND_GCS = 'aws_and_gcs',
 }
 
 export const CERT_MANAGER_CRDS = [

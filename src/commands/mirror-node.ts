@@ -184,7 +184,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
         // Set the host and name
         'db.host': host,
-        'db.name': 'mirror-node',
+        'db.name': 'mirror_node',
 
         // set the usernames
         'db.owner.username': ownerUsername,
@@ -554,7 +554,7 @@ export class MirrorNodeCommand extends BaseCommand {
             return parentTask.newListr(
               [
                 {
-                  title: 'Insert data in public.file-data',
+                  title: 'Insert data in public.file_data',
                   task: async ctx => {
                     const namespace = ctx.config.namespace;
                     const clusterContext = ctx.config.clusterContext;
@@ -582,12 +582,12 @@ export class MirrorNodeCommand extends BaseCommand {
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
 
-                    const importFeesQuery = `INSERT INTO public.file-data(file-data, consensus-timestamp, entity-id,
-                                                                          transaction-type)
+                    const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id,
+                                                                          transaction_type)
                                              VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'},
                                                      ${feesFileIdNum}, 17);`;
-                    const importExchangeRatesQuery = `INSERT INTO public.file-data(file-data, consensus-timestamp,
-                                                                                   entity-id, transaction-type)
+                    const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp,
+                                                                                   entity_id, transaction_type)
                                                       VALUES (decode('${exchangeRates}', 'hex'), ${
                                                         timestamp + '000001'
                                                       }, ${exchangeRatesFileIdNum}, 17);`;

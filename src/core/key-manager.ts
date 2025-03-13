@@ -24,7 +24,7 @@ x509.cryptoProvider.set(crypto);
 @injectable()
 export class KeyManager {
   static SigningKeyAlgo = {
-    name: 'RSASSA-PKCS1-v1-5',
+    name: 'RSASSA-PKCS1-v1_5',
     hash: 'SHA-384',
     publicExponent: new Uint8Array([1, 0, 1]),
     modulusLength: 3072,
@@ -33,7 +33,7 @@ export class KeyManager {
   static SigningKeyUsage: KeyUsage[] = ['sign', 'verify'];
 
   static TLSKeyAlgo = {
-    name: 'RSASSA-PKCS1-v1-5',
+    name: 'RSASSA-PKCS1-v1_5',
     hash: 'SHA-384',
     publicExponent: new Uint8Array([1, 0, 1]),
     modulusLength: 4096,

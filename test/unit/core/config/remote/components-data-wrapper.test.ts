@@ -156,7 +156,7 @@ describe('ComponentsDataWrapper', () => {
       components: {relays},
       serviceName,
     } = createComponentsDataWrapper();
-    const notFoundServiceName = 'not-found';
+    const notFoundServiceName = 'not_found';
     const relay = relays[serviceName];
     relay.name = notFoundServiceName;
 
@@ -182,7 +182,7 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const notFoundServiceName = 'not-found';
+    const notFoundServiceName = 'not_found';
 
     expect(() => componentsDataWrapper.remove(notFoundServiceName, ComponentType.Relay)).to.throw(
       SoloError,

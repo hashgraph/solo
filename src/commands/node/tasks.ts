@@ -837,7 +837,7 @@ export class NodeCommandTasks {
         .execContainer([
           'bash',
           '-c',
-          `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys-backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys-backup/`,
+          `mkdir -p ${constants.HEDERA_HAPI_PATH}/data/keys_backup && cp -r ${keyDir} ${constants.HEDERA_HAPI_PATH}/data/keys_backup/`,
         ]);
       for (const signedKeyFile of signedKeyFiles) {
         await k8.containers().readByRef(containerRef).copyFrom(`${keyDir}/${signedKeyFile.name}`, `${config.keysDir}`);

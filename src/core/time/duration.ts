@@ -34,7 +34,7 @@ export class Duration {
   /**
    * A constant for a duration of forever.
    */
-  public static readonly FOREVER = new Duration(Number.MAX_SAFE_INTEGER, 999 - 999 - 999);
+  public static readonly FOREVER = new Duration(Number.MAX_SAFE_INTEGER, 999_999_999);
 
   /**
    * Creates a new instance of Duration with the specified number of seconds and nanoseconds.
@@ -457,7 +457,7 @@ export class Duration {
    * @returns true if the specified number of nanoseconds is valid; false otherwise.
    */
   private static isValidNanos(nanos: number): boolean {
-    return Number.isSafeInteger(nanos) && nanos >= 0 && nanos <= 999 - 999 - 999;
+    return Number.isSafeInteger(nanos) && nanos >= 0 && nanos <= 999_999_999;
   }
 
   /**
