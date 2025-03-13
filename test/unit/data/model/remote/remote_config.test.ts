@@ -10,6 +10,8 @@ import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote_c
 import {LedgerPhase} from '../../../../../src/data/schema/model/remote/ledger_phase.js';
 import {DeploymentPhase} from '../../../../../src/data/schema/model/remote/deployment_phase.js';
 
+type MigrationCandidate = any;
+
 function migrateVersionPrefix(version: string): string {
   const strippedVersionPrefix: string = version.replace(/^v/, '');
   const parts = strippedVersionPrefix.split('.').map(Number); // Split and convert to numbers
@@ -19,7 +21,7 @@ function migrateVersionPrefix(version: string): string {
   return parts.join('.');
 }
 
-function migrateVersions(plainObject: any) {
+function migrateVersions(plainObject: MigrationCandidate) {
   plainObject.versions = {};
   plainObject.versions.cli = migrateVersionPrefix(plainObject.metadata?.soloVersion || '0.0.0');
   plainObject.versions.chart = migrateVersionPrefix(plainObject.metadata?.soloChartVersion || '0.0.0');
@@ -37,7 +39,7 @@ function migrateVersions(plainObject: any) {
   );
 }
 
-function migrateClusters(plainObject: any) {
+function migrateClusters(plainObject: MigrationCandidate) {
   const clusters: object = plainObject.clusters;
   const clustersArray: object[] = [];
   for (const key in clusters) {
@@ -48,7 +50,7 @@ function migrateClusters(plainObject: any) {
   plainObject.clusters = clustersArray;
 }
 
-function migrateHistory(plainObject: any) {
+function migrateHistory(plainObject: MigrationCandidate) {
   plainObject.history = {};
   plainObject.history.commands = [];
   for (const historyItem of plainObject.commandHistory) {
@@ -56,7 +58,7 @@ function migrateHistory(plainObject: any) {
   }
 }
 
-function migrateConsensusNodes(plainObject: any) {
+function migrateConsensusNodes(plainObject: MigrationCandidate) {
   plainObject.state.consensusNodes = [];
   for (const plainConsensusNodeKey of Object.keys(plainObject.components?.consensusNodes)) {
     const oldConsensusNode = plainObject.components.consensusNodes[plainConsensusNodeKey];
@@ -92,27 +94,27 @@ function migrateConsensusNodes(plainObject: any) {
   }
 }
 
-function migrateHaProxies(plainObject: any) {
+function migrateHaProxies(plainObject: MigrationCandidate) {
   plainObject.state.haProxies = [];
 }
 
-function migrateEnvoyProxies(plainObject: any) {
+function migrateEnvoyProxies(plainObject: MigrationCandidate) {
   plainObject.state.envoyProxies = [];
 }
 
-function migrateMirrorNodes(plainObject: any) {
+function migrateMirrorNodes(plainObject: MigrationCandidate) {
   plainObject.state.mirrorNodes = [];
 }
 
-function migrateExplorers(plainObject: any) {
+function migrateExplorers(plainObject: MigrationCandidate) {
   plainObject.state.explorers = [];
 }
 
-function migrateJsonRpcRelays(plainObject: any) {
+function migrateJsonRpcRelays(plainObject: MigrationCandidate) {
   plainObject.state.relayNodes = [];
 }
 
-function migrateState(plainObject: any) {
+function migrateState(plainObject: MigrationCandidate) {
   plainObject.state = {};
   plainObject.state.ledgerPhase = LedgerPhase.UNINITIALIZED;
   migrateConsensusNodes(plainObject);
@@ -123,7 +125,7 @@ function migrateState(plainObject: any) {
   migrateJsonRpcRelays(plainObject);
 }
 
-function migrate(plainObject: any): void {
+function migrate(plainObject: MigrationCandidate): void {
   plainObject.schemaVersion = 0;
 
   const meta = plainObject.metadata;
@@ -143,13 +145,13 @@ describe('RemoteConfig', () => {
 
   describe('Class Transformer', () => {
     let yamlData: string;
-    let plainObject: object;
+    let plainObject: MigrationCandidate;
 
     beforeEach(() => {
       yamlData = readFileSync(remoteConfigPath, 'utf8');
       expect(yamlData).to.not.be.undefined.and.to.not.be.null;
 
-      plainObject = loadYaml<object>(yamlData);
+      plainObject = loadYaml<MigrationCandidate>(yamlData);
       expect(plainObject).to.not.be.undefined.and.to.not.be.null;
 
       migrate(plainObject);
