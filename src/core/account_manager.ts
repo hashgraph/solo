@@ -33,7 +33,7 @@ import {type SoloLogger} from './logging.js';
 import {type K8Factory} from './kube/k8_factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
-import {PodName} from './kube/resources/pod/pod_name.js';
+import {type PodName} from './kube/resources/pod/pod_name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -41,7 +41,7 @@ import {patchInject} from './dependency_injection/container_helper.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
 import {PodRef} from './kube/resources/pod/pod_ref.js';
 import {SecretType} from './kube/resources/secret/secret_type.js';
-import {type V1Pod} from '@kubernetes/client-node';
+import {type Pod} from './kube/resources/pod/pod.js';
 import {InjectTokens} from './dependency_injection/inject_tokens.js';
 import {type ClusterRefs, type DeploymentName} from './config/remote/types.js';
 import {type Service} from './kube/resources/service/service.js';
@@ -563,31 +563,33 @@ export class AccountManager {
 
       // get the pod name for the service to use with portForward if needed
       for (const serviceBuilder of serviceBuilderMap.values()) {
-        const podList: V1Pod[] = await this.k8Factory
+        const podList: Pod[] = await this.k8Factory
           .getK8(serviceBuilder.context)
           .pods()
           .list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
-        serviceBuilder.withHaProxyPodName(PodName.of(podList[0].metadata.name));
+        serviceBuilder.withHaProxyPodName(podList[0].podRef.name);
       }
 
       for (const [_, context] of Object.entries(clusterRefs)) {
         // get the pod name of the network node
-        const pods: V1Pod[] = await this.k8Factory
+        const pods: Pod[] = await this.k8Factory
           .getK8(context)
           .pods()
           .list(namespace, ['solo.hedera.com/type=network-node']);
         for (const pod of pods) {
-          if (!pod.metadata?.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
+          if (!pod.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
             continue;
           }
-          const podName = PodName.of(pod.metadata!.name);
-          const nodeAlias = pod.metadata!.labels!['solo.hedera.com/node-name'] as NodeAlias;
-          const serviceBuilder = serviceBuilderMap.get(nodeAlias) as NetworkNodeServicesBuilder;
+          const podName: PodName = pod.podRef.name;
+          const nodeAlias: NodeAlias = pod.labels!['solo.hedera.com/node-name'] as NodeAlias;
+          const serviceBuilder: NetworkNodeServicesBuilder = serviceBuilderMap.get(
+            nodeAlias,
+          ) as NetworkNodeServicesBuilder;
           serviceBuilder.withNodePodName(podName);
         }
       }
 
-      const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
+      const serviceMap: Map<NodeAlias, NetworkNodeServices> = new Map<NodeAlias, NetworkNodeServices>();
       for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
         serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build());
       }
