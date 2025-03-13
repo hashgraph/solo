@@ -5,9 +5,12 @@ import {SemVer} from 'semver';
 import {Deployment} from './deployment.js';
 import {Transformations} from '../utils/transformations.js';
 import {UserIdentity} from '../common/user-identity.js';
+import {Version} from '../../../../business/utils/version.js';
 
 @Exclude()
 export class LocalConfig {
+  public static readonly SCHEMA_VERSION: Version<number> = new Version(1);
+
   @Expose()
   public schemaVersion: number;
 

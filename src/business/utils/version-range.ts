@@ -35,6 +35,17 @@ export class VersionRange<T extends SemVer | number> {
   }
 
   /**
+   * Creates a version range from the given integer version.
+   *
+   * @param version - the specific version for which to create a range.
+   * @returns the version range.
+   * @throws RangeError if the version is invalid.
+   */
+  public static fromIntegerVersion(version: number): VersionRange<number> {
+    return new VersionRange(new Version(version), new Version(version + 1));
+  }
+
+  /**
    * Creates a version range from the given semantic version bounds.
    *
    * @param begin - the beginning of the version range (inclusive).

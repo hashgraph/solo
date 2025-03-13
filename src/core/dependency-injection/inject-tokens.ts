@@ -39,4 +39,5 @@ export const InjectTokens = {
   ClusterCommandConfigs: Symbol.for('ClusterCommandConfigs'),
   NodeCommandConfigs: Symbol.for('NodeCommandConfigs'),
   ErrorHandler: Symbol.for('ErrorHandler'),
+  ObjectMapper: Symbol.for('ObjectMapper'),
 };

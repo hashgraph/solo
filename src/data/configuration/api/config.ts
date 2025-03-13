@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ConfigSource} from './spi/config-source.js';
-import {type ConfigAccessor} from './spi/config-accessor.js';
-import {type Refreshable} from './spi/refreshable.js';
+import {type ConfigSource} from '../spi/config-source.js';
+import {type ConfigAccessor} from '../spi/config-accessor.js';
+import {type Refreshable} from '../spi/refreshable.js';
 
 /**
  * Represents a single application wide multi-layer configuration.
