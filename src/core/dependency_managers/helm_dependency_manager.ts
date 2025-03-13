@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import * as util from 'util';
-import {MissingArgumentError} from '../errors.js';
+import {MissingArgumentError} from '../errors/MissingArgumentError.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';
 import {type PackageDownloader} from '../package_downloader.js';

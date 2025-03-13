@@ -4,7 +4,7 @@ import {type IngressClasses} from '../../../resources/ingress_class/ingress_clas
 import {type IngressClass} from '../../../resources/ingress_class/ingress_class.js';
 import {type V1IngressClass, type NetworkingV1Api} from '@kubernetes/client-node';
 import {K8ClientIngressClass} from './k8_client_ingress_class.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {ResourceCreateError, ResourceDeleteError} from '../../../errors/resource_operation_errors.js';
 import {ResourceType} from '../../../resources/resource_type.js';
 

@@ -349,6 +349,7 @@ export function e2eTestSuite(
           flags.profileName.constName,
           flags.quiet.constName,
           flags.settingTxt.constName,
+          flags.nodeAliasesUnparsed.constName,
           flags.grpcTlsKeyPath.constName,
           flags.grpcWebTlsKeyPath.constName,
           flags.gcsWriteAccessKey.constName,

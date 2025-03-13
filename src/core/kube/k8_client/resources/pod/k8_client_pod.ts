@@ -3,7 +3,7 @@
 import {type Pod} from '../../../resources/pod/pod.js';
 import {type ExtendedNetServer} from '../../../../../types/index.js';
 import {PodRef} from '../../../resources/pod/pod_ref.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
 import {StatusCodes} from 'http-status-codes';
@@ -84,7 +84,6 @@ export class K8ClientPod implements Pod {
         return;
       }
 
-      this.logger.error(errorMessage, e);
       throw new SoloError(errorMessage, e);
     }
   }
@@ -109,7 +108,6 @@ export class K8ClientPod implements Pod {
       return server.listen(localPort, constants.LOCAL_HOST);
     } catch (e) {
       const message: string = `failed to start port-forwarder [${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
-      this.logger.error(message, e);
       throw new SoloError(message, e);
     }
   }

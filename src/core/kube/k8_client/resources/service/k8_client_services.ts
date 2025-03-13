@@ -12,7 +12,7 @@ import {K8ClientService} from './k8_client_service.js';
 import {type ServiceSpec} from '../../../resources/service/service_spec.js';
 import {type ServiceStatus} from '../../../resources/service/service_status.js';
 import {type ServiceRef} from '../../../resources/service/service_ref.js';
-import {SoloError} from '../../../../errors.js';
+import {SoloError} from '../../../../errors/SoloError.js';
 import {type IncomingMessage} from 'http';
 
 export class K8ClientServices extends K8ClientBase implements Services {

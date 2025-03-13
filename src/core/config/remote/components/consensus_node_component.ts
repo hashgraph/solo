@@ -2,7 +2,7 @@
 
 import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
 import {BaseComponent} from './base_component.js';
-import {SoloError} from '../../../errors.js';
+import {SoloError} from '../../../errors/SoloError.js';
 import {
   type ClusterRef,
   type ComponentName,

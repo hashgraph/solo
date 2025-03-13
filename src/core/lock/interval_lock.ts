@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {MissingArgumentError, SoloError} from '../errors.js';
+import {MissingArgumentError} from '../errors/MissingArgumentError.js';
+import {SoloError} from '../errors/SoloError.js';
 import {type K8Factory} from '../kube/k8_factory.js';
 import {LockHolder} from './lock_holder.js';
 import {sleep} from '../helpers.js';
