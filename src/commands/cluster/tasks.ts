@@ -8,7 +8,8 @@ import path from 'path';
 import chalk from 'chalk';
 import {ListrLock} from '../../core/lock/listr_lock.js';
 import {ErrorMessages} from '../../core/error_messages.js';
-import {SoloError} from '../../core/errors.js';
+import {SoloError} from '../../core/errors/SoloError.js';
+import {UserBreak} from '../../core/errors/UserBreak.js';
 import {type K8Factory} from '../../core/kube/k8_factory.js';
 import {type SoloListrTask} from '../../types/index.js';
 import {type ClusterRef} from '../../core/config/remote/types.js';
@@ -147,10 +148,6 @@ export class ClusterCommandTasks {
     return {
       title: 'Initialize',
       task: async (ctx, task) => {
-        if (argv[flags.devMode.name]) {
-          this.logger.setDevMode(true);
-        }
-
         ctx.config = await configInit(argv, ctx, task);
       },
     };
@@ -284,7 +281,10 @@ export class ClusterCommandTasks {
             // ignore error during uninstall since we are doing the best-effort uninstall here
           }
 
-          throw e;
+          throw new SoloError(
+            `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
+            e,
+          );
         }
 
         if (argv.dev) {
@@ -321,7 +321,7 @@ export class ClusterCommandTasks {
           });
 
           if (!confirm) {
-            self.logger.logAndExitSuccess('Aborted application by user prompt');
+            throw new UserBreak('Aborted application by user prompt');
           }
         }
         await self.chartManager.uninstall(

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {ComponentType, ConsensusNodeStates} from './enumerations.js';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
 import {BaseComponent} from './components/base_component.js';
 import {RelayComponent} from './components/relay_component.js';
 import {HaProxyComponent} from './components/ha_proxy_component.js';

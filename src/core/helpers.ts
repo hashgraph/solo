@@ -4,7 +4,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
-import {MissingArgumentError, SoloError} from './errors.js';
+import {MissingArgumentError} from './errors/MissingArgumentError.js';
+import {SoloError} from './errors/SoloError.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
@@ -248,8 +249,6 @@ export function renameAndCopyFile(srcFilePath: string, expectedBaseName: string,
   // copy public key and private key to key directory
   fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), err => {
     if (err) {
-      // @ts-ignore
-      logger.error(`Error copying file: ${err.message}`);
       throw new SoloError(`Error copying file: ${err.message}`);
     }
   });

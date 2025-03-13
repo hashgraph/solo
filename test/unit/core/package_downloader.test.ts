@@ -8,7 +8,9 @@ import * as logging from '../../../src/core/logging.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import {IllegalArgumentError, MissingArgumentError, ResourceNotFoundError} from '../../../src/core/errors.js';
+import {IllegalArgumentError} from '../../../src/core/errors/IllegalArgumentError.js';
+import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
+import {ResourceNotFoundError} from '../../../src/core/errors/ResourceNotFoundError.js';
 
 describe('PackageDownloader', () => {
   const testLogger = logging.NewLogger('debug', true);

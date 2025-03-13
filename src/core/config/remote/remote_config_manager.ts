@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as constants from '../../constants.js';
-import {MissingArgumentError, SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
+import {MissingArgumentError} from '../../errors/MissingArgumentError.js';
 import {RemoteConfigDataWrapper} from './remote_config_data_wrapper.js';
 import chalk from 'chalk';
 import {RemoteConfigMetadata} from './metadata.js';
@@ -370,7 +371,6 @@ export class RemoteConfigManager {
       }
       return configMap;
     } catch (e) {
-      // TODO throw newError instead of showUserError()
       const newError = new SoloError(
         `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
         e,
@@ -431,7 +431,6 @@ export class RemoteConfigManager {
     }
 
     if (!currentDeployment) {
-      this.logger.error('Selected deployment name is not set in local config', this.localConfig);
       throw new SoloError(`Selected deployment name is not set in local config - ${deploymentName}`);
     }
 
@@ -451,7 +450,6 @@ export class RemoteConfigManager {
     }
 
     if (!context) {
-      this.logger.error("Context is not passed and default one can't be acquired", this.localConfig);
       throw new SoloError("Context is not passed and default one can't be acquired");
     }
 

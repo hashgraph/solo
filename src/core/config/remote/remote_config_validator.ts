@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as constants from '../../constants.js';
-import {SoloError} from '../../errors.js';
+import {SoloError} from '../../errors/SoloError.js';
 import {ConsensusNodeStates} from './enumerations.js';
 
 import {type K8Factory} from '../../kube/k8_factory.js';
