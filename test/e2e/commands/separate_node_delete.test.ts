@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {it, describe, after} from 'mocha';
+import {after, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
@@ -19,9 +19,9 @@ import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
 import {type NetworkNodes} from '../../../src/core/network_nodes.js';
 import {container} from 'tsyringe-neo';
-import {type V1Pod} from '@kubernetes/client-node';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
+import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 
@@ -98,12 +98,11 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('deleted consensus node should not be running', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
-      const pods: V1Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
-      const podName: PodName = PodName.of(pods[0].metadata.name);
+      const pods: Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
       const response = await k8Factory
         .default()
         .containers()
-        .readByRef(ContainerRef.of(PodRef.of(namespace, podName), ROOT_CONTAINER))
+        .readByRef(ContainerRef.of(PodRef.of(namespace, pods[0].podRef.name), ROOT_CONTAINER))
         .execContainer(['bash', '-c', `tail -n 1 ${HEDERA_HAPI_PATH}/output/swirlds.log`]);
 
       expect(response).to.contain('JVM is shutting down');

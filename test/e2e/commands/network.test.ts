@@ -14,9 +14,6 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
-import {type NetworkNodes} from '../../../src/core/network_nodes.js';
-import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {InitCommand} from '../../../src/commands/init.js';
@@ -52,9 +49,9 @@ describe('NetworkCommand', function networkCommand() {
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
 
-    await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-    await k8Factory.default().namespaces().delete(namespace);
-    await accountManager.close();
+    // await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
+    // await k8Factory.default().namespaces().delete(namespace);
+    // await accountManager.close();
   });
 
   before(async () => {
@@ -134,7 +131,7 @@ describe('NetworkCommand', function networkCommand() {
         .default()
         .pods()
         .read(PodRef.of(namespace, PodName.of('network-node1-0'))),
-    ).eventually.to.have.nested.property('metadata.name', 'network-node1-0');
+    ).eventually.to.have.nested.property('podRef.name.name', 'network-node1-0');
     // get list of pvc using k8 pvcs list function and print to log
     const pvcs = await k8Factory.default().pvcs().list(namespace, []);
     logger.showList('PVCs', pvcs);
