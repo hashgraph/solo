@@ -59,6 +59,8 @@ export class AccountCommand extends BaseCommand {
     this.systemAccounts = systemAccounts;
   }
 
+  public static readonly COMMAND_NAME = 'account';
+
   private static INIT_FLAGS_LIST = [flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef];
 
   private static CREATE_FLAGS_LIST = [
@@ -710,7 +712,7 @@ export class AccountCommand extends BaseCommand {
   public getCommandDefinition() {
     const self = this;
     return {
-      command: 'account',
+      command: AccountCommand.COMMAND_NAME,
       desc: 'Manage Hedera accounts in solo network',
       builder: (yargs: AnyYargs) => {
         return yargs

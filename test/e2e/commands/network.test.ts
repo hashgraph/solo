@@ -3,7 +3,7 @@
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {bootstrapTestVariables, getTestCluster, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
@@ -15,11 +15,11 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
-import sinon from 'sinon';
-import {type ConsensusNode} from '../../../src/core/model/consensus_node.js';
-import {Templates} from '../../../src/core/templates.js';
-import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
-import {type NodeAlias} from '../../../src/types/aliases.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
+import {InitCommand} from '../../../src/commands/init.js';
+import {ClusterCommand} from '../../../src/commands/cluster/index.js';
+import {DeploymentCommand} from '../../../src/commands/deployment.js';
+import {NetworkCommand} from '../../../src/commands/network.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
@@ -40,45 +40,11 @@ describe('NetworkCommand', function networkCommand() {
   argv.setArg(flags.force, true);
   argv.setArg(flags.applicationEnv, applicationEnvFilePath);
   argv.setArg(flags.loadBalancerEnabled, true);
-  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
-  argv.setArg(flags.quiet, true);
 
   const {
-    opts: {k8Factory, accountManager, configManager, chartManager, remoteConfigManager},
+    opts: {k8Factory, accountManager, configManager, chartManager, commandInvoker, logger},
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
-
-  const nodeAlias = 'node1' as NodeAlias;
-  const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
-  const clusterRef = getTestCluster();
-  const context = k8Factory.default().contexts().readCurrent();
-
-  const consensusNodes = [
-    {
-      name: nodeAlias,
-      namespace: namespace.name,
-      nodeId,
-      cluster: clusterRef,
-      context,
-      dnsBaseDomain: 'cluster.local',
-      dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
-      fullyQualifiedDomainName: Templates.renderConsensusNodeFullyQualifiedDomainName(
-        nodeAlias,
-        Templates.nodeIdFromNodeAlias(nodeAlias),
-        namespace.name,
-        clusterRef,
-        'cluster.local',
-        'network-{nodeAlias}-svc.{namespace}.svc',
-      ),
-    },
-  ] as ConsensusNode[];
-
-  const contexts = [context];
-  const clusterRefs = {[clusterRef]: context} as ClusterRefs;
-
-  remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
-  remoteConfigManager.getContexts = sinon.stub().returns(contexts);
-  remoteConfigManager.getClusterRefs = sinon.stub().returns(clusterRefs);
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
@@ -90,26 +56,74 @@ describe('NetworkCommand', function networkCommand() {
 
   before(async () => {
     await k8Factory.default().namespaces().delete(namespace);
-    await initCmd.init(argv.build());
-    await clusterCmd.handlers.setup(argv.build());
-    await clusterCmd.handlers.connect(argv.build());
+
+    await commandInvoker.invoke({
+      argv: argv,
+      command: InitCommand.COMMAND_NAME,
+      subcommand: 'init',
+      callback: async argv => initCmd.init(argv),
+    });
+
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'setup',
+      callback: async argv => clusterCmd.handlers.setup(argv),
+    });
+
+    await commandInvoker.invoke({
+      argv: argv,
+      command: ClusterCommand.COMMAND_NAME,
+      subcommand: 'connect',
+      callback: async argv => clusterCmd.handlers.connect(argv),
+    });
+
     fs.mkdirSync(applicationEnvParentDirectory, {recursive: true});
     fs.writeFileSync(applicationEnvFilePath, applicationEnvFileContents);
   });
 
   it('deployment create should succeed', async () => {
-    expect(await deploymentCmd.create(argv.build())).to.be.true;
+    await commandInvoker.invoke({
+      argv: argv,
+      command: DeploymentCommand.COMMAND_NAME,
+      subcommand: 'create',
+      callback: async argv => deploymentCmd.create(argv),
+    });
+
+    argv.setArg(flags.nodeAliasesUnparsed, undefined);
+    configManager.reset();
+    configManager.update(argv.build());
+  });
+
+  it('deployment create should succeed', async () => {
+    await commandInvoker.invoke({
+      argv: argv,
+      command: DeploymentCommand.COMMAND_NAME,
+      subcommand: 'add-cluster',
+      callback: async argv => deploymentCmd.addCluster(argv),
+    });
+
     argv.setArg(flags.nodeAliasesUnparsed, undefined);
     configManager.reset();
     configManager.update(argv.build());
   });
 
   it('keys should be generated', async () => {
-    expect(await nodeCmd.handlers.keys(argv.build())).to.be.true;
+    await commandInvoker.invoke({
+      argv: argv,
+      command: NodeCommand.COMMAND_NAME,
+      subcommand: 'keys',
+      callback: async argv => nodeCmd.handlers.keys(argv),
+    });
   });
 
   it('network deploy command should succeed', async () => {
-    expect(await networkCmd.deploy(argv.build())).to.be.true;
+    await commandInvoker.invoke({
+      argv: argv,
+      command: NetworkCommand.COMMAND_NAME,
+      subcommand: 'deploy',
+      callback: async argv => networkCmd.deploy(argv),
+    });
 
     // check pod names should match expected values
     await expect(
@@ -120,7 +134,7 @@ describe('NetworkCommand', function networkCommand() {
     ).eventually.to.have.nested.property('podRef.name.name', 'network-node1-0');
     // get list of pvc using k8 pvcs list function and print to log
     const pvcs = await k8Factory.default().pvcs().list(namespace, []);
-    networkCmd.logger.showList('PVCs', pvcs);
+    logger.showList('PVCs', pvcs);
   }).timeout(Duration.ofMinutes(4).toMillis());
 
   it('application env file contents should be in cached values file', () => {
@@ -139,16 +153,20 @@ describe('NetworkCommand', function networkCommand() {
     configManager.update(argv.build());
 
     try {
-      const destroyResult = await networkCmd.destroy(argv.build());
-      expect(destroyResult).to.be.true;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: NetworkCommand.COMMAND_NAME,
+        subcommand: 'destroy',
+        callback: async argv => networkCmd.destroy(argv),
+      });
 
       while ((await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node'])).length > 0) {
-        networkCmd.logger.debug('Pods are still running. Waiting...');
+        logger.debug('Pods are still running. Waiting...');
         await sleep(Duration.ofSeconds(3));
       }
 
       while ((await k8Factory.default().pods().list(namespace, ['app=minio'])).length > 0) {
-        networkCmd.logger.showUser('Waiting for minio container to be deleted...');
+        logger.showUser('Waiting for minio container to be deleted...');
         await sleep(Duration.ofSeconds(3));
       }
 
@@ -162,7 +180,7 @@ describe('NetworkCommand', function networkCommand() {
       // check if secrets are deleted
       await expect(k8Factory.default().secrets().list(namespace)).eventually.to.have.lengthOf(0);
     } catch (e) {
-      networkCmd.logger.showUserError(e);
+      logger.showUserError(e);
       expect.fail();
     }
   }).timeout(Duration.ofMinutes(2).toMillis());

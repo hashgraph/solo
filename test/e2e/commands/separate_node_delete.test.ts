@@ -12,7 +12,6 @@ import {
 } from '../../test_util.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
-import * as NodeCommandConfigs from '../../../src/commands/node/configs.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
@@ -22,6 +21,8 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
 import {Argv} from '../../helpers/argv_wrapper.js';
 import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
+import {AccountCommand} from '../../../src/commands/account.js';
+import {NodeCommand} from '../../../src/commands/node/index.js';
 
 const namespace = NamespaceName.of('node-delete-separate');
 const nodeAlias = 'node1' as NodeAlias;
@@ -32,7 +33,6 @@ argv.setArg(flags.stakeAmounts, '1,1000');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.persistentVolumeClaims, true);
-argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.namespace, namespace.name);
 
@@ -44,11 +44,12 @@ const argvExecute = Argv.getDefaultArgv(namespace);
 argvExecute.setArg(flags.inputDir, tempDir);
 
 e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
-  describe('Node delete via separated commands', async () => {
-    const nodeCmd = bootstrapResp.cmd.nodeCmd;
-    const accountCmd = bootstrapResp.cmd.accountCmd;
-    const k8Factory = bootstrapResp.opts.k8Factory;
+  const {
+    opts: {k8Factory, accountManager, remoteConfigManager, logger, commandInvoker},
+    cmd: {nodeCmd, accountCmd},
+  } = bootstrapResp;
 
+  describe('Node delete via separated commands', async () => {
     after(async function () {
       this.timeout(Duration.ofMinutes(10).toMillis());
 
@@ -57,28 +58,42 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
     });
 
     it('should succeed with init command', async () => {
-      const status = await accountCmd.init(argv.build());
-      expect(status).to.be.ok;
+      await commandInvoker.invoke({
+        argv: argv,
+        command: AccountCommand.COMMAND_NAME,
+        subcommand: 'init',
+        callback: async argv => accountCmd.init(argv),
+      });
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should delete a node from the network successfully', async () => {
-      await nodeCmd.handlers.deletePrepare(argvPrepare.build());
-      await nodeCmd.handlers.deleteSubmitTransactions(argvExecute.build());
-      await nodeCmd.handlers.deleteExecute(argvExecute.build());
-      expect(nodeCmd.configManager.getUnusedConfigs(NodeCommandConfigs.DELETE_CONFIGS_NAME)).to.deep.equal([
-        flags.devMode.constName,
-        flags.force.constName,
-        flags.quiet.constName,
-        flags.adminKey.constName,
-        'freezeAdminPrivateKey',
-      ]);
+      await commandInvoker.invoke({
+        argv: argvPrepare,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'delete-prepare',
+        callback: async argv => nodeCmd.handlers.deletePrepare(argv),
+      });
 
-      await bootstrapResp.opts.accountManager.close();
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'delete-submit-transactions',
+        callback: async argv => nodeCmd.handlers.deleteSubmitTransactions(argv),
+      });
+
+      await commandInvoker.invoke({
+        argv: argvExecute,
+        command: NodeCommand.COMMAND_NAME,
+        subcommand: 'delete-execute',
+        callback: async argv => nodeCmd.handlers.deleteExecute(argv),
+      });
+
+      await accountManager.close();
     }).timeout(Duration.ofMinutes(10).toMillis());
 
-    balanceQueryShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, nodeAlias);
+    balanceQueryShouldSucceed(accountManager, namespace, remoteConfigManager, logger, nodeAlias);
 
-    accountCreationShouldSucceed(bootstrapResp.opts.accountManager, nodeCmd, namespace, nodeAlias);
+    accountCreationShouldSucceed(accountManager, namespace, remoteConfigManager, logger, nodeAlias);
 
     it('deleted consensus node should not be running', async () => {
       // read config.txt file from first node, read config.txt line by line, it should not contain value of nodeAlias
@@ -88,6 +103,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
         .containers()
         .readByRef(ContainerRef.of(PodRef.of(namespace, pods[0].podRef.name), ROOT_CONTAINER))
         .execContainer(['bash', '-c', `tail -n 1 ${HEDERA_HAPI_PATH}/output/swirlds.log`]);
+
       expect(response).to.contain('JVM is shutting down');
     }).timeout(Duration.ofMinutes(10).toMillis());
   });

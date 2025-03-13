@@ -196,6 +196,11 @@ export class RemoteConfigManager {
     return this.remoteConfig;
   }
 
+  /** Unload the remote config from the remote config manager. */
+  public unload(): void {
+    this.remoteConfig = undefined;
+  }
+
   public static compare(remoteConfig1: RemoteConfigDataWrapper, remoteConfig2: RemoteConfigDataWrapper): boolean {
     // Compare clusters
     const clusters1 = Object.keys(remoteConfig1.clusters);

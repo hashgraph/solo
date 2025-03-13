@@ -20,9 +20,11 @@ export class ClusterCommand extends BaseCommand {
     this.handlers = patchInject(null, InjectTokens.ClusterCommandHandlers, this.constructor.name);
   }
 
+  public static readonly COMMAND_NAME = 'cluster-ref';
+
   getCommandDefinition() {
     return {
-      command: 'cluster-ref',
+      command: ClusterCommand.COMMAND_NAME,
       desc: 'Manage solo testing cluster',
       builder: (yargs: AnyYargs) => {
         return yargs

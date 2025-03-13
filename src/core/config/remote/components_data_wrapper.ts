@@ -21,6 +21,7 @@ import {
 import {type ToObject, type Validate} from '../../../types/index.js';
 import {Templates} from '../../templates.js';
 import {type NodeAliases} from '../../../types/aliases.js';
+import {type CloneTrait} from '../../../types/traits/clone_trait.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -28,7 +29,9 @@ import {type NodeAliases} from '../../../types/aliases.js';
  * - Validation.
  * - Conversion FROM and TO plain object.
  */
-export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataStructure> {
+export class ComponentsDataWrapper
+  implements Validate, ToObject<ComponentsDataStructure>, CloneTrait<ComponentsDataWrapper>
+{
   /**
    * @param relays - Relay record mapping service name to relay components
    * @param haProxies - HA Proxies record mapping service name to ha proxies components
@@ -309,7 +312,7 @@ export class ComponentsDataWrapper implements Validate, ToObject<ComponentsDataS
     };
   }
 
-  public clone(): ComponentsDataWrapper {
+  public clone() {
     const data = this.toObject();
 
     return ComponentsDataWrapper.fromObject(data);

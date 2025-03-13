@@ -122,6 +122,7 @@ export class Middlewares {
 
       const command = argv._[0];
       const subCommand = argv._[1];
+
       const skip =
         command === 'init' ||
         (command === 'cluster-ref' && subCommand === 'connect') ||
