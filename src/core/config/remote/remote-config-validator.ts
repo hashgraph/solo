@@ -4,11 +4,11 @@ import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/SoloError.js';
 import {ConsensusNodeStates} from './enumerations.js';
 
-import {type K8Factory} from '../../kube/k8_factory.js';
-import {type ComponentsDataWrapper} from './components_data_wrapper.js';
-import {type BaseComponent} from './components/base_component.js';
-import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
-import {type LocalConfig} from '../local_config.js';
+import {type K8Factory} from '../../kube/k8-factory.js';
+import {type ComponentsDataWrapper} from './components-data-wrapper.js';
+import {type BaseComponent} from './components/base-component.js';
+import {type NamespaceName} from '../../kube/resources/namespace/namespace-name.js';
+import {type LocalConfig} from '../local-config.js';
 import {type Pod} from '../../kube/resources/pod/pod.js';
 
 /**

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Pvcs} from '../../../resources/pvc/pvcs.js';
-import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {StatusCodes} from 'http-status-codes';
 import {
   V1ObjectMeta,
@@ -13,12 +13,12 @@ import {
 import {Duration} from '../../../../time/duration.js';
 import {type Pvc} from '../../../resources/pvc/pvc.js';
 import {SoloError} from '../../../../errors/SoloError.js';
-import {KubeApiResponse} from '../../../kube_api_response.js';
-import {ResourceOperation} from '../../../resources/resource_operation.js';
-import {ResourceType} from '../../../resources/resource_type.js';
-import {K8ClientPvc} from './k8_client_pvc.js';
+import {KubeApiResponse} from '../../../kube-api-response.js';
+import {ResourceOperation} from '../../../resources/resource-operation.js';
+import {ResourceType} from '../../../resources/resource-type.js';
+import {K8ClientPvc} from './k8-client-pvc.js';
 import {type IncomingMessage} from 'http';
-import {type PvcRef} from '../../../resources/pvc/pvc_ref.js';
+import {type PvcRef} from '../../../resources/pvc/pvc-ref.js';
 
 export class K8ClientPvcs implements Pvcs {
   constructor(private readonly kubeClient: CoreV1Api) {}

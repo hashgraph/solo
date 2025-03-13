@@ -2,12 +2,12 @@
 
 import os from 'os';
 import {SoloError} from '../errors/SoloError.js';
-import {ShellRunner} from '../shell_runner.js';
-import {HelmDependencyManager} from './helm_dependency_manager.js';
+import {ShellRunner} from '../shell-runner.js';
+import {HelmDependencyManager} from './helm-dependency-manager.js';
 import {type ListrTask} from 'listr2';
 import {container, inject, injectable} from 'tsyringe-neo';
 import * as constants from '../constants.js';
-import {InjectTokens} from '../dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 
 @injectable()
 export class DependencyManager extends ShellRunner {

@@ -3,33 +3,33 @@
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/SoloError.js';
 import {MissingArgumentError} from '../../errors/MissingArgumentError.js';
-import {RemoteConfigDataWrapper} from './remote_config_data_wrapper.js';
+import {RemoteConfigDataWrapper} from './remote-config-data-wrapper.js';
 import chalk from 'chalk';
 import {RemoteConfigMetadata} from './metadata.js';
 import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
-import {ComponentsDataWrapper} from './components_data_wrapper.js';
-import {RemoteConfigValidator} from './remote_config_validator.js';
-import {type K8Factory} from '../../kube/k8_factory.js';
+import {ComponentsDataWrapper} from './components-data-wrapper.js';
+import {RemoteConfigValidator} from './remote-config-validator.js';
+import {type K8Factory} from '../../kube/k8-factory.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName, type Version} from './types.js';
 import {type SoloLogger} from '../../logging.js';
-import {type ConfigManager} from '../../config_manager.js';
-import {type LocalConfig} from '../local_config.js';
+import {type ConfigManager} from '../../config-manager.js';
+import {type LocalConfig} from '../local-config.js';
 import {type Optional} from '../../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../dependency_injection/container_helper.js';
-import {ErrorMessages} from '../../error_messages.js';
-import {CommonFlagsDataWrapper} from './common_flags_data_wrapper.js';
+import {patchInject} from '../../dependency-injection/container-helper.js';
+import {ErrorMessages} from '../../error-messages.js';
+import {CommonFlagsDataWrapper} from './common-flags-data-wrapper.js';
 import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
-import {type NamespaceName} from '../../kube/resources/namespace/namespace_name.js';
-import {InjectTokens} from '../../dependency_injection/inject_tokens.js';
+import {type NamespaceName} from '../../kube/resources/namespace/namespace-name.js';
+import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {Cluster} from './cluster.js';
 import * as helpers from '../../helpers.js';
-import {ConsensusNode} from '../../model/consensus_node.js';
+import {ConsensusNode} from '../../model/consensus-node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 import {type DeploymentStates} from './enumerations.js';
-import {type ConfigMap} from '../../kube/resources/config_map/config_map.js';
+import {type ConfigMap} from '../../kube/resources/config-map/config-map.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,

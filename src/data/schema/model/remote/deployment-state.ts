@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Exclude, Expose, Transform, Type} from 'class-transformer';
-import {ConsensusNodeState} from './state/consensus_node_state.js';
-import {type LedgerPhase} from './ledger_phase.js';
+import {ConsensusNodeState} from './state/consensus-node-state.js';
+import {type LedgerPhase} from './ledger-phase.js';
 import {Transformations} from '../utils/transformations.js';
-import {RelayNodeState} from './state/relay_node_state.js';
-import {MirrorNodeState} from './state/mirror_node_state.js';
-import {HAProxyState} from './state/haproxy_state.js';
-import {EnvoyProxyState} from './state/envoy_proxy_state.js';
-import {ExplorerState} from './state/explorer_state.js';
-import {BlockNodeState} from './state/block_node_state.js';
+import {RelayNodeState} from './state/relay-node-state.js';
+import {MirrorNodeState} from './state/mirror-node-state.js';
+import {HAProxyState} from './state/haproxy-state.js';
+import {EnvoyProxyState} from './state/envoy-proxy-state.js';
+import {ExplorerState} from './state/explorer-state.js';
+import {BlockNodeState} from './state/block-node-state.js';
 
 @Exclude()
 export class DeploymentState {

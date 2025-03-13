@@ -7,8 +7,8 @@ import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
 import {MissingArgumentError} from './errors/MissingArgumentError.js';
 import {SoloError} from './errors/SoloError.js';
 import * as constants from './constants.js';
-import {type ConfigManager} from './config_manager.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type ConfigManager} from './config-manager.js';
+import {type K8Factory} from './kube/k8-factory.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
@@ -19,13 +19,13 @@ import {type NodeAlias} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
-import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {type PodRef} from './kube/resources/pod/pod_ref.js';
-import {ContainerRef} from './kube/resources/container/container_ref.js';
-import {SecretType} from './kube/resources/secret/secret_type.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type ConsensusNode} from './model/consensus_node.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
+import {type PodRef} from './kube/resources/pod/pod-ref.js';
+import {ContainerRef} from './kube/resources/container/container-ref.js';
+import {SecretType} from './kube/resources/secret/secret-type.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {type ConsensusNode} from './model/consensus-node.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()

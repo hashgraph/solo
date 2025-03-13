@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ConfigBuilder} from './config_builder.js';
+import {type ConfigBuilder} from './config-builder.js';
 import {type Config} from './config.js';
 
 /**

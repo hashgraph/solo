@@ -2,7 +2,7 @@
 
 import {V1Lease, V1LeaseSpec, V1MicroTime, V1ObjectMeta} from '@kubernetes/client-node';
 import {type Lease} from '../../../resources/lease/lease.js';
-import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
 
 export class K8ClientLease implements Lease {
   public constructor(

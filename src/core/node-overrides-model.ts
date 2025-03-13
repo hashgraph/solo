@@ -4,7 +4,7 @@ import * as yaml from 'yaml';
 import * as constants from './constants.js';
 import {Templates} from './templates.js';
 import {type NodeAliases} from '../types/aliases.js';
-import {type NetworkNodeServices} from './network_node_services.js';
+import {type NetworkNodeServices} from './network-node-services.js';
 import {type GossipEndpoint} from '../types/index.js';
 
 export class NodeOverridesModel {

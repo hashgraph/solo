@@ -2,7 +2,7 @@
 
 import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors/SoloError.js';
-import {BaseComponent} from './base_component.js';
+import {BaseComponent} from './base-component.js';
 import {type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';

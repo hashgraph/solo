@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Services} from '../../../resources/service/services.js';
-import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {V1ObjectMeta, V1Service, V1ServicePort, V1ServiceSpec, type CoreV1Api} from '@kubernetes/client-node';
-import {K8ClientBase} from '../../k8_client_base.js';
+import {K8ClientBase} from '../../k8-client-base.js';
 import {type Service} from '../../../resources/service/service.js';
-import {KubeApiResponse} from '../../../kube_api_response.js';
-import {ResourceOperation} from '../../../resources/resource_operation.js';
-import {ResourceType} from '../../../resources/resource_type.js';
-import {K8ClientService} from './k8_client_service.js';
-import {type ServiceSpec} from '../../../resources/service/service_spec.js';
-import {type ServiceStatus} from '../../../resources/service/service_status.js';
-import {type ServiceRef} from '../../../resources/service/service_ref.js';
+import {KubeApiResponse} from '../../../kube-api-response.js';
+import {ResourceOperation} from '../../../resources/resource-operation.js';
+import {ResourceType} from '../../../resources/resource-type.js';
+import {K8ClientService} from './k8-client-service.js';
+import {type ServiceSpec} from '../../../resources/service/service-spec.js';
+import {type ServiceStatus} from '../../../resources/service/service-status.js';
+import {type ServiceRef} from '../../../resources/service/service-ref.js';
 import {SoloError} from '../../../../errors/SoloError.js';
 import {type IncomingMessage} from 'http';
 

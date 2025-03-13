@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type IngressClasses} from '../../../resources/ingress_class/ingress_classes.js';
-import {type IngressClass} from '../../../resources/ingress_class/ingress_class.js';
+import {type IngressClasses} from '../../../resources/ingress-class/ingress-classes.js';
+import {type IngressClass} from '../../../resources/ingress-class/ingress-class.js';
 import {type V1IngressClass, type NetworkingV1Api} from '@kubernetes/client-node';
-import {K8ClientIngressClass} from './k8_client_ingress_class.js';
+import {K8ClientIngressClass} from './k8-client-ingress-class.js';
 import {SoloError} from '../../../../errors/SoloError.js';
-import {ResourceCreateError, ResourceDeleteError} from '../../../errors/resource_operation_errors.js';
-import {ResourceType} from '../../../resources/resource_type.js';
+import {ResourceCreateError, ResourceDeleteError} from '../../../errors/resource-operation-errors.js';
+import {ResourceType} from '../../../resources/resource-type.js';
 
 export class K8ClientIngressClasses implements IngressClasses {
   constructor(private readonly networkingApi: NetworkingV1Api) {}

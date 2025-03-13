@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ConfigAccessor} from './config_accessor.js';
+import {type ConfigAccessor} from './config-accessor.js';
 
 /**
  * Implementations of config mutator provide the necessary methods to access and modify a configuration.

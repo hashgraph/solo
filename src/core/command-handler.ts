@@ -2,16 +2,16 @@
 
 import {inject, injectable} from 'tsyringe-neo';
 import {SoloLogger} from './logging.js';
-import {patchInject} from './dependency_injection/container_helper.js';
+import {patchInject} from './dependency-injection/container-helper.js';
 import {Listr} from 'listr2';
 import {SoloError} from './errors/SoloError.js';
 import {type Lock} from './lock/lock.js';
 import * as constants from './constants.js';
 import fs from 'fs';
 import {Task} from './task.js';
-import {ConfigManager} from './config_manager.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {AccountManager} from './account_manager.js';
+import {ConfigManager} from './config-manager.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {AccountManager} from './account-manager.js';
 
 @injectable()
 export class CommandHandler {

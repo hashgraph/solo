@@ -4,7 +4,7 @@ import {Exclude, Expose, Transform, Type} from 'class-transformer';
 import {SemVer} from 'semver';
 import {Deployment} from './deployment.js';
 import {Transformations} from '../utils/transformations.js';
-import {UserIdentity} from '../common/user_identity.js';
+import {UserIdentity} from '../common/user-identity.js';
 
 @Exclude()
 export class LocalConfig {

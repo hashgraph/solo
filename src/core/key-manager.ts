@@ -16,8 +16,8 @@ import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type NodeKeyObject, type PrivateKeyAndCertificateObject} from '../types/index.js';
 import {type ListrTask} from 'listr2';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);
@@ -25,7 +25,7 @@ x509.cryptoProvider.set(crypto);
 @injectable()
 export class KeyManager {
   static SigningKeyAlgo = {
-    name: 'RSASSA-PKCS1-v1_5',
+    name: 'RSASSA-PKCS1-v1-5',
     hash: 'SHA-384',
     publicExponent: new Uint8Array([1, 0, 1]),
     modulusLength: 3072,
@@ -34,7 +34,7 @@ export class KeyManager {
   static SigningKeyUsage: KeyUsage[] = ['sign', 'verify'];
 
   static TLSKeyAlgo = {
-    name: 'RSASSA-PKCS1-v1_5',
+    name: 'RSASSA-PKCS1-v1-5',
     hash: 'SHA-384',
     publicExponent: new Uint8Array([1, 0, 1]),
     modulusLength: 4096,

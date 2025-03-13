@@ -2,7 +2,7 @@
 
 import {type SoloListrTask} from '../../../types/index.js';
 import {type AnyObject} from '../../../types/aliases.js';
-import {type RemoteConfigManager} from './remote_config_manager.js';
+import {type RemoteConfigManager} from './remote-config-manager.js';
 
 /**
  * Static class that handles all tasks related to remote config used by other commands.

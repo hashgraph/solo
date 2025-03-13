@@ -3,7 +3,7 @@
 import {describe} from 'mocha';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getTestCluster} from '../../test_util.js';
+import {e2eTestSuite, getTestCluster} from '../../test-util.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
 import path from 'path';
@@ -11,13 +11,13 @@ import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {Duration} from '../../../src/core/time/duration.js';
 import {AccountCommand} from '../../../src/commands/account.js';
-import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {type NetworkNodes} from '../../../src/core/network_nodes.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version-test.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 
 const namespace = NamespaceName.of('local-hedera-app');

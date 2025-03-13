@@ -3,7 +3,7 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {PackageDownloader} from '../../../src/core/package_downloader.js';
+import {PackageDownloader} from '../../../src/core/package-downloader.js';
 import * as logging from '../../../src/core/logging.js';
 import * as fs from 'fs';
 import * as path from 'path';

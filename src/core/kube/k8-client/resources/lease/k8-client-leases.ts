@@ -9,7 +9,7 @@ import {
   type V1Status,
 } from '@kubernetes/client-node';
 import {type Leases} from '../../../resources/lease/leases.js';
-import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import type http from 'node:http';
 import {SoloError} from '../../../../errors/SoloError.js';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
@@ -17,16 +17,16 @@ import {type SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
-import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
-import {K8ClientLease} from './k8_client_lease.js';
+import {InjectTokens} from '../../../../dependency-injection/inject-tokens.js';
+import {K8ClientLease} from './k8-client-lease.js';
 import {type Lease} from '../../../resources/lease/lease.js';
 import {
   ResourceCreateError,
   ResourceDeleteError,
   ResourceReadError,
   ResourceReplaceError,
-} from '../../../errors/resource_operation_errors.js';
-import {ResourceType} from '../../../resources/resource_type.js';
+} from '../../../errors/resource-operation-errors.js';
+import {ResourceType} from '../../../resources/resource-type.js';
 
 export class K8ClientLeases implements Leases {
   private readonly logger: SoloLogger;

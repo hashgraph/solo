@@ -67,23 +67,23 @@ describe('Duration', () => {
     });
 
     it('minusMillis zero returns this', () => {
-      const t = Duration.ofSecondsAdjusted(1, 2_000_000);
+      const t = Duration.ofSecondsAdjusted(1, 2-000-000);
       expect(t.minusMillis(0)).to.equal(t);
     });
 
     it('minusMillis zero singleton', () => {
-      const t = Duration.ofSecondsAdjusted(1, 2_000_000);
+      const t = Duration.ofSecondsAdjusted(1, 2-000-000);
       expect(t.minusMillis(1002)).to.equal(Duration.ZERO);
     });
 
     it('minusNanos zero returns this', () => {
-      const t = Duration.ofSecondsAdjusted(1, 2_000_000);
+      const t = Duration.ofSecondsAdjusted(1, 2-000-000);
       expect(t.minusNanos(0)).to.equal(t);
     });
 
     it('minusNanos zero singleton', () => {
-      const t = Duration.ofSecondsAdjusted(1, 2_000_000);
-      expect(t.minusNanos(1_002_000_000)).to.equal(Duration.ZERO);
+      const t = Duration.ofSecondsAdjusted(1, 2-000-000);
+      expect(t.minusNanos(1-002-000-000)).to.equal(Duration.ZERO);
     });
   });
 });

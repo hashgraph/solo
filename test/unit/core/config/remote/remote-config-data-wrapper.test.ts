@@ -4,12 +4,12 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
 import * as yaml from 'yaml';
-import {RemoteConfigDataWrapper} from '../../../../../src/core/config/remote/remote_config_data_wrapper.js';
+import {RemoteConfigDataWrapper} from '../../../../../src/core/config/remote/remote-config-data-wrapper.js';
 import {createMetadata} from './metadata.test.js';
-import {createComponentsDataWrapper} from './components_data_wrapper.test.js';
+import {createComponentsDataWrapper} from './components-data-wrapper.test.js';
 import {SoloError} from '../../../../../src/core/errors/SoloError.js';
 import * as constants from '../../../../../src/core/constants.js';
-import {CommonFlagsDataWrapper} from '../../../../../src/core/config/remote/common_flags_data_wrapper.js';
+import {CommonFlagsDataWrapper} from '../../../../../src/core/config/remote/common-flags-data-wrapper.js';
 
 const configManagerMock = {
   update: (...args: any) => true,

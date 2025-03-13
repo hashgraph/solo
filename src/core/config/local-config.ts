@@ -4,19 +4,19 @@ import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-valid
 import fs from 'fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../commands/flags.js';
-import {type Deployments, type LocalConfigData} from './local_config_data.js';
+import {type Deployments, type LocalConfigData} from './local-config-data.js';
 import {MissingArgumentError} from '../errors/MissingArgumentError.js';
 import {SoloError} from '../errors/SoloError.js';
 import {type SoloLogger} from '../logging.js';
-import {IsClusterRefs, IsDeployments} from '../validator_decorators.js';
-import {type ConfigManager} from '../config_manager.js';
+import {IsClusterRefs, IsDeployments} from '../validator-decorators.js';
+import {type ConfigManager} from '../config-manager.js';
 import {type EmailAddress, type Version, type ClusterRefs, type ClusterRef} from './remote/types.js';
-import {ErrorMessages} from '../error_messages.js';
+import {ErrorMessages} from '../error-messages.js';
 import * as helpers from '../helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../dependency_injection/container_helper.js';
+import {patchInject} from '../dependency-injection/container-helper.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {InjectTokens} from '../dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {

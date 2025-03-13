@@ -2,18 +2,18 @@
 
 import {type Secrets} from '../../../resources/secret/secrets.js';
 import {type CoreV1Api, V1ObjectMeta, V1Secret} from '@kubernetes/client-node';
-import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {type Optional} from '../../../../../types/index.js';
-import {KubeApiResponse} from '../../../kube_api_response.js';
+import {KubeApiResponse} from '../../../kube-api-response.js';
 import {
   ResourceCreateError,
   ResourceNotFoundError,
   ResourceReplaceError,
-} from '../../../errors/resource_operation_errors.js';
-import {ResourceType} from '../../../resources/resource_type.js';
-import {ResourceOperation} from '../../../resources/resource_operation.js';
+} from '../../../errors/resource-operation-errors.js';
+import {ResourceType} from '../../../resources/resource-type.js';
+import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {Duration} from '../../../../time/duration.js';
-import {type SecretType} from '../../../resources/secret/secret_type.js';
+import {type SecretType} from '../../../resources/secret/secret-type.js';
 
 export class K8ClientSecrets implements Secrets {
   public constructor(private readonly kubeClient: CoreV1Api) {}

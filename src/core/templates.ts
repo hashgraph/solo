@@ -10,10 +10,10 @@ import {SoloError} from './errors/SoloError.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
 import {type IP, type NodeAlias, type NodeAliases, type NodeId} from '../types/aliases.js';
-import {PodName} from './kube/resources/pod/pod_name.js';
+import {PodName} from './kube/resources/pod/pod-name.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type NamespaceNameAsString} from './config/remote/types.js';
 
 export class Templates {

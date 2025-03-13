@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import * as constants from './constants.js';
-import {patchInject} from './dependency_injection/container_helper.js';
+import {patchInject} from './dependency-injection/container-helper.js';
 import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type K8Factory} from './kube/k8-factory.js';
 import {type Pod} from './kube/resources/pod/pod.js';
-import {type IngressClass} from './kube/resources/ingress_class/ingress_class.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type ConfigMap} from './kube/resources/config_map/config_map.js';
+import {type IngressClass} from './kube/resources/ingress-class/ingress-class.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {type ConfigMap} from './kube/resources/config-map/config-map.js';
 
 /**
  * Class to check if certain components are installed in the cluster.

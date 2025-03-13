@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type http from 'node:http';
-import {type ResourceOperation} from './resources/resource_operation.js';
-import {type ResourceType} from './resources/resource_type.js';
-import {type NamespaceName} from './resources/namespace/namespace_name.js';
-import {ResourceNotFoundError} from './errors/resource_operation_errors.js';
+import {type ResourceOperation} from './resources/resource-operation.js';
+import {type ResourceType} from './resources/resource-type.js';
+import {type NamespaceName} from './resources/namespace/namespace-name.js';
+import {ResourceNotFoundError} from './errors/resource-operation-errors.js';
 import {StatusCodes} from 'http-status-codes';
-import {KubeApiError} from './errors/kube_api_error.js';
+import {KubeApiError} from './errors/kube-api-error.js';
 
 export class KubeApiResponse {
   private constructor() {}

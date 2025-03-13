@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ResourceName} from '../resource_name.js';
-import {ResourceType} from '../resource_type.js';
+import {ResourceName} from '../resource-name.js';
+import {ResourceType} from '../resource-type.js';
 
 /**
  * Represents a Kubernetes service name. A Kubernetes service name must be a valid RFC-1123 DNS label.

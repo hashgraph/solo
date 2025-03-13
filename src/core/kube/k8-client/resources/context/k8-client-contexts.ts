@@ -2,7 +2,7 @@
 
 import {type Contexts} from '../../../resources/context/contexts.js';
 import {type KubeConfig, CoreV1Api} from '@kubernetes/client-node';
-import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
 
 export class K8ClientContexts implements Contexts {
   public constructor(private readonly kubeConfig: KubeConfig) {}

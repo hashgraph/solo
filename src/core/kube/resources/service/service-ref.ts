@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type PodName} from '../pod/pod_name.js';
-import {type NamespaceName} from '../namespace/namespace_name.js';
-import {ResourceRef} from '../resource_ref.js';
-import {type ServiceName} from './service_name.js';
+import {type PodName} from '../pod/pod-name.js';
+import {type NamespaceName} from '../namespace/namespace-name.js';
+import {ResourceRef} from '../resource-ref.js';
+import {type ServiceName} from './service-name.js';
 
 /**
  * Represents a Kubernetes service reference which includes the namespace name and service name.

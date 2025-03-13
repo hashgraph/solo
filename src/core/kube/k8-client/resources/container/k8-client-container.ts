@@ -5,8 +5,8 @@ import type * as WebSocket from 'ws';
 import * as tar from 'tar';
 import {type Container} from '../../../resources/container/container.js';
 import {type TarCreateFilter} from '../../../../../types/aliases.js';
-import {type TDirectoryData} from '../../../t_directory_data.js';
-import {type ContainerRef} from '../../../resources/container/container_ref.js';
+import {type TDirectoryData} from '../../../t-directory-data.js';
+import {type ContainerRef} from '../../../resources/container/container-ref.js';
 import {IllegalArgumentError} from '../../../../errors/IllegalArgumentError.js';
 import {MissingArgumentError} from '../../../../errors/MissingArgumentError.js';
 import {SoloError} from '../../../../errors/SoloError.js';
@@ -19,7 +19,7 @@ import {type SoloLogger} from '../../../../logging.js';
 import os from 'os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
-import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../../../../dependency-injection/inject-tokens.js';
 
 export class K8ClientContainer implements Container {
   private readonly logger: SoloLogger;
@@ -397,7 +397,7 @@ export class K8ClientContainer implements Container {
         const parts = line.split('|');
         if (parts.length >= 9) {
           let name = parts[parts.length - 1];
-          // handle unique file format (without single quotes): 'usedAddressBook_vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06_node_0.txt.debug'
+          // handle unique file format (without single quotes): 'usedAddressBook-vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06-node-0.txt.debug'
           for (let i = parts.length - 1; i > 8; i--) {
             name = `${parts[i - 1]} ${name}`;
           }

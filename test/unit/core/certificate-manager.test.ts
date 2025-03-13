@@ -4,16 +4,16 @@ import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
 import sinon from 'sinon';
 
-import {type ConfigManager} from '../../../src/core/config_manager.js';
-import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
-import {type CertificateManager} from '../../../src/core/certificate_manager.js';
+import {type ConfigManager} from '../../../src/core/config-manager.js';
+import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
+import {type CertificateManager} from '../../../src/core/certificate-manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors/SoloError.js';
 import {container} from 'tsyringe-neo';
-import {resetForTest} from '../../test_container.js';
-import {K8ClientSecrets} from '../../../src/core/kube/k8_client/resources/secret/k8_client_secrets.js';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {resetForTest} from '../../test-container.js';
+import {K8ClientSecrets} from '../../../src/core/kube/k8-client/resources/secret/k8-client-secrets.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 
 describe('Certificate Manager', () => {
   const argv = Argv.initializeEmpty();

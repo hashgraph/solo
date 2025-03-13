@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Flags as flags} from '../../commands/flags.js';
-import {type ConfigManager} from '../config_manager.js';
-import {type K8Factory} from '../kube/k8_factory.js';
+import {type ConfigManager} from '../config-manager.js';
+import {type K8Factory} from '../kube/k8-factory.js';
 import {type SoloLogger} from '../logging.js';
 import {type Lock, type LockRenewalService} from './lock.js';
-import {IntervalLock} from './interval_lock.js';
-import {LockHolder} from './lock_holder.js';
+import {IntervalLock} from './interval-lock.js';
+import {LockHolder} from './lock-holder.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../dependency_injection/container_helper.js';
-import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
-import {InjectTokens} from '../dependency_injection/inject_tokens.js';
-import {LockAcquisitionError} from './lock_acquisition_error.js';
+import {patchInject} from '../dependency-injection/container-helper.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace-name.js';
+import {InjectTokens} from '../dependency-injection/inject-tokens.js';
+import {LockAcquisitionError} from './lock-acquisition-error.js';
 
 /**
  * Manages the acquisition and renewal of locks.

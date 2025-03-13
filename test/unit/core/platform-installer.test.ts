@@ -7,14 +7,14 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
-import {type PlatformInstaller} from '../../../src/core/platform_installer.js';
+import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 import {IllegalArgumentError} from '../../../src/core/errors/IllegalArgumentError.js';
 import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
-import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod-name.js';
 import {container} from 'tsyringe-neo';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 
 describe('PackageInstaller', () => {
   let installer: PlatformInstaller;

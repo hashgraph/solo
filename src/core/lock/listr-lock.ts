@@ -4,7 +4,7 @@ import {type ListrTaskWrapper} from 'listr2';
 import chalk from 'chalk';
 import {type Lock} from './lock.js';
 
-import {LockAcquisitionError} from './lock_acquisition_error.js';
+import {LockAcquisitionError} from './lock-acquisition-error.js';
 
 /**
  * A utility class for managing lock acquisition tasks in Listr2 based workflows.

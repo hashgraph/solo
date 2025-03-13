@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {testNodeAdd} from '../../test_add.js';
+import {testNodeAdd} from '../../test-add.js';
 import {Duration} from '../../../src/core/time/duration.js';
 
 const localBuildPath = '';

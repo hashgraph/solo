@@ -4,9 +4,9 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
-import {type ChartManager} from '../../../../src/core/chart_manager.js';
+import {type ChartManager} from '../../../../src/core/chart-manager.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 
 describe('ChartManager', () => {
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);

@@ -3,7 +3,7 @@
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import path from 'path';
-import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandFlag} from '../types/flag-types.js';
 import {type ListrTaskWrapper} from 'listr2';
 import fs from 'fs';
 import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
@@ -1834,7 +1834,7 @@ export class Flags {
     definition: {
       defaultValue: constants.StorageType.MINIO_ONLY,
       describe:
-        'storage type for saving stream files, available options are minio_only, aws_only, gcs_only, aws_and_gcs',
+        'storage type for saving stream files, available options are minio-only, aws-only, gcs-only, aws-and-gcs',
       type: 'StorageType',
     },
     prompt: undefined,

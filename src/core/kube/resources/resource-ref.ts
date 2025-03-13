@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from './namespace/namespace_name.js';
-import {type ResourceName} from './resource_name.js';
-import {MissingNamespaceError} from '../errors/missing_namespace_error.js';
-import {MissingResourceNameError} from '../errors/missing_resource_name_error.js';
+import {type NamespaceName} from './namespace/namespace-name.js';
+import {type ResourceName} from './resource-name.js';
+import {MissingNamespaceError} from '../errors/missing-namespace-error.js';
+import {MissingResourceNameError} from '../errors/missing-resource-name-error.js';
 
 export abstract class ResourceRef<T extends ResourceName> {
   protected constructor(

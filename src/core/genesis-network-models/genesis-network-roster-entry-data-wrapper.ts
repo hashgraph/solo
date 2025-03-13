@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {GenesisNetworkDataWrapper} from './genesis_network_data_wrapper.js';
+import {GenesisNetworkDataWrapper} from './genesis-network-data-wrapper.js';
 import {type NodeId} from '../../types/aliases.js';
 import {type GenesisNetworkRosterStructure, type ToObject} from '../../types/index.js';
 

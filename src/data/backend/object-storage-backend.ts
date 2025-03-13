@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type StorageBackend} from './storage_backend.js';
+import {type StorageBackend} from './storage-backend.js';
 
 /**
  * ObjectStorageBackend extends the StorageBackend interface to provide additional methods for reading and writing

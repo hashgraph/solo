@@ -11,19 +11,19 @@ import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandFlag} from '../types/flag-types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
-import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
+import {type NodeAddConfigClass} from '../commands/node/node-add-config.js';
 import paths from 'path';
-import {type ConsensusNode} from './model/consensus_node.js';
+import {type ConsensusNode} from './model/consensus-node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
-import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type K8} from './kube/k8.js';
 import {type Helm} from './helm.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type K8Factory} from './kube/k8-factory.js';
 import chalk from 'chalk';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
@@ -265,7 +265,7 @@ export function addDebugOptions(valuesArg: string, debugNodeAlias: NodeAlias, in
   if (debugNodeAlias) {
     const nodeId = Templates.nodeIdFromNodeAlias(debugNodeAlias);
     valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].name=JAVA_OPTS"`;
-    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt_socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`;
+    valuesArg += ` --set "hedera.nodes[${nodeId}].root.extraEnv[${index}].value=-agentlib:jdwp=transport=dt-socket\\,server=y\\,suspend=y\\,address=*:${constants.JVM_DEBUG_PORT}"`;
   }
   return valuesArg;
 }
@@ -474,8 +474,8 @@ export function extractContextFromConsensusNodes(
 }
 
 export function getSoloVersion(): Version {
-  if (process.env.npm_package_version) {
-    return process.env.npm_package_version;
+  if (process.env.npm-package-version) {
+    return process.env.npm-package-version;
   }
 
   const __filename = fileURLToPath(import.meta.url);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {isDns1123Label} from '../kube_validation.js';
-import {InvalidResourceNameError} from '../errors/invalid_resource_name_error.js';
-import {type ResourceType} from './resource_type.js';
+import {isDns1123Label} from '../kube-validation.js';
+import {InvalidResourceNameError} from '../errors/invalid-resource-name-error.js';
+import {type ResourceType} from './resource-type.js';
 
 export abstract class ResourceName {
   protected constructor(

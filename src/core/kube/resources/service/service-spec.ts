@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ServicePort} from './service_port.js';
+import {type ServicePort} from './service-port.js';
 
 export interface ServiceSpec {
   readonly clusterIP?: string;

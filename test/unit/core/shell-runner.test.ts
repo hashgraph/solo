@@ -6,9 +6,9 @@ import {type SinonSpy, type SinonStub} from 'sinon';
 import sinon from 'sinon';
 import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
-import {ShellRunner} from '../../../src/core/shell_runner.js';
+import {ShellRunner} from '../../../src/core/shell-runner.js';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {ChildProcess} from 'child_process';
+import {ChildProcess} from 'child-process';
 import {Readable} from 'stream';
 import {Duration} from '../../../src/core/time/duration.js';
 

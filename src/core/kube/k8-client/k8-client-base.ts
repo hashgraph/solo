@@ -4,9 +4,9 @@ import {IllegalArgumentError} from '../../errors/IllegalArgumentError.js';
 import {MissingArgumentError} from '../../errors/MissingArgumentError.js';
 import {SoloError} from '../../errors/SoloError.js';
 import {type V1ObjectMeta} from '@kubernetes/client-node';
-import {type ObjectMeta} from '../resources/object_meta.js';
-import {K8ClientObjectMeta} from './resources/k8_client_object_meta.js';
-import {NamespaceName} from '../resources/namespace/namespace_name.js';
+import {type ObjectMeta} from '../resources/object-meta.js';
+import {K8ClientObjectMeta} from './resources/k8-client-object-meta.js';
+import {NamespaceName} from '../resources/namespace/namespace-name.js';
 
 /**
  * The abstract K8 Client Filter adds the `filterItem` method to the class that extends it.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Exclude, Expose, Type} from 'class-transformer';
-import {UserIdentity} from '../common/user_identity.js';
+import {UserIdentity} from '../common/user-identity.js';
 
 @Exclude()
 export class RemoteConfigMetadata {

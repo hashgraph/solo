@@ -2,7 +2,7 @@
 
 import {type Pod} from '../../../resources/pod/pod.js';
 import {type ExtendedNetServer} from '../../../../../types/index.js';
-import {PodRef} from '../../../resources/pod/pod_ref.js';
+import {PodRef} from '../../../resources/pod/pod-ref.js';
 import {SoloError} from '../../../../errors/SoloError.js';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
@@ -23,12 +23,12 @@ import {
 import {type Pods} from '../../../resources/pod/pods.js';
 import * as constants from '../../../../constants.js';
 import net from 'net';
-import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
-import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
-import {ContainerName} from '../../../resources/container/container_name.js';
-import {PodName} from '../../../resources/pod/pod_name.js';
-import {K8ClientPodCondition} from './k8_client_pod_condition.js';
-import {type PodCondition} from '../../../resources/pod/pod_condition.js';
+import {InjectTokens} from '../../../../dependency-injection/inject-tokens.js';
+import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
+import {ContainerName} from '../../../resources/container/container-name.js';
+import {PodName} from '../../../resources/pod/pod-name.js';
+import {K8ClientPodCondition} from './k8-client-pod-condition.js';
+import {type PodCondition} from '../../../resources/pod/pod-condition.js';
 
 export class K8ClientPod implements Pod {
   private readonly logger: SoloLogger;

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
-import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
-import {type NetworkNodeServices} from '../../core/network_node_services.js';
+import {type PodRef} from '../../core/kube/resources/pod/pod-ref.js';
+import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {type PrivateKey} from '@hashgraph/sdk';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
+import {type ConsensusNode} from '../../core/model/consensus-node.js';
 
 export interface NodeAddConfigClass {
   app: string;

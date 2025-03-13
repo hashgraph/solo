@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Ingresses} from '../../../resources/ingress/ingresses.js';
-import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {SoloLogger} from '../../../../logging.js';
 import {type V1IngressList, type NetworkingV1Api, type V1Ingress} from '@kubernetes/client-node';
 import {container} from 'tsyringe-neo';
 import {type IncomingMessage} from 'http';
-import {ResourceReadError, ResourceUpdateError} from '../../../errors/resource_operation_errors.js';
-import {ResourceType} from '../../../resources/resource_type.js';
-import {KubeApiResponse} from '../../../kube_api_response.js';
-import {ResourceOperation} from '../../../resources/resource_operation.js';
+import {ResourceReadError, ResourceUpdateError} from '../../../errors/resource-operation-errors.js';
+import {ResourceType} from '../../../resources/resource-type.js';
+import {KubeApiResponse} from '../../../kube-api-response.js';
+import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {SoloError} from '../../../../errors/SoloError.js';
 
 export class K8ClientIngresses implements Ingresses {

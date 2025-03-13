@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type IngressClass} from './ingress_class.js';
+import {type IngressClass} from './ingress-class.js';
 
 export interface IngressClasses {
   /**

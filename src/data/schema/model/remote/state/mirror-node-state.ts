@@ -2,7 +2,7 @@
 
 import {Exclude, Expose, Transform} from 'class-transformer';
 import {Transformations} from '../../utils/transformations.js';
-import {type DeploymentPhase} from '../deployment_phase.js';
+import {type DeploymentPhase} from '../deployment-phase.js';
 
 @Exclude()
 export class MirrorNodeState {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ClassConstructor} from '../../../business/utils/class_constructor.type.js';
+import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
 
 /**
  * Implementations of config accessor provide the necessary methods to access configuration properties.

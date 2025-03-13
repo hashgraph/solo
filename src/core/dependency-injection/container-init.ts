@@ -2,36 +2,36 @@
 
 import {container, Lifecycle} from 'tsyringe-neo';
 import {SoloLogger} from '../logging.js';
-import {PackageDownloader} from '../package_downloader.js';
+import {PackageDownloader} from '../package-downloader.js';
 import {Zippy} from '../zippy.js';
-import {DependencyManager, HelmDependencyManager} from '../dependency_managers/index.js';
+import {DependencyManager, HelmDependencyManager} from '../dependency-managers/index.js';
 import * as constants from '../constants.js';
 import {Helm} from '../helm.js';
-import {ChartManager} from '../chart_manager.js';
-import {ConfigManager} from '../config_manager.js';
-import {AccountManager} from '../account_manager.js';
-import {PlatformInstaller} from '../platform_installer.js';
-import {KeyManager} from '../key_manager.js';
-import {ProfileManager} from '../profile_manager.js';
-import {IntervalLockRenewalService} from '../lock/interval_lock_renewal.js';
-import {LockManager} from '../lock/lock_manager.js';
-import {CertificateManager} from '../certificate_manager.js';
+import {ChartManager} from '../chart-manager.js';
+import {ConfigManager} from '../config-manager.js';
+import {AccountManager} from '../account-manager.js';
+import {PlatformInstaller} from '../platform-installer.js';
+import {KeyManager} from '../key-manager.js';
+import {ProfileManager} from '../profile-manager.js';
+import {IntervalLockRenewalService} from '../lock/interval-lock-renewal.js';
+import {LockManager} from '../lock/lock-manager.js';
+import {CertificateManager} from '../certificate-manager.js';
 import path, {normalize} from 'path';
-import {LocalConfig} from '../config/local_config.js';
-import {RemoteConfigManager} from '../config/remote/remote_config_manager.js';
+import {LocalConfig} from '../config/local-config.js';
+import {RemoteConfigManager} from '../config/remote/remote-config-manager.js';
 import os from 'os';
 import * as version from '../../../version.js';
-import {NetworkNodes} from '../network_nodes.js';
-import {ClusterChecks} from '../cluster_checks.js';
-import {InjectTokens} from './inject_tokens.js';
-import {K8ClientFactory} from '../kube/k8_client/k8_client_factory.js';
+import {NetworkNodes} from '../network-nodes.js';
+import {ClusterChecks} from '../cluster-checks.js';
+import {InjectTokens} from './inject-tokens.js';
+import {K8ClientFactory} from '../kube/k8-client/k8-client-factory.js';
 import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
 import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
 import {NodeCommandHandlers} from '../../commands/node/handlers.js';
 import {NodeCommandTasks} from '../../commands/node/tasks.js';
 import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
-import {ErrorHandler} from '../error_handler.js';
+import {ErrorHandler} from '../error-handler.js';
 
 /**
  * Container class to manage the dependency injection container

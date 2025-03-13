@@ -6,16 +6,16 @@ import * as util from 'util';
 import {MissingArgumentError} from '../errors/MissingArgumentError.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';
-import {type PackageDownloader} from '../package_downloader.js';
+import {type PackageDownloader} from '../package-downloader.js';
 import {type Zippy} from '../zippy.js';
 import {Templates} from '../templates.js';
 import * as version from '../../../version.js';
-import {ShellRunner} from '../shell_runner.js';
+import {ShellRunner} from '../shell-runner.js';
 import * as semver from 'semver';
 import {OS_WIN32, OS_WINDOWS} from '../constants.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../dependency_injection/container_helper.js';
-import {InjectTokens} from '../dependency_injection/inject_tokens.js';
+import {patchInject} from '../dependency-injection/container-helper.js';
+import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';

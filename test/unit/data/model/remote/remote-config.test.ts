@@ -5,7 +5,7 @@ import {loadYaml} from '@kubernetes/client-node';
 import {expect} from 'chai';
 import {beforeEach} from 'mocha';
 import os from 'os';
-import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote_config.js';
+import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote-config.js';
 import {plainToClass} from 'class-transformer';
 
 function migrate(plainObject: object): void {

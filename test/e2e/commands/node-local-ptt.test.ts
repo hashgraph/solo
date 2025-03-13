@@ -3,14 +3,14 @@
 import {describe} from 'mocha';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getTestCluster} from '../../test_util.js';
+import {e2eTestSuite, getTestCluster} from '../../test-util.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version_test.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {type NetworkNodes} from '../../../src/core/network_nodes.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version-test.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 
 const namespace = NamespaceName.of('local-ptt-app');
 const argv = Argv.getDefaultArgv(namespace);

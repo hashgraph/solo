@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {V1ConfigMap, V1ObjectMeta} from '@kubernetes/client-node';
-import {type ConfigMap} from '../../../resources/config_map/config_map.js';
-import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {type ConfigMap} from '../../../resources/config-map/config-map.js';
+import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
 
 export class K8ClientConfigMap implements ConfigMap {
   public constructor(

@@ -6,8 +6,8 @@ import each from 'mocha-each';
 
 import fs from 'fs';
 import path from 'path';
-import {HelmDependencyManager} from '../../../../../src/core/dependency_managers/index.js';
-import {getTestCacheDir, getTmpDir} from '../../../../test_util.js';
+import {HelmDependencyManager} from '../../../../../src/core/dependency-managers/index.js';
+import {getTestCacheDir, getTmpDir} from '../../../../test-util.js';
 import * as version from '../../../../../version.js';
 
 describe('HelmDependencyManager', () => {

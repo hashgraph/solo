@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as constants from './constants.js';
-import {ShellRunner} from './shell_runner.js';
+import {ShellRunner} from './shell-runner.js';
 import {Templates} from './templates.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
 
 @injectable()
 export class Helm extends ShellRunner {

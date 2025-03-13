@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ClassConstructor} from '../../../business/utils/class_constructor.type.js';
-import {type SchemaMigration} from './schema_migration.js';
+import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
+import {type SchemaMigration} from './schema-migration.js';
 import {type Version} from '../../../business/utils/version.js';
 
 /**

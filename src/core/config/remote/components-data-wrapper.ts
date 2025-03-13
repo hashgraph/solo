@@ -2,13 +2,13 @@
 
 import {ComponentType, ConsensusNodeStates} from './enumerations.js';
 import {SoloError} from '../../errors/SoloError.js';
-import {BaseComponent} from './components/base_component.js';
-import {RelayComponent} from './components/relay_component.js';
-import {HaProxyComponent} from './components/ha_proxy_component.js';
-import {MirrorNodeComponent} from './components/mirror_node_component.js';
-import {EnvoyProxyComponent} from './components/envoy_proxy_component.js';
-import {ConsensusNodeComponent} from './components/consensus_node_component.js';
-import {MirrorNodeExplorerComponent} from './components/mirror_node_explorer_component.js';
+import {BaseComponent} from './components/base-component.js';
+import {RelayComponent} from './components/relay-component.js';
+import {HaProxyComponent} from './components/ha-proxy-component.js';
+import {MirrorNodeComponent} from './components/mirror-node-component.js';
+import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
+import {ConsensusNodeComponent} from './components/consensus-node-component.js';
+import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
 import {
   type ClusterRef,
   type Component,
@@ -21,7 +21,7 @@ import {
 import {type ToObject, type Validate} from '../../../types/index.js';
 import {Templates} from '../../templates.js';
 import {type NodeAliases} from '../../../types/aliases.js';
-import {type CloneTrait} from '../../../types/traits/clone_trait.js';
+import {type CloneTrait} from '../../../types/traits/clone-trait.js';
 
 /**
  * Represent the components in the remote config and handles:

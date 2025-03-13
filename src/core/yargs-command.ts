@@ -4,7 +4,7 @@ import {Flags as commandFlags} from '../commands/flags.js';
 import {IllegalArgumentError} from './errors/IllegalArgumentError.js';
 import {SoloError} from './errors/SoloError.js';
 import {type BaseCommand} from '../commands/base.js';
-import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandFlag} from '../types/flag-types.js';
 
 export class YargsCommand {
   constructor(

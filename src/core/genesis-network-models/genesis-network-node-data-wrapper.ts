@@ -7,7 +7,7 @@ import {
   type ServiceEndpoint,
   type ToObject,
 } from '../../types/index.js';
-import {GenesisNetworkDataWrapper} from './genesis_network_data_wrapper.js';
+import {GenesisNetworkDataWrapper} from './genesis-network-data-wrapper.js';
 
 export class GenesisNetworkNodeDataWrapper
   extends GenesisNetworkDataWrapper

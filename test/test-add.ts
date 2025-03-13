@@ -11,16 +11,16 @@ import {
   getNodeAliasesPrivateKeysHash,
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG,
-} from './test_util.js';
+} from './test-util.js';
 import {type NodeAlias} from '../src/types/aliases.js';
-import {type NetworkNodeServices} from '../src/core/network_node_services.js';
+import {type NetworkNodeServices} from '../src/core/network-node-services.js';
 import {Duration} from '../src/core/time/duration.js';
-import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../version_test.js';
-import {NamespaceName} from '../src/core/kube/resources/namespace/namespace_name.js';
-import {type NetworkNodes} from '../src/core/network_nodes.js';
+import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../version-test.js';
+import {NamespaceName} from '../src/core/kube/resources/namespace/namespace-name.js';
+import {type NetworkNodes} from '../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../src/core/dependency_injection/inject_tokens.js';
-import {Argv} from './helpers/argv_wrapper.js';
+import {InjectTokens} from '../src/core/dependency-injection/inject-tokens.js';
+import {Argv} from './helpers/argv-wrapper.js';
 import {type DeploymentName} from '../src/core/config/remote/types.js';
 import {NodeCommand} from '../src/commands/node/index.js';
 import {NetworkCommand} from '../src/commands/network.js';

@@ -7,16 +7,16 @@ import fs from 'fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
-import {type ConfigManager} from './config_manager.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type ConfigManager} from './config-manager.js';
+import {type K8Factory} from './kube/k8-factory.js';
 import {type SoloLogger} from './logging.js';
 import {type ListrTaskWrapper} from 'listr2';
 import {type NodeAlias} from '../types/aliases.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {SecretType} from './kube/resources/secret/secret_type.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
+import {SecretType} from './kube/resources/secret/secret-type.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
 
 /**
  * Used to handle interactions with certificates data and inject it into the K8s cluster secrets

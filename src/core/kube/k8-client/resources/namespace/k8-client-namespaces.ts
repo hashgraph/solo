@@ -4,7 +4,7 @@ import {type Namespaces} from '../../../resources/namespace/namespaces.js';
 import {type V1Status, type CoreV1Api} from '@kubernetes/client-node';
 import {StatusCodes} from 'http-status-codes';
 import {SoloError} from '../../../../errors/SoloError.js';
-import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {sleep} from '../../../../helpers.js';
 import {Duration} from '../../../../time/duration.js';
 

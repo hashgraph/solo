@@ -13,7 +13,7 @@ import {readFile, writeFile} from 'fs/promises';
 import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {type ConfigManager} from './config_manager.js';
+import {type ConfigManager} from './config-manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
 import {type SemVer} from 'semver';
@@ -21,12 +21,12 @@ import {type SoloLogger} from './logging.js';
 import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
 import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
+import {patchInject} from './dependency-injection/container-helper.js';
 import * as versions from '../../version.js';
-import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
-import {type ConsensusNode} from './model/consensus_node.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {type ConsensusNode} from './model/consensus-node.js';
+import {type K8Factory} from './kube/k8-factory.js';
 
 @injectable()
 export class ProfileManager {

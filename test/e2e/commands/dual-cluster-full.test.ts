@@ -3,23 +3,23 @@
 import {describe} from 'mocha';
 
 import {Flags} from '../../../src/commands/flags.js';
-import {getTestCacheDir, getTestCluster} from '../../test_util.js';
+import {getTestCacheDir, getTestCluster} from '../../test-util.js';
 import {getSoloVersion} from '../../../src/core/helpers.js';
 import * as constants from '../../../src/core/constants.js';
 import {main} from '../../../src/index.js';
-import {resetForTest} from '../../test_container.js';
+import {resetForTest} from '../../test-container.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {type CommandFlag} from '../../../src/types/flag_types.js';
-import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {type CommandFlag} from '../../../src/types/flag-types.js';
+import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {expect} from 'chai';
-import {type ConfigManager} from '../../../src/core/config_manager.js';
+import {type ConfigManager} from '../../../src/core/config-manager.js';
 import fs from 'fs';
 import path from 'path';
-import {type LocalConfig} from '../../../src/core/config/local_config.js';
+import {type LocalConfig} from '../../../src/core/config/local-config.js';
 import {type SoloLogger} from '../../../src/core/logging.js';
 
 const testName: string = 'dual-cluster-full';

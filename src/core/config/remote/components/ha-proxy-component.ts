@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {ComponentType} from '../enumerations.js';
-import {BaseComponent} from './base_component.js';
+import {BaseComponent} from './base-component.js';
 import {type Component, type NamespaceNameAsString} from '../types.js';
 
 export class HaProxyComponent extends BaseComponent {

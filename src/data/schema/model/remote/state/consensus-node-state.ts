@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Exclude, Expose, Transform} from 'class-transformer';
-import {type DeploymentPhase} from '../deployment_phase.js';
+import {type DeploymentPhase} from '../deployment-phase.js';
 import {Transformations} from '../../utils/transformations.js';
 
 @Exclude()

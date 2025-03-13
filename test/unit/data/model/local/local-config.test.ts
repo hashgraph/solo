@@ -7,7 +7,7 @@ import {instanceToPlain, plainToClass} from 'class-transformer';
 import {SemVer} from 'semver';
 import {beforeEach} from 'mocha';
 import os from 'os';
-import {LocalConfig} from '../../../../../src/data/schema/model/local/local_config.js';
+import {LocalConfig} from '../../../../../src/data/schema/model/local/local-config.js';
 import {Deployment} from '../../../../../src/data/schema/model/local/deployment.js';
 
 describe('LocalConfig', () => {

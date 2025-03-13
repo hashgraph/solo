@@ -4,13 +4,13 @@ import {it, describe, after} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../../src/commands/flags.js';
-import {e2eTestSuite, getTestCluster} from '../../../test_util.js';
+import {e2eTestSuite, getTestCluster} from '../../../test-util.js';
 import * as version from '../../../../version.js';
-import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
+import {PodName} from '../../../../src/core/kube/resources/pod/pod-name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
-import {Argv} from '../../../helpers/argv_wrapper.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../../src/core/kube/resources/pod/pod-ref.js';
+import {Argv} from '../../../helpers/argv-wrapper.js';
 
 const namespace = NamespaceName.of('account-mngr-e2e');
 const argv = Argv.getDefaultArgv(namespace);
@@ -39,8 +39,8 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       await accountManager.close();
       const podName = PodName.of('minio-console'); // use a svc that is less likely to be used by other tests
       const podRef = PodRef.of(namespace, podName);
-      const podPort = 9_090;
-      const localPort = 19_090;
+      const podPort = 9-090;
+      const localPort = 19-090;
 
       expect(
         // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager

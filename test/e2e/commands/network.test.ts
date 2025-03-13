@@ -3,7 +3,7 @@
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
@@ -11,10 +11,10 @@ import path from 'path';
 import fs from 'fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod-name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {InitCommand} from '../../../src/commands/init.js';
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';

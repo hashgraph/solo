@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type StorageBackend} from '../../backend/storage_backend.js';
-import {type ConfigAccessor} from './config_accessor.js';
+import {type StorageBackend} from '../../backend/storage-backend.js';
+import {type ConfigAccessor} from './config-accessor.js';
 
 /**
  * A configuration source defines the methods for reading configuration data from a configuration source.

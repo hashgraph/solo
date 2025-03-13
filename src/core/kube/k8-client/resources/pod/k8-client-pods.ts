@@ -11,23 +11,23 @@ import {
   V1PodSpec,
 } from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
-import {NamespaceName} from '../../../resources/namespace/namespace_name.js';
-import {PodRef} from '../../../resources/pod/pod_ref.js';
+import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
+import {PodRef} from '../../../resources/pod/pod-ref.js';
 import {type Pod} from '../../../resources/pod/pod.js';
-import {K8ClientPod} from './k8_client_pod.js';
+import {K8ClientPod} from './k8-client-pod.js';
 import {Duration} from '../../../../time/duration.js';
-import {K8ClientBase} from '../../k8_client_base.js';
+import {K8ClientBase} from '../../k8-client-base.js';
 import {SoloError} from '../../../../errors/SoloError.js';
 import {MissingArgumentError} from '../../../../errors/MissingArgumentError.js';
 import * as constants from '../../../../constants.js';
 import {type SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
-import {type ContainerName} from '../../../resources/container/container_name.js';
-import {PodName} from '../../../resources/pod/pod_name.js';
-import {KubeApiResponse} from '../../../kube_api_response.js';
-import {ResourceOperation} from '../../../resources/resource_operation.js';
-import {ResourceType} from '../../../resources/resource_type.js';
-import {InjectTokens} from '../../../../dependency_injection/inject_tokens.js';
+import {type ContainerName} from '../../../resources/container/container-name.js';
+import {PodName} from '../../../resources/pod/pod-name.js';
+import {KubeApiResponse} from '../../../kube-api-response.js';
+import {ResourceOperation} from '../../../resources/resource-operation.js';
+import {ResourceType} from '../../../resources/resource-type.js';
+import {InjectTokens} from '../../../../dependency-injection/inject-tokens.js';
 
 export class K8ClientPods extends K8ClientBase implements Pods {
   private readonly logger: SoloLogger;

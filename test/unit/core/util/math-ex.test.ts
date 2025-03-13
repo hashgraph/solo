@@ -2,8 +2,8 @@
 
 import {describe, it} from 'mocha';
 import {expect} from 'chai';
-import {MathEx} from '../../../../src/core/util/math_ex.js';
-import {ArithmeticError} from '../../../../src/core/util/arithmetic_error.js';
+import {MathEx} from '../../../../src/core/util/math-ex.js';
+import {ArithmeticError} from '../../../../src/core/util/arithmetic-error.js';
 
 describe('MathEx', () => {
   it('testLongExact', () => {

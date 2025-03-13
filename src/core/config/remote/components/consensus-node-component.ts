@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
-import {BaseComponent} from './base_component.js';
+import {BaseComponent} from './base-component.js';
 import {SoloError} from '../../../errors/SoloError.js';
 import {
   type ClusterRef,

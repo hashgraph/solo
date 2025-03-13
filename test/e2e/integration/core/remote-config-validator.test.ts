@@ -4,30 +4,30 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
-import {type ConfigManager} from '../../../../src/core/config_manager.js';
+import {type ConfigManager} from '../../../../src/core/config-manager.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
-import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote_config_validator.js';
+import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote-config-validator.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
-import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components_data_wrapper.js';
+import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components-data-wrapper.js';
 import {SoloError} from '../../../../src/core/errors/SoloError.js';
-import {RelayComponent} from '../../../../src/core/config/remote/components/relay_component.js';
-import {HaProxyComponent} from '../../../../src/core/config/remote/components/ha_proxy_component.js';
-import {MirrorNodeComponent} from '../../../../src/core/config/remote/components/mirror_node_component.js';
-import {ConsensusNodeComponent} from '../../../../src/core/config/remote/components/consensus_node_component.js';
-import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
-import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy_proxy_component.js';
+import {RelayComponent} from '../../../../src/core/config/remote/components/relay-component.js';
+import {HaProxyComponent} from '../../../../src/core/config/remote/components/ha-proxy-component.js';
+import {MirrorNodeComponent} from '../../../../src/core/config/remote/components/mirror-node-component.js';
+import {ConsensusNodeComponent} from '../../../../src/core/config/remote/components/consensus-node-component.js';
+import {MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
+import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy-proxy-component.js';
 
 import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
-import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
-import {ContainerName} from '../../../../src/core/kube/resources/container/container_name.js';
-import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
-import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
-import {LocalConfig} from '../../../../src/core/config/local_config.js';
-import {getTestCacheDir} from '../../../test_util.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../../src/core/kube/resources/pod/pod-ref.js';
+import {PodName} from '../../../../src/core/kube/resources/pod/pod-name.js';
+import {ContainerName} from '../../../../src/core/kube/resources/container/container-name.js';
+import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
+import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
+import {LocalConfig} from '../../../../src/core/config/local-config.js';
+import {getTestCacheDir} from '../../../test-util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 
 describe('RemoteConfigValidator', () => {

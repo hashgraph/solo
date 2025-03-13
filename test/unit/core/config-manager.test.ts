@@ -3,13 +3,13 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {ConfigManager} from '../../../src/core/config_manager.js';
+import {ConfigManager} from '../../../src/core/config-manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {container} from 'tsyringe-neo';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {getTestLogger} from '../../test_util.js';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {getTestLogger} from '../../test-util.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 
 describe('ConfigManager', () => {
   describe('update values using argv', () => {

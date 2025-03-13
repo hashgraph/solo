@@ -3,13 +3,13 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {ComponentsDataWrapper} from '../../../../../src/core/config/remote/components_data_wrapper.js';
-import {HaProxyComponent} from '../../../../../src/core/config/remote/components/ha_proxy_component.js';
-import {MirrorNodeComponent} from '../../../../../src/core/config/remote/components/mirror_node_component.js';
-import {EnvoyProxyComponent} from '../../../../../src/core/config/remote/components/envoy_proxy_component.js';
-import {ConsensusNodeComponent} from '../../../../../src/core/config/remote/components/consensus_node_component.js';
-import {MirrorNodeExplorerComponent} from '../../../../../src/core/config/remote/components/mirror_node_explorer_component.js';
-import {RelayComponent} from '../../../../../src/core/config/remote/components/relay_component.js';
+import {ComponentsDataWrapper} from '../../../../../src/core/config/remote/components-data-wrapper.js';
+import {HaProxyComponent} from '../../../../../src/core/config/remote/components/ha-proxy-component.js';
+import {MirrorNodeComponent} from '../../../../../src/core/config/remote/components/mirror-node-component.js';
+import {EnvoyProxyComponent} from '../../../../../src/core/config/remote/components/envoy-proxy-component.js';
+import {ConsensusNodeComponent} from '../../../../../src/core/config/remote/components/consensus-node-component.js';
+import {MirrorNodeExplorerComponent} from '../../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
+import {RelayComponent} from '../../../../../src/core/config/remote/components/relay-component.js';
 import {ComponentType, ConsensusNodeStates} from '../../../../../src/core/config/remote/enumerations.js';
 import {SoloError} from '../../../../../src/core/errors/SoloError.js';
 import {type NodeAliases} from '../../../../../src/types/aliases.js';
@@ -156,7 +156,7 @@ describe('ComponentsDataWrapper', () => {
       components: {relays},
       serviceName,
     } = createComponentsDataWrapper();
-    const notFoundServiceName = 'not_found';
+    const notFoundServiceName = 'not-found';
     const relay = relays[serviceName];
     relay.name = notFoundServiceName;
 
@@ -182,7 +182,7 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const notFoundServiceName = 'not_found';
+    const notFoundServiceName = 'not-found';
 
     expect(() => componentsDataWrapper.remove(notFoundServiceName, ComponentType.Relay)).to.throw(
       SoloError,

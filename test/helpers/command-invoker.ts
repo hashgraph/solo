@@ -2,12 +2,12 @@
 
 import {Middlewares} from '../../src/core/middlewares.js';
 import {Flags as flags} from '../../src/commands/flags.js';
-import {type RemoteConfigManager} from '../../src/core/config/remote/remote_config_manager.js';
+import {type RemoteConfigManager} from '../../src/core/config/remote/remote-config-manager.js';
 import {type AnyObject, type ArgvStruct} from '../../src/types/aliases.js';
-import {type Argv} from './argv_wrapper.js';
-import {type ConfigManager} from '../../src/core/config_manager.js';
+import {type Argv} from './argv-wrapper.js';
+import {type ConfigManager} from '../../src/core/config-manager.js';
 import {type SoloLogger} from '../../src/core/logging.js';
-import {type K8Factory} from '../../src/core/kube/k8_factory.js';
+import {type K8Factory} from '../../src/core/kube/k8-factory.js';
 
 export class CommandInvoker {
   private readonly middlewares: Middlewares;

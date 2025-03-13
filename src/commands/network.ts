@@ -24,27 +24,27 @@ import {
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import path from 'path';
 import fs from 'fs';
-import {type KeyManager} from '../core/key_manager.js';
-import {type PlatformInstaller} from '../core/platform_installer.js';
-import {type ProfileManager} from '../core/profile_manager.js';
-import {type CertificateManager} from '../core/certificate_manager.js';
+import {type KeyManager} from '../core/key-manager.js';
+import {type PlatformInstaller} from '../core/platform-installer.js';
+import {type ProfileManager} from '../core/profile-manager.js';
+import {type CertificateManager} from '../core/certificate-manager.js';
 import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {ListrLock} from '../core/lock/listr_lock.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
+import {ListrLock} from '../core/lock/listr-lock.js';
+import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
-import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
-import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
+import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
+import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
-import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
-import {type ConsensusNode} from '../core/model/consensus_node.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {PvcRef} from '../core/kube/resources/pvc/pvc-ref.js';
+import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
+import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
-import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {SecretType} from '../core/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
-import {type PodRef} from '../core/kube/resources/pod/pod_ref.js';
+import {type PodRef} from '../core/kube/resources/pod/pod-ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../core/kube/resources/pod/pod.js';
 
@@ -1180,7 +1180,7 @@ export class NetworkCommand extends BaseCommand {
                   // remove all components data from the remote configuration
                   await self.remoteConfigManager.deleteComponents();
                 }
-              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
+              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1-000);
 
               await self.destroyTask(ctx, task);
 

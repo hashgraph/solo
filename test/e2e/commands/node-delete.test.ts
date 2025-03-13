@@ -9,16 +9,16 @@ import {
   balanceQueryShouldSucceed,
   e2eTestSuite,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../test_util.js';
+} from '../../test-util.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
-import {ContainerRef} from '../../../src/core/kube/resources/container/container_ref.js';
-import {type NetworkNodes} from '../../../src/core/network_nodes.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../../../src/core/kube/resources/container/container-ref.js';
+import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {AccountCommand} from '../../../src/commands/account.js';

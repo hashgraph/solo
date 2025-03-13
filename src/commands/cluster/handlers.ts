@@ -6,10 +6,10 @@ import * as constants from '../../core/constants.js';
 import * as ContextFlags from './flags.js';
 import {SoloError} from '../../core/errors/SoloError.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {CommandHandler} from '../../core/command_handler.js';
-import {type LocalConfig} from '../../core/config/local_config.js';
-import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {patchInject} from '../../core/dependency-injection/container-helper.js';
+import {CommandHandler} from '../../core/command-handler.js';
+import {type LocalConfig} from '../../core/config/local-config.js';
+import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type ClusterCommandConfigs} from './configs.js';
 import {type ArgvStruct} from '../../types/aliases.js';
 

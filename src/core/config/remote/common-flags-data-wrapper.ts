@@ -3,8 +3,8 @@
 import {Flags as flags} from '../../../commands/flags.js';
 import {type ToObject} from '../../../types/index.js';
 import {type RemoteConfigCommonFlagsStruct} from './types.js';
-import {type ConfigManager} from '../../config_manager.js';
-import {type CommandFlag} from '../../../types/flag_types.js';
+import {type ConfigManager} from '../../config-manager.js';
+import {type CommandFlag} from '../../../types/flag-types.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {select as selectPrompt} from '@inquirer/prompts';
 

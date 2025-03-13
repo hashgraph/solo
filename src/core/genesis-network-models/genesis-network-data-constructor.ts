@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {AccountId, PrivateKey, PublicKey} from '@hashgraph/sdk';
-import {GenesisNetworkNodeDataWrapper} from './genesis_network_node_data_wrapper.js';
+import {GenesisNetworkNodeDataWrapper} from './genesis-network-node-data-wrapper.js';
 import * as constants from '../constants.js';
 
-import {type KeyManager} from '../key_manager.js';
+import {type KeyManager} from '../key-manager.js';
 import {type ToJSON} from '../../types/index.js';
 import {type JsonString, type NodeAlias} from '../../types/aliases.js';
-import {GenesisNetworkRosterEntryDataWrapper} from './genesis_network_roster_entry_data_wrapper.js';
+import {GenesisNetworkRosterEntryDataWrapper} from './genesis-network-roster-entry-data-wrapper.js';
 import {Templates} from '../templates.js';
 import path from 'path';
-import {type NetworkNodeServices} from '../network_node_services.js';
+import {type NetworkNodeServices} from '../network-node-services.js';
 import {SoloError} from '../errors/SoloError.js';
 import {Flags as flags} from '../../commands/flags.js';
-import {type AccountManager} from '../account_manager.js';
-import {type ConsensusNode} from '../model/consensus_node.js';
+import {type AccountManager} from '../account-manager.js';
+import {type ConsensusNode} from '../model/consensus-node.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON

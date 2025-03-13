@@ -3,13 +3,13 @@
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {expect} from 'chai';
-import {LocalConfig} from '../../../src/core/config/local_config.js';
-import {type ConfigManager} from '../../../src/core/config_manager.js';
+import {LocalConfig} from '../../../src/core/config/local-config.js';
+import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {SoloError} from '../../../src/core/errors/SoloError.js';
 import {MissingArgumentError} from '../../../src/core/errors/MissingArgumentError.js';
-import {getTestCacheDir, getTestLogger, testLocalConfigData} from '../../test_util.js';
+import {getTestCacheDir, getTestLogger, testLocalConfigData} from '../../test-util.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
-import {ErrorMessages} from '../../../src/core/error_messages.js';
+import {ErrorMessages} from '../../../src/core/error-messages.js';
 
 describe('LocalConfig', () => {
   let localConfig: LocalConfig;

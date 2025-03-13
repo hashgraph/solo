@@ -8,31 +8,31 @@ import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
 import {SoloError} from '../core/errors/SoloError.js';
 import {UserBreak} from '../core/errors/UserBreak.js';
 import * as constants from '../core/constants.js';
-import {type AccountManager} from '../core/account_manager.js';
-import {type ProfileManager} from '../core/profile_manager.js';
+import {type AccountManager} from '../core/account-manager.js';
+import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
 import {type CommandBuilder, type NodeAlias} from '../types/aliases.js';
-import {type PodName} from '../core/kube/resources/pod/pod_name.js';
-import {ListrLock} from '../core/lock/listr_lock.js';
+import {type PodName} from '../core/kube/resources/pod/pod-name.js';
+import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
-import {MirrorNodeComponent} from '../core/config/remote/components/mirror_node_component.js';
+import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {PodRef} from '../core/kube/resources/pod/pod_ref.js';
-import {ContainerName} from '../core/kube/resources/container/container_name.js';
-import {ContainerRef} from '../core/kube/resources/container/container_ref.js';
+import {type NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../core/kube/resources/pod/pod-ref.js';
+import {ContainerName} from '../core/kube/resources/container/container-name.js';
+import {ContainerRef} from '../core/kube/resources/container/container-ref.js';
 import chalk from 'chalk';
-import {type CommandFlag} from '../types/flag_types.js';
-import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
-import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
+import {type CommandFlag} from '../types/flag-types.js';
+import {PvcRef} from '../core/kube/resources/pvc/pvc-ref.js';
+import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../core/kube/resources/pod/pod.js';
@@ -184,7 +184,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
         // Set the host and name
         'db.host': host,
-        'db.name': 'mirror_node',
+        'db.name': 'mirror-node',
 
         // set the usernames
         'db.owner.username': ownerUsername,
@@ -554,7 +554,7 @@ export class MirrorNodeCommand extends BaseCommand {
             return parentTask.newListr(
               [
                 {
-                  title: 'Insert data in public.file_data',
+                  title: 'Insert data in public.file-data',
                   task: async ctx => {
                     const namespace = ctx.config.namespace;
                     const clusterContext = ctx.config.clusterContext;
@@ -582,12 +582,12 @@ export class MirrorNodeCommand extends BaseCommand {
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
 
-                    const importFeesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp, entity_id,
-                                                                          transaction_type)
+                    const importFeesQuery = `INSERT INTO public.file-data(file-data, consensus-timestamp, entity-id,
+                                                                          transaction-type)
                                              VALUES (decode('${fees}', 'hex'), ${timestamp + '000000'},
                                                      ${feesFileIdNum}, 17);`;
-                    const importExchangeRatesQuery = `INSERT INTO public.file_data(file_data, consensus_timestamp,
-                                                                                   entity_id, transaction_type)
+                    const importExchangeRatesQuery = `INSERT INTO public.file-data(file-data, consensus-timestamp,
+                                                                                   entity-id, transaction-type)
                                                       VALUES (decode('${exchangeRates}', 'hex'), ${
                                                         timestamp + '000001'
                                                       }, ${exchangeRatesFileIdNum}, 17);`;

@@ -31,9 +31,9 @@ export class Time {
   /**
    * The number of nanoseconds in a second.
    */
-  public static readonly NANOS_PER_SECOND = 1_000_000_000;
+  public static readonly NANOS_PER_SECOND = 1-000-000-000;
   /**
    * The number of nanoseconds in a millisecond.
    */
-  public static readonly NANOS_PER_MILLI = 1_000_000;
+  public static readonly NANOS_PER_MILLI = 1-000-000;
 }

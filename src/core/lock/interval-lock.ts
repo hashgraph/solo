@@ -2,17 +2,17 @@
 
 import {MissingArgumentError} from '../errors/MissingArgumentError.js';
 import {SoloError} from '../errors/SoloError.js';
-import {type K8Factory} from '../kube/k8_factory.js';
-import {LockHolder} from './lock_holder.js';
+import {type K8Factory} from '../kube/k8-factory.js';
+import {LockHolder} from './lock-holder.js';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import {type Lock, type LockRenewalService} from './lock.js';
 import {StatusCodes} from 'http-status-codes';
-import {type NamespaceName} from '../kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../kube/resources/namespace/namespace-name.js';
 import {type Lease} from '../kube/resources/lease/lease.js';
-import {LockAcquisitionError} from './lock_acquisition_error.js';
-import {LockRelinquishmentError} from './lock_relinquishment_error.js';
-import {InjectTokens} from '../dependency_injection/inject_tokens.js';
+import {LockAcquisitionError} from './lock-acquisition-error.js';
+import {LockRelinquishmentError} from './lock-relinquishment-error.js';
+import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 import {type SoloLogger} from '../logging.js';
 import {container} from 'tsyringe-neo';
 

@@ -2,7 +2,7 @@
 
 import {describe} from 'mocha';
 
-import {testNodeAdd} from '../../test_add.js';
+import {testNodeAdd} from '../../test-add.js';
 import {Duration} from '../../../src/core/time/duration.js';
 
 describe('Node add with hedera local build', () => {

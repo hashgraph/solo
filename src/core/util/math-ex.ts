@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ArithmeticError} from './arithmetic_error.js';
+import {ArithmeticError} from './arithmetic-error.js';
 
 /**
  * Utility class for performing exact arithmetic operations with overflow checking.

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Exclude, Expose, Type} from 'class-transformer';
-import {RemoteConfigMetadata} from './remote_config_metadata.js';
-import {ApplicationVersions} from '../common/application_versions.js';
+import {RemoteConfigMetadata} from './remote-config-metadata.js';
+import {ApplicationVersions} from '../common/application-versions.js';
 import {Cluster} from '../common/cluster.js';
-import {DeploymentState} from './deployment_state.js';
-import {DeploymentHistory} from './deployment_history.js';
+import {DeploymentState} from './deployment-state.js';
+import {DeploymentHistory} from './deployment-history.js';
 
 @Exclude()
 export class RemoteConfig {

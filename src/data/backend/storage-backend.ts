@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type StorageOperation} from './storage_operation.js';
+import {type StorageOperation} from './storage-operation.js';
 
 /**
  * The storage backend implementations provide the logic to read and write configuration and other persistent data layer

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NodeAlias} from '../types/aliases.js';
-import {type PodName} from './kube/resources/pod/pod_name.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type PodName} from './kube/resources/pod/pod-name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type Context, type DeploymentName} from './config/remote/types.js';
 
 export class NetworkNodeServices {

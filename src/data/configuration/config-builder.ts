@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ConfigSource} from './spi/config_source.js';
+import {type ConfigSource} from './spi/config-source.js';
 import {type Config} from './config.js';
 import {type Converter} from './spi/converter.js';
-import {type ClassConstructor} from '../../business/utils/class_constructor.type.js';
+import {type ClassConstructor} from '../../business/utils/class-constructor.type.js';
 
 /**
  * Fluent builder for creating a Config instance.

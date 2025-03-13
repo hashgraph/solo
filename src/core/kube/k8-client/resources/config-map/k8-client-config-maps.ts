@@ -1,23 +1,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type CoreV1Api, V1ConfigMap, V1ObjectMeta} from '@kubernetes/client-node';
-import {type ConfigMaps} from '../../../resources/config_map/config_maps.js';
-import {type NamespaceName} from '../../../resources/namespace/namespace_name.js';
+import {type ConfigMaps} from '../../../resources/config-map/config-maps.js';
+import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {
   ResourceCreateError,
   ResourceDeleteError,
   ResourceNotFoundError,
   ResourceReplaceError,
   ResourceUpdateError,
-} from '../../../errors/resource_operation_errors.js';
-import {ResourceType} from '../../../resources/resource_type.js';
-import {ResourceOperation} from '../../../resources/resource_operation.js';
-import {KubeApiResponse} from '../../../kube_api_response.js';
+} from '../../../errors/resource-operation-errors.js';
+import {ResourceType} from '../../../resources/resource-type.js';
+import {ResourceOperation} from '../../../resources/resource-operation.js';
+import {KubeApiResponse} from '../../../kube-api-response.js';
 import {SoloError} from '../../../../errors/SoloError.js';
 import {SoloLogger} from '../../../../logging.js';
 import {container} from 'tsyringe-neo';
-import {type ConfigMap} from '../../../resources/config_map/config_map.js';
-import {K8ClientConfigMap} from './k8_client_config_map.js';
+import {type ConfigMap} from '../../../resources/config-map/config-map.js';
+import {K8ClientConfigMap} from './k8-client-config-map.js';
 
 export class K8ClientConfigMaps implements ConfigMaps {
   private readonly logger: SoloLogger;

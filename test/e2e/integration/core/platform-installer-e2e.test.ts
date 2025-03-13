@@ -6,18 +6,18 @@ import {expect} from 'chai';
 import * as constants from '../../../../src/core/constants.js';
 import * as fs from 'fs';
 
-import {e2eTestSuite, getTestCacheDir, getTestCluster, getTestLogger} from '../../../test_util.js';
+import {e2eTestSuite, getTestCacheDir, getTestCluster, getTestLogger} from '../../../test-util.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
-import {type AccountManager} from '../../../../src/core/account_manager.js';
-import {type PlatformInstaller} from '../../../../src/core/platform_installer.js';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodName} from '../../../../src/core/kube/resources/pod/pod_name.js';
-import {PodRef} from '../../../../src/core/kube/resources/pod/pod_ref.js';
-import {ContainerRef} from '../../../../src/core/kube/resources/container/container_ref.js';
-import {Argv} from '../../../helpers/argv_wrapper.js';
+import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
+import {type AccountManager} from '../../../../src/core/account-manager.js';
+import {type PlatformInstaller} from '../../../../src/core/platform-installer.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodName} from '../../../../src/core/kube/resources/pod/pod-name.js';
+import {PodRef} from '../../../../src/core/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../../../../src/core/kube/resources/container/container-ref.js';
+import {Argv} from '../../../helpers/argv-wrapper.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 

@@ -6,7 +6,7 @@ import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
 import * as fs from 'fs';
-import {PackageDownloader} from '../../../../src/core/package_downloader.js';
+import {PackageDownloader} from '../../../../src/core/package-downloader.js';
 import {Templates} from '../../../../src/core/templates.js';
 import * as logging from '../../../../src/core/logging.js';
 import {Duration} from '../../../../src/core/time/duration.js';

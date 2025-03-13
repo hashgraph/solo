@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ResourceRef} from '../resource_ref.js';
-import {type NamespaceName} from '../namespace/namespace_name.js';
-import {type PvcName} from './pvc_name.js';
+import {ResourceRef} from '../resource-ref.js';
+import {type NamespaceName} from '../namespace/namespace-name.js';
+import {type PvcName} from './pvc-name.js';
 
 /**
  * Represents a Kubernetes PVC (persistent volume claim) reference which includes the namespace name and PVC name.

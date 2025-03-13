@@ -10,22 +10,22 @@ import {
   e2eTestSuite,
   getTestCluster,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../test_util.js';
+} from '../test-util.js';
 import {sleep} from '../../src/core/helpers.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
 import {type ListrTaskWrapper} from 'listr2';
-import {type ConfigManager} from '../../src/core/config_manager.js';
-import {type K8Factory} from '../../src/core/kube/k8_factory.js';
+import {type ConfigManager} from '../../src/core/config-manager.js';
+import {type K8Factory} from '../../src/core/kube/k8-factory.js';
 import {NodeCommand} from '../../src/commands/node/index.js';
 import {NodeCommandTasks} from '../../src/commands/node/tasks.js';
 import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace_name.js';
-import {type PodName} from '../../src/core/kube/resources/pod/pod_name.js';
-import {PodRef} from '../../src/core/kube/resources/pod/pod_ref.js';
-import {type NetworkNodes} from '../../src/core/network_nodes.js';
-import {InjectTokens} from '../../src/core/dependency_injection/inject_tokens.js';
-import {Argv} from '../helpers/argv_wrapper.js';
+import {NamespaceName} from '../../src/core/kube/resources/namespace/namespace-name.js';
+import {type PodName} from '../../src/core/kube/resources/pod/pod-name.js';
+import {PodRef} from '../../src/core/kube/resources/pod/pod-ref.js';
+import {type NetworkNodes} from '../../src/core/network-nodes.js';
+import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
+import {Argv} from '../helpers/argv-wrapper.js';
 import {type Pod} from '../../src/core/kube/resources/pod/pod.js';
 
 export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
