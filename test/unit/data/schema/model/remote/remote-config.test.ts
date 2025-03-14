@@ -6,9 +6,9 @@ import {expect} from 'chai';
 import {beforeEach} from 'mocha';
 import os from 'os';
 import {instanceToPlain, plainToClass} from 'class-transformer';
-import {RemoteConfig} from '../../../../../src/data/schema/model/remote/remote-config.js';
-import {LedgerPhase} from '../../../../../src/data/schema/model/remote/ledger-phase.js';
-import {DeploymentPhase} from '../../../../../src/data/schema/model/remote/deployment-phase.js';
+import {RemoteConfig} from '../../../../../../src/data/schema/model/remote/remote-config.js';
+import {LedgerPhase} from '../../../../../../src/data/schema/model/remote/ledger-phase.js';
+import {DeploymentPhase} from '../../../../../../src/data/schema/model/remote/deployment-phase.js';
 type MigrationCandidate = any;
 
 function migrateVersionPrefix(version: string): string {
