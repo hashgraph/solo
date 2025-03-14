@@ -32,7 +32,7 @@ export class FileStorageBackend implements StorageBackend {
     try {
       stats = lstatSync(basePath);
     } catch (e) {
-      throw new StorageBackendError('basePath must exist be a valid directory', e);
+      throw new StorageBackendError('basePath must exist and be valid', e);
     }
 
     if (!stats || !stats.isDirectory()) {
@@ -71,7 +71,7 @@ export class FileStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('key must not be null, undefined or empty');
     }
 
-    const filePath = path.join(this.basePath, key);
+    const filePath: string = path.join(this.basePath, key);
     try {
       return new Uint8Array(readFileSync(filePath));
     } catch (e) {
@@ -88,7 +88,7 @@ export class FileStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('data must not be null or undefined');
     }
 
-    const filePath = path.join(this.basePath, key);
+    const filePath: string = path.join(this.basePath, key);
     try {
       writeFileSync(filePath, data, {flag: 'w'});
     } catch (e) {
@@ -101,7 +101,7 @@ export class FileStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('key must not be null, undefined or empty');
     }
 
-    const filePath = path.join(this.basePath, key);
+    const filePath: string = path.join(this.basePath, key);
     let stats: Stats;
     try {
       stats = statSync(filePath);

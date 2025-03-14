@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {readFileSync} from 'fs';
-import {dumpYaml, loadYaml} from '@kubernetes/client-node';
+import {parse, stringify} from 'yaml';
 import {expect} from 'chai';
 import {instanceToPlain} from 'class-transformer';
 import {SemVer} from 'semver';
 import {beforeEach} from 'mocha';
 import os from 'os';
-import {LocalConfig} from '../../../../../src/data/schema/model/local/local-config.js';
-import {Deployment} from '../../../../../src/data/schema/model/local/deployment.js';
-import {LocalConfigSchema} from '../../../../../src/data/schema/migration/impl/local/local-config-schema.js';
-import {CTObjectMapper} from '../../../../../src/data/mapper/impl/ct-object-mapper.js';
-import {ApplicationVersions} from '../../../../../src/data/schema/model/common/application-versions.js';
+import {LocalConfig} from '../../../../../../src/data/schema/model/local/local-config.js';
+import {Deployment} from '../../../../../../src/data/schema/model/local/deployment.js';
+import {LocalConfigSchema} from '../../../../../../src/data/schema/migration/impl/local/local-config-schema.js';
+import {CTObjectMapper} from '../../../../../../src/data/mapper/impl/ct-object-mapper.js';
+import {ApplicationVersions} from '../../../../../../src/data/schema/model/common/application-versions.js';
 import {
   HEDERA_EXPLORER_VERSION,
   HEDERA_JSON_RPC_RELAY_VERSION,
   HEDERA_PLATFORM_VERSION,
   MIRROR_NODE_VERSION,
   SOLO_CHART_VERSION,
-} from '../../../../../version.js';
-import {getSoloVersion} from '../../../../../src/core/helpers.js';
+} from '../../../../../../version.js';
+import {getSoloVersion} from '../../../../../../src/core/helpers.js';
 
 describe('LocalConfig', () => {
   const schema: LocalConfigSchema = new LocalConfigSchema(new CTObjectMapper());
@@ -33,7 +33,7 @@ describe('LocalConfig', () => {
       yamlData = readFileSync(localConfigPath, 'utf8');
       expect(yamlData).to.not.be.undefined.and.to.not.be.null;
 
-      plainObject = loadYaml<object>(yamlData);
+      plainObject = parse(yamlData);
       expect(plainObject).to.not.be.undefined.and.to.not.be.null;
     });
 
@@ -80,10 +80,10 @@ describe('LocalConfig', () => {
       const poClone = instanceToPlain(await schema.transform(plainObject));
       expect(newPlainObject).to.deep.equal(poClone);
 
-      const yaml: string = dumpYaml(newPlainObject, {sortKeys: true});
+      const yaml: string = stringify(newPlainObject, {sortMapEntries: true});
       expect(yaml).to.not.be.undefined.and.to.not.be.null;
       expect(yaml).to.not.be.empty;
-      expect(yaml).to.equal(dumpYaml(poClone, {sortKeys: true}));
+      expect(yaml).to.equal(stringify(poClone, {sortMapEntries: true}));
     });
   });
 });
