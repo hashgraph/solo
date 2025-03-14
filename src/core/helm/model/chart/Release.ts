@@ -3,22 +3,7 @@
 import {type ChartInfo} from './ChartInfo.js';
 import {type ReleaseInfo} from './ReleaseInfo.js';
 
-/**
- * Information about a Helm release.
- */
-export interface Release {
-  /** The name of the release */
-  name: string;
-  /** Information about the release */
-  info: ReleaseInfo;
-  /** Information about the chart */
-  chart: ChartInfo;
-}
-
-/**
- * Implementation of the Release interface.
- */
-export class ReleaseImpl implements Release {
+export class Release {
   constructor(
     public readonly name: string,
     public readonly info: ReleaseInfo,
