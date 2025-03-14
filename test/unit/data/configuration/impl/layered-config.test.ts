@@ -82,11 +82,15 @@ describe('LayeredConfig', () => {
     expect(propertyMap.get('key4')).to.equal('map3key4value4');
   });
 
-  xit('should return as a boolean', () => {
+  it('should return as a boolean', () => {
     expect(layeredConfig.asBoolean('boolean')).to.be.true;
   });
 
-  xit('should return as a number', () => {
+  it('should return as a number', () => {
     expect(layeredConfig.asNumber('number')).to.equal(42);
+  });
+
+  it('should return as a string', () => {
+    expect(layeredConfig.asString('key3')).to.equal('map3key3value3');
   });
 });
