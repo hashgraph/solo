@@ -26,4 +26,24 @@ describe('YAML File Storage Backend', () => {
     fs.writeFileSync(temporaryFile, '');
     await expect(backend.readObject(key)).to.be.rejectedWith('file is empty');
   });
+
+  it('test readObject with invalid yaml file', async () => {
+    const key: string = `${testName}-file3.yaml`;
+    const temporaryFile: string = path.join(tempDir, key);
+    const backend: YamlFileStorageBackend = new YamlFileStorageBackend(tempDir);
+    fs.writeFileSync(temporaryFile, 'playing_playlist: {{ action }} playlist {{ playlist_name }}');
+    await expect(backend.readObject(key)).to.be.rejectedWith('error parsing yaml file');
+  });
+
+  it('test writeObject with null data', async () => {
+    const key: string = `${testName}-file4.yaml`;
+    const backend: YamlFileStorageBackend = new YamlFileStorageBackend(tempDir);
+    await expect(backend.writeObject(key, null)).to.be.rejectedWith('data must not be null');
+  });
+
+  it('test writeObject with invalid key', async () => {
+    const key: string = '';
+    const backend: YamlFileStorageBackend = new YamlFileStorageBackend(tempDir);
+    await expect(backend.writeObject(key, {key: 'value'})).to.be.rejectedWith('error writing yaml file');
+  });
 });
