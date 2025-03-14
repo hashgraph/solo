@@ -48,7 +48,7 @@ export class LayeredConfig implements Config {
     const finalMap: Map<string, string> = new Map<string, string>();
 
     for (const source of this.sources) {
-      const sourceProperties = source.properties();
+      const sourceProperties: Map<string, string> = source.properties();
       for (const [key, value] of sourceProperties.entries()) {
         finalMap.set(key, value);
       }
@@ -61,7 +61,7 @@ export class LayeredConfig implements Config {
     const finalSet: Set<string> = new Set<string>();
 
     for (const source of this.sources) {
-      const sourcePropertyNames = source.propertyNames();
+      const sourcePropertyNames: Set<string> = source.propertyNames();
       for (const key of sourcePropertyNames) {
         finalSet.add(key);
       }
