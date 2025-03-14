@@ -38,11 +38,11 @@ export class ApplicationVersions {
     explorerChart?: SemVer,
     jsonRpcRelayChart?: SemVer,
   ) {
-    this.cli = cli || new SemVer('0.0.0');
-    this.chart = chart || new SemVer('0.0.0');
-    this.consensusNode = consensusNode || new SemVer('0.0.0');
-    this.mirrorNodeChart = mirrorNodeChart || new SemVer('0.0.0');
-    this.explorerChart = explorerChart || new SemVer('0.0.0');
-    this.jsonRpcRelayChart = jsonRpcRelayChart || new SemVer('0.0.0');
+    this.cli = cli ?? new SemVer('0.0.0');
+    this.chart = chart ?? new SemVer('0.0.0');
+    this.consensusNode = consensusNode ?? new SemVer('0.0.0');
+    this.mirrorNodeChart = mirrorNodeChart ?? new SemVer('0.0.0');
+    this.explorerChart = explorerChart ?? new SemVer('0.0.0');
+    this.jsonRpcRelayChart = jsonRpcRelayChart ?? new SemVer('0.0.0');
   }
 }

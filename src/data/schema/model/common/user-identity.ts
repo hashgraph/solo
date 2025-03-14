@@ -12,7 +12,7 @@ export class UserIdentity {
   public hostname: string;
 
   constructor(name?: string, hostname?: string) {
-    this.name = name || os.userInfo().username;
-    this.hostname = hostname || os.hostname();
+    this.name = name ?? os.userInfo().username;
+    this.hostname = hostname ?? os.hostname();
   }
 }

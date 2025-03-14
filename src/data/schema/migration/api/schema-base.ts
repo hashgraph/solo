@@ -4,8 +4,9 @@ import {type Schema} from './schema.js';
 import {type SchemaMigration} from './schema-migration.js';
 import {Version} from '../../../../business/utils/version.js';
 import {type ClassConstructor} from '../../../../business/utils/class-constructor.type.js';
-import {deepClone} from 'deep-clone';
+import deepClone from 'deep-clone';
 import {type ObjectMapper} from '../../../mapper/api/object-mapper.js';
+import {SchemaValidationError} from './schema-validation-error.js';
 
 export abstract class SchemaBase<T> implements Schema<T> {
   public abstract get classCtor(): ClassConstructor<T>;
@@ -39,7 +40,7 @@ export abstract class SchemaBase<T> implements Schema<T> {
 
     for (let i = 1; i < versionJumps.length; i++) {
       if (versionJumps[i] === versionJumps[i - 1]) {
-        throw new Error();
+        throw new SchemaValidationError(`Duplicate migration version '${versionJumps[i]}'`);
       }
     }
 
@@ -48,7 +49,9 @@ export abstract class SchemaBase<T> implements Schema<T> {
     for (let i = 0; i < versionJumps.length; i++) {
       const v: Version<number> = new Version(versionJumps[i]);
       if (!v.equals(currentVersion)) {
-        throw new Error();
+        throw new SchemaValidationError(
+          `Invalid migration version sequence detected; expected version '${v.value}' but got '${currentVersion.value}'`,
+        );
       }
 
       currentVersion = this.nextVersionJump(currentVersion);
@@ -61,7 +64,9 @@ export abstract class SchemaBase<T> implements Schema<T> {
     const targetMigrations: SchemaMigration[] = this.findMigrations(currentVersion);
     if (!targetMigrations || targetMigrations.length === 0) {
       // No migration found for the current version - fail with an error
-      throw new Error();
+      throw new SchemaValidationError(
+        `No migration found for version '${currentVersion.value}'; there is a gap in the migration sequence`,
+      );
     }
 
     return targetMigrations[0].version;
@@ -69,9 +74,9 @@ export abstract class SchemaBase<T> implements Schema<T> {
 
   /*
    * DV < version = 1 >
-   * M1 < range = [0, 6), version = 6>
-   * M1.1 < range = [0, 4), version = 5>
-   * M2 < range = [6, 7), version = 8>
+   * M1 < range = [0, 6), version = 6 >
+   * M1.1 < range = [0, 4), version = 5 >
+   * M2 < range = [6, 7), version = 8 >
    */
   protected async applyMigrations(data: object, dataVersion: Version<number>): Promise<object> {
     let migrations: SchemaMigration[] = this.findMigrations(dataVersion);
