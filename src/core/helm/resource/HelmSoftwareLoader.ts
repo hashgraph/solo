@@ -7,7 +7,7 @@ import {ShellRunner} from '../../shell_runner.js';
  * Get helm executable path
  */
 export class HelmSoftwareLoader {
-  public static async installSupportedVersion(): Promise<string> {
+  public static async getHelmExecutablePath(): Promise<string> {
     try {
       const shellRunner = new ShellRunner();
       const platform = process.platform;

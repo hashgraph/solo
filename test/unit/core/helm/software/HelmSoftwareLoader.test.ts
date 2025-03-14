@@ -19,7 +19,7 @@ describe('Helm Software Loader Test', () => {
   };
 
   const installHelmAndVerify = async () => {
-    const helmPath = await HelmSoftwareLoader.installSupportedVersion();
+    const helmPath = await HelmSoftwareLoader.getHelmExecutablePath();
     expect(helmPath).to.not.be.null;
     expect(existsSync(helmPath)).to.be.true;
 

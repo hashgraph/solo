@@ -25,8 +25,8 @@ export class TestChartOptionsBuilder {
    *              exclude a test (can specify multiple or separate values with commas: name=test1,name=test2)
    * @returns the current TestChartOptionsBuilder.
    */
-  public filter(value: string): TestChartOptionsBuilder {
-    this._filter = value;
+  public filter(filter: string): TestChartOptionsBuilder {
+    this._filter = filter;
     return this;
   }
 
@@ -36,8 +36,8 @@ export class TestChartOptionsBuilder {
    * @param timeout Time to wait for any individual Kubernetes operation (like Jobs for hooks) (default 5m0s).
    * @returns the current TestChartOptionsBuilder.
    */
-  public timeout(value: string): TestChartOptionsBuilder {
-    this._timeout = value;
+  public timeout(timeout: string): TestChartOptionsBuilder {
+    this._timeout = timeout;
     return this;
   }
 
