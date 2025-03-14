@@ -15,7 +15,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
   public async readObject(key: string): Promise<object> {
     const data: Uint8Array = await this.readBytes(key);
 
-    const filePath = path.join(this.basePath, key);
+    const filePath: string = path.join(this.basePath, key);
     if (!data) {
       throw new StorageBackendError(`failed to read file: ${filePath}`);
     }
@@ -36,9 +36,9 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
       throw new IllegalArgumentError('data must not be null or undefined');
     }
 
-    const filePath = path.join(this.basePath, key);
+    const filePath: string = path.join(this.basePath, key);
     try {
-      const yamlData = dumpYaml(data, {sortKeys: true});
+      const yamlData: string = dumpYaml(data, {sortKeys: true});
       await this.writeBytes(key, new Uint8Array(Buffer.from(yamlData)));
     } catch (e) {
       throw new StorageBackendError(`error writing yaml file: ${filePath}`, e);
