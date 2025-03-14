@@ -1185,10 +1185,7 @@ export class NetworkCommand extends BaseCommand {
                 self.logger.showUser(chalk.red(message));
                 networkDestroySuccess = false;
 
-                if (
-                  ctx.config.deletePvcs &&
-                  ctx.config.deleteSecrets
-                ) {
+                if (ctx.config.deletePvcs && ctx.config.deleteSecrets) {
                   await Promise.all(
                     ctx.config.contexts.map(context =>
                       self.k8Factory.getK8(context).namespaces().delete(ctx.config.namespace),
