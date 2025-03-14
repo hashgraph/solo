@@ -55,7 +55,7 @@ describe('LocalConfig', () => {
     expect(newConfig.userEmailAddress).to.eq(newEmailAddress);
   });
 
-  xit('should not set an invalid email as user email address', async () => {
+  it('should not set an invalid email as user email address', async () => {
     try {
       localConfig.setUserEmailAddress('invalidEmail' as EmailAddress);
       expect.fail('expected an error to be thrown');

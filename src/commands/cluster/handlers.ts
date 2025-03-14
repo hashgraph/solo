@@ -39,8 +39,6 @@ export class ClusterCommandHandlers extends CommandHandler {
       argv,
       [
         this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
-        this.setupHomeDirectoryTask(),
-        this.localConfig.createLocalConfigTask(),
         this.tasks.validateClusterRefs(),
         this.tasks.connectClusterRef(),
         this.tasks.testConnectionToCluster(),
