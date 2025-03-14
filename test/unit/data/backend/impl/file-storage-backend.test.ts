@@ -28,7 +28,7 @@ describe('File Storage Backend', () => {
     fs.writeFileSync(temporaryFile, 'test');
     expect(() => {
       new FileStorageBackend(temporaryFile);
-    }).to.throw(`basePath must be a valid directory: ${temporaryFile}`);
+    }).to.throw(`basePath must be a valid directory: ${tempDir}`);
   });
 
   it('test isSupported', () => {
@@ -55,10 +55,11 @@ describe('File Storage Backend', () => {
   });
 
   it('test readBytes', async () => {
-    const temporaryFile: string = path.join(tempDir, `${testName}-file2.txt`);
+    const key: string = `${testName}-file2.txt`;
+    const temporaryFile: string = path.join(tempDir, key);
     fs.writeFileSync(temporaryFile, 'test');
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    const data: Uint8Array = await backend.readBytes(`${testName}-file2.txt`);
+    const data: Uint8Array = await backend.readBytes(key);
     expect(Buffer.from(data.buffer).toString()).to.equal('test');
   });
 
@@ -73,9 +74,10 @@ describe('File Storage Backend', () => {
   });
 
   it('test writeBytes', async () => {
-    const temporaryFile: string = path.join(tempDir, `${testName}-file3.txt`);
+    const key: string = `${testName}-file3.txt`;
+    const temporaryFile: string = path.join(tempDir, key);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    await backend.writeBytes(`${testName}-file3.txt`, new Uint8Array(Buffer.from('test')));
+    await backend.writeBytes(key, new Uint8Array(Buffer.from('test')));
     expect(fs.readFileSync(temporaryFile, 'utf-8')).to.equal('test');
   });
 
@@ -92,19 +94,19 @@ describe('File Storage Backend', () => {
   });
 
   it('test writeBytes with a file that already exists as a directory', async () => {
-    const temporaryFile: string = path.join(tempDir, `${testName}-file-dir`);
+    const key: string = `${testName}-file-dir`;
+    const temporaryFile: string = path.join(tempDir, key);
     fs.mkdirSync(temporaryFile);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    await expect(backend.writeBytes(`${testName}-file-dir`, new Uint8Array(Buffer.from('test')))).to.be.rejectedWith(
-      'error writing file',
-    );
+    await expect(backend.writeBytes(key, new Uint8Array(Buffer.from('test')))).to.be.rejectedWith('error writing file');
   });
 
   it('test delete', async () => {
-    const temporaryFile: string = path.join(tempDir, `${testName}-file4.txt`);
+    const key: string = `${testName}-file4.txt`;
+    const temporaryFile: string = path.join(tempDir, key);
     fs.writeFileSync(temporaryFile, 'test');
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    await backend.delete(`${testName}-file4.txt`);
+    await backend.delete(key);
     expect(fs.existsSync(temporaryFile)).to.be.false;
   });
 
@@ -119,9 +121,10 @@ describe('File Storage Backend', () => {
   });
 
   it('test delete with a directory as key', async () => {
-    const temporaryFile: string = path.join(tempDir, `${testName}-file-dir2`);
+    const key: string = `${testName}-file-dir2`;
+    const temporaryFile: string = path.join(tempDir, key);
     fs.mkdirSync(temporaryFile);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    await expect(backend.delete(`${testName}-file-dir2`)).to.be.rejectedWith('path is not a file');
+    await expect(backend.delete(key)).to.be.rejectedWith('path is not a file');
   });
 });
