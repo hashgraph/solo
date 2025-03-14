@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type TarCreateFilter} from '../../../../types/aliases.js';
-import {type TDirectoryData} from '../../t_directory_data.js';
+import {type TDirectoryData} from '../../t-directory-data.js';
 
 export interface Container {
   /**

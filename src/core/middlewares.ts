@@ -3,13 +3,13 @@
 import {Flags as flags} from '../commands/flags.js';
 import chalk from 'chalk';
 
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type Opts} from '../commands/base.js';
-import {type ConfigManager} from './config_manager.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type ConfigManager} from './config-manager.js';
+import {type K8Factory} from './kube/k8-factory.js';
 import {type SoloLogger} from './logging.js';
 import {type AnyObject} from '../types/aliases.js';
-import {type RemoteConfigManager} from './config/remote/remote_config_manager.js';
+import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {type ClusterRef} from './config/remote/types.js';
 import {type LocalConfig} from './config/local_config.js';
 import {SoloError} from './errors/SoloError.js';
@@ -126,6 +126,7 @@ export class Middlewares {
 
       const command = argv._[0];
       const subCommand = argv._[1];
+
       const skip =
         command === 'init' ||
         (command === 'cluster-ref' && subCommand === 'connect') ||

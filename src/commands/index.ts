@@ -2,7 +2,7 @@
 
 import {ClusterCommand} from './cluster/index.js';
 import {InitCommand} from './init.js';
-import {MirrorNodeCommand} from './mirror_node.js';
+import {MirrorNodeCommand} from './mirror-node.js';
 import {NetworkCommand} from './network.js';
 import {NodeCommand} from './node/index.js';
 import {RelayCommand} from './relay.js';

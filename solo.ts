@@ -5,9 +5,9 @@ import sourceMapSupport from 'source-map-support';
 sourceMapSupport.install(); // Enable source maps for error stack traces
 import * as fnm from './src/index.js';
 import {type SoloLogger} from './src/core/logging.js';
-import {InjectTokens} from './src/core/dependency_injection/inject_tokens.js';
+import {InjectTokens} from './src/core/dependency-injection/inject-tokens.js';
 import {container} from 'tsyringe-neo';
-import {type ErrorHandler} from './src/core/error_handler.js';
+import {type ErrorHandler} from './src/core/error-handler.js';
 
 const context: {logger: SoloLogger} = {logger: undefined};
 await fnm

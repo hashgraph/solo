@@ -3,25 +3,25 @@
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
-import {SoloError} from '../core/errors/SoloError.js';
-import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
-import {UserBreak} from '../core/errors/UserBreak.js';
+import {SoloError} from '../core/errors/solo-error.js';
+import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
+import {UserBreak} from '../core/errors/user-break.js';
 import * as constants from '../core/constants.js';
-import {type ProfileManager} from '../core/profile_manager.js';
+import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
-import {ListrRemoteConfig} from '../core/config/remote/listr_config_tasks.js';
+import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
 import {type CommandBuilder} from '../types/aliases.js';
-import {ListrLock} from '../core/lock/listr_lock.js';
+import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
-import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror_node_explorer_component.js';
+import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
 import {prepareChartPath, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {type ClusterChecks} from '../core/cluster_checks.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 
@@ -61,6 +61,8 @@ export class ExplorerCommand extends BaseCommand {
 
     this.profileManager = opts.profileManager;
   }
+
+  public static readonly COMMAND_NAME = 'explorer';
 
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
@@ -179,6 +181,7 @@ export class ExplorerCommand extends BaseCommand {
               flags.mirrorNamespace,
               flags.tlsClusterIssuerType,
               flags.valuesFile,
+              flags.profileFile,
             ]);
 
             await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);
@@ -498,7 +501,7 @@ export class ExplorerCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'explorer',
+      command: ExplorerCommand.COMMAND_NAME,
       desc: 'Manage Explorer in solo network',
       builder: yargs => {
         return yargs

@@ -5,14 +5,14 @@ import {it, describe, after, before, afterEach, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {bootstrapTestVariables, getTestCluster, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {bootstrapTestVariables, getTestCluster, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';
@@ -42,17 +42,14 @@ describe('ClusterCommand', () => {
   argv.setArg(flags.nodeAliasesUnparsed, 'node1');
   argv.setArg(flags.generateGossipKeys, true);
   argv.setArg(flags.generateTlsKeys, true);
-  argv.setArg(flags.clusterRef, getTestCluster());
+  argv.setArg(flags.clusterRef, TEST_CLUSTER);
   argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
   argv.setArg(flags.force, true);
-  argv.setArg(flags.chartDirectory, process.env.SOLO_CHARTS_DIR ?? undefined);
 
-  const bootstrapResp = bootstrapTestVariables(testName, argv, {});
-  const k8Factory = bootstrapResp.opts.k8Factory;
-  const configManager = bootstrapResp.opts.configManager;
-  const chartManager = bootstrapResp.opts.chartManager;
-
-  const clusterCmd = bootstrapResp.cmd.clusterCmd;
+  const {
+    opts: {k8Factory, configManager, chartManager, commandInvoker},
+    cmd: {clusterCmd},
+  } = bootstrapTestVariables(testName, argv, {});
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
@@ -91,6 +88,19 @@ describe('ClusterCommand', () => {
     expect(await clusterCmd.handlers.setup(argv.build())).to.be.true;
   }).timeout(Duration.ofMinutes(1).toMillis());
 
+  it('cluster-ref connect should pass with correct data', async () => {
+    const {argv, clusterRef, contextName} = getClusterConnectDefaultArgv();
+
+    await clusterCmd.handlers.connect(argv.build());
+
+    const localConfigPath = path.join(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigYaml = fs.readFileSync(localConfigPath).toString();
+    const localConfigData = yaml.parse(localConfigYaml);
+
+    expect(localConfigData.clusterRefs).to.have.own.property(clusterRef);
+    expect(localConfigData.clusterRefs[clusterRef]).to.equal(contextName);
+  });
+
   it('solo cluster info should work', () => {
     expect(clusterCmd.handlers.info(argv.build())).to.be.ok;
   }).timeout(Duration.ofMinutes(1).toMillis());
@@ -109,10 +119,11 @@ describe('ClusterCommand', () => {
     argv.setArg(flags.clusterSetupNamespace, 'INVALID');
 
     try {
-      await expect(clusterCmd.handlers.reset(argv.build())).to.be.rejectedWith('Error on cluster reset');
-    } catch (e) {
-      clusterCmd.logger.showUserError(e);
+      await clusterCmd.handlers.reset(argv.build());
       expect.fail();
+    } catch (e) {
+      console.error(e.message);
+      expect(e.message).to.include('Error on cluster reset');
     }
   }).timeout(Duration.ofMinutes(1).toMillis());
 
@@ -133,19 +144,6 @@ describe('ClusterCommand', () => {
     argv.setArg(flags.userEmailAddress, 'test@test.com');
     return {argv, clusterRef, contextName};
   }
-
-  it('cluster-ref connect should pass with correct data', async () => {
-    const {argv, clusterRef, contextName} = getClusterConnectDefaultArgv();
-
-    await clusterCmd.handlers.connect(argv.build());
-
-    const localConfigPath = path.join(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
-    const localConfigYaml = fs.readFileSync(localConfigPath).toString();
-    const localConfigData = yaml.parse(localConfigYaml);
-
-    expect(localConfigData.clusterRefs).to.have.own.property(clusterRef);
-    expect(localConfigData.clusterRefs[clusterRef]).to.equal(contextName);
-  });
 
   it('cluster-ref connect should fail with cluster ref that already exists', async () => {
     const clusterRef = 'duplicated';

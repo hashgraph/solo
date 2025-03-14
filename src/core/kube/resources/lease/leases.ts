@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type V1Status} from '@kubernetes/client-node';
-import {type NamespaceName} from '../namespace/namespace_name.js';
+import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type Lease} from './lease.js';
 
 export interface Leases {
