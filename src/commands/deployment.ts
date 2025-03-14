@@ -10,7 +10,7 @@ import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error_messages.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
 import {type ClusterChecks} from '../core/cluster_checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency_injection/inject_tokens.js';
@@ -54,6 +54,7 @@ export class DeploymentCommand extends BaseCommand {
   }
 
   private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment];
+  private static DELETE_FLAGS_LIST = [flags.quiet, flags.deployment];
 
   private static ADD_CLUSTER_FLAGS_LIST = [
     flags.quiet,
@@ -130,6 +131,84 @@ export class DeploymentCommand extends BaseCommand {
       await tasks.run();
     } catch (e: Error | unknown) {
       throw new SoloError('Error creating deployment', e);
+    }
+
+    return true;
+  }
+
+  /**
+   * Delete a deployment from the local config
+   */
+  public async delete(argv: ArgvStruct): Promise<boolean> {
+    const self = this;
+
+    interface Config {
+      quiet: boolean;
+      namespace: NamespaceName;
+      deployment: DeploymentName;
+    }
+
+    interface Context {
+      config: Config;
+    }
+
+    const tasks = new Listr<Context>(
+      [
+        {
+          title: 'Initialize',
+          task: async (ctx, task) => {
+            self.configManager.update(argv);
+
+            await self.configManager.executePrompt(task, [flags.deployment]);
+
+            ctx.config = {
+              quiet: self.configManager.getFlag<boolean>(flags.quiet),
+              deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
+            } as Config;
+
+            if (!self.localConfig.deployments || !self.localConfig.deployments[ctx.config.deployment]) {
+              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(ctx.config.deployment));
+            }
+
+            self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
+          },
+        },
+        {
+          title: 'Check for existing remote resources',
+          task: async (ctx, task) => {
+            const {deployment} = ctx.config;
+            const clusterRefs = self.localConfig.deployments[deployment].clusters;
+            for (const clusterRef of clusterRefs) {
+              const context = self.localConfig.clusterRefs[clusterRef];
+              const namespace = NamespaceName.of(self.localConfig.deployments[deployment].namespace);
+              const remoteConfigExists = await self.remoteConfigManager.get(context);
+              const namespaceExists = await self.k8Factory.getK8(context).namespaces().has(namespace);
+              const existingConfigMaps = await self.k8Factory.getK8(context).configMaps().list(namespace, ['app.kubernetes.io/managed-by=Helm']);
+              if (remoteConfigExists || namespaceExists || existingConfigMaps.length) {
+                throw new SoloError(`Deployment ${deployment} has remote resources in cluster: ${clusterRef}`);
+              }
+            }
+          },
+        },
+        {
+          title: 'Remove deployment from local config',
+          task: async (ctx, task) => {
+            const {deployment} = ctx.config;
+            delete this.localConfig.deployments[deployment];
+            await this.localConfig.write();
+          },
+        },
+      ],
+      {
+        concurrent: false,
+        rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+      },
+    );
+
+    try {
+      await tasks.run();
+    } catch (e: Error | unknown) {
+      throw new SoloError('Error deleting deployment', e);
     }
 
     return true;
@@ -239,7 +318,7 @@ export class DeploymentCommand extends BaseCommand {
         return yargs
           .command({
             command: 'create',
-            desc: 'Creates solo deployment',
+            desc: 'Creates a solo deployment',
             builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST),
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment create' ===");
@@ -254,6 +333,26 @@ export class DeploymentCommand extends BaseCommand {
                 })
                 .catch(err => {
                   throw new SoloError(`Error creating deployment: ${err.message}`, err);
+                });
+            },
+          })
+          .command({
+            command: 'delete',
+            desc: 'Deletes a solo deployment',
+            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.DELETE_FLAGS_LIST),
+            handler: async (argv: ArgvStruct) => {
+              self.logger.info("==== Running 'deployment delete' ===");
+              self.logger.info(argv);
+
+              await self
+                .delete(argv)
+                .then(r => {
+                  self.logger.info('==== Finished running `deployment delete`====');
+
+                  if (!r) throw new SoloError('Error deleting deployment, expected return value to be true');
+                })
+                .catch(err => {
+                  throw new SoloError(`Error deleting deployment: ${err.message}`, err);
                 });
             },
           })
@@ -487,6 +586,7 @@ export class DeploymentCommand extends BaseCommand {
         deployments[deployment].clusters.push(clusterRef);
 
         this.localConfig.setDeployments(deployments);
+        this.localConfig.write();
       },
     };
   }
