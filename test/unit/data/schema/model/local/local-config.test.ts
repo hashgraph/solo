@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {readFileSync} from 'fs';
-import {dumpYaml, loadYaml} from '@kubernetes/client-node';
+import {parse, stringify} from 'yaml';
 import {expect} from 'chai';
 import {instanceToPlain} from 'class-transformer';
 import {SemVer} from 'semver';
@@ -33,7 +33,7 @@ describe('LocalConfig', () => {
       yamlData = readFileSync(localConfigPath, 'utf8');
       expect(yamlData).to.not.be.undefined.and.to.not.be.null;
 
-      plainObject = loadYaml<object>(yamlData);
+      plainObject = parse(yamlData);
       expect(plainObject).to.not.be.undefined.and.to.not.be.null;
     });
 
@@ -80,10 +80,10 @@ describe('LocalConfig', () => {
       const poClone = instanceToPlain(await schema.transform(plainObject));
       expect(newPlainObject).to.deep.equal(poClone);
 
-      const yaml: string = dumpYaml(newPlainObject, {sortKeys: true});
+      const yaml: string = stringify(newPlainObject, {sortMapEntries: true});
       expect(yaml).to.not.be.undefined.and.to.not.be.null;
       expect(yaml).to.not.be.empty;
-      expect(yaml).to.equal(dumpYaml(poClone, {sortKeys: true}));
+      expect(yaml).to.equal(stringify(poClone, {sortMapEntries: true}));
     });
   });
 });

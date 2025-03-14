@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {readFileSync} from 'fs';
-import {loadYaml} from '@kubernetes/client-node';
+import {parse} from 'yaml';
 import {expect} from 'chai';
 import {beforeEach} from 'mocha';
 import os from 'os';
@@ -150,7 +150,7 @@ describe('RemoteConfig', () => {
       yamlData = readFileSync(remoteConfigPath, 'utf8');
       expect(yamlData).to.not.be.undefined.and.to.not.be.null;
 
-      plainObject = loadYaml<MigrationCandidate>(yamlData);
+      plainObject = parse(yamlData) as MigrationCandidate;
       expect(plainObject).to.not.be.undefined.and.to.not.be.null;
 
       migrate(plainObject);

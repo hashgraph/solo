@@ -4,7 +4,7 @@ import {type ObjectStorageBackend} from '../api/object-storage-backend.js';
 import {FileStorageBackend} from './file-storage-backend.js';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import path from 'path';
-import {dumpYaml, loadYaml} from '@kubernetes/client-node';
+import {parse, stringify} from 'yaml';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
 
 export class YamlFileStorageBackend extends FileStorageBackend implements ObjectStorageBackend {
@@ -25,7 +25,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
     }
 
     try {
-      return loadYaml<object>(Buffer.from(data.buffer).toString());
+      return parse(Buffer.from(data.buffer).toString());
     } catch (e) {
       throw new StorageBackendError(`error parsing yaml file: ${filePath}`, e);
     }
@@ -38,7 +38,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
 
     const filePath: string = path.join(this.basePath, key);
     try {
-      const yamlData: string = dumpYaml(data, {sortKeys: true});
+      const yamlData: string = stringify(data, {sortMapEntries: true});
       await this.writeBytes(key, new Uint8Array(Buffer.from(yamlData)));
     } catch (e) {
       throw new StorageBackendError(`error writing yaml file: ${filePath}`, e);
