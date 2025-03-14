@@ -75,12 +75,6 @@ export class LocalConfig implements LocalConfigData {
 
       this.validate();
       this.skipPromptTask = true;
-    } else {
-      // Initialize empty config
-      this.deployments = {};
-      this.clusterRefs = {};
-      this.soloVersion = helpers.getSoloVersion();
-      this.userEmailAddress = 'john@doe.com';
     }
   }
 

@@ -12,7 +12,7 @@ import {type AnyObject} from '../types/aliases.js';
 import {type RemoteConfigManager} from './config/remote/remote_config_manager.js';
 import {type ClusterRef} from './config/remote/types.js';
 import {type LocalConfig} from './config/local_config.js';
-import {SoloError} from './errors.js';
+import {SoloError} from './errors/SoloError.js';
 
 export class Middlewares {
   private readonly remoteConfigManager: RemoteConfigManager;

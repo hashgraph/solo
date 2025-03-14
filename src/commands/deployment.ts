@@ -389,12 +389,12 @@ export class DeploymentCommand extends BaseCommand {
         if (!existingClusterRefs.length) {
           ctx.config.state = DeploymentStates.PRE_GENESIS;
 
-          // if the user can't be prompted for '--num-of-consensus-nodes' fail
+          // if the user can't be prompted for '--num-consensus-nodes' fail
           if (!numberOfConsensusNodes && quiet) {
             throw new SoloError(`--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`);
           }
 
-          // prompt the user for the '--num-of-consensus-nodes'
+          // prompt the user for the '--num-consensus-nodes'
           else if (!numberOfConsensusNodes) {
             await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
             ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
@@ -416,18 +416,18 @@ export class DeploymentCommand extends BaseCommand {
         const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length + 1;
         ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
 
-        // If state is pre-genesis and user can't be prompted for the '--num-of-consensus-nodes' fail
+        // If state is pre-genesis and user can't be prompted for the '--num-consensus-nodes' fail
         if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes && quiet) {
           throw new SoloError(`--${flags.numberOfConsensusNodes} must be specified ${DeploymentStates.PRE_GENESIS}`);
         }
 
-        // If state is pre-genesis prompt the user for the '--num-of-consensus-nodes'
+        // If state is pre-genesis prompt the user for the '--num-consensus-nodes'
         else if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
           await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
           ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
         }
 
-        // if the state is post-genesis and '--num-of-consensus-nodes' is specified throw
+        // if the state is post-genesis and '--num-consensus-nodes' is specified throw
         else if (state === DeploymentStates.POST_GENESIS && numberOfConsensusNodes) {
           throw new SoloError(
             `--${flags.numberOfConsensusNodes.name}=${numberOfConsensusNodes} shouldn't be specified ${state}`,

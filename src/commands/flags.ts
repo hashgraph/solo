@@ -855,7 +855,7 @@ export class Flags {
     constName: 'deletePvcs',
     name: 'delete-pvcs',
     definition: {
-      describe: 'Delete the persistent volume claims',
+      describe: 'Delete the persistent volume claims. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
       defaultValue: false,
       type: 'boolean',
     },
@@ -875,7 +875,7 @@ export class Flags {
     constName: 'deleteSecrets',
     name: 'delete-secrets',
     definition: {
-      describe: 'Delete the network secrets',
+      describe: 'Delete the network secrets. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
       defaultValue: false,
       type: 'boolean',
     },
@@ -887,26 +887,6 @@ export class Flags {
         'Would you like to delete secrets upon uninstall? ',
         null,
         Flags.deleteSecrets.name,
-      );
-    },
-  };
-
-  static readonly deleteConfigMaps: CommandFlag = {
-    constName: 'deleteConfigMaps',
-    name: 'delete-configmaps',
-    definition: {
-      describe: 'Delete the network ConfigMaps',
-      defaultValue: false,
-      type: 'boolean',
-    },
-    prompt: async function promptDeleteConfigMaps(task: ListrTaskWrapper<any, any, any>, input: any) {
-      return await Flags.promptToggle(
-        task,
-        input,
-        Flags.deleteConfigMaps.definition.defaultValue,
-        'Would you like to delete ConfigMaps upon uninstall? ',
-        null,
-        Flags.deleteConfigMaps.name,
       );
     },
   };
@@ -2141,7 +2121,6 @@ export class Flags {
     Flags.debugNodeAlias,
     Flags.deletePvcs,
     Flags.deleteSecrets,
-    Flags.deleteConfigMaps,
     Flags.deployCertManager,
     Flags.deployCertManagerCrds,
     Flags.deployJsonRpcRelay,

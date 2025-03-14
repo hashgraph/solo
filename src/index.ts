@@ -117,8 +117,16 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     .demand(1, 'Select a command')
 
     .middleware(
-      // @ts-expect-error - TS2322: To assign middlewares
-      [middlewares.setLoggerDevFlag(), middlewares.processArgumentsAndDisplayHeader(), middlewares.checkIfInitiated(), middlewares.loadRemoteConfig()],
+      [
+        // @ts-expect-error - TS2322: To assign middlewares
+        middlewares.setLoggerDevFlag(),
+        // @ts-expect-error - TS2322: To assign middlewares
+        middlewares.processArgumentsAndDisplayHeader(),
+        // @ts-expect-error - TS2322: To assign middlewares
+        middlewares.checkIfInitiated(),
+        // @ts-expect-error - TS2322: To assign middlewares
+        middlewares.loadRemoteConfig(),
+      ],
       false, // applyBeforeValidate is false as otherwise middleware is called twice
     );
 

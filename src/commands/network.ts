@@ -101,10 +101,8 @@ export interface NetworkDestroyContext {
   config: {
     deletePvcs: boolean;
     deleteSecrets: boolean;
-    deleteConfigMaps: boolean;
     namespace: NamespaceName;
     enableTimeout: boolean;
-    force: boolean;
     contexts: string[];
     deployment: string;
   };
@@ -751,16 +749,14 @@ export class NetworkCommand extends BaseCommand {
       }),
     );
 
-    // Delete PVCs inside each cluster
-    if (ctx.config.deleteConfigMaps) {
-      task.title = `Deleting ConfigMaps in namespace ${ctx.config.namespace}`;
-      await Promise.all(
-        ctx.config.contexts.map(async context => {
-          // Delete all if found
-          this.k8Factory.getK8(context).configMaps().delete(ctx.config.namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
-        }),
-      );
-    }
+    // Delete Remote config inside each cluster
+    task.title = `Deleting the RemoteConfig configmap in namespace ${ctx.config.namespace}`;
+    await Promise.all(
+      ctx.config.contexts.map(async context => {
+        // Delete all if found
+        this.k8Factory.getK8(context).configMaps().delete(ctx.config.namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
+      }),
+    );
 
     // Delete PVCs inside each cluster
     if (ctx.config.deletePvcs) {
@@ -1144,15 +1140,13 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
-            if (!argv.force) {
-              const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
-                default: false,
-                message: 'Are you sure you would like to destroy the network components?',
-              });
+            const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
+              default: false,
+              message: 'Are you sure you would like to destroy the network components?',
+            });
 
-              if (!confirmResult) {
-                throw new UserBreak('Aborted application by user prompt');
-              }
+            if (!confirmResult) {
+              throw new UserBreak('Aborted application by user prompt');
             }
 
             self.configManager.update(argv);
@@ -1161,11 +1155,9 @@ export class NetworkCommand extends BaseCommand {
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
-              deleteConfigMaps: self.configManager.getFlag<boolean>(flags.deleteConfigMaps) as boolean,
               deployment: self.configManager.getFlag<string>(flags.deployment) as string,
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
-              force: self.configManager.getFlag<boolean>(flags.force) as boolean,
               contexts: self.remoteConfigManager.getContexts(),
             };
 
@@ -1178,6 +1170,7 @@ export class NetworkCommand extends BaseCommand {
             const deployments = self.localConfig.deployments;
             delete deployments[ctx.config.deployment];
             self.localConfig.setDeployments(deployments);
+            await self.localConfig.write();
           },
         },
         {
@@ -1192,9 +1185,7 @@ export class NetworkCommand extends BaseCommand {
 
                 if (
                   ctx.config.deletePvcs &&
-                  ctx.config.deleteSecrets &&
-                  ctx.config.deleteConfigMaps &&
-                  ctx.config.force
+                  ctx.config.deleteSecrets
                 ) {
                   await Promise.all(
                     ctx.config.contexts.map(context =>
@@ -1268,15 +1259,13 @@ export class NetworkCommand extends BaseCommand {
           })
           .command({
             command: 'destroy',
-            desc: 'Destroy solo network',
+            desc: 'Destroy solo network. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
             builder: (y: any) =>
               flags.setCommandFlags(
                 y,
                 flags.deletePvcs,
                 flags.deleteSecrets,
-                flags.deleteConfigMaps,
                 flags.enableTimeout,
-                flags.force,
                 flags.deployment,
                 flags.quiet,
               ),
