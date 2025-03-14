@@ -21,11 +21,11 @@ export class LayeredConfig implements Config {
   }
 
   public asBoolean(key: string): boolean | null {
-    return this.primitiveScalar(this.asBoolean, key);
+    return this.primitiveScalar<boolean>(this.asBoolean, key, true);
   }
 
   public asNumber(key: string): number | null {
-    return this.primitiveScalar(this.asNumber, key);
+    return this.primitiveScalar<number>(this.asNumber, key, 1);
   }
 
   public asObject<T>(cls: ClassConstructor<T>, key?: string): T {
@@ -37,11 +37,11 @@ export class LayeredConfig implements Config {
   }
 
   public asString(key: string): string | null {
-    return this.primitiveScalar<string>(this.asString, key) as string;
+    return this.primitiveScalar<string>(this.asString, key, 'string') as string;
   }
 
   public asStringArray(key: string): string[] | null {
-    return this.primitiveScalar(this.asStringArray, key);
+    return this.primitiveScalar<string[]>(this.asStringArray, key, ['stringArray']);
   }
 
   public properties(): Map<string, string> {
@@ -78,8 +78,8 @@ export class LayeredConfig implements Config {
     }
   }
 
-  private primitiveScalar<T>(method: ScalarMethod<T>, key: string): T {
-    let value: T = null;
+  private primitiveScalar<T>(method: ScalarMethod<T>, key: string, exampleInstance: unknown): T {
+    let value: T = exampleInstance as T;
     const scalarType: string = typeof value;
 
     switch (scalarType) {
@@ -92,7 +92,7 @@ export class LayeredConfig implements Config {
     }
 
     for (const source of this.sources) {
-      const currentValue = method.apply(source, key);
+      const currentValue = source[method.name](key);
       if (currentValue !== null && currentValue !== undefined) {
         value = currentValue;
       }
