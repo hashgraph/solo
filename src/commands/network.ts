@@ -103,6 +103,7 @@ export interface NetworkDestroyContext {
     deleteSecrets: boolean;
     namespace: NamespaceName;
     enableTimeout: boolean;
+    force: boolean;
     contexts: string[];
     deployment: string;
   };
@@ -1142,13 +1143,15 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (ctx, task) => {
-            const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
-              default: false,
-              message: 'Are you sure you would like to destroy the network components?',
-            });
+            if (!argv.force) {
+              const confirmResult = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
+                default: false,
+                message: 'Are you sure you would like to destroy the network components?',
+              });
 
-            if (!confirmResult) {
-              throw new UserBreak('Aborted application by user prompt');
+              if (!confirmResult) {
+                throw new UserBreak('Aborted application by user prompt');
+              }
             }
 
             self.configManager.update(argv);
@@ -1160,6 +1163,7 @@ export class NetworkCommand extends BaseCommand {
               deployment: self.configManager.getFlag<string>(flags.deployment) as string,
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
+              force: self.configManager.getFlag<boolean>(flags.force) as boolean,
               contexts: self.remoteConfigManager.getContexts(),
             };
 
@@ -1265,6 +1269,7 @@ export class NetworkCommand extends BaseCommand {
                 flags.deletePvcs,
                 flags.deleteSecrets,
                 flags.enableTimeout,
+                flags.force,
                 flags.deployment,
                 flags.quiet,
               ),
