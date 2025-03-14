@@ -1,0 +1,17 @@
+userEmailAddress: joe@doe.com
+soloVersion: '0.35.1'
+deployments:
+  dual-cluster-full-deployment:
+    clusters:
+      - e2e-cluster-1
+      - e2e-cluster-2
+    namespace: dual-cluster-full
+  deployment:
+    clusters:
+      - cluster-1
+    namespace: solo-e2e
+clusterRefs:
+  cluster-1: context-1
+  cluster-2: context-2
+  e2e-cluster-1: kind-solo-e2e-c1
+  e2e-cluster-2: kind-solo-e2e-c2

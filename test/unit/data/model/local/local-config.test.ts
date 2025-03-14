@@ -3,15 +3,27 @@
 import {readFileSync} from 'fs';
 import {dumpYaml, loadYaml} from '@kubernetes/client-node';
 import {expect} from 'chai';
-import {instanceToPlain, plainToClass} from 'class-transformer';
+import {instanceToPlain} from 'class-transformer';
 import {SemVer} from 'semver';
 import {beforeEach} from 'mocha';
 import os from 'os';
 import {LocalConfig} from '../../../../../src/data/schema/model/local/local-config.js';
 import {Deployment} from '../../../../../src/data/schema/model/local/deployment.js';
+import {LocalConfigSchema} from '../../../../../src/data/schema/migration/impl/local/local-config-schema.js';
+import {CTObjectMapper} from '../../../../../src/data/mapper/impl/ct-object-mapper.js';
+import {ApplicationVersions} from '../../../../../src/data/schema/model/common/application-versions.js';
+import {
+  HEDERA_EXPLORER_VERSION,
+  HEDERA_JSON_RPC_RELAY_VERSION,
+  HEDERA_PLATFORM_VERSION,
+  MIRROR_NODE_VERSION,
+  SOLO_CHART_VERSION,
+} from '../../../../../version.js';
+import {getSoloVersion} from '../../../../../src/core/helpers.js';
 
 describe('LocalConfig', () => {
-  const localConfigPath = 'test/data/local-config.yaml';
+  const schema: LocalConfigSchema = new LocalConfigSchema(new CTObjectMapper());
+  const localConfigPath = `test/data/v${getSoloVersion()}-local-config.yaml`;
 
   describe('Class Transformer', () => {
     let yamlData: string;
@@ -23,32 +35,14 @@ describe('LocalConfig', () => {
 
       plainObject = loadYaml<object>(yamlData);
       expect(plainObject).to.not.be.undefined.and.to.not.be.null;
-
-      // Migrate deployments to array
-      const rd: object[] = [];
-      const deployments: object = plainObject['deployments'];
-      for (const key in deployments) {
-        expect(deployments[key]).to.not.be.undefined.and.to.not.be.null;
-        const d = deployments[key];
-        d['name'] = key;
-        rd.push(d);
-      }
-
-      plainObject['deployments'] = rd;
-      plainObject['schemaVersion'] = 1;
-
-      plainObject['userIdentity'] = {
-        name: os.userInfo().username,
-        hostname: os.hostname(),
-      };
     });
 
     it('should transform plain to class', async () => {
-      const lc = plainToClass(LocalConfig, plainObject);
+      const lc = await schema.transform(plainObject);
       expect(lc).to.not.be.undefined.and.to.not.be.null;
       expect(lc).to.be.instanceOf(LocalConfig);
-      expect(lc.soloVersion).to.be.instanceOf(SemVer);
-      expect(lc.soloVersion).to.deep.equal(new SemVer('0.35.1'));
+      expect(lc.versions.cli).to.be.instanceOf(SemVer);
+      expect(lc.versions.cli).to.deep.equal(new SemVer('0.35.1'));
       expect(lc.deployments).to.have.lengthOf(2);
       expect(lc.deployments[0].name).to.equal('dual-cluster-full-deployment');
       expect(lc.deployments[1].name).to.equal('deployment');
@@ -70,13 +64,20 @@ describe('LocalConfig', () => {
       clusterRefs.set('e2e-cluster-1', 'kind-solo-e2e-c1');
       clusterRefs.set('e2e-cluster-2', 'kind-solo-e2e-c2');
 
-      const lc = new LocalConfig(1, new SemVer('0.35.1'), deployments, clusterRefs);
+      const versions = new ApplicationVersions(
+        new SemVer(getSoloVersion()),
+        new SemVer(SOLO_CHART_VERSION),
+        new SemVer(HEDERA_PLATFORM_VERSION),
+        new SemVer(MIRROR_NODE_VERSION),
+        new SemVer(HEDERA_EXPLORER_VERSION),
+        new SemVer(HEDERA_JSON_RPC_RELAY_VERSION),
+      );
+      const lc = new LocalConfig(1, versions, deployments, clusterRefs);
       const newPlainObject: object = instanceToPlain(lc);
 
       expect(newPlainObject).to.not.be.undefined.and.to.not.be.null;
 
-      const poClone: object = {...plainObject};
-      delete poClone['userEmailAddress'];
+      const poClone = instanceToPlain(await schema.transform(plainObject));
       expect(newPlainObject).to.deep.equal(poClone);
 
       const yaml: string = dumpYaml(newPlainObject, {sortKeys: true});

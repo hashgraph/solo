@@ -18,4 +18,18 @@ export class Cluster {
 
   @Expose()
   public dnsConsensusNodePattern: string;
+
+  public constructor(
+    name?: string,
+    namespace?: string,
+    deployment?: string,
+    dnsBaseDomain?: string,
+    dnsConsensusNodePattern?: string,
+  ) {
+    this.name = name ?? '';
+    this.namespace = namespace ?? '';
+    this.deployment = deployment ?? '';
+    this.dnsBaseDomain = dnsBaseDomain ?? 'cluster.local';
+    this.dnsConsensusNodePattern = dnsConsensusNodePattern ?? 'network-${nodeAlias}-svc.${namespace}.svc';
+  }
 }

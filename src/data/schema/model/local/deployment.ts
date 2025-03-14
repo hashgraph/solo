@@ -14,8 +14,8 @@ export class Deployment {
   public clusters: string[];
 
   constructor(name?: string, namespace?: string, clusters?: string[]) {
-    this.name = name || '';
-    this.namespace = namespace || '';
-    this.clusters = clusters || [];
+    this.name = name ?? '';
+    this.namespace = namespace ?? '';
+    this.clusters = clusters ?? [];
   }
 }

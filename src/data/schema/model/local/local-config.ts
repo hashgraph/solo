@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {Exclude, Expose, Transform, Type} from 'class-transformer';
-import {SemVer} from 'semver';
+import {Exclude, Expose, Type} from 'class-transformer';
 import {Deployment} from './deployment.js';
-import {Transformations} from '../utils/transformations.js';
 import {UserIdentity} from '../common/user-identity.js';
 import {Version} from '../../../../business/utils/version.js';
+import {ApplicationVersions} from '../common/application-versions.js';
 
 @Exclude()
 export class LocalConfig {
@@ -15,8 +14,8 @@ export class LocalConfig {
   public schemaVersion: number;
 
   @Expose()
-  @Transform(Transformations.SemVer)
-  public soloVersion: SemVer;
+  @Type(() => ApplicationVersions)
+  public versions: ApplicationVersions;
 
   @Expose()
   @Type(() => UserIdentity)
@@ -32,15 +31,15 @@ export class LocalConfig {
 
   constructor(
     schemaVersion?: number,
-    soloVersion?: SemVer,
+    versions?: ApplicationVersions,
     deployments?: Deployment[],
     clusterRefs?: Map<string, string>,
     userIdentity?: UserIdentity,
   ) {
-    this.schemaVersion = schemaVersion || 1;
-    this.soloVersion = soloVersion || new SemVer('0.0.0');
-    this.deployments = deployments || [];
-    this.clusterRefs = clusterRefs || new Map<string, string>();
-    this.userIdentity = userIdentity || new UserIdentity();
+    this.schemaVersion = schemaVersion ?? 1;
+    this.versions = versions ?? new ApplicationVersions();
+    this.deployments = deployments ?? [];
+    this.clusterRefs = clusterRefs ?? new Map<string, string>();
+    this.userIdentity = userIdentity ?? new UserIdentity();
   }
 }
