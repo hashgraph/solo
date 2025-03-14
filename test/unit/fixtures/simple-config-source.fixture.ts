@@ -6,6 +6,7 @@ import {type ClassConstructor} from '../../../src/business/utils/class-construct
 import {type Refreshable} from '../../../src/data/configuration/spi/refreshable.js';
 
 export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
+  // used for testing to fake a refresh
   public props2: Map<string, string> = new Map<string, string>();
 
   public constructor(
@@ -16,26 +17,44 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     public props: Map<string, string> = new Map<string, string>(),
   ) {}
 
+  // TODO move to abstract class?
   asBoolean(key: string): boolean | null {
-    return undefined;
+    const value = this.props.get(key);
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return value.toLowerCase() === 'true';
   }
 
+  // TODO move to abstract class?
   asNumber(key: string): number | null {
-    return undefined;
+    const value = this.props.get(key);
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return Number(value);
   }
 
+  // TODO move to abstract class?
   asObject<T>(cls: ClassConstructor<T>, key?: string): T {
     return undefined;
   }
 
+  // TODO move to abstract class?
   asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[] {
     return [];
   }
 
+  // TODO move to abstract class?
   asString(key: string): string | null {
-    return undefined;
+    const value = this.props.get(key);
+    if (value === null || value === undefined) {
+      return null;
+    }
+    return value;
   }
 
+  // TODO move to abstract class?
   asStringArray(key: string): string[] | null {
     return undefined;
   }
