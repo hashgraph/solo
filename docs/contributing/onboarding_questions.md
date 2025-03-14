@@ -4,11 +4,11 @@
 
 `solo` is an opinionated tool to empower developers to deploy production like Hedera networks, for testing, in a local or remote Kubernetes cluster.
 
-Such a “`solo` deployed” Hedera network can be leveraged to perform any testing that otherwise would not be possible or cost-effective to do on production networks like Testnet or Mainnet. Swirldslabs is planning to use `solo` to deploy huge numbers of test networks on-demand using `solo` for internal testing and release process improvement. We anticipate `solo` can also empower external entities to do the same.
+Such a “`solo` deployed” Hedera network can be leveraged to perform any testing that otherwise would not be possible or cost-effective to do on production networks like Testnet or Mainnet. Swirlds Labs is planning to use `solo` to deploy huge numbers of test networks on-demand using `solo` for internal testing and release process improvement. We anticipate `solo` can also empower external entities to do the same.
 
-It is also easy to tear-down and create a new network on-demand using `solo` as it leverages kubernetes cluster. For a long running network deployment, `solo` can also be used to add new nodes and refresh existing nodes with new/previous software versions. Note that here “node refresh” operation is not node ‘upgrade’ (more on ‘upgrade’ later)
+It is also easy to tear-down and create a new network on-demand using `solo` as it leverages Kubernetes cluster. For a long running network deployment, `solo` can also be used to add new nodes and refresh existing nodes with new/previous software versions. Note that here “node refresh” operation is not node ‘upgrade’ (more on ‘upgrade’ later)
 
-`solo` will soon enable node upgrade process similar to Mainnet/Testnet with the help of `solo-operator` which is a custom kubernetes operator running inside the cluster to support various functionalities. `solo-operator` is still under development and is not ready yet. We anticipate the first release of `solo-operator` in Q3 2024.
+`solo` will soon enable node upgrade process similar to Mainnet/Testnet with the help of `solo-operator` which is a custom Kubernetes operator running inside the cluster to support various functionalities. `solo-operator` is still under development and is not ready yet. We anticipate the first release of `solo-operator` in Q3 2024.
 
 ### Overview of the architecture of conceptual code components. Highlight separation of concerns and what each component is responsible for and how they work together. What technologies are utilized.
 
@@ -20,7 +20,7 @@ It leverages existing Helm Charts to deploy various components such as hedera-mi
 
 `solo` also leverages crypto libraries to generate keys for nodes if required (although for production or more sensitive use-cases, it is encouraged to generate keys using `openssl` or other well known key generation tools).
 
-`solo` generates PEM formatted keys using a javascript library, whereas PFX formatted keys are generated using Java `keytool`. `solo` automatically pulls a copy of JRE to leverage `keytool` to generate PFX keys if user desires to generate PFX keys using `solo`.
+`solo` generates PEM formatted keys using a javascript library, whereas PFX formatted keys are generated using Java `keytool`. `solo` automatically pulls a copy of JRE to leverage `keytool` to generate PFX keys if the user desires to generate PFX keys using `solo`.
 
 At a high level, there are two main packages namely `commands` and `core` :
 
@@ -75,7 +75,7 @@ Our official docs site: https://hashgraph.github.io/solo/
   * Connect Telemetry (Grafana, Prometheus, Tempo etc.)
 * **What’s on deck  (As of May 2024)**
   * Ensure relays can connect to mirror node and are usable by developers for dApp development
-  * Allow `solo state` to be stored in the kubernetes cluster instead of storing on local machine
+  * Allow `solo state` to be stored in the Kubernetes cluster instead of storing on local machine
   * Introduce `solo state lock` to support multi-user support to manage a single deployment in a remote cluster
 * **What’s next (As of May 2024)**
   * `solo`
