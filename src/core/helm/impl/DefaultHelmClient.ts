@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import * as path from 'path';
-import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
 import {type HelmClient} from '../HelmClient.js';
 import {type HelmExecution} from '../execution/HelmExecution.js';
 import {HelmExecutionBuilder} from '../execution/HelmExecutionBuilder.js';
 import {type Chart} from '../model/Chart.js';
 import {Repository} from '../model/Repository.js';
 import {Version} from '../model/Version.js';
-import {type Release, ReleaseImpl} from '../model/chart/Release.js';
+import {type Release} from '../model/chart/Release.js';
 import {type InstallChartOptions} from '../model/install/InstallChartOptions.js';
-import {type ReleaseItem, ReleaseItemImpl} from '../model/release/ReleaseItem.js';
+import {ReleaseItem} from '../model/release/ReleaseItem.js';
 import {type TestChartOptions} from '../model/test/TestChartOptions.js';
 import {type HelmRequest} from '../request/HelmRequest.js';
 import {type KubeAuthentication} from '../request/authentication/KubeAuthentication.js';
@@ -18,13 +16,15 @@ import {ChartDependencyUpdateRequest} from '../request/chart/ChartDependencyUpda
 import {ChartInstallRequest} from '../request/chart/ChartInstallRequest.js';
 import {ChartTestRequest} from '../request/chart/ChartTestRequest.js';
 import {ChartUninstallRequest} from '../request/chart/ChartUninstallRequest.js';
+import {VersionRequest} from '../request/common/VersionRequest.js';
 import {ReleaseListRequest} from '../request/release/ReleaseListRequest.js';
 import {RepositoryAddRequest} from '../request/repository/RepositoryAddRequest.js';
 import {RepositoryListRequest} from '../request/repository/RepositoryListRequest.js';
 import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveRequest.js';
+import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
 
 /**
- * The default implementation of the {@link HelmClient} interface.
+ * The default implementation of the HelmClient interface.
  */
 export class DefaultHelmClient implements HelmClient {
   /**
@@ -38,54 +38,17 @@ export class DefaultHelmClient implements HelmClient {
   private static readonly NAMESPACE_ARG_NAME = 'namespace';
 
   /**
-   * The path to the Helm executable.
-   */
-  private readonly helmExecutable: string;
-
-  /**
-   * The authentication configuration to use when executing Helm commands.
-   */
-  private readonly authentication: KubeAuthentication;
-
-  /**
-   * The default namespace to use when executing Helm commands.
-   */
-  private readonly defaultNamespace?: string;
-
-  /**
-   * The working directory to use when executing Helm commands.
-   */
-  private readonly workingDirectory?: string;
-
-  /**
-   * Creates a new instance of the {@link DefaultHelmClient} class.
-   *
-   * @param helmExecutable   the path to the Helm executable.
-   * @param authentication   the authentication configuration to use when executing Helm commands.
-   * @param defaultNamespace the default namespace to use when executing Helm commands.
-   */
-  constructor(helmExecutable: string, authentication: KubeAuthentication, defaultNamespace?: string);
-
-  /**
-   * Creates a new instance of the {@link DefaultHelmClient} class.
-   *
-   * @param helmExecutable   the path to the Helm executable.
-   * @param authentication   the authentication configuration to use when executing Helm commands.
-   * @param defaultNamespace the default namespace to use when executing Helm commands.
-   * @param workingDirectory the working directory to use when executing Helm commands.
+   * Creates a new instance of the DefaultHelmClient class.
+   * @param helmExecutable - The path to the Helm executable
+   * @param authentication - The authentication configuration to use when executing Helm commands
+   * @param defaultNamespace - The default namespace to use when executing Helm commands
+   * @param workingDirectory - The working directory to use when executing Helm commands
    */
   constructor(
-    helmExecutable: string,
-    authentication: KubeAuthentication,
-    defaultNamespace?: string,
-    workingDirectory?: string,
-  );
-
-  constructor(
-    helmExecutable: string,
-    authentication: KubeAuthentication,
-    defaultNamespace?: string,
-    workingDirectory?: string,
+    private readonly helmExecutable: string,
+    private readonly authentication: KubeAuthentication,
+    private readonly defaultNamespace?: string,
+    private readonly workingDirectory?: string,
   ) {
     if (!helmExecutable) {
       throw new Error('helmExecutable must not be null');
@@ -93,73 +56,72 @@ export class DefaultHelmClient implements HelmClient {
     if (!authentication) {
       throw new Error('authentication must not be null');
     }
-    this.helmExecutable = path.normalize(helmExecutable);
-    this.authentication = authentication;
-    this.defaultNamespace = defaultNamespace;
-    this.workingDirectory = workingDirectory;
   }
 
-  version(): SemanticVersion {
-    const execution = new HelmExecutionBuilder(this.helmExecutable).subcommands('version').build();
-    const version = execution.standardOutputSync();
-    return new Version(version).asSemanticVersion();
+  public version(): SemanticVersion {
+    const request = new VersionRequest();
+    const builder = new HelmExecutionBuilder(this.helmExecutable);
+    this.applyBuilderDefaults(builder);
+    request.apply(builder);
+    const execution = builder.build();
+    if (execution instanceof Promise) {
+      throw new Error('Unexpected async execution');
+    }
+    const versionClass = Version as unknown as new () => Version;
+    const result = execution.responseAs(versionClass);
+    if (!(result instanceof Version)) {
+      throw new Error('Unexpected response type');
+    }
+    return result.asSemanticVersion();
   }
 
-  async listRepositories(): Promise<Repository[]> {
+  public async listRepositories(): Promise<Repository[]> {
     return this.executeAsList(new RepositoryListRequest(), Repository);
   }
 
-  async addRepository(repository: Repository): Promise<void> {
-    await this.executeInternal(new RepositoryAddRequest(repository), async b => {
-      await b.call();
-      return null;
+  public async addRepository(repository: Repository): Promise<void> {
+    await this.executeAsync(new RepositoryAddRequest(repository), undefined);
+  }
+
+  public async removeRepository(repository: Repository): Promise<void> {
+    await this.executeAsync(new RepositoryRemoveRequest(repository), undefined);
+  }
+
+  public async installChart(releaseName: string, chart: Chart): Promise<Release> {
+    return this.installChartWithOptions(releaseName, chart, {} as InstallChartOptions);
+  }
+
+  public async installChartWithOptions(
+    releaseName: string,
+    chart: Chart,
+    options: InstallChartOptions,
+  ): Promise<Release> {
+    const request = new ChartInstallRequest(releaseName, chart, options);
+    return this.executeInternal(undefined, request, {} as any, async execution => {
+      const response = await execution.responseAs({} as any);
+      return response as Release;
     });
   }
 
-  async removeRepository(repository: Repository): Promise<void> {
-    await this.executeInternal(new RepositoryRemoveRequest(repository), async b => {
-      await b.call();
-      return null;
-    });
+  public async uninstallChart(releaseName: string): Promise<void> {
+    await this.executeAsync(new ChartUninstallRequest(releaseName), undefined);
   }
 
-  async installChart(releaseName: string, chart: Chart): Promise<Release> {
-    return this.execute(new ChartInstallRequest(releaseName, chart), ReleaseImpl);
+  public async testChart(releaseName: string, options: TestChartOptions): Promise<void> {
+    await this.executeAsync(new ChartTestRequest(releaseName, options), undefined);
   }
 
-  async installChartWithOptions(releaseName: string, chart: Chart, options: InstallChartOptions): Promise<Release> {
-    return this.execute(new ChartInstallRequest(releaseName, chart, options), ReleaseImpl);
+  public async listReleases(allNamespaces: boolean): Promise<ReleaseItem[]> {
+    return this.executeAsList(new ReleaseListRequest(allNamespaces), ReleaseItem);
   }
 
-  async uninstallChart(releaseName: string): Promise<void> {
-    await this.executeInternal(new ChartUninstallRequest(releaseName), async b => {
-      await b.call();
-      return null;
-    });
-  }
-
-  async testChart(releaseName: string, options: TestChartOptions): Promise<void> {
-    await this.executeInternal(new ChartTestRequest(releaseName, options), async b => {
-      await b.call();
-      return null;
-    });
-  }
-
-  async listReleases(allNamespaces: boolean): Promise<ReleaseItem[]> {
-    return this.executeAsList(new ReleaseListRequest(allNamespaces), ReleaseItemImpl);
-  }
-
-  async dependencyUpdate(chartName: string): Promise<void> {
-    await this.executeInternal(new ChartDependencyUpdateRequest(chartName), async b => {
-      await b.call();
-      return null;
-    });
+  public async dependencyUpdate(chartName: string): Promise<void> {
+    await this.executeAsync(new ChartDependencyUpdateRequest(chartName), undefined);
   }
 
   /**
    * Applies the default namespace and authentication configuration to the given builder.
-   *
-   * @param builder the builder to apply to which the defaults should be applied.
+   * @param builder - The builder to apply to which the defaults should be applied
    */
   private applyBuilderDefaults(builder: HelmExecutionBuilder): void {
     if (this.defaultNamespace?.trim()) {
@@ -174,96 +136,61 @@ export class DefaultHelmClient implements HelmClient {
   }
 
   /**
-   * Executes the given request and returns the response as the given class. The request is executed using the default
-   * namespace.
+   * Executes the given request and returns the response as the given class.
+   * The request is executed using the default namespace.
    *
-   * @param request       the request to execute.
-   * @param responseClass the class of the response.
-   * @param <T>           the type of the request.
-   * @param <R>           the type of the response.
-   * @return the response.
+   * @param request - The request to execute
+   * @param responseClass - The class of the response
+   * @returns The response
    */
-  private async execute<T extends HelmRequest, R>(request: T, responseClass: new (...args: any[]) => R): Promise<R> {
-    return this.executeInternal(request, async b => b.responseAs(responseClass));
+  private async executeAsync<T extends HelmRequest, R>(
+    request: T,
+    responseClass: new (...args: any[]) => R,
+  ): Promise<R> {
+    return this.executeInternal(undefined, request, responseClass, async b => {
+      const response = await b.responseAs(responseClass);
+      return response as R;
+    });
   }
 
   /**
-   * Executes the given request and returns the response as a list of the given class. The request is executed using
-   * the default namespace.
+   * Executes the given request and returns the response as a list of the given class.
+   * The request is executed using the default namespace.
    *
-   * @param request       the request to execute.
-   * @param responseClass the class of the response.
-   * @param <T>           the type of the request.
-   * @param <R>           the type of the response.
-   * @return a list of response objects.
+   * @param request - The request to execute
+   * @param responseClass - The class of the response
+   * @returns A list of response objects
    */
   private async executeAsList<T extends HelmRequest, R>(
     request: T,
     responseClass: new (...args: any[]) => R,
   ): Promise<R[]> {
-    return this.executeInternal(request, async b => b.responseAsList(responseClass));
+    return this.executeInternal(undefined, request, responseClass, async b => {
+      const response = await b.responseAsList(responseClass);
+      return response as R[];
+    });
   }
 
-  /**
-   * Executes the given request and returns the response as the given class with the specified namespace.
-   *
-   * @param namespace     the namespace to use.
-   * @param request       the request to execute.
-   * @param responseClass the class of the response.
-   * @param <T>           the type of the request.
-   * @param <R>           the type of the response.
-   * @return the response.
-   */
-  private async executeWithNamespace<T extends HelmRequest, R>(
+  private async executeInternal<T extends HelmRequest, R, V>(
     namespace: string,
     request: T,
     responseClass: new (...args: any[]) => R,
-  ): Promise<R> {
-    return this.executeInternalWithNamespace(namespace, request, async b => b.responseAs(responseClass));
-  }
-
-  /**
-   * Executes the given request and returns the response as a list of the given class with the specified namespace.
-   *
-   * @param namespace     the namespace to use.
-   * @param request       the request to execute.
-   * @param responseClass the class of the response.
-   * @param <T>           the type of the request.
-   * @param <R>           the type of the response.
-   * @return a list of response objects.
-   */
-  private async executeAsListWithNamespace<T extends HelmRequest, R>(
-    namespace: string,
-    request: T,
-    responseClass: new (...args: any[]) => R,
-  ): Promise<R[]> {
-    return this.executeInternalWithNamespace(namespace, request, async b => b.responseAsList(responseClass));
-  }
-
-  private async executeInternal<T extends HelmRequest, V>(
-    request: T,
     responseFn: (execution: HelmExecution) => Promise<V>,
   ): Promise<V> {
-    const builder = new HelmExecutionBuilder(this.helmExecutable);
-    this.applyBuilderDefaults(builder);
-    request.apply(builder);
-    const execution = builder.build();
-    return responseFn(execution);
-  }
+    if (namespace) {
+      if (!namespace) {
+        throw new Error(DefaultHelmClient.MSG_NAMESPACE_NOT_NULL);
+      }
 
-  private async executeInternalWithNamespace<T extends HelmRequest, V>(
-    namespace: string,
-    request: T,
-    responseFn: (execution: HelmExecution) => Promise<V>,
-  ): Promise<V> {
-    if (!namespace) {
-      throw new Error(DefaultHelmClient.MSG_NAMESPACE_NOT_NULL);
+      if (!namespace.trim()) {
+        throw new Error('namespace must not be blank');
+      }
     }
+
     const builder = new HelmExecutionBuilder(this.helmExecutable);
     this.applyBuilderDefaults(builder);
-    builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, namespace);
     request.apply(builder);
-    const execution = builder.build();
-    return responseFn(execution);
+    builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, namespace);
+    return responseFn(await builder.build());
   }
 }

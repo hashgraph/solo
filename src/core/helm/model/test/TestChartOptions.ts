@@ -1,28 +1,41 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
+import {type Options} from '../Options.js';
+import {TestChartOptionsBuilder} from './TestChartOptionsBuilder.js';
 
 /**
- * Options for testing a Helm chart.
+ * Represents the options to use when testing a chart.
+ *
+ * @property filter - Specify tests by attribute (currently "name") using attribute=value syntax or '!attribute=value' to
+ *                   exclude a test (can specify multiple or separate values with commas: name=test1,name=test2)
+ * @property timeout - Time to wait for any individual Kubernetes operation (like Jobs for hooks) (default 5m0s)
  */
-export class TestChartOptions {
+export class TestChartOptions implements Options {
   /**
-   * Returns a new instance of TestChartOptions with default values.
+   * Creates a new instance of TestChartOptions.
+   * @param filter - The test filter
+   * @param timeout - The operation timeout
    */
-  static defaults(): TestChartOptions {
-    return new TestChartOptions();
-  }
-
   constructor(
     public readonly filter?: string,
     public readonly timeout?: string,
   ) {}
 
   /**
-   * Creates a new builder for TestChartOptions.
+   * Returns an instance of the TestChartOptionsBuilder.
+   * @returns the TestChartOptionsBuilder.
    */
-  static builder(): TestChartOptionsBuilder {
+  public static builder(): TestChartOptionsBuilder {
     return new TestChartOptionsBuilder();
+  }
+
+  /**
+   * Returns an instance of the default TestChartOptions.
+   * @returns the default TestChartOptions.
+   */
+  public static defaults(): TestChartOptions {
+    return TestChartOptions.builder().build();
   }
 
   /**
@@ -30,43 +43,11 @@ export class TestChartOptions {
    * @param builder The builder to apply the options to
    */
   apply(builder: HelmExecutionBuilder): void {
-    if (this.filter) {
-      builder.argument('filter', this.filter);
+    if (this.filter?.trim()) {
+      builder.argument('filter', this.filter.trim());
     }
-    if (this.timeout) {
-      builder.argument('timeout', this.timeout);
+    if (this.timeout?.trim()) {
+      builder.argument('timeout', this.timeout.trim());
     }
-  }
-}
-
-/**
- * Builder for TestChartOptions.
- */
-export class TestChartOptionsBuilder {
-  private _filter?: string;
-  private _timeout?: string;
-
-  /**
-   * Specify tests by attribute (currently "name") using attribute=value syntax or '!attribute=value' to
-   * exclude a test (can specify multiple or separate values with commas: name=test1,name=test2)
-   */
-  filter(value: string): TestChartOptionsBuilder {
-    this._filter = value;
-    return this;
-  }
-
-  /**
-   * Time to wait for any individual Kubernetes operation (like Jobs for hooks) (default 5m0s).
-   */
-  timeout(value: string): TestChartOptionsBuilder {
-    this._timeout = value;
-    return this;
-  }
-
-  /**
-   * Build the TestChartOptions instance.
-   */
-  build(): TestChartOptions {
-    return new TestChartOptions(this._filter, this._timeout);
   }
 }

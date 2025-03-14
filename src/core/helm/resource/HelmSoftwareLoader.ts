@@ -19,9 +19,9 @@ export class HelmSoftwareLoader {
   public async loadHelmExecutable(): Promise<string> {
     const platform = os.platform();
     const arch = os.arch();
-    
+
     const executablePath = this.getExecutablePath(platform, arch);
-    
+
     try {
       await fs.access(executablePath, fs.constants.X_OK);
       return executablePath;
@@ -39,7 +39,7 @@ export class HelmSoftwareLoader {
    */
   private getExecutablePath(platform: string, arch: string): string {
     let platformDir: string;
-    
+
     switch (platform) {
       case 'darwin':
         platformDir = 'macos';
@@ -72,7 +72,7 @@ export class HelmSoftwareLoader {
       HelmSoftwareLoader.RESOURCE_PATH,
       platformDir,
       archDir,
-      HelmSoftwareLoader.HELM_EXECUTABLE_NAME
+      HelmSoftwareLoader.HELM_EXECUTABLE_NAME,
     );
   }
 }

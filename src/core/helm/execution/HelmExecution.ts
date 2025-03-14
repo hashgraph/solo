@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn, spawnSync, type ChildProcess} from 'child_process';
+import {spawn, type ChildProcess} from 'child_process';
 import {HelmExecutionException} from '../HelmExecutionException.js';
 import {HelmParserException} from '../HelmParserException.js';
 import {type Duration} from '../../time/duration.js';
@@ -63,12 +63,7 @@ export class HelmExecution {
    * @param timeout The maximum time to wait, or null to wait indefinitely
    * @returns A promise that resolves with true if the process completed, or false if it timed out
    */
-  async waitForTimeout(timeout: Duration | null): Promise<boolean> {
-    if (!timeout) {
-      await this.waitFor();
-      return true;
-    }
-
+  async waitForTimeout(timeout: Duration): Promise<boolean> {
     const timeoutPromise = new Promise<boolean>(resolve => {
       setTimeout(() => resolve(false), timeout.toMillis());
     });
@@ -204,22 +199,5 @@ export class HelmExecution {
     if (!success) {
       throw new HelmExecutionException(1, HelmExecution.MSG_TIMEOUT_ERROR, '', '');
     }
-  }
-
-  /**
-   * Gets the standard output of the process synchronously.
-   * @returns The standard output as a string
-   */
-  standardOutputSync(): string {
-    const result = spawnSync(this.process.spawnfile, this.process.spawnargs.slice(1), {
-      cwd: this.workingDirectory,
-      env: {...process.env, ...this.environmentVariables},
-    });
-
-    if (result.status !== 0) {
-      throw new HelmExecutionException(result.status || 1, `Process exited with code ${result.status}`, '', '');
-    }
-
-    return result.stdout.toString();
   }
 }
