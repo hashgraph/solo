@@ -129,4 +129,11 @@ describe('LayeredConfig', () => {
     expect(simpleObjectArray[0].prop3).to.be.true;
     expect(simpleObjectArray[0].prop4).to.eql(['prop4']);
   });
+
+  it('primitiveScalar should throw IllegalArgumentError', () => {
+    // @ts-expect-error - testing private method
+    expect(() => layeredConfig.primitiveScalar<string>(layeredConfig.asString, 'key3', null)).to.throw(
+      'Unsupported scalar type',
+    );
+  });
 });
