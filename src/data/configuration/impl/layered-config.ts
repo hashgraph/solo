@@ -4,7 +4,6 @@ import {type Config} from '../api/config.js';
 import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
 import {type ConfigSource} from '../spi/config-source.js';
 import {type Refreshable} from '../spi/refreshable.js';
-import {type Converter} from '../spi/converter.js';
 import {Comparators} from '../../../business/utils/comparators.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
 
@@ -13,10 +12,7 @@ type ObjectMethod<T> = (cls: ClassConstructor<T>, key?: string) => T;
 type ObjectArrayMethod<T> = (cls: ClassConstructor<T>, key?: string) => T[];
 
 export class LayeredConfig implements Config {
-  public constructor(
-    public readonly sources: ConfigSource[],
-    private readonly converters: Converter<unknown>[],
-  ) {
+  public constructor(public readonly sources: ConfigSource[]) {
     if (sources) {
       sources.sort((l, r) => Comparators.number(l.ordinal, r.ordinal));
     }
