@@ -80,15 +80,6 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: finished solo cluster-ref connect`);
   });
 
-  // TODO add commands to create local config and use different cache directory
-  // solo cluster-ref connect --cluster-ref(*) --context(#)
-  //   1. Add the mapping to the local configuration
-  //   2. Verify the connection to the cluster can be established (kubectl get ns)
-  //   3. Fail if the connection cannot be established
-
-  // solo cluster-ref connect --cluster-ref e2e-cluster1 --context kind-solo-e2e-c1
-  // solo cluster-ref connect --cluster-ref e2e-cluster2 --context kind-solo-e2e-c2
-
   // solo deployment create --deployment(*) --namespace(#)
   //   1. Create a new deployment with the specified name and namespace in the local configuration
   //   2. Fail if the deployment already exists
@@ -114,22 +105,6 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster2 --enable-cert-manager
   //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
-
-  // // TODO remove once `solo cluster-ref connect' is implemented
-  // it(`${testName}: manually modify local config`, async () => {
-  //   testLogger.info(`${testName}: beginning to manually modify the local config`);
-  //   const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
-  //   const currentClusterRefs: ClusterRefs = localConfig.clusterRefs;
-  //   for (let index = 0; index < testClusterRefs.length; index++) {
-  //     currentClusterRefs[testClusterRefs[index]] = contexts[index];
-  //   }
-  //   expect(JSON.stringify(localConfig.setClusterRefs(currentClusterRefs).clusterRefs)).to.equal(
-  //     JSON.stringify(localConfig.clusterRefs),
-  //   );
-  //
-  //   await localConfig.write();
-  //   testLogger.info(`${testName}: finished manually modifying the local config`);
-  // });
 
   // TODO replace with proper commands to create a deployment - see above
   it(`${testName}: manually create remote config`, async () => {
