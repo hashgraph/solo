@@ -153,11 +153,11 @@ export class Middlewares {
   }
 
   /**
-   * Checks if the Solo instance has been initiated
+   * Checks if the Solo instance has been initialized
    *
    * @returns callback function to be executed from listr
    */
-  public checkIfInitiated() {
+  public checkIfInitialized() {
     const logger = this.logger;
 
     /**
