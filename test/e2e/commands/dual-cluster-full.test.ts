@@ -8,7 +8,7 @@ import {getSoloVersion} from '../../../src/core/helpers.js';
 import * as constants from '../../../src/core/constants.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
-import {type ClusterRef, type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type ClusterRef, type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
@@ -20,6 +20,7 @@ import {type ConfigManager} from '../../../src/core/config-manager.js';
 import fs from 'fs';
 import path from 'path';
 import {type SoloLogger} from '../../../src/core/logging.js';
+import {type LocalConfig} from '../../../src/core/config/local-config.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -77,6 +78,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
         optionFromFlag(Flags.quiet),
       ]);
     }
+    const clusterRefs: ClusterRefs = container.resolve<LocalConfig>(InjectTokens.LocalConfig).clusterRefs;
+    expect(clusterRefs[testClusterRefs[0]]).to.equal(contexts[0]);
+    expect(clusterRefs[testClusterRefs[1]]).to.equal(contexts[1]);
     testLogger.info(`${testName}: finished solo cluster-ref connect`);
   });
 
