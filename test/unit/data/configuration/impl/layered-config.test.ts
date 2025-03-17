@@ -5,6 +5,15 @@ import {SimpleConfigSourceFixture} from '../../../fixtures/simple-config-source.
 import {LayeredConfig} from '../../../../../src/data/configuration/impl/layered-config.js';
 import {expect} from 'chai';
 
+class SimpleObject {
+  constructor(
+    public prop1?: string,
+    public prop2?: number,
+    public prop3?: boolean,
+    public prop4?: string[],
+  ) {}
+}
+
 describe('LayeredConfig', () => {
   let map1: Map<string, string>;
   let map2: Map<string, string>;
@@ -26,6 +35,11 @@ describe('LayeredConfig', () => {
     map2.set('key3', 'map2key2value3');
     map2.set('number', '42');
     map3.set('key3', 'map3key3value3');
+
+    const simpleObject: SimpleObject = new SimpleObject('prop1', 42, true, ['prop4']);
+    map2.set('simpleObject', JSON.stringify(simpleObject));
+    map1.set('simpleObjectArray', JSON.stringify([simpleObject]));
+
     simpleConfigSourceOrdinal1 = new SimpleConfigSourceFixture(
       'simpleConfigSource1',
       1,
@@ -98,5 +112,21 @@ describe('LayeredConfig', () => {
 
   it('should return a string array', () => {
     expect(layeredConfig.asStringArray('stringArray')).to.eql(['map1StringArray']);
+  });
+
+  it('should return an object', () => {
+    const simpleObject: SimpleObject = layeredConfig.asObject(SimpleObject, 'simpleObject');
+    expect(simpleObject.prop1).to.equal('prop1');
+    expect(simpleObject.prop2).to.equal(42);
+    expect(simpleObject.prop3).to.be.true;
+    expect(simpleObject.prop4).to.eql(['prop4']);
+  });
+
+  it('should return an object array', () => {
+    const simpleObjectArray: SimpleObject[] = layeredConfig.asObjectArray(SimpleObject, 'simpleObjectArray');
+    expect(simpleObjectArray[0].prop1).to.equal('prop1');
+    expect(simpleObjectArray[0].prop2).to.equal(42);
+    expect(simpleObjectArray[0].prop3).to.be.true;
+    expect(simpleObjectArray[0].prop4).to.eql(['prop4']);
   });
 });

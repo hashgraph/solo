@@ -33,12 +33,50 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     return Number(value);
   }
 
-  asObject<T>(cls: ClassConstructor<T>, key?: string): T {
-    return undefined;
+  asObject<T>(cls: ClassConstructor<T>, key?: string): T | null {
+    const value: string | undefined = this.props.get(key ?? '');
+    if (!value) {
+      return null;
+    }
+
+    try {
+      const parsedValue: unknown = JSON.parse(value);
+      if (typeof parsedValue !== 'object' || parsedValue === null) {
+        return null;
+      }
+
+      // Create a new instance and assign properties manually
+      const instance: T = new cls();
+      Object.assign(instance, parsedValue);
+      return instance;
+    } catch {
+      return null;
+    }
   }
 
   asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[] {
-    return [];
+    const value: string | undefined = this.props.get(key ?? '');
+    if (!value) {
+      return null;
+    }
+
+    try {
+      const parsedValue: unknown = JSON.parse(value);
+
+      if (!Array.isArray(parsedValue)) {
+        return null;
+      }
+
+      return parsedValue
+        .filter(item => typeof item === 'object' && item !== null)
+        .map(item => {
+          const instance: T = new cls();
+          Object.assign(instance, item);
+          return instance;
+        });
+    } catch {
+      return null;
+    }
   }
 
   asString(key: string): string | null {

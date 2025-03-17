@@ -30,7 +30,7 @@ export class LayeredConfig implements Config {
     return this.objectScalar(this.asObject, cls, key);
   }
 
-  public asObjectArray<T extends Array<T>>(cls: ClassConstructor<T>, key?: string): T {
+  public asObjectArray<T>(cls: ClassConstructor<T>, key?: string): Array<T> {
     return this.objectArray(this.asObjectArray, cls, key);
   }
 
@@ -116,8 +116,8 @@ export class LayeredConfig implements Config {
     return value as T;
   }
 
-  private objectArray<T>(method: ObjectArrayMethod<T>, cls: ClassConstructor<T>, key?: string): T {
-    let value: T = null;
+  private objectArray<T>(method: ObjectArrayMethod<T>, cls: ClassConstructor<T>, key?: string): Array<T> {
+    let value: Array<T> = null;
 
     for (const source of this.sources) {
       const currentValue = source[method.name](cls, key);
