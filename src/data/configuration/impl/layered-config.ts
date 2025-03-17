@@ -9,6 +9,8 @@ import {Comparators} from '../../../business/utils/comparators.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
 
 type ScalarMethod<T> = (key: string) => T;
+type ObjectMethod<T> = (cls: ClassConstructor<T>, key?: string) => T;
+type ObjectArrayMethod<T> = (cls: ClassConstructor<T>, key?: string) => T[];
 
 export class LayeredConfig implements Config {
   public constructor(
@@ -29,11 +31,11 @@ export class LayeredConfig implements Config {
   }
 
   public asObject<T>(cls: ClassConstructor<T>, key?: string): T {
-    return undefined;
+    return this.objectScalar(this.asObject, cls, key);
   }
 
-  public asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[] {
-    return [];
+  public asObjectArray<T extends Array<T>>(cls: ClassConstructor<T>, key?: string): T {
+    return this.objectArray(this.asObjectArray, cls, key);
   }
 
   public asString(key: string): string | null {
@@ -79,8 +81,12 @@ export class LayeredConfig implements Config {
   }
 
   private primitiveScalar<T>(method: ScalarMethod<T>, key: string, exampleInstance: unknown): T {
-    let value: T = exampleInstance as T;
-    const scalarType: string = typeof value;
+    let value: T = null;
+    let scalarType: string = typeof exampleInstance;
+
+    if (Array.isArray(exampleInstance) && !exampleInstance && exampleInstance.length > 0) {
+      scalarType = typeof exampleInstance[0];
+    }
 
     switch (scalarType) {
       case 'boolean':
@@ -99,6 +105,32 @@ export class LayeredConfig implements Config {
     }
 
     return value as T;
+  }
+
+  private objectScalar<T>(method: ObjectMethod<T>, cls: ClassConstructor<T>, key?: string): T {
+    let value: T = null;
+
+    for (const source of this.sources) {
+      const currentValue = source[method.name](cls, key);
+      if (currentValue !== null && currentValue !== undefined) {
+        value = currentValue;
+      }
+    }
+
+    return value as T;
+  }
+
+  private objectArray<T>(method: ObjectArrayMethod<T>, cls: ClassConstructor<T>, key?: string): T {
+    let value: T = null;
+
+    for (const source of this.sources) {
+      const currentValue = source[method.name](cls, key);
+      if (currentValue !== null && currentValue !== undefined) {
+        value = currentValue;
+      }
+    }
+
+    return value;
   }
 
   /**
