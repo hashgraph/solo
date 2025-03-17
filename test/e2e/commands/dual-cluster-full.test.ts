@@ -66,17 +66,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   it(`${testName}: solo cluster-ref connect`, async () => {
     testLogger.info(`${testName}: beginning solo cluster-ref connect`);
     for (let index = 0; index < testClusterRefs.length; index++) {
-      await main([
-        ...newArgv(),
-        'cluster-ref',
-        'connect',
-        optionFromFlag(Flags.clusterRef),
-        testClusterRefs[index],
-        optionFromFlag(Flags.context),
-        contexts[index],
-        optionFromFlag(Flags.devMode),
-        optionFromFlag(Flags.quiet),
-      ]);
+      await main(soloClusterRefConnectArgv(testClusterRefs[index], contexts[index]));
     }
     const clusterRefs: ClusterRefs = container.resolve<LocalConfig>(InjectTokens.LocalConfig).clusterRefs;
     expect(clusterRefs[testClusterRefs[0]]).to.equal(contexts[0]);
@@ -184,6 +174,20 @@ function soloInitArgv(): string[] {
   argv.push(getTestCacheDir());
   argv.push(optionFromFlag(Flags.devMode));
   return argv;
+}
+
+function soloClusterRefConnectArgv(clusterRef: ClusterRef, context: string): string[] {
+  return [
+    ...newArgv(),
+    'cluster-ref',
+    'connect',
+    optionFromFlag(Flags.clusterRef),
+    clusterRef,
+    optionFromFlag(Flags.context),
+    context,
+    optionFromFlag(Flags.devMode),
+    optionFromFlag(Flags.quiet),
+  ];
 }
 
 function soloNodeKeysArgv(deployment: DeploymentName, nodeAliasesUnparsed: string): any {
