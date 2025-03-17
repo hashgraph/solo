@@ -177,14 +177,12 @@ export class DefaultHelmClient implements HelmClient {
     responseClass: new (...args: any[]) => R,
     responseFn: (execution: HelmExecution) => Promise<V>,
   ): Promise<V> {
-    if (namespace) {
-      if (!namespace) {
-        throw new Error(DefaultHelmClient.MSG_NAMESPACE_NOT_NULL);
-      }
+    if (!namespace) {
+      throw new Error(DefaultHelmClient.MSG_NAMESPACE_NOT_NULL);
+    }
 
-      if (!namespace.trim()) {
-        throw new Error('namespace must not be blank');
-      }
+    if (!namespace.trim()) {
+      throw new Error('namespace must not be blank');
     }
 
     const builder = new HelmExecutionBuilder(this.helmExecutable);

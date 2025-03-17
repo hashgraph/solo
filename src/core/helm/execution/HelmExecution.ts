@@ -24,8 +24,6 @@ export class HelmExecution {
     'Failed to deserialize the output into a list of the specified class: %s';
 
   private readonly process: ChildProcess;
-  private readonly workingDirectory: string;
-  private readonly environmentVariables: Record<string, string>;
 
   /**
    * Creates a new HelmExecution instance.
@@ -34,8 +32,6 @@ export class HelmExecution {
    * @param environmentVariables The environment variables to set
    */
   constructor(command: string[], workingDirectory: string, environmentVariables: Record<string, string>) {
-    this.workingDirectory = workingDirectory;
-    this.environmentVariables = environmentVariables;
     this.process = spawn(command[0], command.slice(1), {
       cwd: workingDirectory,
       env: {...process.env, ...environmentVariables},
