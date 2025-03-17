@@ -8,7 +8,7 @@ import {getSoloVersion} from '../../../src/core/helpers.js';
 import * as constants from '../../../src/core/constants.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
-import {type ClusterRef, type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type ClusterRef, type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
@@ -19,7 +19,6 @@ import {expect} from 'chai';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import fs from 'fs';
 import path from 'path';
-import {type LocalConfig} from '../../../src/core/config/local-config.js';
 import {type SoloLogger} from '../../../src/core/logging.js';
 
 const testName: string = 'dual-cluster-full';
@@ -27,21 +26,23 @@ const testName: string = 'dual-cluster-full';
 describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): Promise<void> {
   this.bail(true);
   const namespace: NamespaceName = NamespaceName.of(testName);
-  const deployment = `${testName}-deployment`;
-  const testClusterRefs: ClusterRef[] = ['e2e-cluster-1', 'e2e-cluster-2'];
-  const testCluster = getTestCluster().includes('c1') ? getTestCluster() : `${getTestCluster()}-c1`;
-  const contexts: string[] = [`${testCluster}`, `${testCluster.replace('-c1', '-c2')}`];
+  const deployment: string = `${testName}-deployment`;
+  const testClusterRefs: ClusterRef[] = ['e2e-cluster-alpha', 'e2e-cluster-beta'];
+  const soloTestCluster = getTestCluster();
+  const testCluster: string =
+    soloTestCluster.includes('c1') || soloTestCluster.includes('c2') ? soloTestCluster : `${soloTestCluster}-c1`;
+  const contexts: string[] = [
+    `${testCluster}`,
+    `${testCluster.replace(soloTestCluster.includes('-c1') ? '-c1' : '-c2', soloTestCluster.includes('-c1') ? '-c2' : '-c1')}`,
+  ];
   const nodeAliasesUnparsed = 'node1,node2';
-  const nodeAliasesWithClusterRefsUnparsed = 'e2e-cluster-1=node1,e2e-cluster-2=node2';
-  const testCacheDir = getTestCacheDir();
+  const testCacheDir: string = getTestCacheDir();
   let testLogger: SoloLogger;
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
     fs.rmSync(testCacheDir, {recursive: true, force: true});
     resetForTest(namespace.name, testCacheDir, testLogger, true);
-    expect(contexts[0].includes('c1'), 'context should include c1').to.be.true;
-    expect(contexts[1].includes('c2'), 'context should include c2').to.be.true;
     testLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
     testLogger.info(`${testName}: starting dual cluster full e2e test`);
   });
@@ -59,6 +60,24 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: beginning solo init`);
     await main(soloInitArgv());
     testLogger.info(`${testName}: finished solo init`);
+  });
+
+  it(`${testName}: solo cluster-ref connect`, async () => {
+    testLogger.info(`${testName}: beginning solo cluster-ref connect`);
+    for (let index = 0; index < testClusterRefs.length; index++) {
+      await main([
+        ...newArgv(),
+        'cluster-ref',
+        'connect',
+        optionFromFlag(Flags.clusterRef),
+        testClusterRefs[index],
+        optionFromFlag(Flags.context),
+        contexts[index],
+        optionFromFlag(Flags.devMode),
+        optionFromFlag(Flags.quiet),
+      ]);
+    }
+    testLogger.info(`${testName}: finished solo cluster-ref connect`);
   });
 
   // TODO add commands to create local config and use different cache directory
@@ -96,21 +115,21 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster2 --enable-cert-manager
   //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
 
-  // TODO remove once `solo cluster-ref connect' is implemented
-  it(`${testName}: manually modify local config`, async () => {
-    testLogger.info(`${testName}: beginning to manually modify the local config`);
-    const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
-    const currentClusterRefs: ClusterRefs = localConfig.clusterRefs;
-    for (let index = 0; index < testClusterRefs.length; index++) {
-      currentClusterRefs[testClusterRefs[index]] = contexts[index];
-    }
-    expect(JSON.stringify(localConfig.setClusterRefs(currentClusterRefs).clusterRefs)).to.equal(
-      JSON.stringify(localConfig.clusterRefs),
-    );
-
-    await localConfig.write();
-    testLogger.info(`${testName}: finished manually modifying the local config`);
-  });
+  // // TODO remove once `solo cluster-ref connect' is implemented
+  // it(`${testName}: manually modify local config`, async () => {
+  //   testLogger.info(`${testName}: beginning to manually modify the local config`);
+  //   const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
+  //   const currentClusterRefs: ClusterRefs = localConfig.clusterRefs;
+  //   for (let index = 0; index < testClusterRefs.length; index++) {
+  //     currentClusterRefs[testClusterRefs[index]] = contexts[index];
+  //   }
+  //   expect(JSON.stringify(localConfig.setClusterRefs(currentClusterRefs).clusterRefs)).to.equal(
+  //     JSON.stringify(localConfig.clusterRefs),
+  //   );
+  //
+  //   await localConfig.write();
+  //   testLogger.info(`${testName}: finished manually modifying the local config`);
+  // });
 
   // TODO replace with proper commands to create a deployment - see above
   it(`${testName}: manually create remote config`, async () => {
