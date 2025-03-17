@@ -143,38 +143,32 @@ function optionFromFlag(flag: CommandFlag): string {
 function soloInitArgv(): string[] {
   const argv: string[] = newArgv();
   argv.push('init');
-  argv.push(optionFromFlag(Flags.cacheDir));
-  argv.push(getTestCacheDir());
-  argv.push(optionFromFlag(Flags.devMode));
+  argvPushGlobalFlags(argv, true);
   return argv;
 }
 
 function soloClusterRefConnectArgv(clusterRef: ClusterRef, context: string): string[] {
-  return [
-    ...newArgv(),
-    'cluster-ref',
-    'connect',
-    optionFromFlag(Flags.clusterRef),
-    clusterRef,
-    optionFromFlag(Flags.context),
-    context,
-    optionFromFlag(Flags.devMode),
-    optionFromFlag(Flags.quiet),
-  ];
+  const argv: string[] = newArgv();
+  argv.push('cluster-ref');
+  argv.push('connect');
+  argv.push(optionFromFlag(Flags.clusterRef));
+  argv.push(clusterRef);
+  argv.push(optionFromFlag(Flags.context));
+  argv.push(context);
+  argvPushGlobalFlags(argv);
+  return argv;
 }
 
 function soloDeploymentCreateArgv(deployment: string, namespace: NamespaceName): string[] {
-  return [
-    ...newArgv(),
-    'deployment',
-    'create',
-    optionFromFlag(Flags.deployment),
-    deployment,
-    optionFromFlag(Flags.namespace),
-    namespace.name,
-    optionFromFlag(Flags.devMode),
-    optionFromFlag(Flags.quiet),
-  ];
+  const argv: string[] = newArgv();
+  argv.push('deployment');
+  argv.push('create');
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argv.push(optionFromFlag(Flags.namespace));
+  argv.push(namespace.name);
+  argvPushGlobalFlags(argv);
+  return argv;
 }
 
 function soloDeploymentAddClusterArgv(deployment: string, clusterRef: ClusterRef, numberOfNodes: number): string[] {
@@ -187,8 +181,7 @@ function soloDeploymentAddClusterArgv(deployment: string, clusterRef: ClusterRef
   argv.push(clusterRef);
   argv.push(optionFromFlag(Flags.numberOfConsensusNodes));
   argv.push(numberOfNodes.toString());
-  argv.push(optionFromFlag(Flags.devMode));
-  argv.push(optionFromFlag(Flags.quiet));
+  argvPushGlobalFlags(argv);
   return argv;
 }
 
@@ -196,16 +189,12 @@ function soloNodeKeysArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
   argv.push('keys');
-  argv.push(optionFromFlag(Flags.cacheDir));
-  argv.push(getTestCacheDir());
-  argv.push(optionFromFlag(Flags.devMode));
-  argv.push(optionFromFlag(Flags.quiet));
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
   argv.push(optionFromFlag(Flags.generateGossipKeys));
   argv.push('true');
   argv.push(optionFromFlag(Flags.generateTlsKeys));
-  container.resolve<SoloLogger>(InjectTokens.SoloLogger).info(`${testName}: soloNodeKeysArgv: ${argv.join(' ')}`);
+  argvPushGlobalFlags(argv, true);
   return argv;
 }
 
@@ -213,16 +202,9 @@ function soloNetworkDeployArgv(deployment: string, namespace: NamespaceName): st
   const argv: string[] = newArgv();
   argv.push('network');
   argv.push('deploy');
-  argv.push(optionFromFlag(Flags.cacheDir));
-  argv.push(getTestCacheDir());
-  argv.push(optionFromFlag(Flags.devMode));
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
-  argv.push(optionFromFlag(Flags.quiet));
-  // TODO add solo chart directory
-  // TODO remove once the remote config manager is updated to pull the namespace from the local config
-  argv.push(optionFromFlag(Flags.namespace));
-  argv.push(namespace.name);
+  argvPushGlobalFlags(argv, true, true);
   return argv;
 }
 
@@ -230,12 +212,9 @@ function soloNodeSetupArgv(deployment: string): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
   argv.push('setup');
-  argv.push(optionFromFlag(Flags.cacheDir));
-  argv.push(getTestCacheDir());
-  argv.push(optionFromFlag(Flags.devMode));
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
-  argv.push(optionFromFlag(Flags.quiet));
+  argvPushGlobalFlags(argv, true);
   return argv;
 }
 
@@ -243,9 +222,29 @@ function soloNodeStartArgv(deployment: string): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
   argv.push('start');
-  argv.push(optionFromFlag(Flags.devMode));
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
+  argvPushGlobalFlags(argv);
+  return argv;
+}
+
+function argvPushGlobalFlags(
+  argv: string[],
+  shouldSetTestCacheDir: boolean = false,
+  shouldSetChartDir: boolean = false,
+): string[] {
+  argv.push(optionFromFlag(Flags.devMode));
   argv.push(optionFromFlag(Flags.quiet));
+
+  if (shouldSetChartDir && process.env.SOLO_CHARTS_DIR && process.env.SOLO_CHARTS_DIR !== '') {
+    argv.push(optionFromFlag(Flags.chartDirectory));
+    argv.push(process.env.SOLO_CHARTS_DIR);
+  }
+
+  if (shouldSetTestCacheDir) {
+    argv.push(optionFromFlag(Flags.cacheDir));
+    argv.push(getTestCacheDir());
+  }
+
   return argv;
 }
