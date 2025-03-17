@@ -2241,14 +2241,14 @@ export class Flags {
       describe: 'Used to specify desired number of consensus nodes for pre-genesis deployments',
       type: 'number',
     },
-    prompt: async function promptAmount(task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
+    prompt: async function (task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
       const promptForInput = (): Promise<number> =>
         Flags.prompt(
           'number',
           task,
           input,
           Flags.numberOfConsensusNodes.definition.defaultValue,
-          `Enter number of consensus nodes ${chalk.grey('(must be a positive number)')}:`,
+          `Enter number of consensus nodes to add to the provided cluster ${chalk.grey('(must be a positive number)')}:`,
           null,
           Flags.numberOfConsensusNodes.name,
         );
