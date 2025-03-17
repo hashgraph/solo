@@ -16,11 +16,12 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {expect} from 'chai';
-import {type ConfigManager} from '../../../src/core/config-manager.js';
 import fs from 'fs';
 import path from 'path';
 import {type SoloLogger} from '../../../src/core/logging.js';
 import {type LocalConfig} from '../../../src/core/config/local-config.js';
+import {type K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
+import {type K8} from '../../../src/core/kube/k8.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -45,6 +46,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     fs.rmSync(testCacheDir, {recursive: true, force: true});
     resetForTest(namespace.name, testCacheDir, testLogger, true);
     testLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+    for (let i: number = 0; i < contexts.length; i++) {
+      const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[i]);
+      await k8Client.namespaces().delete(namespace);
+    }
     testLogger.info(`${testName}: starting dual cluster full e2e test`);
   });
 
@@ -74,6 +79,26 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: finished solo cluster-ref connect`);
   });
 
+  it(`${testName}: solo deployment create`, async () => {
+    testLogger.info(`${testName}: beginning solo deployment create`);
+    await main(soloDeploymentCreateArgv(deployment, namespace));
+    testLogger.info(`${testName}: finished solo deployment create`);
+  });
+
+  it(`${testName}: solo deployment add-cluster`, async () => {
+    testLogger.info(`${testName}: beginning solo deployment add-cluster`);
+    for (let index = 0; index < testClusterRefs.length; index++) {
+      await main(soloDeploymentAddClusterArgv(deployment, testClusterRefs[index], 1));
+    }
+    const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
+    expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
+    expect(
+      Object.entries(remoteConfigManager.components.consensusNodes).length,
+      'consensus node count should be 2',
+    ).to.equal(2);
+    testLogger.info(`${testName}: finished solo deployment add-cluster`);
+  });
+
   // solo deployment create --deployment(*) --namespace(#)
   //   1. Create a new deployment with the specified name and namespace in the local configuration
   //   2. Fail if the deployment already exists
@@ -100,27 +125,27 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // solo deployment add-cluster --deployment dual-cluster-full-deployment --cluster-ref e2e-cluster2 --enable-cert-manager
   //  --num-consensus-nodes 1 --dns-base-domain cluster.local --dns-consensus-node-pattern network-{nodeAlias}-svc.{namespace}.svc
 
-  // TODO replace with proper commands to create a deployment - see above
-  it(`${testName}: manually create remote config`, async () => {
-    testLogger.info(`${testName}: beginning to manually create the remote config and load it into the two clusters`);
-    await manuallyCreateRemoteConfigConfigMap(contexts, namespace, deployment, testClusterRefs, nodeAliasesUnparsed);
-
-    const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
-    expect(remoteConfigManager.isLoaded(), 'remote config manager should not be loaded').to.be.false;
-    const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-    configManager.setFlag(Flags.namespace, namespace);
-    configManager.setFlag(Flags.deployment, deployment);
-
-    // @ts-ignore
-    await remoteConfigManager.load(namespace, contexts[0]);
-    expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
-    expect(
-      Object.entries(remoteConfigManager.components.consensusNodes).length,
-      'consensus node count should be 2',
-    ).to.equal(2);
-
-    testLogger.info(`${testName}: finished manually creating the remote config and loading it into the two clusters`);
-  });
+  // // TODO replace with proper commands to create a deployment - see above
+  // it(`${testName}: manually create remote config`, async () => {
+  //   testLogger.info(`${testName}: beginning to manually create the remote config and load it into the two clusters`);
+  //   await manuallyCreateRemoteConfigConfigMap(contexts, namespace, deployment, testClusterRefs, nodeAliasesUnparsed);
+  //
+  //   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
+  //   expect(remoteConfigManager.isLoaded(), 'remote config manager should not be loaded').to.be.false;
+  //   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+  //   configManager.setFlag(Flags.namespace, namespace);
+  //   configManager.setFlag(Flags.deployment, deployment);
+  //
+  //   // @ts-ignore
+  //   await remoteConfigManager.load(namespace, contexts[0]);
+  //   expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
+  //   expect(
+  //     Object.entries(remoteConfigManager.components.consensusNodes).length,
+  //     'consensus node count should be 2',
+  //   ).to.equal(2);
+  //
+  //   testLogger.info(`${testName}: finished manually creating the remote config and loading it into the two clusters`);
+  // });
 
   // TODO cluster setup (for right now this is being done by the `setup-dual-e2e.sh` script)
 
@@ -188,6 +213,35 @@ function soloClusterRefConnectArgv(clusterRef: ClusterRef, context: string): str
     optionFromFlag(Flags.devMode),
     optionFromFlag(Flags.quiet),
   ];
+}
+
+function soloDeploymentCreateArgv(deployment: string, namespace: NamespaceName) {
+  return [
+    ...newArgv(),
+    'deployment',
+    'create',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(Flags.namespace),
+    namespace.name,
+    optionFromFlag(Flags.devMode),
+    optionFromFlag(Flags.quiet),
+  ];
+}
+
+function soloDeploymentAddClusterArgv(deployment: string, clusterRef: ClusterRef, numberOfNodes: number) {
+  const argv = newArgv();
+  argv.push('deployment');
+  argv.push('add-cluster');
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argv.push(optionFromFlag(Flags.clusterRef));
+  argv.push(clusterRef);
+  argv.push(optionFromFlag(Flags.numberOfConsensusNodes));
+  argv.push(numberOfNodes.toString());
+  argv.push(optionFromFlag(Flags.devMode));
+  argv.push(optionFromFlag(Flags.quiet));
+  return argv;
 }
 
 function soloNodeKeysArgv(deployment: DeploymentName, nodeAliasesUnparsed: string): any {

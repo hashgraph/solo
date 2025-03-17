@@ -1,11 +1,6 @@
 userEmailAddress: joe@doe.com
 soloVersion: '0.35.1'
 deployments:
-  dual-cluster-full-deployment:
-    clusters:
-      - e2e-cluster-1
-      - e2e-cluster-2
-    namespace: dual-cluster-full
   deployment:
     clusters:
       - cluster-1
