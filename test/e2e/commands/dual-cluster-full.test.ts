@@ -21,6 +21,7 @@ import {type LocalConfig} from '../../../src/core/config/local-config.js';
 import {type K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/core/kube/k8.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
+import {Duration} from '../../../src/core/time/duration.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -54,10 +55,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       await k8Client.namespaces().delete(namespace);
     }
     testLogger.info(`${testName}: starting dual cluster full e2e test`);
-  });
+  }).timeout(Duration.ofMinutes(5).toMillis());
 
   beforeEach(async () => {
-    // TODO switch to only resetting the test containers and not using the test version of the local config
     testLogger.info(`${testName}: resetting containers for each test`);
     resetForTest(namespace.name, testCacheDir, testLogger, false);
     testLogger.info(`${testName}: finished resetting containers for each test`);
@@ -103,7 +103,13 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: finished solo deployment add-cluster`);
   });
 
-  // TODO cluster setup (for right now this is being done by the `setup-dual-e2e.sh` script)
+  it(`${testName}: solo cluster-ref setup`, async () => {
+    testLogger.info(`${testName}: beginning solo cluster-ref setup`);
+    for (let index = 0; index < testClusterRefs.length; index++) {
+      await main(soloClusterRefSetup(testClusterRefs[index]));
+    }
+    testLogger.info(`${testName}: finishing solo cluster-ref setup`);
+  });
 
   it(`${testName}: node keys`, async () => {
     testLogger.info(`${testName}: beginning node keys command`);
@@ -116,14 +122,14 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   // TODO network deploy
   xit(`${testName}: network deploy`, async () => {
-    await main(soloNetworkDeployArgv(deployment, namespace));
-    const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
+    await main(soloNetworkDeployArgv(deployment));
+    const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
     for (const context of contexts) {
       const k8: K8 = k8Factory.getK8(context);
       expect(await k8.namespaces().has(namespace), `namespace ${namespace} should exist in ${context}`).to.be.true;
       expect(await k8.pods().list(namespace, ['solo.hedera.com/type=network-node'])).to.have.lengthOf(1);
     }
-  });
+  }).timeout(Duration.ofMinutes(5).toMillis());
 
   // TODO node setup
   xit(`${testName}: node setup`, async () => {
@@ -194,6 +200,16 @@ function soloDeploymentAddClusterArgv(deployment: string, clusterRef: ClusterRef
   return argv;
 }
 
+function soloClusterRefSetup(clusterRef: ClusterRef) {
+  const argv: string[] = newArgv();
+  argv.push('cluster-ref');
+  argv.push('setup');
+  argv.push(optionFromFlag(Flags.clusterRef));
+  argv.push(clusterRef);
+  argvPushGlobalFlags(argv, false, true);
+  return argv;
+}
+
 function soloNodeKeysArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
@@ -207,7 +223,7 @@ function soloNodeKeysArgv(deployment: DeploymentName): string[] {
   return argv;
 }
 
-function soloNetworkDeployArgv(deployment: string, namespace: NamespaceName): string[] {
+function soloNetworkDeployArgv(deployment: string): string[] {
   const argv: string[] = newArgv();
   argv.push('network');
   argv.push('deploy');
