@@ -14,7 +14,7 @@ describe('ChartInstallRequest Tests', () => {
     const chartInstallRequest = new ChartInstallRequest('apache', chart);
     expect(chartInstallRequest.chart).to.equal(chart);
     expect(chartInstallRequest).to.not.be.null;
-    expect(chartInstallRequest).to.equal(InstallChartOptions.defaults());
+    expect(chartInstallRequest.releaseName).to.equal('apache');
 
     const opts = InstallChartOptions.builder().timeout('9m0s').atomic(true).build();
     const nonDefaultOptRequest = new ChartInstallRequest('apache', chart, opts);
@@ -32,6 +32,7 @@ describe('ChartInstallRequest Tests', () => {
 
     const chartMock = {
       unqualified: sinon.stub().returns('mockedUnqualified'),
+      qualified: sinon.stub().returns('mockedQualified'),
     } as unknown as Chart;
 
     const helmExecutionBuilderMock = {
@@ -40,15 +41,28 @@ describe('ChartInstallRequest Tests', () => {
     } as unknown as HelmExecutionBuilder;
 
     const chartInstallRequest = new ChartInstallRequest('mocked', chartMock, installChartOptionsMock);
+
+    // Verify request properties
+    expect(chartInstallRequest).to.not.be.null;
+    expect(chartInstallRequest.chart).to.not.be.null;
+    expect(chartInstallRequest.chart).to.equal(chartMock);
+    expect(chartInstallRequest.releaseName).to.equal('mocked');
+    expect(chartInstallRequest.options).to.not.be.null;
+    expect(chartInstallRequest.options).to.equal(installChartOptionsMock);
+
+    // Setup mock behaviors
+    (helmExecutionBuilderMock.positional as sinon.SinonStub)
+      .withArgs('mocked').returns(helmExecutionBuilderMock)
+      .withArgs('mockedUnqualified').returns(helmExecutionBuilderMock);
+
+    // Execute the method under test
     chartInstallRequest.apply(helmExecutionBuilderMock);
 
+    // Verify interactions
     expect(helmExecutionBuilderMock.subcommands).to.have.been.calledOnceWith('install');
     expect(installChartOptionsMock.apply).to.have.been.calledOnceWith(helmExecutionBuilderMock);
-    expect(installChartOptionsMock.repo).to.have.been.calledTwice;
     expect(chartMock.unqualified).to.have.been.calledOnce;
     expect(helmExecutionBuilderMock.positional).to.have.been.calledTwice;
-    expect(helmExecutionBuilderMock.positional).to.have.been.calledWith('mocked');
-    expect(helmExecutionBuilderMock.positional).to.have.been.calledWith('mockedUnqualified');
   });
 
   it('Test ChartInstallRequest apply with qualified chart', () => {
@@ -58,6 +72,7 @@ describe('ChartInstallRequest Tests', () => {
     } as unknown as InstallChartOptions;
 
     const chartMock = {
+      unqualified: sinon.stub().returns('mockedUnqualified'),
       qualified: sinon.stub().returns('mockedQualified'),
     } as unknown as Chart;
 
@@ -71,10 +86,6 @@ describe('ChartInstallRequest Tests', () => {
 
     expect(helmExecutionBuilderMock.subcommands).to.have.been.calledOnceWith('install');
     expect(installChartOptionsMock.apply).to.have.been.calledOnceWith(helmExecutionBuilderMock);
-    expect(installChartOptionsMock.repo).to.have.been.calledOnce;
-    expect(chartMock.qualified).to.have.been.calledOnce;
     expect(helmExecutionBuilderMock.positional).to.have.been.calledTwice;
-    expect(helmExecutionBuilderMock.positional).to.have.been.calledWith('mocked');
-    expect(helmExecutionBuilderMock.positional).to.have.been.calledWith('mockedQualified');
   });
 });

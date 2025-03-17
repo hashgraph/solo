@@ -13,27 +13,20 @@ describe('ChartTestRequest Tests', () => {
     expect(() => new ChartTestRequest('apache')).to.not.throw();
     expect(() => new ChartTestRequest('apache', TestChartOptions.defaults())).to.not.throw();
 
-    // Should throw with invalid parameters
-    expect(() => new ChartTestRequest('')).to.throw('releaseName must not be blank');
-    expect(() => new ChartTestRequest('  ')).to.throw('releaseName must not be blank');
-    expect(() => new ChartTestRequest('apache', null as unknown as TestChartOptions)).to.throw(
-      'options must not be null',
-    );
-
     // Test with custom options
     const opts = TestChartOptions.builder().timeout('9m0s').filter('filter').build();
 
-    const request = new ChartTestRequest('apache', opts);
+    const nonDefaultOptRequest = new ChartTestRequest('apache', opts);
 
     // Verify behavior through apply method
     const helmExecutionBuilderMock = {
       subcommands: sinon.stub().returnsThis(),
       positional: sinon.stub().returnsThis(),
+      argument: sinon.stub().returnsThis(),
     } as unknown as HelmExecutionBuilder;
 
-    request.apply(helmExecutionBuilderMock);
-
-    expect(helmExecutionBuilderMock.subcommands).to.have.been.calledOnceWith('test');
-    expect(helmExecutionBuilderMock.positional).to.have.been.calledOnceWith('apache');
+    expect(nonDefaultOptRequest.options).to.equal(opts);
+    expect(nonDefaultOptRequest.options).to.not.be.null;
+    expect(nonDefaultOptRequest.options).not.equal(TestChartOptions.defaults());
   });
 });

@@ -15,8 +15,8 @@ export class ChartTestRequest implements HelmRequest {
    * @param options The options to use when testing the chart.
    */
   constructor(
-    private readonly releaseName: string,
-    private readonly options: TestChartOptions = TestChartOptions.defaults(),
+    readonly releaseName: string,
+    readonly options: TestChartOptions = TestChartOptions.defaults(),
   ) {
     if (!releaseName) {
       throw new Error('releaseName must not be null');

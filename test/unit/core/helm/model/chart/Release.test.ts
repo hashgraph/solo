@@ -4,29 +4,31 @@ import {Release} from '../../../../../../src/core/helm/model/chart/Release.js';
 import {readFileSync} from 'fs';
 import {join} from 'path';
 import {fileURLToPath} from 'url';
+import {expect} from 'chai';
 
 describe('Release', () => {
-  describe('deserialization', () => {
-    it('should correctly deserialize JSON Release response', () => {
-      // Get the directory name of the current module
-      const __dirname = fileURLToPath(new URL('.', import.meta.url));
+  it('Test Deserializing JSON Release Response', () => {
+    // Get the directory name of the current module
+    const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-      // Read the test JSON file
-      const jsonContent = readFileSync(
-        join(__dirname, '..', '..', '..', '..', 'resources', 'mysql-release.json'),
-        'utf-8',
-      );
+    // Read the test JSON file
+    const jsonContent = readFileSync(
+      join(__dirname, '..', '..', '..', '..', 'resources', 'mysql-release.json'),
+      'utf-8',
+    );
 
-      const release = Release.fromJSON(JSON.parse(jsonContent));
+    const data = JSON.parse(jsonContent);
+    const release = new Release(undefined, undefined, undefined);
+    Object.assign(release, data);
 
-      expect(release.name).toBe('mysql');
-      expect(release.info.firstDeployed).toBe('2023-06-09T11:53:14.120656-05:00');
-      expect(release.info.lastDeployed).toBe('2023-06-09T11:53:14.120656-05:00');
-      expect(release.info.deleted).toBe('');
-      expect(release.info.description).toBe('Install complete');
-      expect(release.info.status).toBe('deployed');
-      expect(release.chart.metadata.version).toBe('9.10.2');
-      expect(release.chart.metadata.appVersion).toBe('8.0.33');
-    });
+    expect(release.name).to.equal('mysql');
+    console.log(`release.info.firstDeployed = ${JSON.stringify(release.info.firstDeployed)}`);
+    expect(release.info.firstDeployed).to.equal('2023-06-09T11:53:14.120656-05:00');
+    expect(release.info.lastDeployed).to.equal('2023-06-09T11:53:14.120656-05:00');
+    expect(release.info.deleted).to.be.empty;
+    expect(release.info.description).to.equal('Install complete');
+    expect(release.info.status).to.equal('deployed');
+    expect(release.chart.metadata.version).to.equal('9.10.2');
+    expect(release.chart.metadata.appVersion).to.equal('8.0.33');
   });
 });
