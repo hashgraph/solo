@@ -26,7 +26,7 @@ export class EnvironmentStorageBackend implements StorageBackend {
     }
 
     const keys = Object.keys(env);
-    return keys.filter(value => this.matchPrefix(value));
+    return keys.filter(value => this.matchPrefix(value)).map(value => this.envKeyToConfigKey(value));
   }
 
   public async readBytes(key: string): Promise<Uint8Array> {
@@ -34,12 +34,13 @@ export class EnvironmentStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('key must not be null, undefined, or empty');
     }
 
+    const normalizedKey = this.configKeyToEnvKey(key);
     let env: object = process.env;
     if (!env) {
       env = {};
     }
 
-    const value = env[key];
+    const value = env[normalizedKey];
     if (!value) {
       throw new StorageBackendError(`key not found: ${key}`);
     }
@@ -47,10 +48,12 @@ export class EnvironmentStorageBackend implements StorageBackend {
     return new Uint8Array(Buffer.from(value, 'utf-8'));
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars,unused-imports/no-unused-vars
   public async writeBytes(key: string, data: Uint8Array): Promise<void> {
     throw new UnsupportedStorageOperationError('writeBytes is not supported by the environment storage backend');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars,unused-imports/no-unused-vars
   public async delete(key: string): Promise<void> {
     throw new UnsupportedStorageOperationError('delete is not supported by the environment storage backend');
   }
@@ -60,12 +63,56 @@ export class EnvironmentStorageBackend implements StorageBackend {
       return false;
     }
 
-    let prefixFilter = this.prefix ? this.prefix.trim().toUpperCase().replace('.', '_') : null;
+    let prefixFilter = this.prefix ? this.envKeyFormat(this.prefix) : null;
 
     if (prefixFilter && !prefixFilter.endsWith('_')) {
       prefixFilter = prefixFilter.concat('_');
     }
 
-    return prefixFilter ? key.toUpperCase().startsWith(prefixFilter) : true;
+    return prefixFilter ? this.envKeyFormat(key).startsWith(prefixFilter) : true;
+  }
+
+  private envKeyFormat(val: string): string {
+    if (!val || val.trim().length === 0) {
+      return val;
+    }
+
+    return val.trim().toUpperCase().replace('.', '_');
+  }
+
+  private configKeyFormat(val: string): string {
+    if (!val || val.trim().length === 0) {
+      return val;
+    }
+
+    return val.trim().toLowerCase().replace('_', '.');
+  }
+
+  private configKeyToEnvKey(key: string): string {
+    return this.envKeyFormat(this.addPrefix(key));
+  }
+
+  private envKeyToConfigKey(key: string): string {
+    return this.stripPrefix(this.configKeyFormat(key));
+  }
+
+  private addPrefix(key: string): string {
+    let prefix: string = this.prefix ? this.configKeyFormat(this.prefix) : null;
+    prefix = prefix && !prefix.endsWith('.') ? `${prefix}.` : prefix;
+    const normalizedKey: string = this.configKeyFormat(key);
+    return prefix && !normalizedKey.startsWith(`${prefix}`) ? `${prefix}${normalizedKey}` : normalizedKey;
+  }
+
+  private stripPrefix(key: string): string {
+    const normalizedKey: string = this.configKeyFormat(key);
+    let prefix: string = this.prefix ? this.configKeyFormat(this.prefix) : null;
+    prefix = !prefix.endsWith('.') ? `${prefix}.` : prefix;
+    return prefix && normalizedKey.startsWith(`${prefix}`)
+      ? normalizedKey.replace(`^${this.regexEscape(prefix)}`, '')
+      : normalizedKey;
+  }
+
+  private regexEscape(str: string): string {
+    return str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
   }
 }
