@@ -25,7 +25,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
     }
 
     try {
-      return parse(data.toString());
+      return parse(Buffer.from(data.buffer).toString());
     } catch (e) {
       throw new StorageBackendError(`error parsing yaml file: ${filePath}`, e);
     }
