@@ -137,7 +137,7 @@
     "sinon": "^19.0.2",
     "sinon-chai": "^4.0.0",
     "tsx": "^4.19.3",
-    "typedoc": "^0.27.9",
+    "typedoc": "^0.28.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1"
   },
