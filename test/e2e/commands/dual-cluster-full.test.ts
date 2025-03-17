@@ -20,6 +20,7 @@ import {type SoloLogger} from '../../../src/core/logging.js';
 import {type LocalConfig} from '../../../src/core/config/local-config.js';
 import {type K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/core/kube/k8.js';
+import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -35,13 +36,18 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     `${testCluster}`,
     `${testCluster.replace(soloTestCluster.includes('-c1') ? '-c1' : '-c2', soloTestCluster.includes('-c1') ? '-c2' : '-c1')}`,
   ];
-  const testCacheDir: string = getTestCacheDir();
+  const testCacheDir: string = getTestCacheDir(testName);
   let testLogger: SoloLogger;
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
     fs.rmSync(testCacheDir, {recursive: true, force: true});
-    resetForTest(namespace.name, testCacheDir, testLogger, true);
+    try {
+      fs.rmSync(path.join(testCacheDir, '..', DEFAULT_LOCAL_CONFIG_FILE), {force: true});
+    } catch {
+      // allowed to fail if the file doesn't exist
+    }
+    resetForTest(namespace.name, testCacheDir, testLogger, false);
     testLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
     for (let i: number = 0; i < contexts.length; i++) {
       const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[i]);
@@ -70,7 +76,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     for (let index = 0; index < testClusterRefs.length; index++) {
       await main(soloClusterRefConnectArgv(testClusterRefs[index], contexts[index]));
     }
-    const clusterRefs: ClusterRefs = container.resolve<LocalConfig>(InjectTokens.LocalConfig).clusterRefs;
+    const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
+    const clusterRefs: ClusterRefs = localConfig.clusterRefs;
     expect(clusterRefs[testClusterRefs[0]]).to.equal(contexts[0]);
     expect(clusterRefs[testClusterRefs[1]]).to.equal(contexts[1]);
     testLogger.info(`${testName}: finished solo cluster-ref connect`);
@@ -155,6 +162,8 @@ function soloClusterRefConnectArgv(clusterRef: ClusterRef, context: string): str
   argv.push(clusterRef);
   argv.push(optionFromFlag(Flags.context));
   argv.push(context);
+  argv.push(optionFromFlag(Flags.userEmailAddress));
+  argv.push('dual.full.cluster.test@host.com');
   argvPushGlobalFlags(argv);
   return argv;
 }
@@ -243,7 +252,7 @@ function argvPushGlobalFlags(
 
   if (shouldSetTestCacheDir) {
     argv.push(optionFromFlag(Flags.cacheDir));
-    argv.push(getTestCacheDir());
+    argv.push(getTestCacheDir(testName));
   }
 
   return argv;
