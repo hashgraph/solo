@@ -17,46 +17,53 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     public props: Map<string, string> = new Map<string, string>(),
   ) {}
 
-  // TODO move to abstract class?
   asBoolean(key: string): boolean | null {
-    const value = this.props.get(key);
-    if (value === null || value === undefined) {
+    const value: string = this.props.get(key);
+    if (value === null || value === undefined || typeof value !== 'string') {
       return null;
     }
     return value.toLowerCase() === 'true';
   }
 
-  // TODO move to abstract class?
   asNumber(key: string): number | null {
-    const value = this.props.get(key);
+    const value: string = this.props.get(key);
     if (value === null || value === undefined) {
       return null;
     }
     return Number(value);
   }
 
-  // TODO move to abstract class?
   asObject<T>(cls: ClassConstructor<T>, key?: string): T {
     return undefined;
   }
 
-  // TODO move to abstract class?
   asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[] {
     return [];
   }
 
-  // TODO move to abstract class?
   asString(key: string): string | null {
-    const value = this.props.get(key);
-    if (value === null || value === undefined) {
+    const value: string = this.props.get(key);
+    if (value === null || value === undefined || typeof value !== 'string') {
       return null;
     }
     return value;
   }
 
-  // TODO move to abstract class?
   asStringArray(key: string): string[] | null {
-    return undefined;
+    const value: string = this.props.get(key);
+    if (value === null || value === undefined) {
+      return null;
+    }
+
+    const parsedValue: unknown = JSON.parse(value);
+    if (
+      !Array.isArray(parsedValue) ||
+      (parsedValue as Array<string>).length === 0 ||
+      typeof (parsedValue as Array<string>)[0] !== 'string'
+    ) {
+      return null;
+    }
+    return parsedValue as Array<string>;
   }
 
   load(): Promise<void> {

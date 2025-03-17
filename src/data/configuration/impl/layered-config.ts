@@ -80,7 +80,7 @@ export class LayeredConfig implements Config {
     let value: T = null;
     let scalarType: string = typeof exampleInstance;
 
-    if (Array.isArray(exampleInstance) && !exampleInstance && exampleInstance.length > 0) {
+    if (Array.isArray(exampleInstance) && exampleInstance && exampleInstance.length > 0) {
       scalarType = typeof exampleInstance[0];
     }
 

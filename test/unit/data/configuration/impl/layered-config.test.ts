@@ -21,6 +21,7 @@ describe('LayeredConfig', () => {
     map1.set('key1', 'map1key1value1');
     map1.set('key2', 'map1key2value2');
     map1.set('boolean', 'true');
+    map1.set('stringArray', '["map1StringArray"]');
     map2.set('key2', 'map2key2value2');
     map2.set('key3', 'map2key2value3');
     map2.set('number', '42');
@@ -93,5 +94,9 @@ describe('LayeredConfig', () => {
 
   it('should return as a string', () => {
     expect(layeredConfig.asString('key3')).to.equal('map3key3value3');
+  });
+
+  it('should return a string array', () => {
+    expect(layeredConfig.asStringArray('stringArray')).to.eql(['map1StringArray']);
   });
 });
