@@ -454,15 +454,15 @@ export class AccountCommand extends BaseCommand {
             flags.disablePrompts([flags.clusterRef]);
 
             const config = {
-              amount: self.configManager.getFlag<number>(flags.amount) as number,
-              ecdsaPrivateKey: self.configManager.getFlag<string>(flags.ecdsaPrivateKey) as string,
+              amount: self.configManager.getFlag<number>(flags.amount),
+              ecdsaPrivateKey: self.configManager.getFlag(flags.ecdsaPrivateKey),
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
-              ed25519PrivateKey: self.configManager.getFlag<string>(flags.ed25519PrivateKey) as string,
-              setAlias: self.configManager.getFlag<boolean>(flags.setAlias) as boolean,
-              generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey) as boolean,
-              createAmount: self.configManager.getFlag<number>(flags.createAmount) as number,
-              clusterRef: self.configManager.getFlag(flags.clusterRef) as ClusterRef,
+              ed25519PrivateKey: self.configManager.getFlag(flags.ed25519PrivateKey),
+              setAlias: self.configManager.getFlag<boolean>(flags.setAlias),
+              generateEcdsaKey: self.configManager.getFlag<boolean>(flags.generateEcdsaKey),
+              createAmount: self.configManager.getFlag<number>(flags.createAmount),
+              clusterRef: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
             } as Config;
 
             config.contextName =

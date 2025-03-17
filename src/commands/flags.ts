@@ -2267,6 +2267,16 @@ export class Flags {
     prompt: undefined,
   };
 
+  public static readonly domainName: CommandFlag = {
+    constName: 'domainName',
+    name: 'domain-name',
+    definition: {
+      describe: 'Custom domain name',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   public static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
@@ -2386,6 +2396,7 @@ export class Flags {
     Flags.numberOfConsensusNodes,
     Flags.dnsBaseDomain,
     Flags.dnsConsensusNodePattern,
+    Flags.domainName,
   ];
 
   /** Resets the definition.disablePrompt for all flags */
