@@ -25,11 +25,11 @@ export class SemanticVersion {
   /**
    * Constructs a new instance of a {@link SemanticVersion} with the supplied components.
    *
-   * @param major      the major version.
-   * @param minor      the minor version.
-   * @param patch      the patch version.
-   * @param prerelease the optional prerelease specifier.
-   * @param build      the optional build specifier.
+   * @param _major      the major version.
+   * @param _minor      the minor version.
+   * @param _patch      the patch version.
+   * @param _prerelease the optional prerelease specifier.
+   * @param _build      the optional build specifier.
    */
   constructor(
     private readonly _major: number,
