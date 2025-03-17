@@ -47,10 +47,11 @@ describe('LayeredConfig', () => {
       map3,
     );
 
-    layeredConfig = new LayeredConfig(
-      [simpleConfigSourceOrdinal2, simpleConfigSourceOrdinal3, simpleConfigSourceOrdinal1],
-      [],
-    );
+    layeredConfig = new LayeredConfig([
+      simpleConfigSourceOrdinal2,
+      simpleConfigSourceOrdinal3,
+      simpleConfigSourceOrdinal1,
+    ]);
   });
 
   it('should sort sources by ordinal', () => {
