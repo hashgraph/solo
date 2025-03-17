@@ -175,9 +175,10 @@ export class RemoteConfigManager {
         this.localConfig,
         false,
       );
-    } catch {
+    } catch (error) {
       throw new SoloError(
         ErrorMessages.REMOTE_CONFIG_IS_INVALID(this.k8Factory.getK8(context).clusters().readCurrent()),
+        error,
       );
     }
     return this.remoteConfig;
