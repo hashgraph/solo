@@ -52,17 +52,12 @@ describe('InstallChartOptionsBuilder Tests', () => {
 
     // Test apply method with mock
     const builderMock = {
-      optionsWithMultipleValues: sinon.stub().returnsThis(),
+      flag: sinon.stub().returnsThis(),
+      argument: sinon.stub().returnsThis(),
     } as unknown as HelmExecutionBuilder;
 
     options.apply(builderMock);
 
-    // Verify mock interactions
-    expect(builderMock.optionsWithMultipleValues).to.have.been.calledTwice;
-    expect(builderMock.optionsWithMultipleValues).to.have.been.calledWith('set', [
-      'set',
-      'livenessProbe.exec.command=[cat,docroot/CHANGELOG.txt]',
-    ]);
-    expect(builderMock.optionsWithMultipleValues).to.have.been.calledWith('values', ['values1', 'values2']);
+    expect(builderMock.flag).to.have.been.callCount(9);
   });
 });

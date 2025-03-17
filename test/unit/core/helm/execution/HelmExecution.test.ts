@@ -4,126 +4,128 @@ import {HelmExecution} from '../../../../../src/core/helm/execution/HelmExecutio
 import {HelmExecutionException} from '../../../../../src/core/helm/HelmExecutionException.js';
 import {HelmParserException} from '../../../../../src/core/helm/HelmParserException.js';
 import {Repository} from '../../../../../src/core/helm/model/Repository.js';
-import {jest} from '@jest/globals';
+import {Duration} from '../../../../../src/core/time/duration.js';
+import {expect} from 'chai';
+import sinon from 'sinon';
+import * as child_process from 'child_process';
 
 describe('HelmExecution', () => {
-  let processMock: jest.Mocked<NodeJS.Process>;
-  let inputStreamMock: jest.Mocked<NodeJS.ReadableStream>;
+  let spawnStub: sinon.SinonStub;
+  let stdoutMock: any;
+  let stderrMock: any;
 
   beforeEach(() => {
-    processMock = {
-      stdin: null as any,
-      stdout: null as any,
-      stderr: null as any,
-      kill: jest.fn(),
-      pid: 1,
-    } as any;
+    stdoutMock = {
+      on: sinon.stub().callsArgWith(1, Buffer.from('')),
+    };
 
-    inputStreamMock = {
-      on: jest.fn(),
-      pipe: jest.fn(),
-      read: jest.fn(),
-    } as any;
+    stderrMock = {
+      on: sinon.stub().callsArgWith(1, Buffer.from('')),
+    };
 
-    processMock.stdout = inputStreamMock;
-    processMock.stderr = inputStreamMock;
-  });
-
-  describe('call', () => {
-    it('should throw exception and log warning message when call fails', async () => {
-      const helmExecution = new HelmExecution(processMock);
-      jest.spyOn(helmExecution as any, 'exitCode').mockResolvedValue(1);
-      jest.spyOn(helmExecution as any, 'waitFor').mockResolvedValue(true);
-      jest.spyOn(helmExecution as any, 'standardOutput').mockReturnValue(inputStreamMock);
-      jest.spyOn(helmExecution as any, 'standardError').mockReturnValue(inputStreamMock);
-
-      const timeout = 1000; // 1 second
-
-      await expect(async () => {
-        await helmExecution.call(timeout);
-      }).rejects.toThrow(HelmExecutionException);
-
-      await expect(async () => {
-        await helmExecution.call(timeout);
-      }).rejects.toThrow('Execution of the Helm command failed with exit code: 1');
+    spawnStub = sinon.stub(child_process, 'spawn');
+    spawnStub.returns({
+      stdout: stdoutMock,
+      stderr: stderrMock,
+      on: sinon.stub().callsArgWith(1, 0),
+      exitCode: 0,
     });
   });
 
-  describe('responseAsList', () => {
-    it('should throw exception and log warning message when deserialization fails', async () => {
-      const helmExecution = new HelmExecution(processMock);
-      jest.spyOn(helmExecution as any, 'exitCode').mockResolvedValue(0);
-      jest.spyOn(helmExecution as any, 'waitFor').mockResolvedValue(true);
-      jest.spyOn(helmExecution as any, 'standardOutput').mockReturnValue(inputStreamMock);
-      jest.spyOn(helmExecution as any, 'standardError').mockReturnValue(inputStreamMock);
-
-      const timeout = 1000; // 1 second
-
-      await expect(async () => {
-        await helmExecution.responseAsList(Repository, timeout);
-      }).rejects.toThrow(HelmParserException);
-
-      await expect(async () => {
-        await helmExecution.responseAsList(Repository, timeout);
-      }).rejects.toThrow('Failed to deserialize the output into a list of the specified class');
-    });
+  afterEach(() => {
+    sinon.restore();
   });
 
-  describe('responseAs', () => {
-    it('should throw exception and log warning message when deserialization fails', async () => {
-      const helmExecution = new HelmExecution(processMock);
-      jest.spyOn(helmExecution as any, 'exitCode').mockResolvedValue(0);
-      jest.spyOn(helmExecution as any, 'waitFor').mockResolvedValue(true);
-      jest.spyOn(helmExecution as any, 'standardOutput').mockReturnValue(inputStreamMock);
-      jest.spyOn(helmExecution as any, 'standardError').mockReturnValue(inputStreamMock);
-
-      const timeout = 1000; // 1 second
-
-      await expect(async () => {
-        await helmExecution.responseAs(Repository, timeout);
-      }).rejects.toThrow(HelmParserException);
-
-      await expect(async () => {
-        await helmExecution.responseAs(Repository, timeout);
-      }).rejects.toThrow('Failed to deserialize the output into the specified class');
+  it('Test call with timeout throws exception and logs warning message', async () => {
+    spawnStub.returns({
+      stdout: stdoutMock,
+      stderr: stderrMock,
+      on: sinon.stub().callsArgWith(1, 1),
+      exitCode: 1,
     });
 
-    it('should throw HelmExecutionException with standard error and standard out', async () => {
-      const helmExecution = new HelmExecution(processMock);
-      jest.spyOn(helmExecution as any, 'exitCode').mockResolvedValue(1);
-      jest.spyOn(helmExecution as any, 'waitFor').mockResolvedValue(true);
+    const helmExecution = new HelmExecution(['helm', 'test'], '.', {});
+    const timeout = Duration.ofMillis(1000);
 
-      const standardOutputMessage = 'standardOutput Message';
-      const standardErrorMessage = 'standardError Message';
+    try {
+      await helmExecution.callTimeout(timeout);
+      throw new Error('Expected HelmExecutionException to be thrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(HelmExecutionException);
+      expect(error.message).to.contain('Process exited with code 1');
+    }
+  });
 
-      const mockStdout = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode(standardOutputMessage));
-          controller.close();
-        },
-      });
-
-      const mockStderr = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode(standardErrorMessage));
-          controller.close();
-        },
-      });
-
-      jest.spyOn(helmExecution as any, 'standardOutput').mockReturnValue(mockStdout);
-      jest.spyOn(helmExecution as any, 'standardError').mockReturnValue(mockStderr);
-
-      const timeout = 1000; // 1 second
-
-      try {
-        await helmExecution.responseAs(Repository, timeout);
-        fail('Expected HelmExecutionException to be thrown');
-      } catch (error) {
-        expect(error).toBeInstanceOf(HelmExecutionException);
-        expect(error.message).toContain('Execution of the Helm command failed with exit code: 1');
-        expect(error.stdOut).toContain(standardOutputMessage);
-        expect(error.stdErr).toContain(standardErrorMessage);
-      }
+  it('Test response as list throws exception and logs warning message', async () => {
+    spawnStub.returns({
+      stdout: {
+        on: sinon.stub().callsArgWith(1, Buffer.from('invalid json')),
+      },
+      stderr: stderrMock,
+      on: sinon.stub().callsArgWith(1, 0),
+      exitCode: 0,
     });
+
+    const helmExecution = new HelmExecution(['helm', 'test'], '.', {});
+    const timeout = Duration.ofMillis(1000);
+
+    try {
+      await helmExecution.responseAsListTimeout(Repository, timeout);
+      throw new Error('Expected HelmParserException to be thrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(HelmParserException);
+      expect(error.message).to.contain('Failed to deserialize the output into a list of the specified class');
+    }
+  });
+
+  it('Test response as throws exception and logs warning message', async () => {
+    spawnStub.returns({
+      stdout: {
+        on: sinon.stub().callsArgWith(1, Buffer.from('invalid json')),
+      },
+      stderr: stderrMock,
+      on: sinon.stub().callsArgWith(1, 0),
+      exitCode: 0,
+    });
+
+    const helmExecution = new HelmExecution(['helm', 'test'], '.', {});
+    const timeout = Duration.ofMillis(1000);
+
+    try {
+      await helmExecution.responseAsTimeout(Repository, timeout);
+      throw new Error('Expected HelmParserException to be thrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(HelmParserException);
+      expect(error.message).to.contain('Failed to deserialize the output into the specified class');
+    }
+  });
+
+  it('Test response as throws HelmExecutionException with standard error and standard out', async () => {
+    const standardOutputMessage = 'standardOutput Message';
+    const standardErrorMessage = 'standardError Message';
+
+    spawnStub.returns({
+      stdout: {
+        on: sinon.stub().callsArgWith(1, Buffer.from(standardOutputMessage)),
+      },
+      stderr: {
+        on: sinon.stub().callsArgWith(1, Buffer.from(standardErrorMessage)),
+      },
+      on: sinon.stub().callsArgWith(1, 1),
+      exitCode: 1,
+    });
+
+    const helmExecution = new HelmExecution(['helm', 'test'], '.', {});
+    const timeout = Duration.ofMillis(1000);
+
+    try {
+      await helmExecution.responseAsTimeout(Repository, timeout);
+      throw new Error('Expected HelmExecutionException to be thrown');
+    } catch (error) {
+      expect(error).to.be.instanceOf(HelmExecutionException);
+      expect(error.message).to.contain('Process exited with code 1');
+      expect(error.stdOut).to.contain(standardOutputMessage);
+      expect(error.stdErr).to.contain(standardErrorMessage);
+    }
   });
 });

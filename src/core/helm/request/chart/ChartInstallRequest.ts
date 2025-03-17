@@ -39,8 +39,7 @@ export class ChartInstallRequest implements HelmRequest {
     builder.subcommands('install');
     this.options.apply(builder);
 
-    const chartName =
-      this.options.repo && this.options.repo !== '' ? this.chart.unqualified() : this.chart.qualified();
+    const chartName = this.options.repo && this.options.repo !== '' ? this.chart.unqualified() : this.chart.qualified();
 
     builder.positional(this.releaseName).positional(chartName);
   }

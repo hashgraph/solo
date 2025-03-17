@@ -254,8 +254,10 @@ public final class HelmExecution {
      * @param <T>           The type of the response.
      * @return a list of the deserialized objects.
      */
-    public <T> List<T> responseAsList(final Class<T> responseClass) {
-        return responseAsList(responseClass, null);
+    public <T> T responseAsList(final Class<T> responseClass) {
+        // output the class name of responseClass
+        LOGGER.debug("ResponseAsList: {}", responseClass.getName());
+        return new T();
     }
 
     /**

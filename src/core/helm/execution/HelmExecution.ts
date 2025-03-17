@@ -126,7 +126,16 @@ export class HelmExecution {
    * @param responseClass The class to parse the response into
    * @returns A promise that resolves with the parsed response
    */
-  async responseAs<T>(responseClass: new () => T): Promise<T> {
+  async responseAs<T>(responseClass: new (...args: any[]) => T): Promise<T> {
+    await this.waitFor();
+
+    const exitCode = this.exitCode();
+    if (exitCode !== 0) {
+      const stdOut = await this.standardOutput();
+      const stdErr = await this.standardError();
+      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+    }
+
     const output = await this.standardOutput();
     try {
       return JSON.parse(output) as T;
@@ -141,12 +150,29 @@ export class HelmExecution {
    * @param timeout The maximum time to wait, or null to wait indefinitely
    * @returns A promise that resolves with the parsed response or rejects on timeout
    */
-  async responseAsTimeout<T>(responseClass: new () => T, timeout: Duration | null): Promise<T> {
-    const success = await this.waitForTimeout(timeout);
-    if (!success) {
-      throw new HelmExecutionException(1, HelmExecution.MSG_TIMEOUT_ERROR, '', '');
+  async responseAsTimeout<T>(responseClass: new (...args: any[]) => T, timeout: Duration | null): Promise<T> {
+    if (timeout !== null) {
+      const success = await this.waitForTimeout(timeout);
+      if (!success) {
+        throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
+      }
+    } else {
+      await this.waitFor();
     }
-    return this.responseAs(responseClass);
+
+    const exitCode = this.exitCode();
+    if (exitCode !== 0) {
+      const stdOut = await this.standardOutput();
+      const stdErr = await this.standardError();
+      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+    }
+
+    const output = await this.standardOutput();
+    try {
+      return JSON.parse(output) as T;
+    } catch (error) {
+      throw new HelmParserException(HelmExecution.MSG_DESERIALIZATION_ERROR.replace('%s', responseClass.name));
+    }
   }
 
   /**
@@ -154,7 +180,33 @@ export class HelmExecution {
    * @param responseClass The class to parse each item in the response into
    * @returns A promise that resolves with the parsed response list
    */
-  async responseAsList<T>(responseClass: new () => T): Promise<T[]> {
+  async responseAsList<T>(responseClass: new (...args: any[]) => T): Promise<T[]> {
+    return this.responseAsListTimeout(responseClass, null);
+  }
+
+  /**
+   * Gets the response as a list of parsed objects with a timeout.
+   * @param responseClass The class to parse each item in the response into
+   * @param timeout The maximum time to wait, or null to wait indefinitely
+   * @returns A promise that resolves with the parsed response list or rejects on timeout
+   */
+  async responseAsListTimeout<T>(responseClass: new (...args: any[]) => T, timeout: Duration | null): Promise<T[]> {
+    if (timeout !== null) {
+      const success = await this.waitForTimeout(timeout);
+      if (!success) {
+        throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
+      }
+    } else {
+      await this.waitFor();
+    }
+
+    const exitCode = this.exitCode();
+    if (exitCode !== 0) {
+      const stdOut = await this.standardOutput();
+      const stdErr = await this.standardError();
+      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+    }
+
     const output = await this.standardOutput();
     try {
       return JSON.parse(output) as T[];
@@ -164,25 +216,11 @@ export class HelmExecution {
   }
 
   /**
-   * Gets the response as a list of parsed objects with a timeout.
-   * @param responseClass The class to parse each item in the response into
-   * @param timeout The maximum time to wait, or null to wait indefinitely
-   * @returns A promise that resolves with the parsed response list or rejects on timeout
-   */
-  async responseAsListTimeout<T>(responseClass: new () => T, timeout: Duration | null): Promise<T[]> {
-    const success = await this.waitForTimeout(timeout);
-    if (!success) {
-      throw new HelmExecutionException(1, HelmExecution.MSG_TIMEOUT_ERROR, '', '');
-    }
-    return this.responseAsList(responseClass);
-  }
-
-  /**
    * Executes the command and waits for completion.
    * @returns A promise that resolves when the command completes
    */
   async call(): Promise<void> {
-    await this.waitFor();
+    await this.callTimeout(null);
   }
 
   /**
@@ -191,9 +229,20 @@ export class HelmExecution {
    * @returns A promise that resolves when the command completes or rejects on timeout
    */
   async callTimeout(timeout: Duration | null): Promise<void> {
-    const success = await this.waitForTimeout(timeout);
-    if (!success) {
-      throw new HelmExecutionException(1, HelmExecution.MSG_TIMEOUT_ERROR, '', '');
+    if (timeout !== null) {
+      const success = await this.waitForTimeout(timeout);
+      if (!success) {
+        throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
+      }
+    } else {
+      await this.waitFor();
+    }
+
+    const exitCode = this.exitCode();
+    if (exitCode !== 0) {
+      const stdOut = await this.standardOutput();
+      const stdErr = await this.standardError();
+      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
     }
   }
 }

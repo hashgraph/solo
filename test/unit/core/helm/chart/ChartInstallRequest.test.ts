@@ -52,8 +52,10 @@ describe('ChartInstallRequest Tests', () => {
 
     // Setup mock behaviors
     (helmExecutionBuilderMock.positional as sinon.SinonStub)
-      .withArgs('mocked').returns(helmExecutionBuilderMock)
-      .withArgs('mockedUnqualified').returns(helmExecutionBuilderMock);
+      .withArgs('mocked')
+      .returns(helmExecutionBuilderMock)
+      .withArgs('mockedUnqualified')
+      .returns(helmExecutionBuilderMock);
 
     // Execute the method under test
     chartInstallRequest.apply(helmExecutionBuilderMock);
