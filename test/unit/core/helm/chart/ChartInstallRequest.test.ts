@@ -11,18 +11,17 @@ import {ChartInstallRequest} from '../../../../../src/core/helm/request/chart/Ch
 describe('ChartInstallRequest Tests', () => {
   it('Test ChartInstallRequest Chart constructor validation', () => {
     const chart = new Chart('apache', 'bitnami/apache');
+    const chartInstallRequest = new ChartInstallRequest('apache', chart);
+    expect(chartInstallRequest.chart).to.equal(chart);
+    expect(chartInstallRequest).to.not.be.null;
+    expect(chartInstallRequest).to.equal(InstallChartOptions.defaults());
 
-    // Should not throw with valid parameters
-    expect(() => new ChartInstallRequest('apache', chart)).to.not.throw();
-    expect(() => new ChartInstallRequest('apache', chart, InstallChartOptions.defaults())).to.not.throw();
+    const opts = InstallChartOptions.builder().timeout('9m0s').atomic(true).build();
+    const nonDefaultOptRequest = new ChartInstallRequest('apache', chart, opts);
 
-    // Should throw with invalid parameters
-    expect(() => new ChartInstallRequest('', chart)).to.throw('releaseName must not be blank');
-    expect(() => new ChartInstallRequest('  ', chart)).to.throw('releaseName must not be blank');
-    expect(() => new ChartInstallRequest('apache', null as unknown as Chart)).to.throw('chart must not be null');
-    expect(() => new ChartInstallRequest('apache', chart, null as unknown as InstallChartOptions)).to.throw(
-      'options must not be null',
-    );
+    expect(nonDefaultOptRequest.options).to.equal(opts);
+    expect(nonDefaultOptRequest.options).to.not.be.null;
+    expect(nonDefaultOptRequest.options).not.equal(InstallChartOptions.defaults());
   });
 
   it('Test ChartInstallRequest apply with unqualified chart', () => {

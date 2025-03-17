@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+// Define BiFunction type for TypeScript
+type BiFunction<T, U, R> = (t: T, u: U) => R;
+
 import {type HelmClient} from '../HelmClient.js';
 import {type HelmExecution} from '../execution/HelmExecution.js';
 import {HelmExecutionBuilder} from '../execution/HelmExecutionBuilder.js';
@@ -172,10 +175,10 @@ export class DefaultHelmClient implements HelmClient {
   }
 
   private async executeInternal<T extends HelmRequest, R, V>(
-    namespace: string,
+    namespace: string | undefined,
     request: T,
     responseClass: new (...args: any[]) => R,
-    responseFn: (execution: HelmExecution) => Promise<V>,
+    responseFn: BiFunction<HelmExecution, typeof responseClass, Promise<V>>,
   ): Promise<V> {
     if (!namespace) {
       throw new Error(DefaultHelmClient.MSG_NAMESPACE_NOT_NULL);
@@ -189,6 +192,7 @@ export class DefaultHelmClient implements HelmClient {
     this.applyBuilderDefaults(builder);
     request.apply(builder);
     builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, namespace);
-    return responseFn(await builder.build());
+    const execution = await builder.build();
+    return responseFn(execution, responseClass);
   }
 }

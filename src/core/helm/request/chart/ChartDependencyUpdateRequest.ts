@@ -7,7 +7,7 @@ import {type HelmRequest} from '../HelmRequest.js';
  * A request to update the dependencies of a Helm chart.
  */
 export class ChartDependencyUpdateRequest implements HelmRequest {
-  constructor(private readonly chartName: string) {
+  constructor(readonly chartName: string) {
     if (!chartName) {
       throw new Error('chartName must not be null');
     }

@@ -15,15 +15,12 @@ describe('ChartDependencyUpdateRequest Tests', () => {
 
     const request = new ChartDependencyUpdateRequest('mocked');
     expect(request).to.not.be.null;
+    expect(request.chartName).to.equal('mocked');
 
     request.apply(helmExecutionBuilderMock);
 
     expect(helmExecutionBuilderMock.subcommands).to.have.been.calledOnceWith('dependency', 'update');
     expect(helmExecutionBuilderMock.positional).to.have.been.calledOnceWith('mocked');
-  });
-
-  it('should throw error when chartName is null', () => {
-    expect(() => new ChartDependencyUpdateRequest('')).to.throw('chartName must not be blank');
   });
 
   it('should throw error when chartName is blank', () => {

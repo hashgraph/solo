@@ -17,9 +17,9 @@ export class ChartInstallRequest implements HelmRequest {
    * @param options The options to use when installing the chart.
    */
   constructor(
-    private readonly releaseName: string,
-    private readonly chart: Chart,
-    private readonly options: InstallChartOptions = InstallChartOptions.defaults(),
+    readonly releaseName: string,
+    readonly chart: Chart,
+    readonly options: InstallChartOptions = InstallChartOptions.defaults(),
   ) {
     if (!releaseName) {
       throw new Error('releaseName must not be null');
