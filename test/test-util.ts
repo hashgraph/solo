@@ -382,8 +382,8 @@ export function balanceQueryShouldSucceed(
 
       await accountManager.refreshNodeClient(
         namespace,
-        skipNodeAlias,
         remoteConfigManager.getClusterRefs(),
+        skipNodeAlias,
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;
@@ -413,8 +413,8 @@ export function accountCreationShouldSucceed(
       const argv = Argv.getDefaultArgv(namespace);
       await accountManager.refreshNodeClient(
         namespace,
-        skipNodeAlias,
         remoteConfigManager.getClusterRefs(),
+        skipNodeAlias,
         argv.getArg<DeploymentName>(flags.deployment),
       );
       expect(accountManager._nodeClient).not.to.be.null;

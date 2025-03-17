@@ -2,9 +2,7 @@
 
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/solo-error.js';
-import {MissingArgumentError} from '../../errors/missing-argument-error.js';
 import {RemoteConfigDataWrapper} from './remote-config-data-wrapper.js';
-import chalk from 'chalk';
 import {RemoteConfigMetadata} from './metadata.js';
 import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
@@ -61,19 +59,19 @@ export class RemoteConfigManager {
   /* ---------- Getters ---------- */
 
   public get currentCluster(): ClusterRef {
-    return this.k8Factory.default().clusters().readCurrent() as ClusterRef;
+    return this.k8Factory.default().clusters().readCurrent();
   }
 
   /** @returns the components data wrapper cloned */
   public get components(): ComponentsDataWrapper {
-    return this.remoteConfig?.components?.clone();
+    return this.remoteConfig.components.clone();
   }
 
   /**
    * @returns the remote configuration data's clusters cloned
    */
   public get clusters(): Record<ClusterRef, Cluster> {
-    return Object.assign({}, this.remoteConfig?.clusters);
+    return helpers.deepClone(this.remoteConfig.clusters);
   }
 
   /* ---------- Readers and Modifiers ---------- */
@@ -86,14 +84,12 @@ export class RemoteConfigManager {
    * @throws if the configuration is not loaded before modification, will throw a SoloError {@link SoloError}
    */
   public async modify(callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void>): Promise<void> {
-    if (!this.remoteConfig) {
-      return;
+    if (!this.remoteConfig) throw new SoloError('Attempting to modify remote config without loading it first');
 
-      // TODO see if this should be disabled to make it an optional feature
-      // throw new SoloError('Attempting to modify remote config without loading it first')
-    }
-
+    // Call the callback function to modify the remote config
     await callback(this.remoteConfig);
+
+    // Save the modified version of the remote config
     await this.save();
   }
 
@@ -120,7 +116,7 @@ export class RemoteConfigManager {
     const lastUpdatedAt = new Date();
     const email = this.localConfig.userEmailAddress;
     const soloVersion = helpers.getSoloVersion();
-    const currentCommand: string = argv._.join(' ');
+    const currentCommand = argv._.join(' ');
 
     this.remoteConfig = new RemoteConfigDataWrapper({
       clusters,
@@ -152,23 +148,14 @@ export class RemoteConfigManager {
    * @param context - The context to use for the Kubernetes client.
    * @returns true if the configuration is loaded successfully.
    */
-  private async load(namespace?: NamespaceName, context?: string): Promise<boolean> {
-    if (this.remoteConfig) return true;
-
+  private async load(namespace?: NamespaceName, context?: string): Promise<void> {
+    if (this.remoteConfig) return;
     try {
       const configMap = await this.getConfigMap(namespace, context);
 
-      if (configMap) {
-        this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
-        return true;
-      }
-
-      return false;
+      this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
     } catch (e) {
-      const newError = new SoloError('Failed to load remote config from cluster', e);
-      // TODO: throw newError instead of showUserError()
-      this.logger.showUserError(newError);
-      return false;
+      throw new SoloError('Failed to load remote config from cluster', e);
     }
   }
 
@@ -230,52 +217,40 @@ export class RemoteConfigManager {
     argv: {_: string[]} & AnyObject,
     validate: boolean = true,
     skipConsensusNodesValidation: boolean = true,
-  ) {
-    const self = this;
-    try {
-      await self.setDefaultNamespaceAndDeploymentIfNotSet(argv);
-      self.setDefaultContextIfNotSet();
-    } catch (e) {
-      self.logger.showUser(chalk.red(e.message));
-      return;
-    }
+  ): Promise<void> {
+    await this.setDefaultNamespaceAndDeploymentIfNotSet(argv);
+    this.setDefaultContextIfNotSet();
 
-    if (!(await self.load())) {
-      const newError = new SoloError('Failed to load remote config');
-      // TODO throw newError instead of showUserError()
-      self.logger.showUserError(newError);
-      return;
-    }
-    self.logger.info('Remote config loaded');
-    if (!validate) {
-      return;
-    }
+    await this.load();
+
+    this.logger.info('Remote config loaded');
+    if (!validate) return;
 
     await RemoteConfigValidator.validateComponents(
       this.configManager.getFlag(flags.namespace),
-      self.remoteConfig.components,
-      self.k8Factory,
+      this.remoteConfig.components,
+      this.k8Factory,
       this.localConfig,
       skipConsensusNodesValidation,
     );
 
-    const additionalCommandData = `Executed by ${self.localConfig.userEmailAddress}: `;
-
     const currentCommand = argv._?.join(' ');
     const commandArguments = flags.stringifyArgv(argv);
 
-    self.remoteConfig!.addCommandToHistory(additionalCommandData + (currentCommand + ' ' + commandArguments).trim());
+    this.remoteConfig!.addCommandToHistory(
+      `Executed by ${this.localConfig.userEmailAddress}: ${currentCommand} ${commandArguments}`.trim(),
+    );
 
-    self.populateVersionsInMetadata(argv);
+    this.populateVersionsInMetadata(argv);
 
-    await self.remoteConfig.flags.handleFlags(argv);
+    await this.remoteConfig.flags.handleFlags(argv);
 
-    await self.save();
+    await this.save();
   }
 
-  private populateVersionsInMetadata(argv: AnyObject) {
-    const command: string = argv._?.[0];
-    const subcommand: string = argv._?.[1];
+  private populateVersionsInMetadata(argv: AnyObject): void {
+    const command: string = argv._[0];
+    const subcommand: string = argv._[1];
 
     const isCommandUsingSoloChartVersionFlag =
       (command === 'network' && subcommand === 'deploy') ||
@@ -347,36 +322,25 @@ export class RemoteConfigManager {
    * @throws if the ConfigMap could not be read and the error is not a 404 status, will throw a SoloError {@link SoloError}
    */
   public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<ConfigMap> {
-    if (!namespace) {
-      namespace = await this.getNamespace();
-    }
-    if (!context) {
-      context = this.configManager.getFlag(flags.context);
-      if (!context) {
-        context = this.getContextForFirstCluster();
-      }
-    }
+    if (!namespace) namespace = await this.getNamespace();
+    if (!context) context = this.configManager.getFlag(flags.context) ?? this.getContextForFirstCluster();
 
     try {
       const configMap = await this.k8Factory
         .getK8(context)
         .configMaps()
         .read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
+
       if (!configMap) {
-        // TODO throw newError instead of showUserError()
-        const newError = new SoloError(
-          `Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`,
-        );
-        this.logger.showUserError(newError);
+        throw new SoloError(`Remote config ConfigMap not found for namespace: ${namespace}, context: ${context}`);
       }
+
       return configMap;
     } catch (e) {
-      const newError = new SoloError(
+      throw new SoloError(
         `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
         e,
       );
-      this.logger.showUserError(newError);
-      return null;
     }
   }
 
@@ -384,29 +348,26 @@ export class RemoteConfigManager {
    * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
    */
   public async createConfigMap(context?: string): Promise<void> {
-    await this.k8Factory
-      .getK8(context)
-      .configMaps()
-      .create(await this.getNamespace(), constants.SOLO_REMOTE_CONFIGMAP_NAME, constants.SOLO_REMOTE_CONFIGMAP_LABELS, {
-        'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
-      });
+    const namespace = await this.getNamespace();
+    const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
+    const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
+    const data = {'remote-config-data': yaml.stringify(this.remoteConfig.toObject())};
+
+    await this.k8Factory.getK8(context).configMaps().create(namespace, name, labels, data);
   }
 
-  /** Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data. */
+  /**
+   * Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data.
+   */
   private async replaceConfigMap(): Promise<void> {
     const contexts = this.getContexts();
     const namespace = await this.getNamespace();
+    const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
+    const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
+    const data = {'remote-config-data': yaml.stringify(this.remoteConfig.toObject())};
 
     await Promise.all(
-      contexts.map(context => {
-        const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
-        const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
-        const data = {
-          'remote-config-data': yaml.stringify(this.remoteConfig.toObject()),
-        };
-
-        return this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data);
-      }),
+      contexts.map(context => this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data)),
     );
   }
 
@@ -444,10 +405,7 @@ export class RemoteConfigManager {
   private setDefaultContextIfNotSet(): void {
     if (this.configManager.hasFlag(flags.context)) return;
 
-    let context: string = this.getContextForFirstCluster();
-    if (!context) {
-      context = this.k8Factory.default().contexts().readCurrent();
-    }
+    const context = this.getContextForFirstCluster() ?? this.k8Factory.default().contexts().readCurrent();
 
     if (!context) {
       throw new SoloError("Context is not passed and default one can't be acquired");
@@ -457,16 +415,12 @@ export class RemoteConfigManager {
     this.configManager.setFlag(flags.context, context);
   }
 
-  // cluster will be retrieved from LocalConfig based the context to cluster mapping
-
   /**
    * Retrieves the namespace value from the configuration manager's flags.
    * @returns string - The namespace value if set.
    */
   private async getNamespace(): Promise<NamespaceName> {
-    const ns = await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
-    if (!ns) throw new MissingArgumentError('namespace was not found in the deployment within local config');
-    return ns;
+    return await resolveNamespaceFromDeployment(this.localConfig, this.configManager);
   }
 
   //* Common Commands
@@ -476,38 +430,34 @@ export class RemoteConfigManager {
    * @returns an array of ConsensusNode objects
    */
   public getConsensusNodes(): ConsensusNode[] {
-    const consensusNodes: ConsensusNode[] = [];
     if (!this.isLoaded()) {
       throw new SoloError('Remote configuration is not loaded, and was expected to be loaded');
     }
-    const clusters: Record<ClusterRef, Cluster> = this.clusters;
 
-    try {
-      if (!this.components?.consensusNodes) return [];
-    } catch {
-      return [];
-    }
+    const consensusNodes: ConsensusNode[] = [];
 
-    // using the remoteConfigManager to get the consensus nodes
     Object.values(this.components.consensusNodes).forEach(node => {
       this.logger.debug(`Adding consensus node ${node.name} , node.cluster = ${node.cluster}`);
+
+      const cluster = this.clusters[node.cluster];
+      const context = this.localConfig.clusterRefs[node.cluster];
+
       consensusNodes.push(
         new ConsensusNode(
           node.name as NodeAlias,
           node.nodeId,
           node.namespace,
           node.cluster,
-          // use local config to get the context
-          this.localConfig.clusterRefs[node.cluster],
-          clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-          clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
+          context,
+          cluster.dnsBaseDomain,
+          cluster.dnsConsensusNodePattern,
           Templates.renderConsensusNodeFullyQualifiedDomainName(
             node.name as NodeAlias,
             node.nodeId,
             node.namespace,
             node.cluster,
-            clusters[node.cluster]?.dnsBaseDomain ?? 'cluster.local',
-            clusters[node.cluster]?.dnsConsensusNodePattern ?? 'network-{nodeAlias}-svc.{namespace}.svc',
+            cluster.dnsBaseDomain,
+            cluster.dnsConsensusNodePattern,
           ),
         ),
       );
@@ -537,13 +487,14 @@ export class RemoteConfigManager {
   }
 
   private getContextForFirstCluster(): string {
-    const clusterRefs: ClusterRef[] =
-      this.localConfig.deployments[this.configManager.getFlag<DeploymentName>(flags.deployment)].clusters;
-    const cluster: string = clusterRefs[0];
-    const context: string = this.localConfig.clusterRefs[cluster];
-    this.logger.debug(
-      `Using context ${context} for cluster ${cluster} for deployment ${this.configManager.getFlag<DeploymentName>(flags.deployment)}`,
-    );
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+
+    const clusterRef: ClusterRef = this.localConfig.deployments[deploymentName].clusters[0];
+
+    const context = this.localConfig.clusterRefs[clusterRef];
+
+    this.logger.debug(`Using context ${context} for cluster ${clusterRef} for deployment ${deploymentName}`);
+
     return context;
   }
 }
