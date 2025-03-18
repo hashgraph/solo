@@ -5,13 +5,13 @@ import {after, before, describe, it} from 'mocha';
 import each from 'mocha-each';
 
 import fs from 'fs';
-import path from 'path';
 import {HelmDependencyManager} from '../../../../../src/core/dependency-managers/index.js';
 import {getTestCacheDir, getTmpDir} from '../../../../test-util.js';
 import * as version from '../../../../../version.js';
+import {PathEx} from '../../../../../src/core/util/path-ex.js';
 
 describe('HelmDependencyManager', () => {
-  const tmpDir = path.join(getTmpDir(), 'bin');
+  const tmpDir = PathEx.join(getTmpDir(), 'bin');
 
   before(() => fs.mkdirSync(tmpDir));
 

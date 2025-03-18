@@ -6,11 +6,11 @@ import {describe, it} from 'mocha';
 import {PackageDownloader} from '../../../src/core/package-downloader.js';
 import * as logging from '../../../src/core/logging.js';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
 import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
 import {ResourceNotFoundError} from '../../../src/core/errors/resource-not-found-error.js';
+import {PathEx} from '../../../src/core/util/path-ex.js';
 
 describe('PackageDownloader', () => {
   const testLogger = logging.NewLogger('debug', true);
@@ -52,7 +52,7 @@ describe('PackageDownloader', () => {
 
     it('should succeed with a valid release artifact URL', async () => {
       try {
-        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'downloader-'));
+        const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
 
         const tag = 'v0.42.5';
         const destPath = `${tmpDir}/build-${tag}.sha384`;
@@ -65,7 +65,8 @@ describe('PackageDownloader', () => {
         // remove the file to reduce disk usage
         fs.rmSync(tmpDir, {recursive: true});
       } catch (e) {
-        expect.fail();
+        console.error(e);
+        throw e;
       }
     });
   });
@@ -73,7 +74,7 @@ describe('PackageDownloader', () => {
   describe('fetchPlatform', () => {
     it('should fail if platform release tag is missing', async () => {
       try {
-        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'downloader-'));
+        const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
         await downloader.fetchPlatform('', tmpDir);
         fs.rmSync(tmpDir, {recursive: true});
         throw new Error();
@@ -86,23 +87,29 @@ describe('PackageDownloader', () => {
       const tag = 'v0.40.0-INVALID';
 
       try {
-        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'downloader-'));
+        const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
         await downloader.fetchPlatform(tag, tmpDir);
         fs.rmSync(tmpDir, {recursive: true});
         throw new Error();
       } catch (e) {
         expect(e.cause).not.to.be.null;
+        if (!(e.cause instanceof ResourceNotFoundError)) {
+          throw e;
+        }
         expect(e.cause).to.be.instanceof(ResourceNotFoundError);
       }
     });
 
     it('should fail if platform release tag is invalid', async () => {
       try {
-        const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'downloader-'));
+        const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
         await downloader.fetchPlatform('INVALID', os.tmpdir());
         fs.rmSync(tmpDir, {recursive: true});
         throw new Error();
       } catch (e) {
+        if (!e.message.includes('must include major, minor and patch fields')) {
+          throw e;
+        }
         expect(e.message).to.contain('must include major, minor and patch fields');
       }
     });

@@ -29,6 +29,7 @@ import {type ConsensusNode} from './model/consensus-node.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {type ClusterRef} from './config/remote/types.js';
+import {PathEx} from './util/path-ex.js';
 
 @injectable()
 export class ProfileManager {
@@ -230,7 +231,7 @@ export class ProfileManager {
       }
 
       const fileName = path.basename(filePath);
-      const destPath = path.join(stagingDir, 'templates', fileName);
+      const destPath = PathEx.join(stagingDir, 'templates', fileName);
       this.logger.debug(`Copying configuration file to staging: ${filePath} -> ${destPath}`);
 
       fs.cpSync(filePath, destPath, {force: true});
@@ -239,33 +240,33 @@ export class ProfileManager {
     this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot);
     this._setFileContentsAsValue(
       'hedera.configMaps.log4j2Xml',
-      path.join(stagingDir, 'templates', 'log4j2.xml'),
+      PathEx.joinWithRealPath(stagingDir, 'templates', 'log4j2.xml'),
       yamlRoot,
     );
     this._setFileContentsAsValue(
       'hedera.configMaps.settingsTxt',
-      path.join(stagingDir, 'templates', 'settings.txt'),
+      PathEx.joinWithRealPath(stagingDir, 'templates', 'settings.txt'),
       yamlRoot,
     );
     this._setFileContentsAsValue(
       'hedera.configMaps.applicationProperties',
-      path.join(stagingDir, 'templates', 'application.properties'),
+      PathEx.joinWithRealPath(stagingDir, 'templates', 'application.properties'),
       yamlRoot,
     );
     this._setFileContentsAsValue(
       'hedera.configMaps.apiPermissionsProperties',
-      path.join(stagingDir, 'templates', 'api-permission.properties'),
+      PathEx.joinWithRealPath(stagingDir, 'templates', 'api-permission.properties'),
       yamlRoot,
     );
     this._setFileContentsAsValue(
       'hedera.configMaps.bootstrapProperties',
-      path.join(stagingDir, 'templates', 'bootstrap.properties'),
+      PathEx.joinWithRealPath(stagingDir, 'templates', 'bootstrap.properties'),
       yamlRoot,
     );
 
     this._setFileContentsAsValue(
       'hedera.configMaps.applicationEnv',
-      path.join(stagingDir, 'templates', 'application.env'),
+      PathEx.joinWithRealPath(stagingDir, 'templates', 'application.env'),
       yamlRoot,
     );
 
@@ -347,7 +348,7 @@ export class ProfileManager {
       this.resourcesForEnvoyProxyPod(profile, yamlRoot);
       this.resourcesForMinioTenantPod(profile, yamlRoot);
 
-      const cachedValuesFile = path.join(this.cacheDir, `solo-${profileName}-${clusterRef}.yaml`);
+      const cachedValuesFile = PathEx.join(this.cacheDir, `solo-${profileName}-${clusterRef}.yaml`);
       filesMapping[clusterRef] = await this.writeToYaml(cachedValuesFile, yamlRoot);
     }
 
@@ -374,7 +375,7 @@ export class ProfileManager {
     await this.bumpHederaConfigVersion(applicationPropertiesPath);
     this._setFileContentsAsValue('hedera.configMaps.applicationProperties', applicationPropertiesPath, yamlRoot);
 
-    const cachedValuesFile = path.join(this.cacheDir, 'solo-node-transaction.yaml');
+    const cachedValuesFile = PathEx.join(this.cacheDir, 'solo-node-transaction.yaml');
     return this.writeToYaml(cachedValuesFile, yamlRoot);
   }
 
@@ -392,7 +393,7 @@ export class ProfileManager {
     const yamlRoot = {};
     this._setChartItems('', profile.rpcRelay, yamlRoot);
 
-    const cachedValuesFile = path.join(this.cacheDir, `rpcRelay-${profileName}.yaml`);
+    const cachedValuesFile = PathEx.join(this.cacheDir, `rpcRelay-${profileName}.yaml`);
     return this.writeToYaml(cachedValuesFile, yamlRoot);
   }
 
@@ -403,7 +404,7 @@ export class ProfileManager {
     const yamlRoot = {};
     this.resourcesForHederaExplorerPod(profile, yamlRoot);
 
-    const cachedValuesFile = path.join(this.cacheDir, `explorer-${profileName}.yaml`);
+    const cachedValuesFile = PathEx.join(this.cacheDir, `explorer-${profileName}.yaml`);
     return this.writeToYaml(cachedValuesFile, yamlRoot);
   }
 
@@ -451,7 +452,7 @@ export class ProfileManager {
     this._setChartItems('grpc', profile.mirror.grpc, yamlRoot);
     this._setChartItems('monitor', profile.mirror.monitor, yamlRoot);
 
-    const cachedValuesFile = path.join(this.cacheDir, `mirror-${profileName}.yaml`);
+    const cachedValuesFile = PathEx.join(this.cacheDir, `mirror-${profileName}.yaml`);
     return this.writeToYaml(cachedValuesFile, yamlRoot);
   }
 
@@ -497,7 +498,7 @@ export class ProfileManager {
       throw new IllegalArgumentError(`config destPath does not exist: ${destPath}`, destPath);
     }
 
-    const configFilePath = path.join(destPath, 'config.txt');
+    const configFilePath = PathEx.join(destPath, 'config.txt');
     if (fs.existsSync(configFilePath)) {
       fs.unlinkSync(configFilePath);
     }

@@ -16,12 +16,12 @@ import {type LockManager} from '../../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../../src/core/config/remote/remote-config-manager.js';
 import * as logging from '../../../../src/core/logging.js';
 import sinon from 'sinon';
-import path from 'path';
 import {BASE_TEST_DIR} from '../../../test-util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../../src/core/constants.js';
+import {PathEx} from '../../../../src/core/util/path-ex.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
@@ -45,7 +45,7 @@ describe('InitCommand', () => {
     sandbox = sinon.createSandbox();
     sandbox.stub(K8Client.prototype, 'init').callsFake(() => this);
     k8Factory = container.resolve(InjectTokens.K8Factory);
-    localConfig = new LocalConfig(path.join(BASE_TEST_DIR, DEFAULT_LOCAL_CONFIG_FILE));
+    localConfig = new LocalConfig(PathEx.join(BASE_TEST_DIR, DEFAULT_LOCAL_CONFIG_FILE));
     remoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     leaseManager = container.resolve(InjectTokens.LockManager);
 

@@ -4,7 +4,6 @@ import {Flags as flags} from '../flags.js';
 import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
 import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
-import path from 'path';
 import chalk from 'chalk';
 import {ListrLock} from '../../core/lock/listr-lock.js';
 import {ErrorMessages} from '../../core/error-messages.js';
@@ -31,6 +30,7 @@ import {type ClusterRefConnectContext} from './config-interfaces/cluster-ref-con
 import {type ClusterRefDefaultContext} from './config-interfaces/cluster-ref-default-context.js';
 import {type ClusterRefSetupContext} from './config-interfaces/cluster-ref-setup-context.js';
 import {type ClusterRefResetContext} from './config-interfaces/cluster-ref-reset-context.js';
+import {PathEx} from '../../core/util/path-ex.js';
 
 @injectable()
 export class ClusterCommandTasks {
@@ -127,7 +127,7 @@ export class ClusterCommandTasks {
     prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
     minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
   ): string {
-    let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
+    let valuesArg = chartDir ? `-f ${PathEx.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
     valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;

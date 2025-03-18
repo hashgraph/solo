@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import path from 'path';
 import {Container} from '../src/core/dependency-injection/container-init.js';
 import fs from 'fs';
 import {type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import * as yaml from 'yaml';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../src/core/constants.js';
 import {type SoloLogger} from '../src/core/logging.js';
+import {PathEx} from '../src/core/util/path-ex.js';
 
-const cacheDirectory = path.join('test', 'data', 'tmp');
+const cacheDirectory = PathEx.join('test', 'data', 'tmp');
 
 export function resetTestContainer(cacheDir: string = cacheDirectory, testLogger?: SoloLogger) {
   // For the test suites cacheDir === homeDir is acceptable because the data is temporary
@@ -27,9 +27,9 @@ export function resetForTest(
       fs.mkdirSync(cacheDirectory, {recursive: true});
     }
 
-    const localConfigData = fs.readFileSync(path.join('test', 'data', localConfigFile), 'utf8');
+    const localConfigData = fs.readFileSync(PathEx.joinWithRealPath('test', 'data', localConfigFile), 'utf8');
     const parsedData = yaml.parse(localConfigData);
-    fs.writeFileSync(path.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
+    fs.writeFileSync(PathEx.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
   }
   // need to init the container prior to using K8Client for dependency injection to work
   resetTestContainer(cacheDir, testLogger);

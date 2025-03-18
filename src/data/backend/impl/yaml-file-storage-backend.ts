@@ -3,9 +3,9 @@
 import {type ObjectStorageBackend} from '../api/object-storage-backend.js';
 import {FileStorageBackend} from './file-storage-backend.js';
 import {StorageBackendError} from '../api/storage-backend-error.js';
-import path from 'path';
 import {parse, stringify} from 'yaml';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
+import {PathEx} from '../../../core/util/path-ex.js';
 
 export class YamlFileStorageBackend extends FileStorageBackend implements ObjectStorageBackend {
   public constructor(basePath: string) {
@@ -15,7 +15,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
   public async readObject(key: string): Promise<object> {
     const data: Uint8Array = await this.readBytes(key);
 
-    const filePath: string = path.join(this.basePath, key);
+    const filePath: string = PathEx.joinWithRealPath(this.basePath, key);
     if (!data) {
       throw new StorageBackendError(`failed to read file: ${filePath}`);
     }
@@ -36,7 +36,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
       throw new IllegalArgumentError('data must not be null or undefined');
     }
 
-    const filePath: string = path.join(this.basePath, key);
+    const filePath: string = PathEx.join(this.basePath, key);
     try {
       const yamlData: string = stringify(data, {sortMapEntries: true});
       await this.writeBytes(key, new Uint8Array(Buffer.from(yamlData)));

@@ -25,6 +25,7 @@ import {type K8} from './kube/k8.js';
 import {type Helm} from './helm.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import chalk from 'chalk';
+import {PathEx} from './util/path-ex.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -115,7 +116,7 @@ export function cloneArray<T>(arr: T[]): T[] {
 }
 
 export function getTmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'));
+  return fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-'));
 }
 
 export function createBackupDir(destDir: string, prefix = 'backup', curDate = new Date()) {
@@ -129,7 +130,7 @@ export function createBackupDir(destDir: string, prefix = 'backup', curDate = ne
     curDate.getSeconds().toString().padStart(2, '0'),
   );
 
-  const backupDir = path.join(destDir, prefix, dateDir);
+  const backupDir = PathEx.join(destDir, prefix, dateDir);
   if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, {recursive: true});
   }
@@ -155,8 +156,8 @@ export function backupOldTlsKeys(nodeAliases: NodeAliases, keysDir: string, curD
 
   const fileMap = new Map<string, string>();
   for (const nodeAlias of nodeAliases) {
-    const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
-    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
+    const srcPath = PathEx.joinWithRealPath(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
+    const destPath = PathEx.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
     fileMap.set(srcPath, destPath);
   }
 
@@ -175,8 +176,8 @@ export function backupOldPemKeys(
 
   const fileMap = new Map<string, string>();
   for (const nodeAlias of nodeAliases) {
-    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
-    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
+    const srcPath = PathEx.joinWithRealPath(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
+    const destPath = PathEx.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
     fileMap.set(srcPath, destPath);
   }
 
@@ -191,18 +192,6 @@ export function isNumeric(str: string) {
     !isNaN(str as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(str))
   ); // ...and ensure strings of whitespace fail
-}
-
-/**
- * Validate a path provided by the user to prevent path traversal attacks
- * @param input - the input provided by the user
- * @returns a validated path
- */
-export function validatePath(input: string) {
-  if (input.indexOf('\0') !== -1) {
-    throw new SoloError(`access denied for path: ${input}`);
-  }
-  return input;
 }
 
 /**
@@ -244,10 +233,10 @@ export function parseIpAddressToUint8Array(ipAddress: string) {
 export function renameAndCopyFile(srcFilePath: string, expectedBaseName: string, destDir: string, logger: SoloLogger) {
   const srcDir = path.dirname(srcFilePath);
   if (path.basename(srcFilePath) !== expectedBaseName) {
-    fs.renameSync(srcFilePath, path.join(srcDir, expectedBaseName));
+    fs.renameSync(srcFilePath, PathEx.join(srcDir, expectedBaseName));
   }
   // copy public key and private key to key directory
-  fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), err => {
+  fs.copyFile(PathEx.joinWithRealPath(srcDir, expectedBaseName), PathEx.join(destDir, expectedBaseName), err => {
     if (err) {
       throw new SoloError(`Error copying file: ${err.message}`);
     }
@@ -389,7 +378,7 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
     return '';
   }
 
-  const resolvedFilePath = fs.realpathSync(validatePath(filePath));
+  const resolvedFilePath = PathEx.realPathSync(filePath);
 
   if (!fs.existsSync(resolvedFilePath)) {
     if (defaultPath) {
@@ -427,7 +416,7 @@ export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: 
   if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
 
   if (chartDir) {
-    const chartPath = path.join(chartDir, chartReleaseName);
+    const chartPath = PathEx.join(chartDir, chartReleaseName);
     await helm.dependency('update', chartPath);
     return chartPath;
   }

@@ -15,7 +15,7 @@ import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ArgvStruct, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
-import path from 'path';
+import {PathEx} from './util/path-ex.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -283,7 +283,7 @@ export class ConfigManager {
     if (this.getFlag(flag) === flag.definition.defaultValue) {
       const cacheDir: string =
         this.getFlag<string>(flags.cacheDir) || (flags.cacheDir.definition.defaultValue as string);
-      return path.join(cacheDir, this.getFlag(flag));
+      return PathEx.join(cacheDir, this.getFlag(flag));
     }
     return this.getFlag(flag);
   }

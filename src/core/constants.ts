@@ -2,22 +2,23 @@
 
 import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
-import path, {dirname, normalize} from 'path';
+import {dirname} from 'path';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {ContainerName} from './kube/resources/container/container-name.js';
+import {PathEx} from './util/path-ex.js';
 
-export const ROOT_DIR = path.join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+export const ROOT_DIR = PathEx.joinWithRealPath(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 // -------------------- solo related constants ---------------------------------------------------------------------
-export const SOLO_HOME_DIR = process.env.SOLO_HOME || path.join(process.env.HOME as string, '.solo');
-export const SOLO_LOGS_DIR = path.join(SOLO_HOME_DIR, 'logs');
-export const SOLO_CACHE_DIR = path.join(SOLO_HOME_DIR, 'cache');
-export const SOLO_VALUES_DIR = path.join(SOLO_CACHE_DIR, 'values-files');
+export const SOLO_HOME_DIR = process.env.SOLO_HOME || PathEx.join(process.env.HOME as string, '.solo');
+export const SOLO_LOGS_DIR = PathEx.join(SOLO_HOME_DIR, 'logs');
+export const SOLO_CACHE_DIR = PathEx.join(SOLO_HOME_DIR, 'cache');
+export const SOLO_VALUES_DIR = PathEx.join(SOLO_CACHE_DIR, 'values-files');
 export const DEFAULT_NAMESPACE = NamespaceName.of('default');
 export const DEFAULT_CERT_MANAGER_NAMESPACE = NamespaceName.of('cert-manager');
 export const HELM = 'helm';
-export const RESOURCES_DIR = normalize(path.join(ROOT_DIR, 'resources'));
+export const RESOURCES_DIR = PathEx.joinWithRealPath(ROOT_DIR, 'resources');
 
 export const ROOT_CONTAINER = ContainerName.of('root-container');
 export const SOLO_REMOTE_CONFIGMAP_NAME = 'solo-remote-config';
@@ -119,8 +120,8 @@ export const POD_CONDITION_READY = 'Ready';
 export const POD_CONDITION_POD_SCHEDULED = 'PodScheduled';
 export const POD_CONDITION_STATUS_TRUE = 'True';
 
-export const EXPLORER_VALUES_FILE = path.join(RESOURCES_DIR, 'hedera-explorer-values.yaml');
-export const MIRROR_NODE_VALUES_FILE = path.join(RESOURCES_DIR, 'mirror-node-values.yaml');
+export const EXPLORER_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'hedera-explorer-values.yaml');
+export const MIRROR_NODE_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'mirror-node-values.yaml');
 export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod';
 
 /**
@@ -170,7 +171,7 @@ export const PROFILE_TINY = 'tiny';
 export const PROFILE_LOCAL = 'local';
 
 export const ALL_PROFILES = [PROFILE_LOCAL, PROFILE_TINY, PROFILE_SMALL, PROFILE_MEDIUM, PROFILE_LARGE];
-export const DEFAULT_PROFILE_FILE = path.join('profiles', 'custom-spec.yaml');
+export const DEFAULT_PROFILE_FILE = PathEx.join('profiles', 'custom-spec.yaml');
 
 export const STANDARD_DATAMASK = '***';
 

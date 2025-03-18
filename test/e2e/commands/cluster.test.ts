@@ -13,9 +13,9 @@ import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';
+import {PathEx} from '../../../src/core/util/path-ex.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -93,7 +93,7 @@ describe('ClusterCommand', () => {
 
     await clusterCmd.handlers.connect(argv.build());
 
-    const localConfigPath = path.join(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigPath = PathEx.joinWithRealPath(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
     const localConfigYaml = fs.readFileSync(localConfigPath).toString();
     const localConfigData = yaml.parse(localConfigYaml);
 

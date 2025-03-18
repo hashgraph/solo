@@ -93,6 +93,7 @@ import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell-runner.js';
 import {type Listr} from 'listr2';
+import {PathEx} from '../../core/util/path-ex.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -133,13 +134,13 @@ export class NodeCommandTasks {
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
     // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
     const zipper = new Zippy(this.logger);
-    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config');
+    const upgradeConfigDir = PathEx.join(stagingDir, 'mock-upgrade', 'data', 'config');
     if (!fs.existsSync(upgradeConfigDir)) {
       fs.mkdirSync(upgradeConfigDir, {recursive: true});
     }
 
     // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'));
+    const fileBytes = fs.readFileSync(PathEx.joinWithRealPath(stagingDir, 'templates', 'application.properties'));
     const lines = fileBytes.toString().split('\n');
     const newLines = [];
     for (let line of lines) {
@@ -153,9 +154,12 @@ export class NodeCommandTasks {
         newLines.push(line);
       }
     }
-    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'));
+    fs.writeFileSync(PathEx.joinWithRealPath(upgradeConfigDir, 'application.properties'), newLines.join('\n'));
 
-    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'));
+    return await zipper.zip(
+      PathEx.joinWithRealPath(stagingDir, 'mock-upgrade'),
+      PathEx.joinWithRealPath(stagingDir, 'mock-upgrade.zip'),
+    );
   }
 
   private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
@@ -1120,7 +1124,7 @@ export class NodeCommandTasks {
 
     const nodeOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
-    const nodeOverridesYaml = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
+    const nodeOverridesYaml = PathEx.join(stagingDir, constants.NODE_OVERRIDE_FILE);
     fs.writeFileSync(nodeOverridesYaml, nodeOverridesModel.toYAML());
   }
 
@@ -1154,7 +1158,7 @@ export class NodeCommandTasks {
       adminPublicKeys,
     );
 
-    const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');
+    const genesisNetworkJson = PathEx.join(stagingDir, 'genesis-network.json');
     fs.writeFileSync(genesisNetworkJson, genesisNetworkData.toJSON());
   }
 
@@ -1508,7 +1512,7 @@ export class NodeCommandTasks {
     return new Task('Load signing key certificate', (ctx: any, task: SoloListrTaskWrapper<any>) => {
       const config = ctx.config;
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
-      const signingCertFullPath = path.join(config.keysDir, signingCertFile);
+      const signingCertFullPath = PathEx.joinWithRealPath(config.keysDir, signingCertFile);
       ctx.signingCertDer = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
     });
   }
@@ -1517,7 +1521,7 @@ export class NodeCommandTasks {
     return new Task('Compute mTLS certificate hash', (ctx: any, task: SoloListrTaskWrapper<any>) => {
       const config = ctx.config;
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias);
-      const tlsCertFullPath = path.join(config.keysDir, tlsCertFile);
+      const tlsCertFullPath = PathEx.joinWithRealPath(config.keysDir, tlsCertFile);
       const tlsCertDer = this.keyManager.getDerFromPemCertificate(tlsCertFullPath);
       ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
     });
@@ -1794,8 +1798,8 @@ export class NodeCommandTasks {
 
         // Add profile values files
         const profileValuesFile = await self.profileManager.prepareValuesForNodeTransaction(
-          path.join(config.stagingDir, 'config.txt'),
-          path.join(config.stagingDir, 'templates', 'application.properties'),
+          PathEx.joinWithRealPath(config.stagingDir, 'config.txt'),
+          PathEx.joinWithRealPath(config.stagingDir, 'templates', 'application.properties'),
         );
 
         if (profileValuesFile) {
@@ -1846,7 +1850,7 @@ export class NodeCommandTasks {
         fs.mkdirSync(outputDir, {recursive: true});
       }
       const exportedCtx = parser(ctx);
-      fs.writeFileSync(path.join(outputDir, targetFile), JSON.stringify(exportedCtx));
+      fs.writeFileSync(PathEx.join(outputDir, targetFile), JSON.stringify(exportedCtx));
     });
   }
 
@@ -1857,7 +1861,7 @@ export class NodeCommandTasks {
         throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`);
       }
       // @ts-ignore
-      const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, targetFile)));
+      const ctxData = JSON.parse(fs.readFileSync(PathEx.joinWithRealPath(inputDir, targetFile)));
       parser(ctx, ctxData);
     });
   }
@@ -1977,7 +1981,7 @@ export class NodeCommandTasks {
         ]);
 
       await k8.containers().readByRef(containerRef).copyFrom(`${upgradeDirectory}/${zipFileName}`, config.stagingDir);
-      config.lastStateZipPath = path.join(config.stagingDir, zipFileName);
+      config.lastStateZipPath = PathEx.joinWithRealPath(config.stagingDir, zipFileName);
     });
   }
 

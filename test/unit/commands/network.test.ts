@@ -11,7 +11,6 @@ import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
 import {type Helm} from '../../../src/core/helm.js';
-import path from 'path';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {type LockManager} from '../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
@@ -33,6 +32,7 @@ import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {PathEx} from '../../../src/core/util/path-ex.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -190,7 +190,7 @@ describe('NetworkCommand unit tests', () => {
         expect(opts.chartManager.install.args[0][0].name).to.equal('solo-e2e');
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(opts.chartManager.install.args[0][2]).to.equal(
-          path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
+          PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
         );
         expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
       } finally {
@@ -200,9 +200,9 @@ describe('NetworkCommand unit tests', () => {
 
     it('Should use prepare config correctly for all clusters', async () => {
       try {
-        const common = path.join('test', 'data', 'test-values.yaml');
-        const values1 = path.join('test', 'data', 'test-values1.yaml');
-        const values2 = path.join('test', 'data', 'test-values2.yaml');
+        const common = PathEx.join('test', 'data', 'test-values.yaml');
+        const values1 = PathEx.join('test', 'data', 'test-values1.yaml');
+        const values2 = PathEx.join('test', 'data', 'test-values2.yaml');
         argv.setArg(flags.networkDeploymentValuesFile, `${common},cluster=${values1},cluster=${values2}`);
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
@@ -220,7 +220,7 @@ describe('NetworkCommand unit tests', () => {
 
         expect(config.valuesArgMap).to.not.empty;
         expect(config.valuesArgMap['cluster']).to.not.empty;
-        expect(config.valuesArgMap['cluster'].indexOf(path.join('solo-deployment', 'values.yaml'))).to.not.equal(-1);
+        expect(config.valuesArgMap['cluster'].indexOf(PathEx.join('solo-deployment', 'values.yaml'))).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('values.yaml')).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('test-values1.yaml')).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('test-values2.yaml')).to.not.equal(-1);

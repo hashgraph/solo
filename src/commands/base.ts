@@ -10,7 +10,6 @@ import {type K8Factory} from '../core/kube/k8-factory.js';
 import {type ChartManager} from '../core/chart-manager.js';
 import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
-import path from 'path';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
@@ -23,6 +22,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
+import {PathEx} from '../core/util/path-ex.js';
 
 export interface Opts {
   logger: SoloLogger;
@@ -171,7 +171,7 @@ export abstract class BaseCommand extends ShellRunner {
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
-      const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
       for (const clusterRef in valuesFiles) {
         valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
       }

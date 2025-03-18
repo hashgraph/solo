@@ -20,6 +20,7 @@ import os from 'os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import {InjectTokens} from '../../../../dependency-injection/inject-tokens.js';
+import {PathEx} from '../../../../util/path-ex.js';
 
 export class K8ClientContainer implements Container {
   private readonly logger: SoloLogger;
@@ -50,10 +51,7 @@ export class K8ClientContainer implements Container {
     }
     // handle symbolic link
     if (entries[0].name.indexOf(' -> ') > -1) {
-      const redirectSrcPath = path.join(
-        path.dirname(srcPath),
-        entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4),
-      );
+      const redirectSrcPath = `${path.dirname(srcPath)}/${entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4)}`;
       entries = await self.listDir(redirectSrcPath);
       if (entries.length !== 1) {
         throw new SoloError(`${messagePrefix}invalid source path: ${redirectSrcPath}`);
@@ -71,7 +69,7 @@ export class K8ClientContainer implements Container {
 
       const srcFile = path.basename(entries[0].name);
       const srcDir = path.dirname(entries[0].name);
-      const destPath = path.join(destDir, srcFile);
+      const destPath = PathEx.join(destDir, srcFile);
 
       // download the tar file to a temp location
       const tmpFile = self.tempFileFor(srcFile);
@@ -433,7 +431,7 @@ export class K8ClientContainer implements Container {
 
   private tempFileFor(fileName: string) {
     const tmpFile = `${fileName}-${uuid4()}`;
-    return path.join(os.tmpdir(), tmpFile);
+    return PathEx.join(os.tmpdir(), tmpFile);
   }
 
   private deleteTempFile(tmpFile: string) {
