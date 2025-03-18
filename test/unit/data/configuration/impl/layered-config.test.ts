@@ -6,7 +6,7 @@ import {LayeredConfig} from '../../../../../src/data/configuration/impl/layered-
 import {expect} from 'chai';
 
 class SimpleObject {
-  constructor(
+  public constructor(
     public prop1?: string,
     public prop2?: number,
     public prop3?: boolean,

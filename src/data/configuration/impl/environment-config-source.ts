@@ -6,9 +6,21 @@ import {type ClassConstructor} from '../../../business/utils/class-constructor.t
 import {EnvironmentStorageBackend} from '../../backend/impl/environment-storage-backend.js';
 import {ConfigurationError} from '../api/configuration-error.js';
 
+/**
+ * A {@link ConfigSource} that reads configuration data from the environment.
+ *
+ * <p>
+ * Strings are read verbatim from the environment variables.
+ * Numbers and booleans are converted from strings using the JSON parser.
+ * Objects, arrays of objects, and arrays of primitives are assumed to be stored as serialized JSON strings.
+ */
 export class EnvironmentConfigSource implements ConfigSource {
   public readonly backend: StorageBackend;
 
+  /**
+   * The data read from the environment.
+   * @private
+   */
   private readonly data: Map<string, string>;
 
   public constructor(public readonly prefix?: string) {
@@ -16,11 +28,11 @@ export class EnvironmentConfigSource implements ConfigSource {
     this.data = new Map<string, string>();
   }
 
-  get name(): string {
+  public get name(): string {
     return 'EnvironmentConfigSource';
   }
 
-  get ordinal(): number {
+  public get ordinal(): number {
     return 100;
   }
 
@@ -28,24 +40,32 @@ export class EnvironmentConfigSource implements ConfigSource {
     return undefined;
   }
 
-  asNumber(key: string): number | null {
+  public asNumber(key: string): number | null {
     return undefined;
   }
 
-  asObject<T>(cls: ClassConstructor<T>, key?: string): T {
+  public asObject<T>(cls: ClassConstructor<T>, key?: string): T {
     return undefined;
   }
 
-  asObjectArray<T extends Array<T>>(cls: ClassConstructor<T>, key?: string): T[] {
+  public asObjectArray<T extends Array<T>>(cls: ClassConstructor<T>, key?: string): T[] {
     return [];
   }
 
-  asString(key: string): string | null {
+  public asString(key: string): string | null {
     return undefined;
   }
 
-  asStringArray(key: string): string[] | null {
+  public asStringArray(key: string): string[] | null {
     return undefined;
+  }
+
+  public properties(): Map<string, string> {
+    return new Map<string, string>(this.data);
+  }
+
+  public propertyNames(): Set<string> {
+    return new Set(this.data.keys());
   }
 
   public async load(): Promise<void> {
@@ -55,18 +75,10 @@ export class EnvironmentConfigSource implements ConfigSource {
     for (const k of envVars) {
       try {
         const va: Uint8Array = await this.backend.readBytes(k);
-        this.data.set(k, va.toString());
+        this.data.set(k, Buffer.from(va).toString('utf-8'));
       } catch (e) {
         throw new ConfigurationError(`Failed to read environment variable: ${k}`, e);
       }
     }
-  }
-
-  properties(): Map<string, string> {
-    return undefined;
-  }
-
-  propertyNames(): Set<string> {
-    return undefined;
   }
 }

@@ -17,7 +17,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     public props: Map<string, string> = new Map<string, string>(),
   ) {}
 
-  asBoolean(key: string): boolean | null {
+  public asBoolean(key: string): boolean | null {
     const value: string = this.props.get(key);
     if (value === null || value === undefined || typeof value !== 'string') {
       return null;
@@ -25,7 +25,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     return value.toLowerCase() === 'true';
   }
 
-  asNumber(key: string): number | null {
+  public asNumber(key: string): number | null {
     const value: string = this.props.get(key);
     if (value === null || value === undefined) {
       return null;
@@ -33,7 +33,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     return Number(value);
   }
 
-  asObject<T>(cls: ClassConstructor<T>, key?: string): T | null {
+  public asObject<T>(cls: ClassConstructor<T>, key?: string): T | null {
     const value: string | undefined = this.props.get(key ?? '');
     if (!value) {
       return null;
@@ -54,7 +54,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     }
   }
 
-  asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[] {
+  public asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[] {
     const value: string | undefined = this.props.get(key ?? '');
     if (!value) {
       return null;
@@ -79,7 +79,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     }
   }
 
-  asString(key: string): string | null {
+  public asString(key: string): string | null {
     const value: string = this.props.get(key);
     if (value === null || value === undefined || typeof value !== 'string') {
       return null;
@@ -87,7 +87,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     return value;
   }
 
-  asStringArray(key: string): string[] | null {
+  public asStringArray(key: string): string[] | null {
     const value: string = this.props.get(key);
     if (value === null || value === undefined) {
       return null;
@@ -104,20 +104,17 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     return parsedValue as Array<string>;
   }
 
-  load(): Promise<void> {
-    return Promise.resolve(undefined);
-  }
+  public async load(): Promise<void> {}
 
-  properties(): Map<string, string> {
+  public properties(): Map<string, string> {
     return this.props;
   }
 
-  propertyNames(): Set<string> {
+  public propertyNames(): Set<string> {
     return new Set(this.props.keys());
   }
 
-  refresh(): Promise<void> {
+  public async refresh(): Promise<void> {
     this.props = this.props2;
-    return Promise.resolve(undefined);
   }
 }

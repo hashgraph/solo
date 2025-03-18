@@ -5,11 +5,12 @@ import {StorageOperation} from '../api/storage-operation.js';
 import {UnsupportedStorageOperationError} from '../api/unsupported-storage-operation-error.js';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
+import {Regex} from '../../../business/utils/regex.js';
 
 export class EnvironmentStorageBackend implements StorageBackend {
   public constructor(public readonly prefix?: string) {}
 
-  isSupported(op: StorageOperation): boolean {
+  public isSupported(op: StorageOperation): boolean {
     switch (op) {
       case StorageOperation.List:
       case StorageOperation.ReadBytes:
@@ -100,19 +101,15 @@ export class EnvironmentStorageBackend implements StorageBackend {
     let prefix: string = this.prefix ? this.configKeyFormat(this.prefix) : null;
     prefix = prefix && !prefix.endsWith('.') ? `${prefix}.` : prefix;
     const normalizedKey: string = this.configKeyFormat(key);
-    return prefix && !normalizedKey.startsWith(`${prefix}`) ? `${prefix}${normalizedKey}` : normalizedKey;
+    return prefix && !normalizedKey.startsWith(prefix) ? `${prefix}${normalizedKey}` : normalizedKey;
   }
 
   private stripPrefix(key: string): string {
     const normalizedKey: string = this.configKeyFormat(key);
     let prefix: string = this.prefix ? this.configKeyFormat(this.prefix) : null;
     prefix = !prefix.endsWith('.') ? `${prefix}.` : prefix;
-    return prefix && normalizedKey.startsWith(`${prefix}`)
-      ? normalizedKey.replace(`^${this.regexEscape(prefix)}`, '')
+    return prefix && normalizedKey.startsWith(prefix)
+      ? normalizedKey.replace(`^${Regex.escape(prefix)}`, '')
       : normalizedKey;
-  }
-
-  private regexEscape(str: string): string {
-    return str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
   }
 }

@@ -160,6 +160,7 @@ export default [
           message: "Use `import {type X} from 'path';` instead of `import type {X} from 'path';`.",
         },
       ],
+      '@typescript-eslint/explicit-member-accessibility': 'warn',
       'unused-imports/no-unused-imports': 'error',
       'unused-imports/no-unused-vars': [
         'warn',
