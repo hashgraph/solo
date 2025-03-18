@@ -141,9 +141,9 @@ export class ClusterCommandTasks {
   }
 
   public initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
-    const {requiredFlags, optionalFlags} = argv;
+    const {required, optional} = argv;
 
-    argv.flags = [...requiredFlags, ...optionalFlags];
+    argv.flags = [...required, ...optional];
 
     return {
       title: 'Initialize',

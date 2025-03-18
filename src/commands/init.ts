@@ -121,7 +121,7 @@ export class InitCommand extends BaseCommand {
       command: InitCommand.COMMAND_NAME,
       desc: 'Initialize local environment',
       builder: (y: any) => {
-        flags.setCommandFlags(y, flags.cacheDir);
+        flags.setOptionalCommandFlags(y, flags.cacheDir);
       },
       handler: async (argv: any) => {
         await self

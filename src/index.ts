@@ -136,7 +136,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
 
   logger.debug('Setting up flags');
   // set root level flags
-  flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
+  flags.setOptionalCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
   logger.debug('Parsing root command (executing the commands)');
   return rootCmd.parse();
 }

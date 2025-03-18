@@ -55,19 +55,28 @@ export class DeploymentCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'deployment';
 
-  private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment];
+  private static CREATE_FLAGS_LIST = {
+    required: [],
+    optional: [flags.quiet, flags.namespace, flags.deployment],
+  };
 
-  private static ADD_CLUSTER_FLAGS_LIST = [
-    flags.quiet,
-    flags.deployment,
-    flags.clusterRef,
-    flags.enableCertManager,
-    flags.numberOfConsensusNodes,
-    flags.dnsBaseDomain,
-    flags.dnsConsensusNodePattern,
-  ];
+  private static ADD_CLUSTER_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.quiet,
+      flags.deployment,
+      flags.clusterRef,
+      flags.enableCertManager,
+      flags.numberOfConsensusNodes,
+      flags.dnsBaseDomain,
+      flags.dnsConsensusNodePattern,
+    ],
+  };
 
-  private static LIST_DEPLOYMENTS_FLAGS_LIST = [flags.quiet, flags.clusterRef];
+  private static LIST_DEPLOYMENTS_FLAGS_LIST = {
+    required: [],
+    optional: [flags.quiet, flags.clusterRef],
+  };
 
   /**
    * Create new deployment inside the local config
@@ -242,7 +251,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'create',
             desc: 'Creates solo deployment',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
@@ -262,7 +274,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'list',
             desc: 'List solo deployments inside a cluster',
-            builder: y => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST.optional);
+            },
             handler: async argv => {
               self.logger.info("==== Running 'deployment list' ===");
               self.logger.info(argv);
@@ -282,7 +297,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'add-cluster',
             desc: 'Adds cluster to solo deployments',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment add-cluster' ===");
               self.logger.info(argv);

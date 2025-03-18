@@ -114,7 +114,19 @@ export class Flags {
    * @param commandFlags a set of command flags
    *
    */
-  public static setCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
+  public static setRequiredCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
+    commandFlags.forEach(flag => {
+      y.option(flag.name, {...flag.definition, demandOption: true});
+    });
+  }
+
+  /**
+   * Set flag from the flag option
+   * @param y instance of yargs
+   * @param commandFlags a set of command flags
+   *
+   */
+  public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
     commandFlags.forEach(flag => {
       y.option(flag.name, flag.definition);
     });
@@ -2432,8 +2444,8 @@ export class Flags {
   public static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
 
   public static readonly DEFAULT_FLAGS = {
-    requiredFlags: [],
-    optionalFlags: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
+    required: [],
+    optional: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
   };
 
   /**

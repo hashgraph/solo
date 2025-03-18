@@ -9,23 +9,17 @@ import {type CommandFlag} from '../types/flag-types.js';
 export class YargsCommand {
   constructor(
     opts: {command: string; description: string; commandDef: BaseCommand | any; handler: string},
-    flags: {requiredFlags: CommandFlag[]; optionalFlags: CommandFlag[]},
+    flags: {required: CommandFlag[]; optional: CommandFlag[]},
   ) {
     const {command, description, commandDef, handler} = opts;
-    const {requiredFlags, optionalFlags} = flags;
+    const {required, optional} = flags;
 
     if (!command) throw new IllegalArgumentError("A string is required as the 'command' property", command);
     if (!description) throw new IllegalArgumentError("A string is required as the 'description' property", description);
-    if (!requiredFlags)
-      throw new IllegalArgumentError(
-        "An array of CommandFlag is required as the 'requiredFlags' property",
-        requiredFlags,
-      );
-    if (!optionalFlags)
-      throw new IllegalArgumentError(
-        "An array of CommandFlag is required as the 'optionalFlags' property",
-        optionalFlags,
-      );
+    if (!required)
+      throw new IllegalArgumentError("An array of CommandFlag is required as the 'required' property", required);
+    if (!optional)
+      throw new IllegalArgumentError("An array of CommandFlag is required as the 'optional' property", optional);
     if (!commandDef)
       throw new IllegalArgumentError("An instance of BaseCommand is required as the 'commandDef' property", commandDef);
     if (!handler) throw new IllegalArgumentError("A string is required as the 'handler' property", handler);
@@ -36,27 +30,28 @@ export class YargsCommand {
       if (definition && definition.command) {
         commandNamespace = commandDef.getCommandDefinition().command;
       }
+
+      return {
+        command,
+        desc: description,
+        builder: (y: any) => {
+          commandFlags.setRequiredCommandFlags(y, ...required);
+          commandFlags.setOptionalCommandFlags(y, ...optional);
+        },
+        handler: async (argv: any) => {
+          commandDef.logger.info(`==== Running '${commandNamespace} ${command}' ===`);
+          commandDef.logger.info(argv);
+          await commandDef.handlers[handler](argv)
+            .then((r: any) => {
+              commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
+              if (!r) throw new SoloError(`${commandNamespace} ${command} failed, expected returned value to be true`);
+            })
+            .catch((err: Error | any) => {
+              commandDef.logger.showUserError(err);
+              throw new SoloError(`${commandNamespace} ${command} failed: ${err.message}`, err);
+            });
+        },
+      };
     }
-
-    const allFlags = [...requiredFlags, ...optionalFlags];
-
-    return {
-      command,
-      desc: description,
-      builder: (y: any) => commandFlags.setCommandFlags(y, ...allFlags),
-      handler: async (argv: any) => {
-        commandDef.logger.info(`==== Running '${commandNamespace} ${command}' ===`);
-        commandDef.logger.info(argv);
-        await commandDef.handlers[handler](argv)
-          .then((r: any) => {
-            commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
-            if (!r) throw new SoloError(`${commandNamespace} ${command} failed, expected returned value to be true`);
-          })
-          .catch((err: Error | any) => {
-            commandDef.logger.showUserError(err);
-            throw new SoloError(`${commandNamespace} ${command} failed: ${err.message}`, err);
-          });
-      },
-    };
   }
 }
