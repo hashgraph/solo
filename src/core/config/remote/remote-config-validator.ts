@@ -127,7 +127,8 @@ export class RemoteConfigValidator {
     localConfig: LocalConfig,
   ): Promise<void>[] {
     return Object.values(components.consensusNodes).map(async component => {
-      if (component.state === ConsensusNodeStates.REQUESTED) return;
+      if (component.state === ConsensusNodeStates.REQUESTED || component.state === ConsensusNodeStates.NON_DEPLOYED)
+        return;
 
       const context = localConfig.clusterRefs[component.cluster];
       const labels = [`app=network-${component.name}`];
