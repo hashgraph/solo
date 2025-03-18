@@ -2433,8 +2433,7 @@ export class Flags {
 
   public static readonly DEFAULT_FLAGS = {
     requiredFlags: [],
-    requiredFlagsWithDisabledPrompt: [Flags.namespace, Flags.cacheDir, Flags.releaseTag],
-    optionalFlags: [Flags.devMode, Flags.quiet],
+    optionalFlags: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
   };
 
   /**

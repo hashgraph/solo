@@ -369,12 +369,10 @@ export function addFlagsToArgv(
   argv: any,
   flags: {
     requiredFlags: CommandFlag[];
-    requiredFlagsWithDisabledPrompt: CommandFlag[];
     optionalFlags: CommandFlag[];
   },
 ) {
   argv.requiredFlags = flags.requiredFlags;
-  argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt;
   argv.optionalFlags = flags.optionalFlags;
 
   return argv;

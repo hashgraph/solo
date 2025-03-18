@@ -2066,10 +2066,8 @@ export class NodeCommandTasks {
   }
 
   initialize(argv: any, configInit: ConfigBuilder, lease: Lock | null, shouldLoadNodeClient = true) {
-    const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
-    const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
-
-    argv.flags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt, ...optionalFlags];
+    const {requiredFlags, optionalFlags} = argv;
+    argv.flags = [...requiredFlags, ...optionalFlags];
 
     // @ts-ignore
     return new Task('Initialize', async (ctx: any, task: SoloListrTaskWrapper<any>) => {
@@ -2080,7 +2078,7 @@ export class NodeCommandTasks {
       this.configManager.update(argv);
 
       // disable the prompts that we don't want to prompt the user for
-      flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
+      flags.disablePrompts(optionalFlags);
 
       const flagsToPrompt = [];
       for (const pFlag of requiredFlags) {
@@ -2096,7 +2094,7 @@ export class NodeCommandTasks {
       config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
       config.contexts = this.remoteConfigManager.getContexts();
 
-      for (const flag of allRequiredFlags) {
+      for (const flag of requiredFlags) {
         if (typeof config[flag.constName] === 'undefined') {
           throw new MissingArgumentError(`No value set for required flag: ${flag.name}`, flag.name);
         }
