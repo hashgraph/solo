@@ -948,7 +948,8 @@ export class Flags {
     constName: 'deletePvcs',
     name: 'delete-pvcs',
     definition: {
-      describe: 'Delete the persistent volume claims',
+      describe:
+        'Delete the persistent volume claims. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
       defaultValue: false,
       type: 'boolean',
     },
@@ -971,7 +972,8 @@ export class Flags {
     constName: 'deleteSecrets',
     name: 'delete-secrets',
     definition: {
-      describe: 'Delete the network secrets',
+      describe:
+        'Delete the network secrets. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
       defaultValue: false,
       type: 'boolean',
     },
@@ -1632,6 +1634,7 @@ export class Flags {
     constName: 'userEmailAddress',
     name: 'email',
     definition: {
+      defaultValue: 'john@doe.com',
       describe: 'User email address used for local configuration',
       type: 'string',
     },

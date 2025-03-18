@@ -8,6 +8,8 @@ import * as constants from '../core/constants.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
+import {type EmailAddress} from '../core/config/remote/types.js';
+import * as helpers from '../core/helpers.js';
 
 /**
  * Defines the core functionalities of 'init' command
@@ -24,9 +26,14 @@ export class InitCommand extends BaseCommand {
       cacheDir = constants.SOLO_CACHE_DIR as string;
     }
 
+    interface Config {
+      userEmailAddress: EmailAddress;
+    }
+
     interface Context {
       repoURLs: string[];
       dirs: string[];
+      config: Config;
     }
 
     const tasks = new Listr<Context>(
@@ -36,6 +43,12 @@ export class InitCommand extends BaseCommand {
           task: ctx => {
             self.configManager.update(argv);
             ctx.dirs = this.setupHomeDirectory();
+
+            ctx.config = {
+              userEmailAddress:
+                self.configManager.getFlag<EmailAddress>(flags.userEmailAddress) ||
+                flags.userEmailAddress.definition.defaultValue,
+            } as Config;
           },
         },
         {
@@ -52,6 +65,20 @@ export class InitCommand extends BaseCommand {
                 collapseSubtasks: false,
               },
             });
+          },
+        },
+        {
+          title: 'Create local configuration',
+          skip: () => this.localConfig.configFileExists(),
+          task: async (ctx, task): Promise<void> => {
+            const config = ctx.config;
+            this.localConfig.userEmailAddress = config.userEmailAddress;
+            this.localConfig.soloVersion = helpers.getSoloVersion();
+            this.localConfig.clusterRefs = {};
+            this.localConfig.deployments = {};
+
+            this.localConfig.validate();
+            await this.localConfig.write();
           },
         },
         {
