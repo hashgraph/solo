@@ -19,6 +19,7 @@ import validator from 'validator';
 import {type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type ClusterRef} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
+import chalk from 'chalk';
 
 export class Flags {
   public static KEY_COMMON = '_COMMON_';
@@ -2240,7 +2241,25 @@ export class Flags {
       describe: 'Used to specify desired number of consensus nodes for pre-genesis deployments',
       type: 'number',
     },
-    prompt: undefined,
+    prompt: async function (task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
+      const promptForInput = (): Promise<number> =>
+        Flags.prompt(
+          'number',
+          task,
+          input,
+          Flags.numberOfConsensusNodes.definition.defaultValue,
+          `Enter number of consensus nodes to add to the provided cluster ${chalk.grey('(must be a positive number)')}:`,
+          null,
+          Flags.numberOfConsensusNodes.name,
+        );
+
+      input = await promptForInput();
+      while (!input) {
+        input = await promptForInput();
+      }
+
+      return input;
+    },
   };
 
   public static readonly dnsBaseDomain: CommandFlag = {

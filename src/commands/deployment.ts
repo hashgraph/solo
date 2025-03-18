@@ -162,7 +162,7 @@ export class DeploymentCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (e: Error | unknown) {
-      throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
+      throw new SoloError('Error adding cluster to deployment', e);
     }
 
     return true;
@@ -402,7 +402,7 @@ export class DeploymentCommand extends BaseCommand {
             ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
           }
 
-          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, 0);
+          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(ctx.config.numberOfConsensusNodes, 0);
 
           return;
         }
@@ -427,6 +427,7 @@ export class DeploymentCommand extends BaseCommand {
         else if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
           await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
           ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
+          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(ctx.config.numberOfConsensusNodes, 0);
         }
 
         // if the state is post-genesis and '--num-of-consensus-nodes' is specified throw

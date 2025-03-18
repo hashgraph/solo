@@ -50,7 +50,7 @@
   "license": "Apache2.0",
   "dependencies": {
     "@hashgraph/sdk": "^2.60.1",
-    "@inquirer/prompts": "^7.3.3",
+    "@inquirer/prompts": "^7.4.0",
     "@kubernetes/client-node": "^0.22.3",
     "@listr2/prompt-adapter-inquirer": "^2.0.18",
     "@peculiar/x509": "^1.12.3",
@@ -137,7 +137,7 @@
     "sinon": "^19.0.2",
     "sinon-chai": "^4.0.0",
     "tsx": "^4.19.3",
-    "typedoc": "^0.27.9",
+    "typedoc": "^0.28.0",
     "typescript": "^5.8.2",
     "typescript-eslint": "^8.26.1"
   },

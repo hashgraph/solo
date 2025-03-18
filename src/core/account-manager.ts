@@ -180,8 +180,8 @@ export class AccountManager {
    */
   public async loadNodeClient(
     namespace: NamespaceName,
-    clusterRefs?: ClusterRefs,
-    deployment?: DeploymentName,
+    clusterRefs: ClusterRefs,
+    deployment: DeploymentName,
     forcePortForward?: boolean,
     context?: string,
   ) {
@@ -193,7 +193,7 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
+        await this.refreshNodeClient(namespace, clusterRefs, undefined, deployment, forcePortForward);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
@@ -201,7 +201,7 @@ export class AccountManager {
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace, undefined, clusterRefs, deployment, context, forcePortForward);
+          await this.refreshNodeClient(namespace, clusterRefs, undefined, deployment, forcePortForward);
         }
       }
 
@@ -218,15 +218,13 @@ export class AccountManager {
    * @param skipNodeAlias - the node alias to skip
    * @param [clusterRefs]
    * @param [deployment]
-   * @param [context]
    * @param forcePortForward - whether to force the port forward
    */
   async refreshNodeClient(
     namespace: NamespaceName,
+    clusterRefs: ClusterRefs,
     skipNodeAlias?: NodeAlias,
-    clusterRefs?: ClusterRefs,
     deployment?: DeploymentName,
-    context?: string,
     forcePortForward?: boolean,
   ) {
     try {
