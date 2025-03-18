@@ -21,7 +21,7 @@ export interface HelmClient {
    *
    * @returns the version of the Helm CLI that is being used by this client.
    */
-  version(): SemanticVersion;
+  version(): Promise<SemanticVersion>;
 
   /**
    * Executes the Helm CLI repo list sub-command and returns the list of repositories.

@@ -8,6 +8,6 @@ import {type HelmRequest} from '../HelmRequest.js';
  */
 export class VersionRequest implements HelmRequest {
   apply(builder: HelmExecutionBuilder): void {
-    builder.subcommands('version').argument('template', '{"version":"{{.Version}}"}');
+    builder.subcommands('version').argument('template', '{\\"version\\":\\"{{.Version}}\\"}');
   }
 }

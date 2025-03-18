@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn, type ChildProcess} from 'child_process';
+import {spawn, type ChildProcess, ChildProcessWithoutNullStreams} from 'child_process';
 import {HelmExecutionException} from '../HelmExecutionException.js';
 import {HelmParserException} from '../HelmParserException.js';
 import {type Duration} from '../../time/duration.js';
+import {Version} from '../model/Version.js';
+import {Release} from '../model/chart/Release.js';
 
 /**
  * Represents the execution of a helm command and is responsible for parsing the response.
@@ -23,7 +25,11 @@ export class HelmExecution {
   private static readonly MSG_LIST_DESERIALIZATION_ERROR =
     'Failed to deserialize the output into a list of the specified class: %s';
 
-  private readonly process: ChildProcess;
+  private readonly process: ChildProcessWithoutNullStreams;
+
+  private output: string[] = [];
+  private errOutput: string[] = [];
+  private exitCodeValue: number | null = null;
 
   /**
    * Creates a new HelmExecution instance.
@@ -32,7 +38,8 @@ export class HelmExecution {
    * @param environmentVariables The environment variables to set
    */
   constructor(command: string[], workingDirectory: string, environmentVariables: Record<string, string>) {
-    this.process = spawn(command[0], command.slice(1), {
+    this.process = spawn(command.join(' '), {
+      shell: true,
       cwd: workingDirectory,
       env: {...process.env, ...environmentVariables},
     });
@@ -44,7 +51,27 @@ export class HelmExecution {
    */
   async waitFor(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // const output: string[] = [];
+      this.process.stdout.on('data', d => {
+        const items: string[] = d.toString().split(/\r?\n/);
+        items.forEach(item => {
+          if (item) {
+            this.output.push(item);
+          }
+        });
+      });
+
+      this.process.stderr.on('data', d => {
+        const items: string[] = d.toString().split(/\r?\n/);
+        items.forEach(item => {
+          if (item) {
+            this.errOutput.push(item.trim());
+          }
+        });
+      });
+
       this.process.on('close', code => {
+        this.exitCodeValue = code;
         if (code !== 0) {
           reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
         } else {
@@ -78,47 +105,23 @@ export class HelmExecution {
    * @returns The exit code or null if the process hasn't completed
    */
   exitCode(): number | null {
-    return this.process.exitCode;
+    return this.exitCodeValue;
   }
 
   /**
    * Gets the standard output of the process.
-   * @returns A promise that resolves with the standard output as a string
+   * @returns concatenated standard output as a string
    */
-  async standardOutput(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      let output = '';
-      this.process.stdout?.on('data', data => {
-        output += data.toString();
-      });
-      this.process.on('close', code => {
-        if (code !== 0) {
-          reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
-        } else {
-          resolve(output);
-        }
-      });
-    });
+  standardOutput(): string {
+    return this.output.join('\n');
   }
 
   /**
    * Gets the standard error of the process.
-   * @returns A promise that resolves with the standard error as a string
+   * @returns concatenated standard error as a string
    */
-  async standardError(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      let output = '';
-      this.process.stderr?.on('data', data => {
-        output += data.toString();
-      });
-      this.process.on('close', code => {
-        if (code !== 0) {
-          reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
-        } else {
-          resolve(output);
-        }
-      });
-    });
+  standardError(): string {
+    return this.errOutput.join('\n');
   }
 
   /**
@@ -131,16 +134,19 @@ export class HelmExecution {
 
     const exitCode = this.exitCode();
     if (exitCode !== 0) {
-      const stdOut = await this.standardOutput();
-      const stdErr = await this.standardError();
+      const stdOut = this.standardOutput();
+      const stdErr = this.standardError();
       throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
     }
 
-    const output = await this.standardOutput();
+    const output = this.standardOutput();
     try {
-      return JSON.parse(output) as T;
+      const parsed = JSON.parse(output);
+      const result = new responseClass();
+      Object.assign(result, parsed);
+      return result;
     } catch (error) {
-      throw new HelmParserException(HelmExecution.MSG_DESERIALIZATION_ERROR.replace('%s', responseClass.name));
+      throw new HelmParserException(HelmExecution.MSG_DESERIALIZATION_ERROR.replace('%s', responseClass.name), error);
     }
   }
 

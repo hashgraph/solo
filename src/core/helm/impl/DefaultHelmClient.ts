@@ -61,7 +61,7 @@ export class DefaultHelmClient implements HelmClient {
     }
   }
 
-  public version(): SemanticVersion {
+  public async version(): Promise<SemanticVersion> {
     const request = new VersionRequest();
     const builder = new HelmExecutionBuilder(this.helmExecutable);
     this.applyBuilderDefaults(builder);
@@ -71,7 +71,7 @@ export class DefaultHelmClient implements HelmClient {
       throw new Error('Unexpected async execution');
     }
     const versionClass = Version as unknown as new () => Version;
-    const result = execution.responseAs(versionClass);
+    const result = await execution.responseAs(versionClass);
     if (!(result instanceof Version)) {
       throw new Error('Unexpected response type');
     }
