@@ -95,6 +95,8 @@ export interface NetworkDeployConfigClass {
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRefs: ClusterRefs;
+  domainNames?: string;
+  domainNamesMapping?: Record<NodeAlias, string>;
 }
 
 export interface NetworkDestroyContext {
@@ -183,6 +185,7 @@ export class NetworkCommand extends BaseCommand {
       flags.awsBucketPrefix,
       flags.backupBucket,
       flags.googleCredential,
+      flags.domainNames,
     ];
   }
 
@@ -366,6 +369,7 @@ export class NetworkCommand extends BaseCommand {
     loadBalancerEnabled: boolean;
     clusterRefs: ClusterRefs;
     consensusNodes: ConsensusNode[];
+    domainNamesMapping?: Record<NodeAlias, string>;
   }): Promise<Record<ClusterRef, string>> {
     const valuesArgs: Record<ClusterRef, string> = this.prepareValuesArg(config);
 
@@ -418,6 +422,7 @@ export class NetworkCommand extends BaseCommand {
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
+    domainNamesMapping?: Record<NodeAlias, string>;
   }): Record<ClusterRef, string> {
     const valuesArgs: Record<ClusterRef, string> = {};
     const clusterRefs: ClusterRef[] = [];
@@ -634,6 +639,7 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsBucket,
       flags.gcsBucketPrefix,
       flags.nodeAliasesUnparsed,
+      flags.domainNames,
     ];
 
     // disable the prompts that we don't want to prompt the user for
@@ -679,6 +685,10 @@ export class NetworkCommand extends BaseCommand {
 
     if (config.envoyIps) {
       config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
+    }
+
+    if (config.domainNames) {
+      config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(config.domainNames);
     }
 
     // compute values

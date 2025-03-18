@@ -38,6 +38,7 @@ const COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS = [
   flags.force,
   flags.gossipEndpoints,
   flags.grpcEndpoints,
+  flags.domainNames,
 ];
 
 export const UPGRADE_FLAGS = {
@@ -120,6 +121,7 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
   flags.localBuildPath,
   flags.quiet,
   flags.chartDirectory,
+  flags.domainNames,
 ];
 
 const COMMON_ADD_REQUIRED_FLAGS = [
@@ -151,6 +153,7 @@ const COMMON_ADD_OPTIONAL_FLAGS = [
   flags.localBuildPath,
   flags.chartDirectory,
   flags.quiet,
+  flags.domainNames,
 ];
 
 export const DELETE_FLAGS = {
@@ -216,7 +219,7 @@ export const STATES_FLAGS = {
 export const REFRESH_FLAGS = {
   requiredFlags: [flags.cacheDir, flags.deployment, flags.nodeAliasesUnparsed, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app],
-  optionalFlags: [flags.localBuildPath, flags.devMode, flags.quiet],
+  optionalFlags: [flags.localBuildPath, flags.devMode, flags.quiet, flags.domainNames],
 };
 
 export const KEYS_FLAGS = {
@@ -258,5 +261,5 @@ export const RESTART_FLAGS = {
 export const SETUP_FLAGS = {
   requiredFlags: [flags.cacheDir, flags.deployment, flags.releaseTag],
   requiredFlagsWithDisabledPrompt: [flags.app, flags.appConfig, flags.nodeAliasesUnparsed],
-  optionalFlags: [flags.quiet, flags.devMode, flags.localBuildPath, flags.adminPublicKeys],
+  optionalFlags: [flags.quiet, flags.devMode, flags.localBuildPath, flags.adminPublicKeys, flags.domainNames],
 };

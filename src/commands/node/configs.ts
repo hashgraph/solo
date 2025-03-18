@@ -213,6 +213,10 @@ export class NodeCommandConfigs {
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
     config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return config;
   }
 
@@ -264,6 +268,10 @@ export class NodeCommandConfigs {
     const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
     config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
 
     return config;
   }
@@ -332,6 +340,10 @@ export class NodeCommandConfigs {
     config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     config.contexts = this.remoteConfigManager.getContexts();
 
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return config;
   }
 
@@ -374,6 +386,10 @@ export class NodeCommandConfigs {
     ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
 
     await this.initializeSetup(ctx.config, this.k8Factory);
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
 
     return ctx.config;
   }
@@ -491,6 +507,10 @@ export class NodeCommandConfigs {
     // set config in the context for later tasks to use
     ctx.config = config;
 
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return ctx.config;
   }
 }
@@ -516,6 +536,8 @@ export interface NodeRefreshConfigClass {
   podRefs: Record<NodeAlias, PodRef>;
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
 
 export interface NodeKeysConfigClass {
@@ -594,6 +616,8 @@ export interface NodeSetupConfigClass {
   getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
 
 export interface NodeUpgradeConfigClass {
@@ -661,6 +685,8 @@ export interface NodeUpdateConfigClass {
   curDate: Date;
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
 
 export interface NodePrepareUpgradeConfigClass {

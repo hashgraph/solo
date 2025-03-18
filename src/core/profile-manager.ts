@@ -456,6 +456,7 @@ export class ProfileManager {
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
    * @param [loadBalancerEnabled] - whether the load balancer is enabled (flag is not set by default)
+   * @param domainNamesMapping
    * @returns the config.txt file path
    */
   async prepareConfigTxt(
@@ -466,6 +467,7 @@ export class ProfileManager {
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
     loadBalancerEnabled: boolean = false,
+    domainNamesMapping?: Record<NodeAlias, string>,
   ) {
     let releaseTag = releaseTagOverride;
     if (!nodeAccountMap || nodeAccountMap.size === 0) {
@@ -504,12 +506,19 @@ export class ProfileManager {
           consensusNode.name as NodeAlias,
         );
 
-        // const externalIP = consensusNode.fullyQualifiedDomainName;
-        const externalIP = await helpers.getExternalAddress(
-          consensusNode,
-          this.k8Factory.getK8(consensusNode.context),
-          loadBalancerEnabled,
-        );
+        let externalIP: string;
+
+        const domainName: Optional<string> = domainNamesMapping?.[consensusNode.name];
+        if (domainName) {
+          externalIP = domainName;
+        } else {
+          // const externalIP = consensusNode.fullyQualifiedDomainName;
+          externalIP = await helpers.getExternalAddress(
+            consensusNode,
+            this.k8Factory.getK8(consensusNode.context),
+            loadBalancerEnabled,
+          );
+        }
 
         const account = nodeAccountMap.get(consensusNode.name as NodeAlias);
 
