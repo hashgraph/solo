@@ -149,6 +149,7 @@ export class InitCommand extends BaseCommand {
       desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y, flags.cacheDir);
+        flags.setCommandFlags(y, flags.quiet); // set the quiet flag even though it isn't used for consistency across all commands
       },
       handler: async (argv: any) => {
         await self

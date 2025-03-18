@@ -114,7 +114,7 @@ export class LocalConfig implements LocalConfigData {
       soloVersion: this.soloVersion,
     });
 
-    await fs.promises.writeFile(this.filePath, yamlContent);
+    fs.writeFileSync(this.filePath, yamlContent);
 
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
