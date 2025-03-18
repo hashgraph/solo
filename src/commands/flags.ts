@@ -128,7 +128,10 @@ export class Flags {
    */
   public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
     commandFlags.forEach(flag => {
-      y.option(flag.name, flag.definition);
+      y.option(flag.name, {
+        ...flag.definition,
+        default: flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined,
+      });
     });
   }
 

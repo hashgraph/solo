@@ -122,6 +122,9 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
       false, // applyBeforeValidate is false as otherwise middleware is called twice
     );
 
+  // Expand the terminal width to the maximum available
+  rootCmd.wrap(rootCmd.terminalWidth());
+
   rootCmd.fail((msg, error) => {
     if (msg) {
       if (msg.includes('Unknown argument')) {
