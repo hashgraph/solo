@@ -7,9 +7,10 @@ export const DEFAULT_FLAGS = {
   optional: [flags.quiet, flags.devMode, flags.cacheDir, flags.releaseTag],
 };
 
-const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.deployment, flags.releaseTag];
+const COMMON_UPGRADE_FLAGS_REQUIRED_FLAGS = [flags.deployment, flags.releaseTag];
 const COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS = [
   flags.app,
+  flags.cacheDir,
   flags.debugNodeAlias,
   flags.nodeAliasesUnparsed,
   flags.soloChartVersion,
@@ -20,9 +21,10 @@ const COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS = [
   flags.force,
 ];
 
-const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.cacheDir, flags.deployment, flags.releaseTag];
+const COMMON_UPDATE_FLAGS_REQUIRED_FLAGS = [flags.deployment, flags.releaseTag];
 const COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS = [
   flags.app,
+  flags.cacheDir,
   flags.debugNodeAlias,
   flags.endpointType,
   flags.soloChartVersion,
@@ -91,9 +93,10 @@ export const UPDATE_EXECUTE_FLAGS = {
   optional: [...COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS],
 };
 
-const COMMON_DELETE_REQUIRED_FLAGS = [flags.cacheDir, flags.deployment, flags.nodeAlias, flags.releaseTag];
+const COMMON_DELETE_REQUIRED_FLAGS = [flags.deployment, flags.nodeAlias];
 
 const COMMON_DELETE_OPTIONAL_FLAGS = [
+  flags.cacheDir,
   flags.app,
   flags.chainId,
   flags.debugNodeAlias,
@@ -104,15 +107,11 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
   flags.localBuildPath,
   flags.quiet,
   flags.chartDirectory,
+  flags.releaseTag,
 ];
 
 const COMMON_ADD_REQUIRED_FLAGS = [
-  flags.cacheDir,
-  flags.endpointType,
-  flags.generateGossipKeys,
-  flags.generateTlsKeys,
   flags.deployment,
-  flags.releaseTag,
 ];
 
 const COMMON_ADD_OPTIONAL_FLAGS = [
@@ -132,6 +131,11 @@ const COMMON_ADD_OPTIONAL_FLAGS = [
   flags.localBuildPath,
   flags.chartDirectory,
   flags.quiet,
+  flags.cacheDir,
+  flags.endpointType,
+  flags.generateGossipKeys,
+  flags.generateTlsKeys,
+  flags.releaseTag,
 ];
 
 export const DELETE_FLAGS = {
@@ -185,13 +189,16 @@ export const STATES_FLAGS = {
 };
 
 export const REFRESH_FLAGS = {
-  required: [flags.cacheDir, flags.deployment, flags.nodeAliasesUnparsed, flags.releaseTag],
-  optional: [flags.app, flags.localBuildPath, flags.devMode, flags.quiet],
+  required: [flags.deployment],
+  optional: [flags.app, flags.localBuildPath, flags.devMode, flags.quiet, flags.nodeAliasesUnparsed, flags.releaseTag, flags.cacheDir],
 };
 
 export const KEYS_FLAGS = {
-  required: [flags.cacheDir, flags.generateGossipKeys, flags.generateTlsKeys, flags.deployment],
+  required: [flags.deployment],
   optional: [
+    flags.cacheDir,
+    flags.generateGossipKeys,
+    flags.generateTlsKeys,
     flags.devMode,
     flags.quiet,
     flags.nodeAliasesUnparsed,
@@ -211,8 +218,9 @@ export const FREEZE_FLAGS = {
 };
 
 export const START_FLAGS = {
-  required: [flags.deployment, flags.releaseTag],
+  required: [flags.deployment],
   optional: [
+    flags.releaseTag,
     flags.app,
     flags.quiet,
     flags.nodeAliasesUnparsed,
@@ -228,8 +236,10 @@ export const RESTART_FLAGS = {
 };
 
 export const SETUP_FLAGS = {
-  required: [flags.cacheDir, flags.deployment, flags.releaseTag],
+  required: [flags.deployment],
   optional: [
+    flags.cacheDir,
+    flags.releaseTag,
     flags.app,
     flags.appConfig,
     flags.nodeAliasesUnparsed,
