@@ -88,6 +88,7 @@ export class ExplorerCommand extends BaseCommand {
         flags.soloChartVersion,
         flags.tlsClusterIssuerType,
         flags.valuesFile,
+        flags.clusterSetupNamespace,
       ],
     };
   }

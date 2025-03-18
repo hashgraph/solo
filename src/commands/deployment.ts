@@ -60,7 +60,10 @@ export class DeploymentCommand extends BaseCommand {
     optional: [flags.quiet, flags.namespace, flags.deployment],
   };
 
-  private static DELETE_FLAGS_LIST = [flags.quiet, flags.deployment];
+  private static DELETE_FLAGS_LIST = {
+    required: [],
+    optional: [flags.quiet, flags.deployment],
+  };
 
   private static ADD_CLUSTER_FLAGS_LIST = {
     required: [],
@@ -357,7 +360,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'delete',
             desc: 'Deletes a solo deployment',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.DELETE_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.DELETE_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.DELETE_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment delete' ===");
               self.logger.info(argv);
