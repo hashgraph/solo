@@ -119,7 +119,7 @@ describe('LocalConfig', () => {
     expect(localConfig.clusterRefs).to.eq(newClusterMappings);
 
     await localConfig.write();
-    const newConfig = new LocalConfig(filePath, getTestLogger(), configManager);
+    const newConfig = new LocalConfig(filePath, getTestLogger());
     expect(newConfig.clusterRefs).to.deep.eq(newClusterMappings);
   });
 

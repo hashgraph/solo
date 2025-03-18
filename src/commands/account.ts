@@ -325,10 +325,9 @@ export class AccountCommand extends BaseCommand {
                       const nodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
                       const nodeClient = await self.accountManager.refreshNodeClient(
                         ctx.config.namespace,
-                        nodeAlias,
                         self.remoteConfigManager.getClusterRefs(),
+                        nodeAlias,
                         ctx.config.deployment,
-                        ctx.config.contextName,
                       );
 
                       try {

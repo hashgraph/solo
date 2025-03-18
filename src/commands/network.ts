@@ -634,6 +634,7 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
+      flags.nodeAliasesUnparsed,
     ];
 
     // disable the prompts that we don't want to prompt the user for

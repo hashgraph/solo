@@ -53,6 +53,7 @@ import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {
+  type AnyListrContext,
   type AnyObject,
   type ConfigBuilder,
   type NodeAlias,
@@ -397,7 +398,7 @@ export class NodeCommandTasks {
   async _checkNetworkNodeActiveness(
     namespace: NamespaceName,
     nodeAlias: NodeAlias,
-    task: SoloListrTaskWrapper<any>,
+    task: SoloListrTaskWrapper<AnyListrContext>,
     title: string,
     index: number,
     status = NodeStatusCodes.ACTIVE,
@@ -406,12 +407,12 @@ export class NodeCommandTasks {
     timeout = constants.NETWORK_NODE_ACTIVE_TIMEOUT,
     context?: string,
   ): Promise<PodRef> {
-    nodeAlias = nodeAlias.trim() as NodeAlias;
     const podName = Templates.renderNetworkPodName(nodeAlias);
     const podRef = PodRef.of(namespace, podName);
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`;
 
     const consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    if (!context) context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
 
     let attempt = 0;
     let success = false;
@@ -424,8 +425,6 @@ export class NodeCommandTasks {
       }, timeout);
 
       try {
-        const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
-
         const response = await this.k8Factory
           .getK8(context)
           .containers()
@@ -1297,8 +1296,8 @@ export class NodeCommandTasks {
 
       config.nodeClient = await self.accountManager.refreshNodeClient(
         config.namespace,
-        skipNodeAlias,
         this.remoteConfigManager.getClusterRefs(),
+        skipNodeAlias,
         this.configManager.getFlag<DeploymentName>(flags.deployment),
       );
 
@@ -1349,10 +1348,9 @@ export class NodeCommandTasks {
       const context = helpers.extractContextFromConsensusNodes(ctx.config.nodeAlias, ctx.config.consensusNodes);
       await self.accountManager.refreshNodeClient(
         ctx.config.namespace,
-        ctx.config.nodeAlias,
         this.remoteConfigManager.getClusterRefs(),
+        ctx.config.nodeAlias,
         this.configManager.getFlag<DeploymentName>(flags.deployment),
-        context,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
       );
       await this._addStake(ctx.config.namespace, ctx.newNode.accountId, ctx.config.nodeAlias, undefined, context);
@@ -1598,8 +1596,8 @@ export class NodeCommandTasks {
       if (config.existingNodeAliases.length > 1) {
         config.nodeClient = await self.accountManager.refreshNodeClient(
           config.namespace,
-          config.nodeAlias,
           this.remoteConfigManager.getClusterRefs(),
+          config.nodeAlias,
           this.configManager.getFlag<DeploymentName>(flags.deployment),
         );
       }
@@ -1693,7 +1691,7 @@ export class NodeCommandTasks {
           valuesArgMap[this.k8Factory.default().clusters().readCurrent()] = '';
         }
 
-        const clusterRefs = this.remoteConfigManager.getClusterRefs() ?? {};
+        const clusterRefs = this.remoteConfigManager.getClusterRefs();
         if (!Object.keys(clusterRefs).length) {
           const clusterRef = this.k8Factory.default().clusters().readCurrent();
           clusterRefs[clusterRef] = this.localConfig.clusterRefs[clusterRef];
@@ -2086,7 +2084,6 @@ export class NodeCommandTasks {
 
       const flagsToPrompt = [];
       for (const pFlag of requiredFlags) {
-        // @ts-ignore
         if (typeof argv[pFlag.name] === 'undefined') {
           flagsToPrompt.push(pFlag);
         }
@@ -2144,13 +2141,14 @@ export class NodeCommandTasks {
         });
 
         ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+
         // if the consensusNodes does not contain the nodeAlias then add it
         if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
           ctx.config.consensusNodes.push(
             new ConsensusNode(
               ctx.config.nodeAlias,
               Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
-              ctx.config.namespace.name,
+              namespace,
               ctx.config.consensusNodes[0].cluster,
               ctx.config.consensusNodes[0].context,
               'cluster.local',
@@ -2158,7 +2156,7 @@ export class NodeCommandTasks {
               Templates.renderConsensusNodeFullyQualifiedDomainName(
                 ctx.config.nodeAlias as NodeAlias,
                 Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
-                ctx.config.namespace.name as NamespaceNameAsString,
+                namespace,
                 ctx.config.consensusNodes[0].cluster,
                 'cluster.local',
                 'network-{nodeAlias}-svc.{namespace}.svc',

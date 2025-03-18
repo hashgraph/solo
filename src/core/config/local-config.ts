@@ -8,8 +8,7 @@ import {MissingArgumentError} from '../errors/missing-argument-error.js';
 import {SoloError} from '../errors/solo-error.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator-decorators.js';
-import {type ConfigManager} from '../config-manager.js';
-import {type EmailAddress, type Version, type ClusterRefs} from './remote/types.js';
+import {type EmailAddress, type Version, type ClusterRefs, type ClusterRef} from './remote/types.js';
 import {ErrorMessages} from '../error-messages.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
@@ -17,12 +16,7 @@ import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 
 @injectable()
 export class LocalConfig implements LocalConfigData {
-  @IsEmail(
-    {},
-    {
-      message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL,
-    },
-  )
+  @IsEmail({}, {message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL})
   userEmailAddress: EmailAddress;
 
   @IsString({message: ErrorMessages.LOCAL_CONFIG_INVALID_SOLO_VERSION})
@@ -31,18 +25,12 @@ export class LocalConfig implements LocalConfigData {
 
   // The string is the name of the deployment, will be used as the namespace,
   // so it needs to be available in all targeted clusters
-  @IsDeployments({
-    message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT,
-  })
+  @IsDeployments({message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT})
   @IsNotEmpty()
-  @IsObject({
-    message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT,
-  })
+  @IsObject({message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT})
   public deployments: Deployments;
 
-  @IsClusterRefs({
-    message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT,
-  })
+  @IsClusterRefs({message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT})
   @IsNotEmpty()
   public clusterRefs: ClusterRefs = {};
 
@@ -51,11 +39,9 @@ export class LocalConfig implements LocalConfigData {
   public constructor(
     @inject(InjectTokens.LocalConfigFilePath) private readonly filePath?: string,
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
-    @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
   ) {
     this.filePath = patchInject(filePath, InjectTokens.LocalConfigFilePath, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
 
     if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
 
