@@ -6,22 +6,22 @@ This pull request changes the following:
 
 ### Pull request (PR) checklist
 
-- [ ] This PR added tests (unit, integration, and/or end-to-end)
-- [ ] This PR updated documentation
-- [ ] This PR added no TODOs or commented out code
-- [ ] This PR has no breaking changes
-- [ ] Any technical debt has been documented as a separate issue and linked to this PR
-- [ ] Any `package.json` changes have been explained to and approved by a repository manager
-- [ ] All related issues have been linked to this PR
-- [ ] All changes in this PR are included in the description
-- [ ] When this PR merges the commits will be squashed and the title will be used as the commit message, the 'commit message guidelines' below have been followed
+* \[ ] This PR added tests (unit, integration, and/or end-to-end)
+* \[ ] This PR updated documentation
+* \[ ] This PR added no TODOs or commented out code
+* \[ ] This PR has no breaking changes
+* \[ ] Any technical debt has been documented as a separate issue and linked to this PR
+* \[ ] Any `package.json` changes have been explained to and approved by a repository manager
+* \[ ] All related issues have been linked to this PR
+* \[ ] All changes in this PR are included in the description
+* \[ ] When this PR merges the commits will be squashed and the title will be used as the commit message, the 'commit message guidelines' below have been followed
 
 ### Testing
 
-- [ ] This PR added unit tests
-- [ ] This PR added integration/end-to-end tests
-- [ ] These changes required manual testing that is documented below
-- [ ] Anything not tested is documented
+* \[ ] This PR added unit tests
+* \[ ] This PR added integration/end-to-end tests
+* \[ ] These changes required manual testing that is documented below
+* \[ ] Anything not tested is documented
 
 The following manual testing was done:
 
