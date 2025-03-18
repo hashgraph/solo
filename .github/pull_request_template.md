@@ -52,7 +52,7 @@ We use 'Conventional Commits' to ensure that our commit messages are easy to rea
 | perf:     | performance                                         | PATCH                   | Yes                       |
 | refactor: | code change that isn't feature or fix               | none                    | No                        |
 | test:     | adding missing tests                                | none                    | No                        |
-| docs:     | changes to documentation                            | none                    | No                        |
+| docs:     | changes to documentation                            | none                    | Yes                        |
 | build:    | changes to build process                            | none                    | No                        |
 | ci:       | changes to CI configuration                         | none                    | No                        |
 | style:    | formatting, missing semi-colons, etc                | none                    | No                        |
