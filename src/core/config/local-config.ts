@@ -8,7 +8,7 @@ import {MissingArgumentError} from '../errors/missing-argument-error.js';
 import {SoloError} from '../errors/solo-error.js';
 import {type SoloLogger} from '../logging.js';
 import {IsClusterRefs, IsDeployments} from '../validator-decorators.js';
-import {type EmailAddress, type Version, type ClusterRefs, type ClusterRef} from './remote/types.js';
+import {type EmailAddress, type Version, type ClusterRefs} from './remote/types.js';
 import {ErrorMessages} from '../error-messages.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
