@@ -26,6 +26,14 @@ export class EnvironmentKeyFormatter implements KeyFormatter {
     return key.split(this.separator);
   }
 
+  public join(...parts: string[]): string {
+    if (!parts || parts.length === 0) {
+      return null;
+    }
+
+    return parts.join(this.separator);
+  }
+
   public static instance(): KeyFormatter {
     if (!EnvironmentKeyFormatter._instance) {
       EnvironmentKeyFormatter._instance = new EnvironmentKeyFormatter();

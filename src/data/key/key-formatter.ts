@@ -6,4 +6,6 @@ export interface KeyFormatter {
   normalize(key: string): string;
 
   split(key: string): string[];
+
+  join(...parts: string[]): string;
 }

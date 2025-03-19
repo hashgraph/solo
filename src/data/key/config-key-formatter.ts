@@ -26,6 +26,14 @@ export class ConfigKeyFormatter implements KeyFormatter {
     return key.split(this.separator);
   }
 
+  public join(...parts: string[]): string {
+    if (!parts || parts.length === 0) {
+      return null;
+    }
+
+    return parts.join(this.separator);
+  }
+
   public static instance(): KeyFormatter {
     if (!ConfigKeyFormatter._instance) {
       ConfigKeyFormatter._instance = new ConfigKeyFormatter();

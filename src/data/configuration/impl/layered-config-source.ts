@@ -174,12 +174,13 @@ export abstract class LayeredConfigSource implements ConfigSource {
 
   public async load(): Promise<void> {
     this.data.clear();
+    this.forest = null;
 
-    const envVars: string[] = await this.backend.list();
-    for (const k of envVars) {
+    const vars: string[] = await this.backend.list();
+    for (const k of vars) {
       try {
-        const va: Uint8Array = await this.backend.readBytes(k);
-        this.data.set(k, Buffer.from(va).toString('utf-8'));
+        const va: Buffer = await this.backend.readBytes(k);
+        this.data.set(k, va.toString('utf-8'));
       } catch (e) {
         throw new ConfigurationError(`Failed to read environment variable: ${k}`, e);
       }
