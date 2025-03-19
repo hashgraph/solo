@@ -3,7 +3,7 @@
 import {type Config} from '../api/config.js';
 import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
 import {type ConfigSource} from '../spi/config-source.js';
-import {type Refreshable} from '../spi/refreshable.js';
+import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 import {Comparators} from '../../../business/utils/comparators.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
 
@@ -70,7 +70,7 @@ export class LayeredConfig implements Config {
 
   public async refresh(): Promise<void> {
     for (const source of this.sources) {
-      if (LayeredConfig.isRefreshable(source)) {
+      if (ReflectAssist.isRefreshable(source)) {
         await source.refresh();
       }
     }
@@ -127,16 +127,5 @@ export class LayeredConfig implements Config {
     }
 
     return value;
-  }
-
-  /**
-   * TypeScript custom type guard that checks if the provided object implements Refreshable.
-   *
-   * @param v - The object to check.
-   * @returns true if the object implements Refreshable, false otherwise.
-   * @private
-   */
-  private static isRefreshable(v: object): v is Refreshable {
-    return typeof v === 'object' && !!v && 'refresh' in v;
   }
 }

@@ -4,7 +4,7 @@ import {UnsupportedOperationError} from '../errors/unsupported-operation-error.j
 import {type Refreshable} from '../../data/configuration/spi/refreshable.js';
 import {type ObjectStorageBackend} from '../../data/backend/api/object-storage-backend.js';
 
-export class Reflect {
+export class ReflectAssist {
   private constructor() {
     throw new UnsupportedOperationError('utility classes and cannot be instantiated');
   }
@@ -27,7 +27,7 @@ export class Reflect {
    * @returns true if the object implements ObjectStorageBackend, false otherwise.
    * @private
    */
-  private static isObjectStorageBackend(v: object): v is ObjectStorageBackend {
+  public static isObjectStorageBackend(v: object): v is ObjectStorageBackend {
     return typeof v === 'object' && !!v && 'readObject' in v;
   }
 }

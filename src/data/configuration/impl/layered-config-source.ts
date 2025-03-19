@@ -27,7 +27,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
 
   protected constructor(
     public readonly backend: StorageBackend,
-    private readonly mapper: ObjectMapper,
+    protected readonly mapper: ObjectMapper,
     public readonly prefix?: string,
   ) {
     if (!mapper) {
