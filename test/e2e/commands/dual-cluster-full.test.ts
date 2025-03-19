@@ -132,7 +132,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       expect(pods).to.have.lengthOf(1);
       const nodeAlias = Templates.renderNodeAliasFromNumber(index + 1);
-      expect(pods[0].labels[`solo.hedera.com/node-name=${nodeAlias}`]).to.equal(nodeAlias);
+      expect(pods[0].labels['solo.hedera.com/node-name']).to.equal(nodeAlias);
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
 
