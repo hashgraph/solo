@@ -111,7 +111,7 @@ export class HelmExecution {
    * @returns concatenated standard output as a string
    */
   standardOutput(): string {
-    return this.output.join('\n');
+    return this.output.join('');
   }
 
   /**
@@ -119,7 +119,7 @@ export class HelmExecution {
    * @returns concatenated standard error as a string
    */
   standardError(): string {
-    return this.errOutput.join('\n');
+    return this.errOutput.join('');
   }
 
   /**

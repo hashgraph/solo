@@ -9,7 +9,7 @@ import {HelmExecutionBuilder} from '../execution/HelmExecutionBuilder.js';
 import {type Chart} from '../model/Chart.js';
 import {Repository} from '../model/Repository.js';
 import {Version} from '../model/Version.js';
-import {type Release} from '../model/chart/Release.js';
+import {Release} from '../model/chart/Release.js';
 import {InstallChartOptions} from '../model/install/InstallChartOptions.js';
 import {ReleaseItem} from '../model/release/ReleaseItem.js';
 import {type TestChartOptions} from '../model/test/TestChartOptions.js';
@@ -103,9 +103,10 @@ export class DefaultHelmClient implements HelmClient {
     chart: Chart,
     options: InstallChartOptions,
   ): Promise<Release> {
+    const release = Release as unknown as new () => Release;
     const request = new ChartInstallRequest(releaseName, chart, options);
-    return this.executeInternal(undefined, request, {} as any, async execution => {
-      const response = await execution.responseAs({} as any);
+    return this.executeInternal(undefined, request, release, async execution => {
+      const response = await execution.responseAs(release);
       return response as Release;
     });
   }
