@@ -7,4 +7,5 @@ export interface ClusterRefSetupContext {
   chartPath: string;
   isChartInstalled: boolean;
   valuesArg: string;
+  context: string;
 }

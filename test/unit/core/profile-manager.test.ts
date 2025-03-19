@@ -21,6 +21,7 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {KubeConfig} from '@kubernetes/client-node';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
+import sinon from 'sinon';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
@@ -60,6 +61,7 @@ describe('ProfileManager', () => {
       fullyQualifiedDomainName: 'network-node3-svc.test-namespace.svc.cluster.local',
     },
   ];
+
   let stagingDir = '';
 
   before(() => {
@@ -84,6 +86,9 @@ describe('ProfileManager', () => {
     if (!fs.existsSync(stagingDir)) {
       fs.mkdirSync(stagingDir, {recursive: true});
     }
+
+    // @ts-expect-error - TS2339: to mock
+    profileManager.remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
   });
 
   after(() => {
@@ -135,7 +140,9 @@ describe('ProfileManager', () => {
         }
 
         profileManager.loadProfiles(true);
-        const valuesFile = await profileManager.prepareValuesForSoloChart(input.profileName, consensusNodes);
+        const valuesFileMapping = await profileManager.prepareValuesForSoloChart(input.profileName, consensusNodes);
+        const valuesFile = Object.values(valuesFileMapping)[0];
+
         expect(valuesFile).not.to.be.null;
         expect(fs.existsSync(valuesFile)).to.be.ok;
 
@@ -173,7 +180,8 @@ describe('ProfileManager', () => {
         configManager.setFlag(flags.applicationEnv, file);
         const destFile = path.join(stagingDir, 'templates', 'application.env');
         fs.cpSync(file, destFile, {force: true});
-        const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test', consensusNodes);
+        const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart('test', consensusNodes);
+        const cachedValuesFile = Object.values(cachedValuesFileMapping)[0];
         const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());
         expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents);
       });
