@@ -216,7 +216,8 @@ describe('BaseCommand', () => {
     });
 
     it('should return consensus nodes', () => {
-      const consensusNodes = baseCmd.getRemoteConfigManager().getConsensusNodes();
+      // @ts-expect-error - TS2445: to access private property
+      const consensusNodes = baseCmd.remoteConfigManager.getConsensusNodes();
       expect(consensusNodes).to.be.an('array');
       expect(consensusNodes[0].context).to.equal('context1');
       expect(consensusNodes[1].context).to.equal('context2');
@@ -231,7 +232,8 @@ describe('BaseCommand', () => {
     });
 
     it('should return contexts', () => {
-      const contexts = baseCmd.getRemoteConfigManager().getContexts();
+      // @ts-expect-error - TS2445: to access private property
+      const contexts = baseCmd.remoteConfigManager.getContexts();
       expect(contexts).to.be.an('array');
       expect(contexts[0]).to.equal('context1');
       expect(contexts[1]).to.equal('context2');
@@ -239,7 +241,8 @@ describe('BaseCommand', () => {
 
     it('should return clusters references', () => {
       const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
-      const clusterRefs: ClusterRefs = baseCmd.getRemoteConfigManager().getClusterRefs();
+      // @ts-expect-error - TS2445: to access private property
+      const clusterRefs: ClusterRefs = baseCmd.remoteConfigManager.getClusterRefs();
       Object.keys(clusterRefs).forEach(clusterRef => {
         expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
       });

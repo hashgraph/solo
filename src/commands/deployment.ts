@@ -520,7 +520,8 @@ export class DeploymentCommand extends BaseCommand {
         const state = remoteConfig.metadata.state;
         ctx.config.state = state;
 
-        const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length + 1;
+        const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length;
+
         ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
 
         // If state is pre-genesis and user can't be prompted for the '--num-consensus-nodes' fail
@@ -532,7 +533,10 @@ export class DeploymentCommand extends BaseCommand {
         else if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
           await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
           ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
-          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(ctx.config.numberOfConsensusNodes, 0);
+          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(
+            ctx.config.numberOfConsensusNodes,
+            existingNodesCount,
+          );
         }
 
         // if the state is post-genesis and '--num-consensus-nodes' is specified throw
@@ -640,6 +644,8 @@ export class DeploymentCommand extends BaseCommand {
 
           return;
         }
+
+        await this.remoteConfigManager.get(existingClusterContext);
 
         //? Create copy of the existing remote config inside the new cluster
         await this.remoteConfigManager.createConfigMap(context);

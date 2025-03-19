@@ -28,7 +28,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
@@ -115,7 +115,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly platformInstaller: PlatformInstaller;
   private readonly profileManager: ProfileManager;
   private readonly certificateManager: CertificateManager;
-  private profileValuesFile?: string;
+  private profileValuesFile?: Record<ClusterRef, string>;
 
   constructor(opts: Opts) {
     super(opts);
@@ -374,7 +374,8 @@ export class NetworkCommand extends BaseCommand {
     const valuesArgMap: Record<ClusterRef, string> = {};
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
-    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
+
+    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMapMulticluster(
       config.clusterRefs,
       config.chartDirectory,
       this.profileValuesFile,
@@ -574,7 +575,7 @@ export class NetworkCommand extends BaseCommand {
     consensusNodes: ConsensusNode[],
     valuesArgs: Record<ClusterRef, string>,
     templateString: string,
-  ) {
+  ): void {
     if (records) {
       consensusNodes.forEach(consensusNode => {
         if (records[consensusNode.name]) {
@@ -704,13 +705,7 @@ export class NetworkCommand extends BaseCommand {
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
 
-    if (config.nodeAliases.length === 0) {
-      config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
-      if (config.nodeAliases.length === 0) {
-        throw new SoloError('no node aliases provided via flags or RemoteConfig');
-      }
-      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
-    }
+    config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 
@@ -1229,11 +1224,7 @@ export class NetworkCommand extends BaseCommand {
     return networkDestroySuccess;
   }
 
-  getCommandDefinition(): {
-    command: string;
-    desc: string;
-    builder: CommandBuilder;
-  } {
+  getCommandDefinition() {
     const self = this;
     return {
       command: NetworkCommand.COMMAND_NAME,
@@ -1329,8 +1320,5 @@ export class NetworkCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }

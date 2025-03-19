@@ -264,7 +264,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
             ctx.config.clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+              ? this.localConfig.clusterRefs[clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             await self.accountManager.loadNodeClient(
@@ -722,7 +722,7 @@ export class MirrorNodeCommand extends BaseCommand {
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
             const clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+              ? this.localConfig.clusterRefs[clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             if (!(await self.k8Factory.getK8(clusterContext).namespaces().has(namespace))) {

@@ -132,8 +132,11 @@ export class ClusterCommandTasks {
   }
 
   /** Show list of installed chart */
-  private async showInstalledChartList(clusterSetupNamespace: NamespaceName) {
-    this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
+  private async showInstalledChartList(clusterSetupNamespace: NamespaceName, context?: string) {
+    this.logger.showList(
+      'Installed Charts',
+      await this.chartManager.getInstalledCharts(clusterSetupNamespace, context),
+    );
   }
 
   public initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
@@ -258,7 +261,7 @@ export class ClusterCommandTasks {
             ctx.chartPath,
             version,
             valuesArg,
-            this.k8Factory.default().contexts().readCurrent(),
+            ctx.config.context,
           );
           showVersionBanner(self.logger, SOLO_CLUSTER_SETUP_CHART, version);
         } catch (e) {
@@ -271,7 +274,7 @@ export class ClusterCommandTasks {
             await this.chartManager.uninstall(
               clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
-              this.k8Factory.default().contexts().readCurrent(),
+              ctx.config.context,
             );
           } catch {
             // ignore error during uninstall since we are doing the best-effort uninstall here
@@ -284,7 +287,7 @@ export class ClusterCommandTasks {
         }
 
         if (argv.dev) {
-          await this.showInstalledChartList(clusterSetupNamespace);
+          await this.showInstalledChartList(clusterSetupNamespace, ctx.config.context);
         }
       },
       skip: ctx => ctx.isChartInstalled,

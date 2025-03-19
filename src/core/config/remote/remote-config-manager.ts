@@ -361,11 +361,24 @@ export class RemoteConfigManager {
    * Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data.
    */
   private async replaceConfigMap(): Promise<void> {
-    const contexts = this.getContexts();
     const namespace = await this.getNamespace();
     const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
     const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
     const data = {'remote-config-data': yaml.stringify(this.remoteConfig.toObject())};
+
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+
+    if (!deploymentName) {
+      throw new SoloError('Failed to get deployment');
+    }
+
+    const clusterRefs: ClusterRef[] = this.localConfig.deployments[deploymentName]?.clusters;
+
+    if (!clusterRefs) {
+      throw new SoloError(`Failed to get get cluster refs from local config for deployment ${deploymentName}`);
+    }
+
+    const contexts = clusterRefs.map(clusterRef => this.localConfig.clusterRefs[clusterRef]);
 
     await Promise.all(
       contexts.map(context => this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data)),
