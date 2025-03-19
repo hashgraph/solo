@@ -33,6 +33,11 @@ describe('Lexer: Forest', () => {
     expect(() => forest.nodeFor(null)).to.throw('key must not be null or undefined');
   });
 
+  it('nodeFor with empty key should throw error', () => {
+    const forest: Forest = Forest.from(new Map<string, string>());
+    expect(() => forest.nodeFor('.')).to.throw('key must not be empty');
+  });
+
   it('from with empty data should return empty forest', () => {
     const forest: Forest = Forest.from(new Map<string, string>());
     expect(forest.has('key')).to.be.false;
@@ -51,5 +56,40 @@ describe('Lexer: Forest', () => {
     expect(forest.has('root.internal.leaf2')).to.be.true;
     expect(forest.valueFor('root.internal.leaf2')).to.equal('value2');
     expect(forest.nodeFor('root.internal.leaf2')).to.not.be.null;
+  });
+
+  it('valueFor with a key that does not exist should return null', () => {
+    const data: Map<string, string> = new Map<string, string>();
+    data.set('root.leaf', 'value');
+    const forest: Forest = Forest.from(data);
+    expect(forest.valueFor('root.internal.leaf2')).to.be.null;
+  });
+
+  it('valueFor an internal node should return null', () => {
+    const data: Map<string, string> = new Map<string, string>();
+    data.set('root.internal.leaf', 'value');
+    const forest: Forest = Forest.from(data);
+    expect(forest.valueFor('root.internal')).to.be.null;
+    expect(forest.valueFor('root.internal.leaf2')).to.be.null;
+  });
+
+  it('toObject with empty data should return empty object', () => {
+    const forest: Forest = Forest.from(new Map<string, string>());
+    expect(forest.toObject()).to.eql({});
+  });
+
+  it('toObject with data should return object', () => {
+    const data: Map<string, string> = new Map<string, string>();
+    data.set('root.leaf', 'value');
+    data.set('root.internal.leaf2', 'value2');
+    const forest: Forest = Forest.from(data);
+    expect(forest.toObject()).to.eql({
+      root: {
+        leaf: 'value',
+        internal: {
+          leaf2: 'value2',
+        },
+      },
+    });
   });
 });
