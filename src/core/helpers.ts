@@ -156,7 +156,7 @@ export function backupOldTlsKeys(nodeAliases: NodeAliases, keysDir: string, curD
 
   const fileMap = new Map<string, string>();
   for (const nodeAlias of nodeAliases) {
-    const srcPath = PathEx.joinWithRealPath(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
+    const srcPath = PathEx.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
     const destPath = PathEx.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
     fileMap.set(srcPath, destPath);
   }
@@ -176,7 +176,7 @@ export function backupOldPemKeys(
 
   const fileMap = new Map<string, string>();
   for (const nodeAlias of nodeAliases) {
-    const srcPath = PathEx.joinWithRealPath(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
+    const srcPath = PathEx.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
     const destPath = PathEx.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
     fileMap.set(srcPath, destPath);
   }
