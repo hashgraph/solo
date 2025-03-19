@@ -81,8 +81,8 @@ We don’t need to reinvent the wheel.
 
 So below are some well established designs that we need to consult before deciding on our state model and leasing protocol:
 
-* Terraform State: https://developer.hashicorp.com/terraform/language/state
-* Kubernetes Lease: https://kubernetes.io/docs/concepts/architecture/leases/
+* Terraform State: <https://developer.hashicorp.com/terraform/language/state>
+* Kubernetes Lease: <https://kubernetes.io/docs/concepts/architecture/leases/>
 
 ### 5. Solo State
 
