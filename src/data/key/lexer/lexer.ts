@@ -113,7 +113,7 @@ export class Lexer {
       } else if (i + 1 >= segments.length) {
         node = new LeafNode(currentRoot, segment, value);
       } else {
-        this.processIntermediateSegment(currentRoot, segment, i, segments);
+        node = this.processIntermediateSegment(currentRoot, segment, i, segments);
       }
 
       if (node) {
@@ -121,6 +121,8 @@ export class Lexer {
         if (node.isInternal()) {
           currentRoot = node as InternalNode;
         }
+      } else if (!node && i < segments.length) {
+        throw new Error('Failed to process segment');
       }
     }
   }
