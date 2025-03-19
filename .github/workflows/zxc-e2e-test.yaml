@@ -127,7 +127,7 @@ jobs:
 #          echo "::endgroup::"
 
       - name: Setup Node
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
           node-version: ${{ inputs.node-version }}
 
@@ -186,7 +186,7 @@ jobs:
       - name: Build Hedera code locally
         if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         run: |
-          export CONSENSUS_NODE_VERSION=$(grep 'TEST_LOCAL_HEDERA_PLATFORM_VERSION' version_test.ts | sed -E "s/.*'([^']+)';/\1/")
+          export CONSENSUS_NODE_VERSION=$(grep 'TEST_LOCAL_HEDERA_PLATFORM_VERSION' version-test.ts | sed -E "s/.*'([^']+)';/\1/")
           cd ..
           git clone https://github.com/hiero-ledger/hiero-consensus-node.git --depth 1 --branch ${CONSENSUS_NODE_VERSION}
           cd hiero-consensus-node

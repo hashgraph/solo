@@ -5,7 +5,9 @@ import 'chai-as-promised';
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../../src/core/errors.js';
+import {SoloError} from '../../../src/core/errors/solo-error.js';
+import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
+import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';

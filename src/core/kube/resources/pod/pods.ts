@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type V1Pod} from '@kubernetes/client-node';
-import {type NamespaceName} from '../namespace/namespace_name.js';
-import {type PodRef} from './pod_ref.js';
+import {type NamespaceName} from '../namespace/namespace-name.js';
+import {type PodRef} from './pod-ref.js';
 import {type Pod} from './pod.js';
-import {type ContainerName} from '../container/container_name.js';
+import {type ContainerName} from '../container/container-name.js';
 
 export interface Pods {
   /**
@@ -16,18 +15,18 @@ export interface Pods {
 
   /**
    * Get a pod by name
-   * @returns V1Pod - pod object
+   * @returns Pod - pod object
    * @param podRef - the reference to the pod
    */
-  read(podRef: PodRef): Promise<V1Pod>;
+  read(podRef: PodRef): Promise<Pod>;
 
   /**
    * Get pods by labels
    * @param namespace - the namespace of the pod
    * @param labels - list of labels
-   * @returns V1Pod[] - list of pod objects
+   * @returns Pod[] - list of pod objects
    */
-  list(namespace: NamespaceName, labels: string[]): Promise<V1Pod[]>;
+  list(namespace: NamespaceName, labels: string[]): Promise<Pod[]>;
 
   /**
    * Check if pod's ready status is true
@@ -36,12 +35,7 @@ export interface Pods {
    * @param [maxAttempts] - maximum attempts to check
    * @param [delay] - delay between checks in milliseconds
    */
-  waitForReadyStatus(
-    namespace: NamespaceName,
-    labels: string[],
-    maxAttempts?: number,
-    delay?: number,
-  ): Promise<V1Pod[]>;
+  waitForReadyStatus(namespace: NamespaceName, labels: string[], maxAttempts?: number, delay?: number): Promise<Pod[]>;
 
   /**
    * Check if pod's phase is running
@@ -56,8 +50,8 @@ export interface Pods {
     labels: string[],
     maxAttempts: number,
     delay: number,
-    podItemPredicate?: (items: V1Pod) => boolean,
-  ): Promise<V1Pod[]>;
+    podItemPredicate?: (items: Pod) => boolean,
+  ): Promise<Pod[]>;
 
   /**
    * List all the pods across all namespaces with the given labels

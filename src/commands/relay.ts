@@ -1,23 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {Listr, type ListrTask} from 'listr2';
-import {MissingArgumentError, SoloError} from '../core/errors.js';
+import {Listr} from 'listr2';
+import {SoloError} from '../core/errors/solo-error.js';
+import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import * as helpers from '../core/helpers.js';
 import * as constants from '../core/constants.js';
-import {type ProfileManager} from '../core/profile_manager.js';
-import {type AccountManager} from '../core/account_manager.js';
+import {type ProfileManager} from '../core/profile-manager.js';
+import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getNodeAccountMap, prepareChartPath, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
-import {ListrLock} from '../core/lock/listr_lock.js';
-import {RelayComponent} from '../core/config/remote/components/relay_component.js';
+import {ListrLock} from '../core/lock/listr-lock.js';
+import {RelayComponent} from '../core/config/remote/components/relay-component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
-import {type Optional} from '../types/index.js';
+import {type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 
 export class RelayCommand extends BaseCommand {
@@ -33,6 +34,8 @@ export class RelayCommand extends BaseCommand {
     this.profileManager = opts.profileManager;
     this.accountManager = opts.accountManager;
   }
+
+  public static readonly COMMAND_NAME = 'relay';
 
   static get DEPLOY_CONFIGS_NAME() {
     return 'deployConfigs';
@@ -347,7 +350,7 @@ export class RelayCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (e) {
-      throw new SoloError('Error installing relays', e);
+      throw new SoloError(`Error deploying relay: ${e.message}`, e);
     } finally {
       await lease.release();
       await self.accountManager.close();
@@ -399,7 +402,7 @@ export class RelayCommand extends BaseCommand {
             } as RelayDestroyConfigClass;
 
             if (ctx.config.clusterRef) {
-              const context = self.getRemoteConfigManager().getClusterRefs()[ctx.config.clusterRef];
+              const context = self.remoteConfigManager.getClusterRefs()[ctx.config.clusterRef];
               if (context) ctx.config.context = context;
             }
 
@@ -454,7 +457,7 @@ export class RelayCommand extends BaseCommand {
   getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
     const self = this;
     return {
-      command: 'relay',
+      command: RelayCommand.COMMAND_NAME,
       desc: 'Manage JSON RPC relays in solo network',
       builder: (yargs: any) => {
         return yargs
@@ -468,17 +471,10 @@ export class RelayCommand extends BaseCommand {
               self.logger.info("==== Running 'relay deploy' ===", {argv});
               self.logger.info(argv);
 
-              await self
-                .deploy(argv)
-                .then(r => {
-                  self.logger.info('==== Finished running `relay deploy`====');
-
-                  if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
-                })
-                .catch(err => {
-                  self.logger.showUserError(err);
-                  throw new SoloError(`Error deploying relay: ${err.message}`, err);
-                });
+              await self.deploy(argv).then(r => {
+                self.logger.info('==== Finished running `relay deploy`====');
+                if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
+              });
             },
           })
           .command({
@@ -503,7 +499,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   /** Adds the relay component to remote config. */
-  public addRelayComponent(): ListrTask<any, any, any> {
+  public addRelayComponent(): SoloListrTask<any> {
     return {
       title: 'Add relay component in remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -521,7 +517,7 @@ export class RelayCommand extends BaseCommand {
   }
 
   /** Remove the relay component from remote config. */
-  public removeRelayComponent(): ListrTask<any, any, any> {
+  public removeRelayComponent(): SoloListrTask<any> {
     return {
       title: 'Remove relay component from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),

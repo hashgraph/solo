@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {IllegalArgumentError} from '../../core/errors.js';
-import {type AccountManager} from '../../core/account_manager.js';
-import {YargsCommand} from '../../core/yargs_command.js';
+import {IllegalArgumentError} from '../../core/errors/illegal-argument-error.js';
+import {type AccountManager} from '../../core/account-manager.js';
+import {YargsCommand} from '../../core/yargs-command.js';
 import {BaseCommand, type Opts} from './../base.js';
 import * as NodeFlags from './flags.js';
 import {type NodeCommandHandlers} from './handlers.js';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {patchInject} from '../../core/dependency-injection/container-helper.js';
+import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -39,6 +39,8 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = [];
   }
 
+  public static readonly COMMAND_NAME = 'node';
+
   /**
    * stops and closes the port forwards
    * - calls the accountManager.close()
@@ -63,7 +65,7 @@ export class NodeCommand extends BaseCommand {
   getCommandDefinition() {
     const self = this;
     return {
-      command: 'node',
+      command: NodeCommand.COMMAND_NAME,
       desc: 'Manage Hedera platform node in solo network',
       builder: (yargs: any) => {
         return yargs

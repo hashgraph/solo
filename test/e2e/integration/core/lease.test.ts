@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {it, describe, before, after} from 'mocha';
-import {type K8Factory} from '../../../../src/core/kube/k8_factory.js';
+import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
 import {expect} from 'chai';
-import {IntervalLock} from '../../../../src/core/lock/interval_lock.js';
-import {LockHolder} from '../../../../src/core/lock/lock_holder.js';
+import {IntervalLock} from '../../../../src/core/lock/interval-lock.js';
+import {LockHolder} from '../../../../src/core/lock/lock-holder.js';
 import {sleep} from '../../../../src/core/helpers.js';
-import {NoopLeaseRenewalService} from './noop_lease_renewal_service.test.js';
+import {NoopLeaseRenewalService} from './noop-lease-renewal-service.test.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace_name.js';
-import {InjectTokens} from '../../../../src/core/dependency_injection/inject_tokens.js';
-import {LockRelinquishmentError} from '../../../../src/core/lock/lock_relinquishment_error.js';
+import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
+import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
+import {LockRelinquishmentError} from '../../../../src/core/lock/lock-relinquishment-error.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const leaseDuration = 4;

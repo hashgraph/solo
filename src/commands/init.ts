@@ -5,25 +5,35 @@ import path from 'path';
 import {BaseCommand} from './base.js';
 import fs from 'fs';
 import * as constants from '../core/constants.js';
-import {SoloError} from '../core/errors.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
+import {type EmailAddress} from '../core/config/remote/types.js';
+import * as helpers from '../core/helpers.js';
 
 /**
  * Defines the core functionalities of 'init' command
  */
 export class InitCommand extends BaseCommand {
+  public static readonly COMMAND_NAME = 'init';
+
   /** Executes the init CLI command */
   async init(argv: any) {
     const self = this;
+
     let cacheDir: string = this.configManager.getFlag<string>(flags.cacheDir) as string;
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR as string;
     }
 
+    interface Config {
+      userEmailAddress: EmailAddress;
+    }
+
     interface Context {
       repoURLs: string[];
       dirs: string[];
+      config: Config;
     }
 
     const tasks = new Listr<Context>(
@@ -33,6 +43,12 @@ export class InitCommand extends BaseCommand {
           task: ctx => {
             self.configManager.update(argv);
             ctx.dirs = this.setupHomeDirectory();
+
+            ctx.config = {
+              userEmailAddress:
+                self.configManager.getFlag<EmailAddress>(flags.userEmailAddress) ||
+                flags.userEmailAddress.definition.defaultValue,
+            } as Config;
           },
         },
         {
@@ -49,6 +65,20 @@ export class InitCommand extends BaseCommand {
                 collapseSubtasks: false,
               },
             });
+          },
+        },
+        {
+          title: 'Create local configuration',
+          skip: () => this.localConfig.configFileExists(),
+          task: async (ctx, task): Promise<void> => {
+            const config = ctx.config;
+            this.localConfig.userEmailAddress = config.userEmailAddress;
+            this.localConfig.soloVersion = helpers.getSoloVersion();
+            this.localConfig.clusterRefs = {};
+            this.localConfig.deployments = {};
+
+            this.localConfig.validate();
+            await this.localConfig.write();
           },
         },
         {
@@ -115,10 +145,11 @@ export class InitCommand extends BaseCommand {
   getCommandDefinition() {
     const self = this;
     return {
-      command: 'init',
+      command: InitCommand.COMMAND_NAME,
       desc: 'Initialize local environment',
       builder: (y: any) => {
         flags.setCommandFlags(y, flags.cacheDir);
+        flags.setCommandFlags(y, flags.quiet); // set the quiet flag even though it isn't used for consistency across all commands
       },
       handler: async (argv: any) => {
         await self
@@ -127,7 +158,6 @@ export class InitCommand extends BaseCommand {
             if (!r) throw new SoloError('Error running init, expected return value to be true');
           })
           .catch(err => {
-            self.logger.showUserError(err);
             throw new SoloError('Error running init', err);
           });
       },

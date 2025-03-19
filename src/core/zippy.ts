@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError, IllegalArgumentError, MissingArgumentError} from './errors.js';
+import {SoloError} from './errors/solo-error.js';
+import {IllegalArgumentError} from './errors/illegal-argument-error.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
 import fs from 'fs';
 import AdmZip from 'adm-zip';
 import * as tar from 'tar';
@@ -8,8 +10,8 @@ import chalk from 'chalk';
 import path from 'path';
 import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
 
 @injectable()
 export class Zippy {
