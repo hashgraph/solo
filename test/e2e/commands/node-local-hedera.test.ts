@@ -6,7 +6,6 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {e2eTestSuite, getTestCluster} from '../../test-util.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
-import path from 'path';
 import {expect} from 'chai';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -19,6 +18,7 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const namespace = NamespaceName.of('local-hedera-app');
 const argv = Argv.getDefaultArgv(namespace);
@@ -102,7 +102,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
         callback: async argv => nodeCmd.handlers.states(argv),
       });
 
-      argv.setArg(flags.stateFile, path.join(SOLO_LOGS_DIR, namespace.name, 'network-node1-0-state.zip'));
+      argv.setArg(flags.stateFile, PathEx.joinWithRealPath(SOLO_LOGS_DIR, namespace.name, 'network-node1-0-state.zip'));
 
       await commandInvoker.invoke({
         argv: argv,

@@ -3,9 +3,9 @@
 import {expect} from 'chai';
 import {FileStorageBackend} from '../../../../../src/data/backend/impl/file-storage-backend.js';
 import {getTmpDir} from '../../../../test-util.js';
-import path from 'path';
 import fs from 'fs';
 import {StorageOperation} from '../../../../../src/data/backend/api/storage-operation.js';
+import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 
 describe('File Storage Backend', () => {
   const testName: string = 'file-storage-backend';
@@ -24,7 +24,7 @@ describe('File Storage Backend', () => {
   });
 
   it('test path that is not a directory', () => {
-    const temporaryFile: string = path.join(tempDir, `${testName}-file.txt`);
+    const temporaryFile: string = PathEx.join(tempDir, `${testName}-file.txt`);
     fs.writeFileSync(temporaryFile, 'test');
     expect(() => {
       new FileStorageBackend(temporaryFile);
@@ -56,7 +56,7 @@ describe('File Storage Backend', () => {
 
   it('test readBytes', async () => {
     const key: string = `${testName}-file2.txt`;
-    const temporaryFile: string = path.join(tempDir, key);
+    const temporaryFile: string = PathEx.join(tempDir, key);
     fs.writeFileSync(temporaryFile, 'test');
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
     const data: Uint8Array = await backend.readBytes(key);
@@ -75,7 +75,7 @@ describe('File Storage Backend', () => {
 
   it('test writeBytes', async () => {
     const key: string = `${testName}-file3.txt`;
-    const temporaryFile: string = path.join(tempDir, key);
+    const temporaryFile: string = PathEx.join(tempDir, key);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
     await backend.writeBytes(key, new Uint8Array(Buffer.from('test')));
     expect(fs.readFileSync(temporaryFile, 'utf-8')).to.equal('test');
@@ -95,7 +95,7 @@ describe('File Storage Backend', () => {
 
   it('test writeBytes with a file that already exists as a directory', async () => {
     const key: string = `${testName}-file-dir`;
-    const temporaryFile: string = path.join(tempDir, key);
+    const temporaryFile: string = PathEx.join(tempDir, key);
     fs.mkdirSync(temporaryFile);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
     await expect(backend.writeBytes(key, new Uint8Array(Buffer.from('test')))).to.be.rejectedWith('error writing file');
@@ -103,7 +103,7 @@ describe('File Storage Backend', () => {
 
   it('test delete', async () => {
     const key: string = `${testName}-file4.txt`;
-    const temporaryFile: string = path.join(tempDir, key);
+    const temporaryFile: string = PathEx.join(tempDir, key);
     fs.writeFileSync(temporaryFile, 'test');
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
     await backend.delete(key);
@@ -122,7 +122,7 @@ describe('File Storage Backend', () => {
 
   it('test delete with a directory as key', async () => {
     const key: string = `${testName}-file-dir2`;
-    const temporaryFile: string = path.join(tempDir, key);
+    const temporaryFile: string = PathEx.join(tempDir, key);
     fs.mkdirSync(temporaryFile);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
     await expect(backend.delete(key)).to.be.rejectedWith('path is not a file');

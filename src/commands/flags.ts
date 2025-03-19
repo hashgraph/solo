@@ -2,7 +2,6 @@
 
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
-import path from 'path';
 import {type CommandFlag} from '../types/flag-types.js';
 import fs from 'fs';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
@@ -20,6 +19,7 @@ import {type AnyListrContext, type AnyObject, type AnyYargs} from '../types/alia
 import {type ClusterRef} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import chalk from 'chalk';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export class Flags {
   public static KEY_COMMON = '_COMMON_';
@@ -254,11 +254,11 @@ export class Flags {
         let valuesFile: string;
 
         if (parts.length !== 2) {
-          valuesFile = path.resolve(v);
+          valuesFile = PathEx.resolve(v);
           clusterRef = Flags.KEY_COMMON;
         } else {
           clusterRef = parts[0];
-          valuesFile = path.resolve(parts[1]);
+          valuesFile = PathEx.resolve(parts[1]);
         }
 
         if (!valuesFiles[clusterRef]) {
@@ -1005,7 +1005,7 @@ export class Flags {
     name: 'application-properties',
     definition: {
       describe: 'application.properties file for node',
-      defaultValue: path.join('templates', 'application.properties'),
+      defaultValue: PathEx.join('templates', 'application.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -1018,7 +1018,7 @@ export class Flags {
       describe:
         'the application.env file for the node provides environment variables to the solo-container' +
         ' to be used when the hedera platform is started',
-      defaultValue: path.join('templates', 'application.env'),
+      defaultValue: PathEx.join('templates', 'application.env'),
       type: 'string',
     },
     prompt: undefined,
@@ -1029,7 +1029,7 @@ export class Flags {
     name: 'api-permission-properties',
     definition: {
       describe: 'api-permission.properties file for node',
-      defaultValue: path.join('templates', 'api-permission.properties'),
+      defaultValue: PathEx.join('templates', 'api-permission.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -1040,7 +1040,7 @@ export class Flags {
     name: 'bootstrap-properties',
     definition: {
       describe: 'bootstrap.properties file for node',
-      defaultValue: path.join('templates', 'bootstrap.properties'),
+      defaultValue: PathEx.join('templates', 'bootstrap.properties'),
       type: 'string',
     },
     prompt: undefined,
@@ -1062,7 +1062,7 @@ export class Flags {
     name: 'settings-txt',
     definition: {
       describe: 'settings.txt file for node',
-      defaultValue: path.join('templates', 'settings.txt'),
+      defaultValue: PathEx.join('templates', 'settings.txt'),
       type: 'string',
     },
     prompt: undefined,
@@ -1174,7 +1174,7 @@ export class Flags {
     name: 'log4j2-xml',
     definition: {
       describe: 'log4j2.xml file for node',
-      defaultValue: path.join('templates', 'log4j2.xml'),
+      defaultValue: PathEx.join('templates', 'log4j2.xml'),
       type: 'string',
     },
     prompt: undefined,

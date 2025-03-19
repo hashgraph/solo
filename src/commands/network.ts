@@ -15,14 +15,12 @@ import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
   resolveValidJsonFilePath,
-  validatePath,
   sleep,
   parseNodeAliases,
   prepareChartPath,
   showVersionBanner,
 } from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import path from 'path';
 import fs from 'fs';
 import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
@@ -47,6 +45,7 @@ import {Duration} from '../core/time/duration.js';
 import {type PodRef} from '../core/kube/resources/pod/pod-ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../core/kube/resources/pod/pod.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -692,9 +691,9 @@ export class NetworkCommand extends BaseCommand {
     );
 
     // compute other config parameters
-    config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
+    config.keysDir = PathEx.join(config.cacheDir, 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
-    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
+    config.stagingKeysDir = PathEx.join(config.stagingDir, 'keys');
 
     config.resolvedThrottlesFile = resolveValidJsonFilePath(
       config.genesisThrottlesFile,

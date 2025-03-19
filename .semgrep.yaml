@@ -1,0 +1,4 @@
+exclude:
+  # We need to be able to dynamically construct path information and use it in the `fs` module functions
+  - javascript_pathtraversal_rule-non-literal-fs-filename
+rules: []

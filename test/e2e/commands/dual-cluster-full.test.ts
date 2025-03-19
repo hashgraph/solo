@@ -15,7 +15,6 @@ import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {expect} from 'chai';
 import fs from 'fs';
-import path from 'path';
 import {type SoloLogger} from '../../../src/core/logging.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
@@ -25,6 +24,7 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
 import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 import {Templates} from '../../../src/core/templates.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -47,7 +47,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   before(async () => {
     fs.rmSync(testCacheDir, {recursive: true, force: true});
     try {
-      fs.rmSync(path.join(testCacheDir, '..', DEFAULT_LOCAL_CONFIG_FILE), {force: true});
+      fs.rmSync(PathEx.joinWithRealPath(testCacheDir, '..', DEFAULT_LOCAL_CONFIG_FILE), {force: true});
     } catch {
       // allowed to fail if the file doesn't exist
     }
@@ -118,7 +118,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: beginning node keys command`);
     expect(container.resolve<SoloLogger>(InjectTokens.SoloLogger)).to.equal(testLogger);
     await main(soloNodeKeysArgv(deployment));
-    const node1Key: Buffer<ArrayBufferLike> = fs.readFileSync(path.join(testCacheDir, 'keys', 's-private-node1.pem'));
+    const node1Key: Buffer<ArrayBufferLike> = fs.readFileSync(
+      PathEx.joinWithRealPath(testCacheDir, 'keys', 's-private-node1.pem'),
+    );
     expect(node1Key).to.not.be.null;
     testLogger.info(`${testName}: finished node keys command`);
   });

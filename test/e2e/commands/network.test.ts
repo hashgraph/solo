@@ -7,7 +7,6 @@ import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '..
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
-import path from 'path';
 import fs from 'fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -20,14 +19,15 @@ import {InitCommand} from '../../../src/commands/init.js';
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {DeploymentCommand} from '../../../src/commands/deployment.js';
 import {NetworkCommand} from '../../../src/commands/network.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
   const testName = 'network-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
-  const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
-  const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
+  const applicationEnvParentDirectory = PathEx.join(getTmpDir(), 'network-command-test');
+  const applicationEnvFilePath = PathEx.join(applicationEnvParentDirectory, 'application.env');
 
   const argv = Argv.getDefaultArgv(namespace);
   argv.setArg(flags.namespace, namespace.name);

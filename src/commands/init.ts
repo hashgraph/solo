@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Listr} from 'listr2';
-import path from 'path';
 import {BaseCommand} from './base.js';
 import fs from 'fs';
 import * as constants from '../core/constants.js';
@@ -10,6 +9,7 @@ import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
 import {type EmailAddress} from '../core/config/remote/types.js';
 import * as helpers from '../core/helpers.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 /**
  * Defines the core functionalities of 'init' command
@@ -86,10 +86,14 @@ export class InitCommand extends BaseCommand {
           task: ctx => {
             const resources = ['templates', 'profiles'];
             for (const dirName of resources) {
-              const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName));
+              const srcDir = PathEx.safeJoinWithBaseDirConfinement(
+                constants.RESOURCES_DIR,
+                constants.RESOURCES_DIR,
+                dirName,
+              );
               if (!fs.existsSync(srcDir)) continue;
 
-              const destDir = path.resolve(path.join(cacheDir, dirName));
+              const destDir = PathEx.join(cacheDir, dirName);
               if (!fs.existsSync(destDir)) {
                 fs.mkdirSync(destDir, {recursive: true});
               }
