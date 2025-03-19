@@ -207,7 +207,7 @@ export class ExplorerCommand extends BaseCommand {
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
             ctx.config.clusterContext = ctx.config.clusterRef
-              ? this.getLocalConfig().clusterRefs[ctx.config.clusterRef]
+              ? this.localConfig.clusterRefs[ctx.config.clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             if (!(await self.k8Factory.getK8(ctx.config.clusterContext).namespaces().has(ctx.config.namespace))) {
@@ -439,7 +439,7 @@ export class ExplorerCommand extends BaseCommand {
 
             const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
             const clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+              ? this.localConfig.clusterRefs[clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             ctx.config = {
