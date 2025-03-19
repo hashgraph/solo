@@ -3,6 +3,7 @@
 import {type Node} from './node.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 import {type LeafNode} from './leaf-node.js';
+import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 
 export class InternalNode implements Node {
   private readonly _children: Map<string, Node> = new Map<string, Node>();
@@ -86,7 +87,7 @@ export class InternalNode implements Node {
         obj[index] = (child as InternalNode).toObject();
       } else {
         if (child.isLeaf()) {
-          obj[child.name] = JSON.parse((child as LeafNode).value);
+          obj[child.name] = ReflectAssist.coerce((child as LeafNode).value);
         } else {
           obj[child.name] = (child as InternalNode).toObject();
         }

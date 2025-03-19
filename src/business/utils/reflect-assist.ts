@@ -30,4 +30,12 @@ export class ReflectAssist {
   public static isObjectStorageBackend(v: object): v is ObjectStorageBackend {
     return typeof v === 'object' && !!v && 'readObject' in v;
   }
+
+  public static coerce(v: string): string | number | boolean | object | null {
+    try {
+      return JSON.parse(v);
+    } catch {
+      return v;
+    }
+  }
 }

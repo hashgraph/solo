@@ -11,6 +11,7 @@ import {type ClassConstructor} from '../../../business/utils/class-constructor.t
 import {type LeafNode} from '../../key/lexer/leaf-node.js';
 import {type InternalNode} from '../../key/lexer/internal-node.js';
 import {plainToInstance} from 'class-transformer';
+import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 
 export abstract class LayeredConfigSource implements ConfigSource {
   /**
@@ -48,7 +49,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
       return null;
     }
 
-    const val: unknown = JSON.parse(stringVal);
+    const val: unknown = ReflectAssist.coerce(stringVal);
     if (typeof val === 'boolean') {
       return val as boolean;
     } else if (typeof val === 'string') {
@@ -71,7 +72,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
       return null;
     }
 
-    const val: unknown = JSON.parse(stringVal);
+    const val: unknown = ReflectAssist.coerce(stringVal);
     if (typeof val === 'number') {
       return val as number;
     } else if (typeof val === 'object') {
@@ -99,7 +100,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
         }
 
         if (node.isLeaf()) {
-          obj = JSON.parse((node as LeafNode).value);
+          obj = ReflectAssist.coerce((node as LeafNode).value);
         } else {
           obj = (node as InternalNode).toObject();
         }
