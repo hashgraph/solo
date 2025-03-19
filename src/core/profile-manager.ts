@@ -28,7 +28,7 @@ import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
-import {ClusterRef} from './config/remote/types.js';
+import {type ClusterRef} from './config/remote/types.js';
 
 @injectable()
 export class ProfileManager {

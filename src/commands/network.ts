@@ -28,7 +28,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
@@ -376,7 +376,7 @@ export class NetworkCommand extends BaseCommand {
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
 
     const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMapMulticluster(
-      this.remoteConfigManager.getClusterRefs(),
+      config.clusterRefs,
       config.chartDirectory,
       this.profileValuesFile,
       config.valuesFile,
