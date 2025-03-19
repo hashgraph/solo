@@ -8,7 +8,7 @@
 * Optional: deploy Mirror Node & Explorer
 * Optional: deploy JSON RPC Relay
 
-Demo: https://www.loom.com/share/46a0eadb13ef432b8efc8d4307031d4e?sid=79c04de3-c0f6-4858-b289-165b2d67cf08
+Demo: <https://www.loom.com/share/46a0eadb13ef432b8efc8d4307031d4e?sid=79c04de3-c0f6-4858-b289-165b2d67cf08>
 
 # Rerunning without a full restart
 
@@ -344,7 +344,7 @@ kubectl port-forward svc/fullstack-deployment-hedera-explorer -n $SOLO_NAMESPACE
 
 ![image.png](images/devcon_2024_fall_workshop/screenshot_section_4_1_1_expose_explorer_port.png)
 
-Visit: http://localhost:8080/
+Visit: <http://localhost:8080/>
 
 NOTE: click Transactions and then Dashboards and the URL will update from mainnet to localnet
 
@@ -361,7 +361,7 @@ solo account create
 
 ![image.png](images/devcon_2024_fall_workshop/screenshot_section_4_2_1_create_txns.png)
 
-View Hedera Explorer in your browser and click transactions: http://localhost:8080/localnet/transactions
+View Hedera Explorer in your browser and click transactions: <http://localhost:8080/localnet/transactions>
 
 ![image.png](images/devcon_2024_fall_workshop/screenshot_section_4_2_2_create_txns.png)
 
@@ -458,7 +458,7 @@ Forwarding from [::1]:9090 -> 9090
 
 ### 6.3 Verify prometheus targets are UP
 
-Visit the URL: http://localhost:9090/targets?search=
+Visit the URL: <http://localhost:9090/targets?search=>
 
 Check that prometheus targets are discovered for `serviceMonitor/solo/network-node-monitor/0` at the bottom of the list. Ignore the status of the other items for now.
 
