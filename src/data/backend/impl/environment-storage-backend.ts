@@ -69,7 +69,7 @@ export class EnvironmentStorageBackend implements StorageBackend {
       .map(value => Prefix.strip(value, this.prefix));
   }
 
-  public async readBytes(key: string): Promise<Uint8Array> {
+  public async readBytes(key: string): Promise<Buffer> {
     if (!key || key.trim().length === 0) {
       throw new IllegalArgumentError('key must not be null, undefined, or empty');
     }
@@ -85,11 +85,11 @@ export class EnvironmentStorageBackend implements StorageBackend {
       throw new StorageBackendError(`key not found: ${key}`);
     }
 
-    return new Uint8Array(Buffer.from(value, 'utf-8'));
+    return Buffer.from(value, 'utf-8');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars,unused-imports/no-unused-vars
-  public async writeBytes(key: string, data: Uint8Array): Promise<void> {
+  public async writeBytes(key: string, data: Buffer): Promise<void> {
     throw new UnsupportedStorageOperationError('writeBytes is not supported by the environment storage backend');
   }
 

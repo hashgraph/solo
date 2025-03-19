@@ -5,7 +5,7 @@ import {parse} from 'yaml';
 import {expect} from 'chai';
 import {beforeEach} from 'mocha';
 import os from 'os';
-import {instanceToPlain, plainToClass} from 'class-transformer';
+import {instanceToPlain, plainToInstance} from 'class-transformer';
 import {RemoteConfig} from '../../../../../../src/data/schema/model/remote/remote-config.js';
 import {LedgerPhase} from '../../../../../../src/data/schema/model/remote/ledger-phase.js';
 import {DeploymentPhase} from '../../../../../../src/data/schema/model/remote/deployment-phase.js';
@@ -36,6 +36,8 @@ function migrateVersions(plainObject: MigrationCandidate) {
   plainObject.versions.jsonRpcRelayChart = migrateVersionPrefix(
     plainObject.metadata?.hederaJsonRpcRelayChartVersion || plainObject.flags?.relayReleaseTag || '0.0.0',
   );
+
+  plainObject.versions.blockNodeChart = 'v0.0.0';
 }
 
 function migrateClusters(plainObject: MigrationCandidate) {
@@ -157,7 +159,7 @@ describe('RemoteConfig', () => {
     });
 
     it('should transform plain to class', async () => {
-      const rc: RemoteConfig = plainToClass(RemoteConfig, plainObject);
+      const rc: RemoteConfig = plainToInstance(RemoteConfig, plainObject);
       expect(rc).to.not.be.undefined.and.to.not.be.null;
       expect(rc.history.commands.length).to.be.equal(1);
       expect(rc.versions.cli.version).to.equal('0.34.0');
@@ -177,7 +179,7 @@ describe('RemoteConfig', () => {
     });
 
     it('should transform class to plain', async () => {
-      const rc: RemoteConfig = plainToClass(RemoteConfig, plainObject);
+      const rc: RemoteConfig = plainToInstance(RemoteConfig, plainObject);
       const plainRemoteConfigObject = instanceToPlain(rc);
       expect(plainRemoteConfigObject).to.not.be.undefined.and.to.not.be.null;
       expect(plainRemoteConfigObject.history.commands.length).to.be.equal(1);
@@ -198,9 +200,9 @@ describe('RemoteConfig', () => {
     });
 
     it('should be able to go from a class to an object back to a class', async () => {
-      const rc: RemoteConfig = plainToClass(RemoteConfig, plainObject);
+      const rc: RemoteConfig = plainToInstance(RemoteConfig, plainObject);
       const plainRemoteConfigObject = instanceToPlain(rc);
-      const rc2: RemoteConfig = plainToClass(RemoteConfig, plainRemoteConfigObject);
+      const rc2: RemoteConfig = plainToInstance(RemoteConfig, plainRemoteConfigObject);
       expect(rc2).to.not.be.undefined.and.to.not.be.null;
       expect(rc2.history.commands.length).to.be.equal(1);
       expect(rc2.versions.cli.version).to.equal('0.34.0');

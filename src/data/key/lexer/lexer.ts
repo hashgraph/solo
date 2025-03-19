@@ -3,7 +3,6 @@
 import {type KeyFormatter} from '../key-formatter.js';
 import {ConfigKeyFormatter} from '../config-key-formatter.js';
 import {type Node} from './node.js';
-import {InternalNode} from './internal-node.js';
 
 export class Lexer {
   public constructor(
@@ -59,17 +58,18 @@ export class Lexer {
       return roots.get(rootName);
     }
 
-    let array: boolean = false;
-    if (keyParts.length >= 2) {
-      const nextSegment: string = keyParts[1];
-      if () {
-        array = true;
-      }
-    }
+    // let array: boolean = false;
+    // if (keyParts.length >= 2) {
+    //   const nextSegment: string = keyParts[1];
+    // if () {
+    //   array = true;
+    // }
+    // }
 
-    const root: Node = new InternalNode(null, rootName, [], array);
-    roots.set(rootName, root);
-    return root;
+    // const root: Node = new InternalNode(null, rootName, [], array);
+    // roots.set(rootName, root);
+    // return root;
+    return undefined;
   }
 
   private isArraySegment(segment: string): boolean {
