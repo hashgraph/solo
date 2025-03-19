@@ -8,6 +8,7 @@ import {MissingArgumentError} from './errors/missing-argument-error.js';
 import * as yaml from 'yaml';
 import dot from 'dot-object';
 import * as semver from 'semver';
+import {type SemVer} from 'semver';
 import {readFile, writeFile} from 'fs/promises';
 
 import {Flags as flags} from '../commands/flags.js';
@@ -16,7 +17,6 @@ import * as constants from './constants.js';
 import {type ConfigManager} from './config-manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import {type SemVer} from 'semver';
 import {type SoloLogger} from './logging.js';
 import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
 import {type Optional} from '../types/index.js';
@@ -27,6 +27,8 @@ import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {type K8Factory} from './kube/k8-factory.js';
+import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
+import {ClusterRef} from './config/remote/types.js';
 
 @injectable()
 export class ProfileManager {
@@ -34,6 +36,7 @@ export class ProfileManager {
   private readonly configManager: ConfigManager;
   private readonly cacheDir: DirPath;
   private readonly k8Factory: K8Factory;
+  private readonly remoteConfigManager: RemoteConfigManager;
 
   private profiles: Map<string, AnyObject>;
   private profileFile: Optional<string>;
@@ -43,11 +46,17 @@ export class ProfileManager {
     @inject(InjectTokens.ConfigManager) configManager?: ConfigManager,
     @inject(InjectTokens.CacheDir) cacheDir?: DirPath,
     @inject(InjectTokens.K8Factory) k8Factory?: K8Factory,
+    @inject(InjectTokens.RemoteConfigManager) remoteConfigManager?: RemoteConfigManager,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.cacheDir = path.resolve(patchInject(cacheDir, InjectTokens.CacheDir, this.constructor.name));
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
 
     this.profiles = new Map();
   }
@@ -315,24 +324,34 @@ export class ProfileManager {
    * Prepare a values file for Solo Helm chart
    * @param profileName - resource profile name
    * @param consensusNodes - the list of consensus nodes
-   * @returns return the full path to the values file
+   * @returns mapping of cluster-ref to the full path to the values file
    */
-  public async prepareValuesForSoloChart(profileName: string, consensusNodes: ConsensusNode[]) {
+  public async prepareValuesForSoloChart(
+    profileName: string,
+    consensusNodes: ConsensusNode[],
+  ): Promise<Record<ClusterRef, string>> {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName);
 
-    const nodeAliases = helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed));
-    if (!nodeAliases) throw new SoloError('Node IDs are not set in the config');
+    const filesMapping: Record<ClusterRef, string> = {};
 
-    // generate the YAML
-    const yamlRoot = {};
-    await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot);
-    this.resourcesForHaProxyPod(profile, yamlRoot);
-    this.resourcesForEnvoyProxyPod(profile, yamlRoot);
-    this.resourcesForMinioTenantPod(profile, yamlRoot);
+    for (const clusterRef of Object.keys(this.remoteConfigManager.getClusterRefs())) {
+      const nodeAliases = consensusNodes
+        .filter(consensusNode => consensusNode.cluster === clusterRef)
+        .map(consensusNode => consensusNode.name);
 
-    const cachedValuesFile = path.join(this.cacheDir, `solo-${profileName}.yaml`);
-    return this.writeToYaml(cachedValuesFile, yamlRoot);
+      // generate the YAML
+      const yamlRoot = {};
+      await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot);
+      this.resourcesForHaProxyPod(profile, yamlRoot);
+      this.resourcesForEnvoyProxyPod(profile, yamlRoot);
+      this.resourcesForMinioTenantPod(profile, yamlRoot);
+
+      const cachedValuesFile = path.join(this.cacheDir, `solo-${profileName}-${clusterRef}.yaml`);
+      filesMapping[clusterRef] = await this.writeToYaml(cachedValuesFile, yamlRoot);
+    }
+
+    return filesMapping;
   }
 
   private async bumpHederaConfigVersion(applicationPropertiesPath: string) {

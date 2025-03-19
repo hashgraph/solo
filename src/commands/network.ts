@@ -115,7 +115,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly platformInstaller: PlatformInstaller;
   private readonly profileManager: ProfileManager;
   private readonly certificateManager: CertificateManager;
-  private profileValuesFile?: string;
+  private profileValuesFile?: Record<ClusterRef, string>;
 
   constructor(opts: Opts) {
     super(opts);
@@ -374,8 +374,9 @@ export class NetworkCommand extends BaseCommand {
     const valuesArgMap: Record<ClusterRef, string> = {};
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
+
     const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
-      config.clusterRefs,
+      this.remoteConfigManager.getClusterRefs(),
       config.chartDirectory,
       this.profileValuesFile,
       config.valuesFile,
@@ -574,7 +575,7 @@ export class NetworkCommand extends BaseCommand {
     consensusNodes: ConsensusNode[],
     valuesArgs: Record<ClusterRef, string>,
     templateString: string,
-  ) {
+  ): void {
     if (records) {
       consensusNodes.forEach(consensusNode => {
         if (records[consensusNode.name]) {
@@ -704,13 +705,7 @@ export class NetworkCommand extends BaseCommand {
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
 
-    if (config.nodeAliases.length === 0) {
-      config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
-      if (config.nodeAliases.length === 0) {
-        throw new SoloError('no node aliases provided via flags or RemoteConfig');
-      }
-      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
-    }
+    config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 
@@ -1230,11 +1225,7 @@ export class NetworkCommand extends BaseCommand {
     return networkDestroySuccess;
   }
 
-  getCommandDefinition(): {
-    command: string;
-    desc: string;
-    builder: CommandBuilder;
-  } {
+  getCommandDefinition() {
     const self = this;
     return {
       command: NetworkCommand.COMMAND_NAME,
@@ -1330,8 +1321,5 @@ export class NetworkCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }
