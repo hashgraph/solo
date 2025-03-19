@@ -10,7 +10,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {ProfileManager} from '../../../src/core/profile-manager.js';
-import {getTestCacheDir, getTmpDir} from '../../test-util.js';
+import {getTestCacheDir, getTestCluster, getTmpDir} from '../../test-util.js';
 import * as version from '../../../version.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
@@ -21,6 +21,7 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {KubeConfig} from '@kubernetes/client-node';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
+import sinon from 'sinon';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
@@ -60,6 +61,7 @@ describe('ProfileManager', () => {
       fullyQualifiedDomainName: 'network-node3-svc.test-namespace.svc.cluster.local',
     },
   ];
+
   let stagingDir = '';
 
   before(() => {
@@ -84,6 +86,9 @@ describe('ProfileManager', () => {
     if (!fs.existsSync(stagingDir)) {
       fs.mkdirSync(stagingDir, {recursive: true});
     }
+
+    // @ts-expect-error - TS2339: to mock
+    profileManager.remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
   });
 
   after(() => {
