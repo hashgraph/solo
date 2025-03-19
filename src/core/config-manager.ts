@@ -5,7 +5,6 @@ import {SoloError} from './errors/solo-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {type SoloLogger} from './logging.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
-import * as paths from 'path';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag-types.js';
@@ -81,9 +80,9 @@ export class ConfigManager {
         case 'string':
           if (val && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
             this.logger.debug(
-              `Resolving directory path for '${flag.name}': ${val}, to: ${paths.resolve(val)}, note: ~/ is not supported`,
+              `Resolving directory path for '${flag.name}': ${val}, to: ${PathEx.resolve(val)}, note: ~/ is not supported`,
             );
-            val = paths.resolve(val);
+            val = PathEx.resolve(val);
           }
           // if it is a namespace flag then convert it to NamespaceName
           else if (val && (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name)) {
