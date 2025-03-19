@@ -14,7 +14,7 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
-import {type CommandBuilder, type NodeAlias} from '../types/aliases.js';
+import {type ArgvStruct, type NodeAlias} from '../types/aliases.js';
 import {type PodName} from '../core/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -37,7 +37,7 @@ import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpe
 import {type Pod} from '../core/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
-export interface MirrorNodeDeployConfigClass {
+interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
   namespace: NamespaceName;
@@ -65,11 +65,21 @@ export interface MirrorNodeDeployConfigClass {
   externalDatabaseOwnerPassword: Optional<string>;
   externalDatabaseReadonlyUsername: Optional<string>;
   externalDatabaseReadonlyPassword: Optional<string>;
+  domainName: Optional<string>;
 }
 
-export interface Context {
+interface MirrorNodeDeployContext {
   config: MirrorNodeDeployConfigClass;
   addressBook: string;
+}
+
+interface MirrorNodeDestroyContext {
+  config: {
+    namespace: NamespaceName;
+    clusterContext: string;
+    isChartInstalled: boolean;
+    clusterRef?: Optional<ClusterRef>;
+  };
 }
 
 export class MirrorNodeCommand extends BaseCommand {
@@ -89,41 +99,38 @@ export class MirrorNodeCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'mirror-node';
 
-  static get DEPLOY_CONFIGS_NAME() {
-    return 'deployConfigs';
-  }
+  private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';
 
-  static get DEPLOY_FLAGS_LIST() {
-    return [
-      flags.clusterRef,
-      flags.chartDirectory,
-      flags.deployment,
-      flags.enableIngress,
-      flags.mirrorStaticIp,
-      flags.profileFile,
-      flags.profileName,
-      flags.quiet,
-      flags.valuesFile,
-      flags.mirrorNodeVersion,
-      flags.pinger,
-      flags.useExternalDatabase,
-      flags.operatorId,
-      flags.operatorKey,
-      flags.storageType,
-      flags.storageReadAccessKey,
-      flags.storageReadSecrets,
-      flags.storageEndpoint,
-      flags.storageBucket,
-      flags.storageBucketPrefix,
-      flags.externalDatabaseHost,
-      flags.externalDatabaseOwnerUsername,
-      flags.externalDatabaseOwnerPassword,
-      flags.externalDatabaseReadonlyUsername,
-      flags.externalDatabaseReadonlyPassword,
-    ];
-  }
+  private static readonly DEPLOY_FLAGS_LIST = [
+    flags.clusterRef,
+    flags.chartDirectory,
+    flags.deployment,
+    flags.enableIngress,
+    flags.mirrorStaticIp,
+    flags.profileFile,
+    flags.profileName,
+    flags.quiet,
+    flags.valuesFile,
+    flags.mirrorNodeVersion,
+    flags.pinger,
+    flags.useExternalDatabase,
+    flags.operatorId,
+    flags.operatorKey,
+    flags.storageType,
+    flags.storageReadAccessKey,
+    flags.storageReadSecrets,
+    flags.storageEndpoint,
+    flags.storageBucket,
+    flags.storageBucketPrefix,
+    flags.externalDatabaseHost,
+    flags.externalDatabaseOwnerUsername,
+    flags.externalDatabaseOwnerPassword,
+    flags.externalDatabaseReadonlyUsername,
+    flags.externalDatabaseReadonlyPassword,
+    flags.domainName,
+  ];
 
-  async prepareValuesArg(config: MirrorNodeDeployConfigClass) {
+  async prepareValuesArg(config: MirrorNodeDeployConfigClass): Promise<string> {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -165,6 +172,14 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI=${config.storageEndpoint}`;
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageReadAccessKey}`;
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageReadSecrets}`;
+    }
+
+    if (config.domainName) {
+      valuesArg += helpers.populateHelmArgs({
+        'ingress.enabled': true,
+        'ingress.tls.enabled': false,
+        'ingress.hosts[0].host': config.domainName,
+      });
     }
 
     // if the useExternalDatabase populate all the required values before installing the chart
@@ -211,11 +226,11 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArg;
   }
 
-  async deploy(argv: any) {
+  async deploy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<MirrorNodeDeployContext>(
       [
         {
           title: 'Initialize',
@@ -238,6 +253,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.externalDatabaseReadonlyPassword,
               flags.profileFile,
               flags.profileName,
+              flags.domainName,
             ]);
 
             await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
@@ -365,7 +381,7 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Enable mirror-node',
           task: (_, parentTask) => {
-            return parentTask.newListr<Context>(
+            return parentTask.newListr<MirrorNodeDeployContext>(
               [
                 {
                   title: 'Prepare address book',
@@ -433,6 +449,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.valuesArg,
                       ctx.config.clusterContext,
                     );
+
                     showVersionBanner(self.logger, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.mirrorNodeVersion);
 
                     if (ctx.config.enableIngress) {
@@ -689,20 +706,11 @@ export class MirrorNodeCommand extends BaseCommand {
     return true;
   }
 
-  async destroy(argv: any) {
+  async destroy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: {
-        namespace: NamespaceName;
-        clusterContext: string;
-        isChartInstalled: boolean;
-        clusterRef?: Optional<ClusterRef>;
-      };
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<MirrorNodeDestroyContext>(
       [
         {
           title: 'Initialize',
@@ -827,8 +835,7 @@ export class MirrorNodeCommand extends BaseCommand {
     return true;
   }
 
-  /** Return Yargs command definition for 'mirror-mirror-node' command */
-  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  public getCommandDefinition() {
     const self = this;
     return {
       command: MirrorNodeCommand.COMMAND_NAME,
@@ -887,7 +894,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node components from remote config. */
-  public removeMirrorNodeComponents(): SoloListrTask<any> {
+  public removeMirrorNodeComponents(): SoloListrTask<MirrorNodeDestroyContext> {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -900,7 +907,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Adds the mirror node components to remote config. */
-  public addMirrorNodeComponents(): SoloListrTask<any> {
+  public addMirrorNodeComponents(): SoloListrTask<MirrorNodeDeployContext> {
     return {
       title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -917,8 +924,5 @@ export class MirrorNodeCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }

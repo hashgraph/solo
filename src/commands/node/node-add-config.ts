@@ -47,4 +47,6 @@ export interface NodeAddConfigClass {
   envoyIps: string;
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }

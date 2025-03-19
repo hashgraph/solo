@@ -553,13 +553,7 @@ export class NodeCommandHandlers extends CommandHandler {
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(
-          argv,
-          this.configs.deleteConfigBuilder.bind(this.configs),
-          lease,
-
-          false,
-        ),
+        this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease, false),
         this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteExecuteTaskList(argv),
       ],

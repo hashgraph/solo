@@ -1084,6 +1084,7 @@ export class NodeCommandTasks {
           ctx.config.consensusNodes,
           ctx.config.keysDir,
           ctx.config.stagingDir,
+          ctx.config.domainNamesMapping,
         );
       }
 
@@ -1131,12 +1132,14 @@ export class NodeCommandTasks {
    * @param consensusNodes - consensus nodes
    * @param keysDir - keys directory
    * @param stagingDir - staging directory
+   * @param domainNamesMapping
    */
   private async generateGenesisNetworkJson(
     namespace: NamespaceName,
     consensusNodes: ConsensusNode[],
     keysDir: string,
     stagingDir: string,
+    domainNamesMapping?: Record<NodeAlias, string>,
   ) {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
@@ -1153,6 +1156,7 @@ export class NodeCommandTasks {
       keysDir,
       networkNodeServiceMap,
       adminPublicKeys,
+      domainNamesMapping,
     );
 
     const genesisNetworkJson = PathEx.join(stagingDir, 'genesis-network.json');

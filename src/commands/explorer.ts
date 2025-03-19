@@ -16,7 +16,7 @@ import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
 import {prepareChartPath, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
-import {type SoloListrTask} from '../types/index.js';
+import {type Optional, type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
@@ -24,6 +24,7 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
+import * as helpers from '../core/helpers.js';
 
 export interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -44,6 +45,7 @@ export interface ExplorerDeployConfigClass {
   clusterSetupNamespace: NamespaceName;
   getUnusedConfigs: () => string[];
   soloChartVersion: string;
+  domainName: Optional<string>;
 }
 
 interface Context {
@@ -64,30 +66,27 @@ export class ExplorerCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'explorer';
 
-  static get DEPLOY_CONFIGS_NAME() {
-    return 'deployConfigs';
-  }
+  private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';
 
-  static get DEPLOY_FLAGS_LIST() {
-    return [
-      flags.chartDirectory,
-      flags.clusterRef,
-      flags.enableIngress,
-      flags.enableHederaExplorerTls,
-      flags.hederaExplorerTlsHostName,
-      flags.hederaExplorerStaticIp,
-      flags.hederaExplorerVersion,
-      flags.mirrorNamespace,
-      flags.namespace,
-      flags.deployment,
-      flags.profileFile,
-      flags.profileName,
-      flags.quiet,
-      flags.soloChartVersion,
-      flags.tlsClusterIssuerType,
-      flags.valuesFile,
-    ];
-  }
+  private static readonly DEPLOY_FLAGS_LIST = [
+    flags.chartDirectory,
+    flags.clusterRef,
+    flags.enableIngress,
+    flags.enableHederaExplorerTls,
+    flags.hederaExplorerTlsHostName,
+    flags.hederaExplorerStaticIp,
+    flags.hederaExplorerVersion,
+    flags.mirrorNamespace,
+    flags.namespace,
+    flags.deployment,
+    flags.profileFile,
+    flags.profileName,
+    flags.quiet,
+    flags.soloChartVersion,
+    flags.tlsClusterIssuerType,
+    flags.valuesFile,
+    flags.domainName,
+  ];
 
   /**
    * @param config - the configuration object
@@ -117,6 +116,14 @@ export class ExplorerCommand extends BaseCommand {
     } else {
       valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
     }
+
+    if (config.domainName) {
+      valuesArg += helpers.populateHelmArgs({
+        'ingress.enabled': true,
+        'ingress.hosts[0].host': config.domainName,
+      });
+    }
+
     return valuesArg;
   }
 
