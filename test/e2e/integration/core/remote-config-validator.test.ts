@@ -29,6 +29,7 @@ import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
 import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {getTestCacheDir} from '../../../test-util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
@@ -43,6 +44,8 @@ describe('RemoteConfigValidator', () => {
     configManager.update({[flags.namespace.name]: namespace} as ArgvStruct);
     k8Factory = container.resolve(InjectTokens.K8Factory);
     localConfig = new LocalConfig(filePath);
+    // @ts-expect-error - TS2341: to mock
+    localConfig.localConfigData = new LocalConfigDataWrapper('test@test.com', '0.0.1', {}, {});
     await k8Factory.default().namespaces().create(namespace);
   });
 

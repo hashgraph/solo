@@ -46,23 +46,53 @@ export class LocalConfig {
     }
   }
 
+  /**
+   * @returns the email address from the local config data if it's loaded
+   * @throws SoloError if the config is not loaded
+   */
   public get userEmailAddress(): EmailAddress {
+    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
     return this.localConfigData.userEmailAddress;
   }
 
+  /**
+   * @returns the solo version from the local config data if it's loaded
+   * @throws SoloError if the config is not loaded
+   */
   public get soloVersion(): Version {
+    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
     return this.localConfigData.soloVersion;
   }
 
+  /**
+   * @returns the deployment mapping from the local config data if it's loaded
+   * @throws SoloError if the config is not loaded
+   */
   public get deployments(): Readonly<Deployments> {
+    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
     return this.localConfigData.deployments;
   }
 
+  /**
+   * @returns the cluster refs mapping from the local config data if it's loaded
+   * @throws SoloError if the config is not loaded
+   */
   public get clusterRefs(): Readonly<ClusterRefs> {
+    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
     return this.localConfigData.clusterRefs;
   }
 
+  /**
+   * Method is used to apply changes to the `local config`,
+   * use the `callback` to modify the underlying values.
+   * Handles checking prerequisites, validation and writing the file.
+   * @param callback - callback function containing inside of the the data wrapper.
+   *
+   * @throws SoloError if the local config is not loaded prior to modifying.
+   */
   public async modify(callback: (config: LocalConfigDataWrapper) => Promise<void>): Promise<void> {
+    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_MODIFY_BEFORE_LOADING);
+
     await callback(this.localConfigData);
 
     this.localConfigData.validate();
@@ -70,12 +100,20 @@ export class LocalConfig {
     await this.write();
   }
 
+  /**
+   * Checks if the local config exists at the specified file path
+   */
   public configFileExists(): boolean {
     return fs.existsSync(this.filePath);
   }
 
+  /**
+   * Handles write operations to the local config,
+   * writes the current version of the local config data wrapper
+   * @throws SoloError
+   */
   private async write(): Promise<void> {
-    if (!this.localConfigData) throw new SoloError('attempting to write to local config without loading it');
+    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_WRITING_BEFORE_LOADING);
 
     const yamlContent = yaml.stringify(this.localConfigData.toObject());
 
@@ -84,9 +122,21 @@ export class LocalConfig {
     this.logger.info(`Wrote local config to ${this.filePath}: ${yamlContent}`);
   }
 
+  /**
+   * Creates new instance of the local config, after validation writes it to the specified file path.
+   * @param email - the user identification
+   * @param soloVersion - the current solo version
+   */
   public async create(email: EmailAddress, soloVersion: Version): Promise<void> {
     this.localConfigData = new LocalConfigDataWrapper(email, soloVersion, {}, {});
     this.localConfigData.validate();
     await this.write();
+  }
+
+  /**
+   * @returns whether the local config is loaded
+   */
+  private isLoaded(): boolean {
+    return !!this.localConfigData;
   }
 }
