@@ -26,8 +26,8 @@ describe('NetworkCommand', function networkCommand() {
   const testName = 'network-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
-  const applicationEnvParentDirectory = PathEx.joinWithRealPath(getTmpDir(), 'network-command-test');
-  const applicationEnvFilePath = PathEx.joinWithRealPath(applicationEnvParentDirectory, 'application.env');
+  const applicationEnvParentDirectory = PathEx.join(getTmpDir(), 'network-command-test');
+  const applicationEnvFilePath = PathEx.join(applicationEnvParentDirectory, 'application.env');
 
   const argv = Argv.getDefaultArgv(namespace);
   argv.setArg(flags.namespace, namespace.name);

@@ -156,10 +156,7 @@ export class NodeCommandTasks {
     }
     fs.writeFileSync(PathEx.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'));
 
-    return await zipper.zip(
-      PathEx.joinWithRealPath(stagingDir, 'mock-upgrade'),
-      PathEx.joinWithRealPath(stagingDir, 'mock-upgrade.zip'),
-    );
+    return await zipper.zip(PathEx.join(stagingDir, 'mock-upgrade'), PathEx.join(stagingDir, 'mock-upgrade.zip'));
   }
 
   private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
