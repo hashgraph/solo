@@ -154,7 +154,7 @@ export class NodeCommandTasks {
         newLines.push(line);
       }
     }
-    fs.writeFileSync(PathEx.joinWithRealPath(upgradeConfigDir, 'application.properties'), newLines.join('\n'));
+    fs.writeFileSync(PathEx.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'));
 
     return await zipper.zip(
       PathEx.joinWithRealPath(stagingDir, 'mock-upgrade'),
