@@ -375,7 +375,7 @@ export class NetworkCommand extends BaseCommand {
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
 
-    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
+    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMapMulticluster(
       this.remoteConfigManager.getClusterRefs(),
       config.chartDirectory,
       this.profileValuesFile,

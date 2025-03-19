@@ -76,18 +76,16 @@ export abstract class BaseCommand extends ShellRunner {
   /**
    * Prepare the values files map for each cluster
    *
-   * <p> Order of precedence:
-   * <ol>
-   *   <li> Chart's default values file (if chartDirectory is set) </li>
-   *   <li> Profile values file </li>
-   *   <li> User's values file </li>
-   * </ol>
+   * Order of precedence:
+   * 1. Chart's default values file (if chartDirectory is set)
+   * 2. Profile values file
+   * 3. User's values file
    * @param clusterRefs
    * @param valuesFileInput - the values file input string
    * @param chartDirectory - the chart directory
    * @param profileValuesFile - mapping of clusterRef to the profile values file full path
    */
-  static prepareValuesFilesMap(
+  static prepareValuesFilesMapMulticluster(
     clusterRefs: ClusterRefs,
     chartDirectory?: string,
     profileValuesFile?: Record<ClusterRef, string>,
@@ -144,20 +142,83 @@ export abstract class BaseCommand extends ShellRunner {
     return valuesFiles;
   }
 
-  public getLeaseManager(): LockManager {
-    return this.leaseManager;
-  }
+  /**
+   * Prepare the values files map for each cluster
+   *
+   * Order of precedence:
+   * 1. Chart's default values file (if chartDirectory is set)
+   * 2. Profile values file
+   * 3. User's values file
+   * @param clusterRefs
+   * @param valuesFileInput - the values file input string
+   * @param chartDirectory - the chart directory
+   * @param profileValuesFile - the profile values file full path
+   */
+  static prepareValuesFilesMap(
+    clusterRefs: ClusterRefs,
+    chartDirectory?: string,
+    profileValuesFile?: string,
+    valuesFileInput?: string,
+  ): Record<ClusterRef, string> {
+    // initialize the map with an empty array for each cluster-ref
+    const valuesFiles: Record<ClusterRef, string> = {
+      [Flags.KEY_COMMON]: '',
+    };
+    Object.keys(clusterRefs).forEach(clusterRef => {
+      valuesFiles[clusterRef] = '';
+    });
 
-  public getK8Factory() {
-    return this.k8Factory;
-  }
+    // add the chart's default values file for each cluster-ref if chartDirectory is set
+    // this should be the first in the list of values files as it will be overridden by user's input
+    if (chartDirectory) {
+      const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      for (const clusterRef in valuesFiles) {
+        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      }
+    }
 
-  public getLocalConfig() {
-    return this.localConfig;
-  }
+    if (profileValuesFile) {
+      const parsed = Flags.parseValuesFilesInput(profileValuesFile);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
 
-  public getRemoteConfigManager() {
-    return this.remoteConfigManager;
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([cf]) => {
+            valuesFiles[cf] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (valuesFileInput) {
+      const parsed = Flags.parseValuesFilesInput(valuesFileInput);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterRef]) => {
+            valuesFiles[clusterRef] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (Object.keys(valuesFiles).length > 1) {
+      // delete the common key if there is another cluster to use
+      delete valuesFiles[Flags.KEY_COMMON];
+    }
+
+    return valuesFiles;
   }
 
   abstract close(): Promise<void>;
