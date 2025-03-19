@@ -88,6 +88,8 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.copyNodeKeysToSecrets(),
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap('Delete network node', NodeSubcommandType.DELETE),
+      this.tasks.killNodes(),
+      this.tasks.sleep('Give time for pods to come up after being killed', 20000),
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.populateServiceMap(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
