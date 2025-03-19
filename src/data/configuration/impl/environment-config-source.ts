@@ -53,7 +53,7 @@ export class EnvironmentConfigSource implements ConfigSource {
   }
 
   public asString(key: string): string | null {
-    return undefined;
+    return this.data.get(key) || null;
   }
 
   public asStringArray(key: string): string[] | null {
