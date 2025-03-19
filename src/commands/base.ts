@@ -98,7 +98,7 @@ export abstract class BaseCommand extends ShellRunner {
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
-      const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
       for (const clusterRef in valuesFiles) {
         valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
       }
