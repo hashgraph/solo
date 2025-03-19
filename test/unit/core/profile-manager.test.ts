@@ -10,7 +10,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {ProfileManager} from '../../../src/core/profile-manager.js';
-import {getTestCacheDir, getTestCluster, getTmpDir} from '../../test-util.js';
+import {getTestCacheDir, getTmpDir} from '../../test-util.js';
 import * as version from '../../../version.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
