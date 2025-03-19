@@ -73,7 +73,8 @@ describe('HelmClient Tests', () => {
     } finally {
       await expect(helmClient.removeRepository(INCUBATOR_REPOSITORY)).to.not.be.rejected;
       const repositories = await helmClient.listRepositories();
-      expect(repositories).to.not.be.null.and.to.have.lengthOf(originalRepoListSize);
+      expect(repositories).to.not.be.null;
+      expect(repositories).to.have.lengthOf(originalRepoListSize);
     }
   });
 
@@ -86,7 +87,7 @@ describe('HelmClient Tests', () => {
         ? 'Error: no repositories configured'
         : `Error: no repo named "${JETSTACK_REPOSITORY.name}" found`;
 
-    await expect(helmClient.removeRepository(JETSTACK_REPOSITORY))
+    expect(await helmClient.removeRepository(JETSTACK_REPOSITORY))
       .to.be.rejectedWith(HelmExecutionException)
       .that.eventually.has.property('message')
       .that.contain(expectedMessage);

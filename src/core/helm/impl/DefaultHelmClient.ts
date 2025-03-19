@@ -10,7 +10,7 @@ import {type Chart} from '../model/Chart.js';
 import {Repository} from '../model/Repository.js';
 import {Version} from '../model/Version.js';
 import {type Release} from '../model/chart/Release.js';
-import {type InstallChartOptions} from '../model/install/InstallChartOptions.js';
+import {InstallChartOptions} from '../model/install/InstallChartOptions.js';
 import {ReleaseItem} from '../model/release/ReleaseItem.js';
 import {type TestChartOptions} from '../model/test/TestChartOptions.js';
 import {type HelmRequest} from '../request/HelmRequest.js';
@@ -90,8 +90,12 @@ export class DefaultHelmClient implements HelmClient {
     await this.executeAsync(new RepositoryRemoveRequest(repository), undefined);
   }
 
-  public async installChart(releaseName: string, chart: Chart): Promise<Release> {
-    return this.installChartWithOptions(releaseName, chart, {} as InstallChartOptions);
+  public async installChart(
+    releaseName: string,
+    chart: Chart,
+    options: InstallChartOptions = InstallChartOptions.defaults(),
+  ): Promise<Release> {
+    return await this.installChartWithOptions(releaseName, chart, options);
   }
 
   public async installChartWithOptions(
@@ -180,19 +184,17 @@ export class DefaultHelmClient implements HelmClient {
     responseClass: new (...args: any[]) => R,
     responseFn: BiFunction<HelmExecution, typeof responseClass, Promise<V>>,
   ): Promise<V> {
-    if (!namespace) {
-      throw new Error(DefaultHelmClient.MSG_NAMESPACE_NOT_NULL);
-    }
-
-    if (!namespace.trim()) {
+    if (namespace && !namespace.trim()) {
       throw new Error('namespace must not be blank');
     }
 
     const builder = new HelmExecutionBuilder(this.helmExecutable);
     this.applyBuilderDefaults(builder);
     request.apply(builder);
-    builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, namespace);
-    const execution = await builder.build();
+    if (namespace) {
+      builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, namespace);
+    }
+    const execution = builder.build();
     return responseFn(execution, responseClass);
   }
 }

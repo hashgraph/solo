@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn, type ChildProcess, ChildProcessWithoutNullStreams} from 'child_process';
+import {spawn, type ChildProcessWithoutNullStreams} from 'child_process';
 import {HelmExecutionException} from '../HelmExecutionException.js';
 import {HelmParserException} from '../HelmParserException.js';
 import {type Duration} from '../../time/duration.js';
-import {Version} from '../model/Version.js';
-import {Release} from '../model/chart/Release.js';
 
 /**
  * Represents the execution of a helm command and is responsible for parsing the response.
@@ -139,6 +137,9 @@ export class HelmExecution {
       throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
     }
 
+    if (responseClass === undefined) {
+      return null;
+    }
     const output = this.standardOutput();
     try {
       const parsed = JSON.parse(output);
