@@ -8,7 +8,7 @@ import * as constants from './constants.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),

@@ -14,7 +14,7 @@ import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type NamespaceNameAsString} from './config/remote/types.js';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {

@@ -15,7 +15,7 @@ import {OS_WIN32, OS_WINDOWS} from '../constants.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
-import {PathEx} from '../util/path-ex.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';

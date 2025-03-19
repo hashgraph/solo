@@ -17,7 +17,7 @@ import {type NodeKeyObject, type PrivateKeyAndCertificateObject, type SoloListrT
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);

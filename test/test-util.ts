@@ -50,7 +50,7 @@ import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv-wrapper.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import {CommandInvoker} from './helpers/command-invoker.js';
-import {PathEx} from '../src/core/util/path-ex.js';
+import {PathEx} from '../src/business/utils/path-ex.js';
 
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 

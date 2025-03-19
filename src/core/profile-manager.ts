@@ -29,7 +29,7 @@ import {type ConsensusNode} from './model/consensus-node.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {type ClusterRef} from './config/remote/types.js';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 @injectable()
 export class ProfileManager {

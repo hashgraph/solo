@@ -4,7 +4,7 @@ import {getTmpDir} from '../../../../test-util.js';
 import {YamlFileStorageBackend} from '../../../../../src/data/backend/impl/yaml-file-storage-backend.js';
 import {expect} from 'chai';
 import fs from 'fs';
-import {PathEx} from '../../../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 
 describe('YAML File Storage Backend', () => {
   const testName: string = 'yaml-file-storage-backend';

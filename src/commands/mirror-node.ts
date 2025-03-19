@@ -35,7 +35,7 @@ import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../core/kube/resources/pod/pod.js';
-import {PathEx} from '../core/util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export interface MirrorNodeDeployConfigClass {
   chartDirectory: string;

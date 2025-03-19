@@ -6,7 +6,7 @@ import {type Stats, statSync, lstatSync, readdirSync, writeFileSync, unlinkSync}
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
 import {readFileSync} from 'fs';
-import {PathEx} from '../../../core/util/path-ex.js';
+import {PathEx} from '../../../business/utils/path-ex.js';
 
 /**
  * A file storage backend that operates on files within a specified base path. This backend does not support recursive

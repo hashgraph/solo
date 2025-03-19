@@ -11,7 +11,7 @@ import {type NodeAlias} from '../../../src/types/aliases.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
-import {PathEx} from '../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('KeyManager', () => {
   const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);

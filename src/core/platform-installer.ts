@@ -26,7 +26,7 @@ import {ContainerRef} from './kube/resources/container/container-ref.js';
 import {SecretType} from './kube/resources/secret/secret-type.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()

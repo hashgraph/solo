@@ -14,7 +14,7 @@ import {SoloError} from '../errors/solo-error.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account-manager.js';
 import {type ConsensusNode} from '../model/consensus-node.js';
-import {PathEx} from '../util/path-ex.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON

@@ -15,7 +15,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {Argv} from '../../helpers/argv-wrapper.js';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';
-import {PathEx} from '../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests

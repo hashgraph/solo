@@ -45,7 +45,7 @@ import {Duration} from '../core/time/duration.js';
 import {type PodRef} from '../core/kube/resources/pod/pod-ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../core/kube/resources/pod/pod.js';
-import {PathEx} from '../core/util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;

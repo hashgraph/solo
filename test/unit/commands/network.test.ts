@@ -32,7 +32,7 @@ import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import {PathEx} from '../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);

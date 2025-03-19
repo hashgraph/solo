@@ -14,7 +14,7 @@ import {container} from 'tsyringe-neo';
 import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
-import {PathEx} from '../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('PackageInstaller', () => {
   let installer: PlatformInstaller;

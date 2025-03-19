@@ -24,7 +24,7 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
 import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
 import {Templates} from '../../../src/core/templates.js';
-import {PathEx} from '../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const testName: string = 'dual-cluster-full';
 

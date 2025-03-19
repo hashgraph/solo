@@ -32,7 +32,7 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
-import {PathEx} from '../util/path-ex.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 /**
  * Container class to manage the dependency injection container

@@ -9,7 +9,7 @@ import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
 import {type EmailAddress} from '../core/config/remote/types.js';
 import * as helpers from '../core/helpers.js';
-import {PathEx} from '../core/util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 /**
  * Defines the core functionalities of 'init' command

@@ -14,7 +14,7 @@ import {type K8Factory} from './kube/k8-factory.js';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type Pod} from './kube/resources/pod/pod.js';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 /**
  * Class to manage network nodes

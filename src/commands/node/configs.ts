@@ -25,7 +25,7 @@ import {type LocalConfig} from '../../core/config/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {type Helm} from '../../core/helm.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
-import {PathEx} from '../../core/util/path-ex.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';

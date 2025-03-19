@@ -24,7 +24,7 @@ import {type K8} from './kube/k8.js';
 import {type Helm} from './helm.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import chalk from 'chalk';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS

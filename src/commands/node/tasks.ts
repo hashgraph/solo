@@ -93,7 +93,7 @@ import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell-runner.js';
 import {type Listr} from 'listr2';
-import {PathEx} from '../../core/util/path-ex.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 @injectable()
 export class NodeCommandTasks {

@@ -6,7 +6,7 @@ import {dirname} from 'path';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {ContainerName} from './kube/resources/container/container-name.js';
-import {PathEx} from './util/path-ex.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export const ROOT_DIR = PathEx.joinWithRealPath(dirname(fileURLToPath(import.meta.url)), '..', '..');
 

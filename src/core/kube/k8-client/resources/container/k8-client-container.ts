@@ -20,7 +20,7 @@ import os from 'os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import {InjectTokens} from '../../../../dependency-injection/inject-tokens.js';
-import {PathEx} from '../../../../util/path-ex.js';
+import {PathEx} from '../../../../../business/utils/path-ex.js';
 
 export class K8ClientContainer implements Container {
   private readonly logger: SoloLogger;

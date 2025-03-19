@@ -18,7 +18,7 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
-import {PathEx} from '../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const namespace = NamespaceName.of('local-hedera-app');
 const argv = Argv.getDefaultArgv(namespace);

@@ -29,7 +29,7 @@ import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tok
 import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
 import {Argv} from '../../../helpers/argv-wrapper.js';
 import {type Pod} from '../../../../src/core/kube/resources/pod/pod.js';
-import {PathEx} from '../../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../../src/business/utils/path-ex.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 

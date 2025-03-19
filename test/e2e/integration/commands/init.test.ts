@@ -21,7 +21,7 @@ import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../../src/core/constants.js';
-import {PathEx} from '../../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../../src/business/utils/path-ex.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {

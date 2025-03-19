@@ -5,7 +5,7 @@ import {FileStorageBackend} from '../../../../../src/data/backend/impl/file-stor
 import {getTmpDir} from '../../../../test-util.js';
 import fs from 'fs';
 import {StorageOperation} from '../../../../../src/data/backend/api/storage-operation.js';
-import {PathEx} from '../../../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 
 describe('File Storage Backend', () => {
   const testName: string = 'file-storage-backend';

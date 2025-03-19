@@ -5,7 +5,7 @@ import {FileStorageBackend} from './file-storage-backend.js';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {parse, stringify} from 'yaml';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
-import {PathEx} from '../../../core/util/path-ex.js';
+import {PathEx} from '../../../business/utils/path-ex.js';
 
 export class YamlFileStorageBackend extends FileStorageBackend implements ObjectStorageBackend {
   public constructor(basePath: string) {

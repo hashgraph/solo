@@ -8,7 +8,7 @@ import fs from 'fs';
 import {HelmDependencyManager} from '../../../../../src/core/dependency-managers/index.js';
 import {getTestCacheDir, getTmpDir} from '../../../../test-util.js';
 import * as version from '../../../../../version.js';
-import {PathEx} from '../../../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 
 describe('HelmDependencyManager', () => {
   const tmpDir = PathEx.join(getTmpDir(), 'bin');

@@ -10,7 +10,7 @@ import * as os from 'os';
 import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
 import {ResourceNotFoundError} from '../../../src/core/errors/resource-not-found-error.js';
-import {PathEx} from '../../../src/core/util/path-ex.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('PackageDownloader', () => {
   const testLogger = logging.NewLogger('debug', true);
