@@ -63,7 +63,7 @@ export class EnvironmentStorageBackend implements StorageBackend {
       env = {};
     }
 
-    const keys = Object.keys(env);
+    const keys: string[] = Object.keys(env);
     return keys
       .filter(value => Prefix.matcher(value, undefined, EnvironmentKeyFormatter.instance()))
       .map(value => Prefix.strip(value, this.prefix));
@@ -74,7 +74,7 @@ export class EnvironmentStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('key must not be null, undefined, or empty');
     }
 
-    const normalizedKey = Prefix.add(key, this.prefix, EnvironmentKeyFormatter.instance());
+    const normalizedKey: string = Prefix.add(key, this.prefix, EnvironmentKeyFormatter.instance());
     let env: object = process.env;
     if (!env) {
       env = {};

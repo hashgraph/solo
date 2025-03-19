@@ -24,7 +24,7 @@ export class Prefix {
   public static strip(key: string, prefix?: string, formatter: KeyFormatter = ConfigKeyFormatter.instance()): string {
     const normalizedKey: string = formatter.normalize(key);
     let finalPrefix: string = prefix ? formatter.normalize(prefix) : null;
-    finalPrefix = !finalPrefix.endsWith(formatter.separator) ? `${finalPrefix}${formatter.separator}` : finalPrefix;
+    finalPrefix = !finalPrefix?.endsWith(formatter.separator) ? `${finalPrefix}${formatter.separator}` : finalPrefix;
     return finalPrefix && normalizedKey.startsWith(finalPrefix)
       ? normalizedKey.replace(`^${Regex.escape(finalPrefix)}`, '')
       : normalizedKey;

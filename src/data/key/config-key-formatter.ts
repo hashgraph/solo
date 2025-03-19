@@ -15,7 +15,7 @@ export class ConfigKeyFormatter implements KeyFormatter {
       return key;
     }
 
-    return key.trim().toLowerCase().replace('_', this.separator);
+    return key.trim().toLowerCase().replaceAll('_', this.separator);
   }
 
   public split(key: string): string[] {
