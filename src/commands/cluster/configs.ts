@@ -13,7 +13,7 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-
 import {type ConfigManager} from '../../core/config-manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart-manager.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {type ArgvStruct} from '../../types/aliases.js';
 import {type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ClusterRefDefaultConfigClass} from './config-interfaces/cluster-ref-default-config-class.js';

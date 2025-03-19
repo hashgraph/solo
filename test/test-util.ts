@@ -29,7 +29,7 @@ import {type PlatformInstaller} from '../src/core/platform-installer.js';
 import {type ProfileManager} from '../src/core/profile-manager.js';
 import {type LockManager} from '../src/core/lock/lock-manager.js';
 import {type CertificateManager} from '../src/core/certificate-manager.js';
-import {type LocalConfig} from '../src/core/config/local-config.js';
+import {type LocalConfig} from '../src/core/config/local/local-config.js';
 import {type RemoteConfigManager} from '../src/core/config/remote/remote-config-manager.js';
 import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';

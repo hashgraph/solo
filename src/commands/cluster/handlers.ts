@@ -8,7 +8,7 @@ import {SoloError} from '../../core/errors/solo-error.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {CommandHandler} from '../../core/command-handler.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type ClusterCommandConfigs} from './configs.js';
 import {type ArgvStruct} from '../../types/aliases.js';
@@ -40,9 +40,8 @@ export class ClusterCommandHandlers extends CommandHandler {
       [
         this.tasks.initialize(argv, this.configs.connectConfigBuilder.bind(this.configs)),
         this.tasks.validateClusterRefs(),
-        this.tasks.connectClusterRef(),
         this.tasks.testConnectionToCluster(),
-        this.tasks.saveLocalConfig(),
+        this.tasks.connectClusterRef(),
       ],
       {
         concurrent: false,
@@ -63,7 +62,6 @@ export class ClusterCommandHandlers extends CommandHandler {
       [
         this.tasks.initialize(argv, this.configs.defaultConfigBuilder.bind(this.configs)),
         this.tasks.disconnectClusterRef(),
-        this.tasks.saveLocalConfig(),
       ],
       {
         concurrent: false,

@@ -24,7 +24,7 @@ import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
 import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
 import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
-import {type LocalConfig} from '../../../src/core/config/local-config.js';
+import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {resetForTest} from '../../test-container.js';
 import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
 import {type K8ClientConfigMaps} from '../../../src/core/kube/k8-client/resources/config-map/k8-client-config-maps.js';
@@ -144,7 +144,7 @@ describe('NetworkCommand unit tests', () => {
       opts.remoteConfigManager = container.resolve<RemoteConfigManager>(InjectTokens.RemoteConfigManager);
       opts.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
 
-      opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
+      opts.localConfig.localConfigData._clusterRefs = {'solo-e2e': 'context-1'};
 
       opts.leaseManager = container.resolve<LockManager>(InjectTokens.LockManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);

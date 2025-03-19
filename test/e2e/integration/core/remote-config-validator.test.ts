@@ -26,7 +26,7 @@ import {PodName} from '../../../../src/core/kube/resources/pod/pod-name.js';
 import {ContainerName} from '../../../../src/core/kube/resources/container/container-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
-import {LocalConfig} from '../../../../src/core/config/local-config.js';
+import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {getTestCacheDir} from '../../../test-util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 

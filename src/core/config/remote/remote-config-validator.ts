@@ -8,7 +8,7 @@ import {type K8Factory} from '../../kube/k8-factory.js';
 import {type ComponentsDataWrapper} from './components-data-wrapper.js';
 import {type BaseComponent} from './components/base-component.js';
 import {type NamespaceName} from '../../kube/resources/namespace/namespace-name.js';
-import {type LocalConfig} from '../local-config.js';
+import {type LocalConfig} from '../local/local-config.js';
 import {type Pod} from '../../kube/resources/pod/pod.js';
 
 /**

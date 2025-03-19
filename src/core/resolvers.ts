@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type LocalConfig} from './config/local-config.js';
+import {type LocalConfig} from './config/local/local-config.js';
 import {type DeploymentName} from './config/remote/types.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';

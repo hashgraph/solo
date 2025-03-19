@@ -72,13 +72,7 @@ export class InitCommand extends BaseCommand {
           skip: () => this.localConfig.configFileExists(),
           task: async (ctx, task): Promise<void> => {
             const config = ctx.config;
-            this.localConfig.userEmailAddress = config.userEmailAddress;
-            this.localConfig.soloVersion = helpers.getSoloVersion();
-            this.localConfig.clusterRefs = {};
-            this.localConfig.deployments = {};
-
-            this.localConfig.validate();
-            await this.localConfig.write();
+            await this.localConfig.create(config.userEmailAddress, helpers.getSoloVersion());
           },
         },
         {

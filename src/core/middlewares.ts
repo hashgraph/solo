@@ -11,7 +11,7 @@ import {type SoloLogger} from './logging.js';
 import {type AnyObject} from '../types/aliases.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {type ClusterRef} from './config/remote/types.js';
-import {type LocalConfig} from './config/local-config.js';
+import {type LocalConfig} from './config/local/local-config.js';
 import {SoloError} from './errors/solo-error.js';
 
 export class Middlewares {
