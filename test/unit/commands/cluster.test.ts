@@ -14,7 +14,6 @@ import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart-manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
-import path from 'path';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
 import {LocalConfig} from '../../../src/core/config/local-config.js';
@@ -24,6 +23,7 @@ import {DependencyManager} from '../../../src/core/dependency-managers/index.js'
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -106,7 +106,7 @@ describe('ClusterCommand unit tests', () => {
       await clusterCommand.handlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
-        path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
+        PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
       );
     });
   });

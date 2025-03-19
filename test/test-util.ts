@@ -8,7 +8,6 @@ import 'dotenv/config';
 
 import fs from 'fs';
 import os from 'os';
-import path from 'path';
 import {Flags as flags} from '../src/commands/flags.js';
 import {ClusterCommand} from '../src/commands/cluster/index.js';
 import {InitCommand} from '../src/commands/init.js';
@@ -51,10 +50,11 @@ import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv-wrapper.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import {CommandInvoker} from './helpers/command-invoker.js';
+import {PathEx} from '../src/business/utils/path-ex.js';
 
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
-export const BASE_TEST_DIR = path.join('test', 'data', 'tmp');
+export const BASE_TEST_DIR = PathEx.join('test', 'data', 'tmp');
 
 export function getTestCluster(): ClusterRef {
   const soloTestCluster: ClusterRef =
@@ -70,7 +70,7 @@ export function getTestLogger() {
 }
 
 export function getTestCacheDir(testName?: string) {
-  const d = testName ? path.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR;
+  const d = testName ? PathEx.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR;
 
   if (!fs.existsSync(d)) {
     fs.mkdirSync(d, {recursive: true});
@@ -79,7 +79,7 @@ export function getTestCacheDir(testName?: string) {
 }
 
 export function getTmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'));
+  return fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-'));
 }
 
 interface TestOpts {
@@ -354,7 +354,7 @@ export function e2eTestSuite(
             callback: async argv => nodeCmd.handlers.logs(argv),
           });
 
-          const soloLogPath = path.join(SOLO_LOGS_DIR, 'solo.log');
+          const soloLogPath = PathEx.joinWithRealPath(SOLO_LOGS_DIR, 'solo.log');
           const soloLog = fs.readFileSync(soloLogPath, 'utf8');
 
           expect(soloLog).to.not.have.string(NODE_LOG_FAILURE_MSG);
@@ -449,13 +449,13 @@ export async function getNodeAliasesPrivateKeysHash(
   k8Factory: K8Factory,
   destDir: string,
 ) {
-  const dataKeysDir = path.join(constants.HEDERA_HAPI_PATH, 'data', 'keys');
+  const dataKeysDir = `${constants.HEDERA_HAPI_PATH}/data/keys`;
   const tlsKeysDir = constants.HEDERA_HAPI_PATH;
   const nodeKeyHashMap = new Map<NodeAlias, Map<string, string>>();
   for (const networkNodeServices of networkNodeServicesMap.values()) {
     const keyHashMap = new Map<string, string>();
     const nodeAlias = networkNodeServices.nodeAlias;
-    const uniqueNodeDestDir = path.join(destDir, nodeAlias);
+    const uniqueNodeDestDir = PathEx.join(destDir, nodeAlias);
     if (!fs.existsSync(uniqueNodeDestDir)) {
       fs.mkdirSync(uniqueNodeDestDir, {recursive: true});
     }
@@ -495,8 +495,8 @@ async function addKeyHashToMap(
     .default()
     .containers()
     .readByRef(ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER))
-    .copyFrom(path.join(keyDir, privateKeyFileName), uniqueNodeDestDir);
-  const keyBytes = fs.readFileSync(path.join(uniqueNodeDestDir, privateKeyFileName));
+    .copyFrom(PathEx.join(keyDir, privateKeyFileName), uniqueNodeDestDir);
+  const keyBytes = fs.readFileSync(PathEx.joinWithRealPath(uniqueNodeDestDir, privateKeyFileName));
   const keyString = keyBytes.toString();
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'));
 }

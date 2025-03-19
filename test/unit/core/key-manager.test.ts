@@ -5,19 +5,19 @@ import {describe, it} from 'mocha';
 
 import fs from 'fs';
 import os from 'os';
-import path from 'path';
 import {type KeyManager} from '../../../src/core/key-manager.js';
 import * as constants from '../../../src/core/constants.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('KeyManager', () => {
   const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
 
   it('should generate signing key', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'));
+    const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'keys-'));
     const nodeAlias = 'node1' as NodeAlias;
     const keyPrefix = constants.SIGNING_KEY_PREFIX;
 
@@ -44,7 +44,7 @@ describe('KeyManager', () => {
   });
 
   it('should generate TLS key', async () => {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'keys-'));
+    const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'keys-'));
     const nodeAlias = 'node1';
 
     const tlsKey = await keyManager.generateGrpcTlsKey(nodeAlias);
