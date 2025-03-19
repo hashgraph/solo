@@ -8,6 +8,6 @@ export class KeyName {
   }
 
   public static isArraySegment(segment: string): boolean {
-    return segment && segment.match(/^[0-9]+$/g).length > 0;
+    return segment && segment?.match(/^[0-9]+$/g)?.length > 0;
   }
 }
