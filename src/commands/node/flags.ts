@@ -110,9 +110,7 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
   flags.releaseTag,
 ];
 
-const COMMON_ADD_REQUIRED_FLAGS = [
-  flags.deployment,
-];
+const COMMON_ADD_REQUIRED_FLAGS = [flags.deployment];
 
 const COMMON_ADD_OPTIONAL_FLAGS = [
   flags.app,
@@ -190,7 +188,15 @@ export const STATES_FLAGS = {
 
 export const REFRESH_FLAGS = {
   required: [flags.deployment],
-  optional: [flags.app, flags.localBuildPath, flags.devMode, flags.quiet, flags.nodeAliasesUnparsed, flags.releaseTag, flags.cacheDir],
+  optional: [
+    flags.app,
+    flags.localBuildPath,
+    flags.devMode,
+    flags.quiet,
+    flags.nodeAliasesUnparsed,
+    flags.releaseTag,
+    flags.cacheDir,
+  ],
 };
 
 export const KEYS_FLAGS = {
