@@ -623,12 +623,12 @@ This is what it looked like after a few minutes
 Handling connection for 50211
 16:34:50:220 [Client-T0] ERROR com.hedera.benchmark.LoadTest - Setup
 java.lang.IllegalArgumentException: Can't get the number of an unknown enum value.
-	at com.hedera.hashgraph.sdk.proto.HederaFunctionality.getNumber(HederaFunctionality.java:1440)
-	at com.hedera.hashgraph.sdk.proto.ThrottleGroup.addAllOperations(ThrottleGroup.java:155)
-	at com.hedera.hashgraph.sdk.proto.ThrottleGroup$Builder.addAllOperations(ThrottleGroup.java:450)
-	at com.hedera.benchmark.LoadTest.setup(LoadTest.java:243)
-	at com.hedera.benchmark.LoadTest.lambda$run$2(LoadTest.java:322)
-	at com.hedera.benchmark.BenchClient.run(BenchClient.java:145)
+  at com.hedera.hashgraph.sdk.proto.HederaFunctionality.getNumber(HederaFunctionality.java:1440)
+  at com.hedera.hashgraph.sdk.proto.ThrottleGroup.addAllOperations(ThrottleGroup.java:155)
+  at com.hedera.hashgraph.sdk.proto.ThrottleGroup$Builder.addAllOperations(ThrottleGroup.java:450)
+  at com.hedera.benchmark.LoadTest.setup(LoadTest.java:243)
+  at com.hedera.benchmark.LoadTest.lambda$run$2(LoadTest.java:322)
+  at com.hedera.benchmark.BenchClient.run(BenchClient.java:145)
 16:34:50:227 [Client-T0] INFO com.hedera.benchmark.CryptoTransferLoadTest - Creating 10000 accounts...
 Handling connection for 50211
 Handling connection for 50211
