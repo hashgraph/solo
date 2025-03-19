@@ -42,11 +42,7 @@ export class PathEx {
   /**
    * This method requires that the path to a directory or file is real and exists.
    *
-   * This method is not safe.  Use this instead of path.join(...) directly when you cannot confine a user to a base
-   * directory. It is best to avoid using user input directly for constructing paths. If you must use user input, it is
-   * recommended  to use `PathEx.safeJoinWithBaseDirConfinement(...)` to join paths.
-   *
-   * For more information see: https://owasp.org/www-community/attacks/Path_Traversal   * @param path - The path to resolve
+   * This method is not safe unless a literal is used as the parameter.
    */
   public static realPathSync(path: string): string {
     return fs.realpathSync(path);
@@ -56,14 +52,28 @@ export class PathEx {
    * Joins the given paths. This is a wrapper around path.join. It is recommended to only use this when you are dealing
    * with part of a path that is not a complete path reference on its own.
    *
-   * This method is not safe.  Use this instead of path.join(...) directly when you cannot confine a user to a base
-   * directory. It is best to avoid using user input directly for constructing paths. If you must use user input, it is
-   * recommended  to use `PathEx.safeJoinWithBaseDirConfinement(...)` to join paths.
+   * This method is not safe unless literals are used as parameters.  Use this instead of path.join(...) directly when
+   * you cannot confine a user to a base directory. It is best to avoid using user input directly for constructing paths.
+   * If you must use user input, it is recommended  to use `PathEx.safeJoinWithBaseDirConfinement(...)` to join paths.
    *
    * For more information see: https://owasp.org/www-community/attacks/Path_Traversal
    * @param paths
    */
   public static join(...paths: string[]): string {
     return path.normalize(path.join(...paths));
+  }
+
+  /**
+   * Resolves the given paths. This is a wrapper around path.resolve. It is recommended to only use this when you are dealing
+   * with part of a path that is not a complete path reference on its own.
+   *
+   * This method is not safe unless literals are used as parameters.  Use this instead of path.resolve(...) directly when you cannot confine a user to a base
+   * directory.
+   *
+   * For more information see: https://owasp.org/www-community/attacks/Path_Traversal
+   * @param paths
+   */
+  public static resolve(...paths: string[]): string {
+    return path.resolve(...paths);
   }
 }

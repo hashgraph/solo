@@ -5,7 +5,6 @@ import {after, describe, it} from 'mocha';
 
 import fs from 'fs';
 import * as yaml from 'yaml';
-import path from 'path';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
@@ -129,10 +128,10 @@ describe('ProfileManager', () => {
 
         const resources = ['templates', 'profiles'];
         for (const dirName of resources) {
-          const srcDir = path.resolve(PathEx.joinWithRealPath(constants.RESOURCES_DIR, dirName));
+          const srcDir = PathEx.joinWithRealPath(constants.RESOURCES_DIR, dirName);
           if (!fs.existsSync(srcDir)) continue;
 
-          const destDir = path.resolve(PathEx.join(cacheDir, dirName));
+          const destDir = PathEx.resolve(PathEx.join(cacheDir, dirName));
           if (!fs.existsSync(destDir)) {
             fs.mkdirSync(destDir, {recursive: true});
           }

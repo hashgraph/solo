@@ -2,7 +2,6 @@
 
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
-import path from 'path';
 import {type CommandFlag} from '../types/flag-types.js';
 import fs from 'fs';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
@@ -255,11 +254,11 @@ export class Flags {
         let valuesFile: string;
 
         if (parts.length !== 2) {
-          valuesFile = path.resolve(v);
+          valuesFile = PathEx.resolve(v);
           clusterRef = Flags.KEY_COMMON;
         } else {
           clusterRef = parts[0];
-          valuesFile = path.resolve(parts[1]);
+          valuesFile = PathEx.resolve(parts[1]);
         }
 
         if (!valuesFiles[clusterRef]) {

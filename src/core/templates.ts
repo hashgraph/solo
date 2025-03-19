@@ -2,7 +2,6 @@
 
 import * as x509 from '@peculiar/x509';
 import os from 'os';
-import path from 'path';
 import {DataValidationError} from './errors/data-validation-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
@@ -146,7 +145,7 @@ export class Templates {
       throw new IllegalArgumentError('releasePrefix cannot be empty');
     }
 
-    return path.resolve(PathEx.join(cacheDir, releasePrefix, 'staging', releaseTag));
+    return PathEx.resolve(PathEx.join(cacheDir, releasePrefix, 'staging', releaseTag));
   }
 
   public static installationPath(
