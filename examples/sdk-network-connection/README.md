@@ -2,9 +2,9 @@
 
 ## pre-requirements:
 
-1. fork or download the solo repository: https://github.com/hashgraph/solo
-2. have NodeJS 20+ and NPM installed: https://nodejs.org/en/download/package-manager
-3. have Taskfile installed: https://taskfile.dev/installation/
+1. fork or download the solo repository: <https://github.com/hashgraph/solo>
+2. have NodeJS 20+ and NPM installed: <https://nodejs.org/en/download/package-manager>
+3. have Taskfile installed: <https://taskfile.dev/installation/>
 
 ## running the Solo connection example:
 
