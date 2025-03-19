@@ -71,7 +71,14 @@ export class HelmExecution {
       this.process.on('close', code => {
         this.exitCodeValue = code;
         if (code !== 0) {
-          reject(new HelmExecutionException(code || 1, `Process exited with code ${code}`, '', ''));
+          reject(
+            new HelmExecutionException(
+              code || 1,
+              `Process exited with code ${code}` + this.standardError(),
+              this.standardOutput(),
+              this.standardError(),
+            ),
+          );
         } else {
           resolve();
         }

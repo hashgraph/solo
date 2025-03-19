@@ -54,10 +54,11 @@ describe('InstallChartOptionsBuilder Tests', () => {
     const builderMock = {
       flag: sinon.stub().returnsThis(),
       argument: sinon.stub().returnsThis(),
+      optionsWithMultipleValues: sinon.stub().returnsThis(),
     } as unknown as HelmExecutionBuilder;
 
     options.apply(builderMock);
 
-    expect(builderMock.flag).to.have.been.callCount(9);
+    expect(builderMock.optionsWithMultipleValues).to.have.been.callCount(2);
   });
 });
