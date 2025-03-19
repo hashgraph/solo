@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Node} from './node.js';
+import {KeyName} from '../key-name.js';
 
 export class LeafNode implements Node {
   public constructor(
     public readonly parent: Node | null,
     public readonly name: string,
-    public readonly value: string | string[] | null,
+    public readonly value: string | null,
   ) {
     if (parent && !parent.isInternal()) {
       throw new Error('Parent must be an instance of InternalNode');
@@ -26,6 +27,10 @@ export class LeafNode implements Node {
   }
 
   public isArray(): boolean {
-    return this.value && Array.isArray(this.value);
+    return false;
+  }
+
+  public isArrayIndex(): boolean {
+    return KeyName.isArraySegment(this.name);
   }
 }

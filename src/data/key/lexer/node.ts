@@ -5,7 +5,12 @@ export interface Node {
   readonly parent: Node | null;
 
   isRoot(): boolean;
+
   isInternal(): boolean;
+
   isLeaf(): boolean;
+
   isArray(): boolean;
+
+  isArrayIndex(): boolean;
 }
