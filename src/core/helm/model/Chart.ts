@@ -22,7 +22,7 @@ export class Chart {
     if (!this.repoName?.trim()) {
       return this.name;
     }
-    return `${this.repoName}/${this.name}`;
+    return `${this.repoName}/${this.name}`.replace(/\/$/, '');
   }
 
   /**
