@@ -90,22 +90,17 @@ export class ChartManager {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
       if (!isInstalled) {
-        const versionArg = version ? `--version ${version}` : '';
-        const namespaceArg = namespaceName ? `-n ${namespaceName} --create-namespace` : '';
-        let contextArg = '';
-        if (kubeContext) {
-          contextArg = `--kube-context ${kubeContext}`;
-        }
         this.logger.debug(`> installing chart:${chartPath}`);
-        // await this.helm.install(
-        //   `${chartReleaseName} ${chartPath} ${versionArg} ${namespaceArg} ${valuesArg} ${contextArg}`,
-        // );
-        const builder = InstallChartOptionsBuilder.builder().version(version).kubeContext(kubeContext);
+        const builder = InstallChartOptionsBuilder.builder()
+          .version(version)
+          .kubeContext(kubeContext)
+          .extraArgs(valuesArg);
         if (namespaceName) {
           builder.createNamespace(true);
+          builder.namespace(namespaceName.name);
         }
         const options: InstallChartOptions = builder.build();
-        await this.helm.installChartWithOptions(chartReleaseName, new Chart(chartReleaseName, chartPath), options);
+        await this.helm.installChart(chartReleaseName, new Chart(chartReleaseName, chartPath), options);
         this.logger.debug(`OK: chart is installed: ${chartReleaseName} (${chartPath})`);
       } else {
         this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartPath})`);
@@ -135,10 +130,7 @@ export class ChartManager {
           contextArg = `--kube-context ${kubeContext}`;
         }
         this.logger.debug(`uninstalling chart release: ${chartReleaseName}`);
-        const options = UnInstallChartOptions.builder()
-          .namespace(namespaceName.name)
-          .kubeContext(kubeContext)
-          .build();
+        const options = UnInstallChartOptions.builder().namespace(namespaceName.name).kubeContext(kubeContext).build();
         await this.helm.uninstallChart(chartReleaseName, options);
         this.logger.debug(`OK: chart release is uninstalled: ${chartReleaseName}`);
       } else {
@@ -159,18 +151,15 @@ export class ChartManager {
     valuesArg = '',
     kubeContext?: string,
   ) {
-    const versionArg = version ? `--version ${version}` : '';
-
     try {
       this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`));
-      let contextArg = '';
-      if (kubeContext) {
-        contextArg = `--kube-context ${kubeContext}`;
-      }
-      // await this.helm.upgrade(
-      //   `-n ${namespaceName.name} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg} ${contextArg}`,
-      // );
-      const options: UpgradeChartOptions = new UpgradeChartOptions(namespaceName.name, kubeContext, true, valuesArg);
+      const options: UpgradeChartOptions = new UpgradeChartOptions(
+        namespaceName.name,
+        kubeContext,
+        true,
+        valuesArg,
+        version,
+      );
       const chart: Chart = new Chart(chartReleaseName, chartPath);
       await this.helm.upgradeChart(chartReleaseName, chart, options);
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`);

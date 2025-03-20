@@ -262,7 +262,7 @@ export class ClusterCommandTasks {
           await this.chartManager.install(
             clusterSetupNamespace,
             constants.SOLO_CLUSTER_SETUP_CHART,
-            ctx.chartPath,
+            ctx.config.chartDir ? ctx.config.chartDir : constants.SOLO_TESTING_CHART_URL,
             version,
             valuesArg,
             ctx.config.context,

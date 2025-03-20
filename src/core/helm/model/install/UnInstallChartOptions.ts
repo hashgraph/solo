@@ -37,10 +37,10 @@ export class UnInstallChartOptions implements Options {
    */
   apply(builder: HelmExecutionBuilder): void {
     if (this._namespace) {
-      builder.argument('--namespace', this._namespace);
+      builder.argument('namespace', this._namespace);
     }
     if (this._kubeContext) {
-      builder.argument('--kube-context', this._kubeContext);
+      builder.argument('kube-context', this._kubeContext);
     }
   }
 

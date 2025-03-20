@@ -15,10 +15,12 @@ export class TestChartOptions implements Options {
    * Creates a new instance of TestChartOptions.
    * @param filter - The test filter
    * @param timeout - The operation timeout
+   * @param namespace
    */
   constructor(
     public readonly filter?: string,
     public readonly timeout?: string,
+    public readonly namespace?: string,
   ) {}
 
   /**
@@ -31,6 +33,9 @@ export class TestChartOptions implements Options {
     }
     if (this.timeout?.trim()) {
       builder.argument('timeout', this.timeout.trim());
+    }
+    if (this.namespace?.trim()) {
+      builder.argument('namespace', this.namespace.trim());
     }
   }
 }

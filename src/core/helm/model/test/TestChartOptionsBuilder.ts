@@ -8,6 +8,7 @@ import {TestChartOptions} from './TestChartOptions.js';
 export class TestChartOptionsBuilder {
   private _filter?: string;
   private _timeout?: string;
+  private _namespace?: string;
 
   /**
    * Returns an instance of the TestChartOptionsBuilder.
@@ -42,10 +43,21 @@ export class TestChartOptionsBuilder {
   }
 
   /**
+   * Set the namespace for the test.
+   *
+   * @param namespace the namespace to test the chart in.
+   * @returns the current TestChartOptionsBuilder.
+   */
+  public namespace(namespace: string): TestChartOptionsBuilder {
+    this._namespace = namespace;
+    return this;
+  }
+
+  /**
    * Builds the TestChartOptions instance.
    * @returns the TestChartOptions instance.
    */
   public build(): TestChartOptions {
-    return new TestChartOptions(this._filter, this._timeout);
+    return new TestChartOptions(this._filter, this._timeout, this._namespace);
   }
 }

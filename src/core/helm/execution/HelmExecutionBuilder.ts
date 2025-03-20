@@ -2,7 +2,14 @@
 
 import {join} from 'path';
 import {HelmExecution} from './HelmExecution.js';
+import {Templates} from '../../templates.js';
+import {HELM} from '../../constants.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
+import {patchInject} from '../../dependency-injection/container-helper.js';
+import {type SoloLogger} from '../../logging.js';
 
+@injectable()
 /**
  * A builder for creating a helm command execution.
  */
@@ -52,13 +59,14 @@ export class HelmExecutionBuilder {
 
   /**
    * Creates a new HelmExecutionBuilder instance.
-   * @param helmExecutable the path to the helm executable
    */
-  constructor(helmExecutable: string) {
-    if (!helmExecutable) {
-      throw new Error('helmExecutable must not be null');
-    }
-    this.helmExecutable = helmExecutable;
+  constructor(
+    @inject(InjectTokens.OsPlatform) private readonly osPlatform?: NodeJS.Platform,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
+  ) {
+    this.osPlatform = patchInject(osPlatform, InjectTokens.OsPlatform, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.helmExecutable = Templates.installationPath(HELM, this.osPlatform);
 
     const workingDirectoryString = process.env.PWD;
     this._workingDirectory =
@@ -208,9 +216,7 @@ export class HelmExecutionBuilder {
 
     command.push(...this._positionals);
 
-    if (process.env.DEBUG) {
-      console.debug('Helm command:', command.slice(1).join(' '));
-    }
+    this.logger.debug(`Helm command: helm ${command.slice(1).join(' ')}`);
 
     return command;
   }

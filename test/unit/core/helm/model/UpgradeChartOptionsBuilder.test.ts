@@ -50,8 +50,8 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
     options.apply(builder);
 
     // Verify builder methods were called with correct arguments
-    expect(builder.argument.calledWith('--namespace', 'test-namespace')).to.be.true;
-    expect(builder.argument.calledWith('--kube-context', 'test-context')).to.be.true;
+    expect(builder.argument.calledWith('namespace', 'test-namespace')).to.be.true;
+    expect(builder.argument.calledWith('kube-context', 'test-context')).to.be.true;
     expect(builder.flag.calledWith('--reuse-values')).to.be.true;
     expect(builder.positional.calledWith('--debug')).to.be.true;
   });

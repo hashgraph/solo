@@ -9,7 +9,7 @@ import {Chart} from '../../../../src/core/helm/model/Chart.js';
 import {Repository} from '../../../../src/core/helm/model/Repository.js';
 import {DefaultHelmClientBuilder} from '../../../../src/core/helm/impl/DefaultHelmClientBuilder.js';
 import {type InstallChartOptions} from '../../../../src/core/helm/model/install/InstallChartOptions.js';
-import {UpgradeChartOptions} from '../../../../src/core/helm/model/upgrade/UpgradeChartOptions.js';
+import {UpgradeChartOptionsBuilder} from '../../../../src/core/helm/model/upgrade/UpgradeChartOptions.js';
 import {exec as execCallback} from 'child_process';
 import {promisify} from 'util';
 import {InstallChartOptionsBuilder} from '../../../../src/core/helm/model/install/InstallChartOptionsBuilder.js';
@@ -140,12 +140,16 @@ describe('HelmClient Tests', () => {
 
     try {
       try {
-        await helmClient.uninstallChart(HAPROXY_RELEASE_NAME, UnInstallChartOptionsBuilder.builder().build());
+        await helmClient.uninstallChart(
+          HAPROXY_RELEASE_NAME,
+          UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        );
       } catch (error) {
         // Suppress uninstall errors
       }
 
-      const release = await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART);
+      const options = InstallChartOptionsBuilder.builder().namespace(NAMESPACE).build();
+      const release = await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, options);
 
       // Verify the returned release object
       expect(release).to.not.be.null;
@@ -154,7 +158,7 @@ describe('HelmClient Tests', () => {
       expect(release.info.status).to.equal('deployed');
 
       // Verify the release through helm list command using namespace
-      const specificNamespaceReleaseItems = await helmClient.listReleases(false);
+      const specificNamespaceReleaseItems = await helmClient.listReleases(false, NAMESPACE);
       expect(specificNamespaceReleaseItems).to.not.be.null.and.to.not.be.empty;
       const specificNamespaceReleaseItem = specificNamespaceReleaseItems.find(
         item => item.name === HAPROXY_RELEASE_NAME,
@@ -165,7 +169,7 @@ describe('HelmClient Tests', () => {
       expect(specificNamespaceReleaseItem?.status).to.equal('deployed');
 
       // Verify with default client and all namespaces
-      const defaultHelmClient = await new DefaultHelmClientBuilder().build();
+      const defaultHelmClient = new DefaultHelmClientBuilder().build();
       const releaseItems = await defaultHelmClient.listReleases(true);
       expect(releaseItems).to.not.be.null.and.to.not.be.empty;
       const releaseItem = releaseItems.find(item => item.name === HAPROXY_RELEASE_NAME);
@@ -175,7 +179,10 @@ describe('HelmClient Tests', () => {
       expect(releaseItem?.status).to.equal('deployed');
     } finally {
       try {
-        await helmClient.uninstallChart(HAPROXY_RELEASE_NAME, UnInstallChartOptionsBuilder.builder().build());
+        await helmClient.uninstallChart(
+          HAPROXY_RELEASE_NAME,
+          UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        );
       } catch (error) {
         // Suppress uninstall errors
       }
@@ -184,14 +191,18 @@ describe('HelmClient Tests', () => {
 
   it('Helm Test subcommand with options', async () => {
     await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
-    const options = TestChartOptionsBuilder.builder().timeout('60s').filter('haproxy').build();
+    const options = TestChartOptionsBuilder.builder().timeout('60s').filter('haproxy').namespace(NAMESPACE).build();
 
     try {
-      await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART);
+      const helmOptions = InstallChartOptionsBuilder.builder().namespace(NAMESPACE).build();
+      await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, helmOptions);
       await helmClient.testChart(HAPROXY_RELEASE_NAME, options);
     } finally {
       try {
-        await helmClient.uninstallChart(HAPROXY_RELEASE_NAME, UnInstallChartOptionsBuilder.builder().build());
+        await helmClient.uninstallChart(
+          HAPROXY_RELEASE_NAME,
+          UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        );
       } catch (error) {
         // Suppress uninstall errors
       }
@@ -201,12 +212,15 @@ describe('HelmClient Tests', () => {
   const testChartInstallWithCleanup = async (options: InstallChartOptions): Promise<void> => {
     try {
       try {
-        await helmClient.uninstallChart(HAPROXY_RELEASE_NAME, UnInstallChartOptionsBuilder.builder().build());
+        await helmClient.uninstallChart(
+          HAPROXY_RELEASE_NAME,
+          UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        );
       } catch (error) {
         // Suppress uninstall errors
       }
 
-      const release = await helmClient.installChartWithOptions(HAPROXY_RELEASE_NAME, HAPROXY_CHART, options);
+      const release = await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, options);
 
       // Verify the returned release object
       expect(release).to.not.be.null;
@@ -215,7 +229,7 @@ describe('HelmClient Tests', () => {
       expect(release.info.status).to.equal('deployed');
 
       // Verify the release through helm list command using namespace
-      const specificNamespaceReleaseItems = await helmClient.listReleases(false);
+      const specificNamespaceReleaseItems = await helmClient.listReleases(false, NAMESPACE);
       expect(specificNamespaceReleaseItems).to.not.be.null.and.to.not.be.empty;
       const specificNamespaceReleaseItem = specificNamespaceReleaseItems.find(
         item => item.name === HAPROXY_RELEASE_NAME,
@@ -226,7 +240,7 @@ describe('HelmClient Tests', () => {
       expect(specificNamespaceReleaseItem?.status).to.equal('deployed');
 
       // Verify with default client and all namespaces
-      const defaultHelmClient = await new DefaultHelmClientBuilder().build();
+      const defaultHelmClient = new DefaultHelmClientBuilder().build();
       const releaseItems = await defaultHelmClient.listReleases(true);
       expect(releaseItems).to.not.be.null.and.to.not.be.empty;
       const releaseItem = releaseItems.find(item => item.name === HAPROXY_RELEASE_NAME);
@@ -236,7 +250,10 @@ describe('HelmClient Tests', () => {
       expect(releaseItem?.status).to.equal('deployed');
     } finally {
       try {
-        await helmClient.uninstallChart(HAPROXY_RELEASE_NAME, UnInstallChartOptionsBuilder.builder().build());
+        await helmClient.uninstallChart(
+          HAPROXY_RELEASE_NAME,
+          UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        );
       } catch (error) {
         // Suppress uninstall errors
       }
@@ -248,14 +265,23 @@ describe('HelmClient Tests', () => {
       await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
 
       // First install the chart
-      await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART);
+      const helmOptions = InstallChartOptionsBuilder.builder().namespace(NAMESPACE).build();
+      await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, helmOptions);
 
       // Then try to upgrade it
-      await expect(helmClient.upgradeChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, UpgradeChartOptions.defaults())).to.not
-        .be.rejected;
+      await expect(
+        helmClient.upgradeChart(
+          HAPROXY_RELEASE_NAME,
+          HAPROXY_CHART,
+          UpgradeChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        ),
+      ).to.not.be.rejected;
     } finally {
       try {
-        await helmClient.uninstallChart(HAPROXY_RELEASE_NAME, UnInstallChartOptionsBuilder.builder().build());
+        await helmClient.uninstallChart(
+          HAPROXY_RELEASE_NAME,
+          UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        );
       } catch (error) {
         // Suppress uninstall errors
       }
@@ -284,7 +310,7 @@ describe('HelmClient Tests', () => {
     return [
       {
         name: 'Atomic Chart Installation Executes Successfully',
-        options: InstallChartOptionsBuilder.builder().atomic(true).createNamespace(true).build(),
+        options: InstallChartOptionsBuilder.builder().atomic(true).createNamespace(true).namespace(NAMESPACE).build(),
       },
       {
         name: 'Install Chart with Combination of Options Executes Successfully',
@@ -299,54 +325,80 @@ describe('HelmClient Tests', () => {
           .username('username')
           .password('password')
           .version('1.18.0')
+          .namespace(NAMESPACE)
           .build(),
       },
       {
         name: 'Install Chart with Dependency Updates',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).dependencyUpdate(true).build(),
+        options: InstallChartOptionsBuilder.builder()
+          .createNamespace(true)
+          .dependencyUpdate(true)
+          .namespace(NAMESPACE)
+          .build(),
       },
       {
         name: 'Install Chart with Description',
         options: InstallChartOptionsBuilder.builder()
           .createNamespace(true)
+          .namespace(NAMESPACE)
           .description('Test install chart with options')
           .build(),
       },
       {
         name: 'Install Chart with DNS Enabled',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).enableDNS(true).build(),
+        options: InstallChartOptionsBuilder.builder()
+          .createNamespace(true)
+          .enableDNS(true)
+          .namespace(NAMESPACE)
+          .build(),
       },
       {
         name: 'Forced Chart Installation',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).force(true).build(),
+        options: InstallChartOptionsBuilder.builder().createNamespace(true).force(true).namespace(NAMESPACE).build(),
       },
       {
         name: 'Install Chart with Password',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).password('password').build(),
+        options: InstallChartOptionsBuilder.builder()
+          .createNamespace(true)
+          .password('password')
+          .namespace(NAMESPACE)
+          .build(),
       },
       {
         name: 'Install Chart From Repository',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).repo(HAPROXYTECH_REPOSITORY.url).build(),
+        options: InstallChartOptionsBuilder.builder()
+          .createNamespace(true)
+          .repo(HAPROXYTECH_REPOSITORY.url)
+          .namespace(NAMESPACE)
+          .build(),
       },
       {
         name: 'Install Chart Skipping CRDs',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).skipCrds(true).build(),
+        options: InstallChartOptionsBuilder.builder().createNamespace(true).skipCrds(true).namespace(NAMESPACE).build(),
       },
       {
         name: 'Install Chart with Timeout',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).timeout('60s').build(),
+        options: InstallChartOptionsBuilder.builder().createNamespace(true).timeout('60s').namespace(NAMESPACE).build(),
       },
       {
         name: 'Install Chart with Username',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).username('username').build(),
+        options: InstallChartOptionsBuilder.builder()
+          .createNamespace(true)
+          .username('username')
+          .namespace(NAMESPACE)
+          .build(),
       },
       {
         name: 'Install Chart with Specific Version',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).version('1.18.0').build(),
+        options: InstallChartOptionsBuilder.builder()
+          .createNamespace(true)
+          .version('1.18.0')
+          .namespace(NAMESPACE)
+          .build(),
       },
       {
         name: 'Install Chart with Wait',
-        options: InstallChartOptionsBuilder.builder().createNamespace(true).waitFor(true).build(),
+        options: InstallChartOptionsBuilder.builder().createNamespace(true).waitFor(true).namespace(NAMESPACE).build(),
       },
     ];
   };

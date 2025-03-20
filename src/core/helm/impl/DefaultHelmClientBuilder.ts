@@ -123,6 +123,6 @@ export class DefaultHelmClientBuilder implements HelmClientBuilder {
       this._kubeConfig,
     );
 
-    return new DefaultHelmClient('helm', authentication, this._defaultNamespace, this._workingDirectory);
+    return new DefaultHelmClient();
   }
 }

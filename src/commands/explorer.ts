@@ -236,7 +236,7 @@ export class ExplorerCommand extends BaseCommand {
               await self.chartManager.install(
                 NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
                 constants.SOLO_CERT_MANAGER_CHART,
-                chartPath,
+                ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                 soloChartVersion,
                 '  --set cert-manager.installCRDs=true',
                 ctx.config.clusterContext,
@@ -264,7 +264,7 @@ export class ExplorerCommand extends BaseCommand {
             await self.chartManager.upgrade(
               NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
               constants.SOLO_CERT_MANAGER_CHART,
-              chartPath,
+              ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
               soloChartVersion,
               soloCertManagerValuesArg,
               ctx.config.clusterContext,
@@ -315,7 +315,7 @@ export class ExplorerCommand extends BaseCommand {
             await self.chartManager.install(
               config.namespace,
               constants.INGRESS_CONTROLLER_RELEASE_NAME,
-              ingressControllerChartPath,
+              constants.INGRESS_CONTROLLER_RELEASE_NAME,
               INGRESS_CONTROLLER_VERSION,
               explorerIngressControllerValuesArg,
               ctx.config.clusterContext,

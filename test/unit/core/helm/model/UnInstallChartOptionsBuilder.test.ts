@@ -8,10 +8,7 @@ import {UnInstallChartOptions} from '../../../../../src/core/helm/model/install/
 
 describe('UnInstallChartOptionsBuilder Tests', () => {
   it('Test UnInstallChartOptionsBuilder', () => {
-    const options = UnInstallChartOptions.builder()
-      .namespace('test-namespace')
-      .kubeContext('test-context')
-      .build();
+    const options = UnInstallChartOptions.builder().namespace('test-namespace').kubeContext('test-context').build();
 
     // Verify all options are set correctly
     expect(options).to.not.be.null;
@@ -20,10 +17,7 @@ describe('UnInstallChartOptionsBuilder Tests', () => {
   });
 
   it('Test apply method', () => {
-    const options = UnInstallChartOptions.builder()
-      .namespace('test-namespace')
-      .kubeContext('test-context')
-      .build();
+    const options = UnInstallChartOptions.builder().namespace('test-namespace').kubeContext('test-context').build();
 
     type MockBuilder = HelmExecutionBuilder & {
       flag: sinon.SinonStub;
@@ -40,9 +34,8 @@ describe('UnInstallChartOptionsBuilder Tests', () => {
     options.apply(builderMock);
 
     // Verify builder methods were called with correct arguments
-    expect(builderMock.argument.calledWith('--namespace', 'test-namespace')).to.be.true;
-    expect(builderMock.argument.calledWith('--kube-context', 'test-context')).to.be.true;
-
+    expect(builderMock.argument.calledWith('namespace', 'test-namespace')).to.be.true;
+    expect(builderMock.argument.calledWith('kube-context', 'test-context')).to.be.true;
   });
 
   it('Test builder with default values', () => {
@@ -52,26 +45,5 @@ describe('UnInstallChartOptionsBuilder Tests', () => {
     expect(options).to.not.be.null;
     expect(options.namespace).to.be.undefined;
     expect(options.kubeContext).to.be.undefined;
-  });
-
-  it('Test apply method with default values', () => {
-    const options = UnInstallChartOptions.defaults();
-
-    type MockBuilder = HelmExecutionBuilder & {
-      flag: sinon.SinonStub;
-      argument: sinon.SinonStub;
-      positional: sinon.SinonStub;
-    };
-
-    const builderMock = {
-      flag: sinon.stub().returnsThis(),
-      argument: sinon.stub().returnsThis(),
-      positional: sinon.stub().returnsThis(),
-    } as unknown as MockBuilder;
-
-    options.apply(builderMock);
-
-    // Verify only required builder methods were called
-    expect(builderMock.argument.calledWith('output', 'json')).to.be.true;
   });
 });

@@ -409,7 +409,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     await self.chartManager.install(
                       config.namespace,
                       constants.INGRESS_CONTROLLER_RELEASE_NAME,
-                      ingressControllerChartPath,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
                       INGRESS_CONTROLLER_VERSION,
                       mirrorIngressControllerValuesArg,
                       ctx.config.clusterContext,
@@ -427,8 +427,8 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     await self.chartManager.install(
                       ctx.config.namespace,
+                      constants.MIRROR_NODE_CHART,
                       constants.MIRROR_NODE_RELEASE_NAME,
-                      ctx.config.chartPath,
                       ctx.config.mirrorNodeVersion,
                       ctx.config.valuesArg,
                       ctx.config.clusterContext,

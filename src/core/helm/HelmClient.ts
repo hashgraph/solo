@@ -48,15 +48,6 @@ export interface HelmClient {
   removeRepository(repository: Repository): Promise<void>;
 
   /**
-   * Executes the Helm CLI install sub-command and installs a Helm chart.
-   *
-   * @param releaseName the name of the release.
-   * @param chart the Helm chart to install.
-   * @returns the Release that was installed.
-   */
-  installChart(releaseName: string, chart: Chart): Promise<Release>;
-
-  /**
    * Executes the Helm CLI install sub-command and installs a Helm chart passing the flags and arguments
    * provided.
    *
@@ -65,7 +56,7 @@ export interface HelmClient {
    * @param options the options to pass to the Helm CLI command.
    * @returns the Release that was installed.
    */
-  installChartWithOptions(releaseName: string, chart: Chart, options: InstallChartOptions): Promise<Release>;
+  installChart(releaseName: string, chart: Chart, options: InstallChartOptions): Promise<Release>;
 
   /**
    * Executes the Helm CLI upgrade sub-command and upgrades a Helm chart.
@@ -96,9 +87,10 @@ export interface HelmClient {
   /**
    * Executes the Helm CLI list sub-command and returns the list of releases.
    * @param allNamespaces if true, list releases across all namespaces.
+   * @param namespace the namespace to list releases from. Only used if allNamespaces is false.
    * @returns the list of releases.
    */
-  listReleases(allNamespaces: boolean): Promise<ReleaseItem[]>;
+  listReleases(allNamespaces: boolean, namespace?: string): Promise<ReleaseItem[]>;
 
   /**
    * Executes the Helm CLI dependency update sub-command and updates the dependencies of the specified Helm

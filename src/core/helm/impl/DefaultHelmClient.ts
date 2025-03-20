@@ -17,7 +17,6 @@ import {type UpgradeChartOptions} from '../model/upgrade/UpgradeChartOptions.js'
 import {ReleaseItem} from '../model/release/ReleaseItem.js';
 import {type TestChartOptions} from '../model/test/TestChartOptions.js';
 import {type HelmRequest} from '../request/HelmRequest.js';
-import {type KubeAuthentication} from '../request/authentication/KubeAuthentication.js';
 import {ChartDependencyUpdateRequest} from '../request/chart/ChartDependencyUpdateRequest.js';
 import {ChartInstallRequest} from '../request/chart/ChartInstallRequest.js';
 import {ChartTestRequest} from '../request/chart/ChartTestRequest.js';
@@ -29,7 +28,6 @@ import {RepositoryAddRequest} from '../request/repository/RepositoryAddRequest.j
 import {RepositoryListRequest} from '../request/repository/RepositoryListRequest.js';
 import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveRequest.js';
 import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
-import {InstallChartOptionsBuilder} from '../model/install/InstallChartOptionsBuilder.js';
 import {injectable} from 'tsyringe-neo';
 
 @injectable()
@@ -38,39 +36,15 @@ import {injectable} from 'tsyringe-neo';
  */
 export class DefaultHelmClient implements HelmClient {
   /**
-   * The message to use when the namespace is null.
-   */
-  private static readonly MSG_NAMESPACE_NOT_NULL = 'namespace must not be null';
-
-  /**
    * The name of the namespace argument.
    */
   private static readonly NAMESPACE_ARG_NAME = 'namespace';
 
-  /**
-   * Creates a new instance of the DefaultHelmClient class.
-   * @param helmExecutable - The path to the Helm executable
-   * @param authentication - The authentication configuration to use when executing Helm commands
-   * @param defaultNamespace - The default namespace to use when executing Helm commands
-   * @param workingDirectory - The working directory to use when executing Helm commands
-   */
-  constructor(
-    private readonly helmExecutable?: string,
-    private readonly authentication?: KubeAuthentication,
-    private readonly defaultNamespace?: string,
-    private readonly workingDirectory?: string,
-  ) {
-    if (!helmExecutable) {
-      throw new Error('helmExecutable must not be null');
-    }
-    if (!authentication) {
-      throw new Error('authentication must not be null');
-    }
-  }
+  constructor() {}
 
   public async version(): Promise<SemanticVersion> {
     const request = new VersionRequest();
-    const builder = new HelmExecutionBuilder(this.helmExecutable);
+    const builder = new HelmExecutionBuilder();
     this.applyBuilderDefaults(builder);
     request.apply(builder);
     const execution = builder.build();
@@ -97,22 +71,10 @@ export class DefaultHelmClient implements HelmClient {
     await this.executeAsync(new RepositoryRemoveRequest(repository), undefined);
   }
 
-  public async installChart(
-    releaseName: string,
-    chart: Chart,
-    options: InstallChartOptions = InstallChartOptionsBuilder.builder().build(),
-  ): Promise<Release> {
-    return await this.installChartWithOptions(releaseName, chart, options);
-  }
-
-  public async installChartWithOptions(
-    releaseName: string,
-    chart: Chart,
-    options: InstallChartOptions,
-  ): Promise<Release> {
+  public async installChart(releaseName: string, chart: Chart, options: InstallChartOptions): Promise<Release> {
     const release = Release as unknown as new () => Release;
     const request = new ChartInstallRequest(releaseName, chart, options);
-    return this.executeInternal(undefined, request, release, async execution => {
+    return this.executeInternal(options.namespace, request, release, async execution => {
       const response = await execution.responseAs(release);
       return response as Release;
     });
@@ -126,8 +88,8 @@ export class DefaultHelmClient implements HelmClient {
     await this.executeAsync(new ChartTestRequest(releaseName, options), undefined);
   }
 
-  public async listReleases(allNamespaces: boolean): Promise<ReleaseItem[]> {
-    return this.executeAsList(new ReleaseListRequest(allNamespaces), ReleaseItem);
+  public async listReleases(allNamespaces: boolean, namespace?: string): Promise<ReleaseItem[]> {
+    return this.executeAsList(new ReleaseListRequest(allNamespaces, namespace), ReleaseItem);
   }
 
   public async dependencyUpdate(chartName: string): Promise<void> {
@@ -145,17 +107,7 @@ export class DefaultHelmClient implements HelmClient {
    * Applies the default namespace and authentication configuration to the given builder.
    * @param builder - The builder to apply to which the defaults should be applied
    */
-  private applyBuilderDefaults(builder: HelmExecutionBuilder): void {
-    if (this.defaultNamespace?.trim()) {
-      builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, this.defaultNamespace);
-    }
-
-    if (this.workingDirectory) {
-      builder.workingDirectory(this.workingDirectory);
-    }
-
-    this.authentication.apply(builder);
-  }
+  private applyBuilderDefaults(builder: HelmExecutionBuilder): void {}
 
   /**
    * Executes the given request and returns the response as the given class.
@@ -203,7 +155,7 @@ export class DefaultHelmClient implements HelmClient {
       throw new Error('namespace must not be blank');
     }
 
-    const builder = new HelmExecutionBuilder(this.helmExecutable);
+    const builder = new HelmExecutionBuilder();
     this.applyBuilderDefaults(builder);
     request.apply(builder);
     if (namespace) {

@@ -29,6 +29,7 @@ import {type Options} from '../Options.js';
  *                         Deployment, StatefulSet, or ReplicaSet are in a ready state before marking the release as
  *                         successful. It will wait for as long as --timeout.
  * @param kubeContext      - the Kubernetes context to use.
+ * @param namespace        - the namespace to install the chart in.
  * @param extraArgs        - additional arguments to pass to the helm command.
  */
 export class InstallChartOptions implements Options {
@@ -128,6 +129,11 @@ export class InstallChartOptions implements Options {
   private readonly _kubeContext: string | null;
 
   /**
+   * The namespace to install the chart in.
+   */
+  private readonly _namespace: string | null;
+
+  /**
    * Additional arguments to pass to the helm command.
    */
   private readonly _extraArgs: string | null;
@@ -151,6 +157,7 @@ export class InstallChartOptions implements Options {
     version: string | null,
     waitFor: boolean,
     kubeContext: string | null,
+    namespace: string | null,
     extraArgs: string | null,
   ) {
     this._atomic = atomic;
@@ -171,7 +178,12 @@ export class InstallChartOptions implements Options {
     this._version = version;
     this._waitFor = waitFor;
     this._kubeContext = kubeContext;
+    this._namespace = namespace;
     this._extraArgs = extraArgs;
+  }
+
+  public get namespace(): string | null {
+    return this._namespace;
   }
 
   public apply(builder: HelmExecutionBuilder): void {
@@ -205,6 +217,10 @@ export class InstallChartOptions implements Options {
 
     if (this._kubeContext) {
       builder.argument('kube-context', this._kubeContext);
+    }
+
+    if (this._namespace) {
+      builder.argument('namespace', this._namespace);
     }
 
     if (this._extraArgs) {

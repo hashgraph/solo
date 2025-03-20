@@ -24,6 +24,7 @@ export class InstallChartOptionsBuilder {
   private _version?: string;
   private _waitFor = false;
   private _kubeContext?: string;
+  private _namespace?: string;
   private _extraArgs?: string;
 
   private constructor() {}
@@ -246,6 +247,17 @@ export class InstallChartOptionsBuilder {
   }
 
   /**
+   * Set the namespace for the installation.
+   *
+   * @param namespace the namespace to install the chart in.
+   * @returns the current InstallChartOptionsBuilder.
+   */
+  public namespace(namespace: string): InstallChartOptionsBuilder {
+    this._namespace = namespace;
+    return this;
+  }
+
+  /**
    * Sets additional arguments to pass to the helm command.
    * @param args The additional arguments.
    * @returns This builder instance.
@@ -275,6 +287,7 @@ export class InstallChartOptionsBuilder {
       this._version,
       this._waitFor,
       this._kubeContext,
+      this._namespace,
       this._extraArgs,
     );
   }

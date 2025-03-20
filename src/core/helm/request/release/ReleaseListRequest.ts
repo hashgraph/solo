@@ -7,13 +7,18 @@ import {type HelmRequest} from '../HelmRequest.js';
  * A request to list all Helm releases.
  */
 export class ReleaseListRequest implements HelmRequest {
-  constructor(private readonly allNamespaces: boolean) {}
+  constructor(
+    private readonly allNamespaces: boolean,
+    private readonly namespace?: string,
+  ) {}
 
   apply(builder: HelmExecutionBuilder): void {
     builder.argument('output', 'json');
 
     if (this.allNamespaces) {
       builder.flag('--all-namespaces');
+    } else if (this.namespace) {
+      builder.argument('namespace', this.namespace);
     }
 
     builder.subcommands('list');

@@ -5,7 +5,7 @@ import {expect} from 'chai';
 
 describe('HelmExecutionBuilder', () => {
   it('Test optionsWithMultipleValues null checks', () => {
-    const builder = new HelmExecutionBuilder('.');
+    const builder = new HelmExecutionBuilder();
     expect(() => {
       builder.optionsWithMultipleValues(null as any, null as any);
     }).to.throw(Error);
@@ -15,7 +15,7 @@ describe('HelmExecutionBuilder', () => {
   });
 
   it('Test environmentVariable null checks', () => {
-    const builder = new HelmExecutionBuilder('.');
+    const builder = new HelmExecutionBuilder();
     expect(() => {
       builder.environmentVariable(null as any, null as any);
     }).to.throw(Error);
@@ -25,7 +25,7 @@ describe('HelmExecutionBuilder', () => {
   });
 
   it('Test workingDirectory null checks', () => {
-    const builder = new HelmExecutionBuilder('.');
+    const builder = new HelmExecutionBuilder();
     expect(() => {
       builder.workingDirectory(null as any);
     }).to.throw(Error);

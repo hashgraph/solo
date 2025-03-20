@@ -11,12 +11,20 @@ export class UpgradeChartOptions implements Options {
   private readonly _kubeContext?: string;
   private readonly _reuseValues: boolean;
   private readonly _extraArgs?: string;
+  private readonly _version?: string;
 
-  constructor(namespace?: string, kubeContext?: string, reuseValues: boolean = false, extraArgs?: string) {
+  constructor(
+    namespace?: string,
+    kubeContext?: string,
+    reuseValues: boolean = false,
+    extraArgs?: string,
+    version?: string,
+  ) {
     this._namespace = namespace;
     this._kubeContext = kubeContext;
     this._reuseValues = reuseValues;
     this._extraArgs = extraArgs;
+    this._version = version;
   }
 
   /**
@@ -52,6 +60,14 @@ export class UpgradeChartOptions implements Options {
   }
 
   /**
+   * Gets the version of the chart to upgrade to.
+   * @returns The version or undefined if not set.
+   */
+  get version(): string | undefined {
+    return this._version;
+  }
+
+  /**
    * Applies the options to the given builder.
    * @param builder The builder to apply the options to.
    */
@@ -59,16 +75,20 @@ export class UpgradeChartOptions implements Options {
     builder.argument('output', 'json');
 
     if (this._namespace) {
-      builder.argument('--namespace', this._namespace);
+      builder.argument('namespace', this._namespace);
     }
     if (this._kubeContext) {
-      builder.argument('--kube-context', this._kubeContext);
+      builder.argument('kube-context', this._kubeContext);
     }
     if (this._reuseValues) {
       builder.flag('--reuse-values');
     }
     if (this._extraArgs) {
       builder.positional(this._extraArgs);
+    }
+
+    if (this._version) {
+      builder.argument('version', this._version);
     }
   }
 
@@ -97,6 +117,7 @@ export class UpgradeChartOptionsBuilder {
   _kubeContext?: string;
   _reuseValues = false;
   _extraArgs?: string;
+  _version?: string;
 
   private constructor() {}
 
@@ -144,7 +165,23 @@ export class UpgradeChartOptionsBuilder {
     return this;
   }
 
+  /**
+   * Sets the version of the chart to upgrade to.
+   * @param version The version.
+   * @returns This builder instance.
+   */
+  public version(version: string): UpgradeChartOptionsBuilder {
+    this._version = version;
+    return this;
+  }
+
   public build(): UpgradeChartOptions {
-    return new UpgradeChartOptions(this._namespace, this._kubeContext, this._reuseValues, this._extraArgs);
+    return new UpgradeChartOptions(
+      this._namespace,
+      this._kubeContext,
+      this._reuseValues,
+      this._extraArgs,
+      this._version,
+    );
   }
 }

@@ -911,7 +911,7 @@ export class NetworkCommand extends BaseCommand {
               await this.chartManager.install(
                 config.namespace,
                 constants.SOLO_DEPLOYMENT_CHART,
-                ctx.config.chartPath,
+                ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                 config.soloChartVersion,
                 config.valuesArgMap[clusterRef],
                 config.clusterRefs[clusterRef],
@@ -993,7 +993,7 @@ export class NetworkCommand extends BaseCommand {
                   await this.chartManager.upgrade(
                     config.namespace,
                     constants.SOLO_DEPLOYMENT_CHART,
-                    ctx.config.chartPath,
+                    ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                     config.soloChartVersion,
                     config.valuesArgMap[clusterRef],
                     config.clusterRefs[clusterRef],
