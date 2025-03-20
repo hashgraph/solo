@@ -15,7 +15,7 @@ export class EnvironmentKeyFormatter implements KeyFormatter {
       return key;
     }
 
-    return key.trim().toLowerCase().replace('.', this.separator);
+    return key.trim().toUpperCase().replaceAll('.', this.separator);
   }
 
   public split(key: string): string[] {
