@@ -4,28 +4,28 @@ import {FREEZE_ADMIN_ACCOUNT} from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
 import * as constants from '../../core/constants.js';
 import {PrivateKey} from '@hashgraph/sdk';
-import {SoloError} from '../../core/errors/SoloError.js';
+import {SoloError} from '../../core/errors/solo-error.js';
 import * as helpers from '../../core/helpers.js';
-import path from 'path';
 import fs from 'fs';
-import {checkNamespace, validatePath} from '../../core/helpers.js';
+import {checkNamespace} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
-import {type NetworkNodeServices} from '../../core/network_node_services.js';
-import {type NodeAddConfigClass} from './node_add_config.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type PodRef} from '../../core/kube/resources/pod/pod_ref.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
-import {type ConsensusNode} from '../../core/model/consensus_node.js';
+import {type NetworkNodeServices} from '../../core/network-node-services.js';
+import {type NodeAddConfigClass} from './node-add-config.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
+import {type PodRef} from '../../core/kube/resources/pod/pod-ref.js';
+import {type K8Factory} from '../../core/kube/k8-factory.js';
+import {type ConsensusNode} from '../../core/model/consensus-node.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
-import {type ConfigManager} from '../../core/config_manager.js';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {type LocalConfig} from '../../core/config/local_config.js';
-import {type AccountManager} from '../../core/account_manager.js';
+import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
+import {type ConfigManager} from '../../core/config-manager.js';
+import {patchInject} from '../../core/dependency-injection/container-helper.js';
+import {type LocalConfig} from '../../core/config/local-config.js';
+import {type AccountManager} from '../../core/account-manager.js';
 import {type Helm} from '../../core/helm.js';
-import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -62,9 +62,9 @@ export class NodeCommandConfigs {
 
   private async initializeSetup(config: any, k8Factory: K8Factory) {
     // compute other config parameters
-    config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
+    config.keysDir = PathEx.join(config.cacheDir, 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
-    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
+    config.stagingKeysDir = PathEx.join(config.stagingDir, 'keys');
 
     if (!(await k8Factory.default().namespaces().has(config.namespace))) {
       throw new SoloError(`namespace ${config.namespace} does not exist`);
@@ -400,7 +400,7 @@ export class NodeCommandConfigs {
         throw new SoloError('no node aliases provided via flags or RemoteConfig');
       }
     }
-    config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys');
+    config.keysDir = PathEx.join(this.configManager.getFlag(flags.cacheDir), 'keys');
 
     if (!fs.existsSync(config.keysDir)) {
       fs.mkdirSync(config.keysDir);

@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type LocalConfig} from './config/local_config.js';
+import {type LocalConfig} from './config/local-config.js';
 import {type DeploymentName} from './config/remote/types.js';
-import {type ConfigManager} from './config_manager.js';
+import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
-import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
+import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
+import {type SoloListrTaskWrapper} from '../types/index.js';
 import {input as inputPrompt} from '@inquirer/prompts';
-import {SoloError} from './errors/SoloError.js';
+import {SoloError} from './errors/solo-error.js';
+import {type AnyListrContext} from '../types/aliases.js';
 
 export async function resolveNamespaceFromDeployment(
   localConfig: LocalConfig,
   configManager: ConfigManager,
-  task?: SoloListrTaskWrapper<any>,
+  task?: SoloListrTaskWrapper<AnyListrContext>,
 ): Promise<NamespaceName> {
-  await promptTheUserForDeployment(configManager, task);
-  const deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);
+  const deploymentName: DeploymentName = await promptTheUserForDeployment(configManager, task);
 
   if (!localConfig.deployments.hasOwnProperty(deploymentName)) {
     throw new SoloError(
@@ -28,8 +28,8 @@ export async function resolveNamespaceFromDeployment(
 
 export async function promptTheUserForDeployment(
   configManager: ConfigManager,
-  task?: SoloListrTaskWrapper<any>,
-): Promise<Optional<DeploymentName>> {
+  task?: SoloListrTaskWrapper<AnyListrContext>,
+): Promise<DeploymentName> {
   if (configManager.getFlag(flags.deployment)) {
     return configManager.getFlag<DeploymentName>(flags.deployment);
   }

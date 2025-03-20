@@ -9,7 +9,7 @@ NOTE: Mirror Node refers to File 102 as its address book.
 To get the address book from the ledger, this requires a port forward to be setup on port 50211 to consensus node with node ID = 0.
 
 > \[!NOTE]
-> Due to file size, the Yahcli.jar file is stored with Git LFS (Large File Storage).  You will need to install Git LFS prior to cloning this repository to automatically download the Yahcli.jar file. For instructions on how to install see: https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage
+> Due to file size, the Yahcli.jar file is stored with Git LFS (Large File Storage).  You will need to install Git LFS prior to cloning this repository to automatically download the Yahcli.jar file. For instructions on how to install see: <https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage>
 
 ```bash
 # try and detect if the port forward is already setup

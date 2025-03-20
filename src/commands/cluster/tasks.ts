@@ -4,33 +4,33 @@ import {Flags as flags} from '../flags.js';
 import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
 import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
-import path from 'path';
 import chalk from 'chalk';
-import {ListrLock} from '../../core/lock/listr_lock.js';
-import {ErrorMessages} from '../../core/error_messages.js';
-import {SoloError} from '../../core/errors/SoloError.js';
-import {UserBreak} from '../../core/errors/UserBreak.js';
-import {type K8Factory} from '../../core/kube/k8_factory.js';
+import {ListrLock} from '../../core/lock/listr-lock.js';
+import {ErrorMessages} from '../../core/error-messages.js';
+import {SoloError} from '../../core/errors/solo-error.js';
+import {UserBreak} from '../../core/errors/user-break.js';
+import {type K8Factory} from '../../core/kube/k8-factory.js';
 import {type SoloListrTask} from '../../types/index.js';
 import {type ClusterRef} from '../../core/config/remote/types.js';
-import {type LocalConfig} from '../../core/config/local_config.js';
+import {type LocalConfig} from '../../core/config/local-config.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
+import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type SoloLogger} from '../../core/logging.js';
-import {type ChartManager} from '../../core/chart_manager.js';
-import {type LockManager} from '../../core/lock/lock_manager.js';
+import {type ChartManager} from '../../core/chart-manager.js';
+import {type LockManager} from '../../core/lock/lock-manager.js';
 import {type Helm} from '../../core/helm.js';
-import {type ClusterChecks} from '../../core/cluster_checks.js';
+import {type ClusterChecks} from '../../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {SOLO_CLUSTER_SETUP_CHART} from '../../core/constants.js';
-import {type ClusterRefConnectContext} from './config_interfaces/cluster_ref_connect_context.js';
-import {type ClusterRefDefaultContext} from './config_interfaces/cluster_ref_default_context.js';
-import {type ClusterRefSetupContext} from './config_interfaces/cluster_ref_setup_context.js';
-import {type ClusterRefResetContext} from './config_interfaces/cluster_ref_reset_context.js';
+import {type ClusterRefConnectContext} from './config-interfaces/cluster-ref-connect-context.js';
+import {type ClusterRefDefaultContext} from './config-interfaces/cluster-ref-default-context.js';
+import {type ClusterRefSetupContext} from './config-interfaces/cluster-ref-setup-context.js';
+import {type ClusterRefResetContext} from './config-interfaces/cluster-ref-reset-context.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 @injectable()
 export class ClusterCommandTasks {
@@ -127,7 +127,7 @@ export class ClusterCommandTasks {
     prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
     minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
   ): string {
-    let valuesArg = chartDir ? `-f ${path.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
+    let valuesArg = chartDir ? `-f ${PathEx.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
     valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
@@ -136,8 +136,11 @@ export class ClusterCommandTasks {
   }
 
   /** Show list of installed chart */
-  private async showInstalledChartList(clusterSetupNamespace: NamespaceName) {
-    this.logger.showList('Installed Charts', await this.chartManager.getInstalledCharts(clusterSetupNamespace));
+  private async showInstalledChartList(clusterSetupNamespace: NamespaceName, context?: string) {
+    this.logger.showList(
+      'Installed Charts',
+      await this.chartManager.getInstalledCharts(clusterSetupNamespace, context),
+    );
   }
 
   public initialize(argv: ArgvStruct, configInit: ConfigBuilder): SoloListrTask<AnyListrContext> {
@@ -262,7 +265,7 @@ export class ClusterCommandTasks {
             ctx.chartPath,
             version,
             valuesArg,
-            this.k8Factory.default().contexts().readCurrent(),
+            ctx.config.context,
           );
           showVersionBanner(self.logger, SOLO_CLUSTER_SETUP_CHART, version);
         } catch (e) {
@@ -275,7 +278,7 @@ export class ClusterCommandTasks {
             await this.chartManager.uninstall(
               clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
-              this.k8Factory.default().contexts().readCurrent(),
+              ctx.config.context,
             );
           } catch {
             // ignore error during uninstall since we are doing the best-effort uninstall here
@@ -288,7 +291,7 @@ export class ClusterCommandTasks {
         }
 
         if (argv.dev) {
-          await this.showInstalledChartList(clusterSetupNamespace);
+          await this.showInstalledChartList(clusterSetupNamespace, ctx.config.context);
         }
       },
       skip: ctx => ctx.isChartInstalled,

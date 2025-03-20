@@ -18,19 +18,19 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster} from '../../test_util.js';
+import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster} from '../../test-util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {type NetworkNodes} from '../../../src/core/network_nodes.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import * as helpers from '../../../src/core/helpers.js';
 import {Templates} from '../../../src/core/templates.js';
 import * as Base64 from 'js-base64';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {type SoloLogger} from '../../../src/core/logging.js';
 

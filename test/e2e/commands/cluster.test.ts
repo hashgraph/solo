@@ -5,17 +5,17 @@ import {it, describe, after, before, afterEach, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {bootstrapTestVariables, getTestCluster, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {bootstrapTestVariables, getTestCluster, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
-import * as path from 'node:path';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -93,7 +93,7 @@ describe('ClusterCommand', () => {
 
     await clusterCmd.handlers.connect(argv.build());
 
-    const localConfigPath = path.join(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigPath = PathEx.joinWithRealPath(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
     const localConfigYaml = fs.readFileSync(localConfigPath).toString();
     const localConfigData = yaml.parse(localConfigYaml);
 

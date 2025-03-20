@@ -1,28 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloError} from '../core/errors/SoloError.js';
-import {ShellRunner} from '../core/shell_runner.js';
-import {type LockManager} from '../core/lock/lock_manager.js';
-import {type LocalConfig} from '../core/config/local_config.js';
-import {type RemoteConfigManager} from '../core/config/remote/remote_config_manager.js';
+import {SoloError} from '../core/errors/solo-error.js';
+import {ShellRunner} from '../core/shell-runner.js';
+import {type LockManager} from '../core/lock/lock-manager.js';
+import {type LocalConfig} from '../core/config/local-config.js';
+import {type RemoteConfigManager} from '../core/config/remote/remote-config-manager.js';
 import {type Helm} from '../core/helm.js';
-import {type K8Factory} from '../core/kube/k8_factory.js';
-import {type ChartManager} from '../core/chart_manager.js';
-import {type ConfigManager} from '../core/config_manager.js';
-import {type DependencyManager} from '../core/dependency_managers/index.js';
-import path from 'path';
+import {type K8Factory} from '../core/kube/k8-factory.js';
+import {type ChartManager} from '../core/chart-manager.js';
+import {type ConfigManager} from '../core/config-manager.js';
+import {type DependencyManager} from '../core/dependency-managers/index.js';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {Task} from '../core/task.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
 import {type SoloLogger} from '../core/logging.js';
-import {type PackageDownloader} from '../core/package_downloader.js';
-import {type PlatformInstaller} from '../core/platform_installer.js';
-import {type KeyManager} from '../core/key_manager.js';
-import {type AccountManager} from '../core/account_manager.js';
-import {type ProfileManager} from '../core/profile_manager.js';
-import {type CertificateManager} from '../core/certificate_manager.js';
+import {type PackageDownloader} from '../core/package-downloader.js';
+import {type PlatformInstaller} from '../core/platform-installer.js';
+import {type KeyManager} from '../core/key-manager.js';
+import {type AccountManager} from '../core/account-manager.js';
+import {type ProfileManager} from '../core/profile-manager.js';
+import {type CertificateManager} from '../core/certificate-manager.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export interface Opts {
   logger: SoloLogger;
@@ -76,16 +76,83 @@ export abstract class BaseCommand extends ShellRunner {
   /**
    * Prepare the values files map for each cluster
    *
-   * <p> Order of precedence:
-   * <ol>
-   *   <li> Chart's default values file (if chartDirectory is set) </li>
-   *   <li> Profile values file </li>
-   *   <li> User's values file </li>
-   * </ol>
-   * @param clusterRefs - the map of cluster references
+   * Order of precedence:
+   * 1. Chart's default values file (if chartDirectory is set)
+   * 2. Profile values file
+   * 3. User's values file
+   * @param clusterRefs
    * @param valuesFileInput - the values file input string
    * @param chartDirectory - the chart directory
-   * @param profileValuesFile - the profile values file
+   * @param profileValuesFile - mapping of clusterRef to the profile values file full path
+   */
+  static prepareValuesFilesMapMulticluster(
+    clusterRefs: ClusterRefs,
+    chartDirectory?: string,
+    profileValuesFile?: Record<ClusterRef, string>,
+    valuesFileInput?: string,
+  ): Record<ClusterRef, string> {
+    // initialize the map with an empty array for each cluster-ref
+    const valuesFiles: Record<ClusterRef, string> = {[Flags.KEY_COMMON]: ''};
+    Object.keys(clusterRefs).forEach(clusterRef => (valuesFiles[clusterRef] = ''));
+
+    // add the chart's default values file for each cluster-ref if chartDirectory is set
+    // this should be the first in the list of values files as it will be overridden by user's input
+    if (chartDirectory) {
+      const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      for (const clusterRef in valuesFiles) {
+        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      }
+    }
+
+    if (profileValuesFile) {
+      Object.entries(profileValuesFile).forEach(([clusterRef, file]) => {
+        const valuesArg = ` --values ${file}`;
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.keys(valuesFiles).forEach(clusterRef => (valuesFiles[clusterRef] += valuesArg));
+        } else {
+          valuesFiles[clusterRef] += valuesArg;
+        }
+      });
+    }
+
+    if (valuesFileInput) {
+      const parsed = Flags.parseValuesFilesInput(valuesFileInput);
+      Object.entries(parsed).forEach(([clusterRef, files]) => {
+        let vf = '';
+        files.forEach(file => {
+          vf += ` --values ${file}`;
+        });
+
+        if (clusterRef === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterRef]) => {
+            valuesFiles[clusterRef] += vf;
+          });
+        } else {
+          valuesFiles[clusterRef] += vf;
+        }
+      });
+    }
+
+    if (Object.keys(valuesFiles).length > 1) {
+      // delete the common key if there is another cluster to use
+      delete valuesFiles[Flags.KEY_COMMON];
+    }
+
+    return valuesFiles;
+  }
+
+  /**
+   * Prepare the values files map for each cluster
+   *
+   * Order of precedence:
+   * 1. Chart's default values file (if chartDirectory is set)
+   * 2. Profile values file
+   * 3. User's values file
+   * @param clusterRefs
+   * @param valuesFileInput - the values file input string
+   * @param chartDirectory - the chart directory
+   * @param profileValuesFile - the profile values file full path
    */
   static prepareValuesFilesMap(
     clusterRefs: ClusterRefs,
@@ -104,7 +171,7 @@ export abstract class BaseCommand extends ShellRunner {
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
-      const chartValuesFile = path.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
       for (const clusterRef in valuesFiles) {
         valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
       }
@@ -152,22 +219,6 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     return valuesFiles;
-  }
-
-  public getLeaseManager(): LockManager {
-    return this.leaseManager;
-  }
-
-  public getK8Factory() {
-    return this.k8Factory;
-  }
-
-  public getLocalConfig() {
-    return this.localConfig;
-  }
-
-  public getRemoteConfigManager() {
-    return this.remoteConfigManager;
   }
 
   abstract close(): Promise<void>;

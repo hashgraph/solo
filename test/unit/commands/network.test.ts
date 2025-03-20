@@ -4,35 +4,35 @@ import sinon from 'sinon';
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
-import {type ConfigManager} from '../../../src/core/config_manager.js';
-import {type ChartManager} from '../../../src/core/chart_manager.js';
+import {type ConfigManager} from '../../../src/core/config-manager.js';
+import {type ChartManager} from '../../../src/core/chart-manager.js';
 import {type Helm} from '../../../src/core/helm.js';
-import path from 'path';
 import {NetworkCommand} from '../../../src/commands/network.js';
-import {type LockManager} from '../../../src/core/lock/lock_manager.js';
-import {type RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {type ProfileManager} from '../../../src/core/profile_manager.js';
-import {type KeyManager} from '../../../src/core/key_manager.js';
+import {type LockManager} from '../../../src/core/lock/lock-manager.js';
+import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
+import {type ProfileManager} from '../../../src/core/profile-manager.js';
+import {type KeyManager} from '../../../src/core/key-manager.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
-import {ListrLock} from '../../../src/core/lock/listr_lock.js';
-import {GenesisNetworkDataConstructor} from '../../../src/core/genesis_network_models/genesis_network_data_constructor.js';
+import {ListrLock} from '../../../src/core/lock/listr-lock.js';
+import {GenesisNetworkDataConstructor} from '../../../src/core/genesis-network-models/genesis-network-data-constructor.js';
 import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {type K8Factory} from '../../../src/core/kube/k8_factory.js';
-import {type DependencyManager} from '../../../src/core/dependency_managers/index.js';
-import {type LocalConfig} from '../../../src/core/config/local_config.js';
-import {resetForTest} from '../../test_container.js';
-import {type ClusterChecks} from '../../../src/core/cluster_checks.js';
-import {type K8ClientConfigMaps} from '../../../src/core/kube/k8_client/resources/config_map/k8_client_config_maps.js';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
-import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
+import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
+import {type LocalConfig} from '../../../src/core/config/local-config.js';
+import {resetForTest} from '../../test-container.js';
+import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
+import {type K8ClientConfigMaps} from '../../../src/core/kube/k8-client/resources/config-map/k8-client-config-maps.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
+import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -190,7 +190,7 @@ describe('NetworkCommand unit tests', () => {
         expect(opts.chartManager.install.args[0][0].name).to.equal('solo-e2e');
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(opts.chartManager.install.args[0][2]).to.equal(
-          path.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
+          PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
         );
         expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
       } finally {
@@ -200,9 +200,9 @@ describe('NetworkCommand unit tests', () => {
 
     it('Should use prepare config correctly for all clusters', async () => {
       try {
-        const common = path.join('test', 'data', 'test-values.yaml');
-        const values1 = path.join('test', 'data', 'test-values1.yaml');
-        const values2 = path.join('test', 'data', 'test-values2.yaml');
+        const common = PathEx.join('test', 'data', 'test-values.yaml');
+        const values1 = PathEx.join('test', 'data', 'test-values1.yaml');
+        const values2 = PathEx.join('test', 'data', 'test-values2.yaml');
         argv.setArg(flags.networkDeploymentValuesFile, `${common},cluster=${values1},cluster=${values2}`);
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
@@ -220,7 +220,7 @@ describe('NetworkCommand unit tests', () => {
 
         expect(config.valuesArgMap).to.not.empty;
         expect(config.valuesArgMap['cluster']).to.not.empty;
-        expect(config.valuesArgMap['cluster'].indexOf(path.join('solo-deployment', 'values.yaml'))).to.not.equal(-1);
+        expect(config.valuesArgMap['cluster'].indexOf(PathEx.join('solo-deployment', 'values.yaml'))).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('values.yaml')).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('test-values1.yaml')).to.not.equal(-1);
         expect(config.valuesArgMap['cluster'].indexOf('test-values2.yaml')).to.not.equal(-1);

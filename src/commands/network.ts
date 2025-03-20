@@ -4,10 +4,10 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
-import {IllegalArgumentError} from '../core/errors/IllegalArgumentError.js';
-import {MissingArgumentError} from '../core/errors/MissingArgumentError.js';
-import {SoloError} from '../core/errors/SoloError.js';
-import {UserBreak} from '../core/errors/UserBreak.js';
+import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
+import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
+import {SoloError} from '../core/errors/solo-error.js';
+import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
@@ -15,38 +15,37 @@ import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
   resolveValidJsonFilePath,
-  validatePath,
   sleep,
   parseNodeAliases,
   prepareChartPath,
   showVersionBanner,
 } from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import path from 'path';
 import fs from 'fs';
-import {type KeyManager} from '../core/key_manager.js';
-import {type PlatformInstaller} from '../core/platform_installer.js';
-import {type ProfileManager} from '../core/profile_manager.js';
-import {type CertificateManager} from '../core/certificate_manager.js';
-import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {ListrLock} from '../core/lock/listr_lock.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus_node_component.js';
+import {type KeyManager} from '../core/key-manager.js';
+import {type PlatformInstaller} from '../core/platform-installer.js';
+import {type ProfileManager} from '../core/profile-manager.js';
+import {type CertificateManager} from '../core/certificate-manager.js';
+import {type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {ListrLock} from '../core/lock/listr-lock.js';
+import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
-import {EnvoyProxyComponent} from '../core/config/remote/components/envoy_proxy_component.js';
-import {HaProxyComponent} from '../core/config/remote/components/ha_proxy_component.js';
+import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
+import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace_name.js';
-import {PvcRef} from '../core/kube/resources/pvc/pvc_ref.js';
-import {PvcName} from '../core/kube/resources/pvc/pvc_name.js';
-import {type ConsensusNode} from '../core/model/consensus_node.js';
+import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {PvcRef} from '../core/kube/resources/pvc/pvc-ref.js';
+import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
+import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
-import {SecretType} from '../core/kube/resources/secret/secret_type.js';
+import {SecretType} from '../core/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
-import {type PodRef} from '../core/kube/resources/pod/pod_ref.js';
+import {type PodRef} from '../core/kube/resources/pod/pod-ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../core/kube/resources/pod/pod.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -105,6 +104,7 @@ export interface NetworkDestroyContext {
     enableTimeout: boolean;
     force: boolean;
     contexts: string[];
+    deployment: string;
   };
   checkTimeout: boolean;
 }
@@ -114,7 +114,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly platformInstaller: PlatformInstaller;
   private readonly profileManager: ProfileManager;
   private readonly certificateManager: CertificateManager;
-  private profileValuesFile?: string;
+  private profileValuesFile?: Record<ClusterRef, string>;
 
   constructor(opts: Opts) {
     super(opts);
@@ -373,7 +373,8 @@ export class NetworkCommand extends BaseCommand {
     const valuesArgMap: Record<ClusterRef, string> = {};
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
-    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
+
+    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMapMulticluster(
       config.clusterRefs,
       config.chartDirectory,
       this.profileValuesFile,
@@ -573,7 +574,7 @@ export class NetworkCommand extends BaseCommand {
     consensusNodes: ConsensusNode[],
     valuesArgs: Record<ClusterRef, string>,
     templateString: string,
-  ) {
+  ): void {
     if (records) {
       consensusNodes.forEach(consensusNode => {
         if (records[consensusNode.name]) {
@@ -633,6 +634,7 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsEndpoint,
       flags.gcsBucket,
       flags.gcsBucketPrefix,
+      flags.nodeAliasesUnparsed,
     ];
 
     // disable the prompts that we don't want to prompt the user for
@@ -689,9 +691,9 @@ export class NetworkCommand extends BaseCommand {
     );
 
     // compute other config parameters
-    config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
+    config.keysDir = PathEx.join(config.cacheDir, 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
-    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
+    config.stagingKeysDir = PathEx.join(config.stagingDir, 'keys');
 
     config.resolvedThrottlesFile = resolveValidJsonFilePath(
       config.genesisThrottlesFile,
@@ -702,13 +704,7 @@ export class NetworkCommand extends BaseCommand {
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
 
-    if (config.nodeAliases.length === 0) {
-      config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
-      if (config.nodeAliases.length === 0) {
-        throw new SoloError('no node aliases provided via flags or RemoteConfig');
-      }
-      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
-    }
+    config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 
@@ -748,6 +744,15 @@ export class NetworkCommand extends BaseCommand {
           constants.SOLO_DEPLOYMENT_CHART,
           this.k8Factory.getK8(context).contexts().readCurrent(),
         );
+      }),
+    );
+
+    // Delete Remote config inside each cluster
+    task.title = `Deleting the RemoteConfig configmap in namespace ${ctx.config.namespace}`;
+    await Promise.all(
+      ctx.config.contexts.map(async context => {
+        // Delete all if found
+        this.k8Factory.getK8(context).configMaps().delete(ctx.config.namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
       }),
     );
 
@@ -1150,6 +1155,7 @@ export class NetworkCommand extends BaseCommand {
             ctx.config = {
               deletePvcs: self.configManager.getFlag<boolean>(flags.deletePvcs) as boolean,
               deleteSecrets: self.configManager.getFlag<boolean>(flags.deleteSecrets) as boolean,
+              deployment: self.configManager.getFlag<string>(flags.deployment) as string,
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               enableTimeout: self.configManager.getFlag<boolean>(flags.enableTimeout) as boolean,
               force: self.configManager.getFlag<boolean>(flags.force) as boolean,
@@ -1157,6 +1163,15 @@ export class NetworkCommand extends BaseCommand {
             };
 
             return ListrLock.newAcquireLockTask(lease, task);
+          },
+        },
+        {
+          title: 'Remove deployment from local configuration',
+          task: async (ctx, task) => {
+            const deployments = self.localConfig.deployments;
+            delete deployments[ctx.config.deployment];
+            self.localConfig.setDeployments(deployments);
+            await self.localConfig.write();
           },
         },
         {
@@ -1169,7 +1184,7 @@ export class NetworkCommand extends BaseCommand {
                 self.logger.showUser(chalk.red(message));
                 networkDestroySuccess = false;
 
-                if (ctx.config.deletePvcs && ctx.config.deleteSecrets && ctx.config.force) {
+                if (ctx.config.deletePvcs && ctx.config.deleteSecrets) {
                   await Promise.all(
                     ctx.config.contexts.map(context =>
                       self.k8Factory.getK8(context).namespaces().delete(ctx.config.namespace),
@@ -1209,11 +1224,7 @@ export class NetworkCommand extends BaseCommand {
     return networkDestroySuccess;
   }
 
-  getCommandDefinition(): {
-    command: string;
-    desc: string;
-    builder: CommandBuilder;
-  } {
+  getCommandDefinition() {
     const self = this;
     return {
       command: NetworkCommand.COMMAND_NAME,
@@ -1242,7 +1253,7 @@ export class NetworkCommand extends BaseCommand {
           })
           .command({
             command: 'destroy',
-            desc: 'Destroy solo network',
+            desc: 'Destroy solo network. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
             builder: (y: any) =>
               flags.setCommandFlags(
                 y,
@@ -1309,8 +1320,5 @@ export class NetworkCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }

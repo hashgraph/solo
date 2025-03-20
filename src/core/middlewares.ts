@@ -3,26 +3,30 @@
 import {Flags as flags} from '../commands/flags.js';
 import chalk from 'chalk';
 
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type Opts} from '../commands/base.js';
-import {type ConfigManager} from './config_manager.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type ConfigManager} from './config-manager.js';
+import {type K8Factory} from './kube/k8-factory.js';
 import {type SoloLogger} from './logging.js';
 import {type AnyObject} from '../types/aliases.js';
-import {type RemoteConfigManager} from './config/remote/remote_config_manager.js';
+import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {type ClusterRef} from './config/remote/types.js';
+import {type LocalConfig} from './config/local-config.js';
+import {SoloError} from './errors/solo-error.js';
 
 export class Middlewares {
   private readonly remoteConfigManager: RemoteConfigManager;
   private readonly configManager: ConfigManager;
   private readonly k8Factory: K8Factory;
   private readonly logger: SoloLogger;
+  private readonly localConfig: LocalConfig;
 
   constructor(opts: Opts) {
     this.configManager = opts.configManager;
     this.remoteConfigManager = opts.remoteConfigManager;
     this.k8Factory = opts.k8Factory;
     this.logger = opts.logger;
+    this.localConfig = opts.localConfig;
   }
 
   public setLoggerDevFlag() {
@@ -142,6 +146,31 @@ export class Middlewares {
 
       if (!skip) {
         await remoteConfigManager.loadAndValidate(argv, validateRemoteConfig, skipConsensusNodeValidation);
+      }
+
+      return argv;
+    };
+  }
+
+  /**
+   * Checks if the Solo instance has been initialized
+   *
+   * @returns callback function to be executed from listr
+   */
+  public checkIfInitialized() {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return async (argv: any): Promise<AnyObject> => {
+      logger.debug('Checking if local config exists');
+
+      const command = argv._[0];
+      const allowMissingLocalConfig = command === 'init';
+
+      if (!allowMissingLocalConfig && !this.localConfig.configFileExists()) {
+        throw new SoloError('Please run `solo init` to create required files');
       }
 
       return argv;

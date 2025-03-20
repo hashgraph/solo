@@ -5,25 +5,25 @@ import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
-import {HEDERA_PLATFORM_VERSION_TAG, getTestCluster} from '../../test_util.js';
+import {HEDERA_PLATFORM_VERSION_TAG, getTestCluster} from '../../test-util.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
-import {ConfigManager} from '../../../src/core/config_manager.js';
+import {ConfigManager} from '../../../src/core/config-manager.js';
 import {SoloLogger} from '../../../src/core/logging.js';
-import {ChartManager} from '../../../src/core/chart_manager.js';
+import {ChartManager} from '../../../src/core/chart-manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
-import path from 'path';
 import {container} from 'tsyringe-neo';
-import {resetForTest} from '../../test_container.js';
-import {LocalConfig} from '../../../src/core/config/local_config.js';
-import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
-import {K8ClientFactory} from '../../../src/core/kube/k8_client/k8_client_factory.js';
-import {DependencyManager} from '../../../src/core/dependency_managers/index.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {resetForTest} from '../../test-container.js';
+import {LocalConfig} from '../../../src/core/config/local-config.js';
+import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
+import {K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
+import {DependencyManager} from '../../../src/core/dependency-managers/index.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -106,7 +106,7 @@ describe('ClusterCommand unit tests', () => {
       await clusterCommand.handlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
-        path.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
+        PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
       );
     });
   });

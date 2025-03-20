@@ -3,13 +3,13 @@
 import {type Namespaces} from './resources/namespace/namespaces.js';
 import {type Containers} from './resources/container/containers.js';
 import {type Clusters} from './resources/cluster/clusters.js';
-import {type ConfigMaps} from './resources/config_map/config_maps.js';
+import {type ConfigMaps} from './resources/config-map/config-maps.js';
 import {type Contexts} from './resources/context/contexts.js';
 import {type Pvcs} from './resources/pvc/pvcs.js';
 import {type Services} from './resources/service/services.js';
 import {type Pods} from './resources/pod/pods.js';
 import {type Leases} from './resources/lease/leases.js';
-import {type IngressClasses} from './resources/ingress_class/ingress_classes.js';
+import {type IngressClasses} from './resources/ingress-class/ingress-classes.js';
 import {type Secrets} from './resources/secret/secrets.js';
 import {type Ingresses} from './resources/ingress/ingresses.js';
 import {type Crds} from './resources/crd/crds.js';

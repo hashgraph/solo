@@ -4,11 +4,11 @@ import * as winston from 'winston';
 import {v4 as uuidv4} from 'uuid';
 import * as util from 'util';
 import chalk from 'chalk';
-import path from 'path';
 import * as constants from './constants.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -57,7 +57,7 @@ export class SoloLogger {
     this.winstonLogger = winston.createLogger({
       level: logLevel,
       format: winston.format.combine(customFormat, winston.format.json()),
-      transports: [new winston.transports.File({filename: path.join(constants.SOLO_LOGS_DIR, 'solo.log')})],
+      transports: [new winston.transports.File({filename: PathEx.join(constants.SOLO_LOGS_DIR, 'solo.log')})],
     });
   }
 

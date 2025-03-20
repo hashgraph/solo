@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type PvcRef} from './pvc_ref.js';
+import {type PvcRef} from './pvc-ref.js';
 
 export interface Pvc {
   /**

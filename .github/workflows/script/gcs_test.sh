@@ -95,7 +95,7 @@ task solo-test -- deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --clu
 
 task solo-test -- node keys --gossip-keys --tls-keys -i node1 --deployment "${SOLO_DEPLOYMENT}"
 
-task solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" \
+task solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" -i node1 \
   --storage-type "${storageType}" \
   "${STORAGE_OPTIONS[@]}" \
   --backup-bucket "${streamBackupBucket}" \

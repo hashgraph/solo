@@ -3,31 +3,31 @@
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test_util.js';
+import {bootstrapTestVariables, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
-import path from 'path';
 import fs from 'fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace_name.js';
-import {PodName} from '../../../src/core/kube/resources/pod/pod_name.js';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod_ref.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodName} from '../../../src/core/kube/resources/pod/pod-name.js';
+import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {InitCommand} from '../../../src/commands/init.js';
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {DeploymentCommand} from '../../../src/commands/deployment.js';
 import {NetworkCommand} from '../../../src/commands/network.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
   const testName = 'network-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const applicationEnvFileContents = '# row 1\n# row 2\n# row 3';
-  const applicationEnvParentDirectory = path.join(getTmpDir(), 'network-command-test');
-  const applicationEnvFilePath = path.join(applicationEnvParentDirectory, 'application.env');
+  const applicationEnvParentDirectory = PathEx.join(getTmpDir(), 'network-command-test');
+  const applicationEnvFilePath = PathEx.join(applicationEnvParentDirectory, 'application.env');
 
   const argv = Argv.getDefaultArgv(namespace);
   argv.setArg(flags.namespace, namespace.name);
@@ -139,7 +139,7 @@ describe('NetworkCommand', function networkCommand() {
 
   it('application env file contents should be in cached values file', () => {
     // @ts-expect-error - TS2341: to access private property
-    const valuesYaml = fs.readFileSync(networkCmd.profileValuesFile).toString();
+    const valuesYaml = fs.readFileSync(Object.values(networkCmd.profileValuesFile)[0]).toString();
     const fileRows = applicationEnvFileContents.split('\n');
     for (const fileRow of fileRows) {
       expect(valuesYaml).to.contain(fileRow);

@@ -2,7 +2,7 @@
 
 import {type ToObject} from '../../../types/index.js';
 import {type ClusterRef, type DeploymentName, type ICluster, type NamespaceNameAsString} from './types.js';
-import {SoloError} from '../../errors/SoloError.js';
+import {SoloError} from '../../errors/solo-error.js';
 
 export class Cluster implements ICluster, ToObject<ICluster> {
   public constructor(

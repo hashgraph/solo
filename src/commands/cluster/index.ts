@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as ContextFlags from './flags.js';
-import {YargsCommand} from '../../core/yargs_command.js';
+import {YargsCommand} from '../../core/yargs-command.js';
 import {BaseCommand, type Opts} from './../base.js';
 import {type ClusterCommandHandlers} from './handlers.js';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {patchInject} from '../../core/dependency-injection/container-helper.js';
+import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type AnyYargs} from '../../types/aliases.js';
 
 /**

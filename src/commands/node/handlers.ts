@@ -4,26 +4,26 @@ import * as helpers from '../../core/helpers.js';
 import * as NodeFlags from './flags.js';
 import {type NodeCommandConfigs} from './configs.js';
 import * as constants from '../../core/constants.js';
-import {type LockManager} from '../../core/lock/lock_manager.js';
-import {type RemoteConfigManager} from '../../core/config/remote/remote_config_manager.js';
-import {SoloError} from '../../core/errors/SoloError.js';
+import {type LockManager} from '../../core/lock/lock-manager.js';
+import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
+import {SoloError} from '../../core/errors/solo-error.js';
 import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
-import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus_node_component.js';
-import {type Listr, type ListrTask} from 'listr2';
+import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
+import {type Listr} from 'listr2';
 import chalk from 'chalk';
-import {type ComponentsDataWrapper} from '../../core/config/remote/components_data_wrapper.js';
-import {type Optional} from '../../types/index.js';
+import {type ComponentsDataWrapper} from '../../core/config/remote/components-data-wrapper.js';
+import {type Optional, type SoloListrTask} from '../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from '../../core/dependency_injection/container_helper.js';
-import {CommandHandler} from '../../core/command_handler.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace_name.js';
-import {type ConsensusNode} from '../../core/model/consensus_node.js';
-import {InjectTokens} from '../../core/dependency_injection/inject_tokens.js';
+import {patchInject} from '../../core/dependency-injection/container-helper.js';
+import {CommandHandler} from '../../core/command-handler.js';
+import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
+import {type ConsensusNode} from '../../core/model/consensus-node.js';
+import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -81,6 +81,7 @@ export class NodeCommandHandlers extends CommandHandler {
   deleteExecuteTaskList(argv: any) {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+      this.tasks.stopNodes('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
       this.tasks.refreshNodeList(),
@@ -897,7 +898,7 @@ export class NodeCommandHandlers extends CommandHandler {
   }
 
   /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public removeNodeAndProxies(): ListrTask<any, any, any> {
+  public removeNodeAndProxies(): SoloListrTask<any> {
     return {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       title: 'Remove node and proxies from remote config',
@@ -916,7 +917,7 @@ export class NodeCommandHandlers extends CommandHandler {
    *
    * @param state - to which to change the consensus node component
    */
-  public changeAllNodeStates(state: ConsensusNodeStates): ListrTask<any, any, any> {
+  public changeAllNodeStates(state: ConsensusNodeStates): SoloListrTask<any> {
     interface Context {
       config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
@@ -958,7 +959,7 @@ export class NodeCommandHandlers extends CommandHandler {
   }: {
     acceptedStates?: ConsensusNodeStates[];
     excludedStates?: ConsensusNodeStates[];
-  }): ListrTask<any, any, any> {
+  }): SoloListrTask<any> {
     interface Context {
       config: {namespace: string; nodeAliases: NodeAliases};
     }
@@ -971,7 +972,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
         const components = this.remoteConfigManager.components;
 
-        const subTasks: ListrTask<Context, any, any>[] = nodeAliases.map(nodeAlias => ({
+        const subTasks: SoloListrTask<Context>[] = nodeAliases.map(nodeAlias => ({
           title: `Validating state for node ${nodeAlias}`,
           task: (_, task): void => {
             const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
@@ -1000,7 +1001,7 @@ export class NodeCommandHandlers extends CommandHandler {
   }: {
     acceptedStates?: ConsensusNodeStates[];
     excludedStates?: ConsensusNodeStates[];
-  }): ListrTask<any, any, any> {
+  }): SoloListrTask<any> {
     interface Context {
       config: {namespace: string; nodeAlias: NodeAlias};
     }

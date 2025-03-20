@@ -8,7 +8,7 @@ Multiple teams are limited in tools to leverage for testing new SDK and Platform
 
 We have the NodeCommand and it has three subcommands coded: add, update, and delete.
 
-We have the following work almost complete for Node Add to be more reusable: https://github.com/hashgraph/solo/pull/533. It created the following subcommands:
+We have the following work almost complete for Node Add to be more reusable: <https://github.com/hashgraph/solo/pull/533>. It created the following subcommands:
 
 ## add-prepare
 
