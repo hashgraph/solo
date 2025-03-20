@@ -56,4 +56,56 @@ describe('EnvironmentStorageBackend', () => {
     expect(data).to.be.a('string');
     expect(data).to.equal('42');
   });
+
+  it('readBytes with empty key', async () => {
+    const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend();
+    try {
+      await backend.readBytes('');
+      expect.fail();
+    } catch (error) {
+      expect(error).to.be.an('error');
+      expect(error.message).to.equal('key must not be null, undefined, or empty');
+    }
+  });
+
+  it('readBytes with no process.env', async () => {
+    const env: NodeJS.ProcessEnv = process.env;
+    try {
+      delete process.env;
+      const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend();
+      try {
+        await backend.readBytes('test');
+        expect.fail();
+      } catch (error) {
+        expect(error).to.be.an('error');
+        expect(error.message).to.include('key not found');
+      }
+    } catch {
+      expect.fail();
+    } finally {
+      process.env = env;
+    }
+  });
+
+  it('writeBytes', async () => {
+    const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend();
+    try {
+      await backend.writeBytes('test', Buffer.from('test'));
+      expect.fail();
+    } catch (error) {
+      expect(error).to.be.an('error');
+      expect(error.message).to.equal('writeBytes is not supported by the environment storage backend');
+    }
+  });
+
+  it('delete', async () => {
+    const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend();
+    try {
+      await backend.delete('test');
+      expect.fail();
+    } catch (error) {
+      expect(error).to.be.an('error');
+      expect(error.message).to.equal('delete is not supported by the environment storage backend');
+    }
+  });
 });
