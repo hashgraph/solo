@@ -28,12 +28,16 @@ export class Middlewares {
     @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
     @inject(InjectTokens.HelpRenderer) private readonly helpRenderer: HelpRenderer,
   ) {
-    this.logger = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
-    this.logger = patchInject(remoteConfigManager, InjectTokens.RemoteConfigManager, this.constructor.name);
-    this.logger = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-    this.logger = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
-    this.logger = patchInject(helpRenderer, InjectTokens.HelpRenderer, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.helpRenderer = patchInject(helpRenderer, InjectTokens.HelpRenderer, this.constructor.name);
   }
 
   public printCustomHelp(rootCmd: any) {
