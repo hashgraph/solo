@@ -12,6 +12,7 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
       .namespace('test-namespace')
       .kubeContext('test-context')
       .reuseValues(true)
+      .extraArgs('--debug')
       .build();
 
     // Verify all options are set correctly
@@ -19,6 +20,7 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
     expect(options.namespace).to.equal('test-namespace');
     expect(options.kubeContext).to.equal('test-context');
     expect(options.reuseValues).to.be.true;
+    expect(options.extraArgs).to.equal('--debug');
   });
 
   it('Test apply method', () => {
@@ -26,20 +28,24 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
       .namespace('test-namespace')
       .kubeContext('test-context')
       .reuseValues(true)
+      .extraArgs('--debug')
       .build();
 
     type MockBuilder = HelmExecutionBuilder & {
       argument: sinon.SinonStub;
       flag: sinon.SinonStub;
+      positional: sinon.SinonStub;
     };
 
     const builder: MockBuilder = {
       argument: sinon.stub(),
       flag: sinon.stub(),
+      positional: sinon.stub(),
     } as unknown as MockBuilder;
 
     builder.argument.returns(builder);
     builder.flag.returns(builder);
+    builder.positional.returns(builder);
 
     options.apply(builder);
 
@@ -47,6 +53,7 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
     expect(builder.argument.calledWith('--namespace', 'test-namespace')).to.be.true;
     expect(builder.argument.calledWith('--kube-context', 'test-context')).to.be.true;
     expect(builder.flag.calledWith('--reuse-values')).to.be.true;
+    expect(builder.positional.calledWith('--debug')).to.be.true;
   });
 
   it('Test builder with default values', () => {
@@ -57,6 +64,7 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
     expect(options.namespace).to.be.undefined;
     expect(options.kubeContext).to.be.undefined;
     expect(options.reuseValues).to.be.false;
+    expect(options.extraArgs).to.be.undefined;
   });
 
   it('Test apply method with default values', () => {
@@ -65,15 +73,18 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
     type MockBuilder = HelmExecutionBuilder & {
       argument: sinon.SinonStub;
       flag: sinon.SinonStub;
+      positional: sinon.SinonStub;
     };
 
     const builder: MockBuilder = {
       argument: sinon.stub(),
       flag: sinon.stub(),
+      positional: sinon.stub(),
     } as unknown as MockBuilder;
 
     builder.argument.returns(builder);
     builder.flag.returns(builder);
+    builder.positional.returns(builder);
 
     options.apply(builder);
 

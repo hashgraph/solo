@@ -8,8 +8,7 @@ import {type Release} from './model/chart/Release.js';
 import {type Repository} from './model/Repository.js';
 import {type ReleaseItem} from './model/release/ReleaseItem.js';
 import {type TestChartOptions} from './model/test/TestChartOptions.js';
-import {DefaultHelmClientBuilder} from './impl/DefaultHelmClientBuilder.js';
-import {type HelmClientBuilder} from './HelmClientBuilder.js';
+import {type UnInstallChartOptions} from './model/install/UnInstallChartOptions.js';
 
 /**
  * The HelmClient is a bridge between TypeScript and the Helm CLI. The client is highly dependent on specific features
@@ -82,8 +81,9 @@ export interface HelmClient {
    * Executes the Helm CLI uninstall sub-command and uninstalls the specified Helm chart.
    *
    * @param releaseName the name of the release to uninstall.
+   * @param options the options to pass to the Helm CLI command.
    */
-  uninstallChart(releaseName: string): Promise<void>;
+  uninstallChart(releaseName: string, options: UnInstallChartOptions): Promise<void>;
 
   /**
    * Executes the Helm CLI test sub-command and tests the specified Helm chart.
@@ -107,23 +107,4 @@ export interface HelmClient {
    * @param chartName the name of the chart to update.
    */
   dependencyUpdate(chartName: string): Promise<void>;
-}
-
-/**
- * Creates a new HelmClientBuilder instance with the default configuration.
- *
- * @returns a new HelmClientBuilder instance.
- */
-export function builder(): HelmClientBuilder {
-  return new DefaultHelmClientBuilder();
-}
-
-/**
- * Creates a new HelmClient instance with the default configuration. This is a shortcut for
- * HelmClient.builder().build().
- *
- * @returns a new HelmClient instance.
- */
-export function defaultClient(): HelmClient {
-  return builder().build();
 }

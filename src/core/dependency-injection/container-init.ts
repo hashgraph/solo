@@ -6,7 +6,6 @@ import {PackageDownloader} from '../package-downloader.js';
 import {Zippy} from '../zippy.js';
 import {DependencyManager, HelmDependencyManager} from '../dependency-managers/index.js';
 import * as constants from '../constants.js';
-import {Helm} from '../helm.js';
 import {ChartManager} from '../chart-manager.js';
 import {ConfigManager} from '../config-manager.js';
 import {AccountManager} from '../account-manager.js';
@@ -33,6 +32,7 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
+import {DefaultHelmClient} from '../helm/impl/DefaultHelmClient.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -94,7 +94,7 @@ export class Container {
 
     // Helm & HelmDependencyManager
     container.register(InjectTokens.OsPlatform, {useValue: os.platform()});
-    container.register(InjectTokens.Helm, {useClass: Helm}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.Helm, {useClass: DefaultHelmClient}, {lifecycle: Lifecycle.Singleton});
 
     // HelmDependencyManager
     container.register(InjectTokens.HelmInstallationDir, {useValue: path.join(constants.SOLO_HOME_DIR, 'bin')});

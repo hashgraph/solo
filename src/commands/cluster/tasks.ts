@@ -22,7 +22,6 @@ import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart-manager.js';
 import {type LockManager} from '../../core/lock/lock-manager.js';
-import {type Helm} from '../../core/helm.js';
 import {type ClusterChecks} from '../../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
@@ -31,6 +30,7 @@ import {type ClusterRefConnectContext} from './config-interfaces/cluster-ref-con
 import {type ClusterRefDefaultContext} from './config-interfaces/cluster-ref-default-context.js';
 import {type ClusterRefSetupContext} from './config-interfaces/cluster-ref-setup-context.js';
 import {type ClusterRefResetContext} from './config-interfaces/cluster-ref-reset-context.js';
+import {type DefaultHelmClient} from '../../core/helm/impl/DefaultHelmClient.js';
 
 @injectable()
 export class ClusterCommandTasks {
@@ -42,7 +42,7 @@ export class ClusterCommandTasks {
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
     @inject(InjectTokens.LockManager) private readonly leaseManager: LockManager,
-    @inject(InjectTokens.Helm) private readonly helm: Helm,
+    @inject(InjectTokens.Helm) private readonly helm: DefaultHelmClient,
   ) {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);

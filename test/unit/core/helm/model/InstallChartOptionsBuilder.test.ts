@@ -4,11 +4,11 @@ import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
 import {type HelmExecutionBuilder} from '../../../../../src/core/helm/execution/HelmExecutionBuilder.js';
-import {InstallChartOptions} from '../../../../../src/core/helm/model/install/InstallChartOptions.js';
+import {InstallChartOptionsBuilder} from '../../../../../src/core/helm/model/install/InstallChartOptionsBuilder.js';
 
 describe('InstallChartOptionsBuilder Tests', () => {
   it('Test InstallChartOptionsBuilder', () => {
-    const options = InstallChartOptions.builder()
+    const options = InstallChartOptionsBuilder.builder()
       .atomic(true)
       .createNamespace(true)
       .dependencyUpdate(true)
@@ -26,6 +26,8 @@ describe('InstallChartOptionsBuilder Tests', () => {
       .verify(true)
       .version('version')
       .waitFor(true)
+      .kubeContext('my-context')
+      .extraArgs('--debug')
       .build();
 
     // Verify all options are set correctly
@@ -49,12 +51,15 @@ describe('InstallChartOptionsBuilder Tests', () => {
     expect(options.verify).to.be.true;
     expect(options.version).to.equal('version');
     expect(options.waitFor).to.be.true;
+    expect(options.kubeContext).to.equal('my-context');
+    expect(options.extraArgs).to.equal('--debug');
 
     // Test apply method with mock
     const builderMock = {
       flag: sinon.stub().returnsThis(),
       argument: sinon.stub().returnsThis(),
       optionsWithMultipleValues: sinon.stub().returnsThis(),
+      positional: sinon.stub().returnsThis(),
     } as unknown as HelmExecutionBuilder;
 
     options.apply(builderMock);

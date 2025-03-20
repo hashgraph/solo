@@ -2,7 +2,6 @@
 
 import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
 import {type Options} from '../Options.js';
-import {InstallChartOptionsBuilder} from './InstallChartOptionsBuilder.js';
 
 /**
  * The options to be supplied to the helm install command.
@@ -29,6 +28,8 @@ import {InstallChartOptionsBuilder} from './InstallChartOptionsBuilder.js';
  * @param waitFor          - if set, will wait until all Pods, PVCs, Services, and minimum number of Pods of a
  *                         Deployment, StatefulSet, or ReplicaSet are in a ready state before marking the release as
  *                         successful. It will wait for as long as --timeout.
+ * @param kubeContext      - the Kubernetes context to use.
+ * @param extraArgs        - additional arguments to pass to the helm command.
  */
 export class InstallChartOptions implements Options {
   /**
@@ -121,6 +122,16 @@ export class InstallChartOptions implements Options {
    */
   private readonly _waitFor: boolean;
 
+  /**
+   * The Kubernetes context to use.
+   */
+  private readonly _kubeContext: string | null;
+
+  /**
+   * Additional arguments to pass to the helm command.
+   */
+  private readonly _extraArgs: string | null;
+
   constructor(
     atomic: boolean,
     createNamespace: boolean,
@@ -139,6 +150,8 @@ export class InstallChartOptions implements Options {
     verify: boolean,
     version: string | null,
     waitFor: boolean,
+    kubeContext: string | null,
+    extraArgs: string | null,
   ) {
     this._atomic = atomic;
     this._createNamespace = createNamespace;
@@ -157,24 +170,8 @@ export class InstallChartOptions implements Options {
     this._verify = verify;
     this._version = version;
     this._waitFor = waitFor;
-  }
-
-  /**
-   * Returns an instance of the InstallChartOptionsBuilder.
-   *
-   * @return the InstallChartOptionsBuilder.
-   */
-  public static builder(): InstallChartOptionsBuilder {
-    return InstallChartOptionsBuilder.builder();
-  }
-
-  /**
-   * Returns an instance of the default InstallChartOptions.
-   *
-   * @return the default InstallChartOptions.
-   */
-  public static defaults(): InstallChartOptions {
-    return InstallChartOptions.builder().build();
+    this._kubeContext = kubeContext;
+    this._extraArgs = extraArgs;
   }
 
   public apply(builder: HelmExecutionBuilder): void {
@@ -204,6 +201,14 @@ export class InstallChartOptions implements Options {
 
     if (this._values) {
       builder.optionsWithMultipleValues('values', this._values);
+    }
+
+    if (this._kubeContext) {
+      builder.argument('kube-context', this._kubeContext);
+    }
+
+    if (this._extraArgs) {
+      builder.positional(this._extraArgs);
     }
 
     if (this._version) {
@@ -315,5 +320,13 @@ export class InstallChartOptions implements Options {
 
   public get waitFor(): boolean {
     return this._waitFor;
+  }
+
+  public get kubeContext(): string | null {
+    return this._kubeContext;
+  }
+
+  public get extraArgs(): string | null {
+    return this._extraArgs;
   }
 }

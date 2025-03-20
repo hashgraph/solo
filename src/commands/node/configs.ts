@@ -24,8 +24,8 @@ import {type ConfigManager} from '../../core/config-manager.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type LocalConfig} from '../../core/config/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
-import {type Helm} from '../../core/helm.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
+import {type DefaultHelmClient} from '../../core/helm/impl/DefaultHelmClient.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -46,7 +46,7 @@ export class NodeCommandConfigs {
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
-    @inject(InjectTokens.Helm) private readonly helm: Helm,
+    @inject(InjectTokens.Helm) private readonly helm: DefaultHelmClient,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);

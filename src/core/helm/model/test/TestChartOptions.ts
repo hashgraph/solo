@@ -2,7 +2,6 @@
 
 import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
 import {type Options} from '../Options.js';
-import {TestChartOptionsBuilder} from './TestChartOptionsBuilder.js';
 
 /**
  * Represents the options to use when testing a chart.
@@ -21,22 +20,6 @@ export class TestChartOptions implements Options {
     public readonly filter?: string,
     public readonly timeout?: string,
   ) {}
-
-  /**
-   * Returns an instance of the TestChartOptionsBuilder.
-   * @returns the TestChartOptionsBuilder.
-   */
-  public static builder(): TestChartOptionsBuilder {
-    return new TestChartOptionsBuilder();
-  }
-
-  /**
-   * Returns an instance of the default TestChartOptions.
-   * @returns the default TestChartOptions.
-   */
-  public static defaults(): TestChartOptions {
-    return TestChartOptions.builder().build();
-  }
 
   /**
    * Applies the options to the given builder.

@@ -10,11 +10,13 @@ export class UpgradeChartOptions implements Options {
   private readonly _namespace?: string;
   private readonly _kubeContext?: string;
   private readonly _reuseValues: boolean;
+  private readonly _extraArgs?: string;
 
-  constructor(namespace?: string, kubeContext?: string, reuseValues: boolean = false) {
+  constructor(namespace?: string, kubeContext?: string, reuseValues: boolean = false, extraArgs?: string) {
     this._namespace = namespace;
     this._kubeContext = kubeContext;
     this._reuseValues = reuseValues;
+    this._extraArgs = extraArgs;
   }
 
   /**
@@ -42,6 +44,14 @@ export class UpgradeChartOptions implements Options {
   }
 
   /**
+   * Gets additional arguments to pass to the helm command.
+   * @returns The additional arguments or undefined if not set.
+   */
+  get extraArgs(): string | undefined {
+    return this._extraArgs;
+  }
+
+  /**
    * Applies the options to the given builder.
    * @param builder The builder to apply the options to.
    */
@@ -56,6 +66,9 @@ export class UpgradeChartOptions implements Options {
     }
     if (this._reuseValues) {
       builder.flag('--reuse-values');
+    }
+    if (this._extraArgs) {
+      builder.positional(this._extraArgs);
     }
   }
 
@@ -83,6 +96,7 @@ export class UpgradeChartOptionsBuilder {
   _namespace?: string;
   _kubeContext?: string;
   _reuseValues = false;
+  _extraArgs?: string;
 
   private constructor() {}
 
@@ -120,7 +134,17 @@ export class UpgradeChartOptionsBuilder {
     return this;
   }
 
+  /**
+   * Sets additional arguments to pass to the helm command.
+   * @param args The additional arguments.
+   * @returns This builder instance.
+   */
+  public extraArgs(args: string): UpgradeChartOptionsBuilder {
+    this._extraArgs = args;
+    return this;
+  }
+
   public build(): UpgradeChartOptions {
-    return new UpgradeChartOptions(this._namespace, this._kubeContext, this._reuseValues);
+    return new UpgradeChartOptions(this._namespace, this._kubeContext, this._reuseValues, this._extraArgs);
   }
 }

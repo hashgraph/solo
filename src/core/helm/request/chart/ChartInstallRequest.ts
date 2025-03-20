@@ -3,7 +3,8 @@
 import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
 import {type HelmRequest} from '../HelmRequest.js';
 import {type Chart} from '../../model/Chart.js';
-import {InstallChartOptions} from '../../model/install/InstallChartOptions.js';
+import {type InstallChartOptions} from '../../model/install/InstallChartOptions.js';
+import {InstallChartOptionsBuilder} from '../../model/install/InstallChartOptionsBuilder.js';
 
 /**
  * A request to install a Helm chart.
@@ -19,7 +20,7 @@ export class ChartInstallRequest implements HelmRequest {
   constructor(
     readonly releaseName: string,
     readonly chart: Chart,
-    readonly options: InstallChartOptions = InstallChartOptions.defaults(),
+    readonly options: InstallChartOptions = InstallChartOptionsBuilder.builder().build(),
   ) {
     if (!releaseName) {
       throw new Error('releaseName must not be null');

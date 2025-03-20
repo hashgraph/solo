@@ -10,7 +10,6 @@ import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
-import {type Helm} from '../../../src/core/helm.js';
 import path from 'path';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {type LockManager} from '../../../src/core/lock/lock-manager.js';
@@ -33,6 +32,7 @@ import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {type DefaultHelmClient} from '../../../src/core/helm/impl/DefaultHelmClient.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -114,7 +114,7 @@ describe('NetworkCommand unit tests', () => {
       opts.depManager = sinon.stub() as unknown as DependencyManager;
       container.registerInstance<DependencyManager>(InjectTokens.DependencyManager, opts.depManager);
       opts.localConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
-      opts.helm = container.resolve<Helm>(InjectTokens.Helm);
+      opts.helm = container.resolve<DefaultHelmClient>(InjectTokens.Helm);
       opts.helm.dependency = sinon.stub();
 
       ListrLock.newAcquireLockTask = sinon.stub().returns({

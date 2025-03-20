@@ -2,7 +2,8 @@
 
 import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
 import {type HelmRequest} from '../HelmRequest.js';
-import {TestChartOptions} from '../../model/test/TestChartOptions.js';
+import {type TestChartOptions} from '../../model/test/TestChartOptions.js';
+import {TestChartOptionsBuilder} from '../../model/test/TestChartOptionsBuilder.js';
 
 /**
  * A request to test a Helm chart.
@@ -16,7 +17,7 @@ export class ChartTestRequest implements HelmRequest {
    */
   constructor(
     readonly releaseName: string,
-    readonly options: TestChartOptions = TestChartOptions.defaults(),
+    readonly options: TestChartOptions = TestChartOptionsBuilder.builder().build(),
   ) {
     if (!releaseName) {
       throw new Error('releaseName must not be null');

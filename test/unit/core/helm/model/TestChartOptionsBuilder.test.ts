@@ -4,11 +4,11 @@ import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
 import {type HelmExecutionBuilder} from '../../../../../src/core/helm/execution/HelmExecutionBuilder.js';
-import {TestChartOptions} from '../../../../../src/core/helm/model/test/TestChartOptions.js';
+import {TestChartOptionsBuilder} from '../../../../../src/core/helm/model/test/TestChartOptionsBuilder.js';
 
 describe('TestChartOptionsBuilder Tests', () => {
   it('Test TestChartOptionsBuilder', () => {
-    const options = TestChartOptions.builder().filter('filter').timeout('timeout').build();
+    const options = TestChartOptionsBuilder.builder().filter('filter').timeout('timeout').build();
 
     // Verify all options are set correctly
     expect(options).to.not.be.null;

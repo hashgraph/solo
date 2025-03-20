@@ -12,7 +12,6 @@ import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config-manager.js';
 import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart-manager.js';
-import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import path from 'path';
 import {container} from 'tsyringe-neo';
@@ -24,11 +23,12 @@ import {DependencyManager} from '../../../src/core/dependency-managers/index.js'
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {DefaultHelmClient} from '../../../src/core/helm/impl/DefaultHelmClient.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
     logger: sandbox.createStubInstance(SoloLogger),
-    helm: sandbox.createStubInstance(Helm),
+    helm: sandbox.createStubInstance(DefaultHelmClient),
     k8Factory: sandbox.createStubInstance(K8ClientFactory),
     chartManager: sandbox.createStubInstance(ChartManager),
     configManager: sandbox.createStubInstance(ConfigManager),

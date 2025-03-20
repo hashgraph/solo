@@ -23,6 +23,8 @@ export class InstallChartOptionsBuilder {
   private _verify = false;
   private _version?: string;
   private _waitFor = false;
+  private _kubeContext?: string;
+  private _extraArgs?: string;
 
   private constructor() {}
 
@@ -233,6 +235,26 @@ export class InstallChartOptionsBuilder {
    * build the InstallChartOptions.
    * @returns the created InstallChartOptions.
    */
+  /**
+   * Sets the Kubernetes context to use.
+   * @param context The Kubernetes context.
+   * @returns This builder instance.
+   */
+  public kubeContext(context: string): InstallChartOptionsBuilder {
+    this._kubeContext = context;
+    return this;
+  }
+
+  /**
+   * Sets additional arguments to pass to the helm command.
+   * @param args The additional arguments.
+   * @returns This builder instance.
+   */
+  public extraArgs(args: string): InstallChartOptionsBuilder {
+    this._extraArgs = args;
+    return this;
+  }
+
   public build(): InstallChartOptions {
     return new InstallChartOptions(
       this._atomic,
@@ -252,6 +274,8 @@ export class InstallChartOptionsBuilder {
       this._verify,
       this._version,
       this._waitFor,
+      this._kubeContext,
+      this._extraArgs,
     );
   }
 }

@@ -22,9 +22,9 @@ import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
 import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type K8} from './kube/k8.js';
-import {type Helm} from './helm.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import chalk from 'chalk';
+import {type DefaultHelmClient} from './helm/impl/DefaultHelmClient.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -422,13 +422,19 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
   }
 }
 
-export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: string, chartReleaseName: string) {
+export async function prepareChartPath(
+  helm: DefaultHelmClient,
+  chartDir: string,
+  chartRepo: string,
+  chartReleaseName: string,
+) {
   if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
   if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
 
   if (chartDir) {
     const chartPath = path.join(chartDir, chartReleaseName);
-    await helm.dependency('update', chartPath);
+    // await helm.dependency('update', chartPath);
+    await helm.dependencyUpdate(chartPath);
     return chartPath;
   }
 

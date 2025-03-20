@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Define BiFunction type for TypeScript
+import {type UnInstallChartOptions} from '../model/install/UnInstallChartOptions.js';
+
 type BiFunction<T, U, R> = (t: T, u: U) => R;
 
 import {type HelmClient} from '../HelmClient.js';
@@ -10,7 +12,7 @@ import {type Chart} from '../model/Chart.js';
 import {Repository} from '../model/Repository.js';
 import {Version} from '../model/Version.js';
 import {Release} from '../model/chart/Release.js';
-import {InstallChartOptions} from '../model/install/InstallChartOptions.js';
+import {type InstallChartOptions} from '../model/install/InstallChartOptions.js';
 import {type UpgradeChartOptions} from '../model/upgrade/UpgradeChartOptions.js';
 import {ReleaseItem} from '../model/release/ReleaseItem.js';
 import {type TestChartOptions} from '../model/test/TestChartOptions.js';
@@ -27,6 +29,7 @@ import {RepositoryAddRequest} from '../request/repository/RepositoryAddRequest.j
 import {RepositoryListRequest} from '../request/repository/RepositoryListRequest.js';
 import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveRequest.js';
 import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
+import {InstallChartOptionsBuilder} from '../model/install/InstallChartOptionsBuilder.js';
 
 /**
  * The default implementation of the HelmClient interface.
@@ -95,7 +98,7 @@ export class DefaultHelmClient implements HelmClient {
   public async installChart(
     releaseName: string,
     chart: Chart,
-    options: InstallChartOptions = InstallChartOptions.defaults(),
+    options: InstallChartOptions = InstallChartOptionsBuilder.builder().build(),
   ): Promise<Release> {
     return await this.installChartWithOptions(releaseName, chart, options);
   }
@@ -113,8 +116,8 @@ export class DefaultHelmClient implements HelmClient {
     });
   }
 
-  public async uninstallChart(releaseName: string): Promise<void> {
-    await this.executeAsync(new ChartUninstallRequest(releaseName), undefined);
+  public async uninstallChart(releaseName: string, options: UnInstallChartOptions): Promise<void> {
+    await this.executeAsync(new ChartUninstallRequest(releaseName, options), undefined);
   }
 
   public async testChart(releaseName: string, options: TestChartOptions): Promise<void> {

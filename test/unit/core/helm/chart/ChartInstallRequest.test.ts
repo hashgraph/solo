@@ -5,8 +5,9 @@ import sinon from 'sinon';
 import {describe, it} from 'mocha';
 import {type HelmExecutionBuilder} from '../../../../../src/core/helm/execution/HelmExecutionBuilder.js';
 import {Chart} from '../../../../../src/core/helm/model/Chart.js';
-import {InstallChartOptions} from '../../../../../src/core/helm/model/install/InstallChartOptions.js';
+import {type InstallChartOptions} from '../../../../../src/core/helm/model/install/InstallChartOptions.js';
 import {ChartInstallRequest} from '../../../../../src/core/helm/request/chart/ChartInstallRequest.js';
+import {InstallChartOptionsBuilder} from '../../../../../src/core/helm/model/install/InstallChartOptionsBuilder.js';
 
 describe('ChartInstallRequest Tests', () => {
   it('Test ChartInstallRequest Chart constructor validation', () => {
@@ -16,12 +17,12 @@ describe('ChartInstallRequest Tests', () => {
     expect(chartInstallRequest).to.not.be.null;
     expect(chartInstallRequest.releaseName).to.equal('apache');
 
-    const opts = InstallChartOptions.builder().timeout('9m0s').atomic(true).build();
+    const opts = InstallChartOptionsBuilder.builder().timeout('9m0s').atomic(true).build();
     const nonDefaultOptRequest = new ChartInstallRequest('apache', chart, opts);
 
     expect(nonDefaultOptRequest.options).to.equal(opts);
     expect(nonDefaultOptRequest.options).to.not.be.null;
-    expect(nonDefaultOptRequest.options).not.equal(InstallChartOptions.defaults());
+    expect(nonDefaultOptRequest.options).not.equal(InstallChartOptionsBuilder.builder().build());
   });
 
   it('Test ChartInstallRequest apply with unqualified chart', () => {
