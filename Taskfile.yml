@@ -104,6 +104,7 @@ tasks:
           --ignore 'test/e2e/commands/node*.ts'
           --ignore 'test/e2e/commands/separate_node*.ts'
           --ignore 'test/e2e/commands/relay*.ts'
+          --ignore 'test/e2e/commands/dual-*.ts'
         {{ .reporter_options_prefix }}-e2e-standard.xml --timeout 30000"
 
   test-e2e-mirror-node:
