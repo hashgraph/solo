@@ -8,14 +8,15 @@ import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
 import {type KeyFormatter} from '../../key/key-formatter.js';
 import {FlatKeyMapper} from './flat-key-mapper.js';
+import {patchInject} from '../../../core/dependency-injection/container-helper.js';
 
 @injectable()
 export class CTObjectMapper implements ObjectMapper {
   private readonly flatMapper: FlatKeyMapper;
 
   public constructor(@inject(InjectTokens.KeyFormatter) formatter: KeyFormatter) {
-    // this.flatMapper = new FlatKeyMapper(patchInject(formatter, InjectTokens.KeyFormatter, CTObjectMapper.name));
-    this.flatMapper = new FlatKeyMapper(formatter);
+    this.flatMapper = new FlatKeyMapper(patchInject(formatter, InjectTokens.KeyFormatter, CTObjectMapper.name));
+    // this.flatMapper = new FlatKeyMapper(formatter);
   }
 
   public fromArray<T extends R, R>(cls: ClassConstructor<T>, arr: object[]): R[] {

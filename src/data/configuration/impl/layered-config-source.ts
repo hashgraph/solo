@@ -100,7 +100,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
         }
 
         if (node.isLeaf()) {
-          obj = ReflectAssist.coerce((node as LeafNode).value);
+          obj = JSON.parse((node as LeafNode).value);
         } else {
           obj = (node as InternalNode).toObject();
         }

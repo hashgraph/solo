@@ -23,7 +23,7 @@ export class LeafNode implements Node {
   }
 
   public isRoot(): boolean {
-    return false;
+    return !!this.parent;
   }
 
   public isArray(): boolean {

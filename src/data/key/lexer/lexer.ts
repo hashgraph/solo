@@ -76,8 +76,10 @@ export class Lexer {
         continue;
       }
 
-      const root: InternalNode = this.rootNodeFor(segments) as InternalNode;
-      this.processSegments(root, this.tokens.get(key), segments);
+      const root: Node = this.rootNodeFor(segments);
+      if (!root.isLeaf()) {
+        this.processSegments(root as InternalNode, this.tokens.get(key), segments);
+      }
     }
   }
 
@@ -89,14 +91,18 @@ export class Lexer {
     }
 
     let array: boolean = false;
+    let root: Node;
+
     if (keyParts.length >= 2) {
       const nextSegment: string = keyParts[1];
       if (KeyName.isArraySegment(nextSegment)) {
         array = true;
       }
+      root = new InternalNode(null, rootName, [], array);
+    } else {
+      root = new LeafNode(null, rootName, this.tokens.get(rootName));
     }
 
-    const root: Node = new InternalNode(null, rootName, [], array);
     this._roots.set(rootName, root);
     return root;
   }
