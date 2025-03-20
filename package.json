@@ -134,7 +134,7 @@
     "remark-lint-unordered-list-marker-style": "^4.0.1",
     "remark-preset-lint-consistent": "^6.0.1",
     "remark-preset-lint-recommended": "^7.0.1",
-    "sinon": "^19.0.2",
+    "sinon": "^19.0.4",
     "sinon-chai": "^4.0.0",
     "tsx": "^4.19.3",
     "typedoc": "^0.28.0",
