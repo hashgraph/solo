@@ -13,7 +13,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
   }
 
   public async readObject(key: string): Promise<object> {
-    const data: Uint8Array = await this.readBytes(key);
+    const data: Buffer = await this.readBytes(key);
 
     const filePath: string = PathEx.joinWithRealPath(this.basePath, key);
     if (!data) {
@@ -25,7 +25,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
     }
 
     try {
-      return parse(Buffer.from(data.buffer).toString(), {strict: true});
+      return parse(data.toString('utf-8'));
     } catch (e) {
       throw new StorageBackendError(`error parsing yaml file: ${filePath}`, e);
     }
@@ -39,7 +39,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
     const filePath: string = PathEx.join(this.basePath, key);
     try {
       const yamlData: string = stringify(data, {sortMapEntries: true});
-      await this.writeBytes(key, new Uint8Array(Buffer.from(yamlData)));
+      await this.writeBytes(key, Buffer.from(yamlData, 'utf-8'));
     } catch (e) {
       throw new StorageBackendError(`error writing yaml file: ${filePath}`, e);
     }

@@ -41,4 +41,21 @@ export interface ObjectMapper {
    * @throws ObjectMappingError if the mapping or a type conversion fails.
    */
   toArray<T>(data: T[]): object[];
+
+  /**
+   * Converts a plain javascript object into a flat Map of key-value pairs.
+   *
+   * @param data - The plain javascript object to be converted.
+   * @returns A Map of key-value pairs.
+   */
+  toFlatKeyMap(data: object): Map<string, string>;
+
+  /**
+   * Converts a flat Map of key-value pairs into a plain javascript object.
+   *
+   * @param cls - The desired class of the resulting object instances.
+   * @param map - The Map of key-value pairs to be converted.
+   * @returns The plain javascript object.
+   */
+  fromFlatKeyMap<T>(cls: ClassConstructor<T>, map: Map<string, string>): T;
 }

@@ -30,6 +30,10 @@ export class ApplicationVersions {
   @Transform(Transformations.SemVer)
   public jsonRpcRelayChart: SemVer;
 
+  @Expose()
+  @Transform(Transformations.SemVer)
+  public blockNodeChart: SemVer;
+
   public constructor(
     cli?: SemVer,
     chart?: SemVer,
@@ -37,6 +41,7 @@ export class ApplicationVersions {
     mirrorNodeChart?: SemVer,
     explorerChart?: SemVer,
     jsonRpcRelayChart?: SemVer,
+    blockNodeChart?: SemVer,
   ) {
     this.cli = cli ?? new SemVer('0.0.0');
     this.chart = chart ?? new SemVer('0.0.0');
@@ -44,5 +49,6 @@ export class ApplicationVersions {
     this.mirrorNodeChart = mirrorNodeChart ?? new SemVer('0.0.0');
     this.explorerChart = explorerChart ?? new SemVer('0.0.0');
     this.jsonRpcRelayChart = jsonRpcRelayChart ?? new SemVer('0.0.0');
+    this.blockNodeChart = blockNodeChart ?? new SemVer('0.0.0');
   }
 }

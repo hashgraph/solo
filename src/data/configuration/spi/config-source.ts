@@ -22,10 +22,9 @@ export interface ConfigSource extends ConfigAccessor {
   readonly ordinal: number;
 
   /**
-   * The prefix that is used to filter configuration
-   * keys that are read from the configuration source.
+   * An optional prefix that is used to filter configuration keys that are read from the configuration source.
    */
-  readonly prefix: string;
+  readonly prefix?: string;
 
   /**
    * The backend that is used to read and write configuration data.
