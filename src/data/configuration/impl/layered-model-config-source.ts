@@ -2,33 +2,33 @@
 
 import {LayeredConfigSource} from './layered-config-source.js';
 import {type ModelConfigSource} from '../spi/model-config-source.js';
-import {type StorageBackend} from '../../backend/api/storage-backend.js';
 import {type ObjectMapper} from '../../mapper/api/object-mapper.js';
 import {type Schema} from '../../schema/migration/api/schema.js';
 import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 import {ConfigurationError} from '../api/configuration-error.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 import {Forest} from '../../key/lexer/forest.js';
+import {type ObjectStorageBackend} from '../../backend/api/object-storage-backend.js';
 
 export abstract class LayeredModelConfigSource<T extends object>
   extends LayeredConfigSource
   implements ModelConfigSource<T>
 {
   public readonly schema: Schema<T>;
-  protected _modelData: T;
+  private _modelData: T;
 
   public get modelData(): T {
     return this._modelData;
   }
 
-  private set modelData(value: T) {
+  protected set modelData(value: T) {
     this._modelData = value;
   }
 
   protected constructor(
     protected readonly key: string,
     schema: Schema<T>,
-    backend: StorageBackend,
+    backend: ObjectStorageBackend,
     mapper: ObjectMapper,
     prefix?: string,
   ) {
@@ -62,7 +62,7 @@ export abstract class LayeredModelConfigSource<T extends object>
 
     const value: object = await this.backend.readObject(this.key);
     this.modelData = await this.schema.transform(value);
-    const keyMap: Map<string, string> = this.mapper.toFlatKeyMap<T>(this.modelData);
+    const keyMap: Map<string, string> = this.mapper.toFlatKeyMap(this.modelData);
 
     for (const [key, value] of keyMap.entries()) {
       this.data.set(key, value);
