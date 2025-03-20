@@ -89,23 +89,40 @@ describe('Lexer: Forest', () => {
         data.set(convertKey('root.leaf', item.type), 'value');
         data.set(convertKey('root.internal.leaf2', item.type), 'value2');
         const forest: Forest = Forest.from(data, item.formatter);
-        expect(forest.toObject()).to.eql({
-          root: {
-            leaf: 'value',
-            internal: {
-              leaf2: 'value2',
+        if (item.type === 'config') {
+          expect(forest.toObject()).to.eql({
+            root: {
+              leaf: 'value',
+              internal: {
+                leaf2: 'value2',
+              },
             },
-          },
-        });
+          });
+        } else {
+          expect(forest.toObject()).to.eql({
+            ROOT: {
+              LEAF: 'value',
+              INTERNAL: {
+                LEAF2: 'value2',
+              },
+            },
+          });
+        }
       });
 
       it('toObject with simple data should return object', () => {
         const data: Map<string, string> = new Map<string, string>();
         data.set(convertKey('root', item.type), 'stump');
         const forest: Forest = Forest.from(data, item.formatter);
-        expect(forest.toObject()).to.eql({
-          root: 'stump',
-        });
+        if (item.type === 'config') {
+          expect(forest.toObject()).to.eql({
+            root: 'stump',
+          });
+        } else {
+          expect(forest.toObject()).to.eql({
+            ROOT: 'stump',
+          });
+        }
       });
     });
   });
