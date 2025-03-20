@@ -58,6 +58,7 @@ import {
   type ConfigBuilder,
   type NodeAlias,
   type NodeAliases,
+  type NodeId,
   type SkipCheck,
 } from '../../types/aliases.js';
 import {PodName} from '../../core/kube/resources/pod/pod-name.js';
@@ -1681,22 +1682,13 @@ export class NodeCommandTasks {
       task: async ctx => {
         // Prepare parameter and update the network node chart
         const config = ctx.config;
-
         const consensusNodes = ctx.config.consensusNodes as ConsensusNode[];
-        const valuesArgMap: Record<ClusterRef, string> = {};
 
         // Make sure valuesArgMap is initialized with empty strings
-        if (consensusNodes.length) {
-          consensusNodes.forEach(node => (valuesArgMap[node.cluster] = ''));
-        } else {
-          valuesArgMap[this.k8Factory.default().clusters().readCurrent()] = '';
-        }
+        const valuesArgMap: Record<ClusterRef, string> = {};
+        consensusNodes.forEach(node => (valuesArgMap[node.cluster] = ''));
 
         const clusterRefs = this.remoteConfigManager.getClusterRefs();
-        if (!Object.keys(clusterRefs).length) {
-          const clusterRef = this.k8Factory.default().clusters().readCurrent();
-          clusterRefs[clusterRef] = this.localConfig.clusterRefs[clusterRef];
-        }
 
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
@@ -1715,30 +1707,55 @@ export class NodeCommandTasks {
         const nodeId = maxNodeId + 1;
         const index = config.existingNodeAliases.length;
 
-        // On Update and Delete
-        for (let i = 0; i < index; i++) {
-          const consensusNode = consensusNodes.find(node => node.nodeId === i);
-          if (!consensusNode) break; // break in the case that no consensus node is found, which can happen from a node delete
-          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
+        const clusterNodeIndexMap: Record<ClusterRef, Map<NodeId, /* index in the chart -> */ number>> = {};
 
-          // TODO the node array index in the set command will be different from the loop index in the case of multiple clusters
-          // TODO also, if a node delete has been ran, or a node add, then the node array will still have to be contiguous, but the nodeId will not match the index
+        for (const clusterRef of Object.keys(clusterRefs)) {
+          const nodesInCluster = consensusNodes.filter(node => node.cluster === clusterRef);
+
+          clusterNodeIndexMap[clusterRef] = new Map();
+
+          nodesInCluster.forEach((node, index) => {
+            clusterNodeIndexMap[clusterRef].set(node.nodeId, index);
+          });
+        }
+
+        for (const consensusNode of consensusNodes) {
+          // On Update and Delete else break
+          if (transactionType !== NodeSubcommandType.DELETE && transactionType !== NodeSubcommandType.UPDATE) {
+            break;
+          }
+
+          const clusterRef = consensusNode.cluster;
+          const nodeIdToIndexMapping = clusterNodeIndexMap[clusterRef];
+          const index = nodeIdToIndexMapping.get(consensusNode.nodeId);
+
+          // for the case of updating node, use new account number for this node id
           if (
             transactionType === NodeSubcommandType.UPDATE &&
             config.newAccountNumber &&
-            i === Templates.nodeIdFromNodeAlias(config.nodeAlias)
+            consensusNode.name === config.nodeAlias
           ) {
-            // for the case of updating node
-            // use new account number for this node id
             valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${i}].accountId=${config.newAccountNumber}" --set "hedera.nodes[${i}].name=${config.nodeAlias}" --set "hedera.nodes[${i}].nodeId=${i}" `;
-          } else if (transactionType !== NodeSubcommandType.DELETE || i !== nodeId) {
+              ` --set "hedera.nodes[${index}].accountId=${config.newAccountNumber}"` +
+              ` --set "hedera.nodes[${index}].name=${config.nodeAlias}" ` +
+              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
+          }
+
+          // Delete if nodeIds don't match
+          else if (transactionType !== NodeSubcommandType.DELETE || consensusNode.nodeId !== nodeId) {
             // for the case of deleting node
             valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${i}].accountId=${config.serviceMap.get(config.existingNodeAliases[i]).accountId}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
-          } else if (transactionType === NodeSubcommandType.DELETE && i === nodeId) {
+              ` --set "hedera.nodes[${index}].accountId=${config.serviceMap.get(consensusNode.name).accountId}"` +
+              ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
+              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
+          }
+
+          // Delete if nodeIds match
+          else if (transactionType === NodeSubcommandType.DELETE && consensusNode.nodeId === nodeId) {
             valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${i}].accountId=${IGNORED_NODE_ACCOUNT_ID}" --set "hedera.nodes[${i}].name=${config.existingNodeAliases[i]}" --set "hedera.nodes[${i}].nodeId=${i}" `;
+              ` --set "hedera.nodes[${index}].accountId=${IGNORED_NODE_ACCOUNT_ID}"` +
+              ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
+              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
           }
         }
 
@@ -1749,8 +1766,7 @@ export class NodeCommandTasks {
 
         // When adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
-          const consensusNode = consensusNodes.find(node => node.nodeId === index);
-          const clusterRef = consensusNode ? consensusNode.cluster : this.k8Factory.default().clusters().readCurrent();
+          const clusterRef = ctx.config.clusterRef;
 
           valuesArgMap[clusterRef] +=
             ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
@@ -1765,31 +1781,18 @@ export class NodeCommandTasks {
             config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
           }
 
-          const nodeAlias: NodeAlias = config.nodeAlias;
-          const nodeIndexInValues = Templates.nodeIdFromNodeAlias(nodeAlias);
-          const consensusNodeInValues = consensusNodes.find(node => node.name === nodeAlias);
-          const clusterForConsensusNodeInValues = consensusNodeInValues
-            ? consensusNodeInValues.cluster
-            : this.k8Factory.default().clusters().readCurrent();
+          const nodeIndexInValues = Templates.nodeIdFromNodeAlias(config.nodeAlias);
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
-            const ip: string = config.haproxyIpsParsed?.[nodeAlias];
-
-            if (ip) {
-              valuesArgMap[clusterForConsensusNodeInValues] +=
-                ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
-            }
+            const ip: string = config.haproxyIpsParsed?.[config.nodeAlias];
+            if (ip) valuesArgMap[clusterRef] += ` --set "hedera.nodes[${nodeIndexInValues}].haproxyStaticIP=${ip}"`;
           }
 
           // Set static IPs for Envoy Proxy
           if (config.envoyIpsParsed) {
-            const ip: string = config.envoyIpsParsed?.[nodeAlias];
-
-            if (ip) {
-              valuesArgMap[clusterForConsensusNodeInValues] +=
-                ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
-            }
+            const ip: string = config.envoyIpsParsed?.[config.nodeAlias];
+            if (ip) valuesArgMap[clusterRef] += ` --set "hedera.nodes[${nodeIndexInValues}].envoyProxyStaticIP=${ip}"`;
           }
         }
 
@@ -1820,15 +1823,23 @@ export class NodeCommandTasks {
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
         // Update charts
-        await self.chartManager.upgrade(
-          config.namespace,
-          constants.SOLO_DEPLOYMENT_CHART,
-          ctx.config.chartPath,
-          config.soloChartVersion,
-          valuesArgMap[clusterRef],
-          this.localConfig.clusterRefs[clusterRef],
+        await Promise.all(
+          Object.keys(clusterRefs).map(async clusterRef => {
+            const valuesArgs = valuesArgMap[clusterRef];
+            const context = this.localConfig.clusterRefs[clusterRef];
+
+            await self.chartManager.upgrade(
+              config.namespace,
+              constants.SOLO_DEPLOYMENT_CHART,
+              ctx.config.chartPath,
+              config.soloChartVersion,
+              valuesArgs,
+              context,
+            );
+
+            showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
+          }),
         );
-        showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
       },
       skip,
     };
@@ -2119,9 +2130,9 @@ export class NodeCommandTasks {
       title: 'Add new node to remote config',
       task: async (ctx, task) => {
         const nodeAlias = ctx.config.nodeAlias;
-        // TODO: Discuss how the user should provide the clusterRef
-        const clusterRef = this.k8Factory.default().clusters().readCurrent();
         const namespace: NamespaceNameAsString = ctx.config.namespace.name;
+        const clusterRef = ctx.config.clusterRef;
+        const context = this.localConfig.clusterRefs[clusterRef];
 
         task.title += `: ${nodeAlias}`;
 
@@ -2144,23 +2155,25 @@ export class NodeCommandTasks {
         ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
         // if the consensusNodes does not contain the nodeAlias then add it
-        if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === ctx.config.nodeAlias)) {
+        if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === nodeAlias)) {
+          const cluster = this.remoteConfigManager.clusters[clusterRef];
+
           ctx.config.consensusNodes.push(
             new ConsensusNode(
-              ctx.config.nodeAlias,
-              Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
+              nodeAlias,
+              Templates.nodeIdFromNodeAlias(nodeAlias),
               namespace,
-              ctx.config.consensusNodes[0].cluster,
-              ctx.config.consensusNodes[0].context,
-              'cluster.local',
-              'network-{nodeAlias}-svc.{namespace}.svc',
+              clusterRef,
+              context,
+              cluster.dnsBaseDomain,
+              cluster.dnsConsensusNodePattern,
               Templates.renderConsensusNodeFullyQualifiedDomainName(
-                ctx.config.nodeAlias as NodeAlias,
-                Templates.nodeIdFromNodeAlias(ctx.config.nodeAlias),
+                nodeAlias,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
                 namespace,
-                ctx.config.consensusNodes[0].cluster,
-                'cluster.local',
-                'network-{nodeAlias}-svc.{namespace}.svc',
+                clusterRef,
+                cluster.dnsBaseDomain,
+                cluster.dnsConsensusNodePattern,
               ),
             ),
           );

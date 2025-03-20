@@ -151,6 +151,7 @@ const COMMON_ADD_OPTIONAL_FLAGS = [
   flags.localBuildPath,
   flags.chartDirectory,
   flags.quiet,
+  flags.clusterRef,
 ];
 
 export const DELETE_FLAGS = {
