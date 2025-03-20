@@ -26,7 +26,7 @@ export class Prefix {
     let finalPrefix: string = prefix ? formatter.normalize(prefix) : null;
     finalPrefix = !finalPrefix?.endsWith(formatter.separator) ? `${finalPrefix}${formatter.separator}` : finalPrefix;
     return finalPrefix && normalizedKey.startsWith(finalPrefix)
-      ? normalizedKey.replace(`^${Regex.escape(finalPrefix)}`, '')
+      ? normalizedKey.replace(new RegExp(`^${Regex.escape(finalPrefix)}`), '')
       : normalizedKey;
   }
 
