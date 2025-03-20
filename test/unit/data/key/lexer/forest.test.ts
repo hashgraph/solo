@@ -92,4 +92,13 @@ describe('Lexer: Forest', () => {
       },
     });
   });
+
+  it('toObject with simple data should return object', () => {
+    const data: Map<string, string> = new Map<string, string>();
+    data.set('root', 'stump');
+    const forest: Forest = Forest.from(data);
+    expect(forest.toObject()).to.eql({
+      root: 'stump',
+    });
+  });
 });
