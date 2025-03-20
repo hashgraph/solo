@@ -33,6 +33,8 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
+import {HelpRenderer} from '../help-renderer.js';
+import {Middlewares} from '../middlewares.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -176,6 +178,8 @@ export class Container {
     );
 
     container.register(InjectTokens.ErrorHandler, {useClass: ErrorHandler}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.HelpRenderer, {useClass: HelpRenderer}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.Middlewares, {useClass: Middlewares}, {lifecycle: Lifecycle.Singleton});
   }
 
   /**

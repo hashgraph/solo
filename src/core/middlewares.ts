@@ -4,7 +4,6 @@ import {Flags as flags} from '../commands/flags.js';
 import chalk from 'chalk';
 
 import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
-import {type Opts} from '../commands/base.js';
 import {type ConfigManager} from './config-manager.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import {type SoloLogger} from './logging.js';
@@ -13,20 +12,44 @@ import {type RemoteConfigManager} from './config/remote/remote-config-manager.js
 import {type ClusterRef} from './config/remote/types.js';
 import {type LocalConfig} from './config/local-config.js';
 import {SoloError} from './errors/solo-error.js';
+import {SilentBreak} from './errors/silent-break.js';
+import {type HelpRenderer} from './help-renderer.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {inject, injectable} from 'tsyringe-neo';
 
+@injectable()
 export class Middlewares {
-  private readonly remoteConfigManager: RemoteConfigManager;
-  private readonly configManager: ConfigManager;
-  private readonly k8Factory: K8Factory;
-  private readonly logger: SoloLogger;
-  private readonly localConfig: LocalConfig;
+  constructor(
+    @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
+    @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(InjectTokens.HelpRenderer) private readonly helpRenderer: HelpRenderer,
+  ) {
+    this.logger = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.logger = patchInject(remoteConfigManager, InjectTokens.RemoteConfigManager, this.constructor.name);
+    this.logger = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.logger = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.logger = patchInject(helpRenderer, InjectTokens.HelpRenderer, this.constructor.name);
+  }
 
-  constructor(opts: Opts) {
-    this.configManager = opts.configManager;
-    this.remoteConfigManager = opts.remoteConfigManager;
-    this.k8Factory = opts.k8Factory;
-    this.logger = opts.logger;
-    this.localConfig = opts.localConfig;
+  public printCustomHelp(rootCmd: any) {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return (argv: any) => {
+      if (!argv['help']) return;
+
+      rootCmd.showHelp((output: string) => {
+        this.helpRenderer.render(rootCmd, output);
+      });
+      throw new SilentBreak('printed help, exiting');
+    };
   }
 
   public setLoggerDevFlag() {

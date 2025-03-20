@@ -128,9 +128,11 @@ export class Flags {
    */
   public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
     commandFlags.forEach(flag => {
+      let defaultValue = flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined;
+      defaultValue = defaultValue && flag.definition.dataMask ? flag.definition.dataMask : defaultValue;
       y.option(flag.name, {
         ...flag.definition,
-        default: flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined,
+        default: defaultValue,
       });
     });
   }
@@ -1545,6 +1547,7 @@ export class Flags {
       describe: 'Comma separated list of DER encoded ED25519 public keys and must match the order of the node aliases',
       defaultValue: constants.GENESIS_KEY,
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
