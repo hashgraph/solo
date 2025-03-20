@@ -1705,7 +1705,6 @@ export class NodeCommandTasks {
         }
 
         const nodeId = maxNodeId + 1;
-        const index = config.existingNodeAliases.length;
 
         const clusterNodeIndexMap: Record<ClusterRef, Map<NodeId, /* index in the chart -> */ number>> = {};
 
@@ -1767,6 +1766,7 @@ export class NodeCommandTasks {
         // When adding a new node
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const clusterRef = ctx.config.clusterRef;
+          const index = config.existingNodeAliases.length;
 
           valuesArgMap[clusterRef] +=
             ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
@@ -1781,7 +1781,7 @@ export class NodeCommandTasks {
             config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
           }
 
-          const nodeIndexInValues = Templates.nodeIdFromNodeAlias(config.nodeAlias);
+          const nodeIndexInValues = clusterNodeIndexMap[clusterRef].get(nodeId);
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
