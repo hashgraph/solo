@@ -136,7 +136,6 @@ export class ChartManager {
         }
         this.logger.debug(`uninstalling chart release: ${chartReleaseName}`);
         const options = UnInstallChartOptions.builder()
-          .releaseName(chartReleaseName)
           .namespace(namespaceName.name)
           .kubeContext(kubeContext)
           .build();
