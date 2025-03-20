@@ -1683,12 +1683,11 @@ export class NodeCommandTasks {
         // Prepare parameter and update the network node chart
         const config = ctx.config;
         const consensusNodes = ctx.config.consensusNodes as ConsensusNode[];
+        const clusterRefs = this.remoteConfigManager.getClusterRefs();
 
         // Make sure valuesArgMap is initialized with empty strings
         const valuesArgMap: Record<ClusterRef, string> = {};
-        consensusNodes.forEach(node => (valuesArgMap[node.cluster] = ''));
-
-        const clusterRefs = this.remoteConfigManager.getClusterRefs();
+        Object.keys(clusterRefs).forEach(clusterRef => (valuesArgMap[clusterRef] = ''));
 
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
@@ -1706,27 +1705,24 @@ export class NodeCommandTasks {
 
         const nodeId = maxNodeId + 1;
 
-        const clusterNodeIndexMap: Record<ClusterRef, Map<NodeId, /* index in the chart -> */ number>> = {};
+        const clusterNodeIndexMap: Record<ClusterRef, Record<NodeId, /* index in the chart -> */ number>> = {};
 
         for (const clusterRef of Object.keys(clusterRefs)) {
-          const nodesInCluster = consensusNodes.filter(node => node.cluster === clusterRef);
+          clusterNodeIndexMap[clusterRef] = {};
 
-          clusterNodeIndexMap[clusterRef] = new Map();
-
-          nodesInCluster.forEach((node, index) => {
-            clusterNodeIndexMap[clusterRef].set(node.nodeId, index);
-          });
+          consensusNodes
+            .filter(node => node.cluster === clusterRef)
+            .sort((a, b) => a.nodeId - b.nodeId)
+            .forEach((node, index) => (clusterNodeIndexMap[clusterRef][node.nodeId] = index));
         }
 
         for (const consensusNode of consensusNodes) {
-          // On Update and Delete else break
           if (transactionType !== NodeSubcommandType.DELETE && transactionType !== NodeSubcommandType.UPDATE) {
             break;
           }
 
           const clusterRef = consensusNode.cluster;
-          const nodeIdToIndexMapping = clusterNodeIndexMap[clusterRef];
-          const index = nodeIdToIndexMapping.get(consensusNode.nodeId);
+          const index = clusterNodeIndexMap[clusterRef][consensusNode.nodeId];
 
           // for the case of updating node, use new account number for this node id
           if (
@@ -1736,8 +1732,8 @@ export class NodeCommandTasks {
           ) {
             valuesArgMap[clusterRef] +=
               ` --set "hedera.nodes[${index}].accountId=${config.newAccountNumber}"` +
-              ` --set "hedera.nodes[${index}].name=${config.nodeAlias}" ` +
-              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
+              ` --set "hedera.nodes[${index}].name=${config.nodeAlias}"` +
+              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
           }
 
           // Delete if nodeIds don't match
@@ -1746,7 +1742,7 @@ export class NodeCommandTasks {
             valuesArgMap[clusterRef] +=
               ` --set "hedera.nodes[${index}].accountId=${config.serviceMap.get(consensusNode.name).accountId}"` +
               ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
-              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
+              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
           }
 
           // Delete if nodeIds match
@@ -1781,7 +1777,7 @@ export class NodeCommandTasks {
             config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
           }
 
-          const nodeIndexInValues = clusterNodeIndexMap[clusterRef].get(nodeId);
+          const nodeIndexInValues = clusterNodeIndexMap[clusterRef][nodeId];
 
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
