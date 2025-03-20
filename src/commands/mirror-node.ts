@@ -399,13 +399,6 @@ export class MirrorNodeCommand extends BaseCommand {
                     }
                     mirrorIngressControllerValuesArg += ` --set fullnameOverride=${constants.MIRROR_INGRESS_CONTROLLER}`;
 
-                    const ingressControllerChartPath = await helpers.prepareChartPath(
-                      self.helm,
-                      '', // don't use chartPath which is for local solo-charts only
-                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
-                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
-                    );
-
                     await self.chartManager.install(
                       config.namespace,
                       constants.INGRESS_CONTROLLER_RELEASE_NAME,
