@@ -28,7 +28,10 @@ import {RepositoryAddRequest} from '../request/repository/RepositoryAddRequest.j
 import {RepositoryListRequest} from '../request/repository/RepositoryListRequest.js';
 import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveRequest.js';
 import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
-import {injectable} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
+import {type SoloLogger} from '../../logging.js';
+import {patchInject} from '../../dependency-injection/container-helper.js';
 
 @injectable()
 /**
@@ -40,7 +43,9 @@ export class DefaultHelmClient implements HelmClient {
    */
   private static readonly NAMESPACE_ARG_NAME = 'namespace';
 
-  constructor() {}
+  constructor(@inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger) {
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+  }
 
   public async version(): Promise<SemanticVersion> {
     const request = new VersionRequest();

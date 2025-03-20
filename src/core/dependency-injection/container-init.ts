@@ -33,6 +33,7 @@ import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
 import {HelmExecutionBuilder} from '../helm/execution/HelmExecutionBuilder.js';
+import {DefaultHelmClient} from '../helm/impl/DefaultHelmClient.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -94,6 +95,7 @@ export class Container {
 
     // Helm & HelmDependencyManager
     container.register(InjectTokens.OsPlatform, {useValue: os.platform()});
+    container.register(InjectTokens.Helm, {useClass: DefaultHelmClient}, {lifecycle: Lifecycle.Singleton});
     container.register(
       InjectTokens.HelmExecutionBuilder,
       {useClass: HelmExecutionBuilder},
