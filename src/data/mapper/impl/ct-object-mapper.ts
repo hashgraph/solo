@@ -9,6 +9,7 @@ import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js'
 import {type KeyFormatter} from '../../key/key-formatter.js';
 import {FlatKeyMapper} from './flat-key-mapper.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
+import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 
 @injectable()
 export class CTObjectMapper implements ObjectMapper {
@@ -52,7 +53,24 @@ export class CTObjectMapper implements ObjectMapper {
     }
   }
 
-  public toFlatKeyMap<T extends object>(data: T): Map<string, string> {
+  public toFlatKeyMap(data: object): Map<string, string> {
     return this.flatMapper.flatten(data);
+  }
+
+  public fromFlatKeyMap<T>(cls: ClassConstructor<T>, map: Map<string, string>): T {
+    if (!cls) {
+      throw new IllegalArgumentError('class constructor is required');
+    }
+
+    if (!map) {
+      throw new IllegalArgumentError('map is required');
+    }
+
+    try {
+    } catch (e) {
+      throw new ObjectMappingError('Failed to convert value to object', e);
+    }
+
+    return undefined;
   }
 }

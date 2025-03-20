@@ -44,8 +44,18 @@ export interface ObjectMapper {
 
   /**
    * Converts a plain javascript object into a flat Map of key-value pairs.
+   *
    * @param data - The plain javascript object to be converted.
    * @returns A Map of key-value pairs.
    */
-  toFlatKeyMap<T extends object>(data: T): Map<string, string>;
+  toFlatKeyMap(data: object): Map<string, string>;
+
+  /**
+   * Converts a flat Map of key-value pairs into a plain javascript object.
+   *
+   * @param cls - The desired class of the resulting object instances.
+   * @param map - The Map of key-value pairs to be converted.
+   * @returns The plain javascript object.
+   */
+  fromFlatKeyMap<T>(cls: ClassConstructor<T>, map: Map<string, string>): T;
 }

@@ -16,13 +16,13 @@ export class FlatKeyMapper {
     const fkm: Map<string, string> = new Map();
 
     for (const [key, val] of Object.entries(data)) {
-      this.processRootKVPair(fkm, key, val);
+      this.flattenKVPair(fkm, key, val);
     }
 
     return fkm;
   }
 
-  private processRootKVPair(fkm: Map<string, string>, key: string, val: unknown) {
+  private flattenKVPair(fkm: Map<string, string>, key: string, val: unknown) {
     // If the value is null or undefined, we don't need to do anything since the key should not be added to the map.
     if (val === null || val === undefined) {
       return;
@@ -39,9 +39,9 @@ export class FlatKeyMapper {
         break;
       case 'object':
         if (Array.isArray(val)) {
-          this.processArray(fkm, key, val);
+          this.flattenArray(fkm, key, val);
         } else {
-          this.processObject(fkm, key, val as object);
+          this.flattenObject(fkm, key, val as object);
         }
         break;
       default:
@@ -51,17 +51,17 @@ export class FlatKeyMapper {
     }
   }
 
-  private processArray(fkm: Map<string, string>, key: string, val: unknown[]) {
+  private flattenArray(fkm: Map<string, string>, key: string, val: unknown[]) {
     for (let i = 0; i < val.length; i++) {
       const arrayKey = this.formatter.join(key, i.toString());
-      this.processRootKVPair(fkm, arrayKey, val[i]);
+      this.flattenKVPair(fkm, arrayKey, val[i]);
     }
   }
 
-  private processObject(fkm: Map<string, string>, key: string, val: object) {
+  private flattenObject(fkm: Map<string, string>, key: string, val: object) {
     for (const [subKey, subVal] of Object.entries(val)) {
       const fullKey = this.formatter.join(key, subKey);
-      this.processRootKVPair(fkm, fullKey, subVal);
+      this.flattenKVPair(fkm, fullKey, subVal);
     }
   }
 }
