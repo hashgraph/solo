@@ -135,27 +135,7 @@ export class HelmExecution {
    * @returns A promise that resolves with the parsed response
    */
   async responseAs<T>(responseClass: new (...args: any[]) => T): Promise<T> {
-    await this.waitFor();
-
-    const exitCode = this.exitCode();
-    if (exitCode !== 0) {
-      const stdOut = this.standardOutput();
-      const stdErr = this.standardError();
-      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
-    }
-
-    if (responseClass === undefined) {
-      return null;
-    }
-    const output = this.standardOutput();
-    try {
-      const parsed = JSON.parse(output);
-      const result = new responseClass();
-      Object.assign(result, parsed);
-      return result;
-    } catch (error) {
-      throw new HelmParserException(HelmExecution.MSG_DESERIALIZATION_ERROR.replace('%s', responseClass.name), error);
-    }
+    return this.responseAsTimeout(responseClass, null);
   }
 
   /**
@@ -176,14 +156,20 @@ export class HelmExecution {
 
     const exitCode = this.exitCode();
     if (exitCode !== 0) {
-      const stdOut = await this.standardOutput();
-      const stdErr = await this.standardError();
+      const stdOut = this.standardOutput();
+      const stdErr = this.standardError();
       throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
     }
+    if (responseClass === undefined) {
+      return null;
+    }
 
-    const output = await this.standardOutput();
+    const output = this.standardOutput();
     try {
-      return JSON.parse(output) as T;
+      const parsed = JSON.parse(output);
+      const result = new responseClass();
+      Object.assign(result, parsed);
+      return result;
     } catch (error) {
       throw new HelmParserException(HelmExecution.MSG_DESERIALIZATION_ERROR.replace('%s', responseClass.name));
     }
@@ -216,12 +202,12 @@ export class HelmExecution {
 
     const exitCode = this.exitCode();
     if (exitCode !== 0) {
-      const stdOut = await this.standardOutput();
-      const stdErr = await this.standardError();
+      const stdOut = this.standardOutput();
+      const stdErr = this.standardError();
       throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
     }
 
-    const output = await this.standardOutput();
+    const output = this.standardOutput();
     try {
       return JSON.parse(output) as T[];
     } catch (error) {

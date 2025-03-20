@@ -10,6 +10,7 @@ import {Repository} from '../../../../src/core/helm/model/Repository.js';
 import {DefaultHelmClientBuilder} from '../../../../src/core/helm/impl/DefaultHelmClientBuilder.js';
 import {TestChartOptions} from '../../../../src/core/helm/model/test/TestChartOptions.js';
 import {InstallChartOptions} from '../../../../src/core/helm/model/install/InstallChartOptions.js';
+import {UpgradeChartOptions} from '../../../../src/core/helm/model/upgrade/UpgradeChartOptions.js';
 import {exec as execCallback} from 'child_process';
 import {promisify} from 'util';
 
@@ -239,6 +240,25 @@ describe('HelmClient Tests', () => {
       }
     }
   };
+
+  it('Test Helm upgrade subcommand', async () => {
+    try {
+      await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
+
+      // First install the chart
+      await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART);
+
+      // Then try to upgrade it
+      await expect(helmClient.upgradeChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, UpgradeChartOptions.defaults())).to.not
+        .be.rejected;
+    } finally {
+      try {
+        await helmClient.uninstallChart(HAPROXY_RELEASE_NAME);
+      } catch (error) {
+        // Suppress uninstall errors
+      }
+    }
+  });
 
   // Skipped d in our unit tests due to lack of signed charts in the repo
   it.skip('Test Helm dependency update subcommand', async () => {

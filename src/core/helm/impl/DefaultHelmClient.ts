@@ -11,6 +11,7 @@ import {Repository} from '../model/Repository.js';
 import {Version} from '../model/Version.js';
 import {Release} from '../model/chart/Release.js';
 import {InstallChartOptions} from '../model/install/InstallChartOptions.js';
+import {type UpgradeChartOptions} from '../model/upgrade/UpgradeChartOptions.js';
 import {ReleaseItem} from '../model/release/ReleaseItem.js';
 import {type TestChartOptions} from '../model/test/TestChartOptions.js';
 import {type HelmRequest} from '../request/HelmRequest.js';
@@ -19,6 +20,7 @@ import {ChartDependencyUpdateRequest} from '../request/chart/ChartDependencyUpda
 import {ChartInstallRequest} from '../request/chart/ChartInstallRequest.js';
 import {ChartTestRequest} from '../request/chart/ChartTestRequest.js';
 import {ChartUninstallRequest} from '../request/chart/ChartUninstallRequest.js';
+import {ChartUpgradeRequest} from '../request/chart/ChartUpgradeRequest.js';
 import {VersionRequest} from '../request/common/VersionRequest.js';
 import {ReleaseListRequest} from '../request/release/ReleaseListRequest.js';
 import {RepositoryAddRequest} from '../request/repository/RepositoryAddRequest.js';
@@ -125,6 +127,13 @@ export class DefaultHelmClient implements HelmClient {
 
   public async dependencyUpdate(chartName: string): Promise<void> {
     await this.executeAsync(new ChartDependencyUpdateRequest(chartName), undefined);
+  }
+
+  public async upgradeChart(releaseName: string, chart: Chart, options: UpgradeChartOptions): Promise<Release> {
+    const request = new ChartUpgradeRequest(releaseName, chart, options);
+    return this.executeInternal(options.namespace, request, Release, async (execution: HelmExecution) =>
+      execution.responseAs(Release),
+    );
   }
 
   /**

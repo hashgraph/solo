@@ -2,9 +2,10 @@
 
 import {type SemanticVersion} from './base/api/version/SemanticVersion.js';
 import {type Chart} from './model/Chart.js';
-import {type Repository} from './model/Repository.js';
-import {type Release} from './model/chart/Release.js';
 import {type InstallChartOptions} from './model/install/InstallChartOptions.js';
+import {type UpgradeChartOptions} from './model/upgrade/UpgradeChartOptions.js';
+import {type Release} from './model/chart/Release.js';
+import {type Repository} from './model/Repository.js';
 import {type ReleaseItem} from './model/release/ReleaseItem.js';
 import {type TestChartOptions} from './model/test/TestChartOptions.js';
 import {DefaultHelmClientBuilder} from './impl/DefaultHelmClientBuilder.js';
@@ -66,6 +67,16 @@ export interface HelmClient {
    * @returns the Release that was installed.
    */
   installChartWithOptions(releaseName: string, chart: Chart, options: InstallChartOptions): Promise<Release>;
+
+  /**
+   * Executes the Helm CLI upgrade sub-command and upgrades a Helm chart.
+   *
+   * @param releaseName the name of the release.
+   * @param chart the Helm chart to upgrade.
+   * @param options the options to pass to the Helm CLI command.
+   * @returns the Release that was upgraded.
+   */
+  upgradeChart(releaseName: string, chart: Chart, options: UpgradeChartOptions): Promise<Release>;
 
   /**
    * Executes the Helm CLI uninstall sub-command and uninstalls the specified Helm chart.
