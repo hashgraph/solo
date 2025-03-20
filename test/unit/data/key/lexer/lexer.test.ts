@@ -38,7 +38,7 @@ describe('Lexer', () => {
     lexerMap.set('42.is.everything', 'true');
     lexerMap.set('array.0.is.everything', 'true');
     lexerMap.set('array.1.is.everything', 'true');
-    lexerMap.set('array.2.is.everything', 'true');
+    lexerMap.set('array.alpha.2.is.everything', 'true');
     const lexer = new Lexer(lexerMap);
     const nodes: Node[] = lexer.rootNodes;
     expect(nodes).to.have.lengthOf(4);
