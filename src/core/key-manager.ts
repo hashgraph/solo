@@ -17,6 +17,7 @@ import {type NodeKeyObject, type PrivateKeyAndCertificateObject, type SoloListrT
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 // @ts-ignore
 x509.cryptoProvider.set(crypto);
@@ -90,8 +91,8 @@ export class KeyManager {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
     if (!keysDir) throw new MissingArgumentError('keysDir is required');
 
-    const keyFile = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
-    const certFile = path.join(keysDir, Templates.renderGossipPemPublicKeyFile(nodeAlias));
+    const keyFile = PathEx.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
+    const certFile = PathEx.join(keysDir, Templates.renderGossipPemPublicKeyFile(nodeAlias));
 
     return {
       privateKeyFile: keyFile,
@@ -108,8 +109,8 @@ export class KeyManager {
     if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
     if (!keysDir) throw new MissingArgumentError('keysDir is required');
 
-    const keyFile = path.join(keysDir, `hedera-${nodeAlias}.key`);
-    const certFile = path.join(keysDir, `hedera-${nodeAlias}.crt`);
+    const keyFile = PathEx.join(keysDir, `hedera-${nodeAlias}.key`);
+    const certFile = PathEx.join(keysDir, `hedera-${nodeAlias}.crt`);
 
     return {
       privateKeyFile: keyFile,
@@ -402,7 +403,7 @@ export class KeyManager {
       }
 
       const fileName = path.basename(keyFile);
-      fs.cpSync(keyFile, path.join(destDir, fileName));
+      fs.cpSync(keyFile, PathEx.join(destDir, fileName));
     }
   }
 

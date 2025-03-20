@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import fs from 'fs';
-import path from 'path';
 import * as util from 'util';
 import {MissingArgumentError} from '../errors/missing-argument-error.js';
 import * as helpers from '../helpers.js';
@@ -16,6 +15,7 @@ import {OS_WIN32, OS_WINDOWS} from '../constants.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 // constants required by HelmDependencyManager
 const HELM_RELEASE_BASE_URL = 'https://get.helm.sh';
@@ -90,14 +90,14 @@ export class HelmDependencyManager extends ShellRunner {
   }
 
   async install(tmpDir: string = helpers.getTmpDir()) {
-    const extractedDir = path.join(tmpDir, 'extracted-helm');
-    let helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, constants.HELM);
+    const extractedDir = PathEx.join(tmpDir, 'extracted-helm');
+    let helmSrc = PathEx.join(extractedDir, `${this.osPlatform}-${this.osArch}`, constants.HELM);
 
     const packageFile = await this.downloader.fetchPackage(this.helmURL, this.checksumURL, tmpDir);
     if (this.osPlatform === constants.OS_WINDOWS) {
       this.zippy.unzip(packageFile, extractedDir);
       // append .exe for windows
-      helmSrc = path.join(extractedDir, `${this.osPlatform}-${this.osArch}`, `${constants.HELM}.exe`);
+      helmSrc = PathEx.join(extractedDir, `${this.osPlatform}-${this.osArch}`, `${constants.HELM}.exe`);
     } else {
       this.zippy.untar(packageFile, extractedDir);
     }

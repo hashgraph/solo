@@ -16,7 +16,6 @@ import {ProfileManager} from '../profile-manager.js';
 import {IntervalLockRenewalService} from '../lock/interval-lock-renewal.js';
 import {LockManager} from '../lock/lock-manager.js';
 import {CertificateManager} from '../certificate-manager.js';
-import path, {normalize} from 'path';
 import {LocalConfig} from '../config/local-config.js';
 import {RemoteConfigManager} from '../config/remote/remote-config-manager.js';
 import os from 'os';
@@ -35,6 +34,7 @@ import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
 import {HelpRenderer} from '../help-renderer.js';
 import {Middlewares} from '../middlewares.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -99,7 +99,9 @@ export class Container {
     container.register(InjectTokens.Helm, {useClass: Helm}, {lifecycle: Lifecycle.Singleton});
 
     // HelmDependencyManager
-    container.register(InjectTokens.HelmInstallationDir, {useValue: path.join(constants.SOLO_HOME_DIR, 'bin')});
+    container.register(InjectTokens.HelmInstallationDir, {
+      useValue: PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
+    });
     container.register(InjectTokens.OsArch, {useValue: os.arch()});
     container.register(InjectTokens.HelmVersion, {useValue: version.HELM_VERSION});
     container.register(
@@ -133,7 +135,7 @@ export class Container {
     );
 
     // LocalConfig
-    const localConfigPath = normalize(path.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
+    const localConfigPath = PathEx.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE);
     container.register(InjectTokens.LocalConfigFilePath, {useValue: localConfigPath});
     container.register(InjectTokens.LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 

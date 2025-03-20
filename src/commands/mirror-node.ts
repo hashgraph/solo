@@ -20,7 +20,6 @@ import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
@@ -36,6 +35,7 @@ import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../core/kube/resources/pod/pod.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -605,7 +605,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     // and the user has the responsibility to execute it manually on his own
                     if (ctx.config.useExternalDatabase) {
                       // Build the path
-                      const databaseSeedingQueryPath = path.join(
+                      const databaseSeedingQueryPath = PathEx.join(
                         constants.SOLO_CACHE_DIR,
                         'database-seeding-query.sql',
                       );

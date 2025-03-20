@@ -2,7 +2,6 @@
 
 import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type PodRef} from './kube/resources/pod/pod-ref.js';
-import path from 'path';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import fs from 'fs';
 import {ContainerRef} from './kube/resources/container/container-ref.js';
@@ -15,6 +14,7 @@ import {type K8Factory} from './kube/k8-factory.js';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type Pod} from './kube/resources/pod/pod.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 /**
  * Class to manage network nodes
@@ -63,14 +63,14 @@ export class NetworkNodes {
   private async getLog(pod: Pod, namespace: NamespaceName, timeString: string, context?: string) {
     const podRef: PodRef = pod.podRef;
     this.logger.debug(`getNodeLogs(${pod.podRef.name.name}): begin...`);
-    const targetDir = path.join(SOLO_LOGS_DIR, namespace.name, timeString);
+    const targetDir = PathEx.join(SOLO_LOGS_DIR, namespace.name, timeString);
     try {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
       }
       const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
       const scriptName = 'support-zip.sh';
-      const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
+      const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       const k8 = this.k8Factory.getK8(context);
 
       await k8.containers().readByRef(containerRef).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
@@ -123,7 +123,7 @@ export class NetworkNodes {
   private async getState(pod: Pod, namespace: NamespaceName, context?: string) {
     const podRef: PodRef = pod.podRef;
     this.logger.debug(`getNodeState(${pod.podRef.name.name}): begin...`);
-    const targetDir = path.join(SOLO_LOGS_DIR, namespace.name);
+    const targetDir = PathEx.join(SOLO_LOGS_DIR, namespace.name);
     try {
       if (!fs.existsSync(targetDir)) {
         fs.mkdirSync(targetDir, {recursive: true});
