@@ -66,10 +66,10 @@ export class CTObjectMapper implements ObjectMapper {
       throw new IllegalArgumentError('map is required');
     }
 
-    try {
-    } catch (e) {
-      throw new ObjectMappingError('Failed to convert value to object', e);
-    }
+    // try {
+    // } catch (e) {
+    //   throw new ObjectMappingError('Failed to convert value to object', e);
+    // }
 
     return undefined;
   }
