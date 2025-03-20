@@ -19,7 +19,7 @@ export const InjectTokens = {
   PackageDownloader: Symbol.for('PackageDownloader'),
   Zippy: Symbol.for('Zippy'),
   DependencyManager: Symbol.for('DependencyManager'),
-  Helm: Symbol.for('DefaultHelmClient'),
+  Helm: Symbol.for('Helm'),
   HelmDependencyManager: Symbol.for('HelmDependencyManager'),
   ChartManager: Symbol.for('ChartManager'),
   ConfigManager: Symbol.for('ConfigManager'),

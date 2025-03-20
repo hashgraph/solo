@@ -30,7 +30,9 @@ import {RepositoryListRequest} from '../request/repository/RepositoryListRequest
 import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveRequest.js';
 import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
 import {InstallChartOptionsBuilder} from '../model/install/InstallChartOptionsBuilder.js';
+import {injectable} from 'tsyringe-neo';
 
+@injectable()
 /**
  * The default implementation of the HelmClient interface.
  */
@@ -53,8 +55,8 @@ export class DefaultHelmClient implements HelmClient {
    * @param workingDirectory - The working directory to use when executing Helm commands
    */
   constructor(
-    private readonly helmExecutable: string,
-    private readonly authentication: KubeAuthentication,
+    private readonly helmExecutable?: string,
+    private readonly authentication?: KubeAuthentication,
     private readonly defaultNamespace?: string,
     private readonly workingDirectory?: string,
   ) {
