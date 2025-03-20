@@ -61,7 +61,7 @@ jobs:
         uses: google-github-actions/setup-gcloud@77e7a554d41e2ee56fc945c52dfd3f33d12def9a # v2.1.4
 
       - name: Get Current Job Log URL
-        uses: Tiryoh/gha-jobid-action@vbe260d8673c9211a84cdcf37794ebd654ba81eef # v1.4.0
+        uses: Tiryoh/gha-jobid-action@be260d8673c9211a84cdcf37794ebd654ba81eef # v1.4.0
         id: jobs
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
