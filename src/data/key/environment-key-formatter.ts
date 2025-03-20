@@ -19,7 +19,7 @@ export class EnvironmentKeyFormatter implements KeyFormatter {
   }
 
   public split(key: string): string[] {
-    if (!key) {
+    if (!key || key.trim().length === 0) {
       throw new IllegalArgumentError('key must not be null or undefined');
     }
 

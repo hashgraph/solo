@@ -72,10 +72,6 @@ export class Lexer {
       const key = this.formatter.normalize(k);
       const segments: string[] = this.formatter.split(key);
 
-      if (!segments || segments.length === 0) {
-        continue; // unreachable code?
-      }
-
       const root: Node = this.rootNodeFor(segments);
       if (!root.isLeaf()) {
         this.processSegments(root as InternalNode, this.tokens.get(key), segments);
@@ -122,13 +118,9 @@ export class Lexer {
         node = this.processIntermediateSegment(currentRoot, segment, i, segments);
       }
 
-      if (node) {
-        currentRoot.addChild(node);
-        if (node.isInternal()) {
-          currentRoot = node as InternalNode;
-        }
-      } else if (!node && i < segments.length) {
-        throw new Error('Failed to process segment');
+      currentRoot.addChild(node);
+      if (node.isInternal()) {
+        currentRoot = node as InternalNode;
       }
     }
   }
@@ -161,8 +153,10 @@ export class Lexer {
   }
 
   private processIntermediateSegment(root: InternalNode, segment: string, idx: number, segments: string[]): Node {
+    // root.arrVal.0 = string|number (not handled by this case)
+    // root.arrVal.0.scalar = string|number (handles this case)
     if (root.isArray()) {
-      return new InternalNode(root, segment, [], false, true); // unreachable code?
+      return new InternalNode(root, segment, [], false, true);
     }
 
     if (idx + 1 < segments.length) {
