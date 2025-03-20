@@ -81,6 +81,7 @@ export class NodeCommandHandlers extends CommandHandler {
   deleteExecuteTaskList(argv: any) {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+      this.tasks.stopNodes('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
       this.tasks.refreshNodeList(),

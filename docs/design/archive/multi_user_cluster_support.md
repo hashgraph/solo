@@ -9,7 +9,7 @@
 
 ### 1. Problem Statement
 
-Currently solo stores its configuration locally in a file e.g. ~/.solo/solo.config as a JSON file. This however works as long as there is a single engineer managing a local/remote deployment of a Hedera Network. However, for more advanced use cases and long running networks, multiple engineers need to be able to manage the network using `solo`. Therefore, `solo` must maintain its “state” or configuration in the kubernetes cluster at the namespace level (as configmap and secrets) instead of storing those locally. Such a `solo state` can be thought to be similar to Terraform state.
+Currently, solo stores its configuration locally in a file e.g. ~/.solo/solo.config as a JSON file. This however works as long as there is a single engineer managing a local/remote deployment of a Hedera Network. However, for more advanced use cases and long running networks, multiple engineers need to be able to manage the network using `solo`. Therefore, `solo` must maintain its “state” or configuration in the kubernetes cluster at the namespace level (as configmap and secrets) instead of storing those locally. Such a `solo state` can be thought to be similar to Terraform state.
 
 ### 2. Requirements
 
@@ -81,8 +81,8 @@ We don’t need to reinvent the wheel.
 
 So below are some well established designs that we need to consult before deciding on our state model and leasing protocol:
 
-* Terraform State: https://developer.hashicorp.com/terraform/language/state
-* Kubernetes Lease: https://kubernetes.io/docs/concepts/architecture/leases/
+* Terraform State: <https://developer.hashicorp.com/terraform/language/state>
+* Kubernetes Lease: <https://kubernetes.io/docs/concepts/architecture/leases/>
 
 ### 5. Solo State
 
@@ -95,103 +95,100 @@ Actual configuration of the deployed component can be found the the Kubernetes m
 ```yaml
 version: 1.0.32 # solo state maintaines its own version increments, not same as solo version
 metadata:
-	name: my-network-1 # name of the network that this state represents. This is also the name of the lock. This shouldn't be changed once set.
-	lastUpdatedAt: 2024-04-25T13:03:32Z
-	lastUpdatedBy: lenin.mehedy@swirldslabs.com # user email address is more unique, for example, Jeromy's OS User is 'user'... weird, I know.
-	migration: # to support R3
-		migratedAt: 2024-04-15T13:03:32Z
-		migratedBy: lenin.mehedy@swirldslabs.com
-		fromVersion: 1.0.31 # usually it should be incremental
-		~~configMap: my-network-1-migrate-1.0.31 # config map name. It should have the script and relevant data~~
+  name: my-network-1 # name of the network that this state represents. This is also the name of the lock. This shouldn't be changed once set.
+  lastUpdatedAt: 2024-04-25T13:03:32Z
+  lastUpdatedBy: lenin.mehedy@swirldslabs.com # user email address is more unique, for example, Jeromy's OS User is 'user'... weird, I know.
+  migration: # to support R3
+    migratedAt: 2024-04-15T13:03:32Z
+    migratedBy: lenin.mehedy@swirldslabs.com
+    fromVersion: 1.0.31 # usually it should be incremental
+    ~~configMap: my-network-1-migrate-1.0.31 # config map name. It should have the script and relevant data~~
 clusters: # acquire leases accross all clusters and namespaces
-	- name: cluster-1
-		namespace: solo-1
-	- name: cluster-2
-		namespace: solo-1
-	- name: cluster-N
-		namespace: solo-1
+  - name: cluster-1
+    namespace: solo-1
+  - name: cluster-2
+    namespace: solo-1
+  - name: cluster-N
+    namespace: solo-1
 components:
-	consensus:
-		- name: node0
-			cluster: cluster-1
-			namespace: solo-1
-		- name: node1
-			cluster: cluster-1
-			namespace: solo-1
-		- name: node2
-			cluster: cluster-2
-			namespace: solo-1
-	haproxy: # should ideally be in the same cluster, namespace can be different if required
-		- name: haproxy-node0 
-			cluster: cluster-1 # same cluster as consensus node
-			namespace: solo-1 # same namespace as consensus node
-			consensusNode: node0
-		- name: haproxy-node1
-			cluster: cluster-1 # same cluster as consensus node
-			namespace: solo-1
-			consensusNode: node1
-		- name: haproxy-node2
-			cluster: cluster-2 # same cluster as consensus node
-			namespace: solo-1 # different namespace as consensus node
-			consensusNode: node2
-	envoyProxy: # should ideally be in the same cluster, namepspace can be different if required
-		- name: envoy-proxy-node0 
-			cluster: cluster-1 # same cluster as consensus node
-			namespace: solo-1 # same namespace as consensus node
-			consensusNode: node0
-	mirror:
-		- name: mirror-1
-			cluster: cluster-1
-			namespace: solo-1
-	mirror-node-explorer:
-	  - name: mirror-explorer-1
+  consensus:
+    - name: node0
       cluster: cluster-1
-	    namespace: solo-1
-	relay:
-		- name: relay-node0-node1
-			cluster: cluster-1
-			namespace: solo-1
-			consensusNode:
-				- node0
-				- node1
-		- name: relay-node2
-			cluster: cluster-2
-			namespace: solo-1
-			consensusNode:
-				- node2
+      namespace: solo-1
+    - name: node1
+      cluster: cluster-1
+      namespace: solo-1
+    - name: node2
+      cluster: cluster-2
+      namespace: solo-1
+  haproxy: # should ideally be in the same cluster, namespace can be different if required
+    - name: haproxy-node0 
+      cluster: cluster-1 # same cluster as consensus node
+      namespace: solo-1 # same namespace as consensus node
+      consensusNode: node0
+    - name: haproxy-node1
+      cluster: cluster-1 # same cluster as consensus node
+      namespace: solo-1
+      consensusNode: node1
+    - name: haproxy-node2
+      cluster: cluster-2 # same cluster as consensus node
+      namespace: solo-1 # different namespace as consensus node
+      consensusNode: node2
+  envoyProxy: # should ideally be in the same cluster, namepspace can be different if required
+    - name: envoy-proxy-node0 
+      cluster: cluster-1 # same cluster as consensus node
+      namespace: solo-1 # same namespace as consensus node
+      consensusNode: node0
+  mirror:
+    - name: mirror-1
+      cluster: cluster-1
+      namespace: solo-1
+  mirror-node-explorer:
+    - name: mirror-explorer-1
+      cluster: cluster-1
+      namespace: solo-1
+  relay:
+    - name: relay-node0-node1
+      cluster: cluster-1
+      namespace: solo-1
+      consensusNode:
+        - node0
+        - node1
+    - name: relay-node2
+      cluster: cluster-2
+      namespace: solo-1
+      consensusNode:
+        - node2
 cli: # in order to support requirement R9
-	~~flags: # cache the flag values same as now so that users can avoid entering the same value repeatedly
-		platformReleaseTag: v0.49.0
-		relayReleaseTag: v0.45.0
-		prometheusStack: true
-		...~~
-	history: # let us make this a P2 enhancement
-		- my-network-1-history-02 # a configmap of most recent ~99 commands
-		- my-network-1-history-01
-		
-	==============================
-	my-network-1-history-01: # an archive of command history 
-	- command: [ solo init -t v0.49.0 ]
-		~~flags: # a snapshot of the flags # skip this for now, even lower priority, we could just reparse the command
-			platformReleaseTag: v0.49.0 
-			namespace: solo-e2e
-			...~~
-		executedAt: 2024-04-22T11:03:32Z
-		executedBy: lenin.mehedy@swirldslabs.com
-	- command: [solo cluster setup]
-		executedAt: 2024-04-22T11:23:32Z
-		executedBy: lenin.mehedy@swirldslabs.com
-		~~flags: # a snapshot of the flags
-			platformReleaseTag: v0.49.0
-			namespace: solo-e2e
-			...~~
-	- command: [solo network deploy -t v0.49.0 -i node0,node1,node3]
-		executedAt: 2024-04-22T11:23:32Z
-		executedBy: xxx@swirldslabs.com	
-		~~flags: # a snapshot of the flags
-			platformReleaseTag: v0.49.0
-			namespace: solo-e2e
-			...~~
+  flags: # cache the flag values same as now so that users can avoid entering the same value repeatedly
+    platformReleaseTag: v0.49.0
+    relayReleaseTag: v0.45.0
+    prometheusStack: true
+    #...
+  history: # let us make this a P2 enhancement
+    - my-network-1-history-02 # a configmap of most recent ~99 commands
+    - my-network-1-history-01
+  my-network-1-history-01: # an archive of command history 
+  - command: [ solo init -t v0.49.0 ]
+    flags: # a snapshot of the flags # skip this for now, even lower priority, we could just reparse the command
+      platformReleaseTag: v0.49.0 
+      namespace: solo-e2e
+      #...
+    executedAt: 2024-04-22T11:03:32Z
+    executedBy: lenin.mehedy@swirldslabs.com
+  - command: [solo cluster setup]
+    executedAt: 2024-04-22T11:23:32Z
+    executedBy: lenin.mehedy@swirldslabs.com
+    flags: # a snapshot of the flags
+      platformReleaseTag: v0.49.0
+      namespace: solo-e2e
+      #...
+  - command: [solo network deploy -t v0.49.0 -i node0,node1,node3]
+    executedAt: 2024-04-22T11:23:32Z
+    executedBy: xxx@swirldslabs.com  
+    flags: # a snapshot of the flags
+      platformReleaseTag: v0.49.0
+      namespace: solo-e2e
 ```
 
 ### 6. Solo Lease

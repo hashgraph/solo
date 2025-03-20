@@ -6,9 +6,8 @@ import * as constants from '../../core/constants.js';
 import {PrivateKey} from '@hashgraph/sdk';
 import {SoloError} from '../../core/errors/solo-error.js';
 import * as helpers from '../../core/helpers.js';
-import path from 'path';
 import fs from 'fs';
-import {checkNamespace, validatePath} from '../../core/helpers.js';
+import {checkNamespace} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
@@ -26,6 +25,7 @@ import {type LocalConfig} from '../../core/config/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {type DefaultHelmClient} from '../../core/helm/impl/DefaultHelmClient.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
 export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
@@ -62,9 +62,9 @@ export class NodeCommandConfigs {
 
   private async initializeSetup(config: any, k8Factory: K8Factory) {
     // compute other config parameters
-    config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
+    config.keysDir = PathEx.join(config.cacheDir, 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
-    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
+    config.stagingKeysDir = PathEx.join(config.stagingDir, 'keys');
 
     if (!(await k8Factory.default().namespaces().has(config.namespace))) {
       throw new SoloError(`namespace ${config.namespace} does not exist`);
@@ -400,7 +400,7 @@ export class NodeCommandConfigs {
         throw new SoloError('no node aliases provided via flags or RemoteConfig');
       }
     }
-    config.keysDir = path.join(this.configManager.getFlag(flags.cacheDir), 'keys');
+    config.keysDir = PathEx.join(this.configManager.getFlag(flags.cacheDir), 'keys');
 
     if (!fs.existsSync(config.keysDir)) {
       fs.mkdirSync(config.keysDir);

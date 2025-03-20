@@ -2,7 +2,6 @@
 
 import * as x509 from '@peculiar/x509';
 import os from 'os';
-import path from 'path';
 import {DataValidationError} from './errors/data-validation-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
@@ -15,6 +14,7 @@ import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type NamespaceNameAsString} from './config/remote/types.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -145,21 +145,21 @@ export class Templates {
       throw new IllegalArgumentError('releasePrefix cannot be empty');
     }
 
-    return path.resolve(path.join(cacheDir, releasePrefix, 'staging', releaseTag));
+    return PathEx.resolve(PathEx.join(cacheDir, releasePrefix, 'staging', releaseTag));
   }
 
   public static installationPath(
     dep: string,
     osPlatform: NodeJS.Platform | string = os.platform(),
-    installationDir: string = path.join(constants.SOLO_HOME_DIR, 'bin'),
+    installationDir: string = PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
   ) {
     switch (dep) {
       case constants.HELM:
         if (osPlatform === constants.OS_WINDOWS) {
-          return path.join(installationDir, `${dep}.exe`);
+          return PathEx.join(installationDir, `${dep}.exe`);
         }
 
-        return path.join(installationDir, dep);
+        return PathEx.join(installationDir, dep);
 
       default:
         throw new SoloError(`unknown dep: ${dep}`);

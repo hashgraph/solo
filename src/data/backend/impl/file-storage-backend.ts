@@ -5,8 +5,8 @@ import {StorageOperation} from '../api/storage-operation.js';
 import {type Stats, statSync, lstatSync, readdirSync, writeFileSync, unlinkSync} from 'node:fs';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
-import path from 'path';
 import {readFileSync} from 'fs';
+import {PathEx} from '../../../business/utils/path-ex.js';
 
 /**
  * A file storage backend that operates on files within a specified base path. This backend does not support recursive
@@ -60,7 +60,7 @@ export class FileStorageBackend implements StorageBackend {
         return [];
       }
 
-      return entries.filter(item => statSync(path.join(this.basePath, item))?.isFile());
+      return entries.filter(item => statSync(PathEx.join(this.basePath, item))?.isFile());
     } catch (e) {
       throw new StorageBackendError('Error listing files in base path', e);
     }
@@ -71,7 +71,7 @@ export class FileStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('key must not be null, undefined or empty');
     }
 
-    const filePath: string = path.join(this.basePath, key);
+    const filePath: string = PathEx.join(this.basePath, key);
     try {
       return new Uint8Array(readFileSync(filePath));
     } catch (e) {
@@ -88,7 +88,7 @@ export class FileStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('data must not be null or undefined');
     }
 
-    const filePath: string = path.join(this.basePath, key);
+    const filePath: string = PathEx.join(this.basePath, key);
     try {
       writeFileSync(filePath, data, {flag: 'w'});
     } catch (e) {
@@ -101,7 +101,7 @@ export class FileStorageBackend implements StorageBackend {
       throw new IllegalArgumentError('key must not be null, undefined or empty');
     }
 
-    const filePath: string = path.join(this.basePath, key);
+    const filePath: string = PathEx.join(this.basePath, key);
     let stats: Stats;
     try {
       stats = statSync(filePath);

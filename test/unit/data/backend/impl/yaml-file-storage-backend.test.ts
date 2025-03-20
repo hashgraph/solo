@@ -3,8 +3,8 @@
 import {getTmpDir} from '../../../../test-util.js';
 import {YamlFileStorageBackend} from '../../../../../src/data/backend/impl/yaml-file-storage-backend.js';
 import {expect} from 'chai';
-import path from 'path';
 import fs from 'fs';
+import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 
 describe('YAML File Storage Backend', () => {
   const testName: string = 'yaml-file-storage-backend';
@@ -21,7 +21,7 @@ describe('YAML File Storage Backend', () => {
 
   it('test readObject with empty file', async () => {
     const key: string = `${testName}-file2.yaml`;
-    const temporaryFile: string = path.join(tempDir, key);
+    const temporaryFile: string = PathEx.join(tempDir, key);
     const backend: YamlFileStorageBackend = new YamlFileStorageBackend(tempDir);
     fs.writeFileSync(temporaryFile, '');
     await expect(backend.readObject(key)).to.be.rejectedWith('file is empty');
@@ -29,7 +29,7 @@ describe('YAML File Storage Backend', () => {
 
   it('test readObject with invalid yaml file', async () => {
     const key: string = `${testName}-file3.yaml`;
-    const temporaryFile: string = path.join(tempDir, key);
+    const temporaryFile: string = PathEx.join(tempDir, key);
     const backend: YamlFileStorageBackend = new YamlFileStorageBackend(tempDir);
     fs.writeFileSync(temporaryFile, 'playing_playlist: {{ action }} playlist {{ playlist_name }}');
     await expect(backend.readObject(key)).to.be.rejectedWith('error parsing yaml file');

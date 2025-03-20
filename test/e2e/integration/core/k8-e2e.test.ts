@@ -29,6 +29,7 @@ import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tok
 import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
 import {Argv} from '../../../helpers/argv-wrapper.js';
 import {type Pod} from '../../../../src/core/kube/resources/pod/pod.js';
+import {PathEx} from '../../../../src/business/utils/path-ex.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -153,7 +154,7 @@ describe('K8', () => {
         .waitForReadyStatus(testNamespace, [`app=${podLabelValue}`], 20);
       expect(pods).to.have.lengthOf(1);
 
-      const localTmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k8-test'));
+      const localTmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'k8-test'));
       const remoteTmpDir = '/tmp';
       const fileName = path.basename(localFilePath);
       const remoteFilePath = `${remoteTmpDir}/${fileName}`;
@@ -178,7 +179,7 @@ describe('K8', () => {
           .readByRef(ContainerRef.of(podRef, containerName))
           .copyFrom(remoteFilePath, localTmpDir),
       ).to.be.true;
-      const downloadedFilePath = path.join(localTmpDir, fileName);
+      const downloadedFilePath = PathEx.joinWithRealPath(localTmpDir, fileName);
       const downloadedFileData = fs.readFileSync(downloadedFilePath);
       const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex');
       const downloadedStat = fs.statSync(downloadedFilePath);
