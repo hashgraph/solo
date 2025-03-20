@@ -82,7 +82,8 @@ export class ChartManager {
   async install(
     namespaceName: NamespaceName,
     chartReleaseName: string,
-    chartPath: string,
+    chartName: string,
+    repoName: string,
     version: string,
     valuesArg = '',
     kubeContext: string,
@@ -90,7 +91,7 @@ export class ChartManager {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
       if (!isInstalled) {
-        this.logger.debug(`> installing chart:${chartPath}`);
+        this.logger.debug(`> installing chart:${chartName}`);
         const builder = InstallChartOptionsBuilder.builder()
           .version(version)
           .kubeContext(kubeContext)
@@ -100,10 +101,10 @@ export class ChartManager {
           builder.namespace(namespaceName.name);
         }
         const options: InstallChartOptions = builder.build();
-        await this.helm.installChart(chartReleaseName, new Chart(chartReleaseName, chartPath), options);
-        this.logger.debug(`OK: chart is installed: ${chartReleaseName} (${chartPath})`);
+        await this.helm.installChart(chartReleaseName, new Chart(chartName, repoName), options);
+        this.logger.debug(`OK: chart is installed: ${chartReleaseName} (${chartName}) (${repoName})`);
       } else {
-        this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartPath})`);
+        this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartName}) (${repoName})`);
       }
     } catch (e: Error | any) {
       throw new SoloError(`failed to install chart ${chartReleaseName}: ${e.message}`, e);
@@ -146,7 +147,8 @@ export class ChartManager {
   async upgrade(
     namespaceName: NamespaceName,
     chartReleaseName: string,
-    chartPath: string,
+    chartName: string,
+    repoName: string,
     version = '',
     valuesArg = '',
     kubeContext?: string,
@@ -160,7 +162,7 @@ export class ChartManager {
         valuesArg,
         version,
       );
-      const chart: Chart = new Chart(chartReleaseName, chartPath);
+      const chart: Chart = new Chart(chartName, repoName);
       await this.helm.upgradeChart(chartReleaseName, chart, options);
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`);
     } catch (e: Error | any) {

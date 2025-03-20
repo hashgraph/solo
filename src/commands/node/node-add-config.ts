@@ -27,7 +27,6 @@ export interface NodeAddConfigClass {
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
-  chartPath: string;
   curDate: Date;
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: string;

@@ -46,7 +46,6 @@ export interface MirrorNodeDeployConfigClass {
   profileFile: string;
   profileName: string;
   valuesFile: string;
-  chartPath: string;
   valuesArg: string;
   quiet: boolean;
   mirrorNodeVersion: string;
@@ -246,16 +245,10 @@ export class MirrorNodeCommand extends BaseCommand {
             ctx.config = this.configManager.getConfig(
               MirrorNodeCommand.DEPLOY_CONFIGS_NAME,
               MirrorNodeCommand.DEPLOY_FLAGS_LIST,
-              ['chartPath', 'valuesArg', 'namespace'],
+              ['valuesArg', 'namespace'],
             ) as MirrorNodeDeployConfigClass;
 
             ctx.config.namespace = namespace;
-            ctx.config.chartPath = await helpers.prepareChartPath(
-              self.helm,
-              '', // don't use chartPath which is for local solo-charts only
-              constants.MIRROR_NODE_RELEASE_NAME,
-              constants.MIRROR_NODE_CHART,
-            );
 
             // predefined values first
             ctx.config.valuesArg += helpers.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
@@ -403,6 +396,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       config.namespace,
                       constants.INGRESS_CONTROLLER_RELEASE_NAME,
                       constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
                       INGRESS_CONTROLLER_VERSION,
                       mirrorIngressControllerValuesArg,
                       ctx.config.clusterContext,
@@ -420,6 +414,7 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     await self.chartManager.install(
                       ctx.config.namespace,
+                      constants.MIRROR_NODE_RELEASE_NAME,
                       constants.MIRROR_NODE_CHART,
                       constants.MIRROR_NODE_RELEASE_NAME,
                       ctx.config.mirrorNodeVersion,

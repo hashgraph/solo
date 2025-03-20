@@ -146,12 +146,6 @@ export class NodeCommandConfigs {
     // set config in the context for later tasks to use
     ctx.config = config;
 
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
@@ -190,13 +184,6 @@ export class NodeCommandConfigs {
 
     // set config in the context for later tasks to use
     ctx.config = config;
-
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
 
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
@@ -243,13 +230,6 @@ export class NodeCommandConfigs {
     // set config in the context for later tasks to use
     ctx.config = config;
 
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
-
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
@@ -271,7 +251,6 @@ export class NodeCommandConfigs {
   public async addConfigBuilder(argv, ctx, task, shouldLoadNodeClient = true) {
     const config = this.configManager.getConfig(ADD_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
-      'chartPath',
       'curDate',
       'existingNodeAliases',
       'freezeAdminPrivateKey',
@@ -300,13 +279,6 @@ export class NodeCommandConfigs {
 
     // set config in the context for later tasks to use
     ctx.config = config;
-
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
 
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
@@ -560,7 +532,6 @@ export interface NodeDeleteConfigClass {
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
-  chartPath: string;
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: string;
   keysDir: string;
@@ -611,7 +582,6 @@ export interface NodeUpgradeConfigClass {
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
-  chartPath: string;
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;
@@ -648,7 +618,6 @@ export interface NodeUpdateConfigClass {
   tlsPublicKey: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
-  chartPath: string;
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;

@@ -15,14 +15,14 @@ import {type CommandBuilder} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
-import {prepareChartPath, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
+import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
-import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
+import {HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 
 export interface ExplorerDeployConfigClass {
@@ -209,14 +209,7 @@ export class ExplorerCommand extends BaseCommand {
           title: 'Install cert manager',
           task: async ctx => {
             const config = ctx.config;
-            const {chartDirectory, soloChartVersion} = config;
-
-            const chartPath = await prepareChartPath(
-              self.helm,
-              chartDirectory,
-              constants.SOLO_TESTING_CHART_URL,
-              constants.SOLO_CERT_MANAGER_CHART,
-            );
+            const {soloChartVersion} = config;
 
             const soloCertManagerValuesArg = await self.prepareCertManagerChartValuesArg(config);
             // check if CRDs of cert-manager are already installed
@@ -235,6 +228,7 @@ export class ExplorerCommand extends BaseCommand {
               // being installed first
               await self.chartManager.install(
                 NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
+                constants.SOLO_CERT_MANAGER_CHART,
                 constants.SOLO_CERT_MANAGER_CHART,
                 ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                 soloChartVersion,
@@ -264,6 +258,7 @@ export class ExplorerCommand extends BaseCommand {
             await self.chartManager.upgrade(
               NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
               constants.SOLO_CERT_MANAGER_CHART,
+              constants.SOLO_CERT_MANAGER_CHART,
               ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
               soloChartVersion,
               soloCertManagerValuesArg,
@@ -285,7 +280,8 @@ export class ExplorerCommand extends BaseCommand {
             await self.chartManager.install(
               config.namespace,
               constants.HEDERA_EXPLORER_RELEASE_NAME,
-              constants.HEDERA_EXPLORER_CHART_URL,
+              '',
+              HEDERA_EXPLORER_CHART_URL,
               config.hederaExplorerVersion,
               exploreValuesArg,
               ctx.config.clusterContext,
@@ -305,15 +301,9 @@ export class ExplorerCommand extends BaseCommand {
             }
             explorerIngressControllerValuesArg += ` --set fullnameOverride=${constants.EXPLORER_INGRESS_CONTROLLER}`;
 
-            const ingressControllerChartPath = await prepareChartPath(
-              self.helm,
-              '', // don't use chartPath which is for local solo-charts only
-              constants.INGRESS_CONTROLLER_RELEASE_NAME,
-              constants.INGRESS_CONTROLLER_RELEASE_NAME,
-            );
-
             await self.chartManager.install(
               config.namespace,
+              constants.INGRESS_CONTROLLER_RELEASE_NAME,
               constants.INGRESS_CONTROLLER_RELEASE_NAME,
               constants.INGRESS_CONTROLLER_RELEASE_NAME,
               INGRESS_CONTROLLER_VERSION,

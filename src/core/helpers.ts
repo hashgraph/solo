@@ -4,7 +4,6 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
-import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
@@ -23,7 +22,6 @@ import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
 import {type K8} from './kube/k8.js';
 import {type K8Factory} from './kube/k8-factory.js';
 import chalk from 'chalk';
-import {type DefaultHelmClient} from './helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
@@ -408,25 +406,6 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
 
     throw new SoloError(`Invalid JSON data in file: ${filePath}`);
   }
-}
-
-export async function prepareChartPath(
-  helm: DefaultHelmClient,
-  chartDir: string,
-  chartRepo: string,
-  chartReleaseName: string,
-) {
-  if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
-  if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
-
-  if (chartDir) {
-    const chartPath = path.join(chartDir, chartReleaseName);
-    // await helm.dependency('update', chartPath);
-    await helm.dependencyUpdate(chartPath);
-    return chartPath;
-  }
-
-  return `${chartRepo}/${chartReleaseName}`;
 }
 
 export function prepareValuesFiles(valuesFile: string) {

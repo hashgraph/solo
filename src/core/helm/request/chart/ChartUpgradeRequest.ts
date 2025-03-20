@@ -43,7 +43,6 @@ export class ChartUpgradeRequest implements HelmRequest {
     builder.subcommands('upgrade');
     this.options.apply(builder);
 
-    // Add release name and chart name as positional arguments
     builder.positional(this.releaseName).positional(this.chart.qualified());
   }
 }

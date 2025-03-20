@@ -2,7 +2,7 @@
 
 import {Flags as flags} from '../flags.js';
 import {type ArgvStruct, type AnyListrContext, type ConfigBuilder} from '../../types/aliases.js';
-import {prepareChartPath, showVersionBanner} from '../../core/helpers.js';
+import {showVersionBanner} from '../../core/helpers.js';
 import * as constants from '../../core/constants.js';
 import chalk from 'chalk';
 import {ListrLock} from '../../core/lock/listr-lock.js';
@@ -118,16 +118,16 @@ export class ClusterCommandTasks {
   /**
    * Prepare values arg for cluster setup command
    *
-   * @param [chartDir] - local charts directory (default is empty)
+   * @param chartDirectory
    * @param [prometheusStackEnabled] - a bool to denote whether to install prometheus stack
    * @param [minioEnabled] - a bool to denote whether to install minio
    */
   private prepareValuesArg(
-    chartDir = flags.chartDirectory.definition.defaultValue as string,
+    chartDirectory = flags.chartDirectory.definition.defaultValue as string,
     prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
     minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
   ): string {
-    let valuesArg = chartDir ? `-f ${PathEx.join(chartDir, 'solo-cluster-setup', 'values.yaml')}` : '';
+    let valuesArg = chartDirectory ? `-f ${PathEx.join(chartDirectory, 'solo-cluster-setup', 'values.yaml')}` : '';
 
     valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
     valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
@@ -212,13 +212,6 @@ export class ClusterCommandTasks {
     return {
       title: 'Prepare chart values',
       task: async ctx => {
-        ctx.chartPath = await prepareChartPath(
-          this.helm,
-          ctx.config.chartDir,
-          constants.SOLO_TESTING_CHART_URL,
-          constants.SOLO_CLUSTER_SETUP_CHART,
-        );
-
         // if minio is already present, don't deploy it
         if (ctx.config.deployMinio && (await self.clusterChecks.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
           ctx.config.deployMinio = false;
@@ -239,7 +232,7 @@ export class ClusterCommandTasks {
         }
 
         ctx.valuesArg = this.prepareValuesArg(
-          ctx.config.chartDir,
+          ctx.config.chartDirectory,
           ctx.config.deployPrometheusStack,
           ctx.config.deployMinio,
         );
@@ -258,11 +251,11 @@ export class ClusterCommandTasks {
         const valuesArg = ctx.valuesArg;
 
         try {
-          this.logger.debug(`Installing chart chartPath = ${ctx.chartPath}, version = ${version}`);
           await this.chartManager.install(
             clusterSetupNamespace,
             constants.SOLO_CLUSTER_SETUP_CHART,
-            ctx.config.chartDir ? ctx.config.chartDir : constants.SOLO_TESTING_CHART_URL,
+            constants.SOLO_CLUSTER_SETUP_CHART,
+            ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
             version,
             valuesArg,
             ctx.config.context,
