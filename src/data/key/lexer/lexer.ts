@@ -73,7 +73,7 @@ export class Lexer {
       const segments: string[] = this.formatter.split(key);
 
       if (!segments || segments.length === 0) {
-        continue;
+        continue; // unreachable code?
       }
 
       const root: Node = this.rootNodeFor(segments);
@@ -162,7 +162,7 @@ export class Lexer {
 
   private processIntermediateSegment(root: InternalNode, segment: string, idx: number, segments: string[]): Node {
     if (root.isArray()) {
-      return new InternalNode(root, segment, [], false, true);
+      return new InternalNode(root, segment, [], false, true); // unreachable code?
     }
 
     if (idx + 1 < segments.length) {
