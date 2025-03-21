@@ -86,7 +86,6 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
   const helpRenderer: HelpRenderer = container.resolve(InjectTokens.HelpRenderer);
 
-
   const opts: Opts = {
     logger,
     helm,
