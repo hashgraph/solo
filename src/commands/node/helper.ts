@@ -13,7 +13,7 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  public static deleteSaveContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}) {
+  public static deleteSaveContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: string}) {
     const exportedCtx = {} as {
       adminKey: string;
       existingNodeAliases: NodeAliases;
@@ -36,7 +36,7 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  public static deleteLoadContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}, ctxData: any) {
+  public static deleteLoadContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: string}, ctxData: any) {
     const config = ctx.config;
     config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
     config.existingNodeAliases = ctxData.existingNodeAliases;
@@ -51,7 +51,7 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  public static updateSaveContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}) {
+  public static updateSaveContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: string}) {
     const exportedCtx: any = {};
 
     const config = /** @type {NodeUpdateConfigClass} **/ ctx.config;
@@ -78,7 +78,7 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  public static upgradeSaveContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}) {
+  public static upgradeSaveContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: string}) {
     const exportedCtx: any = {};
 
     const config = /** @type {NodeUpgradeConfigClass} **/ ctx.config;
@@ -98,7 +98,7 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  public static upgradeLoadContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}, ctxData: any) {
+  public static upgradeLoadContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: string}, ctxData: any) {
     const config = ctx.config;
 
     config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
@@ -116,7 +116,7 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  public static updateLoadContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}, ctxData: any) {
+  public static updateLoadContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: string}, ctxData: any) {
     const config = ctx.config;
 
     if (ctxData.newAdminKey && ctxData.newAdminKey.length) {
