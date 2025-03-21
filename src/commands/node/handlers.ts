@@ -12,7 +12,7 @@ import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
-import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {type Listr} from 'listr2';
 import chalk from 'chalk';
@@ -30,7 +30,7 @@ export class NodeCommandHandlers extends CommandHandler {
   public contexts: string[];
   public consensusNodes: ConsensusNode[];
 
-  constructor(
+  public constructor(
     @inject(InjectTokens.LockManager) private readonly leaseManager: LockManager,
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.NodeCommandTasks) private readonly tasks: NodeCommandTasks,
@@ -59,7 +59,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
   /** ******** Task Lists **********/
 
-  deletePrepareTaskList(argv: any, lease: Lock) {
+  private deletePrepareTaskList(argv: ArgvStruct, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -70,7 +70,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  deleteSubmitTransactionsTaskList(argv: any) {
+  private deleteSubmitTransactionsTaskList() {
     return [
       this.tasks.sendNodeDeleteTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -78,7 +78,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  deleteExecuteTaskList(argv: any) {
+  private deleteExecuteTaskList() {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.stopNodes('existingNodeAliases'),
@@ -103,7 +103,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  addPrepareTasks(argv: any, lease: Lock) {
+  private addPrepareTasks(argv: ArgvStruct, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.addConfigBuilder.bind(this.configs), lease),
       // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
@@ -124,7 +124,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  addSubmitTransactionsTasks(argv: any) {
+  private addSubmitTransactionsTasks() {
     return [
       this.tasks.sendNodeCreateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -132,7 +132,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  addExecuteTasks(argv: any) {
+  private addExecuteTasks() {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
@@ -158,7 +158,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  updatePrepareTasks(argv, lease: Lock) {
+  private updatePrepareTasks(argv: ArgvStruct, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.updateConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -169,7 +169,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  updateSubmitTransactionsTasks(argv) {
+  private updateSubmitTransactionsTasks() {
     return [
       this.tasks.sendNodeUpdateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -177,7 +177,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  updateExecuteTasks(argv) {
+  private updateExecuteTasks() {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
@@ -187,7 +187,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.updateChartWithConfigMap(
         'Update chart to use new configMap due to account number change',
         NodeSubcommandType.UPDATE,
-        (ctx: any) => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias,
+        ctx => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias,
       ),
       this.tasks.killNodesAndUpdateConfigMap(),
       this.tasks.checkNodePodsAreRunning(),
@@ -202,7 +202,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  upgradePrepareTasks(argv, lease: Lock) {
+  private upgradePrepareTasks(argv: ArgvStruct, lease: Lock) {
     return [
       this.tasks.initialize(argv, this.configs.upgradeConfigBuilder.bind(this.configs), lease),
       this.validateAllNodeStates({excludedStates: []}),
@@ -213,11 +213,11 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  upgradeSubmitTransactionsTasks(argv) {
+  private upgradeSubmitTransactionsTasks() {
     return [this.tasks.sendPrepareUpgradeTransaction(), this.tasks.sendFreezeUpgradeTransaction()];
   }
 
-  upgradeExecuteTasks(argv) {
+  private upgradeExecuteTasks() {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeUpgradeFiles(),
@@ -232,7 +232,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
   /** ******** Handlers **********/
 
-  async prepareUpgrade(argv: any) {
+  public async prepareUpgrade(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -255,7 +255,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async freezeUpgrade(argv: any) {
+  public async freezeUpgrade(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
     await this.commandAction(
@@ -276,7 +276,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async downloadGeneratedFiles(argv: any) {
+  public async downloadGeneratedFiles(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DEFAULT_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -299,18 +299,14 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async update(argv: any) {
+  public async update(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_FLAGS);
 
     const lease = await this.leaseManager.create();
 
     await this.commandAction(
       argv,
-      [
-        ...this.updatePrepareTasks(argv, lease),
-        ...this.updateSubmitTransactionsTasks(argv),
-        ...this.updateExecuteTasks(argv),
-      ],
+      [...this.updatePrepareTasks(argv, lease), ...this.updateSubmitTransactionsTasks(), ...this.updateExecuteTasks()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -322,7 +318,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async updatePrepare(argv) {
+  public async updatePrepare(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
 
@@ -343,7 +339,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async updateSubmitTransactions(argv) {
+  public async updateSubmitTransactions(argv: ArgvStruct): Promise<boolean> {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_SUBMIT_TRANSACTIONS_FLAGS);
     await this.commandAction(
@@ -351,7 +347,7 @@ export class NodeCommandHandlers extends CommandHandler {
       [
         this.tasks.initialize(argv, this.configs.updateConfigBuilder.bind(this.configs), lease),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
-        ...this.updateSubmitTransactionsTasks(argv),
+        ...this.updateSubmitTransactionsTasks(),
       ],
       {
         concurrent: false,
@@ -364,7 +360,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async updateExecute(argv) {
+  public async updateExecute(argv: ArgvStruct): Promise<boolean> {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPDATE_EXECUTE_FLAGS);
     await this.commandAction(
@@ -378,7 +374,7 @@ export class NodeCommandHandlers extends CommandHandler {
           false,
         ),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPDATE_CONTEXT_FILE, NodeHelper.updateLoadContextParser),
-        ...this.updateExecuteTasks(argv),
+        ...this.updateExecuteTasks(),
       ],
       {
         concurrent: false,
@@ -391,7 +387,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async upgradePrepare(argv) {
+  public async upgradePrepare(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_PREPARE_FLAGS);
     const lease = await this.leaseManager.create();
     await this.commandAction(
@@ -410,7 +406,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async upgradeSubmitTransactions(argv) {
+  public async upgradeSubmitTransactions(argv: ArgvStruct): Promise<boolean> {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_SUBMIT_TRANSACTIONS_FLAGS);
     await this.commandAction(
@@ -418,7 +414,7 @@ export class NodeCommandHandlers extends CommandHandler {
       [
         this.tasks.initialize(argv, this.configs.upgradeConfigBuilder.bind(this.configs), lease),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
-        ...this.upgradeSubmitTransactionsTasks(argv),
+        ...this.upgradeSubmitTransactionsTasks(),
       ],
       {
         concurrent: false,
@@ -431,7 +427,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async upgradeExecute(argv) {
+  public async upgradeExecute(argv: ArgvStruct): Promise<boolean> {
     const lease = await this.leaseManager.create();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
     await this.commandAction(
@@ -445,7 +441,7 @@ export class NodeCommandHandlers extends CommandHandler {
           false,
         ),
         this.tasks.loadContextData(argv, NodeCommandHandlers.UPGRADE_CONTEXT_FILE, NodeHelper.upgradeLoadContextParser),
-        ...this.upgradeExecuteTasks(argv),
+        ...this.upgradeExecuteTasks(),
       ],
       {
         concurrent: false,
@@ -458,15 +454,15 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async upgrade(argv: any) {
+  public async upgrade(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
     const lease = await this.leaseManager.create();
     await this.commandAction(
       argv,
       [
         ...this.upgradePrepareTasks(argv, lease),
-        ...this.upgradeSubmitTransactionsTasks(argv),
-        ...this.upgradeExecuteTasks(argv),
+        ...this.upgradeSubmitTransactionsTasks(),
+        ...this.upgradeExecuteTasks(),
       ],
       {
         concurrent: false,
@@ -479,15 +475,15 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async delete(argv: any) {
+  public async delete(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_FLAGS);
     const lease = await this.leaseManager.create();
     await this.commandAction(
       argv,
       [
         ...this.deletePrepareTaskList(argv, lease),
-        ...this.deleteSubmitTransactionsTaskList(argv),
-        ...this.deleteExecuteTaskList(argv),
+        ...this.deleteSubmitTransactionsTaskList(),
+        ...this.deleteExecuteTaskList(),
       ],
       {
         concurrent: false,
@@ -500,7 +496,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async deletePrepare(argv: any) {
+  public async deletePrepare(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_PREPARE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -522,7 +518,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async deleteSubmitTransactions(argv: any) {
+  public async deleteSubmitTransactions(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_SUBMIT_TRANSACTIONS_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -532,7 +528,7 @@ export class NodeCommandHandlers extends CommandHandler {
       [
         this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease),
         this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
-        ...this.deleteSubmitTransactionsTaskList(argv),
+        ...this.deleteSubmitTransactionsTaskList(),
       ],
       {
         concurrent: false,
@@ -545,7 +541,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async deleteExecute(argv: any) {
+  public async deleteExecute(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.DELETE_EXECUTE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -561,7 +557,7 @@ export class NodeCommandHandlers extends CommandHandler {
           false,
         ),
         this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
-        ...this.deleteExecuteTaskList(argv),
+        ...this.deleteExecuteTaskList(),
       ],
       {
         concurrent: false,
@@ -574,14 +570,14 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async add(argv: any) {
+  public async add(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_FLAGS);
 
     const lease = await this.leaseManager.create();
 
     await this.commandAction(
       argv,
-      [...this.addPrepareTasks(argv, lease), ...this.addSubmitTransactionsTasks(argv), ...this.addExecuteTasks(argv)],
+      [...this.addPrepareTasks(argv, lease), ...this.addSubmitTransactionsTasks(), ...this.addExecuteTasks()],
       {
         concurrent: false,
         rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
@@ -593,7 +589,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async addPrepare(argv: any) {
+  public async addPrepare(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_PREPARE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -615,7 +611,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async addSubmitTransactions(argv: any) {
+  public async addSubmitTransactions(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_SUBMIT_TRANSACTIONS_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -625,7 +621,7 @@ export class NodeCommandHandlers extends CommandHandler {
       [
         this.tasks.initialize(argv, this.configs.addConfigBuilder.bind(this.configs), lease),
         this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
-        ...this.addSubmitTransactionsTasks(argv),
+        ...this.addSubmitTransactionsTasks(),
       ],
       {
         concurrent: false,
@@ -638,7 +634,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async addExecute(argv: any) {
+  public async addExecute(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.ADD_EXECUTE_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -655,7 +651,7 @@ export class NodeCommandHandlers extends CommandHandler {
         ),
         this.tasks.identifyExistingNodes(),
         this.tasks.loadContextData(argv, NodeCommandHandlers.ADD_CONTEXT_FILE, helpers.addLoadContextParser),
-        ...this.addExecuteTasks(argv),
+        ...this.addExecuteTasks(),
       ],
       {
         concurrent: false,
@@ -668,7 +664,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async logs(argv: any) {
+  public async logs(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
     await this.commandAction(
       argv,
@@ -687,7 +683,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async states(argv: any) {
+  public async states(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STATES_FLAGS);
 
     await this.commandAction(
@@ -707,7 +703,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async refresh(argv: any) {
+  public async refresh(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.REFRESH_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -738,7 +734,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async keys(argv: any) {
+  public async keys(argv: ArgvStruct): Promise<boolean> {
     this.init();
     argv = helpers.addFlagsToArgv(argv, NodeFlags.KEYS_FLAGS);
 
@@ -761,7 +757,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async stop(argv: any) {
+  public async stop(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.STOP_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -788,7 +784,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async start(argv: any) {
+  public async start(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.START_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -818,7 +814,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async setup(argv: any) {
+  public async setup(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.SETUP_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -846,7 +842,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async freeze(argv: any) {
+  public async freeze(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.FREEZE_FLAGS);
     const lease = await this.leaseManager.create();
 
@@ -871,7 +867,7 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  async restart(argv: any) {
+  public async restart(argv: ArgvStruct): Promise<boolean> {
     argv = helpers.addFlagsToArgv(argv, NodeFlags.RESTART_FLAGS);
 
     const lease = await this.leaseManager.create();
@@ -896,6 +892,8 @@ export class NodeCommandHandlers extends CommandHandler {
 
     return true;
   }
+
+  // TODO MOVE TO TASKS
 
   /** Removes the consensus node, envoy and haproxy components from remote config.  */
   public removeNodeAndProxies(): SoloListrTask<any> {
