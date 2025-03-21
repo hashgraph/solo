@@ -5,7 +5,7 @@ import {type ConfigManager} from '../../core/config-manager.js';
 import {type KeyManager} from '../../core/key-manager.js';
 import {type ProfileManager} from '../../core/profile-manager.js';
 import {type PlatformInstaller} from '../../core/platform-installer.js';
-import {type K8Factory} from '../../core/kube/k8-factory.js';
+import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type ChartManager} from '../../core/chart-manager.js';
 import {type CertificateManager} from '../../core/certificate-manager.js';
 import {Zippy} from '../../core/zippy.js';
@@ -61,7 +61,7 @@ import {
   type NodeId,
   type SkipCheck,
 } from '../../types/aliases.js';
-import {PodName} from '../../core/kube/resources/pod/pod-name.js';
+import {PodName} from '../../integration/kube/resources/pod/pod-name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lock} from '../../core/lock/lock.js';
@@ -70,16 +70,16 @@ import {Duration} from '../../core/time/duration.js';
 import {type NodeAddConfigClass} from './node-add-config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis-network-models/genesis-network-data-constructor.js';
 import {NodeOverridesModel} from '../../core/node-overrides-model.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../core/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../../core/kube/resources/container/container-ref.js';
+import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../integration/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../../integration/kube/resources/container/container-ref.js';
 import {NetworkNodes} from '../../core/network-nodes.js';
 import {container, inject, injectable} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {ConsensusNode} from '../../core/model/consensus-node.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8} from '../../integration/kube/k8.js';
 import {Base64} from 'js-base64';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';

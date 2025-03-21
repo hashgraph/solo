@@ -34,17 +34,17 @@ import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-
 import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
-import {PvcRef} from '../core/kube/resources/pvc/pvc-ref.js';
-import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {PvcRef} from '../integration/kube/resources/pvc/pvc-ref.js';
+import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
-import {SecretType} from '../core/kube/resources/secret/secret-type.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
-import {type PodRef} from '../core/kube/resources/pod/pod-ref.js';
+import {type PodRef} from '../integration/kube/resources/pod/pod-ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
-import {type Pod} from '../core/kube/resources/pod/pod.js';
+import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
 export interface NetworkDeployConfigClass {

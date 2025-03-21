@@ -23,7 +23,7 @@ import * as version from '../../../version.js';
 import {NetworkNodes} from '../network-nodes.js';
 import {ClusterChecks} from '../cluster-checks.js';
 import {InjectTokens} from './inject-tokens.js';
-import {K8ClientFactory} from '../kube/k8-client/k8-client-factory.js';
+import {K8ClientFactory} from '../../integration/kube/k8-client/k8-client-factory.js';
 import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
 import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
 import {NodeCommandHandlers} from '../../commands/node/handlers.js';

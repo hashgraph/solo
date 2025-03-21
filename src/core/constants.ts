@@ -4,8 +4,8 @@ import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
 import {dirname} from 'path';
 import {fileURLToPath} from 'url';
-import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
-import {ContainerName} from './kube/resources/container/container-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {ContainerName} from '../integration/kube/resources/container/container-name.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
 export const ROOT_DIR = PathEx.joinWithRealPath(dirname(fileURLToPath(import.meta.url)), '..', '..');

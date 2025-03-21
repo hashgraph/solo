@@ -10,7 +10,7 @@ import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag-types.js';
 import {patchInject} from './dependency-injection/container-helper.js';
 import * as constants from '../core/constants.js';
-import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ArgvStruct, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';

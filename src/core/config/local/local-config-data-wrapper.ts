@@ -14,7 +14,7 @@ import {
 import {IsClusterRefs, IsDeployments} from '../../validator-decorators.js';
 import deepClone from 'deep-clone';
 import {SoloError} from '../../errors/solo-error.js';
-import {type NamespaceName} from '../../kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 
 export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObject<LocalConfigData> {
   @IsEmail({}, {message: ErrorMessages.LOCAL_CONFIG_INVALID_EMAIL})

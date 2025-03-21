@@ -2,14 +2,14 @@
 
 import {MissingArgumentError} from '../errors/missing-argument-error.js';
 import {SoloError} from '../errors/solo-error.js';
-import {type K8Factory} from '../kube/k8-factory.js';
+import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {LockHolder} from './lock-holder.js';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
 import {type Lock, type LockRenewalService} from './lock.js';
 import {StatusCodes} from 'http-status-codes';
-import {type NamespaceName} from '../kube/resources/namespace/namespace-name.js';
-import {type Lease} from '../kube/resources/lease/lease.js';
+import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
+import {type Lease} from '../../integration/kube/resources/lease/lease.js';
 import {LockAcquisitionError} from './lock-acquisition-error.js';
 import {LockRelinquishmentError} from './lock-relinquishment-error.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
