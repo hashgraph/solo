@@ -8,7 +8,7 @@ import {type ChartManager} from '../../../src/core/chart-manager.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
-import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
+import {K8Client} from '../../../src/integration/kube/k8-client/k8-client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';

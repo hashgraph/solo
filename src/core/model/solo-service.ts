@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ClusterRef, type DeploymentName} from '../config/remote/types.js';
-import {type ObjectMeta} from '../kube/resources/object-meta.js';
-import {type ServiceSpec} from '../kube/resources/service/service-spec.js';
-import {type ServiceStatus} from '../kube/resources/service/service-status.js';
-import {type Service} from '../kube/resources/service/service.js';
-import {K8ClientService} from '../kube/k8-client/resources/service/k8-client-service.js';
+import {type ObjectMeta} from '../../integration/kube/resources/object-meta.js';
+import {type ServiceSpec} from '../../integration/kube/resources/service/service-spec.js';
+import {type ServiceStatus} from '../../integration/kube/resources/service/service-status.js';
+import {type Service} from '../../integration/kube/resources/service/service.js';
+import {K8ClientService} from '../../integration/kube/k8-client/resources/service/k8-client-service.js';
 
 export class SoloService extends K8ClientService {
   constructor(

@@ -4,12 +4,12 @@ import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/solo-error.js';
 import {ConsensusNodeStates} from './enumerations.js';
 
-import {type K8Factory} from '../../kube/k8-factory.js';
+import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {type ComponentsDataWrapper} from './components-data-wrapper.js';
 import {type BaseComponent} from './components/base-component.js';
-import {type NamespaceName} from '../../kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {type LocalConfig} from '../local/local-config.js';
-import {type Pod} from '../../kube/resources/pod/pod.js';
+import {type Pod} from '../../../integration/kube/resources/pod/pod.js';
 
 /**
  * Static class is used to validate that components in the remote config

@@ -13,14 +13,14 @@ import {
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../../../src/core/kube/resources/container/container-ref.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
 import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
+import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 
