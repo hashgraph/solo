@@ -52,10 +52,10 @@ NOTE: Mirror Node may not pick up the changes automatically, it might require ru
 
 ```bash
 cd <solo-root>
-task solo -- account create
-task solo -- account create
-task solo -- account create
-task solo -- account create
-task solo -- account create
-task solo -- account update -n solo-e2e --account-id 0.0.1004 --hbar-amount 78910 
+npm run solo -- account create
+npm run solo -- account create
+npm run solo -- account create
+npm run solo -- account create
+npm run solo -- account create
+npm run solo -- account update -n solo-e2e --account-id 0.0.1004 --hbar-amount 78910 
 ```

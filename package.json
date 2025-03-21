@@ -10,7 +10,10 @@
   "publishConfig": {
     "access": "public"
   },
-  "scripts": {},
+  "scripts": {
+    "solo-test": "tsx --no-deprecation --no-warnings solo.ts",
+    "solo": "node --no-deprecation --no-warnings dist/solo.js"
+  },
   "keywords": [
     "solo",
     "solo-charts",

@@ -23,12 +23,6 @@ tasks:
       - task: "solo:keys"
       - task: "solo:network:deploy"
 
-  solo-test:
-    cmds:
-      - npx tsx --no-deprecation --no-warnings {{.TASKFILE_DIR}}/solo.ts {{ .CLI_ARGS }}
-  solo:
-    cmds:
-      - node --no-deprecation --no-warnings {{.TASKFILE_DIR}}/dist/solo.js {{ .CLI_ARGS }}
   check:
     cmds:
       - npx remark . --quiet --frail
