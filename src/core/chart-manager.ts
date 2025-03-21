@@ -53,7 +53,6 @@ export class ChartManager {
 
   async addRepo(name: string, url: string, forceUpdateArg: string) {
     this.logger.debug(`Adding repo ${name} -> ${url}`, {repoName: name, repoURL: url});
-    // await this.helm.repo('add', name, url, forceUpdateArg);
     await this.helm.addRepository(new Repository(name, url));
     return url;
   }
@@ -114,7 +113,6 @@ export class ChartManager {
     );
     const charts = await this.getInstalledCharts(namespaceName, kubeContext);
 
-    console.log(`charts  ***** : ${charts.join('\n')}\n\n`);
     return charts.some(item => item.startsWith(chartReleaseName));
   }
 
