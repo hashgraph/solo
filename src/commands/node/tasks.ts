@@ -55,7 +55,7 @@ import {type SoloLogger} from '../../core/logging.js';
 import {
   type AnyListrContext,
   type AnyObject,
-  type ConfigBuilder,
+  type ConfigBuilder, IP,
   type NodeAlias,
   type NodeAliases,
   type NodeId,
@@ -1673,7 +1673,7 @@ export class NodeCommandTasks {
     });
   }
 
-  updateChartWithConfigMap(
+  public updateChartWithConfigMap(
     title: string,
     transactionType: NodeSubcommandType,
     skip: SkipCheck | boolean = false,
@@ -1718,86 +1718,42 @@ export class NodeCommandTasks {
             .forEach((node, index) => (clusterNodeIndexMap[clusterRef][node.nodeId] = index));
         }
 
-        for (const consensusNode of consensusNodes) {
-          if (transactionType !== NodeSubcommandType.UPDATE && transactionType !== NodeSubcommandType.DELETE) {
-            break;
-          }
-
-          const clusterRef = consensusNode.cluster;
-          const index = clusterNodeIndexMap[clusterRef][consensusNode.nodeId];
-
-          // for the case of updating node, use new account number for this node id
-          if (
-            transactionType === NodeSubcommandType.UPDATE &&
-            config.newAccountNumber &&
-            consensusNode.name === config.nodeAlias
-          ) {
-            valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${index}].accountId=${config.newAccountNumber}"` +
-              ` --set "hedera.nodes[${index}].name=${config.nodeAlias}"` +
-              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
-          }
-
-          // Delete if nodeIds don't match
-          else if (transactionType !== NodeSubcommandType.DELETE || consensusNode.nodeId !== nodeId) {
-            // for the case of deleting node
-            valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${index}].accountId=${config.serviceMap.get(consensusNode.name).accountId}"` +
-              ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
-              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
-          } else if (transactionType === NodeSubcommandType.DELETE && consensusNode.nodeId === nodeId) {
-            valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${index}].accountId=${IGNORED_NODE_ACCOUNT_ID}"` +
-              ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
-              ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
-          }
+        if (transactionType === NodeSubcommandType.UPDATE) {
+          this.prepareValuesArgForNodeUpdate(
+            consensusNodes,
+            valuesArgMap,
+            config.serviceMap,
+            clusterNodeIndexMap,
+            config.newAccountNumber,
+            config.nodeAlias,
+          );
         }
 
-        // now remove the deleted node from the serviceMap
         if (transactionType === NodeSubcommandType.DELETE) {
-          config.serviceMap.delete(config.nodeAlias);
+          this.prepareValuesArgForNodeDelete(
+            consensusNodes,
+            valuesArgMap,
+            nodeId,
+            config.nodeAlias,
+            config.serviceMap,
+            clusterNodeIndexMap,
+          );
         }
 
-        // When adding a new node
-        if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
-          const clusterRef = ctx.config.clusterRef;
-          const index = clusterNodeIndexMap[clusterRef][nodeId];
-
-          consensusNodes.forEach(node => {
-            if (node.name === config.nodeAlias) return;
-            const index = clusterNodeIndexMap[clusterRef][node.nodeId];
-
-            valuesArgMap[clusterRef] +=
-              ` --set "hedera.nodes[${index}].accountId=${config.serviceMap.get(node.name).accountId}"` +
-              ` --set "hedera.nodes[${index}].name=${node.name}"` +
-              ` --set "hedera.nodes[${index}].nodeId=${node.nodeId}"`;
-          });
-
-          valuesArgMap[clusterRef] +=
-            ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
-            ` --set "hedera.nodes[${index}].name=${ctx.newNode.name}"` +
-            ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
-
-          if (config.haproxyIps) {
-            config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
-          }
-
-          if (config.envoyIps) {
-            config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
-          }
-
-          // Set static IPs for HAProxy
-          if (config.haproxyIpsParsed) {
-            const ip: string = config.haproxyIpsParsed?.[config.nodeAlias];
-            if (ip) valuesArgMap[clusterRef] += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
-          }
-
-          // Set static IPs for Envoy Proxy
-          if (config.envoyIpsParsed) {
-            const ip: string = config.envoyIpsParsed?.[config.nodeAlias];
-            if (ip) valuesArgMap[clusterRef] += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
-          }
+        if (transactionType === NodeSubcommandType.ADD) {
+          this.prepareValuesArgForNodeAdd(
+            consensusNodes,
+            valuesArgMap,
+            config.serviceMap,
+            clusterNodeIndexMap,
+            config.clusterRef,
+            nodeId,
+            config.nodeAlias,
+            config.newNode,
+            config,
+          );
         }
+
         // Add profile values files
         const profileValuesFile = await self.profileManager.prepareValuesForNodeTransaction(
           PathEx.joinWithRealPath(config.stagingDir, 'config.txt'),
@@ -1823,17 +1779,7 @@ export class NodeCommandTasks {
 
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
-        console.dir(
-          {
-            consensusNodes,
-            nodeAlias: config.nodeAlias,
-            valuesArgMap,
-            newNode: ctx.newNode,
-          },
-          {depth: null},
-        );
-
-        // Update charts
+        // Update all charts
         await Promise.all(
           Object.keys(clusterRefs).map(async clusterRef => {
             const valuesArgs = valuesArgMap[clusterRef];
@@ -1854,6 +1800,120 @@ export class NodeCommandTasks {
       },
       skip,
     };
+  }
+
+  private prepareValuesArgForNodeUpdate(
+    consensusNodes: ConsensusNode[],
+    valuesArgMap: Record<ClusterRef, string>,
+    serviceMap: Map<NodeAlias, NetworkNodeServices>,
+    clusterNodeIndexMap: Record<ClusterRef, Record<NodeId, /* index in the chart -> */ number>>,
+    newAccountNumber: number,
+    nodeAlias: NodeAlias,
+  ): void {
+    for (const consensusNode of consensusNodes) {
+      const clusterRef = consensusNode.cluster;
+      const index = clusterNodeIndexMap[clusterRef][consensusNode.nodeId];
+
+      // for the case of updating node, use new account number for this node id
+      if (newAccountNumber && consensusNode.name === nodeAlias) {
+        valuesArgMap[clusterRef] +=
+          ` --set "hedera.nodes[${index}].accountId=${newAccountNumber}"` +
+          ` --set "hedera.nodes[${index}].name=${nodeAlias}"` +
+          ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
+      }
+
+      // Populate the values for the rest
+      else {
+        valuesArgMap[clusterRef] +=
+          ` --set "hedera.nodes[${index}].accountId=${serviceMap.get(consensusNode.name).accountId}"` +
+          ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
+          ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
+      }
+    }
+  }
+
+  private prepareValuesArgForNodeAdd(
+    consensusNodes: ConsensusNode[],
+    valuesArgMap: Record<ClusterRef, string>,
+    serviceMap: Map<NodeAlias, NetworkNodeServices>,
+    clusterNodeIndexMap: Record<ClusterRef, Record<NodeId, /* index in the chart -> */ number>>,
+    clusterRef: ClusterRef,
+    nodeId: NodeId,
+    nodeAlias: NodeAlias,
+    newNode: {accountId: string; name: string},
+    config: {
+      haproxyIps?: string;
+      haproxyIpsParsed?: Record<NodeAlias, IP>;
+      envoyIps?: string;
+      envoyIpsParsed?: Record<NodeAlias, IP>;
+    },
+  ): void {
+    // Add existing nodes
+    consensusNodes.forEach(node => {
+      if (node.name === nodeAlias) return;
+      const index = clusterNodeIndexMap[clusterRef][node.nodeId];
+
+      valuesArgMap[clusterRef] +=
+        ` --set "hedera.nodes[${index}].accountId=${serviceMap.get(node.name).accountId}"` +
+        ` --set "hedera.nodes[${index}].name=${node.name}"` +
+        ` --set "hedera.nodes[${index}].nodeId=${node.nodeId}"`;
+    });
+
+    // Add new node
+    const index = clusterNodeIndexMap[clusterRef][nodeId];
+    valuesArgMap[clusterRef] +=
+      ` --set "hedera.nodes[${index}].accountId=${newNode.accountId}"` +
+      ` --set "hedera.nodes[${index}].name=${newNode.name}"` +
+      ` --set "hedera.nodes[${index}].nodeId=${nodeId}" `;
+
+    // Set static IPs for HAProxy
+    if (config.haproxyIps) {
+      config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
+      const ip: string = config.haproxyIpsParsed?.[nodeAlias];
+      if (ip) valuesArgMap[clusterRef] += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
+    }
+
+    // Set static IPs for Envoy Proxy
+    if (config.envoyIps) {
+      config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
+      const ip: string = config.envoyIpsParsed?.[nodeAlias];
+      if (ip) valuesArgMap[clusterRef] += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
+    }
+  }
+
+  private prepareValuesArgForNodeDelete(
+    consensusNodes: ConsensusNode[],
+    valuesArgMap: Record<ClusterRef, string>,
+    nodeId: NodeId,
+    nodeAlias: NodeAlias,
+    serviceMap: Map<NodeAlias, NetworkNodeServices>,
+    clusterNodeIndexMap: Record<ClusterRef, Record<NodeId, /* index in the chart -> */ number>>,
+  ): void {
+    for (const consensusNode of consensusNodes) {
+      const clusterRef: ClusterRef = consensusNode.cluster;
+
+      // The index inside the chart
+      const index = clusterNodeIndexMap[clusterRef][consensusNode.nodeId];
+
+      // For nodes that are not being deleted
+      if (consensusNode.nodeId !== nodeId) {
+        valuesArgMap[clusterRef] +=
+          ` --set "hedera.nodes[${index}].accountId=${serviceMap.get(consensusNode.name).accountId}"` +
+          ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
+          ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
+      }
+
+      // When deleting node
+      else if (consensusNode.nodeId === nodeId) {
+        valuesArgMap[clusterRef] +=
+          ` --set "hedera.nodes[${index}].accountId=${IGNORED_NODE_ACCOUNT_ID}"` +
+          ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
+          ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
+      }
+    }
+
+    // now remove the deleted node from the serviceMap
+    serviceMap.delete(nodeAlias);
   }
 
   saveContextData(argv: any, targetFile: string, parser: any) {
