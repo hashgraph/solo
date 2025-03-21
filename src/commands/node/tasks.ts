@@ -66,7 +66,7 @@ import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdate
 import {type Lock} from '../../core/lock/lock.js';
 import {ListrLock} from '../../core/lock/listr-lock.js';
 import {Duration} from '../../core/time/duration.js';
-import {type NodeAddConfigClass} from './node-add-config.js';
+import {type NodeAddConfigClass} from './config-interfaces/node-add-config-class.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis-network-models/genesis-network-data-constructor.js';
 import {NodeOverridesModel} from '../../core/node-overrides-model.js';
 import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';

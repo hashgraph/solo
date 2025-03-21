@@ -14,7 +14,7 @@ import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases
 import {type CommandFlag} from '../types/flag-types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
-import {type NodeAddConfigClass} from '../commands/node/node-add-config.js';
+import {type NodeAddConfigClass} from '../commands/node/config-interfaces/node-add-config-class.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
