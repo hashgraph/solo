@@ -72,6 +72,14 @@ tasks:
         {{ .mocha_bin }} 'test/unit/**/math_ex*.ts'
         {{ .reporter_options_prefix }}.xml"
 
+  test-data:
+    cmds:
+      - "{{ .test_prefix }}=\"Data Layer Unit Tests\"
+        {{ .reporter_prefix }}='coverage/unit-data'
+        {{ .mocha_bin }} 'test/unit/data/**'
+        {{ .reporter_options_prefix }}.xml",
+
+
   test-e2e-all:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E All Tests\" 
