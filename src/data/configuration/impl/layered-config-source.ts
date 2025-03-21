@@ -3,7 +3,6 @@
 import {type ConfigSource} from '../spi/config-source.js';
 import {type ObjectMapper} from '../../mapper/api/object-mapper.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
-import {EnvironmentStorageBackend} from '../../backend/impl/environment-storage-backend.js';
 import {type StorageBackend} from '../../backend/api/storage-backend.js';
 import {Forest} from '../../key/lexer/forest.js';
 import {ConfigurationError} from '../api/configuration-error.js';
@@ -35,7 +34,6 @@ export abstract class LayeredConfigSource implements ConfigSource {
       throw new IllegalArgumentError('ObjectMapper is required');
     }
 
-    this.backend = new EnvironmentStorageBackend(prefix);
     this.data = new Map<string, string>();
   }
 
