@@ -5,6 +5,7 @@ import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {type SoloLogger} from './logging.js';
 import {UserBreak} from './errors/user-break.js';
+import {SilentBreak} from './errors/silent-break.js';
 
 @injectable()
 export class ErrorHandler {
@@ -13,9 +14,11 @@ export class ErrorHandler {
   }
 
   public handle(error: Error | any): void {
-    const userBreak = this.extractUserBreak(error);
-    if (userBreak) {
-      this.handleUserBreak(userBreak);
+    const err = this.extractBreak(error);
+    if (err instanceof UserBreak) {
+      this.handleUserBreak(err);
+    } else if (err instanceof SilentBreak) {
+      this.handleSilentBreak(err);
     } else {
       this.handleError(error);
     }
@@ -25,21 +28,25 @@ export class ErrorHandler {
     this.logger.showUser(userBreak.message);
   }
 
+  private handleSilentBreak(silentBreak: SilentBreak): void {
+    this.logger.info(silentBreak.message);
+  }
+
   private handleError(error: Error | any): void {
     this.logger.showUserError(error);
   }
 
   /**
    * Recursively checks if an error is or is caused by a UserBreak
-   * Returns the UserBreak if found, otherwise false
+   * Returns the UserBreak or SilentBreak if found, otherwise false
    * @param err
    */
-  private extractUserBreak(err: Error | any): UserBreak | false {
-    if (err instanceof UserBreak) {
+  private extractBreak(err: Error | any): UserBreak | SilentBreak | false {
+    if (err instanceof UserBreak || err instanceof SilentBreak) {
       return err;
     }
     if (err?.cause) {
-      return this.extractUserBreak(err.cause);
+      return this.extractBreak(err.cause);
     }
     return false;
   }
