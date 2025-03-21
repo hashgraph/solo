@@ -6,6 +6,7 @@ import {type Node} from './node.js';
 import {InternalNode} from './internal-node.js';
 import {LeafNode} from './leaf-node.js';
 import {KeyName} from '../key-name.js';
+import {ConfigKeyError} from '../config-key-error.js';
 
 export class Lexer {
   private readonly _roots: Map<string, Node> = new Map();
@@ -16,11 +17,11 @@ export class Lexer {
     private readonly formatter: KeyFormatter = ConfigKeyFormatter.instance(),
   ) {
     if (!this.tokens) {
-      throw new Error('tokens must be provided');
+      throw new ConfigKeyError('tokens must be provided');
     }
 
     if (!this.formatter) {
-      throw new Error('formatter must be provided');
+      throw new ConfigKeyError('formatter must be provided');
     }
   }
 
