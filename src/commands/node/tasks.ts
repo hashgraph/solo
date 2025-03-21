@@ -1774,7 +1774,6 @@ export class NodeCommandTasks {
             config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
           }
 
-
           // Set static IPs for HAProxy
           if (config.haproxyIpsParsed) {
             const ip: string = config.haproxyIpsParsed?.[config.nodeAlias];
