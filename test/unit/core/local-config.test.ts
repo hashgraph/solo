@@ -3,22 +3,18 @@
 import fs from 'fs';
 import {stringify} from 'yaml';
 import {expect} from 'chai';
-import {LocalConfig} from '../../../src/core/config/local-config.js';
-import {type ConfigManager} from '../../../src/core/config-manager.js';
+import {LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
-import {getTestCacheDir, getTestLogger, testLocalConfigData} from '../../test-util.js';
-import {type EmailAddress} from '../../../src/core/config/remote/types.js';
+import {getTestCacheDir, testLocalConfigData} from '../../test-util.js';
 import {ErrorMessages} from '../../../src/core/error-messages.js';
 
 describe('LocalConfig', () => {
   let localConfig: LocalConfig;
-  const configManager = {} as unknown as ConfigManager;
-
   const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`;
   const config = testLocalConfigData;
 
-  const expectFailedValidation = expectedMessage => {
+  const expectFailedValidation = (expectedMessage: string) => {
     try {
       new LocalConfig(filePath);
       expect.fail('Expected an error to be thrown');
@@ -41,125 +37,6 @@ describe('LocalConfig', () => {
     expect(localConfig.userEmailAddress).to.eq(config.userEmailAddress);
     expect(localConfig.deployments).to.deep.eq(config.deployments);
     expect(localConfig.clusterRefs).to.deep.eq(config.clusterRefs);
-  });
-
-  it('should set user email address', async () => {
-    const newEmailAddress = 'jane.doe@example.com';
-    localConfig.setUserEmailAddress(newEmailAddress);
-    expect(localConfig.userEmailAddress).to.eq(newEmailAddress);
-
-    await localConfig.write();
-
-    // reinitialize with updated config file
-    const newConfig = new LocalConfig(filePath);
-    expect(newConfig.userEmailAddress).to.eq(newEmailAddress);
-  });
-
-  it('should not set an invalid email as user email address', async () => {
-    try {
-      localConfig.setUserEmailAddress('invalidEmail' as EmailAddress);
-      expect.fail('expected an error to be thrown');
-    } catch (error) {
-      expect(error).to.be.instanceOf(SoloError);
-    }
-  });
-
-  it('should set deployments', async () => {
-    const namespace = 'namespace';
-    const newDeployments = {
-      deployment: {
-        clusters: ['cluster-1', 'context-1'],
-        namespace,
-      },
-      'deployment-2': {
-        clusters: ['cluster-3', 'context-3'],
-        namespace,
-      },
-    };
-
-    localConfig.setDeployments(newDeployments);
-    expect(localConfig.deployments).to.deep.eq(newDeployments);
-
-    await localConfig.write();
-    const newConfig = new LocalConfig(filePath);
-    expect(newConfig.deployments).to.deep.eq(newDeployments);
-  });
-
-  it('should not set invalid deployments', async () => {
-    const validDeployment = {clusters: ['cluster-3', 'cluster-4']};
-    const invalidDeployments = [
-      {foo: ['bar']},
-      {clusters: [5, 6, 7]},
-      {clusters: 'bar'},
-      {clusters: 5},
-      {clusters: {foo: 'bar '}},
-    ];
-
-    for (const invalidDeployment of invalidDeployments) {
-      const deployments = {
-        'my-deployment': validDeployment,
-        'invalid-deployment': invalidDeployment,
-      };
-
-      try {
-        localConfig.setDeployments(deployments as any);
-        expect.fail('expected an error to be thrown');
-      } catch (error) {
-        expect(error).to.be.instanceOf(SoloError);
-      }
-    }
-  });
-
-  it('should set clusterRefs', async () => {
-    const newClusterMappings = {
-      'cluster-3': 'context-3',
-      'cluster-4': 'context-4',
-    };
-    localConfig.setClusterRefs(newClusterMappings);
-    expect(localConfig.clusterRefs).to.eq(newClusterMappings);
-
-    await localConfig.write();
-    const newConfig = new LocalConfig(filePath, getTestLogger());
-    expect(newConfig.clusterRefs).to.deep.eq(newClusterMappings);
-  });
-
-  it('should not set invalid clusterRefs', async () => {
-    const invalidclusterRefss = {
-      'cluster-3': 'context-3',
-      'invalid-cluster': 5,
-    };
-
-    try {
-      // @ts-ignore
-      localConfig.setContextMappings(invalidclusterRefss);
-      expect.fail('expected an error to be thrown');
-    } catch (error) {
-      expect(error).to.be.instanceOf(TypeError);
-    }
-  });
-
-  it('should set soloVersion', async () => {
-    const validSoloVersion = '0.0.1';
-    localConfig.setSoloVersion(validSoloVersion);
-    expect(localConfig.soloVersion).to.eq(validSoloVersion);
-  });
-
-  it('invalidSoloVersion not set invalid soloVersion', async () => {
-    let invalidSoloVersion = null;
-    try {
-      localConfig.setSoloVersion(invalidSoloVersion);
-      expect.fail('expected an error to be thrown');
-    } catch (error) {
-      expect(error).to.be.instanceOf(SoloError);
-    }
-
-    invalidSoloVersion = '';
-    try {
-      localConfig.setSoloVersion(invalidSoloVersion);
-      expect.fail('expected an error to be thrown');
-    } catch (error) {
-      expect(error).to.be.instanceOf(SoloError);
-    }
   });
 
   it('should throw an error if file path is not set', async () => {

@@ -16,7 +16,7 @@ import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-c
 import {expect} from 'chai';
 import fs from 'fs';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {type LocalConfig} from '../../../src/core/config/local-config.js';
+import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/core/kube/k8.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';

@@ -7,7 +7,7 @@ import {
   type EmailAddress,
   type NamespaceNameAsString,
   type Version,
-} from './remote/types.js';
+} from '../remote/types.js';
 
 export interface DeploymentStructure {
   // A list of clusters on which the deployment is deployed

@@ -21,7 +21,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type ConfigManager} from '../../core/config-manager.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {type Helm} from '../../core/helm.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';

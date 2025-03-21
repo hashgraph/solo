@@ -12,7 +12,7 @@ import {UserBreak} from '../../core/errors/user-break.js';
 import {type K8Factory} from '../../core/kube/k8-factory.js';
 import {type SoloListrTask} from '../../types/index.js';
 import {type ClusterRef} from '../../core/config/remote/types.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
@@ -58,16 +58,9 @@ export class ClusterCommandTasks {
       task: async (ctx, task) => {
         task.title += ctx.config.clusterRef;
 
-        this.localConfig.clusterRefs[ctx.config.clusterRef] = ctx.config.context;
-      },
-    };
-  }
-
-  public saveLocalConfig(): SoloListrTask<ClusterRefConnectContext> {
-    return {
-      title: 'Save local configuration',
-      task: async () => {
-        await this.localConfig.write();
+        await this.localConfig.modify(async localConfigData => {
+          localConfigData.addClusterRef(ctx.config.clusterRef, ctx.config.context);
+        });
       },
     };
   }
@@ -77,7 +70,10 @@ export class ClusterCommandTasks {
       title: 'Remove cluster reference ',
       task: async (ctx, task) => {
         task.title += ctx.config.clusterRef;
-        delete this.localConfig.clusterRefs[ctx.config.clusterRef];
+
+        await this.localConfig.modify(async localConfigData => {
+          localConfigData.removeClusterRef(ctx.config.clusterRef);
+        });
       },
     };
   }

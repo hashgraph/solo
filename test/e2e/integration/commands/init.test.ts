@@ -10,7 +10,7 @@ import {type ChartManager} from '../../../../src/core/chart-manager.js';
 import {type ConfigManager} from '../../../../src/core/config-manager.js';
 import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
 import {K8Client} from '../../../../src/core/kube/k8-client/k8-client.js';
-import {LocalConfig} from '../../../../src/core/config/local-config.js';
+import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {type KeyManager} from '../../../../src/core/key-manager.js';
 import {type LockManager} from '../../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../../src/core/config/remote/remote-config-manager.js';

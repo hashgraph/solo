@@ -12,7 +12,7 @@ import {type K8Factory} from '../../kube/k8-factory.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName, type Version} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config-manager.js';
-import {type LocalConfig} from '../local-config.js';
+import {type LocalConfig} from '../local/local-config.js';
 import {type Optional} from '../../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency-injection/container-helper.js';

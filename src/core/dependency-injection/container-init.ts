@@ -16,7 +16,7 @@ import {ProfileManager} from '../profile-manager.js';
 import {IntervalLockRenewalService} from '../lock/interval-lock-renewal.js';
 import {LockManager} from '../lock/lock-manager.js';
 import {CertificateManager} from '../certificate-manager.js';
-import {LocalConfig} from '../config/local-config.js';
+import {LocalConfig} from '../config/local/local-config.js';
 import {RemoteConfigManager} from '../config/remote/remote-config-manager.js';
 import os from 'os';
 import * as version from '../../../version.js';
