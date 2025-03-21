@@ -74,10 +74,9 @@ import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-
 import {PodRef} from '../../core/kube/resources/pod/pod-ref.js';
 import {ContainerRef} from '../../core/kube/resources/container/container-ref.js';
 import {NetworkNodes} from '../../core/network-nodes.js';
-import {container} from 'tsyringe-neo';
+import {container, inject, injectable} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
-import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {ConsensusNode} from '../../core/model/consensus-node.js';
 import {type K8} from '../../core/kube/k8.js';
@@ -1558,7 +1557,8 @@ export class NodeCommandTasks {
       ctx.config.allNodeAliases = ctx.config.existingNodeAliases.filter(
         (nodeAlias: NodeAlias) => nodeAlias !== ctx.config.nodeAlias,
       );
-      ctx.config.consensusNodes = ctx.config.consensusNodes.filter(
+
+      ctx.config.refreshedConsensusNodes = ctx.config.consensusNodes.filter(
         (consensusNode: ConsensusNode) => consensusNode.name !== ctx.config.nodeAlias,
       );
     });
@@ -1657,11 +1657,11 @@ export class NodeCommandTasks {
     });
   }
 
-  copyNodeKeysToSecrets() {
+  copyNodeKeysToSecrets(nodeListOverride?: string) {
     return new Task('Copy node keys to secrets', (ctx: any, task: SoloListrTaskWrapper<any>) => {
       const subTasks = this.platformInstaller.copyNodeKeys(
         ctx.config.stagingDir,
-        ctx.config.consensusNodes,
+        nodeListOverride ? ctx.config[nodeListOverride] : ctx.config.consensusNodes,
         ctx.config.contexts,
       );
 
@@ -1719,6 +1719,10 @@ export class NodeCommandTasks {
         }
 
         for (const consensusNode of consensusNodes) {
+          if (transactionType !== NodeSubcommandType.UPDATE && transactionType !== NodeSubcommandType.DELETE) {
+            break;
+          }
+
           const clusterRef = consensusNode.cluster;
           const index = clusterNodeIndexMap[clusterRef][consensusNode.nodeId];
 
@@ -1741,16 +1745,14 @@ export class NodeCommandTasks {
               ` --set "hedera.nodes[${index}].accountId=${config.serviceMap.get(consensusNode.name).accountId}"` +
               ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
               ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}"`;
-          }
-
-          // Delete if nodeIds match
-          else if (transactionType === NodeSubcommandType.DELETE && consensusNode.nodeId === nodeId) {
+          } else if (transactionType === NodeSubcommandType.DELETE && consensusNode.nodeId === nodeId) {
             valuesArgMap[clusterRef] +=
               ` --set "hedera.nodes[${index}].accountId=${IGNORED_NODE_ACCOUNT_ID}"` +
               ` --set "hedera.nodes[${index}].name=${consensusNode.name}"` +
               ` --set "hedera.nodes[${index}].nodeId=${consensusNode.nodeId}" `;
           }
         }
+
         // now remove the deleted node from the serviceMap
         if (transactionType === NodeSubcommandType.DELETE) {
           config.serviceMap.delete(config.nodeAlias);
@@ -1760,6 +1762,16 @@ export class NodeCommandTasks {
         if (transactionType === NodeSubcommandType.ADD && ctx.newNode && ctx.newNode.accountId) {
           const clusterRef = ctx.config.clusterRef;
           const index = clusterNodeIndexMap[clusterRef][nodeId];
+
+          consensusNodes.forEach(node => {
+            if (node.name === config.nodeAlias) return;
+            const index = clusterNodeIndexMap[clusterRef][node.nodeId];
+
+            valuesArgMap[clusterRef] +=
+              ` --set "hedera.nodes[${index}].accountId=${config.serviceMap.get(node.name).accountId}"` +
+              ` --set "hedera.nodes[${index}].name=${node.name}"` +
+              ` --set "hedera.nodes[${index}].nodeId=${node.nodeId}"`;
+          });
 
           valuesArgMap[clusterRef] +=
             ` --set "hedera.nodes[${index}].accountId=${ctx.newNode.accountId}"` +
