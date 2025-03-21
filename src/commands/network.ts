@@ -1168,10 +1168,9 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Remove deployment from local configuration',
           task: async (ctx, task) => {
-            const deployments = self.localConfig.deployments;
-            delete deployments[ctx.config.deployment];
-            self.localConfig.setDeployments(deployments);
-            await self.localConfig.write();
+            await this.localConfig.modify(async localConfigData => {
+              localConfigData.removeDeployment(ctx.config.deployment);
+            });
           },
         },
         {

@@ -16,13 +16,16 @@ import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
-import {LocalConfig} from '../../../src/core/config/local-config.js';
+import {LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
 import {K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
 import {DependencyManager} from '../../../src/core/dependency-managers/index.js';
 import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-config-data-wrapper.js';
+import {type EmailAddress} from '../../../src/core/config/remote/types.js';
+import * as helpers from '../../../src/core/helpers.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const getBaseCommandOpts = (context: string) => {
@@ -83,7 +86,12 @@ describe('ClusterCommand unit tests', () => {
       opts.remoteConfigManager = sandbox.stub();
 
       opts.remoteConfigManager.currentCluster = 'solo-e2e';
-      opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
+      opts.localConfig.localConfigData = new LocalConfigDataWrapper(
+        'test@test.com' as EmailAddress,
+        helpers.getSoloVersion(),
+        {},
+        {'solo-e2e': 'context-1'},
+      );
     });
 
     it('Install function is called with expected parameters', async () => {

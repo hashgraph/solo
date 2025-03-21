@@ -83,7 +83,7 @@ import {type K8} from '../../core/kube/k8.js';
 import {Base64} from 'js-base64';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {BaseCommand} from '../base.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
