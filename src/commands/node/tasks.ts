@@ -1818,6 +1818,8 @@ export class NodeCommandTasks {
 
         valuesArgMap[clusterRef] = addDebugOptions(valuesArgMap[clusterRef], config.debugNodeAlias);
 
+        console.dir({clusterNodeIndexMap, valuesArgMap, consensusNodes}, {depth: null});
+
         // Update charts
         await Promise.all(
           Object.keys(clusterRefs).map(async clusterRef => {
