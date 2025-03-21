@@ -34,7 +34,7 @@ on:
         type: string
         required: false
         default: "E2E Test"
-      npm-test-script:
+      test-script:
         description: "NPM Test Run Script:"
         type: string
         required: false
@@ -70,7 +70,7 @@ permissions:
 env:
   #CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
   CG_EXEC: "ionice -c 2 -n 2 nice -n 19"
-  SOLO_CLUSTER_DUALITY: ${{ inputs.npm-test-script == 'test-e2e-dual-cluster-full' && 2 || 1 }}
+  SOLO_CLUSTER_DUALITY: ${{ inputs.test-script == 'test-e2e-dual-cluster-full' && 2 || 1 }}
 
 jobs:
   e2e-test:
@@ -170,14 +170,14 @@ jobs:
         run: docker image pull kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
 
       - name: Setup Java
-        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && (inputs.test-script == 'test-e2e-node-local-hedera' || inputs.test-script == 'test-e2e-node-local-ptt' || inputs.test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12 # v4.7.0
         with:
           distribution: temurin
           java-version: 21.0.1
 
       - name: Setup Gradle
-        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && (inputs.test-script == 'test-e2e-node-local-hedera' || inputs.test-script == 'test-e2e-node-local-ptt' || inputs.test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         uses: gradle/gradle-build-action@ac2d340dc04d9e1113182899e983b5400c17cda1 # v3.5.0
         with:
           cache-read-only: false
@@ -190,7 +190,7 @@ jobs:
           ${WRITE_DIAG_SCRIPT}
 
       - name: Build Hedera code locally
-        if: ${{ runner.os == 'linux' && (inputs.npm-test-script == 'test-e2e-node-local-hedera' || inputs.npm-test-script == 'test-e2e-node-local-ptt' || inputs.npm-test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
+        if: ${{ runner.os == 'linux' && (inputs.test-script == 'test-e2e-node-local-hedera' || inputs.test-script == 'test-e2e-node-local-ptt' || inputs.test-script == 'test-e2e-node-add-local') && !cancelled() && !failure() }}
         run: |
           export CONSENSUS_NODE_VERSION=$(grep 'TEST_LOCAL_HEDERA_PLATFORM_VERSION' version-test.ts | sed -E "s/.*'([^']+)';/\1/")
           cd ..
@@ -210,13 +210,13 @@ jobs:
         run: |
           echo SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 > .env
           cat .env
-          ${{ env.CG_EXEC }} task ${{ inputs.npm-test-script }}
+          ${{ env.CG_EXEC }} task ${{ inputs.test-script }}
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: solo-${{ inputs.npm-test-script }}.log
+          name: solo-${{ inputs.test-script }}.log
           path: ~/.solo/logs/*
           overwrite: true
           if-no-files-found: error
@@ -225,7 +225,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ steps.npm-deps.conclusion == 'success' && !cancelled() }}
         with:
-          name: e2e_test_report_${{ inputs.npm-test-script }}
+          name: e2e_test_report_${{ inputs.test-script }}
           path: "junit-${{ inputs.coverage-subdirectory }}.xml"
           overwrite: true
           if-no-files-found: error
