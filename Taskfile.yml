@@ -77,8 +77,7 @@ tasks:
       - "{{ .test_prefix }}=\"Data Layer Unit Tests\"
         {{ .reporter_prefix }}='coverage/unit-data'
         {{ .mocha_bin }} 'test/unit/data/**'
-        {{ .reporter_options_prefix }}.xml",
-
+        {{ .reporter_options_prefix }}.xml"
 
   test-e2e-all:
     cmds:
