@@ -54,21 +54,29 @@ export const HEDERA_NODE_SIDECARS = [
 
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE = NamespaceName.of('solo-setup');
+
 export const SOLO_TESTING_CHART_URL = 'oci://ghcr.io/hashgraph/solo-charts';
 export const SOLO_CLUSTER_SETUP_CHART = 'solo-cluster-setup';
 export const SOLO_DEPLOYMENT_CHART = 'solo-deployment';
 export const SOLO_CERT_MANAGER_CHART = 'solo-cert-manager';
-export const JSON_RPC_RELAY_CHART_URL = 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';
+
+export const JSON_RPC_RELAY_CHART_URL =
+  process.env.JSON_RPC_RELAY_CHART_URL ?? 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay';
-export const MIRROR_NODE_CHART_URL = 'https://hashgraph.github.io/hedera-mirror-node/charts';
+
+export const MIRROR_NODE_CHART_URL =
+  process.env.MIRROR_NODE_CHART_URL ?? 'https://hashgraph.github.io/hedera-mirror-node/charts';
 export const MIRROR_NODE_CHART = 'hedera-mirror';
 export const MIRROR_NODE_RELEASE_NAME = 'mirror';
-export const HEDERA_EXPLORER_CHART_URL = 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer-chart';
+
+export const HEDERA_EXPLORER_CHART_URL =
+  process.env.HEDERA_EXPLORER_CHART_URL ?? 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer-chart';
 export const HEDERA_EXPLORER_RELEASE_NAME = 'hedera-explorer';
 export const SOLO_RELAY_LABEL = 'app=hedera-json-rpc-relay';
 export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/component=hedera-explorer';
 
-export const INGRESS_CONTROLLER_CHART_URL = 'https://haproxy-ingress.github.io/charts';
+export const INGRESS_CONTROLLER_CHART_URL =
+  process.env.INGRESS_CONTROLLER_CHART_URL ?? 'https://haproxy-ingress.github.io/charts';
 export const INGRESS_CONTROLLER_RELEASE_NAME = 'haproxy-ingress';
 export const INGRESS_CONTROLLER_NAME = 'haproxy-ingress.github.io/controller';
 
