@@ -4,6 +4,7 @@ import {type Schema} from './schema.js';
 import {type SchemaMigration} from './schema-migration.js';
 import {Version} from '../../../../business/utils/version.js';
 import {type ClassConstructor} from '../../../../business/utils/class-constructor.type.js';
+// @ts-ignore
 import deepClone from 'deep-clone';
 import {type ObjectMapper} from '../../../mapper/api/object-mapper.js';
 import {SchemaValidationError} from './schema-validation-error.js';
