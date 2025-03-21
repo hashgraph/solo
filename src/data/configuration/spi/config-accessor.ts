@@ -37,7 +37,7 @@ export interface ConfigAccessor {
    * @param cls - The class of the objects to which the values should be converted.
    * @param key - The key to use to retrieve the values from the configuration source.
    */
-  asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[];
+  asObjectArray<T extends Array<T>>(cls: ClassConstructor<T>, key: string): T[];
 
   /**
    * Retrieves the value of the specified key from the configuration source and converts it to a boolean.

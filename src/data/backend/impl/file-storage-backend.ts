@@ -66,20 +66,20 @@ export class FileStorageBackend implements StorageBackend {
     }
   }
 
-  public async readBytes(key: string): Promise<Uint8Array> {
+  public async readBytes(key: string): Promise<Buffer> {
     if (!key || key.trim().length === 0) {
       throw new IllegalArgumentError('key must not be null, undefined or empty');
     }
 
     const filePath: string = PathEx.join(this.basePath, key);
     try {
-      return new Uint8Array(readFileSync(filePath));
+      return readFileSync(filePath);
     } catch (e) {
       throw new StorageBackendError(`error reading file: ${filePath}`, e);
     }
   }
 
-  public async writeBytes(key: string, data: Uint8Array): Promise<void> {
+  public async writeBytes(key: string, data: Buffer): Promise<void> {
     if (!key || key.trim().length === 0) {
       throw new IllegalArgumentError('key must not be null, undefined or empty');
     }

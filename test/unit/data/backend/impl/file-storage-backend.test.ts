@@ -59,8 +59,8 @@ describe('File Storage Backend', () => {
     const temporaryFile: string = PathEx.join(tempDir, key);
     fs.writeFileSync(temporaryFile, 'test');
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    const data: Uint8Array = await backend.readBytes(key);
-    expect(Buffer.from(data.buffer).toString()).to.equal('test');
+    const data: Buffer = await backend.readBytes(key);
+    expect(data.toString('utf-8')).to.equal('test');
   });
 
   it('test readBytes with empty key', async () => {
@@ -77,13 +77,13 @@ describe('File Storage Backend', () => {
     const key: string = `${testName}-file3.txt`;
     const temporaryFile: string = PathEx.join(tempDir, key);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    await backend.writeBytes(key, new Uint8Array(Buffer.from('test')));
+    await backend.writeBytes(key, Buffer.from('test', 'utf-8'));
     expect(fs.readFileSync(temporaryFile, 'utf-8')).to.equal('test');
   });
 
   it('test writeBytes with empty key', async () => {
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    await expect(backend.writeBytes('', new Uint8Array(Buffer.from('test')))).to.be.rejectedWith(
+    await expect(backend.writeBytes('', Buffer.from('test', 'utf-8'))).to.be.rejectedWith(
       'key must not be null, undefined or empty',
     );
   });
@@ -98,7 +98,7 @@ describe('File Storage Backend', () => {
     const temporaryFile: string = PathEx.join(tempDir, key);
     fs.mkdirSync(temporaryFile);
     const backend: FileStorageBackend = new FileStorageBackend(tempDir);
-    await expect(backend.writeBytes(key, new Uint8Array(Buffer.from('test')))).to.be.rejectedWith('error writing file');
+    await expect(backend.writeBytes(key, Buffer.from('test', 'utf-8'))).to.be.rejectedWith('error writing file');
   });
 
   it('test delete', async () => {
