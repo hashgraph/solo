@@ -62,7 +62,6 @@ import {
 } from '../../types/aliases.js';
 import {PodName} from '../../integration/kube/resources/pod/pod-name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
-import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lock} from '../../core/lock/lock.js';
 import {ListrLock} from '../../core/lock/listr-lock.js';
 import {Duration} from '../../core/time/duration.js';
@@ -94,10 +93,13 @@ import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell-runner.js';
 import {type Listr} from 'listr2';
 import {PathEx} from '../../business/utils/path-ex.js';
+import {type NodeDeleteConfigClass} from './config-interfaces/node-delete-config-class.js';
+import {type NodeRefreshConfigClass} from './config-interfaces/node-refresh-config-class.js';
+import {type NodeUpdateConfigClass} from './config-interfaces/node-update-config-class.js';
 
 @injectable()
 export class NodeCommandTasks {
-  constructor(
+  public constructor(
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
@@ -128,7 +130,7 @@ export class NodeCommandTasks {
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
   }
 
-  private async _prepareUpgradeZip(stagingDir: string) {
+  private async _prepareUpgradeZip(stagingDir: string): Promise<string> {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.

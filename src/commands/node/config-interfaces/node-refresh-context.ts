@@ -3,5 +3,5 @@
 import {type NodeRefreshConfigClass} from './node-refresh-config-class.js';
 
 export interface NodeRefreshContext {
-  config: NodeRefreshConfigClass
+  config: NodeRefreshConfigClass;
 }

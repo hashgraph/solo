@@ -47,10 +47,10 @@ export class NodeCommandHandlers extends CommandHandler {
     this.tasks = patchInject(tasks, InjectTokens.NodeCommandTasks, this.constructor.name);
   }
 
-  static readonly ADD_CONTEXT_FILE = 'node-add.json';
-  static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
-  static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
-  static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
+  private static readonly ADD_CONTEXT_FILE = 'node-add.json';
+  private static readonly DELETE_CONTEXT_FILE = 'node-delete.json';
+  private static readonly UPDATE_CONTEXT_FILE = 'node-update.json';
+  private static readonly UPGRADE_CONTEXT_FILE = 'node-upgrade.json';
 
   private init() {
     this.consensusNodes = this.remoteConfigManager.getConsensusNodes();

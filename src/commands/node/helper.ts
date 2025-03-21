@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NodeDeleteConfigClass, type NodeUpdateConfigClass, type NodeUpgradeConfigClass} from './configs.js';
 import {type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {PrivateKey} from '@hashgraph/sdk';
+import {type NodeDeleteConfigClass} from './config-interfaces/node-delete-config-class.js';
+import {type NodeUpdateConfigClass} from './config-interfaces/node-update-config-class.js';
+import {type NodeUpgradeConfigClass} from './config-interfaces/node-upgrade-config-class.js';
 
 export class NodeHelper {
   /**
@@ -11,7 +13,7 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  static deleteSaveContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}) {
+  public static deleteSaveContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}) {
     const exportedCtx = {} as {
       adminKey: string;
       existingNodeAliases: NodeAliases;
@@ -34,7 +36,7 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  static deleteLoadContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}, ctxData: any) {
+  public static deleteLoadContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: any}, ctxData: any) {
     const config = ctx.config;
     config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
     config.existingNodeAliases = ctxData.existingNodeAliases;
@@ -49,7 +51,7 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  static updateSaveContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}) {
+  public static updateSaveContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}) {
     const exportedCtx: any = {};
 
     const config = /** @type {NodeUpdateConfigClass} **/ ctx.config;
@@ -76,7 +78,7 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  static upgradeSaveContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}) {
+  public static upgradeSaveContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}) {
     const exportedCtx: any = {};
 
     const config = /** @type {NodeUpgradeConfigClass} **/ ctx.config;
@@ -96,7 +98,7 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  static upgradeLoadContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}, ctxData: any) {
+  public static upgradeLoadContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: any}, ctxData: any) {
     const config = ctx.config;
 
     config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
@@ -114,7 +116,7 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  static updateLoadContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}, ctxData: any) {
+  public static updateLoadContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: any}, ctxData: any) {
     const config = ctx.config;
 
     if (ctxData.newAdminKey && ctxData.newAdminKey.length) {
