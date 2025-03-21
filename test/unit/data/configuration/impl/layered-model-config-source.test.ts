@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
-import {LayeredModelConfigSource} from '../../../../../../src/data/configuration/impl/layered-model-config-source.js';
+import {LayeredModelConfigSource} from '../../../../../src/data/configuration/impl/layered-model-config-source.js';
 
 describe('LayeredModelConfigSource', () => {
   it('constructor with null ObjectMapper throws error', () => {
