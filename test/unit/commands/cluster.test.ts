@@ -12,7 +12,6 @@ import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config-manager.js';
 import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart-manager.js';
-import {ROOT_DIR} from '../../../src/core/constants.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
 import {LocalConfig} from '../../../src/core/config/local-config.js';
@@ -23,7 +22,6 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {DefaultHelmClient} from '../../../src/core/helm/impl/DefaultHelmClient.js';
-import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -92,10 +90,8 @@ describe('ClusterCommand unit tests', () => {
 
       expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
-      expect(opts.chartManager.install.args[0][2]).to.equal(
-        constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_CLUSTER_SETUP_CHART,
-      );
-      expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+      expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+      expect(opts.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
     });
 
     it('Should use local chart directory', async () => {
@@ -105,9 +101,7 @@ describe('ClusterCommand unit tests', () => {
       const clusterCommand = new ClusterCommand(opts);
       await clusterCommand.handlers.setup(argv.build());
 
-      expect(opts.chartManager.install.args[0][2]).to.equal(
-        PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
-      );
+      expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
     });
   });
 });
