@@ -23,6 +23,7 @@ import {
   AccountBalanceQuery,
   AccountId,
   AccountUpdateTransaction,
+  type Client,
   FileAppendTransaction,
   FileUpdateTransaction,
   FreezeTransaction,
@@ -161,7 +162,7 @@ export class NodeCommandTasks {
     return await zipper.zip(PathEx.join(stagingDir, 'mock-upgrade'), PathEx.join(stagingDir, 'mock-upgrade.zip'));
   }
 
-  private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
+  private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: Client): Promise<string> {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile);
     const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex');
@@ -203,8 +204,8 @@ export class NodeCommandTasks {
     podRef: PodRef,
     configManager: ConfigManager,
     localDataLibBuildPath: string,
-  ) {
-    const filterFunction = (path: string | string[], stat: any) => {
+  ): Promise<void> {
+    const filterFunction = (path: string | string[]) => {
       return !(path.includes('data/keys') || path.includes('data/config'));
     };
 
@@ -225,7 +226,7 @@ export class NodeCommandTasks {
     }
   }
 
-  _uploadPlatformSoftware(
+  private _uploadPlatformSoftware(
     nodeAliases: NodeAliases,
     podRefs: Record<NodeAlias, PodRef>,
     task: SoloListrTaskWrapper<any>,
@@ -320,7 +321,7 @@ export class NodeCommandTasks {
     });
   }
 
-  _fetchPlatformSoftware(
+  private _fetchPlatformSoftware(
     nodeAliases: NodeAliases,
     podRefs: Record<NodeAlias, PodRef>,
     releaseTag: string,
@@ -347,7 +348,7 @@ export class NodeCommandTasks {
     });
   }
 
-  _checkNodeActivenessTask(
+  private _checkNodeActivenessTask(
     ctx: any,
     task: SoloListrTaskWrapper<any>,
     nodeAliases: NodeAliases,
@@ -378,7 +379,6 @@ export class NodeCommandTasks {
           nodeAlias,
           task,
           title,
-          i,
           status,
           undefined,
           undefined,
@@ -398,12 +398,11 @@ export class NodeCommandTasks {
     });
   }
 
-  async _checkNetworkNodeActiveness(
+  private async _checkNetworkNodeActiveness(
     namespace: NamespaceName,
     nodeAlias: NodeAlias,
     task: SoloListrTaskWrapper<AnyListrContext>,
     title: string,
-    index: number,
     status = NodeStatusCodes.ACTIVE,
     maxAttempts = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS,
     delay = constants.NETWORK_NODE_ACTIVE_DELAY,
@@ -490,7 +489,7 @@ export class NodeCommandTasks {
   }
 
   /** Return task for check if node proxies are ready */
-  _checkNodesProxiesTask(ctx: any, task: SoloListrTaskWrapper<any>, nodeAliases: NodeAliases) {
+  private _checkNodesProxiesTask(ctx: any, task: SoloListrTaskWrapper<any>, nodeAliases: NodeAliases) {
     const subTasks = [];
     for (const nodeAlias of nodeAliases) {
       subTasks.push({
@@ -523,12 +522,12 @@ export class NodeCommandTasks {
    * When generating multiple all aliases are read from config.nodeAliases,
    * When generating a single key the alias in config.nodeAlias is used
    */
-  _generateGossipKeys(generateMultiple: boolean) {
+  private _generateGossipKeys(generateMultiple: boolean) {
     const self = this;
 
-    return new Task(
-      'Generate gossip keys',
-      (ctx: any, task: SoloListrTaskWrapper<any>) => {
+    return {
+      title: 'Generate gossip keys',
+      task: (ctx, task) => {
         const config = ctx.config;
         const nodeAliases = generateMultiple ? config.nodeAliases : [config.nodeAlias];
         const subTasks = self.keyManager.taskGenerateGossipKeys(nodeAliases, config.keysDir, config.curDate);
@@ -541,8 +540,8 @@ export class NodeCommandTasks {
           },
         });
       },
-      (ctx: any) => !ctx.config.generateGossipKeys,
-    );
+      skip: ctx => !ctx.config.generateGossipKeys,
+    };
   }
 
   /**

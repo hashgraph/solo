@@ -158,12 +158,12 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           expect(2);
           try {
             await expect(
+              // @ts-expect-error - TS2341: to access private property
               nodeTasks._checkNetworkNodeActiveness(
                 namespace,
                 nodeAlias,
                 {title: ''} as SoloListrTaskWrapper<any>,
                 '',
-                44,
                 undefined,
                 15,
               ),
