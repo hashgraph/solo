@@ -4,11 +4,21 @@ import {type ObjectMapper} from '../api/object-mapper.js';
 import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
 import {instanceToPlain, plainToInstance} from 'class-transformer';
 import {ObjectMappingError} from '../api/object-mapping-error.js';
-import {injectable} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
+import {type KeyFormatter} from '../../key/key-formatter.js';
+import {FlatKeyMapper} from './flat-key-mapper.js';
+import {patchInject} from '../../../core/dependency-injection/container-helper.js';
+import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 
 @injectable()
 export class CTObjectMapper implements ObjectMapper {
-  public constructor() {}
+  private readonly flatMapper: FlatKeyMapper;
+
+  public constructor(@inject(InjectTokens.KeyFormatter) formatter: KeyFormatter) {
+    this.flatMapper = new FlatKeyMapper(patchInject(formatter, InjectTokens.KeyFormatter, CTObjectMapper.name));
+    // this.flatMapper = new FlatKeyMapper(formatter);
+  }
 
   public fromArray<T extends R, R>(cls: ClassConstructor<T>, arr: object[]): R[] {
     const result: R[] = [];
@@ -41,5 +51,26 @@ export class CTObjectMapper implements ObjectMapper {
     } catch (e) {
       throw new ObjectMappingError(`Error converting class instance to object [ cls = '${data.constructor.name}' ]`, e);
     }
+  }
+
+  public toFlatKeyMap(data: object): Map<string, string> {
+    return this.flatMapper.flatten(data);
+  }
+
+  public fromFlatKeyMap<T>(cls: ClassConstructor<T>, map: Map<string, string>): T {
+    if (!cls) {
+      throw new IllegalArgumentError('class constructor is required');
+    }
+
+    if (!map) {
+      throw new IllegalArgumentError('map is required');
+    }
+
+    // try {
+    // } catch (e) {
+    //   throw new ObjectMappingError('Failed to convert value to object', e);
+    // }
+
+    return undefined;
   }
 }
