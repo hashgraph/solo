@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
 
-import {NamespaceNameInvalidError} from '../../../../src/core/kube/errors/namespace-name-invalid-error.js';
+import {NamespaceNameInvalidError} from '../../../../src/integration/kube/errors/namespace-name-invalid-error.js';
 
 describe('Namespace Name', () => {
   it('should throw an error if namespace is not valid', () => {

@@ -10,7 +10,7 @@ import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';

@@ -20,12 +20,12 @@ import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components
 
 import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../../src/core/kube/resources/pod/pod-ref.js';
-import {PodName} from '../../../../src/core/kube/resources/pod/pod-name.js';
-import {ContainerName} from '../../../../src/core/kube/resources/container/container-name.js';
+import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../../src/integration/kube/resources/pod/pod-ref.js';
+import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
+import {ContainerName} from '../../../../src/integration/kube/resources/container/container-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
-import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
+import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
 import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {getTestCacheDir} from '../../../test-util.js';
 import {Duration} from '../../../../src/core/time/duration.js';

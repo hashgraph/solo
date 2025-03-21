@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from '../../../core/kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterRef} from '../../../core/config/remote/types.js';
 
 export interface ClusterRefSetupConfigClass {

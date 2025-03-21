@@ -2,14 +2,14 @@
 
 import {Flags as flags} from '../../commands/flags.js';
 import {type ConfigManager} from '../config-manager.js';
-import {type K8Factory} from '../kube/k8-factory.js';
+import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type SoloLogger} from '../logging.js';
 import {type Lock, type LockRenewalService} from './lock.js';
 import {IntervalLock} from './interval-lock.js';
 import {LockHolder} from './lock-holder.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
-import {type NamespaceName} from '../kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 import {LockAcquisitionError} from './lock-acquisition-error.js';
 
