@@ -1750,7 +1750,7 @@ export class NodeCommandTasks {
             config.clusterRef,
             nodeId,
             config.nodeAlias,
-            config.newNode,
+            ctx.newNode,
             config,
           );
         }
