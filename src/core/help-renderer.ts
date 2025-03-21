@@ -36,9 +36,19 @@ export class HelpRenderer {
     let lines = splitOutput[1].split('\n');
     lines = lines.map(line => line.replace(/^\s+/, ''));
 
+    //Formatting for flag options
     const table = [];
     for (const line of lines) {
       let columns = line.split(/(--[1-9a-zA-Z|-]+)/);
+
+      // if the description contains --flag there will be more that the expected amount of columns
+      // joins all columns after columns[2]
+      if (columns.length > 3) {
+        const firstPart = columns.slice(0, 2);
+        const secondPart = columns.slice(2).join(' ');
+        columns = [...firstPart, secondPart];
+      }
+
       const desciptors = columns[2].split(/(\[.+])/);
       columns[2] = desciptors[0];
       columns[3] = desciptors[1] || '';
