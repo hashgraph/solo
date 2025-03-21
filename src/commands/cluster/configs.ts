@@ -103,7 +103,7 @@ export class ClusterCommandConfigs {
     ]);
 
     ctx.config = {
-      chartDir: configManager.getFlag(flags.chartDirectory),
+      chartDirectory: configManager.getFlag(flags.chartDirectory),
       clusterSetupNamespace: configManager.getFlag<NamespaceName>(flags.clusterSetupNamespace),
       deployMinio: configManager.getFlag<boolean>(flags.deployMinio),
       deployPrometheusStack: configManager.getFlag<boolean>(flags.deployPrometheusStack),

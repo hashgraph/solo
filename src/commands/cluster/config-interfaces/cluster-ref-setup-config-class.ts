@@ -4,7 +4,7 @@ import {type NamespaceName} from '../../../core/kube/resources/namespace/namespa
 import {type ClusterRef} from '../../../core/config/remote/types.js';
 
 export interface ClusterRefSetupConfigClass {
-  chartDir: string;
+  chartDirectory: string;
   clusterSetupNamespace: NamespaceName;
   deployMinio: boolean;
   deployPrometheusStack: boolean;

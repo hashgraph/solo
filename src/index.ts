@@ -14,7 +14,6 @@ import * as commands from './commands/index.js';
 import {type DependencyManager} from './core/dependency-managers/index.js';
 import * as constants from './core/constants.js';
 import {type PackageDownloader} from './core/package-downloader.js';
-import {type Helm} from './core/helm.js';
 import {type ChartManager} from './core/chart-manager.js';
 import {type ConfigManager} from './core/config-manager.js';
 import {type AccountManager} from './core/account-manager.js';
@@ -35,6 +34,7 @@ import {type Opts} from './commands/base.js';
 import {Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
+import {type DefaultHelmClient} from './core/helm/impl/DefaultHelmClient.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
@@ -71,7 +71,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   // prepare dependency manger registry
   const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
   const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
-  const helm: Helm = container.resolve(InjectTokens.Helm);
+  const helm: DefaultHelmClient = container.resolve(InjectTokens.Helm);
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);

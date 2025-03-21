@@ -9,7 +9,7 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap, prepareChartPath, showVersionBanner} from '../core/helpers.js';
+import {getNodeAccountMap, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
@@ -20,6 +20,7 @@ import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js'
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
+import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
 
 export class RelayCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
@@ -198,7 +199,6 @@ export class RelayCommand extends BaseCommand {
       relayReleaseTag: string;
       replicaCount: number;
       valuesFile: string;
-      chartPath: string;
       isChartInstalled: boolean;
       nodeAliases: NodeAliases;
       releaseName: string;
@@ -262,12 +262,6 @@ export class RelayCommand extends BaseCommand {
           title: 'Prepare chart values',
           task: async ctx => {
             const config = ctx.config;
-            config.chartPath = await prepareChartPath(
-              self.helm,
-              config.chartDirectory,
-              constants.JSON_RPC_RELAY_CHART,
-              constants.JSON_RPC_RELAY_CHART,
-            );
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
               self.remoteConfigManager.getClusterRefs(),
@@ -299,7 +293,8 @@ export class RelayCommand extends BaseCommand {
             await self.chartManager.install(
               config.namespace,
               config.releaseName,
-              config.chartPath,
+              JSON_RPC_RELAY_CHART,
+              JSON_RPC_RELAY_CHART,
               '',
               config.valuesArg,
               kubeContext,

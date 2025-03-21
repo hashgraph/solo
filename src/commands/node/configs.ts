@@ -23,8 +23,8 @@ import {type ConfigManager} from '../../core/config-manager.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type LocalConfig} from '../../core/config/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
-import {type Helm} from '../../core/helm.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
+import {type DefaultHelmClient} from '../../core/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
@@ -46,7 +46,7 @@ export class NodeCommandConfigs {
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
-    @inject(InjectTokens.Helm) private readonly helm: Helm,
+    @inject(InjectTokens.Helm) private readonly helm: DefaultHelmClient,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
@@ -146,12 +146,6 @@ export class NodeCommandConfigs {
     // set config in the context for later tasks to use
     ctx.config = config;
 
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
@@ -190,13 +184,6 @@ export class NodeCommandConfigs {
 
     // set config in the context for later tasks to use
     ctx.config = config;
-
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
 
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
@@ -243,13 +230,6 @@ export class NodeCommandConfigs {
     // set config in the context for later tasks to use
     ctx.config = config;
 
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
-
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
@@ -271,7 +251,6 @@ export class NodeCommandConfigs {
   public async addConfigBuilder(argv, ctx, task, shouldLoadNodeClient = true) {
     const config = this.configManager.getConfig(ADD_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
-      'chartPath',
       'curDate',
       'existingNodeAliases',
       'freezeAdminPrivateKey',
@@ -300,13 +279,6 @@ export class NodeCommandConfigs {
 
     // set config in the context for later tasks to use
     ctx.config = config;
-
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
 
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
@@ -560,7 +532,6 @@ export interface NodeDeleteConfigClass {
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
-  chartPath: string;
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: string;
   keysDir: string;
@@ -611,7 +582,6 @@ export interface NodeUpgradeConfigClass {
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
-  chartPath: string;
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;
@@ -648,7 +618,6 @@ export interface NodeUpdateConfigClass {
   tlsPublicKey: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
-  chartPath: string;
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;
