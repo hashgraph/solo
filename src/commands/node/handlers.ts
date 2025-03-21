@@ -24,6 +24,10 @@ import {CommandHandler} from '../../core/command-handler.js';
 import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
 import {type ConsensusNode} from '../../core/model/consensus-node.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
+import {type NodeDeleteContext} from './config-interfaces/node-delete-context.js';
+import {type NodeAddContext} from './config-interfaces/node-add-context.js';
+import {type NodeUpdateContext} from './config-interfaces/node-update-context.js';
+import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -59,7 +63,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
   /** ******** Task Lists **********/
 
-  private deletePrepareTaskList(argv: ArgvStruct, lease: Lock) {
+  private deletePrepareTaskList(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeDeleteContext>[] {
     return [
       this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -70,7 +74,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private deleteSubmitTransactionsTaskList() {
+  private deleteSubmitTransactionsTaskList(): SoloListrTask<NodeDeleteContext>[] {
     return [
       this.tasks.sendNodeDeleteTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -78,7 +82,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private deleteExecuteTaskList() {
+  private deleteExecuteTaskList(): SoloListrTask<NodeDeleteContext>[] {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.stopNodes('existingNodeAliases'),
@@ -103,7 +107,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private addPrepareTasks(argv: ArgvStruct, lease: Lock) {
+  private addPrepareTasks(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeAddContext>[] {
     return [
       this.tasks.initialize(argv, this.configs.addConfigBuilder.bind(this.configs), lease),
       // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
@@ -124,7 +128,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private addSubmitTransactionsTasks() {
+  private addSubmitTransactionsTasks(): SoloListrTask<NodeAddContext>[] {
     return [
       this.tasks.sendNodeCreateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -132,7 +136,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private addExecuteTasks() {
+  private addExecuteTasks(): SoloListrTask<NodeAddContext>[] {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
@@ -158,7 +162,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private updatePrepareTasks(argv: ArgvStruct, lease: Lock) {
+  private updatePrepareTasks(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeUpdateContext>[] {
     return [
       this.tasks.initialize(argv, this.configs.updateConfigBuilder.bind(this.configs), lease),
       this.validateSingleNodeState({excludedStates: []}),
@@ -169,7 +173,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private updateSubmitTransactionsTasks() {
+  private updateSubmitTransactionsTasks(): SoloListrTask<NodeUpdateContext>[] {
     return [
       this.tasks.sendNodeUpdateTransaction(),
       this.tasks.sendPrepareUpgradeTransaction(),
@@ -177,7 +181,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private updateExecuteTasks() {
+  private updateExecuteTasks(): SoloListrTask<NodeUpdateContext>[] {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFiles(),
@@ -202,7 +206,7 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private upgradePrepareTasks(argv: ArgvStruct, lease: Lock) {
+  private upgradePrepareTasks(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeUpgradeContext>[] {
     return [
       this.tasks.initialize(argv, this.configs.upgradeConfigBuilder.bind(this.configs), lease),
       this.validateAllNodeStates({excludedStates: []}),
@@ -213,11 +217,11 @@ export class NodeCommandHandlers extends CommandHandler {
     ];
   }
 
-  private upgradeSubmitTransactionsTasks() {
+  private upgradeSubmitTransactionsTasks(): SoloListrTask<NodeUpgradeContext>[] {
     return [this.tasks.sendPrepareUpgradeTransaction(), this.tasks.sendFreezeUpgradeTransaction()];
   }
 
-  private upgradeExecuteTasks() {
+  private upgradeExecuteTasks(): SoloListrTask<NodeUpgradeContext>[] {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeUpgradeFiles(),
