@@ -1719,40 +1719,40 @@ export class NodeCommandTasks {
             .forEach((node, index) => (clusterNodeIndexMap[clusterRef][node.nodeId] = index));
         }
 
-        if (transactionType === NodeSubcommandType.UPDATE) {
-          this.prepareValuesArgForNodeUpdate(
-            consensusNodes,
-            valuesArgMap,
-            config.serviceMap,
-            clusterNodeIndexMap,
-            config.newAccountNumber,
-            config.nodeAlias,
-          );
-        }
-
-        if (transactionType === NodeSubcommandType.DELETE) {
-          this.prepareValuesArgForNodeDelete(
-            consensusNodes,
-            valuesArgMap,
-            nodeId,
-            config.nodeAlias,
-            config.serviceMap,
-            clusterNodeIndexMap,
-          );
-        }
-
-        if (transactionType === NodeSubcommandType.ADD) {
-          this.prepareValuesArgForNodeAdd(
-            consensusNodes,
-            valuesArgMap,
-            config.serviceMap,
-            clusterNodeIndexMap,
-            config.clusterRef,
-            nodeId,
-            config.nodeAlias,
-            ctx.newNode,
-            config,
-          );
+        switch (transactionType) {
+          case NodeSubcommandType.UPDATE:
+            this.prepareValuesArgForNodeUpdate(
+              consensusNodes,
+              valuesArgMap,
+              config.serviceMap,
+              clusterNodeIndexMap,
+              config.newAccountNumber,
+              config.nodeAlias,
+            );
+            break;
+          case NodeSubcommandType.DELETE:
+            this.prepareValuesArgForNodeDelete(
+              consensusNodes,
+              valuesArgMap,
+              nodeId,
+              config.nodeAlias,
+              config.serviceMap,
+              clusterNodeIndexMap,
+            );
+            break;
+          case NodeSubcommandType.ADD:
+            this.prepareValuesArgForNodeAdd(
+              consensusNodes,
+              valuesArgMap,
+              config.serviceMap,
+              clusterNodeIndexMap,
+              config.clusterRef,
+              nodeId,
+              config.nodeAlias,
+              ctx.newNode,
+              config,
+            );
+            break;
         }
 
         // Add profile values files
@@ -1803,6 +1803,11 @@ export class NodeCommandTasks {
     };
   }
 
+  /**
+   * Builds the values args for update:
+   * - Updates the selected node
+   * - Keep the rest the same
+   */
   private prepareValuesArgForNodeUpdate(
     consensusNodes: ConsensusNode[],
     valuesArgMap: Record<ClusterRef, string>,
@@ -1833,6 +1838,11 @@ export class NodeCommandTasks {
     }
   }
 
+  /**
+   * Builds the values args for add:
+   * - Adds the new node
+   * - Keeps the rest the same
+   */
   private prepareValuesArgForNodeAdd(
     consensusNodes: ConsensusNode[],
     valuesArgMap: Record<ClusterRef, string>,
@@ -1882,6 +1892,11 @@ export class NodeCommandTasks {
     }
   }
 
+  /**
+   * Builds the values args for delete:
+   * - Remove the specified node
+   * - Keeps the rest the same
+   */
   private prepareValuesArgForNodeDelete(
     consensusNodes: ConsensusNode[],
     valuesArgMap: Record<ClusterRef, string>,
