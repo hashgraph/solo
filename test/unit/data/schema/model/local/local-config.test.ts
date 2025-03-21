@@ -20,9 +20,10 @@ import {
   SOLO_CHART_VERSION,
 } from '../../../../../../version.js';
 import {getSoloVersion} from '../../../../../../src/core/helpers.js';
+import {ConfigKeyFormatter} from '../../../../../../src/data/key/config-key-formatter.js';
 
 describe('LocalConfig', () => {
-  const schema: LocalConfigSchema = new LocalConfigSchema(new CTObjectMapper());
+  const schema: LocalConfigSchema = new LocalConfigSchema(new CTObjectMapper(ConfigKeyFormatter.instance()));
   const localConfigPath = `test/data/v${getSoloVersion()}-local-config.yaml`;
 
   describe('Class Transformer', () => {

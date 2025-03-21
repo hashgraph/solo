@@ -34,6 +34,7 @@ import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
 import {HelmExecutionBuilder} from '../helm/execution/HelmExecutionBuilder.js';
 import {DefaultHelmClient} from '../helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../business/utils/path-ex.js';
+import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -88,6 +89,7 @@ export class Container {
 
     // Data Layer ObjectMapper
     container.register(InjectTokens.ObjectMapper, {useClass: CTObjectMapper}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.KeyFormatter, {useValue: ConfigKeyFormatter.instance()});
 
     container.register(InjectTokens.PackageDownloader, {useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.Zippy, {useClass: Zippy}, {lifecycle: Lifecycle.Singleton});

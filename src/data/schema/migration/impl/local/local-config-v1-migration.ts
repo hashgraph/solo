@@ -50,6 +50,7 @@ export class LocalConfigV1Migration implements SchemaMigration {
       mirrorNodeChart: MIRROR_NODE_VERSION,
       explorerChart: HEDERA_EXPLORER_VERSION,
       jsonRpcRelayChart: HEDERA_JSON_RPC_RELAY_VERSION,
+      blockNodeChart: 'v0.0.0',
     };
 
     delete clone.soloVersion;
