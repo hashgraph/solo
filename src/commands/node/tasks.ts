@@ -55,7 +55,8 @@ import {type SoloLogger} from '../../core/logging.js';
 import {
   type AnyListrContext,
   type AnyObject,
-  type ConfigBuilder, IP,
+  type ConfigBuilder,
+  type IP,
   type NodeAlias,
   type NodeAliases,
   type NodeId,
