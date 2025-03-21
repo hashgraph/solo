@@ -64,18 +64,13 @@ export class ChartManager {
    * @param kubeContext - the kube context
    */
   async getInstalledCharts(namespaceName: NamespaceName, kubeContext?: string) {
-    const namespaceArg = namespaceName ? `-n ${namespaceName.name}` : '--all-namespaces';
-    const contextArg = kubeContext ? `--kube-context ${kubeContext}` : '';
-
     try {
-      // return await this.helm.list(` ${contextArg} ${namespaceArg} --no-headers | awk '{print $1 " [" $9"]"}'`);
-      const result: ReleaseItem[] = await this.helm.listReleases(true);
+      const result: ReleaseItem[] = await this.helm.listReleases(!namespaceName, namespaceName?.name, kubeContext);
       // convert to string[]
-      return result.map(release => `${release.name} [${release.namespace}]`);
+      return result.map(release => `${release.name} [${release.chart}]`);
     } catch (e: Error | any) {
       this.logger.showUserError(e);
     }
-
     return [];
   }
 
@@ -119,6 +114,7 @@ export class ChartManager {
     );
     const charts = await this.getInstalledCharts(namespaceName, kubeContext);
 
+    console.log(`charts  ***** : ${charts.join('\n')}\n\n`);
     return charts.some(item => item.startsWith(chartReleaseName));
   }
 
@@ -126,10 +122,6 @@ export class ChartManager {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
       if (isInstalled) {
-        let contextArg = '';
-        if (kubeContext) {
-          contextArg = `--kube-context ${kubeContext}`;
-        }
         this.logger.debug(`uninstalling chart release: ${chartReleaseName}`);
         const options = UnInstallChartOptions.builder().namespace(namespaceName.name).kubeContext(kubeContext).build();
         await this.helm.uninstallChart(chartReleaseName, options);

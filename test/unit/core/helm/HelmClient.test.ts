@@ -189,6 +189,34 @@ describe('HelmClient Tests', () => {
     }
   });
 
+  it('List Releases with Kube Context', async () => {
+    await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
+
+    try {
+      // Install a test chart first
+      const options = InstallChartOptionsBuilder.builder().namespace(NAMESPACE).build();
+      await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, options);
+
+      // List releases with specific kube context
+      const releaseItems = await helmClient.listReleases(false, NAMESPACE, 'kind-helm-client-test-cluster');
+      expect(releaseItems).to.not.be.null.and.to.not.be.empty;
+      const releaseItem = releaseItems.find(item => item.name === HAPROXY_RELEASE_NAME);
+      expect(releaseItem).to.not.be.null;
+      expect(releaseItem?.name).to.equal(HAPROXY_RELEASE_NAME);
+      expect(releaseItem?.namespace).to.equal(NAMESPACE);
+      expect(releaseItem?.status).to.equal('deployed');
+    } finally {
+      try {
+        await helmClient.uninstallChart(
+          HAPROXY_RELEASE_NAME,
+          UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
+        );
+      } catch (error) {
+        // Suppress uninstall errors
+      }
+    }
+  });
+
   it('Helm Test subcommand with options', async () => {
     await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
     const options = TestChartOptionsBuilder.builder().timeout('60s').filter('haproxy').namespace(NAMESPACE).build();

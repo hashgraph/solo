@@ -10,6 +10,7 @@ export class ReleaseListRequest implements HelmRequest {
   constructor(
     private readonly allNamespaces: boolean,
     private readonly namespace?: string,
+    private readonly kubeContext?: string,
   ) {}
 
   apply(builder: HelmExecutionBuilder): void {
@@ -19,6 +20,10 @@ export class ReleaseListRequest implements HelmRequest {
       builder.flag('--all-namespaces');
     } else if (this.namespace) {
       builder.argument('namespace', this.namespace);
+    }
+
+    if (this.kubeContext) {
+      builder.argument('kube-context', this.kubeContext);
     }
 
     builder.subcommands('list');

@@ -11,7 +11,7 @@
     "access": "public"
   },
   "scripts": {
-    "test": "cross-env MOCHA_SUITE_NAME=\"Unit Tests\" c8 --report-dir='coverage/unit' mocha 'test/unit/**/*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit.xml",
+    "test": "cross-env MOCHA_SUITE_NAME=\"Unit Tests\" c8 --report-dir='coverage/unit' mocha 'test/unit/**/*.ts' --exlude 'test/unit/core/helm/**/*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit.xml",
     "test-helm": "cross-env MOCHA_SUITE_NAME=\"Helm Unit Tests\" c8 --report-dir='coverage/unit-helm' mocha 'test/unit/core/helm/**/*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit.xml",
     "test-mathex": "cross-env MOCHA_SUITE_NAME=\"MathEx Unit Tests\" c8 --report-dir='coverage/unit-mathex' mocha 'test/unit/**/math-ex*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit.xml",
     "test-e2e-all": "cross-env MOCHA_SUITE_NAME=\"Mocha E2E All Tests\" c8 --report-dir='coverage/e2e-all' mocha 'test/e2e/**/*.ts' --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit-e2e-all.xml",

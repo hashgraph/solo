@@ -93,8 +93,8 @@ export class DefaultHelmClient implements HelmClient {
     await this.executeAsync(new ChartTestRequest(releaseName, options), undefined);
   }
 
-  public async listReleases(allNamespaces: boolean, namespace?: string): Promise<ReleaseItem[]> {
-    return this.executeAsList(new ReleaseListRequest(allNamespaces, namespace), ReleaseItem);
+  public async listReleases(allNamespaces: boolean, namespace?: string, kubeContext?: string): Promise<ReleaseItem[]> {
+    return this.executeAsList(new ReleaseListRequest(allNamespaces, namespace, kubeContext), ReleaseItem);
   }
 
   public async dependencyUpdate(chartName: string): Promise<void> {
