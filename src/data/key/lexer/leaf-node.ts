@@ -2,6 +2,7 @@
 
 import {type Node} from './node.js';
 import {KeyName} from '../key-name.js';
+import {ConfigKeyError} from '../config-key-error.js';
 
 export class LeafNode implements Node {
   public constructor(
@@ -10,7 +11,7 @@ export class LeafNode implements Node {
     public readonly value: string | null,
   ) {
     if (parent && !parent.isInternal()) {
-      throw new Error('Parent must be an instance of InternalNode');
+      throw new ConfigKeyError('Parent must be an instance of InternalNode');
     }
   }
 

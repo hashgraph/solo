@@ -4,6 +4,7 @@ import {type Node} from './node.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 import {type LeafNode} from './leaf-node.js';
 import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
+import {ConfigKeyError} from '../config-key-error.js';
 
 export class InternalNode implements Node {
   private readonly _children: Map<string, Node> = new Map<string, Node>();
@@ -18,7 +19,7 @@ export class InternalNode implements Node {
     private readonly arrayIndex: boolean = false,
   ) {
     if (parent && !parent.isInternal()) {
-      throw new Error('Parent must be an instance of InternalNode');
+      throw new ConfigKeyError('Parent must be an instance of InternalNode');
     }
 
     this.parent = parent;
@@ -27,7 +28,7 @@ export class InternalNode implements Node {
       for (const c of children) {
         if (c instanceof InternalNode) {
           if (c.isRoot()) {
-            throw new Error('Internal nodes cannot have root nodes as children');
+            throw new ConfigKeyError('Internal nodes cannot have root nodes as children');
           }
         }
 
@@ -76,12 +77,12 @@ export class InternalNode implements Node {
     for (const child of this.children) {
       if (this.isArray()) {
         if (!child.isArrayIndex()) {
-          throw new Error('Array node must have array index children');
+          throw new ConfigKeyError('Array node must have array index children');
         }
 
         const index: number = Number.parseInt(child.name);
         if (!Number.isSafeInteger(index)) {
-          throw new Error('Array index must be a number');
+          throw new ConfigKeyError('Array index must be a number');
         }
 
         obj[index] = (child as InternalNode).toObject();
