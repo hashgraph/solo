@@ -121,6 +121,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
         it(`${nodeAlias} should be running`, async () => {
           try {
             const nodeTasks = container.resolve(NodeCommandTasks);
+            // @ts-expect-error - TS2341: to access private property
             expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
               `network-${nodeAlias}-0`,
             );
