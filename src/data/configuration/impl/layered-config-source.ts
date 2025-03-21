@@ -43,7 +43,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
   public asBoolean(key: string): boolean | null {
     const stringVal: string = this.forest.valueFor(key);
 
-    if (!stringVal && stringVal.trim().length === 0) {
+    if (!stringVal || stringVal.trim().length === 0) {
       return null;
     }
 
