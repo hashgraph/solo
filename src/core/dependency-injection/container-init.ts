@@ -34,6 +34,15 @@ import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
+import {AccountCommand} from '../../commands/account.js';
+import {DeploymentCommand} from '../../commands/deployment.js';
+import {ExplorerCommand} from '../../commands/explorer.js';
+import {InitCommand} from '../../commands/init.js';
+import {MirrorNodeCommand} from '../../commands/mirror-node.js';
+import {RelayCommand} from '../../commands/relay.js';
+import {NetworkCommand} from '../../commands/network.js';
+import {NodeCommand} from '../../commands/node/index.js';
+import {ClusterCommand} from '../../commands/cluster/index.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -62,6 +71,7 @@ export class Container {
    * @param logLevel - the log level to use, defaults to 'debug'
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
+   * @param mocks - mocked instances to use instead of the default implementations
    */
   init(
     homeDir: string = constants.SOLO_HOME_DIR,
@@ -69,6 +79,7 @@ export class Container {
     logLevel: string = 'debug',
     devMode: boolean = false,
     testLogger?: SoloLogger,
+    mocks = {},
   ) {
     if (Container.isInitialized) {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container already initialized');
@@ -148,9 +159,6 @@ export class Container {
     container.register(InjectTokens.ClusterChecks, {useClass: ClusterChecks}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.NetworkNodes, {useClass: NetworkNodes}, {lifecycle: Lifecycle.Singleton});
 
-    container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container initialized');
-    Container.isInitialized = true;
-
     // Commands
     container.register(
       InjectTokens.ClusterCommandHandlers,
@@ -178,8 +186,25 @@ export class Container {
       {useClass: NodeCommandConfigs},
       {lifecycle: Lifecycle.Singleton},
     );
+    container.register(InjectTokens.AccountCommand, {useClass: AccountCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.DeploymentCommand, {useClass: DeploymentCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.ExplorerCommand, {useClass: ExplorerCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.InitCommand, {useClass: InitCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.MirrorNodeCommand, {useClass: MirrorNodeCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.RelayCommand, {useClass: RelayCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.NetworkCommand, {useClass: NetworkCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.NodeCommand, {useClass: NodeCommand}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.ClusterCommand, {useClass: ClusterCommand}, {lifecycle: Lifecycle.Singleton});
 
     container.register(InjectTokens.ErrorHandler, {useClass: ErrorHandler}, {lifecycle: Lifecycle.Singleton});
+
+    for (const [token, mock] of Object.entries(mocks)) {
+      container.unregister(token);
+      container.registerInstance(token, mock);
+    }
+
+    container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container initialized');
+    Container.isInitialized = true;
   }
 
   /**
@@ -190,13 +215,13 @@ export class Container {
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
-  reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
+  reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger, mocks = {}) {
     if (Container.instance && Container.isInitialized) {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Resetting container');
       container.reset();
       Container.isInitialized = false;
     }
-    Container.getInstance().init(homeDir, cacheDir, logLevel, devMode, testLogger);
+    Container.getInstance().init(homeDir, cacheDir, logLevel, devMode, testLogger, mocks);
   }
 
   /**

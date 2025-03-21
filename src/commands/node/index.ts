@@ -1,41 +1,29 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {IllegalArgumentError} from '../../core/errors/illegal-argument-error.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {YargsCommand} from '../../core/yargs-command.js';
-import {BaseCommand, type Opts} from './../base.js';
+import {BaseCommand} from './../base.js';
 import * as NodeFlags from './flags.js';
 import {type NodeCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
+import {inject, injectable} from 'tsyringe-neo';
 
 /**
  * Defines the core functionalities of 'node' command
  */
+@injectable()
 export class NodeCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
-  public readonly handlers: NodeCommandHandlers;
   public _portForwards: any;
 
-  constructor(opts: Opts) {
-    super(opts);
+  constructor(
+    @inject(InjectTokens.AccountManager) private readonly accountManager?: AccountManager,
+    @inject(InjectTokens.NodeCommandHandlers) public readonly handlers?: NodeCommandHandlers,
+  ) {
+    super();
 
-    if (!opts || !opts.downloader)
-      throw new IllegalArgumentError('An instance of core/PackageDownloader is required', opts.downloader);
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
-    if (!opts || !opts.profileManager)
-      throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
-    if (!opts || !opts.certificateManager)
-      throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
-
-    this.accountManager = opts.accountManager;
-
-    this.handlers = patchInject(null, InjectTokens.NodeCommandHandlers, this.constructor.name);
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
+    this.handlers = patchInject(handlers, InjectTokens.NodeCommandHandlers, this.constructor.name);
     this._portForwards = [];
   }
 

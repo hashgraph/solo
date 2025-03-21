@@ -15,62 +15,36 @@ import fs from 'fs';
 import {Task} from '../core/task.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
-import {type SoloLogger} from '../core/logging.js';
-import {type PackageDownloader} from '../core/package-downloader.js';
-import {type PlatformInstaller} from '../core/platform-installer.js';
-import {type KeyManager} from '../core/key-manager.js';
-import {type AccountManager} from '../core/account-manager.js';
-import {type ProfileManager} from '../core/profile-manager.js';
-import {type CertificateManager} from '../core/certificate-manager.js';
 import {PathEx} from '../business/utils/path-ex.js';
-
-export interface Opts {
-  logger: SoloLogger;
-  helm: Helm;
-  k8Factory: K8Factory;
-  downloader: PackageDownloader;
-  platformInstaller: PlatformInstaller;
-  chartManager: ChartManager;
-  configManager: ConfigManager;
-  depManager: DependencyManager;
-  keyManager: KeyManager;
-  accountManager: AccountManager;
-  profileManager: ProfileManager;
-  leaseManager: LockManager;
-  certificateManager: CertificateManager;
-  localConfig: LocalConfig;
-  remoteConfigManager: RemoteConfigManager;
-}
+import {inject} from 'tsyringe-neo';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 
 export abstract class BaseCommand extends ShellRunner {
-  protected readonly helm: Helm;
-  protected readonly k8Factory: K8Factory;
-  protected readonly chartManager: ChartManager;
-  public readonly configManager: ConfigManager;
-  protected readonly depManager: DependencyManager;
-  protected readonly leaseManager: LockManager;
-  public readonly localConfig: LocalConfig;
-  protected readonly remoteConfigManager: RemoteConfigManager;
-
-  constructor(opts: Opts) {
-    if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
-    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
-    if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required');
-    if (!opts || !opts.remoteConfigManager)
-      throw new Error('An instance of core/config/RemoteConfigManager is required');
+  constructor(
+    @inject(InjectTokens.Helm) protected readonly helm?: Helm,
+    @inject(InjectTokens.K8Factory) protected readonly k8Factory?: K8Factory,
+    @inject(InjectTokens.ChartManager) protected readonly chartManager?: ChartManager,
+    @inject(InjectTokens.ConfigManager) public readonly configManager?: ConfigManager,
+    @inject(InjectTokens.DependencyManager) protected readonly depManager?: DependencyManager,
+    @inject(InjectTokens.LockManager) protected readonly leaseManager?: LockManager,
+    @inject(InjectTokens.LocalConfig) public readonly localConfig?: LocalConfig,
+    @inject(InjectTokens.RemoteConfigManager) protected readonly remoteConfigManager?: RemoteConfigManager,
+  ) {
     super();
 
-    this.helm = opts.helm;
-    this.k8Factory = opts.k8Factory;
-    this.chartManager = opts.chartManager;
-    this.configManager = opts.configManager;
-    this.depManager = opts.depManager;
-    this.leaseManager = opts.leaseManager;
-    this.localConfig = opts.localConfig;
-    this.remoteConfigManager = opts.remoteConfigManager;
+    this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.depManager = patchInject(depManager, InjectTokens.DependencyManager, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, InjectTokens.LockManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
   }
 
   /**

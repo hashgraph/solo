@@ -4,11 +4,10 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
-import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import {UserBreak} from '../core/errors/user-break.js';
 import * as constants from '../core/constants.js';
 import {type ProfileManager} from '../core/profile-manager.js';
-import {BaseCommand, type Opts} from './base.js';
+import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
 import {type CommandBuilder} from '../types/aliases.js';
@@ -20,10 +19,11 @@ import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
-import {container} from 'tsyringe-neo';
+import {container, inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
 
 export interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -51,15 +51,12 @@ interface Context {
   addressBook: string;
 }
 
+@injectable()
 export class ExplorerCommand extends BaseCommand {
-  private readonly profileManager: ProfileManager;
+  constructor(@inject(InjectTokens.ProfileManager) private readonly profileManager: ProfileManager) {
+    super();
 
-  constructor(opts: Opts) {
-    super(opts);
-    if (!opts || !opts.profileManager)
-      throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader);
-
-    this.profileManager = opts.profileManager;
+    this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
   }
 
   public static readonly COMMAND_NAME = 'explorer';

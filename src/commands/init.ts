@@ -10,10 +10,12 @@ import chalk from 'chalk';
 import {type EmailAddress} from '../core/config/remote/types.js';
 import * as helpers from '../core/helpers.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {injectable} from 'tsyringe-neo';
 
 /**
  * Defines the core functionalities of 'init' command
  */
+@injectable()
 export class InitCommand extends BaseCommand {
   public static readonly COMMAND_NAME = 'init';
 

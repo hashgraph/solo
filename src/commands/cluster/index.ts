@@ -2,22 +2,22 @@
 
 import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs-command.js';
-import {BaseCommand, type Opts} from './../base.js';
+import {BaseCommand} from './../base.js';
 import {type ClusterCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type AnyYargs} from '../../types/aliases.js';
+import {inject, injectable} from 'tsyringe-neo';
 
 /**
  * Defines the core functionalities of 'node' command
  */
+@injectable()
 export class ClusterCommand extends BaseCommand {
-  public handlers: ClusterCommandHandlers;
+  constructor(@inject(InjectTokens.ClusterCommandHandlers) public readonly handlers?: ClusterCommandHandlers,) {
+    super();
 
-  constructor(opts: Opts) {
-    super(opts);
-
-    this.handlers = patchInject(null, InjectTokens.ClusterCommandHandlers, this.constructor.name);
+    this.handlers = patchInject(handlers, InjectTokens.ClusterCommandHandlers, this.constructor.name);
   }
 
   public static readonly COMMAND_NAME = 'cluster-ref';

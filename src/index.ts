@@ -11,28 +11,13 @@ import {ListrLogger} from 'listr2';
 
 import {Flags as flags} from './commands/flags.js';
 import * as commands from './commands/index.js';
-import {type DependencyManager} from './core/dependency-managers/index.js';
 import * as constants from './core/constants.js';
-import {type PackageDownloader} from './core/package-downloader.js';
-import {type Helm} from './core/helm.js';
-import {type ChartManager} from './core/chart-manager.js';
-import {type ConfigManager} from './core/config-manager.js';
-import {type AccountManager} from './core/account-manager.js';
-import {type PlatformInstaller} from './core/platform-installer.js';
-import {type KeyManager} from './core/key-manager.js';
-import {type ProfileManager} from './core/profile-manager.js';
-import {type LockManager} from './core/lock/lock-manager.js';
-import {type CertificateManager} from './core/certificate-manager.js';
-import {type LocalConfig} from './core/config/local-config.js';
-import {type RemoteConfigManager} from './core/config/remote/remote-config-manager.js';
 import * as helpers from './core/helpers.js';
-import {type K8Factory} from './core/kube/k8-factory.js';
 import {CustomProcessOutput} from './core/process-output.js';
 import {type SoloLogger} from './core/logging.js';
 import {Container} from './core/dependency-injection/container-init.js';
 import {InjectTokens} from './core/dependency-injection/inject-tokens.js';
-import {type Opts} from './commands/base.js';
-import {Middlewares} from './core/middlewares.js';
+import {type Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
 
@@ -68,42 +53,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     throw new UserBreak('displayed version information, exiting');
   }
 
-  // prepare dependency manger registry
-  const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
-  const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
-  const helm: Helm = container.resolve(InjectTokens.Helm);
-  const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
-  const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-  const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
-  const accountManager: AccountManager = container.resolve(InjectTokens.AccountManager);
-  const platformInstaller: PlatformInstaller = container.resolve(InjectTokens.PlatformInstaller);
-  const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
-  const profileManager: ProfileManager = container.resolve(InjectTokens.ProfileManager);
-  const leaseManager: LockManager = container.resolve(InjectTokens.LockManager);
-  const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
-  const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
-  const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
-
-  const opts: Opts = {
-    logger,
-    helm,
-    k8Factory,
-    downloader,
-    platformInstaller,
-    chartManager,
-    configManager,
-    depManager,
-    keyManager,
-    accountManager,
-    profileManager,
-    leaseManager,
-    remoteConfigManager,
-    certificateManager,
-    localConfig,
-  };
-
-  logger.debug('Initializing middlewares');
-  const middlewares = new Middlewares(opts);
+  const middlewares: Middlewares = container.resolve(InjectTokens.Middlewares);
 
   logger.debug('Initializing commands');
   const rootCmd = yargs(hideBin(argv))

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chalk from 'chalk';
-import {BaseCommand, type Opts} from './base.js';
+import {BaseCommand} from './base.js';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
@@ -20,6 +20,10 @@ import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
 import {SecretType} from '../core/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
+import {inject} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
+import type {ConfigManager} from '../core/config-manager.js';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
 
 interface UpdateAccountConfig {
   accountId: string;
@@ -38,7 +42,6 @@ interface UpdateAccountContext {
 }
 
 export class AccountCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
   private accountInfo: {
     accountId: string;
     balance: number;
@@ -48,13 +51,13 @@ export class AccountCommand extends BaseCommand {
   } | null;
   private readonly systemAccounts: number[][];
 
-  public constructor(opts: Opts, systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS) {
-    super(opts);
+  public constructor(
+    @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
+    systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS,
+  ) {
+    super();
 
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
-
-    this.accountManager = opts.accountManager;
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
     this.accountInfo = null;
     this.systemAccounts = systemAccounts;
   }

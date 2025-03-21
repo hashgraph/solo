@@ -7,12 +7,17 @@ import * as yaml from 'yaml';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../src/core/constants.js';
 import {type SoloLogger} from '../src/core/logging.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
+import {RemoteConfigManager} from '../src/core/config/remote/remote-config-manager.js';
 
 const cacheDirectory = PathEx.join('test', 'data', 'tmp');
 
-export function resetTestContainer(cacheDir: string = cacheDirectory, testLogger?: SoloLogger) {
+export function resetTestContainer(cacheDir: string = cacheDirectory, testLogger?: SoloLogger, mocks = {}) {
   // For the test suites cacheDir === homeDir is acceptable because the data is temporary
-  Container.getInstance().reset(cacheDir, cacheDir, 'debug', true, testLogger);
+  Container.getInstance().reset(cacheDir, cacheDir, 'debug', true, testLogger, mocks);
+}
+
+interface Mocks {
+  remoteConfigManager?: RemoteConfigManager;
 }
 
 export function resetForTest(
@@ -20,6 +25,7 @@ export function resetForTest(
   cacheDir: string = cacheDirectory,
   testLogger?: SoloLogger,
   resetLocalConfig: boolean = true,
+  mocks = {},
 ) {
   if (resetLocalConfig) {
     const localConfigFile = DEFAULT_LOCAL_CONFIG_FILE;
@@ -32,5 +38,5 @@ export function resetForTest(
     fs.writeFileSync(PathEx.join(cacheDirectory, localConfigFile), yaml.stringify(parsedData));
   }
   // need to init the container prior to using K8Client for dependency injection to work
-  resetTestContainer(cacheDir, testLogger);
+  resetTestContainer(cacheDir, testLogger, mocks);
 }

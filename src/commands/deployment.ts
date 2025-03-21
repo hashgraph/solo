@@ -2,7 +2,7 @@
 
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
-import {BaseCommand, type Opts} from './base.js';
+import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import chalk from 'chalk';
@@ -12,7 +12,7 @@ import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
 import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
-import {container} from 'tsyringe-neo';
+import {container, inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
@@ -20,6 +20,7 @@ import {Templates} from '../core/templates.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
 
 interface DeploymentAddClusterConfig {
   quiet: boolean;
@@ -44,13 +45,12 @@ export interface DeploymentAddClusterContext {
   config: DeploymentAddClusterConfig;
 }
 
+@injectable()
 export class DeploymentCommand extends BaseCommand {
-  readonly tasks: ClusterCommandTasks;
+  constructor(@inject(InjectTokens.ClusterCommandTasks) private readonly tasks: ClusterCommandTasks) {
+    super();
 
-  constructor(opts: Opts) {
-    super(opts);
-
-    this.tasks = container.resolve(ClusterCommandTasks);
+    this.tasks = patchInject(tasks, InjectTokens.ClusterCommandTasks, this.constructor.name);
   }
 
   public static readonly COMMAND_NAME = 'deployment';
