@@ -149,7 +149,7 @@ export class Lexer {
     if (idx + 1 >= segments.length) {
       return new LeafNode(root, segment, value);
     } else {
-      return new InternalNode(root, segment, [], false, true);
+      return root.children[+segment] || new InternalNode(root, segment, [], false, true);
     }
   }
 
