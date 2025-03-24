@@ -18,15 +18,20 @@ describe('LocalConfigSource', () => {
   it('asBoolean with null value returns null', async () => {
     const objectMapper: ObjectMapper = new CTObjectMapper(ConfigKeyFormatter.instance());
     const map: Map<string, object> = new Map<string, object>();
-    map.set('key', {local: {key: 'fred'}});
+    map.set('local-config', {
+      schemaVersion: 1,
+      deployments: [{name: 'true', namespace: 'false', clusters: ['true', '{key: "value"}']}],
+    });
     const source: LocalConfigSource = new LocalConfigSource(
-      'key',
+      'local-config',
       new LocalConfigSchema(objectMapper),
       objectMapper,
       new SimpleObjectStorageBackend(map),
     );
     await source.load();
-    expect(source.asBoolean('useridentity')).to.be.null;
-    expect(source.asBoolean('useridentity.hostname')).to.be.false;
+    expect(source.asBoolean('deployments.0.name')).to.be.true;
+    expect(source.asBoolean('deployments.0.namespace')).to.be.false;
+    expect(source.asBoolean('deployments.0.clusters.0')).to.be.true;
+    expect(source.asBoolean('deployments.0.clusters.1')).to.be.true;
   });
 });
