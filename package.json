@@ -84,7 +84,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
-    "@eslint/js": "^9.22.0",
+    "@eslint/js": "^9.23.0",
     "@types/adm-zip": "^0.5.7",
     "@types/chai": "^5.2.0",
     "@types/chai-as-promised": "^8.0.2",
