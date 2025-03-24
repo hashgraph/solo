@@ -10,7 +10,7 @@ import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
@@ -131,8 +131,9 @@ export class DeploymentCommand extends BaseCommand {
               throw new SoloError(`Deployment ${deployment} is already added to local config`);
             }
 
-            this.localConfig.deployments[deployment] = {clusters: [], namespace: namespace.name};
-            await this.localConfig.write();
+            await this.localConfig.modify(async localConfigData => {
+              localConfigData.addDeployment(deployment, namespace);
+            });
           },
         },
       ],
@@ -210,10 +211,12 @@ export class DeploymentCommand extends BaseCommand {
         },
         {
           title: 'Remove deployment from local config',
-          task: async (ctx, task) => {
+          task: async ctx => {
             const {deployment} = ctx.config;
-            delete this.localConfig.deployments[deployment];
-            await this.localConfig.write();
+
+            await this.localConfig.modify(async localConfigData => {
+              localConfigData.removeDeployment(deployment);
+            });
           },
         },
       ],
@@ -616,12 +619,9 @@ export class DeploymentCommand extends BaseCommand {
 
         task.title = `add cluster-ref: ${clusterRef} for deployment: ${deployment} in local config`;
 
-        const deployments = this.localConfig.deployments;
-
-        deployments[deployment].clusters.push(clusterRef);
-
-        this.localConfig.setDeployments(deployments);
-        await this.localConfig.write();
+        await this.localConfig.modify(async localConfigData => {
+          localConfigData.addClusterRefToDeployment(clusterRef, deployment);
+        });
       },
     };
   }

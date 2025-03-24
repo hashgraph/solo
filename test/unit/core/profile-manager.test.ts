@@ -15,7 +15,7 @@ import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
 import {Templates} from '../../../src/core/templates.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {KubeConfig} from '@kubernetes/client-node';

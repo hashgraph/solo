@@ -16,7 +16,7 @@ import {ListrLock} from '../core/lock/listr-lock.js';
 import {RelayComponent} from '../core/config/remote/components/relay-component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';

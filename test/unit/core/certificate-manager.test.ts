@@ -5,13 +5,13 @@ import {after, before, describe, it} from 'mocha';
 import sinon from 'sinon';
 
 import {type ConfigManager} from '../../../src/core/config-manager.js';
-import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
+import {K8Client} from '../../../src/integration/kube/k8-client/k8-client.js';
 import {type CertificateManager} from '../../../src/core/certificate-manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
-import {K8ClientSecrets} from '../../../src/core/kube/k8-client/resources/secret/k8-client-secrets.js';
+import {K8ClientSecrets} from '../../../src/integration/kube/k8-client/resources/secret/k8-client-secrets.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 

@@ -3,14 +3,14 @@
 import {Flags as flags} from '../commands/flags.js';
 import chalk from 'chalk';
 
-import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ConfigManager} from './config-manager.js';
-import {type K8Factory} from './kube/k8-factory.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type SoloLogger} from './logging.js';
 import {type AnyObject} from '../types/aliases.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {type ClusterRef} from './config/remote/types.js';
-import {type LocalConfig} from './config/local-config.js';
+import {type LocalConfig} from './config/local/local-config.js';
 import {SoloError} from './errors/solo-error.js';
 import {SilentBreak} from './errors/silent-break.js';
 import {type HelpRenderer} from './help-renderer.js';
