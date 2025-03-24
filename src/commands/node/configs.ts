@@ -10,7 +10,7 @@ import fs from 'fs';
 import {checkNamespace} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
-import {type AnyObject, type ArgvStruct, NodeAlias} from '../../types/aliases.js';
+import {type AnyObject, type ArgvStruct} from '../../types/aliases.js';
 import {type NodeAddConfigClass} from './config-interfaces/node-add-config-class.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {inject, injectable} from 'tsyringe-neo';
