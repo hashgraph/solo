@@ -26,7 +26,7 @@ import {type K8Factory} from '../integration/kube/k8-factory.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 
-export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
+export function getInternalIp(releaseVersion: semver.SemVer | string, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
   let internalIp = '';
 

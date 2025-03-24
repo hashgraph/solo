@@ -4,4 +4,5 @@ import {type NodeDeleteConfigClass} from './node-delete-config-class.js';
 
 export interface NodeDeleteContext {
   config: NodeDeleteConfigClass;
+  upgradeZipHash: string;
 }

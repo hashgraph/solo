@@ -102,7 +102,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.DELETE),
+      this.tasks.triggerStakeWeightCalculate<NodeDeleteContext>(NodeSubcommandType.DELETE),
       this.tasks.finalize(),
     ];
   }
@@ -157,7 +157,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
       this.tasks.stakeNewNode(),
-      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.ADD),
+      this.tasks.triggerStakeWeightCalculate<NodeAddContext>(NodeSubcommandType.ADD),
       this.tasks.finalize(),
     ];
   }
@@ -201,7 +201,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.enablePortForwarding(),
       this.tasks.checkAllNodesAreActive('allNodeAliases'),
       this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.triggerStakeWeightCalculate(NodeSubcommandType.UPDATE),
+      this.tasks.triggerStakeWeightCalculate<NodeUpdateContext>(NodeSubcommandType.UPDATE),
       this.tasks.finalize(),
     ];
   }

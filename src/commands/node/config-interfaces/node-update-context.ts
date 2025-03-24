@@ -4,4 +4,5 @@ import {type NodeUpdateConfigClass} from './node-update-config-class.js';
 
 export interface NodeUpdateContext {
   config: NodeUpdateConfigClass;
+  upgradeZipHash: string;
 }

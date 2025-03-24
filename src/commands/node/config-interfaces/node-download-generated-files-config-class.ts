@@ -12,9 +12,11 @@ export interface NodeDownloadGeneratedFilesConfigClass {
   releaseTag: string;
   freezeAdminPrivateKey: string;
   nodeClient: any;
-  existingNodeAliases: NodeAliases[];
+  existingNodeAliases: NodeAliases;
   allNodeAliases: NodeAliases[];
   serviceMap: Map<string, NetworkNodeServices>;
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  keysDir: string;
+  stagingDir: string;
 }
