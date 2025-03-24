@@ -110,6 +110,7 @@ import {type NodeDownloadGeneratedFilesContext} from './config-interfaces/node-d
 import {type NodeKeysContext} from './config-interfaces/node-keys-context.js';
 import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-class.js';
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
+import {type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -966,41 +967,15 @@ export class NodeCommandTasks {
   }
 
   private taskCheckNetworkNodePods(
-    ctx:
-      | NodeAddContext
-      | NodeDeleteContext
-      | NodeUpdateContext
-      | NodeUpgradeContext
-      | NodeDownloadGeneratedFilesContext
-      | NodeStartContext
-      | NodeRestartContext
-      | NodeFreezeContext,
-    task: SoloListrTaskWrapper<
-      | NodeAddContext
-      | NodeDeleteContext
-      | NodeUpdateContext
-      | NodeUpgradeContext
-      | NodeDownloadGeneratedFilesContext
-      | NodeStartContext
-      | NodeRestartContext
-      | NodeFreezeContext
-    >,
+    ctx: CheckedNodesContext,
+    task: SoloListrTaskWrapper<CheckedNodesContext>,
     nodeAliases: NodeAliases,
     maxAttempts: number = undefined,
   ) {
     ctx.config.podRefs = {};
     const consensusNodes = ctx.config.consensusNodes;
 
-    const subTasks: SoloListrTask<
-      | NodeAddContext
-      | NodeDeleteContext
-      | NodeUpdateContext
-      | NodeUpgradeContext
-      | NodeDownloadGeneratedFilesContext
-      | NodeStartContext
-      | NodeRestartContext
-      | NodeFreezeContext
-    >[] = [];
+    const subTasks: SoloListrTask<CheckedNodesContext>[] = [];
 
     const self = this;
     for (const nodeAlias of nodeAliases) {
@@ -1062,16 +1037,7 @@ export class NodeCommandTasks {
     }
   }
 
-  public identifyExistingNodes(): SoloListrTask<
-    | NodeAddContext
-    | NodeDeleteContext
-    | NodeUpdateContext
-    | NodeUpgradeContext
-    | NodeDownloadGeneratedFilesContext
-    | NodeStartContext
-    | NodeRestartContext
-    | NodeFreezeContext
-  > {
+  public identifyExistingNodes(): SoloListrTask<CheckedNodesContext> {
     const self = this;
     return {
       title: 'Identify existing network nodes',

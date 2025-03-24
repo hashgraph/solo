@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
-import {type PodRef} from '../../../integration/kube/resources/pod/pod-ref.js';
-import {type NetworkNodeServices} from '../../../core/network-node-services.js';
+import {type NodeAlias} from '../../../types/aliases.js';
 import {type PrivateKey} from '@hashgraph/sdk';
-import {type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
+import {type CheckedNodesConfigClass, type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
 import {type Client} from '@hashgraph/sdk';
 
-export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias {
+export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, CheckedNodesConfigClass {
   app: string;
   cacheDir: string;
   chainId: string;
@@ -23,16 +21,12 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias {
   localBuildPath: string;
   releaseTag: string;
   adminKey: PrivateKey;
-  allNodeAliases: NodeAliases;
   chartPath: string;
   curDate: Date;
-  existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: string;
   keysDir: string;
   lastStateZipPath: string;
   nodeClient: Client;
-  podRefs: Record<NodeAlias, PodRef>;
-  serviceMap: Map<NodeAlias, NetworkNodeServices>;
   treasuryKey: PrivateKey;
   stagingDir: string;
   stagingKeysDir: string;
@@ -42,5 +36,4 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias {
   grpcWebTlsKeyPath: string;
   haproxyIps: string;
   envoyIps: string;
-  skipStop: boolean;
 }

@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
+import {type NodeAlias} from '../../../types/aliases.js';
 import {type PrivateKey} from '@hashgraph/sdk';
-import {type PodRef} from '../../../integration/kube/resources/pod/pod-ref.js';
-import {type NetworkNodeServices} from '../../../core/network-node-services.js';
-import {type NodeCommonConfigWithNodeAliases} from './node-common-config-class.js';
+import {type CheckedNodesConfigClass, type NodeCommonConfigWithNodeAliases} from './node-common-config-class.js';
 import {type Client} from '@hashgraph/sdk';
 
-export interface NodeUpgradeConfigClass extends NodeCommonConfigWithNodeAliases {
+export interface NodeUpgradeConfigClass extends NodeCommonConfigWithNodeAliases, CheckedNodesConfigClass {
   app: string;
   cacheDir: string;
   chartDirectory: string;
@@ -17,17 +15,12 @@ export interface NodeUpgradeConfigClass extends NodeCommonConfigWithNodeAliases 
   localBuildPath: string;
   releaseTag: string;
   adminKey: PrivateKey;
-  allNodeAliases: NodeAliases;
   chartPath: string;
-  serviceMap: Map<NodeAlias, NetworkNodeServices>;
-  existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: PrivateKey | string;
   keysDir: string;
   nodeClient: Client;
-  podRefs: Record<NodeAlias, PodRef>;
   stagingDir: string;
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
   curDate: Date;
-  skipStop: boolean;
 }
