@@ -110,7 +110,6 @@ import {type NodeDownloadGeneratedFilesContext} from './config-interfaces/node-d
 import {type NodeKeysContext} from './config-interfaces/node-keys-context.js';
 import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-class.js';
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
-import {NodeFreezeConfigClass} from './config-interfaces/node-freeze-config-class.js';
 
 @injectable()
 export class NodeCommandTasks {

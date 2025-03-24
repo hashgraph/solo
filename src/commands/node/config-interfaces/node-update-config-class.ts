@@ -7,7 +7,7 @@ import {type NetworkNodeServices} from '../../../core/network-node-services.js';
 import {type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
 import {type Client} from '@hashgraph/sdk';
 
-export interface NodeUpdateConfigClass extends NodeCommonConfigWithNodeAlias{
+export interface NodeUpdateConfigClass extends NodeCommonConfigWithNodeAlias {
   app: string;
   cacheDir: string;
   chartDirectory: string;
