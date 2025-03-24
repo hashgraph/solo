@@ -12,8 +12,7 @@ import {
   getTmpDir,
   HEDERA_PLATFORM_VERSION_TAG,
 } from './test-util.js';
-import {type NodeAlias} from '../src/types/aliases.js';
-import {type NetworkNodeServices} from '../src/core/network-node-services.js';
+import {type NodeAlias, type NodeServiceMapping} from '../src/types/aliases.js';
 import {Duration} from '../src/core/time/duration.js';
 import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../version-test.js';
 import {NamespaceName} from '../src/integration/kube/resources/namespace/namespace-name.js';
@@ -57,7 +56,7 @@ export function testNodeAdd(
     } = bootstrapResp;
 
     describe(testDescription, async () => {
-      let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
+      let existingServiceMap: NodeServiceMapping;
       let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
       after(async function () {

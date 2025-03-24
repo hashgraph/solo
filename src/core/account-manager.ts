@@ -31,7 +31,7 @@ import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network-no
 import {type SoloLogger} from './logging.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
-import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {type NodeAlias, type NodeServiceMapping, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
@@ -272,7 +272,7 @@ export class AccountManager {
    */
   async _getNodeClient(
     namespace: NamespaceName,
-    networkNodeServicesMap: Map<string, NetworkNodeServices>,
+    networkNodeServicesMap: NodeServiceMapping,
     operatorId: string,
     operatorKey: string,
     skipNodeAlias: string,
@@ -466,7 +466,11 @@ export class AccountManager {
    * @param [deployment] - the deployment to use
    * @returns a map of the network node services
    */
-  public async getNodeServiceMap(namespace: NamespaceName, clusterRefs: ClusterRefs, deployment?: string) {
+  public async getNodeServiceMap(
+    namespace: NamespaceName,
+    clusterRefs: ClusterRefs,
+    deployment?: string,
+  ): Promise<NodeServiceMapping> {
     const labelSelector = 'solo.hedera.com/node-name';
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
@@ -587,7 +591,7 @@ export class AccountManager {
         }
       }
 
-      const serviceMap: Map<NodeAlias, NetworkNodeServices> = new Map<NodeAlias, NetworkNodeServices>();
+      const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
       for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
         serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build());
       }

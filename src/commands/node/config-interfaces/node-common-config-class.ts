@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
-import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
+import {type NodeAlias, type NodeAliases, type NodeServiceMapping} from '../../../types/aliases.js';
 import {type ConsensusNode} from '../../../core/model/consensus-node.js';
 import {type PodRef} from '../../../integration/kube/resources/pod/pod-ref.js';
-import {type NetworkNodeServices} from '../../../core/network-node-services.js';
 
 export interface NodeCommonConfigClass {
   namespace: NamespaceName;
@@ -28,7 +27,7 @@ export interface CheckedNodesConfigClass extends NodeCommonConfigClass {
   skipStop: boolean;
   existingNodeAliases: NodeAliases;
   allNodeAliases: NodeAliases;
-  serviceMap: Map<NodeAlias, NetworkNodeServices>;
+  serviceMap: NodeServiceMapping;
 }
 
 export interface CheckedNodesContext {

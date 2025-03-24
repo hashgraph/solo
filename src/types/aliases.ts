@@ -3,6 +3,7 @@
 import {type Listr, type ListrTaskWrapper} from 'listr2';
 import {type Stats} from 'node:fs';
 import {type ReadEntry} from 'tar';
+import {type NetworkNodeServices} from '../core/network-node-services.js';
 
 export type NodeAlias = `node${number}`;
 export type NodeId = number;
@@ -36,3 +37,5 @@ export type AnyListrContext = any;
 export type SdkNetworkEndpoint = `${string}:${number}`;
 
 export type ArgvStruct = {_: string[]} & Record<string, any>;
+
+export type NodeServiceMapping = Map<NodeAlias, NetworkNodeServices>;

@@ -18,8 +18,7 @@ import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import {type NodeAlias} from '../../../src/types/aliases.js';
-import {type NetworkNodeServices} from '../../../src/core/network-node-services.js';
+import {type NodeAlias, type NodeServiceMapping} from '../../../src/types/aliases.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
@@ -54,7 +53,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   } = bootstrapResp;
 
   describe('Node add via separated commands should success', async () => {
-    let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
+    let existingServiceMap: NodeServiceMapping;
     let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
     after(async function () {

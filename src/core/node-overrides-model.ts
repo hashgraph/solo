@@ -3,15 +3,14 @@
 import * as yaml from 'yaml';
 import * as constants from './constants.js';
 import {Templates} from './templates.js';
-import {type NodeAliases} from '../types/aliases.js';
-import {type NetworkNodeServices} from './network-node-services.js';
+import {type NodeAliases, type NodeServiceMapping} from '../types/aliases.js';
 import {type GossipEndpoint} from '../types/index.js';
 
 export class NodeOverridesModel {
   private readonly interfaceBindings: GossipEndpoint[] = [];
   private readonly endpointOverrides: GossipEndpoint[] = [];
 
-  public constructor(nodeAliases: NodeAliases, networkNodeServiceMap: Map<string, NetworkNodeServices>) {
+  public constructor(nodeAliases: NodeAliases, networkNodeServiceMap: NodeServiceMapping) {
     nodeAliases.forEach(nodeAlias => {
       const nodeId = +networkNodeServiceMap.get(nodeAlias).nodeId;
 

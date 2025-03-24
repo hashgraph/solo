@@ -6,10 +6,9 @@ import * as constants from '../constants.js';
 
 import {type KeyManager} from '../key-manager.js';
 import {type ToJSON} from '../../types/index.js';
-import {type JsonString, type NodeAlias} from '../../types/aliases.js';
+import {type JsonString, type NodeAlias, type NodeServiceMapping} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis-network-roster-entry-data-wrapper.js';
 import {Templates} from '../templates.js';
-import {type NetworkNodeServices} from '../network-node-services.js';
 import {SoloError} from '../errors/solo-error.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account-manager.js';
@@ -28,7 +27,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly accountManager: AccountManager,
     private readonly keysDir: string,
-    private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    private readonly networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeyMap: Map<NodeAlias, string>,
   ) {
     this.initializationPromise = (async () => {
@@ -85,7 +84,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     keyManager: KeyManager,
     accountManager: AccountManager,
     keysDir: string,
-    networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeys: string[],
   ): Promise<GenesisNetworkDataConstructor> {
     const adminPublicKeyMap: Map<NodeAlias, string> = new Map();
