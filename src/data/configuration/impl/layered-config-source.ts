@@ -58,6 +58,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
       if (val === null || val === undefined) {
         return null;
       }
+      return true;
     }
 
     throw new ConfigurationError('value is not a boolean');
