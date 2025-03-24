@@ -40,9 +40,6 @@ import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {type SoloLogger} from '../../../src/core/logging.js';
 import {resetTestContainer} from '../../test-container.js';
-import {LocalConfig} from '../../../src/core/config/local-config.js';
-import {PathEx} from '../../../src/business/utils/path-ex.js';
-import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 

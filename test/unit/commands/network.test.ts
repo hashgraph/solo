@@ -65,7 +65,6 @@ describe('NetworkCommand unit tests', () => {
     const keyManagerStub = sinon.stub() as unknown as KeyManager;
     const depManagerStub = sinon.stub() as unknown as DependencyManager;
     const helmStub = sinon.stub() as unknown as Helm;
-    const localConfigStub = sinon.stub() as unknown as LocalConfig;
     let containerOverrides: any;
 
     beforeEach(() => {
@@ -80,7 +79,6 @@ describe('NetworkCommand unit tests', () => {
         KeyManager: [{useValue: keyManagerStub}],
         DependencyManager: [{useValue: depManagerStub}],
         Helm: [{useValue: helmStub}],
-        LocalConfig: [{useValue: localConfigStub}],
       };
 
       resetForTest(undefined, undefined, getTestLogger(), true, containerOverrides);
@@ -137,7 +135,7 @@ describe('NetworkCommand unit tests', () => {
       clusterChecksStub.isCertManagerInstalled = sinon.stub();
 
       opts.depManager = depManagerStub;
-      opts.localConfig = localConfigStub;
+      opts.localConfig = container.resolve<ConfigManager>(InjectTokens.LocalConfig);
       opts.helm = helmStub;
       opts.helm.dependency = sinon.stub();
 
