@@ -189,12 +189,12 @@ export function bootstrapTestVariables(
       accountManager,
     },
     cmd: {
-      initCmd: initCmdArg || new InitCommand(opts),
-      clusterCmd: clusterCmdArg || new ClusterCommand(opts),
-      networkCmd: networkCmdArg || new NetworkCommand(opts),
-      nodeCmd: nodeCmdArg || new NodeCommand(opts),
-      accountCmd: accountCmdArg || new AccountCommand(opts, constants.SHORTER_SYSTEM_ACCOUNTS),
-      deploymentCmd: deploymentCmdArg || new DeploymentCommand(opts),
+      initCmd: initCmdArg || container.resolve(InitCommand),
+      clusterCmd: clusterCmdArg || container.resolve(ClusterCommand),
+      networkCmd: networkCmdArg || container.resolve(NetworkCommand),
+      nodeCmd: nodeCmdArg || container.resolve(NodeCommand),
+      accountCmd: accountCmdArg || container.resolve(AccountCommand),
+      deploymentCmd: deploymentCmdArg || container.resolve(DeploymentCommand),
     },
   };
 }

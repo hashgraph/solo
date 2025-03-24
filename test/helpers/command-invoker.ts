@@ -8,6 +8,9 @@ import {type Argv} from './argv-wrapper.js';
 import {type ConfigManager} from '../../src/core/config-manager.js';
 import {type SoloLogger} from '../../src/core/logging.js';
 import {type K8Factory} from '../../src/core/kube/k8-factory.js';
+import {resetTestContainer} from '../test-container.js';
+import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
+import {container} from 'tsyringe-neo';
 
 export class CommandInvoker {
   private readonly middlewares: Middlewares;
@@ -21,10 +24,14 @@ export class CommandInvoker {
     k8Factory: K8Factory;
     logger: SoloLogger;
   }) {
-    this.middlewares = new Middlewares(opts as any);
-    this.configManager = opts.configManager;
-    this.k8Factory = opts.k8Factory;
-    this.remoteConfigManager = opts.remoteConfigManager;
+    resetTestContainer(undefined, undefined, {
+      ConfigManager: opts.configManager,
+      RemoteConfigManager: opts.remoteConfigManager,
+      K8Factory: opts.k8Factory,
+      SoloLogger: opts.logger,
+    });
+
+    this.middlewares = container.resolve(InjectTokens.Middlewares);
   }
 
   public async invoke({

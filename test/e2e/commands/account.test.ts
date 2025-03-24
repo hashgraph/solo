@@ -18,7 +18,13 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster} from '../../test-util.js';
+import {
+  e2eTestSuite,
+  HEDERA_PLATFORM_VERSION_TAG,
+  getTestLogger,
+  getTestCluster,
+  BASE_TEST_DIR,
+} from '../../test-util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -33,6 +39,10 @@ import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {type SoloLogger} from '../../../src/core/logging.js';
+import {resetTestContainer} from '../../test-container.js';
+import {LocalConfig} from '../../../src/core/config/local-config.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -63,7 +73,11 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
     } = bootstrapResp;
 
     before(() => {
-      accountCmd = new AccountCommand(bootstrapResp.opts, testSystemAccounts);
+      resetTestContainer(undefined, undefined, {
+        SystemAccounts: [{useValue: testSystemAccounts}],
+      });
+
+      accountCmd = container.resolve(AccountCommand) as AccountCommand;
       bootstrapResp.cmd.accountCmd = accountCmd;
       testLogger = getTestLogger();
     });

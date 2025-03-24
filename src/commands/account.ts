@@ -49,11 +49,10 @@ export class AccountCommand extends BaseCommand {
     privateKey?: string;
     accountAlias?: string;
   } | null;
-  private readonly systemAccounts: number[][];
 
   public constructor(
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
-    systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS,
+    @inject(InjectTokens.SystemAccounts) private readonly systemAccounts: number[][],
   ) {
     super();
 

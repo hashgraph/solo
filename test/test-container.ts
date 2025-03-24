@@ -16,10 +16,6 @@ export function resetTestContainer(cacheDir: string = cacheDirectory, testLogger
   Container.getInstance().reset(cacheDir, cacheDir, 'debug', true, testLogger, mocks);
 }
 
-interface Mocks {
-  remoteConfigManager?: RemoteConfigManager;
-}
-
 export function resetForTest(
   namespace?: NamespaceNameAsString,
   cacheDir: string = cacheDirectory,

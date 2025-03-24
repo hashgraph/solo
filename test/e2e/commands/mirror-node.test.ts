@@ -51,9 +51,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       opts: {k8Factory, accountManager, logger, commandInvoker, remoteConfigManager},
     } = bootstrapResp;
 
-    const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
-    const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
-    const downloader = new PackageDownloader(logger);
+    const mirrorNodeCmd = container.resolve(InjectTokens.MirrorNodeCommand) as MirrorNodeCommand;
+    const explorerCommand = container.resolve(InjectTokens.ExplorerCommand) as ExplorerCommand;
+    const downloader = container.resolve(InjectTokens.PackageDownloader) as PackageDownloader;
 
     const testMessage = 'Mirror node test message';
     let portForwarder = null;

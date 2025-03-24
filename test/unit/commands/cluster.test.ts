@@ -24,6 +24,7 @@ import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespac
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {ClusterCommandHandlers} from '../../../src/commands/cluster/handlers.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -87,8 +88,8 @@ describe('ClusterCommand unit tests', () => {
     });
 
     it('Install function is called with expected parameters', async () => {
-      const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.handlers.setup(argv.build());
+      const clusterCommandHandlers = container.resolve(ClusterCommandHandlers) as ClusterCommandHandlers;
+      await clusterCommandHandlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
@@ -102,8 +103,8 @@ describe('ClusterCommand unit tests', () => {
       argv.setArg(flags.chartDirectory, 'test-directory');
       argv.setArg(flags.force, true);
 
-      const clusterCommand = new ClusterCommand(opts);
-      await clusterCommand.handlers.setup(argv.build());
+      const clusterCommandHandlers = container.resolve(ClusterCommandHandlers) as ClusterCommandHandlers;
+      await clusterCommandHandlers.setup(argv.build());
 
       expect(opts.chartManager.install.args[0][2]).to.equal(
         PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),

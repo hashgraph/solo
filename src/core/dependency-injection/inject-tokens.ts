@@ -10,6 +10,7 @@ export const InjectTokens = {
   OsArch: Symbol.for('OsArch'),
   HelmInstallationDir: Symbol.for('HelmInstallationDir'),
   HelmVersion: Symbol.for('HelmVersion'),
+  SystemAccounts: Symbol.for('SystemAccounts'),
   CacheDir: Symbol.for('CacheDir'),
   LocalConfigFilePath: Symbol.for('LocalConfigFilePath'),
   LockRenewalService: Symbol.for('LockRenewalService'),
