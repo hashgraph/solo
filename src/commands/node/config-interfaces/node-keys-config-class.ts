@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
+import {type NodeCommonConfigWithNodeAliases} from './node-common-config-class.js';
 
-export interface NodeKeysConfigClass extends NodeCommonConfigWithNodeAlias {
+export interface NodeKeysConfigClass extends NodeCommonConfigWithNodeAliases {
   cacheDir: string;
   devMode: boolean;
   generateGossipKeys: boolean;

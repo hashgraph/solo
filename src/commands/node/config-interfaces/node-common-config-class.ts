@@ -12,11 +12,11 @@ export interface NodeCommonConfigClass {
   quiet: boolean;
 }
 
-export interface NodeCommonConfigWithNodeAliases {
+export interface NodeCommonConfigWithNodeAliases extends NodeCommonConfigClass {
   nodeAliases: NodeAliases;
   nodeAliasesUnparsed: string;
 }
 
-export interface NodeCommonConfigWithNodeAlias {
+export interface NodeCommonConfigWithNodeAlias extends NodeCommonConfigClass {
   nodeAlias: NodeAlias;
 }
