@@ -10,7 +10,7 @@ import fs from 'fs';
 import {checkNamespace} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
-import {type AnyObject, type ArgvStruct} from '../../types/aliases.js';
+import {type AnyObject, type ArgvStruct, NodeAlias} from '../../types/aliases.js';
 import {type NodeAddConfigClass} from './config-interfaces/node-add-config-class.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -446,10 +446,7 @@ export class NodeCommandConfigs {
     if (ctx.config.nodeAliases.length === 0) {
       const consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
-      // @ts-expect-error TS2322 Type 'string[]' is not assignable to type 'NodeAliases'
-      config.nodeAliases = consensusNodes.map((node: {name: string}) => {
-        return node.name;
-      });
+      ctx.config.nodeAliases = consensusNodes.map(node => node.name);
       if (ctx.config.nodeAliases.length === 0) {
         throw new SoloError('no node aliases provided via flags or RemoteConfig');
       }
