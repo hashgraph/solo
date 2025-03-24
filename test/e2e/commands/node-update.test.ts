@@ -20,10 +20,11 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
-import {type NodeAlias, type NodeServiceMapping} from '../../../src/types/aliases.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
+import {type NodeServiceMapping} from '../../../src/types/mappings/node-service-mapping.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update');

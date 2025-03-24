@@ -6,7 +6,7 @@ import * as constants from '../constants.js';
 
 import {type KeyManager} from '../key-manager.js';
 import {type ToJSON} from '../../types/index.js';
-import {type JsonString, type NodeAlias, type NodeServiceMapping} from '../../types/aliases.js';
+import {type JsonString, type NodeAlias} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis-network-roster-entry-data-wrapper.js';
 import {Templates} from '../templates.js';
 import {SoloError} from '../errors/solo-error.js';
@@ -14,6 +14,7 @@ import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account-manager.js';
 import {type ConsensusNode} from '../model/consensus-node.js';
 import {PathEx} from '../../business/utils/path-ex.js';
+import {type NodeServiceMapping} from '../../types/mappings/node-service-mapping.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON

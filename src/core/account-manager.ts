@@ -31,7 +31,7 @@ import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network-no
 import {type SoloLogger} from './logging.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
-import {type NodeAlias, type NodeServiceMapping, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
@@ -47,6 +47,7 @@ import {type Service} from '../integration/kube/resources/service/service.js';
 import {SoloService} from './model/solo-service.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type NodeServiceMapping} from '../types/mappings/node-service-mapping.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';

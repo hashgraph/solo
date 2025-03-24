@@ -3,8 +3,9 @@
 import * as yaml from 'yaml';
 import * as constants from './constants.js';
 import {Templates} from './templates.js';
-import {type NodeAliases, type NodeServiceMapping} from '../types/aliases.js';
+import {type NodeAliases} from '../types/aliases.js';
 import {type GossipEndpoint} from '../types/index.js';
+import {type NodeServiceMapping} from '../types/mappings/node-service-mapping.js';
 
 export class NodeOverridesModel {
   private readonly interfaceBindings: GossipEndpoint[] = [];
