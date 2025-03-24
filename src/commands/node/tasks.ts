@@ -110,7 +110,7 @@ import {type NodeDownloadGeneratedFilesContext} from './config-interfaces/node-d
 import {type NodeKeysContext} from './config-interfaces/node-keys-context.js';
 import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-class.js';
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
-import {type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
+import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -1445,7 +1445,7 @@ export class NodeCommandTasks {
           const subTasks: SoloListrTask<NodeStartContext>[] = [];
 
           const accountMap = getNodeAccountMap(ctx.config.nodeAliases);
-          // @ts-ignore
+          // @ts-expect-error - TS2339: Property stakeAmount does not exist on type NodeStartConfigClass
           // TODO: 'ctx.config.stakeAmount' is never initialized in the config
           const stakeAmountParsed = ctx.config.stakeAmount ? splitFlagInput(ctx.config.stakeAmount) : [];
           let nodeIndex = 0;
@@ -1499,12 +1499,10 @@ export class NodeCommandTasks {
       task: async (ctx, task) => {
         const subTasks: SoloListrTask<NodeStopContext | NodeFreezeContext | NodeDeleteContext>[] = [];
 
-        // @ts-ignore TODO: investigate
-        if (!ctx.config.skipStop) {
+        if (!(ctx.config as CheckedNodesConfigClass).skipStop) {
           await this.accountManager.close();
           for (const nodeAlias of ctx.config[nodeAliasesProperty]) {
-            // @ts-ignore TODO: investigate
-            const podRef = ctx.config.podRefs[nodeAlias];
+            const podRef = (ctx.config as CheckedNodesConfigClass).podRefs[nodeAlias];
             const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
             const context = helpers.extractContextFromConsensusNodes(nodeAlias, ctx.config.consensusNodes);
 
@@ -1654,19 +1652,19 @@ export class NodeCommandTasks {
   }
 
   public generateGossipKeys(): SoloListrTask<NodeKeysContext> {
-    return this._generateGossipKeys(true);
+    return this._generateGossipKeys(true) as SoloListrTask<NodeKeysContext>;
   }
 
   public generateGossipKey(): SoloListrTask<NodeAddContext> {
-    return this._generateGossipKeys(false);
+    return this._generateGossipKeys(false) as SoloListrTask<NodeAddContext>;
   }
 
   public generateGrpcTlsKeys(): SoloListrTask<NodeKeysContext> {
-    return this._generateGrpcTlsKeys(true);
+    return this._generateGrpcTlsKeys(true) as SoloListrTask<NodeKeysContext>;
   }
 
   public generateGrpcTlsKey(): SoloListrTask<NodeAddContext> {
-    return this._generateGrpcTlsKeys(false);
+    return this._generateGrpcTlsKeys(false) as SoloListrTask<NodeAddContext>;
   }
 
   public loadSigningKeyCertificate(): SoloListrTask<NodeAddContext> {
@@ -1854,7 +1852,7 @@ export class NodeCommandTasks {
     };
   }
 
-  updateChartWithConfigMap(
+  public updateChartWithConfigMap(
     title: string,
     transactionType: NodeSubcommandType,
     skip: SkipCheck | boolean = false,
@@ -2055,7 +2053,7 @@ export class NodeCommandTasks {
           throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`);
         }
 
-        // @ts-ignore
+        // @ts-expect-error - TS2345
         const ctxData = JSON.parse(fs.readFileSync(PathEx.joinWithRealPath(inputDir, targetFile)));
         parser(ctx, ctxData);
       },

@@ -4,7 +4,8 @@ import {type CheckedNodesConfigClass, type NodeCommonConfigWithNodeAliases} from
 import {type Client} from '@hashgraph/sdk';
 
 export interface NodeDownloadGeneratedFilesConfigClass
-  extends NodeCommonConfigWithNodeAliases, CheckedNodesConfigClass {
+  extends NodeCommonConfigWithNodeAliases,
+    CheckedNodesConfigClass {
   cacheDir: string;
   releaseTag: string;
   freezeAdminPrivateKey: string;

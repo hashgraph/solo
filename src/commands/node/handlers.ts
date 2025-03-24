@@ -77,8 +77,8 @@ export class NodeCommandHandlers extends CommandHandler {
   private deleteSubmitTransactionsTaskList(): SoloListrTask<NodeDeleteContext>[] {
     return [
       this.tasks.sendNodeDeleteTransaction(),
-      this.tasks.sendPrepareUpgradeTransaction(),
-      this.tasks.sendFreezeUpgradeTransaction(),
+      this.tasks.sendPrepareUpgradeTransaction() as SoloListrTask<NodeDeleteContext>,
+      this.tasks.sendFreezeUpgradeTransaction() as SoloListrTask<NodeDeleteContext>,
     ];
   }
 
@@ -131,8 +131,8 @@ export class NodeCommandHandlers extends CommandHandler {
   private addSubmitTransactionsTasks(): SoloListrTask<NodeAddContext>[] {
     return [
       this.tasks.sendNodeCreateTransaction(),
-      this.tasks.sendPrepareUpgradeTransaction(),
-      this.tasks.sendFreezeUpgradeTransaction(),
+      this.tasks.sendPrepareUpgradeTransaction() as SoloListrTask<NodeAddContext>,
+      this.tasks.sendFreezeUpgradeTransaction() as SoloListrTask<NodeAddContext>,
     ];
   }
 
@@ -176,8 +176,8 @@ export class NodeCommandHandlers extends CommandHandler {
   private updateSubmitTransactionsTasks(): SoloListrTask<NodeUpdateContext>[] {
     return [
       this.tasks.sendNodeUpdateTransaction(),
-      this.tasks.sendPrepareUpgradeTransaction(),
-      this.tasks.sendFreezeUpgradeTransaction(),
+      this.tasks.sendPrepareUpgradeTransaction() as SoloListrTask<NodeUpdateContext>,
+      this.tasks.sendFreezeUpgradeTransaction() as SoloListrTask<NodeUpdateContext>,
     ];
   }
 
@@ -218,7 +218,10 @@ export class NodeCommandHandlers extends CommandHandler {
   }
 
   private upgradeSubmitTransactionsTasks(): SoloListrTask<NodeUpgradeContext>[] {
-    return [this.tasks.sendPrepareUpgradeTransaction(), this.tasks.sendFreezeUpgradeTransaction()];
+    return [
+      this.tasks.sendPrepareUpgradeTransaction() as SoloListrTask<NodeUpgradeContext>,
+      this.tasks.sendFreezeUpgradeTransaction() as SoloListrTask<NodeUpgradeContext>,
+    ];
   }
 
   private upgradeExecuteTasks(): SoloListrTask<NodeUpgradeContext>[] {
