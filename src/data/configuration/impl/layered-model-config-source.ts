@@ -57,17 +57,12 @@ export abstract class LayeredModelConfigSource<T extends object>
       throw new ConfigurationError('backend must be an object storage backend');
     }
 
-    this.data.clear();
+    this.data = null;
     this.forest = null;
 
     const value: object = await this.backend.readObject(this.key);
     this.modelData = await this.schema.transform(value);
-    const keyMap: Map<string, string> = this.mapper.toFlatKeyMap(this.modelData);
-
-    for (const [key, value] of keyMap.entries()) {
-      this.data.set(key, value);
-    }
-
+    this.data = this.mapper.toFlatKeyMap(this.modelData);
     this.forest = Forest.from(this.data);
   }
 }

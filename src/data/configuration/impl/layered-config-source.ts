@@ -15,13 +15,13 @@ import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 export abstract class LayeredConfigSource implements ConfigSource {
   /**
    * The data read from the environment.
-   * @private
+   * @protected
    */
-  protected readonly data: Map<string, string>;
+  protected data: Map<string, string>;
 
   /**
    * The forest model of the configuration keys and values.
-   * @private
+   * @protected
    */
   protected forest: Forest;
 
@@ -66,7 +66,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
   public asNumber(key: string): number | null {
     const stringVal: string = this.forest.valueFor(key);
 
-    if (!stringVal && stringVal.trim().length === 0) {
+    if (!stringVal || stringVal.trim().length === 0) {
       return null;
     }
 
