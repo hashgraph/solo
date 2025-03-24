@@ -110,6 +110,7 @@ import {type NodeDownloadGeneratedFilesContext} from './config-interfaces/node-d
 import {type NodeKeysContext} from './config-interfaces/node-keys-context.js';
 import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-class.js';
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
+import {NodeFreezeConfigClass} from './config-interfaces/node-freeze-config-class.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -966,17 +967,42 @@ export class NodeCommandTasks {
   }
 
   private taskCheckNetworkNodePods(
-    ctx: any,
-    task: SoloListrTaskWrapper<any>,
+    ctx:
+      | NodeAddContext
+      | NodeDeleteContext
+      | NodeUpdateContext
+      | NodeUpgradeContext
+      | NodeDownloadGeneratedFilesContext
+      | NodeStartContext
+      | NodeRestartContext
+      | NodeFreezeContext,
+    task: SoloListrTaskWrapper<
+      | NodeAddContext
+      | NodeDeleteContext
+      | NodeUpdateContext
+      | NodeUpgradeContext
+      | NodeDownloadGeneratedFilesContext
+      | NodeStartContext
+      | NodeRestartContext
+      | NodeFreezeContext
+    >,
     nodeAliases: NodeAliases,
-    maxAttempts = undefined,
+    maxAttempts: number = undefined,
   ) {
-    if (!ctx.config) ctx.config = {};
-
     ctx.config.podRefs = {};
-    const consensusNodes: Optional<ConsensusNode[]> = ctx.config.consensusNodes;
+    const consensusNodes = ctx.config.consensusNodes;
 
-    const subTasks = [];
+    const subTasks: SoloListrTask<
+      | NodeAddContext
+      | NodeDeleteContext
+      | NodeUpdateContext
+      | NodeUpgradeContext
+      | NodeDownloadGeneratedFilesContext
+      | NodeStartContext
+      | NodeRestartContext
+      | NodeFreezeContext
+    >[] = [];
+
     const self = this;
     for (const nodeAlias of nodeAliases) {
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
@@ -1037,7 +1063,16 @@ export class NodeCommandTasks {
     }
   }
 
-  public identifyExistingNodes() {
+  public identifyExistingNodes(): SoloListrTask<
+    | NodeAddContext
+    | NodeDeleteContext
+    | NodeUpdateContext
+    | NodeUpgradeContext
+    | NodeDownloadGeneratedFilesContext
+    | NodeStartContext
+    | NodeRestartContext
+    | NodeFreezeContext
+  > {
     const self = this;
     return {
       title: 'Identify existing network nodes',
@@ -1445,7 +1480,8 @@ export class NodeCommandTasks {
           const subTasks: SoloListrTask<NodeStartContext>[] = [];
 
           const accountMap = getNodeAccountMap(ctx.config.nodeAliases);
-          // @ts-ignore TODO: Investigate
+          // @ts-ignore
+          // TODO: 'ctx.config.stakeAmount' is never initialized in the config
           const stakeAmountParsed = ctx.config.stakeAmount ? splitFlagInput(ctx.config.stakeAmount) : [];
           let nodeIndex = 0;
           for (const nodeAlias of ctx.config.nodeAliases) {

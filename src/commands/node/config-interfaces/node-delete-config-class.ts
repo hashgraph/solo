@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
-import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {type PrivateKey} from '@hashgraph/sdk';
 import {type PodRef} from '../../../integration/kube/resources/pod/pod-ref.js';
 import {type NetworkNodeServices} from '../../../core/network-node-services.js';
-import {type ConsensusNode} from '../../../core/model/consensus-node.js';
+import {type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
+import {type Client} from '@hashgraph/sdk';
 
-export interface NodeDeleteConfigClass {
+export interface NodeDeleteConfigClass extends NodeCommonConfigWithNodeAlias {
   app: string;
   cacheDir: string;
   chartDirectory: string;
@@ -16,9 +16,6 @@ export interface NodeDeleteConfigClass {
   endpointType: string;
   soloChartVersion: string;
   localBuildPath: string;
-  namespace: NamespaceName;
-  deployment: string;
-  nodeAlias: NodeAlias;
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
@@ -26,13 +23,12 @@ export interface NodeDeleteConfigClass {
   existingNodeAliases: NodeAliases;
   freezeAdminPrivateKey: string;
   keysDir: string;
-  nodeClient: any;
+  nodeClient: Client;
   podRefs: Record<NodeAlias, PodRef>;
   serviceMap: Map<string, NetworkNodeServices>;
   stagingDir: string;
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
   curDate: Date;
-  consensusNodes: ConsensusNode[];
-  contexts: string[];
+  skipStop: boolean;
 }

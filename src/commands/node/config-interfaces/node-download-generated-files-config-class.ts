@@ -1,22 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
-import {type NodeAliases} from '../../../types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type NetworkNodeServices} from '../../../core/network-node-services.js';
-import {type ConsensusNode} from '../../../core/model/consensus-node.js';
+import {type PodRef} from '../../../integration/kube/resources/pod/pod-ref.js';
+import {type NodeCommonConfigWithNodeAliases} from './node-common-config-class.js';
+import {type Client} from '@hashgraph/sdk';
 
-export interface NodeDownloadGeneratedFilesConfigClass {
+export interface NodeDownloadGeneratedFilesConfigClass extends NodeCommonConfigWithNodeAliases {
   cacheDir: string;
-  namespace: NamespaceName;
-  deployment: string;
   releaseTag: string;
   freezeAdminPrivateKey: string;
-  nodeClient: any;
+  nodeClient: Client;
   existingNodeAliases: NodeAliases;
-  allNodeAliases: NodeAliases[];
+  allNodeAliases: NodeAliases;
   serviceMap: Map<string, NetworkNodeServices>;
-  consensusNodes: ConsensusNode[];
-  contexts: string[];
+  podRefs: Record<NodeAlias, PodRef>;
   keysDir: string;
   stagingDir: string;
+  skipStop: boolean;
 }

@@ -4,10 +4,10 @@ import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type PodRef} from '../../../integration/kube/resources/pod/pod-ref.js';
 import {type NetworkNodeServices} from '../../../core/network-node-services.js';
 import {type PrivateKey} from '@hashgraph/sdk';
-import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
-import {type ConsensusNode} from '../../../core/model/consensus-node.js';
+import {type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
+import {type Client} from '@hashgraph/sdk';
 
-export interface NodeAddConfigClass {
+export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias {
   app: string;
   cacheDir: string;
   chainId: string;
@@ -21,9 +21,6 @@ export interface NodeAddConfigClass {
   gossipEndpoints: string;
   grpcEndpoints: string;
   localBuildPath: string;
-  namespace: NamespaceName;
-  deployment: string;
-  nodeAlias: NodeAlias;
   releaseTag: string;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
@@ -33,9 +30,9 @@ export interface NodeAddConfigClass {
   freezeAdminPrivateKey: string;
   keysDir: string;
   lastStateZipPath: string;
-  nodeClient: any;
+  nodeClient: Client;
   podRefs: Record<NodeAlias, PodRef>;
-  serviceMap: Map<string, NetworkNodeServices>;
+  serviceMap: Map<NodeAlias, NetworkNodeServices>;
   treasuryKey: PrivateKey;
   stagingDir: string;
   stagingKeysDir: string;
@@ -45,6 +42,5 @@ export interface NodeAddConfigClass {
   grpcWebTlsKeyPath: string;
   haproxyIps: string;
   envoyIps: string;
-  consensusNodes: ConsensusNode[];
-  contexts: string[];
+  skipStop: boolean;
 }

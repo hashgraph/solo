@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
-import {type ConsensusNode} from '../../../core/model/consensus-node.js';
+import {type NodeCommonConfigWithNodeAliases} from './node-common-config-class.js';
+import {type Client} from '@hashgraph/sdk';
 
-export interface NodePrepareUpgradeConfigClass {
+export interface NodePrepareUpgradeConfigClass extends NodeCommonConfigWithNodeAliases {
   cacheDir: string;
-  namespace: NamespaceName;
-  deployment: string;
   releaseTag: string;
   freezeAdminPrivateKey: string;
-  nodeClient: any;
-  consensusNodes: ConsensusNode[];
-  contexts: string[];
+  nodeClient: Client;
 }

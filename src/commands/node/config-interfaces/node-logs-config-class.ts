@@ -1,12 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
-import {type ConsensusNode} from '../../../core/model/consensus-node.js';
+import {type NodeCommonConfigWithNodeAliases} from './node-common-config-class.js';
 
-export interface NodeLogsConfigClass {
-  namespace: NamespaceName;
-  deployment: string;
-  nodeAliases: string[];
-  consensusNodes: ConsensusNode[];
-  contexts: string[];
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface NodeLogsConfigClass extends NodeCommonConfigWithNodeAliases {}
