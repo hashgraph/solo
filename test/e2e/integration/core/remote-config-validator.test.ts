@@ -20,15 +20,16 @@ import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components
 
 import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../../src/core/kube/resources/pod/pod-ref.js';
-import {PodName} from '../../../../src/core/kube/resources/pod/pod-name.js';
-import {ContainerName} from '../../../../src/core/kube/resources/container/container-name.js';
+import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../../src/integration/kube/resources/pod/pod-ref.js';
+import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
+import {ContainerName} from '../../../../src/integration/kube/resources/container/container-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
-import {type K8Factory} from '../../../../src/core/kube/k8-factory.js';
-import {LocalConfig} from '../../../../src/core/config/local-config.js';
+import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
+import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {getTestCacheDir} from '../../../test-util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
@@ -43,6 +44,8 @@ describe('RemoteConfigValidator', () => {
     configManager.update({[flags.namespace.name]: namespace} as ArgvStruct);
     k8Factory = container.resolve(InjectTokens.K8Factory);
     localConfig = new LocalConfig(filePath);
+    // @ts-expect-error - TS2341: to mock
+    localConfig.localConfigData = new LocalConfigDataWrapper('test@test.com', '0.0.1', {}, {});
     await k8Factory.default().namespaces().create(namespace);
   });
 

@@ -19,14 +19,14 @@ import * as http from 'http';
 import {PackageDownloader} from '../../../src/core/package-downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {GENESIS_KEY} from '../../../src/core/constants.js';
-import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
+import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 
 const testName = 'mirror-cmd-e2e';
 const namespace = NamespaceName.of(testName);

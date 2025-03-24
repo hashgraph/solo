@@ -6,9 +6,9 @@ import {type DependencyManager} from '../../../src/core/dependency-managers/inde
 import {type Helm} from '../../../src/core/helm.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
-import {type LocalConfig} from '../../../src/core/config/local-config.js';
+import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
-import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
+import {K8Client} from '../../../src/integration/kube/k8-client/k8-client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
@@ -150,7 +150,9 @@ describe('BaseCommand', () => {
       const configManager = sinon.stub();
       const depManager = sinon.stub();
       const localConfig = sinon.stub() as unknown as LocalConfig;
-      localConfig.clusterRefs = {cluster: 'context1', cluster2: 'context2'};
+
+      // @ts-expect-error - TS2540: to mock
+      localConfig.clusterRefs = sandbox.stub().returns({cluster: 'context1', cluster2: 'context2'});
       const {
         wrapper: {componentsDataWrapper},
       } = createComponentsDataWrapper();
@@ -158,7 +160,7 @@ describe('BaseCommand', () => {
       const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject());
       const remoteConfigManager = sinon.createStubInstance(RemoteConfigManager);
 
-      const mockecConsensusNodes = [
+      const mockConsensusNodes = [
         new ConsensusNode(
           'name' as NodeAlias,
           0,
@@ -181,8 +183,8 @@ describe('BaseCommand', () => {
         ),
       ];
 
-      remoteConfigManager.getConsensusNodes.returns(mockecConsensusNodes);
-      remoteConfigManager.getContexts.returns(mockecConsensusNodes.map(node => node.context));
+      remoteConfigManager.getConsensusNodes.returns(mockConsensusNodes);
+      remoteConfigManager.getContexts.returns(mockConsensusNodes.map(node => node.context));
       remoteConfigManager.getClusterRefs.returns({cluster: 'context1', cluster2: 'context2'});
 
       Object.defineProperty(remoteConfigManager, 'components', {

@@ -4,7 +4,7 @@ import {describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {type InitCommand} from '../../../../src/commands/init.js';
-import {K8Client} from '../../../../src/core/kube/k8-client/k8-client.js';
+import {K8Client} from '../../../../src/integration/kube/k8-client/k8-client.js';
 import {LocalConfig} from '../../../../src/core/config/local-config.js';
 import sinon from 'sinon';
 import {BASE_TEST_DIR} from '../../../test-util.js';
