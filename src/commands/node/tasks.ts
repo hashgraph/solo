@@ -55,7 +55,7 @@ import {Flags as flags} from '../flags.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {
   type AnyListrContext,
-  type AnyObject,
+  type AnyObject, ArgvStruct,
   type ConfigBuilder,
   type NodeAlias,
   type NodeAliases,
@@ -74,7 +74,7 @@ import {PodRef} from '../../integration/kube/resources/pod/pod-ref.js';
 import {ContainerRef} from '../../integration/kube/resources/container/container-ref.js';
 import {NetworkNodes} from '../../core/network-nodes.js';
 import {container} from 'tsyringe-neo';
-import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
+import {type Optional, SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../../core/config/remote/types.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
@@ -98,6 +98,7 @@ import {type NodeDeleteConfigClass} from './config-interfaces/node-delete-config
 import {type NodeRefreshConfigClass} from './config-interfaces/node-refresh-config-class.js';
 import {type NodeUpdateConfigClass} from './config-interfaces/node-update-config-class.js';
 import {type NodeAddContext} from './config-interfaces/node-add-context.js';
+import {NodeDeleteContext} from './config-interfaces/node-delete-context.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -2035,169 +2036,185 @@ export class NodeCommandTasks {
     });
   }
 
-  downloadLastState() {
-    return new Task('Download last state from an existing node', async (ctx, task) => {
-      const config = ctx.config;
-      const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0]);
-      const podRef = PodRef.of(config.namespace, node1FullyQualifiedPodName);
-      const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
-      const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`;
+  public downloadLastState(): SoloListrTask<NodeAddContext> {
+    return {
+      title: 'Download last state from an existing node',
+      task: async ctx => {
+        const config = ctx.config;
+        const node1FullyQualifiedPodName = Templates.renderNetworkPodName(config.existingNodeAliases[0]);
+        const podRef = PodRef.of(config.namespace, node1FullyQualifiedPodName);
+        const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
+        const upgradeDirectory = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/0/123`;
 
-      const context = helpers.extractContextFromConsensusNodes(
-        config.existingNodeAliases[0],
-        ctx.config.consensusNodes,
-      );
+        const context = helpers.extractContextFromConsensusNodes(
+          config.existingNodeAliases[0],
+          ctx.config.consensusNodes,
+        );
 
-      const k8 = this.k8Factory.getK8(context);
+        const k8 = this.k8Factory.getK8(context);
 
-      // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
-      const zipFileName = await k8
-        .containers()
-        .readByRef(containerRef)
-        .execContainer([
-          'bash',
-          '-c',
-          `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`,
-        ]);
+        // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
+        const zipFileName = await k8
+          .containers()
+          .readByRef(containerRef)
+          .execContainer([
+            'bash',
+            '-c',
+            `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`,
+          ]);
 
-      await k8.containers().readByRef(containerRef).copyFrom(`${upgradeDirectory}/${zipFileName}`, config.stagingDir);
-      config.lastStateZipPath = PathEx.joinWithRealPath(config.stagingDir, zipFileName);
-    });
+        await k8.containers().readByRef(containerRef).copyFrom(`${upgradeDirectory}/${zipFileName}`, config.stagingDir);
+        config.lastStateZipPath = PathEx.joinWithRealPath(config.stagingDir, zipFileName);
+      },
+    };
   }
 
-  uploadStateToNewNode() {
-    return new Task('Upload last saved state to new network node', async ctx => {
-      const config = ctx.config;
-      const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias);
-      const podRef = PodRef.of(config.namespace, newNodeFullyQualifiedPodName);
-      const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
-      const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
-      const savedStateDir = config.lastStateZipPath.match(/\/(\d+)\.zip$/)[1];
-      const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`;
-
-      const context = helpers.extractContextFromConsensusNodes(config.nodeAlias, config.consensusNodes);
-      const k8 = this.k8Factory.getK8(context);
-
-      await k8
-        .containers()
-        .readByRef(containerRef)
-        .execContainer(['bash', '-c', `mkdir -p ${savedStatePath}`]);
-      await k8.containers().readByRef(containerRef).copyTo(config.lastStateZipPath, savedStatePath);
-
-      await this.platformInstaller.setPathPermission(
-        podRef,
-        constants.HEDERA_HAPI_PATH,
-        undefined,
-        undefined,
-        undefined,
-        context,
-      );
-
-      await k8
-        .containers()
-        .readByRef(containerRef)
-        .execContainer([
-          'bash',
-          '-c',
-          `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`,
-        ]);
-    });
-  }
-
-  sendNodeDeleteTransaction() {
-    return new Task('Send node delete transaction', async ctx => {
-      const config: NodeDeleteConfigClass = ctx.config;
-
-      try {
-        const accountMap = getNodeAccountMap(config.existingNodeAliases);
-        const deleteAccountId = accountMap.get(config.nodeAlias);
-        this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`);
+  public uploadStateToNewNode(): SoloListrTask<NodeAddContext> {
+    return {
+      title: 'Upload last saved state to new network node',
+      task: async ctx => {
+        const config = ctx.config;
+        const newNodeFullyQualifiedPodName = Templates.renderNetworkPodName(config.nodeAlias);
+        const podRef = PodRef.of(config.namespace, newNodeFullyQualifiedPodName);
+        const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
         const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
-        const nodeDeleteTx = new NodeDeleteTransaction().setNodeId(new Long(nodeId)).freezeWith(config.nodeClient);
+        const savedStateDir = config.lastStateZipPath.match(/\/(\d+)\.zip$/)[1];
+        const savedStatePath = `${constants.HEDERA_HAPI_PATH}/data/saved/com.hedera.services.ServicesMain/${nodeId}/123/${savedStateDir}`;
 
-        const signedTx = await nodeDeleteTx.sign(config.adminKey);
-        const txResp = await signedTx.execute(config.nodeClient);
-        const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient);
+        const context = helpers.extractContextFromConsensusNodes(config.nodeAlias, config.consensusNodes);
+        const k8 = this.k8Factory.getK8(context);
 
-        this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`);
-      } catch (e) {
-        throw new SoloError(`Error deleting node from network: ${e.message}`, e);
-      }
-    });
+        await k8
+          .containers()
+          .readByRef(containerRef)
+          .execContainer(['bash', '-c', `mkdir -p ${savedStatePath}`]);
+        await k8.containers().readByRef(containerRef).copyTo(config.lastStateZipPath, savedStatePath);
+
+        await this.platformInstaller.setPathPermission(
+          podRef,
+          constants.HEDERA_HAPI_PATH,
+          undefined,
+          undefined,
+          undefined,
+          context,
+        );
+
+        await k8
+          .containers()
+          .readByRef(containerRef)
+          .execContainer([
+            'bash',
+            '-c',
+            `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`,
+          ]);
+      },
+    };
   }
 
-  sendNodeCreateTransaction() {
-    return new Task('Send node create transaction', async ctx => {
-      const config: NodeAddConfigClass = ctx.config;
+  public sendNodeDeleteTransaction(): SoloListrTask<NodeDeleteContext> {
+    return {
+      title: 'Send node delete transaction',
+      task: async ctx => {
+        const config: NodeDeleteConfigClass = ctx.config;
 
-      try {
-        const nodeCreateTx = new NodeCreateTransaction()
-          .setAccountId(ctx.newNode.accountId)
-          .setGossipEndpoints(ctx.gossipEndpoints)
-          .setServiceEndpoints(ctx.grpcServiceEndpoints)
-          .setGossipCaCertificate(ctx.signingCertDer)
-          .setCertificateHash(ctx.tlsCertHash)
-          .setAdminKey(ctx.adminKey.publicKey)
-          .freezeWith(config.nodeClient);
-        const signedTx = await nodeCreateTx.sign(ctx.adminKey);
-        const txResp = await signedTx.execute(config.nodeClient);
-        const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient);
-        this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`);
-      } catch (e) {
-        throw new SoloError(`Error adding node to network: ${e.message}`, e);
-      }
-    });
+        try {
+          const accountMap = getNodeAccountMap(config.existingNodeAliases);
+          const deleteAccountId = accountMap.get(config.nodeAlias);
+          this.logger.debug(`Deleting node: ${config.nodeAlias} with account: ${deleteAccountId}`);
+          const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
+          const nodeDeleteTx = new NodeDeleteTransaction().setNodeId(new Long(nodeId)).freezeWith(config.nodeClient);
+
+          const signedTx = await nodeDeleteTx.sign(config.adminKey);
+          const txResp = await signedTx.execute(config.nodeClient);
+          const nodeUpdateReceipt = await txResp.getReceipt(config.nodeClient);
+
+          this.logger.debug(`NodeUpdateReceipt: ${nodeUpdateReceipt.toString()}`);
+        } catch (e) {
+          throw new SoloError(`Error deleting node from network: ${e.message}`, e);
+        }
+      },
+    };
   }
 
-  initialize(argv: any, configInit: ConfigBuilder, lease: Lock | null, shouldLoadNodeClient = true) {
+  public sendNodeCreateTransaction(): SoloListrTask<NodeAddContext> {
+    return {
+      title: 'Send node create transaction',
+      task: async ctx => {
+        const config: NodeAddConfigClass = ctx.config;
+
+        try {
+          const nodeCreateTx = new NodeCreateTransaction()
+            .setAccountId(ctx.newNode.accountId)
+            .setGossipEndpoints(ctx.gossipEndpoints)
+            .setServiceEndpoints(ctx.grpcServiceEndpoints)
+            .setGossipCaCertificate(ctx.signingCertDer)
+            .setCertificateHash(ctx.tlsCertHash)
+            .setAdminKey(ctx.adminKey.publicKey)
+            .freezeWith(config.nodeClient);
+          const signedTx = await nodeCreateTx.sign(ctx.adminKey);
+          const txResp = await signedTx.execute(config.nodeClient);
+          const nodeCreateReceipt = await txResp.getReceipt(config.nodeClient);
+          this.logger.debug(`NodeCreateReceipt: ${nodeCreateReceipt.toString()}`);
+        } catch (e) {
+          throw new SoloError(`Error adding node to network: ${e.message}`, e);
+        }
+      },
+    };
+  }
+
+  public initialize(
+    argv: ArgvStruct,
+    configInit: ConfigBuilder,
+    lease: Lock | null,
+    shouldLoadNodeClient: boolean = true,
+  ): SoloListrTask<AnyListrContext> {
     const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
     const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
 
     argv.flags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt, ...optionalFlags];
 
-    // @ts-ignore
-    return new Task('Initialize', async (ctx: any, task: SoloListrTaskWrapper<any>) => {
-      if (argv[flags.devMode.name]) {
-        this.logger.setDevMode(true);
-      }
-
-      this.configManager.update(argv);
-
-      // disable the prompts that we don't want to prompt the user for
-      flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
-
-      const flagsToPrompt = [];
-      for (const pFlag of requiredFlags) {
-        if (typeof argv[pFlag.name] === 'undefined') {
-          flagsToPrompt.push(pFlag);
+    return {
+      title: 'Initialize',
+      task: async (ctx, task): Promise<SoloListr<AnyListrContext> | void> => {
+        if (argv[flags.devMode.name]) {
+          this.logger.setDevMode(true);
         }
-      }
 
-      await this.configManager.executePrompt(task, flagsToPrompt);
+        this.configManager.update(argv);
 
-      const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
-      ctx.config = config;
-      config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
-      config.contexts = this.remoteConfigManager.getContexts();
+        // disable the prompts that we don't want to prompt the user for
+        flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
 
-      for (const flag of allRequiredFlags) {
-        if (typeof config[flag.constName] === 'undefined') {
-          throw new MissingArgumentError(`No value set for required flag: ${flag.name}`, flag.name);
+        const flagsToPrompt = [];
+        for (const pFlag of requiredFlags) {
+          if (typeof argv[pFlag.name] === 'undefined') {
+            flagsToPrompt.push(pFlag);
+          }
         }
-      }
 
-      this.logger.debug('Initialized config', {config});
+        await this.configManager.executePrompt(task, flagsToPrompt);
 
-      if (lease) {
-        return ListrLock.newAcquireLockTask(lease, task);
-      }
-    });
+        const config = await configInit(argv, ctx, task, shouldLoadNodeClient);
+        ctx.config = config;
+        config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+        config.contexts = this.remoteConfigManager.getContexts();
+
+        for (const flag of allRequiredFlags) {
+          if (typeof config[flag.constName] === 'undefined') {
+            throw new MissingArgumentError(`No value set for required flag: ${flag.name}`, flag.name);
+          }
+        }
+
+        this.logger.debug('Initialized config', {config});
+
+        if (lease) {
+          return ListrLock.newAcquireLockTask(lease, task);
+        }
+      },
+    };
   }
 
-  public addNewConsensusNodeToRemoteConfig(): SoloListrTask<{
-    newNode: {accountId: string; name: string};
-    config: NodeAddConfigClass;
-  }> {
+  public addNewConsensusNodeToRemoteConfig(): SoloListrTask<NodeAddContext> {
     return {
       title: 'Add new node to remote config',
       task: async (ctx, task) => {
