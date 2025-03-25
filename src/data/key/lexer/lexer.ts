@@ -294,22 +294,25 @@ export class Lexer {
     idx: number,
     segments: string[],
   ): Node {
-    // Case where the array segment points at a value. Eg: LeafNode
-    if (idx >= segments.length - 1) {
-      return new LexerLeafNode(root, segment, value, this.formatter);
-    } else {
-      let node: Node = root.children.find(n => n.name === segment);
-      if (node) {
-        if (node.isLeaf()) {
-          throw new ConfigKeyError('Cannot add a leaf node to another leaf node');
-        }
-        return node;
+    let node: Node = root.children.find(n => n.name === segment);
+    if (node) {
+      if (node.isLeaf()) {
+        throw new ConfigKeyError(
+          `Cannot add a leaf node to another leaf node [ parent = '${root.path()}', child = '${segment}' ]`,
+        );
       }
-
-      node = new LexerInternalNode(root, segment, [], false, true, this.formatter);
-      root.add(node);
       return node;
     }
+
+    // Case where the array segment points at a value. Eg: LeafNode
+    if (idx >= segments.length - 1) {
+      node = new LexerLeafNode(root, segment, value, this.formatter);
+    } else {
+      node = new LexerInternalNode(root, segment, [], false, true, this.formatter);
+    }
+
+    root.add(node);
+    return node;
   }
 
   private processIntermediateSegment(root: LexerInternalNode, segment: string, idx: number, segments: string[]): Node {
@@ -354,7 +357,7 @@ export class Lexer {
 
     if (root.children.find(n => n.name === segment)) {
       throw new ConfigKeyError(
-        `Cannot add a leaf node to another leaf node [ parent: '${root.name}', child: '${segment}' ]`,
+        `Cannot add a leaf node to another leaf node [ parent: '${root.path()}', child: '${segment}' ]`,
       );
     }
 
