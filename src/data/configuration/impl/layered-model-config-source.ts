@@ -14,7 +14,6 @@ export abstract class LayeredModelConfigSource<T extends object>
   extends LayeredConfigSource
   implements ModelConfigSource<T>
 {
-  public readonly schema: Schema<T>;
   private _modelData: T;
 
   public get modelData(): T {
@@ -27,16 +26,15 @@ export abstract class LayeredModelConfigSource<T extends object>
 
   protected constructor(
     protected readonly key: string,
-    schema: Schema<T>,
+    public readonly schema: Schema<T>,
     backend: ObjectStorageBackend,
     mapper: ObjectMapper,
     prefix?: string,
   ) {
     super(backend, mapper, prefix);
-    this.schema = schema;
 
     if (!key) {
-      throw new IllegalArgumentError('key is required');
+      throw new IllegalArgumentError('key must not be null or undefined');
     }
 
     if (!ReflectAssist.isObjectStorageBackend(this.backend)) {
@@ -44,11 +42,11 @@ export abstract class LayeredModelConfigSource<T extends object>
     }
 
     if (!schema) {
-      throw new IllegalArgumentError('schema is required');
+      throw new IllegalArgumentError('schema must not be null or undefined');
     }
 
     if (!mapper) {
-      throw new IllegalArgumentError('mapper is required');
+      throw new IllegalArgumentError('mapper must not be null or undefined');
     }
   }
 
@@ -57,12 +55,9 @@ export abstract class LayeredModelConfigSource<T extends object>
       throw new ConfigurationError('backend must be an object storage backend');
     }
 
-    this.data = null;
     this.forest = null;
-
     const value: object = await this.backend.readObject(this.key);
     this.modelData = await this.schema.transform(value);
-    this.data = this.mapper.toFlatKeyMap(this.modelData);
-    this.forest = Forest.from(this.data);
+    this.forest = Forest.from(this.mapper.toFlatKeyMap(this.modelData));
   }
 }

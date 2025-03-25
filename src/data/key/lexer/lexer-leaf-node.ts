@@ -2,17 +2,18 @@
 
 import {type Node} from './node.js';
 import {KeyName} from '../key-name.js';
-import {ConfigKeyError} from '../config-key-error.js';
+import {LexerNode} from './lexer-node.js';
+import {type KeyFormatter} from '../key-formatter.js';
+import {ConfigKeyFormatter} from '../config-key-formatter.js';
 
-export class LeafNode implements Node {
+export class LexerLeafNode extends LexerNode {
   public constructor(
-    public readonly parent: Node | null,
-    public readonly name: string,
+    parent: Node | null,
+    name: string,
     public readonly value: string | null,
+    formatter: KeyFormatter = ConfigKeyFormatter.instance(),
   ) {
-    if (parent && !parent.isInternal()) {
-      throw new ConfigKeyError('Parent must be an instance of InternalNode');
-    }
+    super(parent, name, formatter);
   }
 
   public isInternal(): boolean {
@@ -24,7 +25,7 @@ export class LeafNode implements Node {
   }
 
   public isRoot(): boolean {
-    return !!this.parent;
+    return this.parent === null || this.parent === undefined;
   }
 
   public isArray(): boolean {

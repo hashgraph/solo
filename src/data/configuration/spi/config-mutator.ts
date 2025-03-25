@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ConfigAccessor} from './config-accessor.js';
+import {type Primitive} from '../../../business/utils/primitive.js';
+import {type PrimitiveArray} from '../../../business/utils/primitive-array.js';
 
 /**
  * Implementations of config mutator provide the necessary methods to access and modify a configuration.
@@ -12,14 +14,14 @@ export interface ConfigMutator extends ConfigAccessor {
    * @param key - The key to use to store the value in the configuration.
    * @param value - The value to store in the configuration.
    */
-  putScalar(key: string, value: string | number | boolean): void;
+  putScalar(key: string, value: Primitive): void;
 
   /**
    * Puts an array of string, boolean or numeric values into the configuration.
    * @param key - The key to use to store the values in the configuration.
    * @param value - The values to store in the configuration.
    */
-  putScalarArray(key: string, value: string[] | number[] | boolean[]): void;
+  putScalarArray(key: string, value: PrimitiveArray): void;
 
   /**
    * Puts an object value into the configuration.

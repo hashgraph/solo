@@ -10,14 +10,15 @@ import {type KeyFormatter} from '../../key/key-formatter.js';
 import {FlatKeyMapper} from './flat-key-mapper.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
+import {type Primitive} from '../../../business/utils/primitive.js';
+import {type PrimitiveArray} from '../../../business/utils/primitive-array.js';
 
 @injectable()
 export class CTObjectMapper implements ObjectMapper {
   private readonly flatMapper: FlatKeyMapper;
 
-  public constructor(@inject(InjectTokens.KeyFormatter) formatter: KeyFormatter) {
+  public constructor(@inject(InjectTokens.KeyFormatter) private readonly formatter: KeyFormatter) {
     this.flatMapper = new FlatKeyMapper(patchInject(formatter, InjectTokens.KeyFormatter, CTObjectMapper.name));
-    // this.flatMapper = new FlatKeyMapper(formatter);
   }
 
   public fromArray<T extends R, R>(cls: ClassConstructor<T>, arr: object[]): R[] {
@@ -57,20 +58,45 @@ export class CTObjectMapper implements ObjectMapper {
     return this.flatMapper.flatten(data);
   }
 
-  public fromFlatKeyMap<T>(cls: ClassConstructor<T>, map: Map<string, string>): T {
-    if (!cls) {
-      throw new IllegalArgumentError('class constructor is required');
+  public applyPropertyValue(obj: object, key: string, value: Primitive | PrimitiveArray | object | object[]): void {
+    if (!obj) {
+      throw new IllegalArgumentError('obj must not be null or undefined');
     }
 
-    if (!map) {
-      throw new IllegalArgumentError('map is required');
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
     }
 
-    // try {
-    // } catch (e) {
-    //   throw new ObjectMappingError('Failed to convert value to object', e);
-    // }
+    const normalizedKey: string = this.formatter.normalize(key);
+    const components: string[] = this.formatter.split(normalizedKey);
 
-    return undefined;
+    let currentObj: object = obj;
+    for (let i = 0; i < components.length - 1; i++) {
+      const keyComponent: string = components[i];
+
+      // If the property is not found, we cannot proceed.
+      if (!(keyComponent in currentObj)) {
+        throw new ObjectMappingError(`Property not found [ key = '${key}', obj = '${currentObj}' ]`);
+      }
+
+      const propertyType = typeof currentObj[keyComponent];
+
+      // If we are  at the end of the key path, then set the property.
+      // Otherwise, the property must be an object.
+      if (i === components.length - 1) {
+        currentObj[keyComponent] = value;
+      } else if (propertyType !== 'object') {
+        throw new ObjectMappingError(
+          `Non-terminal property is not an object [ key = '${key}', propertyType = '${propertyType}' ]`,
+        );
+      }
+
+      currentObj = currentObj[keyComponent] as object;
+
+      // If the current object is null or undefined, we cannot proceed.
+      if (currentObj === undefined || currentObj === null) {
+        throw new ObjectMappingError(`Intermediate object must not be null or undefined [ key = '${key}' ]`);
+      }
+    }
   }
 }

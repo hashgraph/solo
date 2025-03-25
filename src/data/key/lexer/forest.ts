@@ -5,8 +5,8 @@ import {type KeyFormatter} from '../key-formatter.js';
 import {ConfigKeyFormatter} from '../config-key-formatter.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 import {type Node} from './node.js';
-import {type InternalNode} from './internal-node.js';
-import {type LeafNode} from './leaf-node.js';
+import {type LexerInternalNode} from './lexer-internal-node.js';
+import {type LexerLeafNode} from './lexer-leaf-node.js';
 
 export class Forest {
   private constructor(
@@ -29,6 +29,14 @@ export class Forest {
     return new Forest(lexer, formatter);
   }
 
+  public static fromLexer(lexer: Lexer, formatter: KeyFormatter = ConfigKeyFormatter.instance()): Forest {
+    if (!lexer) {
+      throw new IllegalArgumentError('lexer must not be null or undefined');
+    }
+
+    return new Forest(lexer, formatter);
+  }
+
   public has(key: string): boolean {
     if (!key) {
       throw new IllegalArgumentError('key must not be null or undefined');
@@ -48,7 +56,7 @@ export class Forest {
     }
 
     if (node.isLeaf()) {
-      return (node as LeafNode).value;
+      return (node as LexerLeafNode).value;
     }
 
     return null;
@@ -78,7 +86,7 @@ export class Forest {
         return null;
       }
 
-      const inode: InternalNode = currentNode as InternalNode;
+      const inode: LexerInternalNode = currentNode as LexerInternalNode;
       const nextNode: Node = inode.children.find(n => n.name === segment);
 
       if (!nextNode) {
@@ -91,17 +99,35 @@ export class Forest {
     return currentNode;
   }
 
+  public addOrReplaceValue(key: string, value: string | null): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    const node: Node = this.nodeFor(key);
+
+    if (!node) {
+      this.lexer.addValue(key, value);
+    } else {
+      this.lexer.replaceValue(node, value);
+    }
+  }
+
   public toObject(): object {
     const obj: object = {};
 
     for (const [key, node] of this.lexer.tree.entries()) {
       if (node.isLeaf()) {
-        obj[key] = (node as LeafNode).value;
+        obj[key] = (node as LexerLeafNode).value;
       } else {
-        obj[key] = (node as InternalNode).toObject();
+        obj[key] = (node as LexerInternalNode).toObject();
       }
     }
 
     return obj;
+  }
+
+  public toFlatMap(): Map<string, string> {
+    return this.lexer.tokens;
   }
 }

@@ -2,31 +2,29 @@
 
 import {type Node} from './node.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
-import {type LeafNode} from './leaf-node.js';
+import {LexerLeafNode} from './lexer-leaf-node.js';
 import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 import {ConfigKeyError} from '../config-key-error.js';
+import {LexerNode} from './lexer-node.js';
+import {ConfigKeyFormatter} from '../config-key-formatter.js';
+import {type KeyFormatter} from '../key-formatter.js';
 
-export class InternalNode implements Node {
+export class LexerInternalNode extends LexerNode {
   private readonly _children: Map<string, Node> = new Map<string, Node>();
 
-  public readonly parent: Node | null;
-
   public constructor(
-    parent: InternalNode | null,
-    public readonly name: string,
+    parent: LexerInternalNode | null,
+    name: string,
     children?: Node[],
     private readonly array: boolean = false,
     private readonly arrayIndex: boolean = false,
+    formatter: KeyFormatter = ConfigKeyFormatter.instance(),
   ) {
-    if (parent && !parent.isInternal()) {
-      throw new ConfigKeyError('Parent must be an instance of InternalNode');
-    }
-
-    this.parent = parent;
+    super(parent, name, formatter);
 
     if (children) {
       for (const c of children) {
-        if (c instanceof InternalNode) {
+        if (c instanceof LexerInternalNode) {
           if (c.isRoot()) {
             throw new ConfigKeyError('Internal nodes cannot have root nodes as children');
           }
@@ -47,12 +45,29 @@ export class InternalNode implements Node {
     }
   }
 
+  public replaceChildValue(child: Node, value: string): void {
+    if (!child) {
+      throw new IllegalArgumentError('child must not be null or undefined');
+    }
+
+    if (!this._children.has(child.name)) {
+      throw new ConfigKeyError('Child not found');
+    }
+
+    if (!child.isLeaf()) {
+      throw new ConfigKeyError('Child must be a leaf node');
+    }
+
+    const newLeaf: LexerLeafNode = new LexerLeafNode(this, child.name, value, this.formatter);
+    this._children.set(child.name, newLeaf);
+  }
+
   public get children(): Node[] {
     return Array.from(this._children.values());
   }
 
   public isRoot(): boolean {
-    return !!this.parent;
+    return this.parent === null || this.parent === undefined;
   }
 
   public isInternal(): boolean {
@@ -85,12 +100,12 @@ export class InternalNode implements Node {
           throw new ConfigKeyError('Array index must be a number');
         }
 
-        obj[index] = (child as InternalNode).toObject();
+        obj[index] = (child as LexerInternalNode).toObject();
       } else {
         if (child.isLeaf()) {
-          obj[child.name] = ReflectAssist.coerce((child as LeafNode).value);
+          obj[child.name] = ReflectAssist.coerce((child as LexerLeafNode).value);
         } else {
-          obj[child.name] = (child as InternalNode).toObject();
+          obj[child.name] = (child as LexerInternalNode).toObject();
         }
       }
     }

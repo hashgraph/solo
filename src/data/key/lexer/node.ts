@@ -13,4 +13,6 @@ export interface Node {
   isArray(): boolean;
 
   isArrayIndex(): boolean;
+
+  path(): string;
 }

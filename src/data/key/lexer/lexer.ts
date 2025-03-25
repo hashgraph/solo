@@ -3,17 +3,18 @@
 import {type KeyFormatter} from '../key-formatter.js';
 import {ConfigKeyFormatter} from '../config-key-formatter.js';
 import {type Node} from './node.js';
-import {InternalNode} from './internal-node.js';
-import {LeafNode} from './leaf-node.js';
+import {LexerInternalNode} from './lexer-internal-node.js';
+import {LexerLeafNode} from './lexer-leaf-node.js';
 import {KeyName} from '../key-name.js';
 import {ConfigKeyError} from '../config-key-error.js';
+import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 
 export class Lexer {
   private readonly _roots: Map<string, Node> = new Map();
   private _rendered: boolean = false;
 
   public constructor(
-    private readonly tokens: Map<string, string>,
+    public readonly tokens: Map<string, string>,
     private readonly formatter: KeyFormatter = ConfigKeyFormatter.instance(),
   ) {
     if (!this.tokens) {
@@ -49,6 +50,38 @@ export class Lexer {
     return this._roots;
   }
 
+  public addValue(key: string, value: string | null): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    const segments: string[] = this.formatter.split(this.formatter.normalize(key));
+
+    let rootNode: Node;
+    if (!this._roots.has(segments[0])) {
+      rootNode = this.rootNodeFor(segments);
+    } else {
+      rootNode = this._roots.get(segments[0]);
+    }
+
+    this.processSegments(rootNode as LexerInternalNode, value, segments);
+    this.tokens.set(key, value);
+  }
+
+  public replaceValue(node: Node, value: string | null): void {
+    if (!node.isLeaf()) {
+      throw new ConfigKeyError('key must be a leaf node');
+    }
+
+    if (node.isRoot()) {
+      this._roots.set(node.name, new LexerLeafNode(null, node.name, value, this.formatter));
+      this.tokens.set(node.name, value);
+    } else {
+      this.tokens.set(node.path(), value);
+      (node.parent as LexerInternalNode).replaceChildValue(node, value);
+    }
+  }
+
   /**
    * Parses the token map and returns all the root nodes.
    *
@@ -75,7 +108,7 @@ export class Lexer {
 
       const root: Node = this.rootNodeFor(segments);
       if (!root.isLeaf()) {
-        this.processSegments(root as InternalNode, this.tokens.get(key), segments);
+        this.processSegments(root as LexerInternalNode, this.tokens.get(key), segments);
       }
     }
   }
@@ -95,33 +128,31 @@ export class Lexer {
       if (KeyName.isArraySegment(nextSegment)) {
         array = true;
       }
-      root = new InternalNode(null, rootName, [], array);
+      root = new LexerInternalNode(null, rootName, [], array, false, this.formatter);
     } else {
-      root = new LeafNode(null, rootName, this.tokens.get(rootName));
+      root = new LexerLeafNode(null, rootName, this.tokens.get(rootName), this.formatter);
     }
 
     this._roots.set(rootName, root);
     return root;
   }
 
-  private processSegments(root: InternalNode, value: string, segments: string[]): void {
+  private processSegments(root: LexerInternalNode, value: string, segments: string[]): void {
     let currentRoot = root;
     for (let i = 1; i < segments.length; i++) {
       const segment: string = segments[i];
-
-      let node = null;
+      let node: Node;
 
       if (KeyName.isArraySegment(segment)) {
         node = this.processArraySegment(currentRoot, segment, value, i, segments);
-      } else if (i + 1 >= segments.length) {
-        node = new LeafNode(currentRoot, segment, value);
+      } else if (i >= segments.length - 1) {
+        node = this.processLeafNode(currentRoot, segment, value);
       } else {
         node = this.processIntermediateSegment(currentRoot, segment, i, segments);
       }
 
-      currentRoot.addChild(node);
       if (node.isInternal()) {
-        currentRoot = node as InternalNode;
+        currentRoot = node as LexerInternalNode;
       }
     }
   }
@@ -129,7 +160,7 @@ export class Lexer {
   /**
    * Processes an array segment. This method will create the necessary node to represent the array index.
    *
-   * @param root {InternalNode} the root node of this segment.
+   * @param root {LexerInternalNode} the root node of this segment.
    * @param value {string} the value of the key.
    * @param segment {string} the segment to process.
    * @param idx {number} the index of the segment in the array.
@@ -139,34 +170,78 @@ export class Lexer {
    * @private
    */
   private processArraySegment(
-    root: InternalNode,
+    root: LexerInternalNode,
     segment: string,
     value: string,
     idx: number,
     segments: string[],
   ): Node {
     // Case where the array segment points at a value. Eg: LeafNode
-    if (idx + 1 >= segments.length) {
-      return new LeafNode(root, segment, value);
+    if (idx >= segments.length - 1) {
+      return new LexerLeafNode(root, segment, value, this.formatter);
     } else {
-      return root.children[+segment] || new InternalNode(root, segment, [], false, true);
+      let node: Node = root.children.find(n => n.name === segment);
+      if (node) {
+        if (node.isLeaf()) {
+          throw new ConfigKeyError('Cannot add a leaf node to another leaf node');
+        }
+        return node;
+      }
+
+      node = new LexerInternalNode(root, segment, [], false, true, this.formatter);
+      root.addChild(node);
+      return node;
     }
   }
 
-  private processIntermediateSegment(root: InternalNode, segment: string, idx: number, segments: string[]): Node {
+  private processIntermediateSegment(root: LexerInternalNode, segment: string, idx: number, segments: string[]): Node {
+    const existingNode: Node = root.children.find(n => n.name === segment);
+    if (existingNode) {
+      if (existingNode.isLeaf()) {
+        throw new ConfigKeyError('Cannot add a leaf node to another leaf node');
+      }
+
+      return existingNode;
+    }
+
+    let node: Node;
+
     // root.arrVal.0 = string|number (not handled by this case)
     // root.arrVal.0.scalar = string|number (handles this case)
     if (root.isArray()) {
-      return new InternalNode(root, segment, [], false, true);
+      node = new LexerInternalNode(root, segment, [], false, true, this.formatter);
     }
 
-    if (idx + 1 < segments.length) {
+    if (idx < segments.length - 1) {
       const nextSegment: string = segments[idx + 1];
       if (KeyName.isArraySegment(nextSegment)) {
-        return new InternalNode(root, segment, [], true);
+        node = new LexerInternalNode(root, segment, [], true, false, this.formatter);
       }
     }
 
-    return new InternalNode(root, segment, []);
+    if (!node) {
+      node = new LexerInternalNode(root, segment, [], false, false, this.formatter);
+    }
+
+    root.addChild(node);
+    return node;
+  }
+
+  private processLeafNode(root: LexerInternalNode, segment: string, value: string): Node {
+    if (root.isArray()) {
+      throw new ConfigKeyError(
+        `Cannot add a leaf node to an array node [ parent: '${root.path()}', child: '${segment}' ]`,
+      );
+    }
+
+    if (root.children.find(n => n.name === segment)) {
+      throw new ConfigKeyError(
+        `Cannot add a leaf node to another leaf node [ parent: '${root.name}', child: '${segment}' ]`,
+      );
+    }
+
+    const node: Node = new LexerLeafNode(root, segment, value, this.formatter);
+    root.addChild(node);
+    return node;
   }
 }

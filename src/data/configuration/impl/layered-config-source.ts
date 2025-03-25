@@ -4,21 +4,15 @@ import {type ConfigSource} from '../spi/config-source.js';
 import {type ObjectMapper} from '../../mapper/api/object-mapper.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 import {type StorageBackend} from '../../backend/api/storage-backend.js';
-import {Forest} from '../../key/lexer/forest.js';
+import {type Forest} from '../../key/lexer/forest.js';
 import {ConfigurationError} from '../api/configuration-error.js';
 import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
-import {type LeafNode} from '../../key/lexer/leaf-node.js';
-import {type InternalNode} from '../../key/lexer/internal-node.js';
+import {type LexerLeafNode} from '../../key/lexer/lexer-leaf-node.js';
+import {type LexerInternalNode} from '../../key/lexer/lexer-internal-node.js';
 import {plainToInstance} from 'class-transformer';
 import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 
 export abstract class LayeredConfigSource implements ConfigSource {
-  /**
-   * The data read from the environment.
-   * @protected
-   */
-  protected data: Map<string, string>;
-
   /**
    * The forest model of the configuration keys and values.
    * @protected
@@ -33,8 +27,6 @@ export abstract class LayeredConfigSource implements ConfigSource {
     if (!mapper) {
       throw new IllegalArgumentError('ObjectMapper is required');
     }
-
-    this.data = new Map<string, string>();
   }
 
   public abstract get name(): string;
@@ -99,9 +91,9 @@ export abstract class LayeredConfigSource implements ConfigSource {
         }
 
         if (node.isLeaf()) {
-          obj = JSON.parse((node as LeafNode).value);
+          obj = JSON.parse((node as LexerLeafNode).value);
         } else {
-          obj = (node as InternalNode).toObject();
+          obj = (node as LexerInternalNode).toObject();
         }
       } else {
         obj = this.forest.toObject();
@@ -132,7 +124,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
     }
 
     try {
-      const objArray: object[] = (node as InternalNode).toObject() as object[];
+      const objArray: object[] = (node as LexerInternalNode).toObject() as object[];
       return plainToInstance(cls, objArray);
     } catch (e) {
       throw new ConfigurationError('Failed to convert value to object array', e);
@@ -158,34 +150,19 @@ export abstract class LayeredConfigSource implements ConfigSource {
     }
 
     try {
-      return (node as InternalNode).toObject() as string[];
+      return (node as LexerInternalNode).toObject() as string[];
     } catch (e) {
       throw new ConfigurationError('Failed to convert value to object array', e);
     }
   }
 
   public properties(): Map<string, string> {
-    return new Map<string, string>(this.data);
+    return new Map<string, string>(this.forest.toFlatMap());
   }
 
   public propertyNames(): Set<string> {
-    return new Set(this.data.keys());
+    return new Set(this.forest.toFlatMap().keys());
   }
 
-  public async load(): Promise<void> {
-    this.data.clear();
-    this.forest = null;
-
-    const vars: string[] = await this.backend.list();
-    for (const k of vars) {
-      try {
-        const va: Buffer = await this.backend.readBytes(k);
-        this.data.set(k, va.toString('utf-8'));
-      } catch (e) {
-        throw new ConfigurationError(`Failed to read environment variable: ${k}`, e);
-      }
-    }
-
-    this.forest = Forest.from(this.data);
-  }
+  public abstract load(): Promise<void>;
 }
