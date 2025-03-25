@@ -7,7 +7,6 @@ import * as yaml from 'yaml';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../src/core/constants.js';
 import {type SoloLogger} from '../src/core/logging.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
-import {InjectTokens} from '../src/core/dependency-injection/inject-tokens.js';
 import {CommandInvoker} from './helpers/command-invoker.js';
 import {Lifecycle} from 'tsyringe-neo';
 

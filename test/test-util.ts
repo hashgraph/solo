@@ -130,9 +130,7 @@ interface Cmd {
 }
 
 function getTestNamespace(argv: Argv): NamespaceName {
-  return NamespaceName.of(
-    argv.getArg<NamespaceNameAsString>(flags.namespace) || 'bootstrap-ns',
-  );
+  return NamespaceName.of(argv.getArg<NamespaceNameAsString>(flags.namespace) || 'bootstrap-ns');
 }
 
 /** Initialize common test variables */
