@@ -91,18 +91,18 @@ npm run solo-test -- cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME}
 
 npm run solo-test -- deployment create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
 
-npm run solo-test -- deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 1
+npm run solo-test -- deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 2
 
-npm run solo-test -- node keys --gossip-keys --tls-keys -i node1 --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- node keys --gossip-keys --tls-keys -i node1,node2 --deployment "${SOLO_DEPLOYMENT}"
 
-npm run solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" -i node1 \
+npm run solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" -i node1,node2 \
   --storage-type "${storageType}" \
   "${STORAGE_OPTIONS[@]}" \
   --backup-bucket "${streamBackupBucket}" \
   --google-credential gcp_service_account.json
 
-npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
-npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- node setup -i node1,node2 --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- node start -i node1,node2 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} \
   --storage-type "${storageType}" \
   "${MIRROR_STORAGE_OPTIONS[@]}" \
@@ -118,7 +118,7 @@ cd ..; create_test_account ; cd -
 
 node examples/create-topic.js
 
-npm run solo-test -- node stop -i node1 --deployment "${SOLO_DEPLOYMENT}"
+npm run solo-test -- node stop -i node1,node2 --deployment "${SOLO_DEPLOYMENT}"
 
 echo "Waiting for backup uploader to run"
 # manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
