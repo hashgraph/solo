@@ -19,6 +19,11 @@ import {injectable} from 'tsyringe-neo';
 export class InitCommand extends BaseCommand {
   public static readonly COMMAND_NAME = 'init';
 
+  // Although empty, tsyringe requires the constructor to be present
+  public constructor() {
+    super();
+  }
+
   /** Executes the init CLI command */
   async init(argv: any) {
     const self = this;

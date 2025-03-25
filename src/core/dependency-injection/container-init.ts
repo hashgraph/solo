@@ -281,7 +281,14 @@ export class Container {
    * @param testLogger - a test logger to use, if provided
    * @param overrides - mocked instances to use instead of the default implementations
    */
-  reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger, overrides = {}) {
+  reset(
+    homeDir?: string,
+    cacheDir?: string,
+    logLevel?: string,
+    devMode?: boolean,
+    testLogger?: SoloLogger,
+    overrides = {},
+  ) {
     if (Container.instance && Container.isInitialized) {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Resetting container');
       container.reset();
@@ -299,7 +306,14 @@ export class Container {
    * @param testLogger - a test logger to use, if provided
    * @param overrides - mocked instances to use instead of the default implementations
    */
-  clearInstances(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger, overrides = {}) {
+  clearInstances(
+    homeDir?: string,
+    cacheDir?: string,
+    logLevel?: string,
+    devMode?: boolean,
+    testLogger?: SoloLogger,
+    overrides = {},
+  ) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
       Container.isInitialized = false;

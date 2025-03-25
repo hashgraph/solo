@@ -18,13 +18,7 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {
-  e2eTestSuite,
-  HEDERA_PLATFORM_VERSION_TAG,
-  getTestLogger,
-  getTestCluster,
-  BASE_TEST_DIR,
-} from '../../test-util.js';
+import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster} from '../../test-util.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';

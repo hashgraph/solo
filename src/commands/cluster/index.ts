@@ -14,7 +14,7 @@ import {inject, injectable} from 'tsyringe-neo';
  */
 @injectable()
 export class ClusterCommand extends BaseCommand {
-  constructor(@inject(InjectTokens.ClusterCommandHandlers) public readonly handlers?: ClusterCommandHandlers,) {
+  constructor(@inject(InjectTokens.ClusterCommandHandlers) public readonly handlers?: ClusterCommandHandlers) {
     super();
 
     this.handlers = patchInject(handlers, InjectTokens.ClusterCommandHandlers, this.constructor.name);

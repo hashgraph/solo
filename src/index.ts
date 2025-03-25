@@ -62,7 +62,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     .alias('h', 'help')
     .alias('v', 'version')
     // @ts-expect-error - TS2769: No overload matches this call.
-    .command(commands.Initialize(opts))
+    .command(commands.Initialize())
     .strict()
     .demand(1, 'Select a command')
 

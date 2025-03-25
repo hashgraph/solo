@@ -16,7 +16,7 @@ import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror-node.js';
 import {PrivateKey, Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
-import {PackageDownloader} from '../../../src/core/package-downloader.js';
+import {type PackageDownloader} from '../../../src/core/package-downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';

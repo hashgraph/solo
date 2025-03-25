@@ -22,7 +22,6 @@ import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
 import {inject} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
-import type {ConfigManager} from '../core/config-manager.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 
 interface UpdateAccountConfig {

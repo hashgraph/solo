@@ -23,7 +23,6 @@ import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
-import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {resetForTest} from '../../test-container.js';
 import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
 import {type K8ClientConfigMaps} from '../../../src/integration/kube/k8-client/resources/config-map/k8-client-config-maps.js';
