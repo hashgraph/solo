@@ -488,81 +488,44 @@ export class MirrorNodeCommand extends BaseCommand {
         },
         {
           title: 'Check pods are ready',
-          task: (_, parentTask) => {
-            return parentTask.newListr(
-              [
-                {
-                  title: 'Check Postgres DB',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                  skip: ctx => !!ctx.config.useExternalDatabase,
-                },
-                {
-                  title: 'Check REST API',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-                {
-                  title: 'Check GRPC',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-                {
-                  title: 'Check Monitor',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-                {
-                  title: 'Check Importer',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-              ],
+          task: (ctx, task) => {
+            const context = ctx.config.clusterContext;
+            const namespace = ctx.config.namespace;
+
+            const subTasks: SoloListrTask<MirrorNodeDeployContext>[] = [
               {
-                concurrent: true,
-                rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+                name: 'Postgres DB',
+                labels: ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
+                skip: () => !!ctx.config.useExternalDatabase,
               },
-            );
+              {name: 'REST API', labels: ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest']},
+              {name: 'GRPC', labels: ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc']},
+              {name: 'Monitor', labels: ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor']},
+              {name: 'Importer', labels: ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer']},
+            ].map(({name, labels, skip}: {name: string; labels: string[]; skip?: () => boolean}) => {
+              const task: SoloListrTask<MirrorNodeDeployContext> = {
+                title: `Check ${name}`,
+                task: async () =>
+                  await self.k8Factory
+                    .getK8(context)
+                    .pods()
+                    .waitForReadyStatus(
+                      namespace,
+                      labels,
+                      constants.PODS_READY_MAX_ATTEMPTS,
+                      constants.PODS_READY_DELAY,
+                    ),
+              };
+
+              if (skip) task.skip = skip;
+
+              return task;
+            });
+
+            return task.newListr(subTasks, {
+              concurrent: true,
+              rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+            });
           },
         },
         {
