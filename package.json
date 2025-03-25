@@ -40,7 +40,8 @@
     "format": "remark . --quiet --frail --output && eslint --fix . && tsc && madge --circular src/* && npx typedoc --emit none",
     "test-setup": "SOLO_CLUSTER_DUALITY=1 ./test/e2e/dual-cluster/setup-dual-e2e.sh",
     "dual-cluster-setup": "./test/e2e/dual-cluster/setup-dual-e2e.sh",
-    "build": "rm -Rf dist && tsc && node resources/post-build-script.js"
+    "build": "rm -Rf dist && tsc && node resources/post-build-script.js",
+    "postinstall": "node c8-nyc-bridge.mjs"
   },
   "keywords": [
     "solo",
