@@ -20,7 +20,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type DefaultHelmClient} from '../core/helm/impl/DefaultHelmClient.js';
+import {type DefaultHelmClient} from '../integration/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 

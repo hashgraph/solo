@@ -34,7 +34,7 @@ import {type Opts} from './commands/base.js';
 import {Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
-import {type DefaultHelmClient} from './core/helm/impl/DefaultHelmClient.js';
+import {type DefaultHelmClient} from './integration/helm/impl/DefaultHelmClient.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {

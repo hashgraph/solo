@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {HelmExecution} from '../../../../../src/core/helm/execution/HelmExecution.js';
-import {HelmExecutionException} from '../../../../../src/core/helm/HelmExecutionException.js';
-import {HelmParserException} from '../../../../../src/core/helm/HelmParserException.js';
-import {Repository} from '../../../../../src/core/helm/model/Repository.js';
+import {HelmExecution} from '../../../../../src/integration/helm/execution/HelmExecution.js';
+import {HelmExecutionException} from '../../../../../src/integration/helm/HelmExecutionException.js';
+import {HelmParserException} from '../../../../../src/integration/helm/HelmParserException.js';
+import {Repository} from '../../../../../src/integration/helm/model/Repository.js';
 import {Duration} from '../../../../../src/core/time/duration.js';
 import {expect} from 'chai';
 import sinon from 'sinon';

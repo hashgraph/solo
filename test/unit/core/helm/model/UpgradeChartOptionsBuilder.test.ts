@@ -3,8 +3,8 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
-import {type HelmExecutionBuilder} from '../../../../../src/core/helm/execution/HelmExecutionBuilder.js';
-import {UpgradeChartOptions} from '../../../../../src/core/helm/model/upgrade/UpgradeChartOptions.js';
+import {type HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/HelmExecutionBuilder.js';
+import {UpgradeChartOptions} from '../../../../../src/integration/helm/model/upgrade/UpgradeChartOptions.js';
 
 describe('UpgradeChartOptionsBuilder Tests', () => {
   it('Test UpgradeChartOptionsBuilder', () => {

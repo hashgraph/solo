@@ -24,7 +24,7 @@ import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
-import {type DefaultHelmClient} from '../../core/helm/impl/DefaultHelmClient.js';
+import {type DefaultHelmClient} from '../../integration/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';

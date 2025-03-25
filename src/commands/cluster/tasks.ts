@@ -29,7 +29,7 @@ import {type ClusterRefConnectContext} from './config-interfaces/cluster-ref-con
 import {type ClusterRefDefaultContext} from './config-interfaces/cluster-ref-default-context.js';
 import {type ClusterRefSetupContext} from './config-interfaces/cluster-ref-setup-context.js';
 import {type ClusterRefResetContext} from './config-interfaces/cluster-ref-reset-context.js';
-import {type DefaultHelmClient} from '../../core/helm/impl/DefaultHelmClient.js';
+import {type DefaultHelmClient} from '../../integration/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 
 @injectable()

@@ -2,9 +2,9 @@
 
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {Chart} from '../../../../../src/core/helm/model/Chart.js';
-import {UpgradeChartOptions} from '../../../../../src/core/helm/model/upgrade/UpgradeChartOptions.js';
-import {ChartUpgradeRequest} from '../../../../../src/core/helm/request/chart/ChartUpgradeRequest.js';
+import {Chart} from '../../../../../src/integration/helm/model/Chart.js';
+import {UpgradeChartOptions} from '../../../../../src/integration/helm/model/upgrade/UpgradeChartOptions.js';
+import {ChartUpgradeRequest} from '../../../../../src/integration/helm/request/chart/ChartUpgradeRequest.js';
 
 describe('ChartUpgradeRequest Tests', () => {
   it('Test ChartUpgradeRequest Chart constructor validation', () => {

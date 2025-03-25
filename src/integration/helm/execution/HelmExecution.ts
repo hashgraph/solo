@@ -3,7 +3,7 @@
 import {spawn, type ChildProcessWithoutNullStreams} from 'child_process';
 import {HelmExecutionException} from '../HelmExecutionException.js';
 import {HelmParserException} from '../HelmParserException.js';
-import {type Duration} from '../../time/duration.js';
+import {type Duration} from '../../../core/time/duration.js';
 
 /**
  * Represents the execution of a helm command and is responsible for parsing the response.

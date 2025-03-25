@@ -2,19 +2,19 @@
 
 import {expect} from 'chai';
 import {before, describe, it} from 'mocha';
-import {SemanticVersion} from '../../../../src/core/helm/base/api/version/SemanticVersion.js';
-import {type HelmClient} from '../../../../src/core/helm/HelmClient.js';
-import {HelmExecutionException} from '../../../../src/core/helm/HelmExecutionException.js';
-import {Chart} from '../../../../src/core/helm/model/Chart.js';
-import {Repository} from '../../../../src/core/helm/model/Repository.js';
-import {DefaultHelmClientBuilder} from '../../../../src/core/helm/impl/DefaultHelmClientBuilder.js';
-import {type InstallChartOptions} from '../../../../src/core/helm/model/install/InstallChartOptions.js';
-import {UpgradeChartOptionsBuilder} from '../../../../src/core/helm/model/upgrade/UpgradeChartOptions.js';
+import {SemanticVersion} from '../../../../src/integration/helm/base/api/version/SemanticVersion.js';
+import {type HelmClient} from '../../../../src/integration/helm/HelmClient.js';
+import {HelmExecutionException} from '../../../../src/integration/helm/HelmExecutionException.js';
+import {Chart} from '../../../../src/integration/helm/model/Chart.js';
+import {Repository} from '../../../../src/integration/helm/model/Repository.js';
+import {DefaultHelmClientBuilder} from '../../../../src/integration/helm/impl/DefaultHelmClientBuilder.js';
+import {type InstallChartOptions} from '../../../../src/integration/helm/model/install/InstallChartOptions.js';
+import {UpgradeChartOptionsBuilder} from '../../../../src/integration/helm/model/upgrade/UpgradeChartOptions.js';
 import {exec as execCallback} from 'child_process';
 import {promisify} from 'util';
-import {InstallChartOptionsBuilder} from '../../../../src/core/helm/model/install/InstallChartOptionsBuilder.js';
-import {UnInstallChartOptionsBuilder} from '../../../../src/core/helm/model/install/UnInstallChartOptions.js';
-import {TestChartOptionsBuilder} from '../../../../src/core/helm/model/test/TestChartOptionsBuilder.js';
+import {InstallChartOptionsBuilder} from '../../../../src/integration/helm/model/install/InstallChartOptionsBuilder.js';
+import {UnInstallChartOptionsBuilder} from '../../../../src/integration/helm/model/install/UnInstallChartOptions.js';
+import {TestChartOptionsBuilder} from '../../../../src/integration/helm/model/test/TestChartOptionsBuilder.js';
 
 const exec = promisify(execCallback);
 

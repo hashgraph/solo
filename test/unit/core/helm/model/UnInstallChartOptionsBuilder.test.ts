@@ -3,8 +3,8 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
-import {type HelmExecutionBuilder} from '../../../../../src/core/helm/execution/HelmExecutionBuilder.js';
-import {UnInstallChartOptions} from '../../../../../src/core/helm/model/install/UnInstallChartOptions.js';
+import {type HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/HelmExecutionBuilder.js';
+import {UnInstallChartOptions} from '../../../../../src/integration/helm/model/install/UnInstallChartOptions.js';
 
 describe('UnInstallChartOptionsBuilder Tests', () => {
   it('Test UnInstallChartOptionsBuilder', () => {

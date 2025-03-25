@@ -3,11 +3,11 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
-import {type HelmExecutionBuilder} from '../../../../../src/core/helm/execution/HelmExecutionBuilder.js';
-import {Chart} from '../../../../../src/core/helm/model/Chart.js';
-import {type InstallChartOptions} from '../../../../../src/core/helm/model/install/InstallChartOptions.js';
-import {ChartInstallRequest} from '../../../../../src/core/helm/request/chart/ChartInstallRequest.js';
-import {InstallChartOptionsBuilder} from '../../../../../src/core/helm/model/install/InstallChartOptionsBuilder.js';
+import {type HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/HelmExecutionBuilder.js';
+import {Chart} from '../../../../../src/integration/helm/model/Chart.js';
+import {type InstallChartOptions} from '../../../../../src/integration/helm/model/install/InstallChartOptions.js';
+import {ChartInstallRequest} from '../../../../../src/integration/helm/request/chart/ChartInstallRequest.js';
+import {InstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/InstallChartOptionsBuilder.js';
 
 describe('ChartInstallRequest Tests', () => {
   it('Test ChartInstallRequest Chart constructor validation', () => {

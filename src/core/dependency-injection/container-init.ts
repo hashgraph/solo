@@ -31,8 +31,8 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
-import {HelmExecutionBuilder} from '../helm/execution/HelmExecutionBuilder.js';
-import {DefaultHelmClient} from '../helm/impl/DefaultHelmClient.js';
+import {HelmExecutionBuilder} from '../../integration/helm/execution/HelmExecutionBuilder.js';
+import {DefaultHelmClient} from '../../integration/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
 
