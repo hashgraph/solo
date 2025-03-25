@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {Middlewares} from '../../src/core/middlewares.js';
+import {type Middlewares} from '../../src/core/middlewares.js';
 import {Flags as flags} from '../../src/commands/flags.js';
 import {type RemoteConfigManager} from '../../src/core/config/remote/remote-config-manager.js';
 import {type AnyObject, type ArgvStruct} from '../../src/types/aliases.js';
 import {type Argv} from './argv-wrapper.js';
 import {type ConfigManager} from '../../src/core/config-manager.js';
 import {type SoloLogger} from '../../src/core/logging.js';
+import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../src/integration/kube/k8-factory.js';
 
 export class CommandInvoker {
@@ -21,7 +23,7 @@ export class CommandInvoker {
     k8Factory: K8Factory;
     logger: SoloLogger;
   }) {
-    this.middlewares = new Middlewares(opts as any);
+    this.middlewares = container.resolve(InjectTokens.Middlewares);
     this.configManager = opts.configManager;
     this.k8Factory = opts.k8Factory;
     this.remoteConfigManager = opts.remoteConfigManager;

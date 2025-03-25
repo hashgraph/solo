@@ -41,5 +41,7 @@ export const InjectTokens = {
   NodeCommandConfigs: Symbol.for('NodeCommandConfigs'),
   ErrorHandler: Symbol.for('ErrorHandler'),
   ObjectMapper: Symbol.for('ObjectMapper'),
+  HelpRenderer: Symbol.for('HelpRenderer'),
+  Middlewares: Symbol.for('Middlewares'),
   KeyFormatter: Symbol.for('KeyFormatter'),
 };
