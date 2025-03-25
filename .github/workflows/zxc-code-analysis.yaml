@@ -285,6 +285,13 @@ jobs:
           name: Unit Test Coverage Report
           path: 'coverage/unit'
 
+      - name: Download HelmClient Unit Test Coverage Report
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && !cancelled() && !failure() }}
+        with:
+          name: Unit Test Coverage Report
+          path: 'coverage/unit-helm'
+
       - name: Download E2E Integration Coverage Report
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
