@@ -20,7 +20,7 @@ import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
-import {inject} from 'tsyringe-neo';
+import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 
@@ -40,6 +40,7 @@ interface UpdateAccountContext {
   accountInfo: {accountId: AccountId | string; balance: number; publicKey: string; privateKey?: string};
 }
 
+@injectable()
 export class AccountCommand extends BaseCommand {
   private accountInfo: {
     accountId: string;
@@ -57,7 +58,7 @@ export class AccountCommand extends BaseCommand {
 
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
     this.accountInfo = null;
-    this.systemAccounts = systemAccounts;
+    this.systemAccounts = patchInject(systemAccounts, InjectTokens.SystemAccounts, this.constructor.name);
   }
 
   public static readonly COMMAND_NAME = 'account';
