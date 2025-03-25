@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {LayeredConfigSource} from './layered-config-source.js';
-import {type ModelConfigSource} from '../spi/model-config-source.js';
 import {type ObjectMapper} from '../../mapper/api/object-mapper.js';
 import {type Schema} from '../../schema/migration/api/schema.js';
 import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
@@ -12,7 +11,7 @@ import {type ObjectStorageBackend} from '../../backend/api/object-storage-backen
 
 export abstract class LayeredModelConfigSource<T extends object>
   extends LayeredConfigSource
-  implements ModelConfigSource<T>
+  implements LayeredModelConfigSource<T>
 {
   private _modelData: T;
 

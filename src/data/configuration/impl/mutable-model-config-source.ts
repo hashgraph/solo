@@ -11,7 +11,6 @@ import {type Schema} from '../../schema/migration/api/schema.js';
 import {type ObjectStorageBackend} from '../../backend/api/object-storage-backend.js';
 import {type ObjectMapper} from '../../mapper/api/object-mapper.js';
 import {type Primitive} from '../../../business/utils/primitive.js';
-import {type PrimitiveArray} from '../../../business/utils/primitive-array.js';
 
 export abstract class MutableModelConfigSource<T extends object>
   extends LayeredModelConfigSource<T>
@@ -35,9 +34,23 @@ export abstract class MutableModelConfigSource<T extends object>
     await this.backend.writeObject(this.key, instanceToPlain(this.modelData));
   }
 
-  public putObject<T>(key: string, value: T): void {}
+  public putObject<T>(key: string, value: T): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
 
-  public putObjectArray<T>(key: string, value: T[]): void {}
+    this.mapper.applyPropertyValue(this.modelData, key, value as object);
+    this.forest.addOrReplaceValue(key, JSON.stringify(value));
+  }
+
+  public putObjectArray<T>(key: string, value: T[]): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    this.mapper.applyPropertyValue(this.modelData, key, value);
+    this.forest.addOrReplaceArray(key, value);
+  }
 
   public putScalar(key: string, value: Primitive): void {
     if (!key) {
@@ -53,5 +66,12 @@ export abstract class MutableModelConfigSource<T extends object>
     this.mapper.applyPropertyValue(this.modelData, key, value);
   }
 
-  public putScalarArray(key: string, value: PrimitiveArray): void {}
+  public putScalarArray(key: string, value: Primitive[]): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    this.forest.addOrReplaceArray(key, value);
+    this.mapper.applyPropertyValue(this.modelData, key, value);
+  }
 }

@@ -81,11 +81,11 @@ export class CTObjectMapper implements ObjectMapper {
 
       const propertyType = typeof currentObj[keyComponent];
 
-      // If we are  at the end of the key path, then set the property.
+      // If we are at the end of the key path, then set the property.
       // Otherwise, the property must be an object.
       if (i === components.length - 1) {
         currentObj[keyComponent] = value;
-      } else if (propertyType !== 'object') {
+      } else if (propertyType !== 'object' || Array.isArray(currentObj[keyComponent])) {
         throw new ObjectMappingError(
           `Non-terminal property is not an object [ key = '${key}', propertyType = '${propertyType}' ]`,
         );

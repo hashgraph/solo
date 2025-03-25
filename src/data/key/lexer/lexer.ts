@@ -8,9 +8,11 @@ import {LexerLeafNode} from './lexer-leaf-node.js';
 import {KeyName} from '../key-name.js';
 import {ConfigKeyError} from '../config-key-error.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
+import {FlatKeyMapper} from '../../mapper/impl/flat-key-mapper.js';
 
 export class Lexer {
   private readonly _roots: Map<string, Node> = new Map();
+  private readonly flatMapper: FlatKeyMapper;
   private _rendered: boolean = false;
 
   public constructor(
@@ -24,6 +26,8 @@ export class Lexer {
     if (!this.formatter) {
       throw new ConfigKeyError('formatter must be provided');
     }
+
+    this.flatMapper = new FlatKeyMapper(this.formatter);
   }
 
   public get rendered(): boolean {
@@ -50,6 +54,43 @@ export class Lexer {
     return this._roots;
   }
 
+  public nodeFor(key: string): Node {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    const segments: string[] = this.formatter.split(key);
+
+    if (segments.length === 0 || segments[0].trim().length === 0) {
+      throw new IllegalArgumentError('key must not be empty');
+    }
+
+    let currentNode: Node = this.tree.get(segments[0]);
+
+    if (!currentNode) {
+      return null;
+    }
+
+    for (let i = 1; i < segments.length; i++) {
+      const segment = segments[i];
+
+      if (currentNode.isLeaf()) {
+        return null;
+      }
+
+      const inode: LexerInternalNode = currentNode as LexerInternalNode;
+      const nextNode: Node = inode.children.find(n => n.name === segment);
+
+      if (!nextNode) {
+        return null;
+      }
+
+      currentNode = nextNode;
+    }
+
+    return currentNode;
+  }
+
   public addValue(key: string, value: string | null): void {
     if (!key) {
       throw new IllegalArgumentError('key must not be null or undefined');
@@ -68,6 +109,83 @@ export class Lexer {
     this.tokens.set(key, value);
   }
 
+  public addOrReplaceObject(key: string, value: object | null): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    const normalizedKey: string = this.formatter.normalize(key);
+    this.addOrReplaceValue(normalizedKey, null);
+
+    if (!value) {
+      return;
+    }
+
+    const flatMap: Map<string, string> = this.flatMapper.flatten(value);
+    for (const [k, v] of flatMap.entries()) {
+      this.addOrReplaceValue(this.formatter.join(normalizedKey, k), v);
+    }
+  }
+
+  public addOrReplaceArray<T>(key: string, values: T[] | null): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    const normalizedKey: string = this.formatter.normalize(key);
+    const node: Node = this.nodeFor(normalizedKey);
+
+    if (node && !node.isArray()) {
+      if (node.isRoot()) {
+        this._roots.delete(node.name);
+        this.tokens.delete(node.name);
+      } else {
+        const parent: LexerInternalNode = node.parent as LexerInternalNode;
+        parent.remove(node);
+        this.tokens.delete(node.path());
+      }
+    }
+
+    if (!values) {
+      return;
+    }
+
+    for (let i = 0; i < values.length; i++) {
+      this.addOrReplaceArrayElement(normalizedKey, i, values[i]);
+    }
+  }
+
+  private addOrReplaceArrayElement<T>(normalizedKey: string, index: number, value: T | null): void {
+    if (value === null || value === undefined) {
+      this.addOrReplaceValue(this.formatter.join(normalizedKey, index.toString()), null);
+    }
+
+    const valueType = typeof value;
+
+    if (valueType === 'string' || valueType === 'number' || valueType === 'boolean' || valueType === 'bigint') {
+      this.addOrReplaceValue(this.formatter.join(normalizedKey, index.toString()), value.toString());
+    } else {
+      const flatMap: Map<string, string> = this.flatMapper.flatten(value as object);
+      for (const [k, val] of flatMap.entries()) {
+        this.addOrReplaceValue(this.formatter.join(normalizedKey, index.toString(), k), val);
+      }
+    }
+  }
+
+  public addOrReplaceValue(key: string, value: string | null): void {
+    if (!key) {
+      throw new IllegalArgumentError('key must not be null or undefined');
+    }
+
+    const node: Node = this.nodeFor(key);
+
+    if (!node) {
+      this.addValue(key, value);
+    } else {
+      this.replaceValue(node, value);
+    }
+  }
+
   public replaceValue(node: Node, value: string | null): void {
     if (!node.isLeaf()) {
       throw new ConfigKeyError('key must be a leaf node');
@@ -78,7 +196,7 @@ export class Lexer {
       this.tokens.set(node.name, value);
     } else {
       this.tokens.set(node.path(), value);
-      (node.parent as LexerInternalNode).replaceChildValue(node, value);
+      (node.parent as LexerInternalNode).replaceValue(node, value);
     }
   }
 
@@ -189,7 +307,7 @@ export class Lexer {
       }
 
       node = new LexerInternalNode(root, segment, [], false, true, this.formatter);
-      root.addChild(node);
+      root.add(node);
       return node;
     }
   }
@@ -223,7 +341,7 @@ export class Lexer {
       node = new LexerInternalNode(root, segment, [], false, false, this.formatter);
     }
 
-    root.addChild(node);
+    root.add(node);
     return node;
   }
 
@@ -241,7 +359,7 @@ export class Lexer {
     }
 
     const node: Node = new LexerLeafNode(root, segment, value, this.formatter);
-    root.addChild(node);
+    root.add(node);
     return node;
   }
 }

@@ -63,54 +63,19 @@ export class Forest {
   }
 
   public nodeFor(key: string): Node {
-    if (!key) {
-      throw new IllegalArgumentError('key must not be null or undefined');
-    }
-
-    const segments: string[] = this.formatter.split(key);
-
-    if (segments.length === 0 || segments[0].trim().length === 0) {
-      throw new IllegalArgumentError('key must not be empty');
-    }
-
-    let currentNode: Node = this.lexer.tree.get(segments[0]);
-
-    if (!currentNode) {
-      return null;
-    }
-
-    for (let i = 1; i < segments.length; i++) {
-      const segment = segments[i];
-
-      if (currentNode.isLeaf()) {
-        return null;
-      }
-
-      const inode: LexerInternalNode = currentNode as LexerInternalNode;
-      const nextNode: Node = inode.children.find(n => n.name === segment);
-
-      if (!nextNode) {
-        return null;
-      }
-
-      currentNode = nextNode;
-    }
-
-    return currentNode;
+    return this.lexer.nodeFor(key);
   }
 
   public addOrReplaceValue(key: string, value: string | null): void {
-    if (!key) {
-      throw new IllegalArgumentError('key must not be null or undefined');
-    }
+    this.lexer.addOrReplaceValue(key, value);
+  }
 
-    const node: Node = this.nodeFor(key);
+  public addOrReplaceObject(key: string, value: object | null): void {
+    this.lexer.addOrReplaceObject(key, value);
+  }
 
-    if (!node) {
-      this.lexer.addValue(key, value);
-    } else {
-      this.lexer.replaceValue(node, value);
-    }
+  public addOrReplaceArray<T>(key: string, values: T[] | null): void {
+    this.lexer.addOrReplaceArray(key, values);
   }
 
   public toObject(): object {

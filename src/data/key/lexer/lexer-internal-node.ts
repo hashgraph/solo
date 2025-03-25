@@ -35,7 +35,7 @@ export class LexerInternalNode extends LexerNode {
     }
   }
 
-  public addChild(child: Node): void {
+  public add(child: Node): void {
     if (!child) {
       throw new IllegalArgumentError('child must not be null or undefined');
     }
@@ -45,7 +45,23 @@ export class LexerInternalNode extends LexerNode {
     }
   }
 
-  public replaceChildValue(child: Node, value: string): void {
+  public remove(child: Node): void {
+    if (!child) {
+      throw new IllegalArgumentError('child must not be null or undefined');
+    }
+
+    if (!this._children.has(child.name)) {
+      throw new ConfigKeyError('Child not found');
+    }
+
+    this._children.delete(child.name);
+  }
+
+  public clear(): void {
+    this._children.clear();
+  }
+
+  public replaceValue(child: Node, value: string): void {
     if (!child) {
       throw new IllegalArgumentError('child must not be null or undefined');
     }
