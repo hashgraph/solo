@@ -193,6 +193,7 @@ export class ProfileManager {
     consensusNodes: ConsensusNode[],
     nodeAliases: NodeAliases,
     yamlRoot: AnyObject,
+    domainNamesMapping: Record<NodeAlias, string>,
   ): Promise<AnyObject> {
     if (!profile) throw new MissingArgumentError('profile is required');
 
@@ -219,6 +220,7 @@ export class ProfileManager {
       consensusNodes,
       stagingDir,
       this.configManager.getFlag(flags.releaseTag),
+      domainNamesMapping,
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId),
       this.configManager.getFlag(flags.loadBalancerEnabled),
@@ -325,11 +327,13 @@ export class ProfileManager {
    * Prepare a values file for Solo Helm chart
    * @param profileName - resource profile name
    * @param consensusNodes - the list of consensus nodes
+   * @param domainNamesMapping
    * @returns mapping of cluster-ref to the full path to the values file
    */
   public async prepareValuesForSoloChart(
     profileName: string,
     consensusNodes: ConsensusNode[],
+    domainNamesMapping: Record<NodeAlias, string>,
   ): Promise<Record<ClusterRef, string>> {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName);
@@ -343,7 +347,7 @@ export class ProfileManager {
 
       // generate the YAML
       const yamlRoot = {};
-      await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot);
+      await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot, domainNamesMapping);
       this.resourcesForHaProxyPod(profile, yamlRoot);
       this.resourcesForEnvoyProxyPod(profile, yamlRoot);
       this.resourcesForMinioTenantPod(profile, yamlRoot);
@@ -473,10 +477,10 @@ export class ProfileManager {
    * @param consensusNodes - the list of consensus nodes
    * @param destPath - path to the destination directory to write the config.txt file
    * @param releaseTagOverride - release tag override
+   * @param domainNamesMapping
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
    * @param [loadBalancerEnabled] - whether the load balancer is enabled (flag is not set by default)
-   * @param domainNamesMapping
    * @returns the config.txt file path
    */
   async prepareConfigTxt(
@@ -484,10 +488,10 @@ export class ProfileManager {
     consensusNodes: ConsensusNode[],
     destPath: string,
     releaseTagOverride: string,
+    domainNamesMapping: Record<NodeAlias, string>,
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
     loadBalancerEnabled: boolean = false,
-    domainNamesMapping?: Record<NodeAlias, string>,
   ) {
     let releaseTag = releaseTagOverride;
     if (!nodeAccountMap || nodeAccountMap.size === 0) {
@@ -532,7 +536,6 @@ export class ProfileManager {
         if (domainName) {
           externalIP = domainName;
         } else {
-          // const externalIP = consensusNode.fullyQualifiedDomainName;
           externalIP = await helpers.getExternalAddress(
             consensusNode,
             this.k8Factory.getK8(consensusNode.context),
