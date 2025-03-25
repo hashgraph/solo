@@ -375,8 +375,13 @@ export class NetworkCommand extends BaseCommand {
 
     // prepare values files for each cluster
     const valuesArgMap: Record<ClusterRef, string> = {};
-    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
+    const profileName = this.configManager.getFlag(flags.profileName);
+
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
+      profileName,
+      config.consensusNodes,
+      config.domainNamesMapping,
+    );
 
     const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMapMulticluster(
       config.clusterRefs,
@@ -687,6 +692,7 @@ export class NetworkCommand extends BaseCommand {
     if (config.envoyIps) {
       config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
     }
+
 
     if (config.domainNames) {
       config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(config.domainNames);
