@@ -86,7 +86,7 @@
     "@eslint/eslintrc": "^3.3.0",
     "@eslint/js": "^9.23.0",
     "@types/adm-zip": "^0.5.7",
-    "@types/chai": "^5.2.0",
+    "@types/chai": "^5.2.1",
     "@types/chai-as-promised": "^8.0.2",
     "@types/dot-object": "^2.1.6",
     "@types/eslint__js": "^9.14.0",
