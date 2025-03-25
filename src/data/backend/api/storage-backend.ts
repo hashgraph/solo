@@ -32,7 +32,7 @@ export interface StorageBackend {
    *              be a file path, a config map name, or an environment variable prefix.
    * @returns The persisted data represented as a byte array.
    */
-  readBytes(key: string): Promise<Uint8Array>;
+  readBytes(key: string): Promise<Buffer>;
 
   /**
    * Write the configuration data to the storage backend by marshalling the bytes into the underlying
@@ -42,7 +42,7 @@ export interface StorageBackend {
    *              be a file path, a config map name, or an environment variable prefix.
    * @param data - The persistent data represented as a byte array.
    */
-  writeBytes(key: string, data: Uint8Array): Promise<void>;
+  writeBytes(key: string, data: Buffer): Promise<void>;
 
   /**
    * Deletes the persisted data from the storage backend. Not all storage backends support deletion.

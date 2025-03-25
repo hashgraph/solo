@@ -5,7 +5,7 @@ import {type ConfigManager} from '../../core/config-manager.js';
 import {type KeyManager} from '../../core/key-manager.js';
 import {type ProfileManager} from '../../core/profile-manager.js';
 import {type PlatformInstaller} from '../../core/platform-installer.js';
-import {type K8Factory} from '../../core/kube/k8-factory.js';
+import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type ChartManager} from '../../core/chart-manager.js';
 import {type CertificateManager} from '../../core/certificate-manager.js';
 import {Zippy} from '../../core/zippy.js';
@@ -60,7 +60,7 @@ import {
   type NodeAliases,
   type SkipCheck,
 } from '../../types/aliases.js';
-import {PodName} from '../../core/kube/resources/pod/pod-name.js';
+import {PodName} from '../../integration/kube/resources/pod/pod-name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lock} from '../../core/lock/lock.js';
@@ -69,9 +69,9 @@ import {Duration} from '../../core/time/duration.js';
 import {type NodeAddConfigClass} from './node-add-config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis-network-models/genesis-network-data-constructor.js';
 import {NodeOverridesModel} from '../../core/node-overrides-model.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../core/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../../core/kube/resources/container/container-ref.js';
+import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../integration/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../../integration/kube/resources/container/container-ref.js';
 import {NetworkNodes} from '../../core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
@@ -79,11 +79,11 @@ import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {ConsensusNode} from '../../core/model/consensus-node.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8} from '../../integration/kube/k8.js';
 import {Base64} from 'js-base64';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {BaseCommand} from '../base.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
@@ -93,6 +93,7 @@ import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell-runner.js';
 import {type Listr} from 'listr2';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -133,13 +134,13 @@ export class NodeCommandTasks {
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
     // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
     const zipper = new Zippy(this.logger);
-    const upgradeConfigDir = path.join(stagingDir, 'mock-upgrade', 'data', 'config');
+    const upgradeConfigDir = PathEx.join(stagingDir, 'mock-upgrade', 'data', 'config');
     if (!fs.existsSync(upgradeConfigDir)) {
       fs.mkdirSync(upgradeConfigDir, {recursive: true});
     }
 
     // bump field hedera.config.version
-    const fileBytes = fs.readFileSync(path.join(stagingDir, 'templates', 'application.properties'));
+    const fileBytes = fs.readFileSync(PathEx.joinWithRealPath(stagingDir, 'templates', 'application.properties'));
     const lines = fileBytes.toString().split('\n');
     const newLines = [];
     for (let line of lines) {
@@ -153,9 +154,9 @@ export class NodeCommandTasks {
         newLines.push(line);
       }
     }
-    fs.writeFileSync(path.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'));
+    fs.writeFileSync(PathEx.join(upgradeConfigDir, 'application.properties'), newLines.join('\n'));
 
-    return await zipper.zip(path.join(stagingDir, 'mock-upgrade'), path.join(stagingDir, 'mock-upgrade.zip'));
+    return await zipper.zip(PathEx.join(stagingDir, 'mock-upgrade'), PathEx.join(stagingDir, 'mock-upgrade.zip'));
   }
 
   private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: any) {
@@ -1121,7 +1122,7 @@ export class NodeCommandTasks {
 
     const nodeOverridesModel = new NodeOverridesModel(nodeAliases, networkNodeServiceMap);
 
-    const nodeOverridesYaml = path.join(stagingDir, constants.NODE_OVERRIDE_FILE);
+    const nodeOverridesYaml = PathEx.join(stagingDir, constants.NODE_OVERRIDE_FILE);
     fs.writeFileSync(nodeOverridesYaml, nodeOverridesModel.toYAML());
   }
 
@@ -1158,7 +1159,7 @@ export class NodeCommandTasks {
       domainNamesMapping,
     );
 
-    const genesisNetworkJson = path.join(stagingDir, 'genesis-network.json');
+    const genesisNetworkJson = PathEx.join(stagingDir, 'genesis-network.json');
     fs.writeFileSync(genesisNetworkJson, genesisNetworkData.toJSON());
   }
 
@@ -1512,7 +1513,7 @@ export class NodeCommandTasks {
     return new Task('Load signing key certificate', (ctx: any, task: SoloListrTaskWrapper<any>) => {
       const config = ctx.config;
       const signingCertFile = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
-      const signingCertFullPath = path.join(config.keysDir, signingCertFile);
+      const signingCertFullPath = PathEx.joinWithRealPath(config.keysDir, signingCertFile);
       ctx.signingCertDer = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
     });
   }
@@ -1521,7 +1522,7 @@ export class NodeCommandTasks {
     return new Task('Compute mTLS certificate hash', (ctx: any, task: SoloListrTaskWrapper<any>) => {
       const config = ctx.config;
       const tlsCertFile = Templates.renderTLSPemPublicKeyFile(config.nodeAlias);
-      const tlsCertFullPath = path.join(config.keysDir, tlsCertFile);
+      const tlsCertFullPath = PathEx.joinWithRealPath(config.keysDir, tlsCertFile);
       const tlsCertDer = this.keyManager.getDerFromPemCertificate(tlsCertFullPath);
       ctx.tlsCertHash = crypto.createHash('sha384').update(tlsCertDer).digest();
     });
@@ -1798,8 +1799,8 @@ export class NodeCommandTasks {
 
         // Add profile values files
         const profileValuesFile = await self.profileManager.prepareValuesForNodeTransaction(
-          path.join(config.stagingDir, 'config.txt'),
-          path.join(config.stagingDir, 'templates', 'application.properties'),
+          PathEx.joinWithRealPath(config.stagingDir, 'config.txt'),
+          PathEx.joinWithRealPath(config.stagingDir, 'templates', 'application.properties'),
         );
 
         if (profileValuesFile) {
@@ -1850,7 +1851,7 @@ export class NodeCommandTasks {
         fs.mkdirSync(outputDir, {recursive: true});
       }
       const exportedCtx = parser(ctx);
-      fs.writeFileSync(path.join(outputDir, targetFile), JSON.stringify(exportedCtx));
+      fs.writeFileSync(PathEx.join(outputDir, targetFile), JSON.stringify(exportedCtx));
     });
   }
 
@@ -1861,7 +1862,7 @@ export class NodeCommandTasks {
         throw new SoloError(`Path to context data not specified. Please set a value for --${flags.inputDir.name}`);
       }
       // @ts-ignore
-      const ctxData = JSON.parse(fs.readFileSync(path.join(inputDir, targetFile)));
+      const ctxData = JSON.parse(fs.readFileSync(PathEx.joinWithRealPath(inputDir, targetFile)));
       parser(ctx, ctxData);
     });
   }
@@ -1981,7 +1982,7 @@ export class NodeCommandTasks {
         ]);
 
       await k8.containers().readByRef(containerRef).copyFrom(`${upgradeDirectory}/${zipFileName}`, config.stagingDir);
-      config.lastStateZipPath = path.join(config.stagingDir, zipFileName);
+      config.lastStateZipPath = PathEx.joinWithRealPath(config.stagingDir, zipFileName);
     });
   }
 

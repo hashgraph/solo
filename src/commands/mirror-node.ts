@@ -14,28 +14,28 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
-import {type ArgvStruct, type NodeAlias} from '../types/aliases.js';
-import {type PodName} from '../core/kube/resources/pod/pod-name.js';
+import {type CommandBuilder, type NodeAlias, type ArgvStruct} from '../types/aliases.js';
+import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 import * as fs from 'node:fs';
-import * as path from 'node:path';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../core/kube/resources/pod/pod-ref.js';
-import {ContainerName} from '../core/kube/resources/container/container-name.js';
-import {ContainerRef} from '../core/kube/resources/container/container-ref.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../integration/kube/resources/pod/pod-ref.js';
+import {ContainerName} from '../integration/kube/resources/container/container-name.js';
+import {ContainerRef} from '../integration/kube/resources/container/container-ref.js';
 import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag-types.js';
-import {PvcRef} from '../core/kube/resources/pvc/pvc-ref.js';
-import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
+import {PvcRef} from '../integration/kube/resources/pvc/pvc-ref.js';
+import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
-import {type Pod} from '../core/kube/resources/pod/pod.js';
+import {type Pod} from '../integration/kube/resources/pod/pod.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -280,7 +280,7 @@ export class MirrorNodeCommand extends BaseCommand {
 
             const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
             ctx.config.clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+              ? this.localConfig.clusterRefs[clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             await self.accountManager.loadNodeClient(
@@ -615,7 +615,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     // and the user has the responsibility to execute it manually on his own
                     if (ctx.config.useExternalDatabase) {
                       // Build the path
-                      const databaseSeedingQueryPath = path.join(
+                      const databaseSeedingQueryPath = PathEx.join(
                         constants.SOLO_CACHE_DIR,
                         'database-seeding-query.sql',
                       );
@@ -730,7 +730,7 @@ export class MirrorNodeCommand extends BaseCommand {
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
             const clusterContext = clusterRef
-              ? this.getLocalConfig().clusterRefs[clusterRef]
+              ? this.localConfig.clusterRefs[clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             if (!(await self.k8Factory.getK8(clusterContext).namespaces().has(namespace))) {

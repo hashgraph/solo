@@ -4,17 +4,17 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
 import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
 import * as constants from '../../../src/core/constants.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
-import {PodName} from '../../../src/core/kube/resources/pod/pod-name.js';
+import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
 import {container} from 'tsyringe-neo';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('PackageInstaller', () => {
   let installer: PlatformInstaller;
@@ -33,21 +33,21 @@ describe('PackageInstaller', () => {
     });
 
     it('should fail if directory does not have data/apps directory', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
+      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
       expect(() => installer.validatePlatformReleaseDir(tmpDir)).to.throw(IllegalArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
     });
 
     it('should fail if directory does not have data/libs directory', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
+      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
       expect(() => installer.validatePlatformReleaseDir(tmpDir)).to.throw(IllegalArgumentError);
       fs.rmSync(tmpDir, {recursive: true});
     });
 
     it('should fail if directory does not have data/app directory is empty', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
+      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
       fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}/test.jar`, '');
@@ -57,7 +57,7 @@ describe('PackageInstaller', () => {
     });
 
     it('should fail if directory does not have data/apps directory is empty', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-app-'));
+      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-app-'));
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
       fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});
@@ -67,7 +67,7 @@ describe('PackageInstaller', () => {
     });
 
     it('should succeed with non-empty data/apps and data/libs directory', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-lib-'));
+      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-lib-'));
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}`, {recursive: true});
       fs.writeFileSync(`${tmpDir}/${constants.HEDERA_DATA_APPS_DIR}/app.jar`, '');
       fs.mkdirSync(`${tmpDir}/${constants.HEDERA_DATA_LIB_DIR}`, {recursive: true});

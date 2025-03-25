@@ -9,15 +9,15 @@ import {SoloError} from '../../core/errors/solo-error.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
 import {type ConfigManager} from '../../core/config-manager.js';
 import {type SoloLogger} from '../../core/logging.js';
 import {type ChartManager} from '../../core/chart-manager.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {type ArgvStruct} from '../../types/aliases.js';
 import {type SoloListrTaskWrapper} from '../../types/index.js';
 import {type ClusterRefDefaultConfigClass} from './config-interfaces/cluster-ref-default-config-class.js';
-import {type K8Factory} from '../../core/kube/k8-factory.js';
+import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type ClusterRefResetContext} from './config-interfaces/cluster-ref-reset-context.js';
 import {type ClusterRefConnectContext} from './config-interfaces/cluster-ref-connect-context.js';
 import {type ClusterRefConnectConfigClass} from './config-interfaces/cluster-ref-connect-config-class.js';
@@ -25,6 +25,7 @@ import {type ClusterRefDefaultContext} from './config-interfaces/cluster-ref-def
 import {type ClusterRefSetupContext} from './config-interfaces/cluster-ref-setup-context.js';
 import {type ClusterRefSetupConfigClass} from './config-interfaces/cluster-ref-setup-config-class.js';
 import {type ClusterRefResetConfigClass} from './config-interfaces/cluster-ref-reset-config-class.js';
+import {type ClusterRef} from '../../core/config/remote/types.js';
 
 @injectable()
 export class ClusterCommandConfigs {
@@ -102,11 +103,12 @@ export class ClusterCommandConfigs {
     ]);
 
     ctx.config = {
-      chartDir: configManager.getFlag(flags.chartDirectory) as string,
-      clusterSetupNamespace: configManager.getFlag(flags.clusterSetupNamespace) as NamespaceName,
-      deployMinio: configManager.getFlag(flags.deployMinio) as boolean,
-      deployPrometheusStack: configManager.getFlag(flags.deployPrometheusStack) as boolean,
-      soloChartVersion: configManager.getFlag(flags.soloChartVersion) as string,
+      chartDir: configManager.getFlag(flags.chartDirectory),
+      clusterSetupNamespace: configManager.getFlag<NamespaceName>(flags.clusterSetupNamespace),
+      deployMinio: configManager.getFlag<boolean>(flags.deployMinio),
+      deployPrometheusStack: configManager.getFlag<boolean>(flags.deployPrometheusStack),
+      soloChartVersion: configManager.getFlag(flags.soloChartVersion),
+      clusterRef: configManager.getFlag<ClusterRef>(flags.clusterRef),
     } as ClusterRefSetupConfigClass;
 
     this.logger.debug('Prepare ctx.config', {config: ctx.config, argv});
@@ -115,6 +117,9 @@ export class ClusterCommandConfigs {
       ctx.config.clusterSetupNamespace,
       constants.SOLO_CLUSTER_SETUP_CHART,
     );
+
+    ctx.config.context =
+      this.localConfig.clusterRefs[ctx.config.clusterRef] ?? this.k8Factory.default().contexts().readCurrent();
 
     return ctx.config;
   }

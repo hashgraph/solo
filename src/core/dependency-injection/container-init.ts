@@ -16,15 +16,14 @@ import {ProfileManager} from '../profile-manager.js';
 import {IntervalLockRenewalService} from '../lock/interval-lock-renewal.js';
 import {LockManager} from '../lock/lock-manager.js';
 import {CertificateManager} from '../certificate-manager.js';
-import path, {normalize} from 'path';
-import {LocalConfig} from '../config/local-config.js';
+import {LocalConfig} from '../config/local/local-config.js';
 import {RemoteConfigManager} from '../config/remote/remote-config-manager.js';
 import os from 'os';
 import * as version from '../../../version.js';
 import {NetworkNodes} from '../network-nodes.js';
 import {ClusterChecks} from '../cluster-checks.js';
 import {InjectTokens} from './inject-tokens.js';
-import {K8ClientFactory} from '../kube/k8-client/k8-client-factory.js';
+import {K8ClientFactory} from '../../integration/kube/k8-client/k8-client-factory.js';
 import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
 import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
 import {NodeCommandHandlers} from '../../commands/node/handlers.js';
@@ -33,6 +32,8 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
+import {PathEx} from '../../business/utils/path-ex.js';
+import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -87,6 +88,7 @@ export class Container {
 
     // Data Layer ObjectMapper
     container.register(InjectTokens.ObjectMapper, {useClass: CTObjectMapper}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.KeyFormatter, {useValue: ConfigKeyFormatter.instance()});
 
     container.register(InjectTokens.PackageDownloader, {useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.Zippy, {useClass: Zippy}, {lifecycle: Lifecycle.Singleton});
@@ -97,7 +99,9 @@ export class Container {
     container.register(InjectTokens.Helm, {useClass: Helm}, {lifecycle: Lifecycle.Singleton});
 
     // HelmDependencyManager
-    container.register(InjectTokens.HelmInstallationDir, {useValue: path.join(constants.SOLO_HOME_DIR, 'bin')});
+    container.register(InjectTokens.HelmInstallationDir, {
+      useValue: PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
+    });
     container.register(InjectTokens.OsArch, {useValue: os.arch()});
     container.register(InjectTokens.HelmVersion, {useValue: version.HELM_VERSION});
     container.register(
@@ -131,7 +135,7 @@ export class Container {
     );
 
     // LocalConfig
-    const localConfigPath = normalize(path.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE));
+    const localConfigPath = PathEx.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE);
     container.register(InjectTokens.LocalConfigFilePath, {useValue: localConfigPath});
     container.register(InjectTokens.LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 

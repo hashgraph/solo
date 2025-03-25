@@ -27,26 +27,26 @@ import {ResourceNotFoundError} from './errors/resource-not-found-error.js';
 import {SoloError} from './errors/solo-error.js';
 import {Templates} from './templates.js';
 import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network-node-services.js';
-import path from 'path';
 
 import {type SoloLogger} from './logging.js';
-import {type K8Factory} from './kube/k8-factory.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
-import {type PodName} from './kube/resources/pod/pod-name.js';
+import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
-import {PodRef} from './kube/resources/pod/pod-ref.js';
-import {SecretType} from './kube/resources/secret/secret-type.js';
-import {type Pod} from './kube/resources/pod/pod.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../integration/kube/resources/pod/pod-ref.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
+import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ClusterRefs, type DeploymentName} from './config/remote/types.js';
-import {type Service} from './kube/resources/service/service.js';
+import {type Service} from '../integration/kube/resources/service/service.js';
 import {SoloService} from './model/solo-service.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -317,7 +317,7 @@ export class AccountManager {
       // when running locally or in a pipeline
       this._nodeClient = Client.fromConfig({network: nodes, scheduleNetworkUpdate: false});
       this._nodeClient.setOperator(operatorId, operatorKey);
-      this._nodeClient.setLogger(new Logger(LogLevel.Trace, path.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')));
+      this._nodeClient.setLogger(new Logger(LogLevel.Trace, PathEx.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')));
       this._nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS as number);
       this._nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF as number);
       this._nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF as number);

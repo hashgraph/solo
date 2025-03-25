@@ -7,7 +7,7 @@ import {type AnyObject, type ArgvStruct} from '../../src/types/aliases.js';
 import {type Argv} from './argv-wrapper.js';
 import {type ConfigManager} from '../../src/core/config-manager.js';
 import {type SoloLogger} from '../../src/core/logging.js';
-import {type K8Factory} from '../../src/core/kube/k8-factory.js';
+import {type K8Factory} from '../../src/integration/kube/k8-factory.js';
 
 export class CommandInvoker {
   private readonly middlewares: Middlewares;

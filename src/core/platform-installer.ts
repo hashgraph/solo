@@ -8,7 +8,7 @@ import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
 import * as constants from './constants.js';
 import {type ConfigManager} from './config-manager.js';
-import {type K8Factory} from './kube/k8-factory.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {Templates} from './templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
@@ -20,12 +20,13 @@ import {Duration} from './time/duration.js';
 import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
-import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
-import {type PodRef} from './kube/resources/pod/pod-ref.js';
-import {ContainerRef} from './kube/resources/container/container-ref.js';
-import {SecretType} from './kube/resources/secret/secret-type.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {type PodRef} from '../integration/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../integration/kube/resources/container/container-ref.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -92,13 +93,13 @@ export class PlatformInstaller {
 
     try {
       const scriptName = 'extract-platform.sh';
-      const sourcePath = path.join(constants.RESOURCES_DIR, scriptName); // script source path
+      const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       await this.copyFiles(podRef, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
 
       // wait a few seconds before calling the script to avoid "No such file" error
       await sleep(Duration.ofSeconds(2));
 
-      const extractScript = path.join(constants.HEDERA_USER_HOME_DIR, scriptName); // inside the container
+      const extractScript = `${constants.HEDERA_USER_HOME_DIR}/${scriptName}`; // inside the container
       const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
 
       const k8Containers = this.k8Factory.getK8(context).containers();
@@ -149,7 +150,7 @@ export class PlatformInstaller {
         await k8Containers.readByRef(containerRef).copyTo(srcPath, destDir);
 
         const fileName = path.basename(srcPath);
-        copiedFiles.push(path.join(destDir, fileName));
+        copiedFiles.push(PathEx.join(destDir, fileName));
       }
 
       return copiedFiles;
@@ -168,13 +169,21 @@ export class PlatformInstaller {
 
       // copy private keys for the node
       srcFiles.push(
-        path.join(stagingDir, 'keys', Templates.renderGossipPemPrivateKeyFile(consensusNode.name as NodeAlias)),
+        PathEx.joinWithRealPath(
+          stagingDir,
+          'keys',
+          Templates.renderGossipPemPrivateKeyFile(consensusNode.name as NodeAlias),
+        ),
       );
 
       // copy all public keys for all nodes
       consensusNodes.forEach(consensusNode => {
         srcFiles.push(
-          path.join(stagingDir, 'keys', Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias)),
+          PathEx.joinWithRealPath(
+            stagingDir,
+            'keys',
+            Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias),
+          ),
         );
       });
 
@@ -216,10 +225,18 @@ export class PlatformInstaller {
       for (const consensusNode of consensusNodes) {
         const srcFiles = [];
         srcFiles.push(
-          path.join(stagingDir, 'keys', Templates.renderTLSPemPrivateKeyFile(consensusNode.name as NodeAlias)),
+          PathEx.joinWithRealPath(
+            stagingDir,
+            'keys',
+            Templates.renderTLSPemPrivateKeyFile(consensusNode.name as NodeAlias),
+          ),
         );
         srcFiles.push(
-          path.join(stagingDir, 'keys', Templates.renderTLSPemPublicKeyFile(consensusNode.name as NodeAlias)),
+          PathEx.joinWithRealPath(
+            stagingDir,
+            'keys',
+            Templates.renderTLSPemPublicKeyFile(consensusNode.name as NodeAlias),
+          ),
         );
 
         for (const srcFile of srcFiles) {
@@ -320,12 +337,12 @@ export class PlatformInstaller {
    */
   private async copyConfigurationFiles(stagingDir: string, podRef: PodRef, isGenesis: boolean, context?: string) {
     if (isGenesis) {
-      const genesisNetworkJson = [path.join(stagingDir, 'genesis-network.json')];
+      const genesisNetworkJson = [PathEx.joinWithRealPath(stagingDir, 'genesis-network.json')];
       await this.copyFiles(podRef, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
     }
 
     // TODO: temporarily disable this until we add logic to only set this when the user provides the node override gossip endpoints for each node they want to override
-    // const nodeOverridesYaml = [path.join(stagingDir, constants.NODE_OVERRIDE_FILE)];
+    // const nodeOverridesYaml = [PathEx.joinWithRealPath(stagingDir, constants.NODE_OVERRIDE_FILE)];
     // await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
   }
 

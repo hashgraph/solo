@@ -15,20 +15,18 @@ import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
   resolveValidJsonFilePath,
-  validatePath,
   sleep,
   parseNodeAliases,
   prepareChartPath,
   showVersionBanner,
 } from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import path from 'path';
 import fs from 'fs';
 import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type CommandBuilder, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
@@ -36,17 +34,18 @@ import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-
 import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
-import {PvcRef} from '../core/kube/resources/pvc/pvc-ref.js';
-import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {PvcRef} from '../integration/kube/resources/pvc/pvc-ref.js';
+import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
-import {SecretType} from '../core/kube/resources/secret/secret-type.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
-import {type PodRef} from '../core/kube/resources/pod/pod-ref.js';
+import {type PodRef} from '../integration/kube/resources/pod/pod-ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
-import {type Pod} from '../core/kube/resources/pod/pod.js';
+import {type Pod} from '../integration/kube/resources/pod/pod.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -117,7 +116,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly platformInstaller: PlatformInstaller;
   private readonly profileManager: ProfileManager;
   private readonly certificateManager: CertificateManager;
-  private profileValuesFile?: string;
+  private profileValuesFile?: Record<ClusterRef, string>;
 
   constructor(opts: Opts) {
     super(opts);
@@ -378,7 +377,8 @@ export class NetworkCommand extends BaseCommand {
     const valuesArgMap: Record<ClusterRef, string> = {};
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
-    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMap(
+
+    const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMapMulticluster(
       config.clusterRefs,
       config.chartDirectory,
       this.profileValuesFile,
@@ -579,7 +579,7 @@ export class NetworkCommand extends BaseCommand {
     consensusNodes: ConsensusNode[],
     valuesArgs: Record<ClusterRef, string>,
     templateString: string,
-  ) {
+  ): void {
     if (records) {
       consensusNodes.forEach(consensusNode => {
         if (records[consensusNode.name]) {
@@ -701,9 +701,9 @@ export class NetworkCommand extends BaseCommand {
     );
 
     // compute other config parameters
-    config.keysDir = path.join(validatePath(config.cacheDir), 'keys');
+    config.keysDir = PathEx.join(config.cacheDir, 'keys');
     config.stagingDir = Templates.renderStagingDir(config.cacheDir, config.releaseTag);
-    config.stagingKeysDir = path.join(validatePath(config.stagingDir), 'keys');
+    config.stagingKeysDir = PathEx.join(config.stagingDir, 'keys');
 
     config.resolvedThrottlesFile = resolveValidJsonFilePath(
       config.genesisThrottlesFile,
@@ -714,13 +714,7 @@ export class NetworkCommand extends BaseCommand {
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
 
-    if (config.nodeAliases.length === 0) {
-      config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
-      if (config.nodeAliases.length === 0) {
-        throw new SoloError('no node aliases provided via flags or RemoteConfig');
-      }
-      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
-    }
+    config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 
@@ -1184,10 +1178,9 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Remove deployment from local configuration',
           task: async (ctx, task) => {
-            const deployments = self.localConfig.deployments;
-            delete deployments[ctx.config.deployment];
-            self.localConfig.setDeployments(deployments);
-            await self.localConfig.write();
+            await this.localConfig.modify(async localConfigData => {
+              localConfigData.removeDeployment(ctx.config.deployment);
+            });
           },
         },
         {
@@ -1240,11 +1233,7 @@ export class NetworkCommand extends BaseCommand {
     return networkDestroySuccess;
   }
 
-  getCommandDefinition(): {
-    command: string;
-    desc: string;
-    builder: CommandBuilder;
-  } {
+  getCommandDefinition() {
     const self = this;
     return {
       command: NetworkCommand.COMMAND_NAME,
@@ -1340,8 +1329,5 @@ export class NetworkCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }

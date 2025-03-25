@@ -8,18 +8,18 @@ import {Flags as flags} from '../../../commands/flags.js';
 import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components-data-wrapper.js';
 import {RemoteConfigValidator} from './remote-config-validator.js';
-import {type K8Factory} from '../../kube/k8-factory.js';
+import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName, type Version} from './types.js';
 import {type SoloLogger} from '../../logging.js';
 import {type ConfigManager} from '../../config-manager.js';
-import {type LocalConfig} from '../local-config.js';
+import {type LocalConfig} from '../local/local-config.js';
 import {type Optional} from '../../../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency-injection/container-helper.js';
 import {ErrorMessages} from '../../error-messages.js';
 import {CommonFlagsDataWrapper} from './common-flags-data-wrapper.js';
 import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
-import {type NamespaceName} from '../../kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {Cluster} from './cluster.js';
 import * as helpers from '../../helpers.js';
@@ -27,7 +27,7 @@ import {ConsensusNode} from '../../model/consensus-node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 import {type DeploymentStates} from './enumerations.js';
-import {type ConfigMap} from '../../kube/resources/config-map/config-map.js';
+import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -361,11 +361,24 @@ export class RemoteConfigManager {
    * Replaces an existing ConfigMap in the Kubernetes cluster with the current remote configuration data.
    */
   private async replaceConfigMap(): Promise<void> {
-    const contexts = this.getContexts();
     const namespace = await this.getNamespace();
     const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
     const labels = constants.SOLO_REMOTE_CONFIGMAP_LABELS;
     const data = {'remote-config-data': yaml.stringify(this.remoteConfig.toObject())};
+
+    const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+
+    if (!deploymentName) {
+      throw new SoloError('Failed to get deployment');
+    }
+
+    const clusterRefs: ClusterRef[] = this.localConfig.deployments[deploymentName]?.clusters;
+
+    if (!clusterRefs) {
+      throw new SoloError(`Failed to get get cluster refs from local config for deployment ${deploymentName}`);
+    }
+
+    const contexts = clusterRefs.map(clusterRef => this.localConfig.clusterRefs[clusterRef]);
 
     await Promise.all(
       contexts.map(context => this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data)),

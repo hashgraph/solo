@@ -7,21 +7,24 @@ import {getTestCacheDir, getTestCluster} from '../../test-util.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
-import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {expect} from 'chai';
 import fs from 'fs';
-import path from 'path';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {type LocalConfig} from '../../../src/core/config/local-config.js';
-import {type K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
-import {type K8} from '../../../src/core/kube/k8.js';
+import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
+import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
+import {type K8} from '../../../src/integration/kube/k8.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
+import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
+import {Templates} from '../../../src/core/templates.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -44,7 +47,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   before(async () => {
     fs.rmSync(testCacheDir, {recursive: true, force: true});
     try {
-      fs.rmSync(path.join(testCacheDir, '..', DEFAULT_LOCAL_CONFIG_FILE), {force: true});
+      fs.rmSync(PathEx.joinWithRealPath(testCacheDir, '..', DEFAULT_LOCAL_CONFIG_FILE), {force: true});
     } catch {
       // allowed to fail if the file doesn't exist
     }
@@ -96,10 +99,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     }
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
-    expect(
-      Object.entries(remoteConfigManager.components.consensusNodes).length,
-      'consensus node count should be 2',
-    ).to.equal(2);
+    const consensusNodes: Record<string, ConsensusNodeComponent> = remoteConfigManager.components.consensusNodes;
+    expect(Object.entries(consensusNodes).length, 'consensus node count should be 2').to.equal(2);
+    expect(consensusNodes['node1'].cluster).to.equal(testClusterRefs[0]);
+    expect(consensusNodes['node2'].cluster).to.equal(testClusterRefs[1]);
     testLogger.info(`${testName}: finished solo deployment add-cluster`);
   });
 
@@ -115,19 +118,23 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: beginning node keys command`);
     expect(container.resolve<SoloLogger>(InjectTokens.SoloLogger)).to.equal(testLogger);
     await main(soloNodeKeysArgv(deployment));
-    const node1Key: Buffer<ArrayBufferLike> = fs.readFileSync(path.join(testCacheDir, 'keys', 's-private-node1.pem'));
+    const node1Key: Buffer<ArrayBufferLike> = fs.readFileSync(
+      PathEx.joinWithRealPath(testCacheDir, 'keys', 's-private-node1.pem'),
+    );
     expect(node1Key).to.not.be.null;
     testLogger.info(`${testName}: finished node keys command`);
   });
 
-  // TODO network deploy
-  xit(`${testName}: network deploy`, async () => {
+  it(`${testName}: network deploy`, async () => {
     await main(soloNetworkDeployArgv(deployment));
     const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-    for (const context of contexts) {
-      const k8: K8 = k8Factory.getK8(context);
+    for (let index: number = 0; index < contexts.length; index++) {
+      const k8: K8 = k8Factory.getK8(contexts[index]);
       expect(await k8.namespaces().has(namespace), `namespace ${namespace} should exist in ${context}`).to.be.true;
-      expect(await k8.pods().list(namespace, ['solo.hedera.com/type=network-node'])).to.have.lengthOf(1);
+      const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      expect(pods).to.have.lengthOf(1);
+      const nodeAlias = Templates.renderNodeAliasFromNumber(index + 1);
+      expect(pods[0].labels['solo.hedera.com/node-name']).to.equal(nodeAlias);
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
 

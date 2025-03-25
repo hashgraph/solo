@@ -7,7 +7,7 @@ import {SoloError} from './errors/solo-error.js';
 import {type SoloLogger} from './logging.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 
 @injectable()

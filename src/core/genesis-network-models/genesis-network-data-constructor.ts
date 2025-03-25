@@ -9,12 +9,12 @@ import {type ToJSON} from '../../types/index.js';
 import {type JsonString, type NodeAlias} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis-network-roster-entry-data-wrapper.js';
 import {Templates} from '../templates.js';
-import path from 'path';
 import {type NetworkNodeServices} from '../network-node-services.js';
 import {SoloError} from '../errors/solo-error.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account-manager.js';
 import {type ConsensusNode} from '../model/consensus-node.js';
+import {PathEx} from '../../business/utils/path-ex.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -130,7 +130,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     await Promise.all(
       this.consensusNodes.map(async consensusNode => {
         const signingCertFile = Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias);
-        const signingCertFullPath = path.join(this.keysDir, signingCertFile);
+        const signingCertFullPath = PathEx.joinWithRealPath(this.keysDir, signingCertFile);
         const derCertificate = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
 
         //* Assign the DER formatted certificate

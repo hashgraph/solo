@@ -5,7 +5,6 @@ import {after, describe, it} from 'mocha';
 
 import fs from 'fs';
 import * as yaml from 'yaml';
-import path from 'path';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
@@ -16,16 +15,18 @@ import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
 import {Templates} from '../../../src/core/templates.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {KubeConfig} from '@kubernetes/client-node';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
+import sinon from 'sinon';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('ProfileManager', () => {
   let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
   const namespace = NamespaceName.of('test-namespace');
-  const testProfileFile = path.join('test', 'data', 'test-profiles.yaml');
+  const testProfileFile = PathEx.join('test', 'data', 'test-profiles.yaml');
   const kubeConfig = new KubeConfig();
   kubeConfig.loadFromDefault();
   const consensusNodes: ConsensusNode[] = [
@@ -60,6 +61,7 @@ describe('ProfileManager', () => {
       fullyQualifiedDomainName: 'network-node3-svc.test-namespace.svc.cluster.local',
     },
   ];
+
   let stagingDir = '';
 
   before(() => {
@@ -84,6 +86,9 @@ describe('ProfileManager', () => {
     if (!fs.existsSync(stagingDir)) {
       fs.mkdirSync(stagingDir, {recursive: true});
     }
+
+    // @ts-expect-error - TS2339: to mock
+    profileManager.remoteConfigManager.getConsensusNodes = sinon.stub().returns(consensusNodes);
   });
 
   after(() => {
@@ -123,10 +128,10 @@ describe('ProfileManager', () => {
 
         const resources = ['templates', 'profiles'];
         for (const dirName of resources) {
-          const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName));
+          const srcDir = PathEx.joinWithRealPath(constants.RESOURCES_DIR, dirName);
           if (!fs.existsSync(srcDir)) continue;
 
-          const destDir = path.resolve(path.join(cacheDir, dirName));
+          const destDir = PathEx.resolve(PathEx.join(cacheDir, dirName));
           if (!fs.existsSync(destDir)) {
             fs.mkdirSync(destDir, {recursive: true});
           }
@@ -135,7 +140,9 @@ describe('ProfileManager', () => {
         }
 
         profileManager.loadProfiles(true);
-        const valuesFile = await profileManager.prepareValuesForSoloChart(input.profileName, consensusNodes);
+        const valuesFileMapping = await profileManager.prepareValuesForSoloChart(input.profileName, consensusNodes);
+        const valuesFile = Object.values(valuesFileMapping)[0];
+
         expect(valuesFile).not.to.be.null;
         expect(fs.existsSync(valuesFile)).to.be.ok;
 
@@ -167,13 +174,14 @@ describe('ProfileManager', () => {
         configManager.setFlag(flags.namespace, 'test-namespace');
 
         // profileManager.loadProfiles(true)
-        const file = path.join(tmpDir, 'application.env');
+        const file = PathEx.join(tmpDir, 'application.env');
         const fileContents = '# row 1\n# row 2\n# row 3';
         fs.writeFileSync(file, fileContents);
         configManager.setFlag(flags.applicationEnv, file);
-        const destFile = path.join(stagingDir, 'templates', 'application.env');
+        const destFile = PathEx.join(stagingDir, 'templates', 'application.env');
         fs.cpSync(file, destFile, {force: true});
-        const cachedValuesFile = await profileManager.prepareValuesForSoloChart('test', consensusNodes);
+        const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart('test', consensusNodes);
+        const cachedValuesFile = Object.values(cachedValuesFileMapping)[0];
         const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());
         expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents);
       });
@@ -232,7 +240,7 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node1', '0.0.3');
       nodeAccountMap.set('node2', '0.0.4');
       nodeAccountMap.set('node3', '0.0.5');
-      const destPath = path.join(tmpDir, 'staging');
+      const destPath = PathEx.join(tmpDir, 'staging');
       fs.mkdirSync(destPath, {recursive: true});
       const renderedConfigFile = await profileManager.prepareConfigTxt(
         nodeAccountMap,
@@ -242,7 +250,7 @@ describe('ProfileManager', () => {
       );
 
       // expect that the config.txt file was created and exists
-      const configFile = path.join(destPath, 'config.txt');
+      const configFile = PathEx.join(destPath, 'config.txt');
       expect(renderedConfigFile).to.equal(configFile);
       expect(fs.existsSync(configFile)).to.be.ok;
 
@@ -273,7 +281,7 @@ describe('ProfileManager', () => {
     it('should fail when destPath does not exist', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       nodeAccountMap.set('node1', '0.0.3');
-      const destPath = path.join(tmpDir, 'missing-directory');
+      const destPath = PathEx.join(tmpDir, 'missing-directory');
       try {
         await profileManager.prepareConfigTxt(
           nodeAccountMap,
