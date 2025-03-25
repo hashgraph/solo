@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {describe, it} from 'mocha';
 import {expect} from 'chai';
 import {Duration} from '../../../../src/core/time/duration.js';

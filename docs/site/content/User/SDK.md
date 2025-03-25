@@ -45,7 +45,7 @@ The output would be similar to the following:
 }
 ```
 
-Next step please clone the Hedera Javascript SDK repository https://github.com/hashgraph/hedera-sdk-js.
+Next step please clone the Hedera Javascript SDK repository <https://github.com/hashgraph/hedera-sdk-js>.
 At the root of the project `hedera-sdk-js`,  create a file `.env` and add the following content:
 
 ```bash
@@ -91,7 +91,7 @@ topic sequence number = 1
 ```
 
 You can use Hedera explorer to check transactions and topics created in the Solo network:
-http://localhost:8080/localnet/dashboard
+<http://localhost:8080/localnet/dashboard>
 
 Finally, after done with using solo, using the following command to tear down the Solo network:
 

@@ -1,9 +1,7 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Migration} from './migration.js';
-import {SoloError} from '../../errors.js';
-import * as k8s from '@kubernetes/client-node';
+import {SoloError} from '../../errors/solo-error.js';
 import {
   type DeploymentName,
   type EmailAddress,
@@ -12,6 +10,7 @@ import {
   type Version,
 } from './types.js';
 import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
+import {DeploymentStates} from './enumerations.js';
 
 /**
  * Represent the remote config metadata object and handles:
@@ -28,6 +27,7 @@ export class RemoteConfigMetadata
   public constructor(
     public readonly namespace: NamespaceNameAsString,
     public readonly deploymentName: DeploymentName,
+    public readonly state: DeploymentStates,
     public readonly lastUpdatedAt: Date,
     public readonly lastUpdateBy: EmailAddress,
     public readonly soloVersion: Version,
@@ -72,6 +72,7 @@ export class RemoteConfigMetadata
     return new RemoteConfigMetadata(
       metadata.namespace,
       metadata.deploymentName,
+      metadata.state,
       new Date(metadata.lastUpdatedAt),
       metadata.lastUpdateBy,
       metadata.soloVersion,
@@ -109,6 +110,10 @@ export class RemoteConfigMetadata
       throw new SoloError(`Invalid soloVersion: ${this.soloVersion}`);
     }
 
+    if (!Object.values(DeploymentStates).includes(this.state)) {
+      throw new SoloError(`Invalid cluster state: ${this.state}`);
+    }
+
     if (this.migration && !(this.migration instanceof Migration)) {
       throw new SoloError(`Invalid migration: ${this.migration}`);
     }
@@ -118,7 +123,8 @@ export class RemoteConfigMetadata
     const data = {
       namespace: this.namespace,
       deploymentName: this.deploymentName,
-      lastUpdatedAt: new k8s.V1MicroTime(this.lastUpdatedAt),
+      state: this.state,
+      lastUpdatedAt: this.lastUpdatedAt,
       lastUpdateBy: this.lastUpdateBy,
       soloChartVersion: this.soloChartVersion,
       hederaPlatformVersion: this.hederaPlatformVersion,
@@ -128,7 +134,7 @@ export class RemoteConfigMetadata
       soloVersion: this.soloVersion,
     } as RemoteConfigMetadataStructure;
 
-    if (this.migration) data.migration = this.migration.toObject() as any;
+    if (this.migration) data.migration = this.migration.toObject();
 
     return data;
   }

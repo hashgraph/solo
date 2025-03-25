@@ -1,30 +1,75 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
 
 import {Flags as flags} from '../commands/flags.js';
 import chalk from 'chalk';
 
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {type Opts} from '../commands/base.js';
-import {type ConfigManager} from './config_manager.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {type ConfigManager} from './config-manager.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type SoloLogger} from './logging.js';
 import {type AnyObject} from '../types/aliases.js';
-import {type RemoteConfigManager} from './config/remote/remote_config_manager.js';
+import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {type ClusterRef} from './config/remote/types.js';
+import {type LocalConfig} from './config/local/local-config.js';
+import {SoloError} from './errors/solo-error.js';
+import {SilentBreak} from './errors/silent-break.js';
+import {type HelpRenderer} from './help-renderer.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {inject, injectable} from 'tsyringe-neo';
 
+@injectable()
 export class Middlewares {
-  private readonly remoteConfigManager: RemoteConfigManager;
-  private readonly configManager: ConfigManager;
-  private readonly k8Factory: K8Factory;
-  private readonly logger: SoloLogger;
+  constructor(
+    @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
+    @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
+    @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
+    @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(InjectTokens.HelpRenderer) private readonly helpRenderer: HelpRenderer,
+  ) {
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.helpRenderer = patchInject(helpRenderer, InjectTokens.HelpRenderer, this.constructor.name);
+  }
 
-  constructor(opts: Opts) {
-    this.configManager = opts.configManager;
-    this.remoteConfigManager = opts.remoteConfigManager;
-    this.k8Factory = opts.k8Factory;
-    this.logger = opts.logger;
+  public printCustomHelp(rootCmd: any) {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return (argv: any) => {
+      if (!argv['help']) return;
+
+      rootCmd.showHelp((output: string) => {
+        this.helpRenderer.render(rootCmd, output);
+      });
+      throw new SilentBreak('printed help, exiting');
+    };
+  }
+
+  public setLoggerDevFlag() {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return (argv: any): AnyObject => {
+      if (argv.dev) {
+        logger.debug('Setting logger dev flag');
+        logger.setDevMode(argv.dev);
+      }
+
+      return argv;
+    };
   }
 
   /**
@@ -108,22 +153,51 @@ export class Middlewares {
 
       const command = argv._[0];
       const subCommand = argv._[1];
+
       const skip =
         command === 'init' ||
-        (command === 'node' && subCommand === 'keys') ||
-        (command === 'cluster' && subCommand === 'connect') ||
-        (command === 'cluster' && subCommand === 'info') ||
-        (command === 'cluster' && subCommand === 'list') ||
-        (command === 'cluster' && subCommand === 'setup') ||
+        (command === 'cluster-ref' && subCommand === 'connect') ||
+        (command === 'cluster-ref' && subCommand === 'disconnect') ||
+        (command === 'cluster-ref' && subCommand === 'info') ||
+        (command === 'cluster-ref' && subCommand === 'list') ||
+        (command === 'cluster-ref' && subCommand === 'setup') ||
+        (command === 'deployment' && subCommand === 'add-cluster') ||
         (command === 'deployment' && subCommand === 'create') ||
         (command === 'deployment' && subCommand === 'list');
 
-      if (command === 'node' && subCommand === 'keys') {
-        await remoteConfigManager.loadAndValidate(argv, false);
-      }
+      // Load but don't validate if command is 'node keys'
+      const validateRemoteConfig = !(command === 'node' && subCommand === 'keys');
+
+      // Skip validation for consensus nodes if the command is 'network deploy'
+      const skipConsensusNodeValidation = command === 'network' && subCommand === 'deploy';
 
       if (!skip) {
-        await remoteConfigManager.loadAndValidate(argv);
+        await remoteConfigManager.loadAndValidate(argv, validateRemoteConfig, skipConsensusNodeValidation);
+      }
+
+      return argv;
+    };
+  }
+
+  /**
+   * Checks if the Solo instance has been initialized
+   *
+   * @returns callback function to be executed from listr
+   */
+  public checkIfInitialized() {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return async (argv: any): Promise<AnyObject> => {
+      logger.debug('Checking if local config exists');
+
+      const command = argv._[0];
+      const allowMissingLocalConfig = command === 'init';
+
+      if (!allowMissingLocalConfig && !this.localConfig.configFileExists()) {
+        throw new SoloError('Please run `solo init` to create required files');
       }
 
       return argv;

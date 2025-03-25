@@ -11,14 +11,14 @@ export SOLO_DEVELOPMENT=solo-deployment
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 kind create cluster -n "${SOLO_CLUSTER_NAME}"
 solo init
+solo cluster-ref setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
+solo deployment create --namespace "${SOLO_NAMESPACE}" --deployment "${SOLO_DEVELOPMENT}"
+solo deployment add-cluster --deployment "${SOLO_DEVELOPMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 2
 solo node keys --gossip-keys --tls-keys -i node1,node2
-solo cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}"
-solo deployment create --namespace "${SOLO_NAMESPACE}"  --context kind-"${SOLO_CLUSTER_NAME}" --email john@doe.com --deployment-clusters kind-"${SOLO_CLUSTER_NAME}" --cluster-ref kind-"${SOLO_CLUSTER_NAME}" --deployment "${SOLO_DEVELOPMENT}" --node-aliases node1,node2
-
 solo network deploy --deployment "${SOLO_DEVELOPMENT}" -i node1,node2
 solo node setup     --deployment "${SOLO_DEVELOPMENT}" -i node1,node2
 solo node start     --deployment "${SOLO_DEVELOPMENT}" -i node1,node2
-
 solo mirror-node deploy --deployment "${SOLO_DEVELOPMENT}"  
 
 kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 > /dev/null 2>&1 &

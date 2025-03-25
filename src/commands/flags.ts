@@ -1,13 +1,11 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
-import path from 'path';
-import {type CommandFlag} from '../types/flag_types.js';
-import {type ListrTaskWrapper} from 'listr2';
+import {type CommandFlag} from '../types/flag-types.js';
 import fs from 'fs';
-import {IllegalArgumentError, SoloError} from '../core/errors.js';
+import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {
   select as selectPrompt,
@@ -17,21 +15,27 @@ import {
 } from '@inquirer/prompts';
 import * as helpers from '../core/helpers.js';
 import validator from 'validator';
-import {type AnyObject} from '../types/aliases.js';
+import {type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type ClusterRef} from '../core/config/remote/types.js';
+import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
+import chalk from 'chalk';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export class Flags {
   public static KEY_COMMON = '_COMMON_';
 
   private static async prompt(
     type: 'toggle' | 'input' | 'number',
-    task: ListrTaskWrapper<any, any, any>,
+    task: SoloListrTaskWrapper<AnyListrContext>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     input: any,
-    defaultValue: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    defaultValue: Optional<any>,
     promptMessage: string,
     emptyCheckMessage: string | null,
     flagName: string,
-  ) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ): Promise<any> {
     try {
       let needsPrompt = type === 'toggle' ? input === undefined || typeof input !== 'boolean' : !input;
       needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt;
@@ -70,24 +74,24 @@ export class Flags {
   }
 
   private static async promptText(
-    task: ListrTaskWrapper<any, any, any>,
-    input: any,
-    defaultValue: any,
+    task: SoloListrTaskWrapper<AnyListrContext>,
+    input: string,
+    defaultValue: Optional<string>,
     promptMessage: string,
     emptyCheckMessage: string | null,
     flagName: string,
-  ) {
+  ): Promise<string> {
     return await Flags.prompt('input', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
   }
 
   private static async promptToggle(
-    task: ListrTaskWrapper<any, any, any>,
-    input: any,
-    defaultValue: any,
+    task: SoloListrTaskWrapper<AnyListrContext>,
+    input: boolean,
+    defaultValue: Optional<boolean>,
     promptMessage: string,
     emptyCheckMessage: string | null,
     flagName: string,
-  ) {
+  ): Promise<boolean> {
     return await Flags.prompt('toggle', task, input, defaultValue, promptMessage, emptyCheckMessage, flagName);
   }
 
@@ -95,7 +99,7 @@ export class Flags {
    * Disable prompts for the given set of flags
    * @param flags list of flags to disable prompts for
    */
-  static disablePrompts(flags: CommandFlag[]) {
+  public static disablePrompts(flags: CommandFlag[]): void {
     Flags.resetDisabledPrompts();
     for (const flag of flags) {
       if (flag.definition) {
@@ -110,13 +114,30 @@ export class Flags {
    * @param commandFlags a set of command flags
    *
    */
-  static setCommandFlags(y: any, ...commandFlags: CommandFlag[]) {
+  public static setRequiredCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
     commandFlags.forEach(flag => {
-      y.option(flag.name, flag.definition);
+      y.option(flag.name, {...flag.definition, demandOption: true});
     });
   }
 
-  static readonly devMode: CommandFlag = {
+  /**
+   * Set flag from the flag option
+   * @param y instance of yargs
+   * @param commandFlags a set of command flags
+   *
+   */
+  public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
+    commandFlags.forEach(flag => {
+      let defaultValue = flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined;
+      defaultValue = defaultValue && flag.definition.dataMask ? flag.definition.dataMask : defaultValue;
+      y.option(flag.name, {
+        ...flag.definition,
+        default: defaultValue,
+      });
+    });
+  }
+
+  public static readonly devMode: CommandFlag = {
     constName: 'devMode',
     name: 'dev',
     definition: {
@@ -127,7 +148,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly forcePortForward: CommandFlag = {
+  public static readonly forcePortForward: CommandFlag = {
     constName: 'forcePortForward',
     name: 'force-port-forward',
     definition: {
@@ -139,7 +160,7 @@ export class Flags {
   };
 
   // list of common flags across commands. command specific flags are defined in the command's module.
-  static readonly clusterRef: CommandFlag = {
+  public static readonly clusterRef: CommandFlag = {
     constName: 'clusterRef',
     name: 'cluster-ref',
     definition: {
@@ -149,11 +170,14 @@ export class Flags {
       alias: 'c',
       type: 'string',
     },
-    prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptClusterRef(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.clusterRef.definition.defaultValue,
+        Flags.clusterRef.definition.defaultValue as string,
         'Enter cluster reference: ',
         'cluster reference cannot be empty',
         Flags.clusterRef.name,
@@ -161,7 +185,7 @@ export class Flags {
     },
   };
 
-  static readonly clusterSetupNamespace: CommandFlag = {
+  public static readonly clusterSetupNamespace: CommandFlag = {
     constName: 'clusterSetupNamespace',
     name: 'cluster-setup-namespace',
     definition: {
@@ -170,7 +194,10 @@ export class Flags {
       alias: 's',
       type: 'string',
     },
-    prompt: async function promptClusterSetupNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptClusterSetupNamespace(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
@@ -182,7 +209,7 @@ export class Flags {
     },
   };
 
-  static readonly namespace: CommandFlag = {
+  public static readonly namespace: CommandFlag = {
     constName: 'namespace',
     name: 'namespace',
     definition: {
@@ -190,7 +217,10 @@ export class Flags {
       alias: 'n',
       type: 'string',
     },
-    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNamespace(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
@@ -202,14 +232,17 @@ export class Flags {
     },
   };
 
-  static readonly mirrorNamespace: CommandFlag = {
+  public static readonly mirrorNamespace: CommandFlag = {
     constName: 'mirrorNamespace',
     name: 'mirror-namespace',
     definition: {
       describe: 'Namespace to use for the Mirror Node deployment, a new one will be created if it does not exist',
       type: 'string',
     },
-    prompt: async function promptNamespace(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNamespace(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
@@ -220,27 +253,29 @@ export class Flags {
       );
     },
   };
+
   /**
    * Parse the values files input string that includes the cluster reference and the values file path
    * <p>It supports input as below:
    * <p>--values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
    * @param input
    */
-  static parseValuesFilesInput(input: string): Record<ClusterRef, Array<string>> {
+  public static parseValuesFilesInput(input: string): Record<ClusterRef, Array<string>> {
     const valuesFiles: Record<ClusterRef, Array<string>> = {};
     if (input) {
       const inputItems = input.split(',');
       inputItems.forEach(v => {
         const parts = v.split('=');
 
-        let clusterRef = '';
-        let valuesFile = '';
+        let clusterRef: string;
+        let valuesFile: string;
+
         if (parts.length !== 2) {
-          valuesFile = path.resolve(v);
+          valuesFile = PathEx.resolve(v);
           clusterRef = Flags.KEY_COMMON;
         } else {
           clusterRef = parts[0];
-          valuesFile = path.resolve(parts[1]);
+          valuesFile = PathEx.resolve(parts[1]);
         }
 
         if (!valuesFiles[clusterRef]) {
@@ -253,7 +288,7 @@ export class Flags {
     return valuesFiles;
   }
 
-  static readonly valuesFile: CommandFlag = {
+  public static readonly valuesFile: CommandFlag = {
     constName: 'valuesFile',
     name: 'values-file',
     definition: {
@@ -262,12 +297,15 @@ export class Flags {
       alias: 'f',
       type: 'string',
     },
-    prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptValuesFile(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return input; // no prompt is needed for values file
     },
   };
 
-  static readonly networkDeploymentValuesFile: CommandFlag = {
+  public static readonly networkDeploymentValuesFile: CommandFlag = {
     constName: 'valuesFile',
     name: 'values-file',
     definition: {
@@ -277,7 +315,10 @@ export class Flags {
       alias: 'f',
       type: 'string',
     },
-    prompt: async function promptValuesFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptValuesFile(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       if (input) {
         Flags.parseValuesFilesInput(input); // validate input as early as possible by parsing it
       }
@@ -286,7 +327,7 @@ export class Flags {
     },
   };
 
-  static readonly profileFile: CommandFlag = {
+  public static readonly profileFile: CommandFlag = {
     constName: 'profileFile',
     name: 'profile-file',
     definition: {
@@ -294,7 +335,10 @@ export class Flags {
       defaultValue: constants.DEFAULT_PROFILE_FILE,
       type: 'string',
     },
-    prompt: async function promptProfileFile(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptProfileFile(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       if (input && !fs.existsSync(input)) {
         input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, {
           default: Flags.valuesFile.definition.defaultValue as string,
@@ -310,7 +354,7 @@ export class Flags {
     },
   };
 
-  static readonly profileName: CommandFlag = {
+  public static readonly profileName: CommandFlag = {
     constName: 'profileName',
     name: 'profile',
     definition: {
@@ -319,17 +363,17 @@ export class Flags {
       type: 'string',
     },
     prompt: async function promptProfile(
-      task: ListrTaskWrapper<any, any, any>,
-      input: any,
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
       choices: string[] = constants.ALL_PROFILES,
-    ) {
+    ): Promise<string> {
       try {
         const initial = choices.indexOf(input);
         if (initial < 0) {
-          const input = await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
+          const input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
             message: 'Select profile for solo network deployment',
             choices: helpers.cloneArray(choices).map(profile => ({name: profile, value: profile})),
-          });
+          })) as string;
 
           if (!input) {
             throw new SoloError('key-format cannot be empty');
@@ -345,7 +389,7 @@ export class Flags {
     },
   };
 
-  static readonly deployPrometheusStack: CommandFlag = {
+  public static readonly deployPrometheusStack: CommandFlag = {
     constName: 'deployPrometheusStack',
     name: 'prometheus-stack',
     definition: {
@@ -353,11 +397,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeployPrometheusStack(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployPrometheusStack(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployPrometheusStack.definition.defaultValue,
+        Flags.deployPrometheusStack.definition.defaultValue as boolean,
         'Would you like to deploy prometheus stack? ',
         null,
         Flags.deployPrometheusStack.name,
@@ -365,7 +412,7 @@ export class Flags {
     },
   };
 
-  static readonly enablePrometheusSvcMonitor: CommandFlag = {
+  public static readonly enablePrometheusSvcMonitor: CommandFlag = {
     constName: 'enablePrometheusSvcMonitor',
     name: 'prometheus-svc-monitor',
     definition: {
@@ -373,11 +420,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptEnablePrometheusSvcMonitor(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptEnablePrometheusSvcMonitor(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.enablePrometheusSvcMonitor.definition.defaultValue,
+        Flags.enablePrometheusSvcMonitor.definition.defaultValue as boolean,
         'Would you like to enable the Prometheus service monitor for the network nodes? ',
         null,
         Flags.enablePrometheusSvcMonitor.name,
@@ -385,7 +435,7 @@ export class Flags {
     },
   };
 
-  static readonly deployMinio: CommandFlag = {
+  public static readonly deployMinio: CommandFlag = {
     constName: 'deployMinio',
     name: 'minio',
     definition: {
@@ -393,11 +443,14 @@ export class Flags {
       defaultValue: true,
       type: 'boolean',
     },
-    prompt: async function promptDeployMinio(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployMinio(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployMinio.definition.defaultValue,
+        Flags.deployMinio.definition.defaultValue as boolean,
         'Would you like to deploy MinIO? ',
         null,
         Flags.deployMinio.name,
@@ -405,7 +458,7 @@ export class Flags {
     },
   };
 
-  static readonly deployCertManager: CommandFlag = {
+  public static readonly deployCertManager: CommandFlag = {
     constName: 'deployCertManager',
     name: 'cert-manager',
     definition: {
@@ -413,11 +466,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeployCertManager(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployCertManager(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployCertManager.definition.defaultValue,
+        Flags.deployCertManager.definition.defaultValue as boolean,
         'Would you like to deploy Cert Manager? ',
         null,
         Flags.deployCertManager.name,
@@ -429,7 +485,7 @@ export class Flags {
 		Deploy cert manager CRDs separately from cert manager itself.  Cert manager
 		CRDs are required for cert manager to deploy successfully.
  */
-  static readonly deployCertManagerCrds: CommandFlag = {
+  public static readonly deployCertManagerCrds: CommandFlag = {
     constName: 'deployCertManagerCrds',
     name: 'cert-manager-crds',
     definition: {
@@ -437,11 +493,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeployCertManagerCrds(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployCertManagerCrds(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deployCertManagerCrds.definition.defaultValue,
+        Flags.deployCertManagerCrds.definition.defaultValue as boolean,
         'Would you like to deploy Cert Manager CRDs? ',
         null,
         Flags.deployCertManagerCrds.name,
@@ -449,7 +508,7 @@ export class Flags {
     },
   };
 
-  static readonly deployJsonRpcRelay: CommandFlag = {
+  public static readonly deployJsonRpcRelay: CommandFlag = {
     constName: 'deployJsonRpcRelay',
     name: 'json-rpc-relay',
     definition: {
@@ -461,7 +520,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly stateFile: CommandFlag = {
+  public static readonly stateFile: CommandFlag = {
     constName: 'stateFile',
     name: 'state-file',
     definition: {
@@ -472,7 +531,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly upgradeZipFile: CommandFlag = {
+  public static readonly upgradeZipFile: CommandFlag = {
     constName: 'upgradeZipFile',
     name: 'upgrade-zip-file',
     definition: {
@@ -483,7 +542,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly releaseTag: CommandFlag = {
+  public static readonly releaseTag: CommandFlag = {
     constName: 'releaseTag',
     name: 'release-tag',
     definition: {
@@ -492,7 +551,10 @@ export class Flags {
       defaultValue: version.HEDERA_PLATFORM_VERSION,
       type: 'string',
     },
-    prompt: async function promptReleaseTag(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptReleaseTag(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
@@ -504,7 +566,7 @@ export class Flags {
     },
   };
 
-  static readonly relayReleaseTag: CommandFlag = {
+  public static readonly relayReleaseTag: CommandFlag = {
     constName: 'relayReleaseTag',
     name: 'relay-release',
     definition: {
@@ -512,11 +574,14 @@ export class Flags {
       defaultValue: version.HEDERA_JSON_RPC_RELAY_VERSION,
       type: 'string',
     },
-    prompt: async function promptRelayReleaseTag(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptRelayReleaseTag(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.relayReleaseTag.definition.defaultValue,
+        Flags.relayReleaseTag.definition.defaultValue as string,
         'Enter relay release version: ',
         'relay-release-tag cannot be empty',
         Flags.relayReleaseTag.name,
@@ -524,7 +589,7 @@ export class Flags {
     },
   };
 
-  static readonly cacheDir: CommandFlag = {
+  public static readonly cacheDir: CommandFlag = {
     constName: 'cacheDir',
     name: 'cache-dir',
     definition: {
@@ -532,7 +597,7 @@ export class Flags {
       defaultValue: constants.SOLO_CACHE_DIR,
       type: 'string',
     },
-    prompt: async function promptCacheDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptCacheDir(task: SoloListrTaskWrapper<AnyListrContext>, input: string): Promise<string> {
       return await Flags.promptText(
         task,
         input,
@@ -544,7 +609,7 @@ export class Flags {
     },
   };
 
-  static readonly nodeAliasesUnparsed: CommandFlag = {
+  public static readonly nodeAliasesUnparsed: CommandFlag = {
     constName: 'nodeAliasesUnparsed',
     name: 'node-aliases',
     definition: {
@@ -552,7 +617,10 @@ export class Flags {
       alias: 'i',
       type: 'string',
     },
-    prompt: async function promptNodeAliases(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNodeAliases(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.prompt(
         'input',
         task,
@@ -565,7 +633,7 @@ export class Flags {
     },
   };
 
-  static readonly force: CommandFlag = {
+  public static readonly force: CommandFlag = {
     constName: 'force',
     name: 'force',
     definition: {
@@ -574,11 +642,11 @@ export class Flags {
       alias: 'f',
       type: 'boolean',
     },
-    prompt: async function promptForce(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptForce(task: SoloListrTaskWrapper<AnyListrContext>, input: boolean): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.force.definition.defaultValue,
+        Flags.force.definition.defaultValue as boolean,
         'Would you like to force changes? ',
         null,
         Flags.force.name,
@@ -586,7 +654,7 @@ export class Flags {
     },
   };
 
-  static readonly chartDirectory: CommandFlag = {
+  public static readonly chartDirectory: CommandFlag = {
     constName: 'chartDirectory',
     name: 'chart-dir',
     definition: {
@@ -594,7 +662,7 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptChartDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptChartDir(task: SoloListrTaskWrapper<AnyListrContext>, input: string): Promise<string> {
       if (input === 'false') return '';
       try {
         if (input && !fs.existsSync(input)) {
@@ -615,7 +683,7 @@ export class Flags {
     },
   };
 
-  static readonly replicaCount: CommandFlag = {
+  public static readonly replicaCount: CommandFlag = {
     constName: 'replicaCount',
     name: 'replica-count',
     definition: {
@@ -624,7 +692,10 @@ export class Flags {
       alias: '',
       type: 'number',
     },
-    prompt: async function promptReplicaCount(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptReplicaCount(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: number,
+    ): Promise<number> {
       return await Flags.prompt(
         'number',
         task,
@@ -637,7 +708,7 @@ export class Flags {
     },
   };
 
-  static readonly chainId: CommandFlag = {
+  public static readonly chainId: CommandFlag = {
     constName: 'chainId',
     name: 'ledger-id',
     definition: {
@@ -646,11 +717,11 @@ export class Flags {
       alias: 'l',
       type: 'string',
     },
-    prompt: async function promptChainId(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptChainId(task: SoloListrTaskWrapper<AnyListrContext>, input: string): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.chainId.definition.defaultValue,
+        Flags.chainId.definition.defaultValue as string,
         'Enter chain ID: ',
         null,
         Flags.chainId.name,
@@ -659,7 +730,7 @@ export class Flags {
   };
 
   // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
-  static readonly operatorId: CommandFlag = {
+  public static readonly operatorId: CommandFlag = {
     constName: 'operatorId',
     name: 'operator-id',
     definition: {
@@ -667,11 +738,14 @@ export class Flags {
       defaultValue: undefined,
       type: 'string',
     },
-    prompt: async function promptOperatorId(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptOperatorId(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.operatorId.definition.defaultValue,
+        Flags.operatorId.definition.defaultValue as string,
         'Enter operator ID: ',
         null,
         Flags.operatorId.name,
@@ -680,7 +754,7 @@ export class Flags {
   };
 
   // Ref: https://github.com/hashgraph/hedera-json-rpc-relay/blob/main/docs/configuration.md
-  static readonly operatorKey: CommandFlag = {
+  public static readonly operatorKey: CommandFlag = {
     constName: 'operatorKey',
     name: 'operator-key',
     definition: {
@@ -689,11 +763,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptOperatorKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptOperatorKey(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.operatorKey.definition.defaultValue,
+        Flags.operatorKey.definition.defaultValue as string,
         'Enter operator private key: ',
         null,
         Flags.operatorKey.name,
@@ -701,7 +778,7 @@ export class Flags {
     },
   };
 
-  static readonly privateKey: CommandFlag = {
+  public static readonly privateKey: CommandFlag = {
     constName: 'privateKey',
     name: 'private-key',
     definition: {
@@ -710,11 +787,14 @@ export class Flags {
       type: 'boolean',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPrivateKey(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.ed25519PrivateKey.definition.defaultValue,
+        Flags.ed25519PrivateKey.definition.defaultValue as string,
         'Enter the private key: ',
         null,
         Flags.ed25519PrivateKey.name,
@@ -722,7 +802,7 @@ export class Flags {
     },
   };
 
-  static readonly generateGossipKeys: CommandFlag = {
+  public static readonly generateGossipKeys: CommandFlag = {
     constName: 'generateGossipKeys',
     name: 'gossip-keys',
     definition: {
@@ -730,11 +810,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptGenerateGossipKeys(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGenerateGossipKeys(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.generateGossipKeys.definition.defaultValue,
+        Flags.generateGossipKeys.definition.defaultValue as boolean,
         `Would you like to generate Gossip keys? ${typeof input} ${input} `,
         null,
         Flags.generateGossipKeys.name,
@@ -742,7 +825,7 @@ export class Flags {
     },
   };
 
-  static readonly generateTlsKeys: CommandFlag = {
+  public static readonly generateTlsKeys: CommandFlag = {
     constName: 'generateTlsKeys',
     name: 'tls-keys',
     definition: {
@@ -750,11 +833,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptGenerateTLSKeys(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGenerateTLSKeys(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.generateTlsKeys.definition.defaultValue,
+        Flags.generateTlsKeys.definition.defaultValue as boolean,
         'Would you like to generate TLS keys? ',
         null,
         Flags.generateTlsKeys.name,
@@ -762,7 +848,7 @@ export class Flags {
     },
   };
 
-  static readonly enableTimeout: CommandFlag = {
+  public static readonly enableTimeout: CommandFlag = {
     constName: 'enableTimeout',
     name: 'enable-timeout',
     definition: {
@@ -773,7 +859,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly tlsClusterIssuerType: CommandFlag = {
+  public static readonly tlsClusterIssuerType: CommandFlag = {
     constName: 'tlsClusterIssuerType',
     name: 'tls-cluster-issuer-type',
     definition: {
@@ -782,15 +868,18 @@ export class Flags {
       defaultValue: 'self-signed',
       type: 'string',
     },
-    prompt: async function promptTlsClusterIssuerType(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptTlsClusterIssuerType(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string | void> {
       if (input) return;
       try {
-        input = await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
+        input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
           default: Flags.tlsClusterIssuerType.definition.defaultValue as string,
           message:
             'Enter TLS cluster issuer type, available options are: "acme-staging", "acme-prod", or "self-signed":',
           choices: ['acme-staging', 'acme-prod', 'self-signed'],
-        });
+        })) as string;
 
         return input;
       } catch (e) {
@@ -799,7 +888,7 @@ export class Flags {
     },
   };
 
-  static readonly enableHederaExplorerTls: CommandFlag = {
+  public static readonly enableHederaExplorerTls: CommandFlag = {
     constName: 'enableHederaExplorerTls',
     name: 'enable-hedera-explorer-tls',
     definition: {
@@ -808,11 +897,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptEnableHederaExplorerTls(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptEnableHederaExplorerTls(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.enableHederaExplorerTls.definition.defaultValue,
+        Flags.enableHederaExplorerTls.definition.defaultValue as boolean,
         'Would you like to enable the Hedera Explorer TLS? ',
         null,
         Flags.enableHederaExplorerTls.name,
@@ -820,7 +912,7 @@ export class Flags {
     },
   };
 
-  static readonly hederaExplorerStaticIp: CommandFlag = {
+  public static readonly hederaExplorerStaticIp: CommandFlag = {
     constName: 'hederaExplorerStaticIp',
     name: 'hedera-explorer-static-ip',
     definition: {
@@ -831,7 +923,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly hederaExplorerTlsHostName: CommandFlag = {
+  public static readonly hederaExplorerTlsHostName: CommandFlag = {
     constName: 'hederaExplorerTlsHostName',
     name: 'hedera-explorer-tls-host-name',
     definition: {
@@ -839,11 +931,14 @@ export class Flags {
       defaultValue: 'explorer.solo.local',
       type: 'string',
     },
-    prompt: async function promptHederaExplorerTlsHostName(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptHederaExplorerTlsHostName(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.hederaExplorerTlsHostName.definition.defaultValue,
+        Flags.hederaExplorerTlsHostName.definition.defaultValue as string,
         'Enter the host name to use for the Hedera Explorer TLS: ',
         null,
         Flags.hederaExplorerTlsHostName.name,
@@ -851,19 +946,23 @@ export class Flags {
     },
   };
 
-  static readonly deletePvcs: CommandFlag = {
+  public static readonly deletePvcs: CommandFlag = {
     constName: 'deletePvcs',
     name: 'delete-pvcs',
     definition: {
-      describe: 'Delete the persistent volume claims',
+      describe:
+        'Delete the persistent volume claims. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeletePvcs(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeletePvcs(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deletePvcs.definition.defaultValue,
+        Flags.deletePvcs.definition.defaultValue as boolean,
         'Would you like to delete persistent volume claims upon uninstall? ',
         null,
         Flags.deletePvcs.name,
@@ -871,19 +970,23 @@ export class Flags {
     },
   };
 
-  static readonly deleteSecrets: CommandFlag = {
+  public static readonly deleteSecrets: CommandFlag = {
     constName: 'deleteSecrets',
     name: 'delete-secrets',
     definition: {
-      describe: 'Delete the network secrets',
+      describe:
+        'Delete the network secrets. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptDeleteSecrets(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeleteSecrets(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.deleteSecrets.definition.defaultValue,
+        Flags.deleteSecrets.definition.defaultValue as boolean,
         'Would you like to delete secrets upon uninstall? ',
         null,
         Flags.deleteSecrets.name,
@@ -891,7 +994,7 @@ export class Flags {
     },
   };
 
-  static readonly soloChartVersion: CommandFlag = {
+  public static readonly soloChartVersion: CommandFlag = {
     constName: 'soloChartVersion',
     name: 'solo-chart-version',
     definition: {
@@ -899,11 +1002,14 @@ export class Flags {
       defaultValue: version.SOLO_CHART_VERSION,
       type: 'string',
     },
-    prompt: async function promptSoloChartVersion(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptSoloChartVersion(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.soloChartVersion.definition.defaultValue,
+        Flags.soloChartVersion.definition.defaultValue as string,
         'Enter solo testing chart version: ',
         null,
         Flags.soloChartVersion.name,
@@ -911,53 +1017,53 @@ export class Flags {
     },
   };
 
-  static readonly applicationProperties: CommandFlag = {
+  public static readonly applicationProperties: CommandFlag = {
     constName: 'applicationProperties',
     name: 'application-properties',
     definition: {
       describe: 'application.properties file for node',
-      defaultValue: path.join('templates', 'application.properties'),
+      defaultValue: PathEx.join('templates', 'application.properties'),
       type: 'string',
     },
     prompt: undefined,
   };
 
-  static readonly applicationEnv: CommandFlag = {
+  public static readonly applicationEnv: CommandFlag = {
     constName: 'applicationEnv',
     name: 'application-env',
     definition: {
       describe:
         'the application.env file for the node provides environment variables to the solo-container' +
         ' to be used when the hedera platform is started',
-      defaultValue: path.join('templates', 'application.env'),
+      defaultValue: PathEx.join('templates', 'application.env'),
       type: 'string',
     },
     prompt: undefined,
   };
 
-  static readonly apiPermissionProperties: CommandFlag = {
+  public static readonly apiPermissionProperties: CommandFlag = {
     constName: 'apiPermissionProperties',
     name: 'api-permission-properties',
     definition: {
       describe: 'api-permission.properties file for node',
-      defaultValue: path.join('templates', 'api-permission.properties'),
+      defaultValue: PathEx.join('templates', 'api-permission.properties'),
       type: 'string',
     },
     prompt: undefined,
   };
 
-  static readonly bootstrapProperties: CommandFlag = {
+  public static readonly bootstrapProperties: CommandFlag = {
     constName: 'bootstrapProperties',
     name: 'bootstrap-properties',
     definition: {
       describe: 'bootstrap.properties file for node',
-      defaultValue: path.join('templates', 'bootstrap.properties'),
+      defaultValue: PathEx.join('templates', 'bootstrap.properties'),
       type: 'string',
     },
     prompt: undefined,
   };
 
-  static readonly genesisThrottlesFile: CommandFlag = {
+  public static readonly genesisThrottlesFile: CommandFlag = {
     constName: 'genesisThrottlesFile',
     name: 'genesis-throttles-file',
     definition: {
@@ -968,18 +1074,18 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly settingTxt: CommandFlag = {
+  public static readonly settingTxt: CommandFlag = {
     constName: 'settingTxt',
     name: 'settings-txt',
     definition: {
       describe: 'settings.txt file for node',
-      defaultValue: path.join('templates', 'settings.txt'),
+      defaultValue: PathEx.join('templates', 'settings.txt'),
       type: 'string',
     },
     prompt: undefined,
   };
 
-  static readonly app: CommandFlag = {
+  public static readonly app: CommandFlag = {
     constName: 'app',
     name: 'app',
     definition: {
@@ -990,7 +1096,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly appConfig: CommandFlag = {
+  public static readonly appConfig: CommandFlag = {
     constName: 'appConfig',
     name: 'app-config',
     definition: {
@@ -1001,7 +1107,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly localBuildPath: CommandFlag = {
+  public static readonly localBuildPath: CommandFlag = {
     constName: 'localBuildPath',
     name: 'local-build-path',
     definition: {
@@ -1012,7 +1118,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly newAccountNumber: CommandFlag = {
+  public static readonly newAccountNumber: CommandFlag = {
     constName: 'newAccountNumber',
     name: 'new-account-number',
     definition: {
@@ -1023,7 +1129,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly newAdminKey: CommandFlag = {
+  public static readonly newAdminKey: CommandFlag = {
     constName: 'newAdminKey',
     name: 'new-admin-key',
     definition: {
@@ -1034,7 +1140,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gossipPublicKey: CommandFlag = {
+  public static readonly gossipPublicKey: CommandFlag = {
     constName: 'gossipPublicKey',
     name: 'gossip-public-key',
     definition: {
@@ -1045,7 +1151,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gossipPrivateKey: CommandFlag = {
+  public static readonly gossipPrivateKey: CommandFlag = {
     constName: 'gossipPrivateKey',
     name: 'gossip-private-key',
     definition: {
@@ -1057,7 +1163,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly tlsPublicKey: CommandFlag = {
+  public static readonly tlsPublicKey: CommandFlag = {
     constName: 'tlsPublicKey',
     name: 'tls-public-key',
     definition: {
@@ -1068,7 +1174,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly tlsPrivateKey: CommandFlag = {
+  public static readonly tlsPrivateKey: CommandFlag = {
     constName: 'tlsPrivateKey',
     name: 'tls-private-key',
     definition: {
@@ -1080,18 +1186,18 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly log4j2Xml: CommandFlag = {
+  public static readonly log4j2Xml: CommandFlag = {
     constName: 'log4j2Xml',
     name: 'log4j2-xml',
     definition: {
       describe: 'log4j2.xml file for node',
-      defaultValue: path.join('templates', 'log4j2.xml'),
+      defaultValue: PathEx.join('templates', 'log4j2.xml'),
       type: 'string',
     },
     prompt: undefined,
   };
 
-  static readonly updateAccountKeys: CommandFlag = {
+  public static readonly updateAccountKeys: CommandFlag = {
     constName: 'updateAccountKeys',
     name: 'update-account-keys',
     definition: {
@@ -1100,11 +1206,14 @@ export class Flags {
       defaultValue: true,
       type: 'boolean',
     },
-    prompt: async function promptUpdateAccountKeys(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptUpdateAccountKeys(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.updateAccountKeys.definition.defaultValue,
+        Flags.updateAccountKeys.definition.defaultValue as boolean,
         'Would you like to updates the special account keys to new keys and stores their keys in a corresponding Kubernetes secret? ',
         null,
         Flags.updateAccountKeys.name,
@@ -1112,7 +1221,7 @@ export class Flags {
     },
   };
 
-  static readonly ed25519PrivateKey: CommandFlag = {
+  public static readonly ed25519PrivateKey: CommandFlag = {
     constName: 'ed25519PrivateKey',
     name: 'ed25519-private-key',
     definition: {
@@ -1121,11 +1230,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPrivateKey(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.ed25519PrivateKey.definition.defaultValue,
+        Flags.ed25519PrivateKey.definition.defaultValue as string,
         'Enter the private key: ',
         null,
         Flags.ed25519PrivateKey.name,
@@ -1133,7 +1245,7 @@ export class Flags {
     },
   };
 
-  static readonly generateEcdsaKey: CommandFlag = {
+  public static readonly generateEcdsaKey: CommandFlag = {
     constName: 'generateEcdsaKey',
     name: 'generate-ecdsa-key',
     definition: {
@@ -1144,7 +1256,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly ecdsaPrivateKey: CommandFlag = {
+  public static readonly ecdsaPrivateKey: CommandFlag = {
     constName: 'ecdsaPrivateKey',
     name: 'ecdsa-private-key',
     definition: {
@@ -1153,11 +1265,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptPrivateKey(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPrivateKey(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.ed25519PrivateKey.definition.defaultValue,
+        Flags.ed25519PrivateKey.definition.defaultValue as string,
         'Enter the private key: ',
         null,
         Flags.ed25519PrivateKey.name,
@@ -1165,7 +1280,7 @@ export class Flags {
     },
   };
 
-  static readonly setAlias: CommandFlag = {
+  public static readonly setAlias: CommandFlag = {
     constName: 'setAlias',
     name: 'set-alias',
     definition: {
@@ -1176,7 +1291,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly accountId: CommandFlag = {
+  public static readonly accountId: CommandFlag = {
     constName: 'accountId',
     name: 'account-id',
     definition: {
@@ -1184,11 +1299,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptAccountId(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptAccountId(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.accountId.definition.defaultValue,
+        Flags.accountId.definition.defaultValue as string,
         'Enter the account id: ',
         null,
         Flags.accountId.name,
@@ -1196,7 +1314,7 @@ export class Flags {
     },
   };
 
-  static readonly amount: CommandFlag = {
+  public static readonly amount: CommandFlag = {
     constName: 'amount',
     name: 'hbar-amount',
     definition: {
@@ -1204,7 +1322,7 @@ export class Flags {
       defaultValue: 100,
       type: 'number',
     },
-    prompt: async function promptAmount(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptAmount(task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
       return await Flags.prompt(
         'number',
         task,
@@ -1217,7 +1335,7 @@ export class Flags {
     },
   };
 
-  static readonly createAmount: CommandFlag = {
+  public static readonly createAmount: CommandFlag = {
     constName: 'createAmount',
     name: 'create-amount',
     definition: {
@@ -1225,7 +1343,10 @@ export class Flags {
       defaultValue: 1,
       type: 'number',
     },
-    prompt: async function promptCreateAmount(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptCreateAmount(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: number,
+    ): Promise<number> {
       return await Flags.prompt(
         'number',
         task,
@@ -1238,18 +1359,21 @@ export class Flags {
     },
   };
 
-  static readonly nodeAlias: CommandFlag = {
+  public static readonly nodeAlias: CommandFlag = {
     constName: 'nodeAlias',
     name: 'node-alias',
     definition: {
       describe: 'Node alias (e.g. node99)',
       type: 'string',
     },
-    prompt: async function promptNewNodeAlias(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptNewNodeAlias(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.nodeAlias.definition.defaultValue,
+        Flags.nodeAlias.definition.defaultValue as string,
         'Enter the new node id: ',
         null,
         Flags.nodeAlias.name,
@@ -1257,18 +1381,21 @@ export class Flags {
     },
   };
 
-  static readonly gossipEndpoints: CommandFlag = {
+  public static readonly gossipEndpoints: CommandFlag = {
     constName: 'gossipEndpoints',
     name: 'gossip-endpoints',
     definition: {
       describe: 'Comma separated gossip endpoints of the node(e.g. first one is internal, second one is external)',
       type: 'string',
     },
-    prompt: async function promptGossipEndpoints(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGossipEndpoints(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.gossipEndpoints.definition.defaultValue,
+        Flags.gossipEndpoints.definition.defaultValue as string,
         'Enter the gossip endpoints(comma separated): ',
         null,
         Flags.gossipEndpoints.name,
@@ -1276,18 +1403,21 @@ export class Flags {
     },
   };
 
-  static readonly grpcEndpoints: CommandFlag = {
+  public static readonly grpcEndpoints: CommandFlag = {
     constName: 'grpcEndpoints',
     name: 'grpc-endpoints',
     definition: {
       describe: 'Comma separated gRPC endpoints of the node (at most 8)',
       type: 'string',
     },
-    prompt: async function promptGrpcEndpoints(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcEndpoints(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcEndpoints.definition.defaultValue,
+        Flags.grpcEndpoints.definition.defaultValue as string,
         'Enter the gRPC endpoints(comma separated): ',
         null,
         Flags.grpcEndpoints.name,
@@ -1295,7 +1425,7 @@ export class Flags {
     },
   };
 
-  static readonly endpointType: CommandFlag = {
+  public static readonly endpointType: CommandFlag = {
     constName: 'endpointType',
     name: 'endpoint-type',
     definition: {
@@ -1303,11 +1433,14 @@ export class Flags {
       defaultValue: constants.ENDPOINT_TYPE_FQDN,
       type: 'string',
     },
-    prompt: async function promptEndpointType(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptEndpointType(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.endpointType.definition.defaultValue,
+        Flags.endpointType.definition.defaultValue as string,
         'Enter the endpoint type(IP or FQDN): ',
         null,
         Flags.endpointType.name,
@@ -1315,7 +1448,7 @@ export class Flags {
     },
   };
 
-  static readonly persistentVolumeClaims: CommandFlag = {
+  public static readonly persistentVolumeClaims: CommandFlag = {
     constName: 'persistentVolumeClaims',
     name: 'pvcs',
     definition: {
@@ -1323,11 +1456,14 @@ export class Flags {
       defaultValue: false,
       type: 'boolean',
     },
-    prompt: async function promptPersistentVolumeClaims(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptPersistentVolumeClaims(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.persistentVolumeClaims.definition.defaultValue,
+        Flags.persistentVolumeClaims.definition.defaultValue as boolean,
         'Would you like to enable persistent volume claims to store data outside the pod? ',
         null,
         Flags.persistentVolumeClaims.name,
@@ -1335,7 +1471,7 @@ export class Flags {
     },
   };
 
-  static readonly debugNodeAlias: CommandFlag = {
+  public static readonly debugNodeAlias: CommandFlag = {
     constName: 'debugNodeAlias',
     name: 'debug-node-alias',
     definition: {
@@ -1346,7 +1482,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly outputDir: CommandFlag = {
+  public static readonly outputDir: CommandFlag = {
     constName: 'outputDir',
     name: 'output-dir',
     definition: {
@@ -1354,11 +1490,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptOutputDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptOutputDir(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.outputDir.definition.defaultValue,
+        Flags.outputDir.definition.defaultValue as boolean,
         'Enter path to directory to store the temporary context file',
         null,
         Flags.outputDir.name,
@@ -1366,7 +1505,7 @@ export class Flags {
     },
   };
 
-  static readonly inputDir: CommandFlag = {
+  public static readonly inputDir: CommandFlag = {
     constName: 'inputDir',
     name: 'input-dir',
     definition: {
@@ -1374,11 +1513,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptInputDir(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptInputDir(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.inputDir.definition.defaultValue,
+        Flags.inputDir.definition.defaultValue as boolean,
         'Enter path to directory containing the temporary context file',
         null,
         Flags.inputDir.name,
@@ -1386,7 +1528,7 @@ export class Flags {
     },
   };
 
-  static readonly adminKey: CommandFlag = {
+  public static readonly adminKey: CommandFlag = {
     constName: 'adminKey',
     name: 'admin-key',
     definition: {
@@ -1398,18 +1540,19 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly adminPublicKeys: CommandFlag = {
+  public static readonly adminPublicKeys: CommandFlag = {
     constName: 'adminPublicKeys',
     name: 'admin-public-keys',
     definition: {
       describe: 'Comma separated list of DER encoded ED25519 public keys and must match the order of the node aliases',
       defaultValue: constants.GENESIS_KEY,
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
 
-  static readonly quiet: CommandFlag = {
+  public static readonly quiet: CommandFlag = {
     constName: 'quiet',
     name: 'quiet-mode',
     definition: {
@@ -1422,7 +1565,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly mirrorNodeVersion: CommandFlag = {
+  public static readonly mirrorNodeVersion: CommandFlag = {
     constName: 'mirrorNodeVersion',
     name: 'mirror-node-version',
     definition: {
@@ -1430,11 +1573,14 @@ export class Flags {
       defaultValue: version.MIRROR_NODE_VERSION,
       type: 'string',
     },
-    prompt: async function promptMirrorNodeVersion(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptMirrorNodeVersion(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.mirrorNodeVersion.definition.defaultValue,
+        Flags.mirrorNodeVersion.definition.defaultValue as boolean,
         'Would you like to choose mirror node version? ',
         null,
         Flags.mirrorNodeVersion.name,
@@ -1442,7 +1588,7 @@ export class Flags {
     },
   };
 
-  static readonly enableIngress: CommandFlag = {
+  public static readonly enableIngress: CommandFlag = {
     constName: 'enableIngress',
     name: 'enable-ingress',
     definition: {
@@ -1453,7 +1599,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly mirrorStaticIp: CommandFlag = {
+  public static readonly mirrorStaticIp: CommandFlag = {
     constName: 'mirrorStaticIp',
     name: 'mirror-static-ip',
     definition: {
@@ -1464,7 +1610,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly hederaExplorerVersion: CommandFlag = {
+  public static readonly hederaExplorerVersion: CommandFlag = {
     constName: 'hederaExplorerVersion',
     name: 'hedera-explorer-version',
     definition: {
@@ -1472,11 +1618,14 @@ export class Flags {
       defaultValue: version.HEDERA_EXPLORER_VERSION,
       type: 'string',
     },
-    prompt: async function promptHederaExplorerVersion(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptHederaExplorerVersion(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
       return await Flags.promptToggle(
         task,
         input,
-        Flags.hederaExplorerVersion.definition.defaultValue,
+        Flags.hederaExplorerVersion.definition.defaultValue as boolean,
         'Would you like to choose hedera explorer version? ',
         null,
         Flags.hederaExplorerVersion.name,
@@ -1484,14 +1633,18 @@ export class Flags {
     },
   };
 
-  static readonly userEmailAddress: CommandFlag = {
+  public static readonly userEmailAddress: CommandFlag = {
     constName: 'userEmailAddress',
     name: 'email',
     definition: {
+      defaultValue: 'john@doe.com',
       describe: 'User email address used for local configuration',
       type: 'string',
     },
-    prompt: async function promptUserEmailAddress(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptUserEmailAddress(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       if (input?.length) {
         return input;
       }
@@ -1511,23 +1664,27 @@ export class Flags {
     },
   };
 
-  static readonly context: CommandFlag = {
-    constName: 'contextName',
+  public static readonly context: CommandFlag = {
+    constName: 'context',
     name: 'context',
     definition: {
       describe: 'The Kubernetes context name to be used',
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptContext(task: ListrTaskWrapper<any, any, any>, input: string[], cluster?: string) {
-      return await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
+    prompt: async function promptContext(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string[],
+      cluster?: string,
+    ): Promise<string> {
+      return (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
         message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
         choices: input,
-      });
+      })) as string;
     },
   };
 
-  static readonly deployment: CommandFlag = {
+  public static readonly deployment: CommandFlag = {
     constName: 'deployment',
     name: 'deployment',
     definition: {
@@ -1536,11 +1693,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptDeployment(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeployment(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.deployment.definition.defaultValue,
+        Flags.deployment.definition.defaultValue as string,
         'Enter the name of the deployment:',
         null,
         Flags.deployment.name,
@@ -1548,18 +1708,21 @@ export class Flags {
     },
   };
 
-  static readonly deploymentClusters: CommandFlag = {
+  public static readonly deploymentClusters: CommandFlag = {
     constName: 'deploymentClusters',
     name: 'deployment-clusters',
     definition: {
       describe: 'Solo deployment cluster list (comma separated)',
       type: 'string',
     },
-    prompt: async function promptDeploymentClusters(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptDeploymentClusters(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.deploymentClusters.definition.defaultValue,
+        Flags.deploymentClusters.definition.defaultValue as string,
         'Enter the Solo deployment cluster names (comma separated): ',
         null,
         Flags.deploymentClusters.name,
@@ -1567,7 +1730,7 @@ export class Flags {
     },
   };
 
-  static readonly pinger: CommandFlag = {
+  public static readonly pinger: CommandFlag = {
     constName: 'pinger',
     name: 'pinger',
     definition: {
@@ -1580,7 +1743,7 @@ export class Flags {
 
   //* ------------- Node Proxy Certificates ------------- !//
 
-  static readonly grpcTlsCertificatePath: CommandFlag = {
+  public static readonly grpcTlsCertificatePath: CommandFlag = {
     constName: 'grpcTlsCertificatePath',
     name: 'grpc-tls-cert',
     definition: {
@@ -1591,11 +1754,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcTlsCertificatePath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcTlsCertificatePath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcTlsCertificatePath.definition.defaultValue,
+        Flags.grpcTlsCertificatePath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate for gRPC (ex. nodeAlias=path )',
         null,
         Flags.grpcTlsCertificatePath.name,
@@ -1603,7 +1769,7 @@ export class Flags {
     },
   };
 
-  static readonly grpcWebTlsCertificatePath: CommandFlag = {
+  public static readonly grpcWebTlsCertificatePath: CommandFlag = {
     constName: 'grpcWebTlsCertificatePath',
     name: 'grpc-web-tls-cert',
     definition: {
@@ -1614,11 +1780,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsCertificatePath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsCertificatePath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcWebTlsCertificatePath.definition.defaultValue,
+        Flags.grpcWebTlsCertificatePath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate for gGRPC web (ex. nodeAlias=path )',
         null,
         Flags.grpcWebTlsCertificatePath.name,
@@ -1626,7 +1795,7 @@ export class Flags {
     },
   };
 
-  static readonly useExternalDatabase: CommandFlag = {
+  public static readonly useExternalDatabase: CommandFlag = {
     constName: 'useExternalDatabase',
     name: 'use-external-database',
     definition: {
@@ -1640,7 +1809,7 @@ export class Flags {
 
   //* ----------------- External Mirror Node PostgreSQL Database Related Flags ------------------ *//
 
-  static readonly externalDatabaseHost: CommandFlag = {
+  public static readonly externalDatabaseHost: CommandFlag = {
     constName: 'externalDatabaseHost',
     name: 'external-database-host',
     definition: {
@@ -1648,11 +1817,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseHost.definition.defaultValue,
+        Flags.externalDatabaseHost.definition.defaultValue as string,
         'Enter host of the external database',
         null,
         Flags.externalDatabaseHost.name,
@@ -1660,7 +1832,7 @@ export class Flags {
     },
   };
 
-  static readonly externalDatabaseOwnerUsername: CommandFlag = {
+  public static readonly externalDatabaseOwnerUsername: CommandFlag = {
     constName: 'externalDatabaseOwnerUsername',
     name: 'external-database-owner-username',
     definition: {
@@ -1668,11 +1840,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseOwnerUsername.definition.defaultValue,
+        Flags.externalDatabaseOwnerUsername.definition.defaultValue as string,
         'Enter username of the external database owner',
         null,
         Flags.externalDatabaseOwnerUsername.name,
@@ -1680,7 +1855,7 @@ export class Flags {
     },
   };
 
-  static readonly externalDatabaseOwnerPassword: CommandFlag = {
+  public static readonly externalDatabaseOwnerPassword: CommandFlag = {
     constName: 'externalDatabaseOwnerPassword',
     name: 'external-database-owner-password',
     definition: {
@@ -1689,11 +1864,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseOwnerPassword.definition.defaultValue,
+        Flags.externalDatabaseOwnerPassword.definition.defaultValue as string,
         'Enter password of the external database owner',
         null,
         Flags.externalDatabaseOwnerPassword.name,
@@ -1701,7 +1879,7 @@ export class Flags {
     },
   };
 
-  static readonly externalDatabaseReadonlyUsername: CommandFlag = {
+  public static readonly externalDatabaseReadonlyUsername: CommandFlag = {
     constName: 'externalDatabaseReadonlyUsername',
     name: 'external-database-read-username',
     definition: {
@@ -1709,11 +1887,14 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseReadonlyUsername.definition.defaultValue,
+        Flags.externalDatabaseReadonlyUsername.definition.defaultValue as string,
         'Enter username of the external database readonly user',
         null,
         Flags.externalDatabaseReadonlyUsername.name,
@@ -1721,7 +1902,7 @@ export class Flags {
     },
   };
 
-  static readonly externalDatabaseReadonlyPassword: CommandFlag = {
+  public static readonly externalDatabaseReadonlyPassword: CommandFlag = {
     constName: 'externalDatabaseReadonlyPassword',
     name: 'external-database-read-password',
     definition: {
@@ -1730,11 +1911,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.externalDatabaseReadonlyPassword.definition.defaultValue,
+        Flags.externalDatabaseReadonlyPassword.definition.defaultValue as string,
         'Enter password of the external database readonly user',
         null,
         Flags.externalDatabaseReadonlyPassword.name,
@@ -1744,7 +1928,7 @@ export class Flags {
 
   //* ------------------------------------------------------------------------------------------- *//
 
-  static readonly grpcTlsKeyPath: CommandFlag = {
+  public static readonly grpcTlsKeyPath: CommandFlag = {
     constName: 'grpcTlsKeyPath',
     name: 'grpc-tls-key',
     definition: {
@@ -1756,11 +1940,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcTlsKeyPath.definition.defaultValue,
+        Flags.grpcTlsKeyPath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate key for gRPC (ex. nodeAlias=path )',
         null,
         Flags.grpcTlsKeyPath.name,
@@ -1768,7 +1955,7 @@ export class Flags {
     },
   };
 
-  static readonly grpcWebTlsKeyPath: CommandFlag = {
+  public static readonly grpcWebTlsKeyPath: CommandFlag = {
     constName: 'grpcWebTlsKeyPath',
     name: 'grpc-web-tls-key',
     definition: {
@@ -1780,11 +1967,14 @@ export class Flags {
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
-    prompt: async function promptGrpcWebTlsKeyPath(task: ListrTaskWrapper<any, any, any>, input: any) {
+    prompt: async function promptGrpcWebTlsKeyPath(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
-        Flags.grpcWebTlsKeyPath.definition.defaultValue,
+        Flags.grpcWebTlsKeyPath.definition.defaultValue as string,
         'Enter node alias and path to TLS certificate key for gGRPC Web (ex. nodeAlias=path )',
         null,
         Flags.grpcWebTlsKeyPath.name,
@@ -1792,7 +1982,7 @@ export class Flags {
     },
   };
 
-  static readonly stakeAmounts: CommandFlag = {
+  public static readonly stakeAmounts: CommandFlag = {
     constName: 'stakeAmounts',
     name: 'stake-amounts',
     definition: {
@@ -1804,7 +1994,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly haproxyIps: CommandFlag = {
+  public static readonly haproxyIps: CommandFlag = {
     constName: 'haproxyIps',
     name: 'haproxy-ips',
     definition: {
@@ -1816,7 +2006,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly envoyIps: CommandFlag = {
+  public static readonly envoyIps: CommandFlag = {
     constName: 'envoyIps',
     name: 'envoy-ips',
     definition: {
@@ -1828,7 +2018,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageType: CommandFlag = {
+  public static readonly storageType: CommandFlag = {
     constName: 'storageType',
     name: 'storage-type',
     definition: {
@@ -1840,7 +2030,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsWriteAccessKey: CommandFlag = {
+  public static readonly gcsWriteAccessKey: CommandFlag = {
     constName: 'gcsWriteAccessKey',
     name: 'gcs-write-access-key',
     definition: {
@@ -1852,7 +2042,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsWriteSecrets: CommandFlag = {
+  public static readonly gcsWriteSecrets: CommandFlag = {
     constName: 'gcsWriteSecrets',
     name: 'gcs-write-secrets',
     definition: {
@@ -1864,7 +2054,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsEndpoint: CommandFlag = {
+  public static readonly gcsEndpoint: CommandFlag = {
     constName: 'gcsEndpoint',
     name: 'gcs-endpoint',
     definition: {
@@ -1876,7 +2066,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsBucket: CommandFlag = {
+  public static readonly gcsBucket: CommandFlag = {
     constName: 'gcsBucket',
     name: 'gcs-bucket',
     definition: {
@@ -1888,7 +2078,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly gcsBucketPrefix: CommandFlag = {
+  public static readonly gcsBucketPrefix: CommandFlag = {
     constName: 'gcsBucketPrefix',
     name: 'gcs-bucket-prefix',
     definition: {
@@ -1899,7 +2089,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsWriteAccessKey: CommandFlag = {
+  public static readonly awsWriteAccessKey: CommandFlag = {
     constName: 'awsWriteAccessKey',
     name: 'aws-write-access-key',
     definition: {
@@ -1911,7 +2101,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsWriteSecrets: CommandFlag = {
+  public static readonly awsWriteSecrets: CommandFlag = {
     constName: 'awsWriteSecrets',
     name: 'aws-write-secrets',
     definition: {
@@ -1923,7 +2113,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsEndpoint: CommandFlag = {
+  public static readonly awsEndpoint: CommandFlag = {
     constName: 'awsEndpoint',
     name: 'aws-endpoint',
     definition: {
@@ -1935,7 +2125,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsBucket: CommandFlag = {
+  public static readonly awsBucket: CommandFlag = {
     constName: 'awsBucket',
     name: 'aws-bucket',
     definition: {
@@ -1947,7 +2137,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly awsBucketPrefix: CommandFlag = {
+  public static readonly awsBucketPrefix: CommandFlag = {
     constName: 'awsBucketPrefix',
     name: 'aws-bucket-prefix',
     definition: {
@@ -1958,7 +2148,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly backupBucket: CommandFlag = {
+  public static readonly backupBucket: CommandFlag = {
     constName: 'backupBucket',
     name: 'backup-bucket',
     definition: {
@@ -1970,7 +2160,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly googleCredential: CommandFlag = {
+  public static readonly googleCredential: CommandFlag = {
     constName: 'googleCredential',
     name: 'google-credential',
     definition: {
@@ -1982,7 +2172,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageReadAccessKey: CommandFlag = {
+  public static readonly storageReadAccessKey: CommandFlag = {
     constName: 'storageReadAccessKey',
     name: 'storage-read-access-key',
     definition: {
@@ -1994,7 +2184,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageReadSecrets: CommandFlag = {
+  public static readonly storageReadSecrets: CommandFlag = {
     constName: 'storageReadSecrets',
     name: 'storage-read-secrets',
     definition: {
@@ -2006,7 +2196,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageEndpoint: CommandFlag = {
+  public static readonly storageEndpoint: CommandFlag = {
     constName: 'storageEndpoint',
     name: 'storage-endpoint',
     definition: {
@@ -2018,7 +2208,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageBucket: CommandFlag = {
+  public static readonly storageBucket: CommandFlag = {
     constName: 'storageBucket',
     name: 'storage-bucket',
     definition: {
@@ -2030,7 +2220,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly storageBucketPrefix: CommandFlag = {
+  public static readonly storageBucketPrefix: CommandFlag = {
     constName: 'storageBucketPrefix',
     name: 'storage-bucket-prefix',
     definition: {
@@ -2041,7 +2231,7 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly loadBalancerEnabled: CommandFlag = {
+  public static readonly loadBalancerEnabled: CommandFlag = {
     constName: 'loadBalancerEnabled',
     name: 'load-balancer',
     definition: {
@@ -2052,7 +2242,72 @@ export class Flags {
     prompt: undefined,
   };
 
-  static readonly allFlags: CommandFlag[] = [
+  // --------------- Add Cluster --------------- //
+
+  public static readonly enableCertManager: CommandFlag = {
+    constName: 'enableCertManager',
+    name: 'enable-cert-manager',
+    definition: {
+      describe: 'Pass the flag to enable cert manager',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly numberOfConsensusNodes: CommandFlag = {
+    constName: 'numberOfConsensusNodes',
+    name: 'num-consensus-nodes',
+    definition: {
+      describe: 'Used to specify desired number of consensus nodes for pre-genesis deployments',
+      type: 'number',
+    },
+    prompt: async function (task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
+      const promptForInput = (): Promise<number> =>
+        Flags.prompt(
+          'number',
+          task,
+          input,
+          Flags.numberOfConsensusNodes.definition.defaultValue,
+          `Enter number of consensus nodes to add to the provided cluster ${chalk.grey('(must be a positive number)')}:`,
+          null,
+          Flags.numberOfConsensusNodes.name,
+        );
+
+      input = await promptForInput();
+      while (!input) {
+        input = await promptForInput();
+      }
+
+      return input;
+    },
+  };
+
+  public static readonly dnsBaseDomain: CommandFlag = {
+    constName: 'dnsBaseDomain',
+    name: 'dns-base-domain',
+    definition: {
+      describe: 'Base domain for the DNS is the suffix used to construct the fully qualified domain name (FQDN)',
+      defaultValue: 'cluster.local',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly dnsConsensusNodePattern: CommandFlag = {
+    constName: 'dnsConsensusNodePattern',
+    name: 'dns-consensus-node-pattern',
+    definition: {
+      describe:
+        'Pattern to construct the prefix for the fully qualified domain name (FQDN) for the consensus node, ' +
+        'the suffix is provided by the --dns-base-domain option (ex. network-{nodeAlias}-svc.{namespace}.svc)',
+      defaultValue: 'network-{nodeAlias}-svc.{namespace}.svc',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
     Flags.adminPublicKeys,
@@ -2167,10 +2422,14 @@ export class Flags {
     Flags.externalDatabaseOwnerPassword,
     Flags.externalDatabaseReadonlyUsername,
     Flags.externalDatabaseReadonlyPassword,
+    Flags.enableCertManager,
+    Flags.numberOfConsensusNodes,
+    Flags.dnsBaseDomain,
+    Flags.dnsConsensusNodePattern,
   ];
 
   /** Resets the definition.disablePrompt for all flags */
-  static resetDisabledPrompts() {
+  private static resetDisabledPrompts() {
     Flags.allFlags.forEach(f => {
       if (f.definition.disablePrompt) {
         delete f.definition.disablePrompt;
@@ -2178,9 +2437,9 @@ export class Flags {
     });
   }
 
-  static readonly allFlagsMap = new Map(Flags.allFlags.map(f => [f.name, f]));
+  public static readonly allFlagsMap = new Map(Flags.allFlags.map(f => [f.name, f]));
 
-  static readonly nodeConfigFileFlags = new Map(
+  public static readonly nodeConfigFileFlags = new Map(
     [
       Flags.apiPermissionProperties,
       Flags.applicationEnv,
@@ -2191,12 +2450,11 @@ export class Flags {
     ].map(f => [f.name, f]),
   );
 
-  static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
+  public static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
 
-  static readonly DEFAULT_FLAGS = {
-    requiredFlags: [],
-    requiredFlagsWithDisabledPrompt: [Flags.namespace, Flags.cacheDir, Flags.releaseTag],
-    optionalFlags: [Flags.devMode, Flags.quiet],
+  public static readonly DEFAULT_FLAGS = {
+    required: [],
+    optional: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
   };
 
   /**

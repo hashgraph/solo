@@ -1,30 +1,39 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {Listr} from 'listr2';
-import path from 'path';
 import {BaseCommand} from './base.js';
 import fs from 'fs';
 import * as constants from '../core/constants.js';
-import {SoloError} from '../core/errors.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
+import {type EmailAddress} from '../core/config/remote/types.js';
+import * as helpers from '../core/helpers.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 /**
  * Defines the core functionalities of 'init' command
  */
 export class InitCommand extends BaseCommand {
+  public static readonly COMMAND_NAME = 'init';
+
   /** Executes the init CLI command */
   async init(argv: any) {
     const self = this;
+
     let cacheDir: string = this.configManager.getFlag<string>(flags.cacheDir) as string;
     if (!cacheDir) {
       cacheDir = constants.SOLO_CACHE_DIR as string;
     }
 
+    interface Config {
+      userEmailAddress: EmailAddress;
+    }
+
     interface Context {
       repoURLs: string[];
       dirs: string[];
+      config: Config;
     }
 
     const tasks = new Listr<Context>(
@@ -34,6 +43,12 @@ export class InitCommand extends BaseCommand {
           task: ctx => {
             self.configManager.update(argv);
             ctx.dirs = this.setupHomeDirectory();
+
+            ctx.config = {
+              userEmailAddress:
+                self.configManager.getFlag<EmailAddress>(flags.userEmailAddress) ||
+                flags.userEmailAddress.definition.defaultValue,
+            } as Config;
           },
         },
         {
@@ -53,6 +68,14 @@ export class InitCommand extends BaseCommand {
           },
         },
         {
+          title: 'Create local configuration',
+          skip: () => this.localConfig.configFileExists(),
+          task: async (ctx, task): Promise<void> => {
+            const config = ctx.config;
+            await this.localConfig.create(config.userEmailAddress, helpers.getSoloVersion());
+          },
+        },
+        {
           title: 'Setup chart manager',
           task: async ctx => {
             ctx.repoURLs = await this.chartManager.setup();
@@ -63,10 +86,14 @@ export class InitCommand extends BaseCommand {
           task: ctx => {
             const resources = ['templates', 'profiles'];
             for (const dirName of resources) {
-              const srcDir = path.resolve(path.join(constants.RESOURCES_DIR, dirName));
+              const srcDir = PathEx.safeJoinWithBaseDirConfinement(
+                constants.RESOURCES_DIR,
+                constants.RESOURCES_DIR,
+                dirName,
+              );
               if (!fs.existsSync(srcDir)) continue;
 
-              const destDir = path.resolve(path.join(cacheDir, dirName));
+              const destDir = PathEx.join(cacheDir, dirName);
               if (!fs.existsSync(destDir)) {
                 fs.mkdirSync(destDir, {recursive: true});
               }
@@ -116,10 +143,11 @@ export class InitCommand extends BaseCommand {
   getCommandDefinition() {
     const self = this;
     return {
-      command: 'init',
+      command: InitCommand.COMMAND_NAME,
       desc: 'Initialize local environment',
       builder: (y: any) => {
-        flags.setCommandFlags(y, flags.cacheDir);
+        // set the quiet flag even though it isn't used for consistency across all commands
+        flags.setOptionalCommandFlags(y, flags.cacheDir, flags.quiet);
       },
       handler: async (argv: any) => {
         await self
@@ -128,7 +156,6 @@ export class InitCommand extends BaseCommand {
             if (!r) throw new SoloError('Error running init, expected return value to be true');
           })
           .catch(err => {
-            self.logger.showUserError(err);
             throw new SoloError('Error running init', err);
           });
       },

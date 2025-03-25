@@ -1,29 +1,30 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
-import {MissingArgumentError, SoloError} from './errors.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
+import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
 import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases.js';
-import {type CommandFlag} from '../types/flag_types.js';
+import {type CommandFlag} from '../types/flag-types.js';
 import {type SoloLogger} from './logging.js';
 import {type Duration} from './time/duration.js';
-import {type NodeAddConfigClass} from '../commands/node/node_add_config.js';
-import paths from 'path';
-import {type ConsensusNode} from './model/consensus_node.js';
+import {type NodeAddConfigClass} from '../commands/node/node-add-config.js';
+import {type ConsensusNode} from './model/consensus-node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
-import {NamespaceName} from './kube/resources/namespace/namespace_name.js';
-import {type K8} from './kube/k8.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {type K8} from '../integration/kube/k8.js';
 import {type Helm} from './helm.js';
-import {type K8Factory} from './kube/k8_factory.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
+import chalk from 'chalk';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export function getInternalIp(releaseVersion: semver.SemVer, namespaceName: NamespaceName, nodeAlias: NodeAlias) {
   //? Explanation: for v0.59.x the internal IP address is set to 127.0.0.1 to avoid an ISS
@@ -114,7 +115,7 @@ export function cloneArray<T>(arr: T[]): T[] {
 }
 
 export function getTmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'solo-'));
+  return fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-'));
 }
 
 export function createBackupDir(destDir: string, prefix = 'backup', curDate = new Date()) {
@@ -128,7 +129,7 @@ export function createBackupDir(destDir: string, prefix = 'backup', curDate = ne
     curDate.getSeconds().toString().padStart(2, '0'),
   );
 
-  const backupDir = path.join(destDir, prefix, dateDir);
+  const backupDir = PathEx.join(destDir, prefix, dateDir);
   if (!fs.existsSync(backupDir)) {
     fs.mkdirSync(backupDir, {recursive: true});
   }
@@ -154,8 +155,8 @@ export function backupOldTlsKeys(nodeAliases: NodeAliases, keysDir: string, curD
 
   const fileMap = new Map<string, string>();
   for (const nodeAlias of nodeAliases) {
-    const srcPath = path.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
-    const destPath = path.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
+    const srcPath = PathEx.join(keysDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
+    const destPath = PathEx.join(backupDir, Templates.renderTLSPemPrivateKeyFile(nodeAlias));
     fileMap.set(srcPath, destPath);
   }
 
@@ -174,8 +175,8 @@ export function backupOldPemKeys(
 
   const fileMap = new Map<string, string>();
   for (const nodeAlias of nodeAliases) {
-    const srcPath = path.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
-    const destPath = path.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
+    const srcPath = PathEx.join(keysDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
+    const destPath = PathEx.join(backupDir, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
     fileMap.set(srcPath, destPath);
   }
 
@@ -190,18 +191,6 @@ export function isNumeric(str: string) {
     !isNaN(str as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(str))
   ); // ...and ensure strings of whitespace fail
-}
-
-/**
- * Validate a path provided by the user to prevent path traversal attacks
- * @param input - the input provided by the user
- * @returns a validated path
- */
-export function validatePath(input: string) {
-  if (input.indexOf('\0') !== -1) {
-    throw new SoloError(`access denied for path: ${input}`);
-  }
-  return input;
 }
 
 /**
@@ -243,13 +232,11 @@ export function parseIpAddressToUint8Array(ipAddress: string) {
 export function renameAndCopyFile(srcFilePath: string, expectedBaseName: string, destDir: string, logger: SoloLogger) {
   const srcDir = path.dirname(srcFilePath);
   if (path.basename(srcFilePath) !== expectedBaseName) {
-    fs.renameSync(srcFilePath, path.join(srcDir, expectedBaseName));
+    fs.renameSync(srcFilePath, PathEx.join(srcDir, expectedBaseName));
   }
   // copy public key and private key to key directory
-  fs.copyFile(path.join(srcDir, expectedBaseName), path.join(destDir, expectedBaseName), err => {
+  fs.copyFile(PathEx.joinWithRealPath(srcDir, expectedBaseName), PathEx.join(destDir, expectedBaseName), err => {
     if (err) {
-      // @ts-ignore
-      logger.error(`Error copying file: ${err.message}`);
       throw new SoloError(`Error copying file: ${err.message}`);
     }
   });
@@ -369,14 +356,12 @@ export function prepareEndpoints(endpointType: string, endpoints: string[], defa
 export function addFlagsToArgv(
   argv: any,
   flags: {
-    requiredFlags: CommandFlag[];
-    requiredFlagsWithDisabledPrompt: CommandFlag[];
-    optionalFlags: CommandFlag[];
+    required: CommandFlag[];
+    optional: CommandFlag[];
   },
 ) {
-  argv.requiredFlags = flags.requiredFlags;
-  argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt;
-  argv.optionalFlags = flags.optionalFlags;
+  argv.required = flags.required;
+  argv.optional = flags.optional;
 
   return argv;
 }
@@ -390,7 +375,7 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
     return '';
   }
 
-  const resolvedFilePath = fs.realpathSync(validatePath(filePath));
+  const resolvedFilePath = PathEx.realPathSync(filePath);
 
   if (!fs.existsSync(resolvedFilePath)) {
     if (defaultPath) {
@@ -428,7 +413,7 @@ export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: 
   if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
 
   if (chartDir) {
-    const chartPath = path.join(chartDir, chartReleaseName);
+    const chartPath = PathEx.join(chartDir, chartReleaseName);
     await helm.dependency('update', chartPath);
     return chartPath;
   }
@@ -441,7 +426,7 @@ export function prepareValuesFiles(valuesFile: string) {
   if (valuesFile) {
     const valuesFiles = valuesFile.split(',');
     valuesFiles.forEach(vf => {
-      const vfp = paths.resolve(vf);
+      const vfp = PathEx.resolve(vf);
       valuesArg += ` --values ${vfp}`;
     });
   }
@@ -482,7 +467,7 @@ export function getSoloVersion(): Version {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
-  const packageJsonPath = path.resolve(__dirname, '../../package.json');
+  const packageJsonPath = PathEx.resolve(__dirname, '../../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   return packageJson.version;
 }
@@ -510,4 +495,39 @@ export async function checkNamespace(consensusNodes: ConsensusNode[], k8Factory:
       throw new SoloError(`namespace ${namespace} does not exist in context ${consensusNode.context}`);
     }
   }
+}
+
+/**
+ * Print a message and pad both sides with asterisks to make it stand out
+ * @param message The message to print
+ * @param totalWidth The total width of the padded message
+ */
+function printPaddedMessage(message: string, totalWidth: number): string {
+  // If the message is longer than or equal to totalWidth, return it as is
+  if (message.length >= totalWidth) {
+    return message;
+  }
+
+  // Calculate the total padding needed (excluding the message length)
+  const totalPadding = totalWidth - message.length;
+
+  // Split the padding between left and right (favoring left if odd)
+  const leftPadding = Math.floor(totalPadding / 2);
+  const rightPadding = totalPadding - leftPadding;
+
+  // Construct the padded string
+  return '*'.repeat(leftPadding) + message + '*'.repeat(rightPadding);
+}
+
+/**
+ * Show a banner with the chart name and version
+ * @param logger
+ * @param chartName The name of the chart
+ * @param version The version of the chart
+ * @param type The action that was performed such as 'Installed' or 'Upgraded'
+ */
+export function showVersionBanner(logger: SoloLogger, chartName: string, version: string, type: string = 'Installed') {
+  logger.showUser(chalk.cyan(printPaddedMessage(` ${type} ${chartName} chart `, 80)));
+  logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(version));
+  logger.showUser(chalk.cyan(printPaddedMessage('', 80)));
 }

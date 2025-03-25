@@ -1,28 +1,28 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {expect} from 'chai';
 
-import {type DependencyManager} from '../../../src/core/dependency_managers/index.js';
+import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
 import {type Helm} from '../../../src/core/helm.js';
-import {type ChartManager} from '../../../src/core/chart_manager.js';
-import {type ConfigManager} from '../../../src/core/config_manager.js';
-import {type LocalConfig} from '../../../src/core/config/local_config.js';
-import {RemoteConfigManager} from '../../../src/core/config/remote/remote_config_manager.js';
-import {K8Client} from '../../../src/core/kube/k8_client/k8_client.js';
+import {type ChartManager} from '../../../src/core/chart-manager.js';
+import {type ConfigManager} from '../../../src/core/config-manager.js';
+import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
+import {RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
+import {K8Client} from '../../../src/integration/kube/k8-client/k8-client.js';
 import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {resetForTest} from '../../test_container.js';
-import {InjectTokens} from '../../../src/core/dependency_injection/inject_tokens.js';
-import {ComponentsDataWrapper} from '../../../src/core/config/remote/components_data_wrapper.js';
-import {createComponentsDataWrapper} from '../core/config/remote/components_data_wrapper.test.js';
+import {resetForTest} from '../../test-container.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
+import {ComponentsDataWrapper} from '../../../src/core/config/remote/components-data-wrapper.js';
+import {createComponentsDataWrapper} from '../core/config/remote/components-data-wrapper.test.js';
 import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
-import {ConsensusNode} from '../../../src/core/model/consensus_node.js';
-import {Argv} from '../../helpers/argv_wrapper.js';
+import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
+import {Argv} from '../../helpers/argv-wrapper.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 
 describe('BaseCommand', () => {
   let helm: Helm;
@@ -150,7 +150,9 @@ describe('BaseCommand', () => {
       const configManager = sinon.stub();
       const depManager = sinon.stub();
       const localConfig = sinon.stub() as unknown as LocalConfig;
-      localConfig.clusterRefs = {cluster: 'context1', cluster2: 'context2'};
+
+      // @ts-expect-error - TS2540: to mock
+      localConfig.clusterRefs = sandbox.stub().returns({cluster: 'context1', cluster2: 'context2'});
       const {
         wrapper: {componentsDataWrapper},
       } = createComponentsDataWrapper();
@@ -158,9 +160,9 @@ describe('BaseCommand', () => {
       const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject());
       const remoteConfigManager = sinon.createStubInstance(RemoteConfigManager);
 
-      const mockecConsensusNodes = [
+      const mockConsensusNodes = [
         new ConsensusNode(
-          'name',
+          'name' as NodeAlias,
           0,
           'namespace',
           'cluster',
@@ -181,8 +183,8 @@ describe('BaseCommand', () => {
         ),
       ];
 
-      remoteConfigManager.getConsensusNodes.returns(mockecConsensusNodes);
-      remoteConfigManager.getContexts.returns(mockecConsensusNodes.map(node => node.context));
+      remoteConfigManager.getConsensusNodes.returns(mockConsensusNodes);
+      remoteConfigManager.getContexts.returns(mockConsensusNodes.map(node => node.context));
       remoteConfigManager.getClusterRefs.returns({cluster: 'context1', cluster2: 'context2'});
 
       Object.defineProperty(remoteConfigManager, 'components', {
@@ -214,7 +216,8 @@ describe('BaseCommand', () => {
     });
 
     it('should return consensus nodes', () => {
-      const consensusNodes = baseCmd.getRemoteConfigManager().getConsensusNodes();
+      // @ts-expect-error - TS2445: to access private property
+      const consensusNodes = baseCmd.remoteConfigManager.getConsensusNodes();
       expect(consensusNodes).to.be.an('array');
       expect(consensusNodes[0].context).to.equal('context1');
       expect(consensusNodes[1].context).to.equal('context2');
@@ -229,7 +232,8 @@ describe('BaseCommand', () => {
     });
 
     it('should return contexts', () => {
-      const contexts = baseCmd.getRemoteConfigManager().getContexts();
+      // @ts-expect-error - TS2445: to access private property
+      const contexts = baseCmd.remoteConfigManager.getContexts();
       expect(contexts).to.be.an('array');
       expect(contexts[0]).to.equal('context1');
       expect(contexts[1]).to.equal('context2');
@@ -237,7 +241,8 @@ describe('BaseCommand', () => {
 
     it('should return clusters references', () => {
       const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
-      const clusterRefs: ClusterRefs = baseCmd.getRemoteConfigManager().getClusterRefs();
+      // @ts-expect-error - TS2445: to access private property
+      const clusterRefs: ClusterRefs = baseCmd.remoteConfigManager.getClusterRefs();
       Object.keys(clusterRefs).forEach(clusterRef => {
         expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
       });

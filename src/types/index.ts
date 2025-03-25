@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import type * as x509 from '@peculiar/x509';
 import type net from 'net';
 import type * as WebSocket from 'ws';
@@ -80,8 +79,6 @@ export interface ToJSON {
 
 export type SoloListrTask<T> = ListrTask<T, any, any>;
 
-export type EmptyContextConfig = object;
-
 export type SoloListrTaskWrapper<T> = ListrTaskWrapper<T, any, any>;
 
 export interface ServiceEndpoint {
@@ -120,9 +117,4 @@ export interface GossipEndpoint {
   nodeId: number;
   hostname: string;
   port: number;
-}
-
-export interface NodeOverridesStructure {
-  interfaceBindings: GossipEndpoint[];
-  endpointOverrides: GossipEndpoint[];
 }

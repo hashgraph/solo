@@ -19,7 +19,9 @@
     <rule ref="category/ecmascript/codestyle.xml">
         <exclude name="UnnecessaryBlock"/>
     </rule>
-    <rule ref="category/ecmascript/errorprone.xml"/>
+    <rule ref="category/ecmascript/errorprone.xml">
+        <exclude name="AvoidTrailingComma"/>
+    </rule>
     <rule ref="category/ecmascript/bestpractices.xml"/>
 
 </ruleset>

@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 // eslint-disable-next-line n/no-unpublished-import
 import {Converter} from 'typedoc';
 

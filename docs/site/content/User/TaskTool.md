@@ -3,7 +3,7 @@
 For users who want to quickly deploy a standalone solo network without needing to know what is under the hood,
 they can use the Task tool to launch the network with a single command.
 
-NOTE: this requires cloning the GitHub repository: https://github.com/hashgraph/solo
+NOTE: this requires cloning the GitHub repository: <https://github.com/hashgraph/solo>
 
 First, install the cluster tool `kind` with this [link](https://kind.sigs.k8s.io/docs/user/quick-start#installation)
 
@@ -26,7 +26,7 @@ task default-with-mirror
 task default-with-relay
 ```
 
-If mirror node or relay node is deployed, user can access the hedera explorer at http://localhost:8080
+If mirror node or relay node is deployed, user can access the hedera explorer at <http://localhost:8080>
 
 ### Stop solo network
 

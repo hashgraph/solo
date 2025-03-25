@@ -1,18 +1,20 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as x509 from '@peculiar/x509';
 import os from 'os';
-import path from 'path';
-import {DataValidationError, IllegalArgumentError, MissingArgumentError, SoloError} from './errors.js';
+import {DataValidationError} from './errors/data-validation-error.js';
+import {IllegalArgumentError} from './errors/illegal-argument-error.js';
+import {MissingArgumentError} from './errors/missing-argument-error.js';
+import {SoloError} from './errors/solo-error.js';
 import * as constants from './constants.js';
 import {type AccountId} from '@hashgraph/sdk';
-import {type IP, type NodeAlias, type NodeId} from '../types/aliases.js';
-import {PodName} from './kube/resources/pod/pod_name.js';
+import {type IP, type NodeAlias, type NodeAliases, type NodeId} from '../types/aliases.js';
+import {PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
-import {type NamespaceName} from './kube/resources/namespace/namespace_name.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type NamespaceNameAsString} from './config/remote/types.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 export class Templates {
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
@@ -29,6 +31,22 @@ export class Templates {
 
   public static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}`;
+  }
+
+  public static renderNodeAliasFromNumber(num: number): NodeAlias {
+    return `node${num}`;
+  }
+
+  public static renderNodeAliasesFromCount(count: number, existingNodesCount: number): NodeAliases {
+    const nodeAliases: NodeAliases = [];
+    let nodeNumber = existingNodesCount + 1;
+
+    for (let i = 0; i < count; i++) {
+      nodeAliases.push(Templates.renderNodeAliasFromNumber(nodeNumber));
+      nodeNumber++;
+    }
+
+    return nodeAliases;
   }
 
   public static renderGossipPemPrivateKeyFile(nodeAlias: NodeAlias): string {
@@ -127,21 +145,21 @@ export class Templates {
       throw new IllegalArgumentError('releasePrefix cannot be empty');
     }
 
-    return path.resolve(path.join(cacheDir, releasePrefix, 'staging', releaseTag));
+    return PathEx.resolve(PathEx.join(cacheDir, releasePrefix, 'staging', releaseTag));
   }
 
   public static installationPath(
     dep: string,
     osPlatform: NodeJS.Platform | string = os.platform(),
-    installationDir: string = path.join(constants.SOLO_HOME_DIR, 'bin'),
+    installationDir: string = PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
   ) {
     switch (dep) {
       case constants.HELM:
         if (osPlatform === constants.OS_WINDOWS) {
-          return path.join(installationDir, `${dep}.exe`);
+          return PathEx.join(installationDir, `${dep}.exe`);
         }
 
-        return path.join(installationDir, dep);
+        return PathEx.join(installationDir, dep);
 
       default:
         throw new SoloError(`unknown dep: ${dep}`);
@@ -245,11 +263,11 @@ export class Templates {
 
   /**
    * Renders the fully qualified domain name for a consensus node. We support the following variables for templating
-   * in the dnsConsensusNodePattern: ${nodeAlias}, ${nodeId}, ${namespace}, ${cluster}
+   * in the dnsConsensusNodePattern: {nodeAlias}, {nodeId}, {namespace}, {cluster}
    *
    * The end result will be `${dnsConsensusNodePattern}.${dnsBaseDomain}`.
-   * For example, if the dnsConsensusNodePattern is `network-${nodeAlias}-svc.${namespace}.svc` and the dnsBaseDomain is `cluster.local`,
-   * the fully qualified domain name will be `network-${nodeAlias}-svc.${namespace}.svc.cluster.local`.
+   * For example, if the dnsConsensusNodePattern is `network-{nodeAlias}-svc.{namespace}.svc` and the dnsBaseDomain is `cluster.local`,
+   * the fully qualified domain name will be `network-{nodeAlias}-svc.{namespace}.svc.cluster.local`.
    * @param nodeAlias - the alias of the consensus node
    * @param nodeId - the id of the consensus node
    * @param namespace - the namespace of the consensus node
@@ -257,7 +275,6 @@ export class Templates {
    * @param dnsBaseDomain - the base domain of the cluster
    * @param dnsConsensusNodePattern - the pattern to use for the consensus node
    */
-  // TODO @Lenin, needs testing
   static renderConsensusNodeFullyQualifiedDomainName(
     nodeAlias: string,
     nodeId: number,
@@ -267,10 +284,10 @@ export class Templates {
     dnsConsensusNodePattern: string,
   ) {
     const searchReplace = {
-      '${nodeAlias}': nodeAlias,
-      '${nodeId}': nodeId.toString(),
-      '${namespace}': namespace,
-      '${cluster}': cluster,
+      '{nodeAlias}': nodeAlias,
+      '{nodeId}': nodeId.toString(),
+      '{namespace}': namespace,
+      '{cluster}': cluster,
     };
 
     Object.entries(searchReplace).forEach(([search, replace]) => {

@@ -1,17 +1,18 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import 'chai-as-promised';
 
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {IllegalArgumentError, MissingArgumentError, SoloError} from '../../../src/core/errors.js';
+import {SoloError} from '../../../src/core/errors/solo-error.js';
+import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
+import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
 import os from 'os';
 import fs from 'fs';
-import path from 'path';
 import {Zippy} from '../../../src/core/zippy.js';
 import * as logging from '../../../src/core/logging.js';
+import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('Zippy', () => {
   const testLogger = logging.NewLogger('debug', true);
@@ -39,7 +40,7 @@ describe('Zippy', () => {
     });
 
     it('should succeed for valid inputs', async () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
+      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
       const zipFile = `${tmpDir}/test.zip`;
       const unzippedFile = `${tmpDir}/unzipped`;
       await expect(zippy.zip('test/data/.empty', zipFile)).to.eventually.equal(zipFile);
@@ -70,7 +71,7 @@ describe('Zippy', () => {
     });
 
     it('should succeed for valid inputs', () => {
-      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'installer-'));
+      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
       const tarFile = `${tmpDir}/test.tar.gz`;
       expect(zippy.tar('test/data/.empty', tarFile)).to.equal(tarFile);
       expect(zippy.untar(tarFile, tmpDir)).to.equal(tmpDir);

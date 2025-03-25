@@ -1,6 +1,5 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import {type SkipCheck, type TaskFunction} from '../types/aliases.js';
 
 /**
@@ -18,6 +17,10 @@ import {type SkipCheck, type TaskFunction} from '../types/aliases.js';
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ */
+
+/**
+ * @deprecated
  */
 export class Task {
   constructor(

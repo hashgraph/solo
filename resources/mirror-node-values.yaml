@@ -11,9 +11,11 @@ rosetta: # not needed for default use case
   enabled: false
 redis:
   enabled: true
-#global:
+global:
+  image:
+    # TODO: global.image.tag can be deleted after we get a v0.126.0-rc1 or later release for mirror node
+    tag: main # a bit dangerous, but image tag main-dcfa7ed1960daf9c4d42a6fbdff60cdd20adbe05 will only last for 7 days
 #  namespaceOverride: "{{ tpl (.Values.global.namespaceOverride | toString) }}"
-
 # importer is a component of the hedera mirror node
 # config for subchart hedera-mirror/importer
 importer:

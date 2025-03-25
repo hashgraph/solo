@@ -1,15 +1,14 @@
-/**
- * SPDX-License-Identifier: Apache-2.0
- */
+// SPDX-License-Identifier: Apache-2.0
+
 import * as winston from 'winston';
 import {v4 as uuidv4} from 'uuid';
 import * as util from 'util';
 import chalk from 'chalk';
-import path from 'path';
 import * as constants from './constants.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency_injection/container_helper.js';
-import {InjectTokens} from './dependency_injection/inject_tokens.js';
+import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {PathEx} from '../business/utils/path-ex.js';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -58,7 +57,7 @@ export class SoloLogger {
     this.winstonLogger = winston.createLogger({
       level: logLevel,
       format: winston.format.combine(customFormat, winston.format.json()),
-      transports: [new winston.transports.File({filename: path.join(constants.SOLO_LOGS_DIR, 'solo.log')})],
+      transports: [new winston.transports.File({filename: PathEx.join(constants.SOLO_LOGS_DIR, 'solo.log')})],
     });
   }
 
@@ -107,9 +106,14 @@ export class SoloLogger {
       let indent = '';
       stack.forEach(s => {
         console.log(indent + prefix + chalk.yellow(s.message));
-        console.log(indent + chalk.gray(s.stacktrace) + '\n');
-        indent += ' ';
-        prefix += 'Caused by: ';
+        // Remove everything after the first "Caused by: " and add indentation
+        const formattedStacktrace = s.stacktrace
+          .replace(/Caused by:.*/s, '')
+          .replace(/\n\s*/g, '\n' + indent)
+          .trim();
+        console.log(indent + chalk.gray(formattedStacktrace) + '\n');
+        indent += '  ';
+        prefix = 'Caused by: ';
       });
     } else {
       const lines: string[] = err.message.split('\n');
@@ -155,25 +159,6 @@ export class SoloLogger {
     this.showUser(chalk.green(`\n *** ${title} ***`));
     this.showUser(chalk.green('-------------------------------------------------------------------------------'));
     console.log(JSON.stringify(obj, null, ' '));
-  }
-
-  logAndExitSuccess(msg: string, ...args: any) {
-    this.winstonLogger.log('info', msg, args, () => {
-      queueMicrotask(() => {
-        // eslint-disable-next-line n/no-process-exit
-        process.exit(0);
-      });
-    });
-  }
-
-  logAndExitError(error: Error) {
-    this.showUserError(error);
-    this.winstonLogger.log('error', '', error, () => {
-      queueMicrotask(() => {
-        // eslint-disable-next-line n/no-process-exit
-        process.exit(1);
-      });
-    });
   }
 }
 
