@@ -20,13 +20,13 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type DefaultHelmClient} from '../integration/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {type HelmClient} from '../integration/helm/HelmClient.js';
 
 export interface Opts {
   logger: SoloLogger;
-  helm: DefaultHelmClient;
+  helm: HelmClient;
   k8Factory: K8Factory;
   downloader: PackageDownloader;
   platformInstaller: PlatformInstaller;
@@ -43,7 +43,7 @@ export interface Opts {
 }
 
 export abstract class BaseCommand extends ShellRunner {
-  protected readonly helm: DefaultHelmClient;
+  protected readonly helm: HelmClient;
   protected readonly k8Factory: K8Factory;
   protected readonly chartManager: ChartManager;
   public readonly configManager: ConfigManager;

@@ -24,7 +24,6 @@ import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
-import {type DefaultHelmClient} from '../../integration/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 
 export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
@@ -46,12 +45,10 @@ export class NodeCommandConfigs {
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
-    @inject(InjectTokens.Helm) private readonly helm: DefaultHelmClient,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
-    this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
     this.remoteConfigManager = patchInject(
       remoteConfigManager,
