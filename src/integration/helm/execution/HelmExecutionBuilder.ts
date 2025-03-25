@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {execSync} from 'child_process';
 import {join} from 'path';
 import {HelmExecution} from './HelmExecution.js';
 import {Templates} from '../../../core/templates.js';
@@ -66,7 +67,17 @@ export class HelmExecutionBuilder {
   ) {
     this.osPlatform = patchInject(osPlatform, InjectTokens.OsPlatform, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
-    this.helmExecutable = Templates.installationPath(HELM, this.osPlatform);
+
+    try {
+      if (this.osPlatform === 'win32') {
+        this.helmExecutable = execSync('where helm').toString().trim();
+      } else {
+        this.helmExecutable = execSync('which helm').toString().trim();
+      }
+    } catch (error) {
+      this.logger?.error('Failed to find helm executable:', error);
+      throw new Error('Failed to find helm executable. Please ensure helm is installed and in your PATH.');
+    }
 
     const workingDirectoryString = process.env.PWD;
     this._workingDirectory =
