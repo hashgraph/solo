@@ -3,9 +3,8 @@
 import {SoloError} from '../core/errors/solo-error.js';
 import {ShellRunner} from '../core/shell-runner.js';
 import {type LockManager} from '../core/lock/lock-manager.js';
-import {type LocalConfig} from '../core/config/local-config.js';
+import {type LocalConfig} from '../core/config/local/local-config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote-config-manager.js';
-import {type K8Factory} from '../core/kube/k8-factory.js';
 import {type ChartManager} from '../core/chart-manager.js';
 import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
@@ -23,6 +22,7 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
 import {type DefaultHelmClient} from '../core/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
 
 export interface Opts {
   logger: SoloLogger;

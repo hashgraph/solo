@@ -20,16 +20,16 @@ import {ListrLock} from '../../../src/core/lock/listr-lock.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis-network-models/genesis-network-data-constructor.js';
 import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
-import {type LocalConfig} from '../../../src/core/config/local-config.js';
+import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {resetForTest} from '../../test-container.js';
 import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
-import {type K8ClientConfigMaps} from '../../../src/core/kube/k8-client/resources/config-map/k8-client-config-maps.js';
+import {type K8ClientConfigMaps} from '../../../src/integration/kube/k8-client/resources/config-map/k8-client-config-maps.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
-import {K8Client} from '../../../src/core/kube/k8-client/k8-client.js';
+import {K8Client} from '../../../src/integration/kube/k8-client/k8-client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DefaultHelmClient} from '../../../src/core/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
@@ -144,7 +144,7 @@ describe('NetworkCommand unit tests', () => {
       opts.remoteConfigManager = container.resolve<RemoteConfigManager>(InjectTokens.RemoteConfigManager);
       opts.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
 
-      opts.localConfig.clusterRefs = {'solo-e2e': 'context-1'};
+      opts.localConfig.localConfigData._clusterRefs = {'solo-e2e': 'context-1'};
 
       opts.leaseManager = container.resolve<LockManager>(InjectTokens.LockManager);
       opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
