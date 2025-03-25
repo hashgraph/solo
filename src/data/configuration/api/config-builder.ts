@@ -33,7 +33,7 @@ export interface ConfigBuilder {
    * @param priority - The priority of the configuration converter.
    * @param converter - The configuration converter to be added.
    */
-  withConverter<T>(cls: ClassConstructor<T>, priority: number, converter: Converter<T>): ConfigBuilder;
+  withConverter<R extends object>(cls: ClassConstructor<R>, priority: number, converter: Converter<R>): ConfigBuilder;
 
   /**
    * Builds a {@link Config} instance.
