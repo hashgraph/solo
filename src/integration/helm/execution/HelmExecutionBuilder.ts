@@ -3,8 +3,6 @@
 import {execSync} from 'child_process';
 import {join} from 'path';
 import {HelmExecution} from './HelmExecution.js';
-import {Templates} from '../../../core/templates.js';
-import {HELM} from '../../../core/constants.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
