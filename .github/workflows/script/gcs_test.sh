@@ -42,6 +42,10 @@ else
         "--aws-write-secrets" "${GCS_SECRET_KEY}"
         "--aws-bucket" "${streamBucket}"
         "--aws-bucket-prefix" "${PREFIX}"
+
+        "--backupWriteSecrets" "${GCS_SECRET_KEY}"
+        "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
+        "--backupEndpoint" "https://storage.googleapis.com"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
     STORAGE_OPTIONS=(
@@ -50,6 +54,10 @@ else
         "--gcs-write-secrets" "${GCS_SECRET_KEY}"
         "--gcs-bucket" "${streamBucket}"
         "--gcs-bucket-prefix" "${PREFIX}"
+
+        "--backupWriteSecrets" "${GCS_SECRET_KEY}"
+        "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
+        "--backupEndpoint" "https://storage.googleapis.com"
     )
   fi
 

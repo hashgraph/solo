@@ -2159,6 +2159,42 @@ export class Flags {
     prompt: undefined,
   };
 
+  public static readonly backupWriteAccessKey: CommandFlag = {
+    constName: 'backupWriteAccessKey',
+    name: 'backup-write-access-key',
+    definition: {
+      defaultValue: '',
+      describe: 'backup storage access key for write access',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupWriteSecrets: CommandFlag = {
+    constName: 'backupWriteSecrets',
+    name: 'backup-write-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'backup storage secret key for write access',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupEndpoint: CommandFlag = {
+    constName: 'backupEndpoint',
+    name: 'backup-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'aws storage endpoint URL',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
   public static readonly storageReadAccessKey: CommandFlag = {
     constName: 'storageReadAccessKey',
     name: 'storage-read-access-key',
@@ -2395,6 +2431,9 @@ export class Flags {
     Flags.storageBucket,
     Flags.storageBucketPrefix,
     Flags.backupBucket,
+    Flags.backupWriteAccessKey,
+    Flags.backupWriteSecrets,
+    Flags.backupEndpoint,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
