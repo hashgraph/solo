@@ -4,6 +4,7 @@ import {type NodeAlias} from '../../../types/aliases.js';
 import {type PrivateKey} from '@hashgraph/sdk';
 import {type CheckedNodesConfigClass, type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
 import {type Client} from '@hashgraph/sdk';
+import {type ConsensusNode} from '../../../core/model/consensus-node.js';
 
 export interface NodeDeleteConfigClass extends NodeCommonConfigWithNodeAlias, CheckedNodesConfigClass {
   app: string;
@@ -24,4 +25,5 @@ export interface NodeDeleteConfigClass extends NodeCommonConfigWithNodeAlias, Ch
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
   curDate: Date;
+  refreshedConsensusNodes: ConsensusNode[];
 }

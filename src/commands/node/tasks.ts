@@ -112,7 +112,7 @@ import {type NodeKeysContext} from './config-interfaces/node-keys-context.js';
 import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-class.js';
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
 import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
-import {NetworkNodeServices} from '../../core/network-node-services.js';
+import {type NetworkNodeServices} from '../../core/network-node-services.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -1863,7 +1863,7 @@ export class NodeCommandTasks {
     title: string,
     transactionType: NodeSubcommandType,
     skip: SkipCheck | boolean = false,
-  ): SoloListrTask<any> {
+  ): SoloListrTask<NodeDeleteContext | NodeAddContext | NodeUpdateContext> {
     const self = this;
     return {
       title,
@@ -1888,7 +1888,7 @@ export class NodeCommandTasks {
         let maxNodeId = 0;
         for (const nodeAlias of config.existingNodeAliases) {
           const nodeId = config.serviceMap.get(nodeAlias).nodeId;
-          maxNodeId = Math.max(nodeId, maxNodeId);
+          maxNodeId = Math.max(+nodeId, maxNodeId);
         }
 
         const nodeId = maxNodeId + 1;
@@ -1911,7 +1911,7 @@ export class NodeCommandTasks {
               valuesArgMap,
               config.serviceMap,
               clusterNodeIndexMap,
-              config.newAccountNumber,
+              +(config as NodeUpdateConfigClass).newAccountNumber,
               config.nodeAlias,
             );
             break;
@@ -1931,11 +1931,11 @@ export class NodeCommandTasks {
               valuesArgMap,
               config.serviceMap,
               clusterNodeIndexMap,
-              config.clusterRef,
+              (config as NodeAddConfigClass).clusterRef,
               nodeId,
               config.nodeAlias,
-              ctx.newNode,
-              config,
+              (ctx as NodeAddContext).newNode,
+              config as NodeAddConfigClass,
             );
             break;
         }
@@ -1951,7 +1951,7 @@ export class NodeCommandTasks {
             clusterRefs,
             undefined, // do not trigger of adding default value file for chart upgrade due to node add or delete
             profileValuesFile,
-            config.valuesFile,
+            (config as any).valuesFile,
           );
 
           for (const clusterRef of Object.keys(valuesFiles)) {
