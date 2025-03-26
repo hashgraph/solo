@@ -60,7 +60,7 @@ tasks:
             -d {{.postgres_mirror_node_database_name}}
       - task: "solo:relay"
       - name: "Run smoke test"
-        cmd: (cd ../../ && sh ./.github/workflows/script/solo_smoke_test.sh)
+        cmd: (cd ../../ && bash ./.github/workflows/script/solo_smoke_test.sh)
 
   destroy:external-database:
     desc: destroy relay, mirror-node, and network
