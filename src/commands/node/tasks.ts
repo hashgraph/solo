@@ -1146,7 +1146,7 @@ export class NodeCommandTasks {
     );
 
     let adminPublicKeys = [];
-    if (flags.adminPublicKeys.definition.defaultValue) {
+    if (this.configManager.getFlag(flags.adminPublicKeys)) {
       adminPublicKeys = splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys));
     } else {
       // set adminPublicKeys as array of constants.GENESIS_KEY with the same size consensus nodes
