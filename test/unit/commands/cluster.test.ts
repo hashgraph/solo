@@ -10,7 +10,6 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config-manager.js';
-import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart-manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
@@ -27,10 +26,12 @@ import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-confi
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
 import * as helpers from '../../../src/core/helpers.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
-    logger: sandbox.createStubInstance(SoloLogger),
+    logger: sandbox.createStubInstance<SoloLogger>(SoloWinstonLogger),
     helm: sandbox.createStubInstance(Helm),
     k8Factory: sandbox.createStubInstance(K8ClientFactory),
     chartManager: sandbox.createStubInstance(ChartManager),

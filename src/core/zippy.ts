@@ -8,7 +8,7 @@ import AdmZip from 'adm-zip';
 import * as tar from 'tar';
 import chalk from 'chalk';
 import path from 'path';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';

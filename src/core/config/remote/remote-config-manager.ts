@@ -10,7 +10,7 @@ import {ComponentsDataWrapper} from './components-data-wrapper.js';
 import {RemoteConfigValidator} from './remote-config-validator.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName, type Version} from './types.js';
-import {type SoloLogger} from '../../logging.js';
+import {type SoloLogger} from '../../logging/solo-logger.js';
 import {type ConfigManager} from '../../config-manager.js';
 import {type LocalConfig} from '../local/local-config.js';
 import {type Optional} from '../../../types/index.js';

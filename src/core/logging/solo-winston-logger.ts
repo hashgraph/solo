@@ -4,11 +4,12 @@ import * as winston from 'winston';
 import {v4 as uuidv4} from 'uuid';
 import * as util from 'util';
 import chalk from 'chalk';
-import * as constants from './constants.js';
+import * as constants from '../constants.js';
 import {inject, injectable} from 'tsyringe-neo';
-import {patchInject} from './dependency-injection/container-helper.js';
-import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {PathEx} from '../business/utils/path-ex.js';
+import {patchInject} from '../dependency-injection/container-helper.js';
+import {InjectTokens} from '../dependency-injection/inject-tokens.js';
+import {PathEx} from '../../business/utils/path-ex.js';
+import {type SoloLogger} from './solo-logger.js';
 
 const customFormat = winston.format.combine(
   winston.format.label({label: 'SOLO', message: false}),
@@ -37,7 +38,7 @@ const customFormat = winston.format.combine(
 );
 
 @injectable()
-export class SoloLogger {
+export class SoloWinstonLogger implements SoloLogger {
   private winstonLogger: winston.Logger;
   private traceId?: string;
 
@@ -45,7 +46,7 @@ export class SoloLogger {
    * @param logLevel - the log level to use
    * @param devMode - if true, show full stack traces in error messages
    */
-  constructor(
+  public constructor(
     @inject(InjectTokens.LogLevel) logLevel?: string,
     @inject(InjectTokens.DevMode) private devMode?: boolean | null,
   ) {
@@ -61,31 +62,31 @@ export class SoloLogger {
     });
   }
 
-  setDevMode(devMode: boolean) {
+  public setDevMode(devMode: boolean) {
     this.debug(`dev mode logging: ${devMode}`);
     this.devMode = devMode;
   }
 
-  setLevel(level: string) {
+  public setLevel(level: string) {
     // @ts-ignore
     this.winstonLogger.setLevel(level);
   }
 
-  nextTraceId() {
+  public nextTraceId() {
     this.traceId = uuidv4();
   }
 
-  prepMeta(meta: object | any = {}): object | any {
+  public prepMeta(meta: object | any = {}): object | any {
     meta.traceId = this.traceId;
     return meta;
   }
 
-  showUser(msg: any, ...args: any) {
+  public showUser(msg: any, ...args: any) {
     console.log(util.format(msg, ...args));
     this.info(util.format(msg, ...args));
   }
 
-  showUserError(err: Error | any) {
+  public showUserError(err: Error | any) {
     const stack = [{message: err.message, stacktrace: err.stack}];
     if (err.cause) {
       let depth = 0;
@@ -126,23 +127,23 @@ export class SoloLogger {
     this.error(err.message, err);
   }
 
-  error(msg: any, ...args: any) {
+  public error(msg: any, ...args: any) {
     this.winstonLogger.error(msg, ...args, this.prepMeta());
   }
 
-  warn(msg: any, ...args: any) {
+  public warn(msg: any, ...args: any) {
     this.winstonLogger.warn(msg, ...args, this.prepMeta());
   }
 
-  info(msg: any, ...args: any) {
+  public info(msg: any, ...args: any) {
     this.winstonLogger.info(msg, ...args, this.prepMeta());
   }
 
-  debug(msg: any, ...args: any) {
+  public debug(msg: any, ...args: any) {
     this.winstonLogger.debug(msg, ...args, this.prepMeta());
   }
 
-  showList(title: string, items: string[] = []) {
+  public showList(title: string, items: string[] = []) {
     this.showUser(chalk.green(`\n *** ${title} ***`));
     this.showUser(chalk.green('-------------------------------------------------------------------------------'));
     if (items.length > 0) {
@@ -155,13 +156,9 @@ export class SoloLogger {
     return true;
   }
 
-  showJSON(title: string, obj: object) {
+  public showJSON(title: string, obj: object) {
     this.showUser(chalk.green(`\n *** ${title} ***`));
     this.showUser(chalk.green('-------------------------------------------------------------------------------'));
     console.log(JSON.stringify(obj, null, ' '));
   }
-}
-
-export function NewLogger(level = 'debug', devMode = false) {
-  return new SoloLogger(level, devMode);
 }

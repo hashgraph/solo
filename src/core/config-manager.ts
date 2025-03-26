@@ -3,7 +3,7 @@
 import {inject, injectable} from 'tsyringe-neo';
 import {SoloError} from './errors/solo-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
 import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';

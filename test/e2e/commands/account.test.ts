@@ -32,7 +32,7 @@ import {Templates} from '../../../src/core/templates.js';
 import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
-import {type SoloLogger} from '../../../src/core/logging.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 

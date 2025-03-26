@@ -17,7 +17,7 @@ import * as constants from './constants.js';
 import {type ConfigManager} from './config-manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
 import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';

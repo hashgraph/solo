@@ -6,10 +6,10 @@ import {describe, it} from 'mocha';
 import {ConfigManager} from '../../../src/core/config-manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {container} from 'tsyringe-neo';
-import {SoloLogger} from '../../../src/core/logging.js';
 import {getTestLogger} from '../../test-util.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 
 describe('ConfigManager', () => {
   describe('update values using argv', () => {
@@ -17,8 +17,8 @@ describe('ConfigManager', () => {
       container.clearInstances();
       container.register(InjectTokens.LogLevel, {useValue: 'debug'});
       container.register(InjectTokens.DevMode, {useValue: true});
-      container.register(InjectTokens.SoloLogger, {useValue: new SoloLogger()});
-      container.registerInstance(SoloLogger, getTestLogger());
+      container.register(InjectTokens.SoloLogger, {useValue: new SoloWinstonLogger()});
+      container.registerInstance(InjectTokens.SoloLogger, getTestLogger());
       container.register(InjectTokens.ConfigManager, {useClass: ConfigManager});
     });
 

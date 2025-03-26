@@ -28,7 +28,7 @@ import {SoloError} from './errors/solo-error.js';
 import {Templates} from './templates.js';
 import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network-node-services.js';
 
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';

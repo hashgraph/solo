@@ -28,7 +28,7 @@ import {type RemoteConfigManager} from './core/config/remote/remote-config-manag
 import * as helpers from './core/helpers.js';
 import {type K8Factory} from './integration/kube/k8-factory.js';
 import {CustomProcessOutput} from './core/process-output.js';
-import {type SoloLogger} from './core/logging.js';
+import {type SoloLogger} from './core/logging/solo-logger.js';
 import {Container} from './core/dependency-injection/container-init.js';
 import {InjectTokens} from './core/dependency-injection/inject-tokens.js';
 import {type Opts} from './commands/base.js';

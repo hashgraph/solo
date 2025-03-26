@@ -51,7 +51,7 @@ import {
 } from '../../core/helpers.js';
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
-import {type SoloLogger} from '../../core/logging.js';
+import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import {
   type AnyListrContext,
   type AnyObject,

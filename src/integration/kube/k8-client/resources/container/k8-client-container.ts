@@ -15,7 +15,7 @@ import fs from 'fs';
 import {type LocalContextObject} from '../../../../../types/index.js';
 import * as stream from 'node:stream';
 import {v4 as uuid4} from 'uuid';
-import {type SoloLogger} from '../../../../../core/logging.js';
+import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import os from 'os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';

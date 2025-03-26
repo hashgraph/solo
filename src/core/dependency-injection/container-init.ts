@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {container, Lifecycle} from 'tsyringe-neo';
-import {SoloLogger} from '../logging.js';
+import {type SoloLogger} from '../logging/solo-logger.js';
 import {PackageDownloader} from '../package-downloader.js';
 import {Zippy} from '../zippy.js';
 import {DependencyManager, HelmDependencyManager} from '../dependency-managers/index.js';
@@ -37,6 +37,7 @@ import {HelpRenderer} from '../help-renderer.js';
 import {Middlewares} from '../middlewares.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
+import {SoloWinstonLogger} from '../logging/solo-winston-logger.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -85,7 +86,7 @@ export class Container {
       container.registerInstance(InjectTokens.SoloLogger, testLogger);
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using test logger');
     } else {
-      container.register(InjectTokens.SoloLogger, {useClass: SoloLogger}, {lifecycle: Lifecycle.Singleton});
+      container.register(InjectTokens.SoloLogger, {useClass: SoloWinstonLogger}, {lifecycle: Lifecycle.Singleton});
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using default logger');
     }
 
