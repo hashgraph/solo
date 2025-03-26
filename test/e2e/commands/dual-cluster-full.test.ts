@@ -137,13 +137,14 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   }).timeout(Duration.ofMinutes(5).toMillis());
 
   // TODO node setup
-  xit(`${testName}: node setup`, async () => {
+  it(`${testName}: node setup`, async () => {
     await main(soloNodeSetupArgv(deployment));
   });
 
   // TODO node start
   xit(`${testName}: node start`, async () => {
     await main(soloNodeStartArgv(deployment));
+    // TODO node setup still list --node-aliases
   });
 
   // TODO mirror node deploy
