@@ -28,6 +28,7 @@ import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
 import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
 import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -134,7 +135,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       expect(await k8.namespaces().has(namespace), `namespace ${namespace} should exist in ${context}`).to.be.true;
       const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       expect(pods).to.have.lengthOf(1);
-      const nodeAlias = Templates.renderNodeAliasFromNumber(index + 1);
+      const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(index + 1);
       expect(pods[0].labels['solo.hedera.com/node-name']).to.equal(nodeAlias);
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
