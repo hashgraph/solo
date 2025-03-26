@@ -6,16 +6,17 @@ includes:
 vars:
   use_port_forwards: "true"
 
+  node1_domain_name: "node1"
+  mirror_node_domain_name: "mirror-node"
+  explorer_domain_name: "explorer"
+
 env:
   SOLO_NETWORK_SIZE: "1"
-  SOLO_DEPLOYMENT: "solo-e2e"
-  SOLO_NAMESPACE: "solo-e2e"
-  SOLO_CLUSTER_NAME: "solo-e2e"
 
-  NETWORK_DEPLOY_EXTRA_FLAGS: '--domain-names node1=node1'
-  NODE_SETUP_EXTRA_FLAGS: '--domain-names node1=node1'
-  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: '--domain-name mirror-node'
-  EXPLORER_DEPLOY_EXTRA_FLAGS: '--domain-name relay'
+  NETWORK_DEPLOY_EXTRA_FLAGS: '--domain-names node1={{ .node1_domain_name }}'
+  NODE_SETUP_EXTRA_FLAGS: '--domain-names node1={{ .node1_domain_name }}'
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: '--domain-name {{ .mirror_node_domain_name }}'
+  EXPLORER_DEPLOY_EXTRA_FLAGS: '--domain-name {{ .explorer_domain_name }}'
 tasks:
   domain-name-test:
     desc: setups the network and tests it
