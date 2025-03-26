@@ -34,6 +34,7 @@ tasks:
       - npx tsc
       - npx madge --circular {{.TASKFILE_DIR}}/src/*
       - npx typedoc --emit none
+
   format:
     cmds:
       - npx remark . --quiet --frail --output
@@ -41,6 +42,7 @@ tasks:
       - npx tsc
       - npx madge --circular {{.TASKFILE_DIR}}/src/*
       - npx typedoc --emit none
+
   test-setup:
     cmds:
       - sh {{.TASKFILE_DIR}}/test/e2e/setup-e2e.sh
