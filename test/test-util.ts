@@ -127,6 +127,7 @@ interface Cmd {
   nodeCmdArg?: NodeCommand;
   accountCmdArg?: AccountCommand;
   deploymentCmdArg?: DeploymentCommand;
+  containerOverrides?: Record<string, object[]>;
 }
 
 function getTestNamespace(argv: Argv): NamespaceName {
@@ -213,6 +214,7 @@ export function e2eTestSuite(
     nodeCmdArg,
     accountCmdArg,
     startNodes,
+    containerOverrides,
   }: Cmd & {startNodes?: boolean},
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ): void {
