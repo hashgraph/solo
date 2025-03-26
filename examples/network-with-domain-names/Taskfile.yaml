@@ -1,0 +1,32 @@
+version: 3
+includes:
+  main:
+    taskfile: ../../Taskfile.helper.yml
+    flatten: true
+vars:
+  use_port_forwards: "true"
+
+env:
+  SOLO_NETWORK_SIZE: "1"
+  SOLO_DEPLOYMENT: "solo-e2e"
+  SOLO_NAMESPACE: "solo-e2e"
+  SOLO_CLUSTER_NAME: "solo-e2e"
+
+  NETWORK_DEPLOY_EXTRA_FLAGS: '--domain-names node1=node1'
+  NODE_SETUP_EXTRA_FLAGS: '--domain-names node1=node1'
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: '--domain-name mirror-node'
+  EXPLORER_DEPLOY_EXTRA_FLAGS: '--domain-name relay'
+tasks:
+
+  install:
+    desc: create the cluster, solo init, solo cluster-ref create, solo node keys, solo network deploy
+    deps:
+      - task: "init"
+    cmds:
+      - task: "default-with-mirror"
+  destroy:
+    desc: destroy relay, mirror-node, and network
+    deps:
+      - task: "init"
+    cmds:
+      - task: "cluster:destroy"
