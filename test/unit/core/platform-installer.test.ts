@@ -9,10 +9,10 @@ import * as constants from '../../../src/core/constants.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
-import {PodName} from '../../../src/core/kube/resources/pod/pod-name.js';
+import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
 import {container} from 'tsyringe-neo';
-import {PodRef} from '../../../src/core/kube/resources/pod/pod-ref.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 

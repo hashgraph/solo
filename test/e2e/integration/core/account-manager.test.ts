@@ -6,10 +6,10 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {e2eTestSuite, getTestCluster} from '../../../test-util.js';
 import * as version from '../../../../version.js';
-import {PodName} from '../../../../src/core/kube/resources/pod/pod-name.js';
+import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
 import {Duration} from '../../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../../src/core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../../src/core/kube/resources/pod/pod-ref.js';
+import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../../../src/integration/kube/resources/pod/pod-ref.js';
 import {Argv} from '../../../helpers/argv-wrapper.js';
 
 const namespace = NamespaceName.of('account-mngr-e2e');

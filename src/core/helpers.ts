@@ -19,10 +19,10 @@ import {type ConsensusNode} from './model/consensus-node.js';
 import {type Optional} from '../types/index.js';
 import {type Version} from './config/remote/types.js';
 import {fileURLToPath} from 'url';
-import {NamespaceName} from './kube/resources/namespace/namespace-name.js';
-import {type K8} from './kube/k8.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {type K8} from '../integration/kube/k8.js';
 import {type Helm} from './helm.js';
-import {type K8Factory} from './kube/k8-factory.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 
@@ -356,14 +356,12 @@ export function prepareEndpoints(endpointType: string, endpoints: string[], defa
 export function addFlagsToArgv(
   argv: any,
   flags: {
-    requiredFlags: CommandFlag[];
-    requiredFlagsWithDisabledPrompt: CommandFlag[];
-    optionalFlags: CommandFlag[];
+    required: CommandFlag[];
+    optional: CommandFlag[];
   },
 ) {
-  argv.requiredFlags = flags.requiredFlags;
-  argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt;
-  argv.optionalFlags = flags.optionalFlags;
+  argv.required = flags.required;
+  argv.optional = flags.optional;
 
   return argv;
 }

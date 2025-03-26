@@ -11,7 +11,7 @@ import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';

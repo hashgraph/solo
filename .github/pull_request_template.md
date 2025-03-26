@@ -4,6 +4,11 @@ This pull request changes the following:
 
 * TBD
 
+### Related Issues
+
+* Closes #
+* Related to #
+
 ### Pull request (PR) checklist
 
 * \[ ] This PR added tests (unit, integration, and/or end-to-end)
@@ -30,11 +35,6 @@ The following manual testing was done:
 The following was not tested:
 
 * TBD
-
-### Related Issues
-
-* Closes #
-* Related to #
 
 <details>
 <summary>

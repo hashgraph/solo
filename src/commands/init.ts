@@ -72,13 +72,7 @@ export class InitCommand extends BaseCommand {
           skip: () => this.localConfig.configFileExists(),
           task: async (ctx, task): Promise<void> => {
             const config = ctx.config;
-            this.localConfig.userEmailAddress = config.userEmailAddress;
-            this.localConfig.soloVersion = helpers.getSoloVersion();
-            this.localConfig.clusterRefs = {};
-            this.localConfig.deployments = {};
-
-            this.localConfig.validate();
-            await this.localConfig.write();
+            await this.localConfig.create(config.userEmailAddress, helpers.getSoloVersion());
           },
         },
         {
@@ -152,8 +146,8 @@ export class InitCommand extends BaseCommand {
       command: InitCommand.COMMAND_NAME,
       desc: 'Initialize local environment',
       builder: (y: any) => {
-        flags.setCommandFlags(y, flags.cacheDir);
-        flags.setCommandFlags(y, flags.quiet); // set the quiet flag even though it isn't used for consistency across all commands
+        // set the quiet flag even though it isn't used for consistency across all commands
+        flags.setOptionalCommandFlags(y, flags.cacheDir, flags.quiet);
       },
       handler: async (argv: any) => {
         await self

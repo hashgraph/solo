@@ -11,9 +11,9 @@ export class SoloError extends Error {
    * @param cause source error (if any)
    * @param meta additional metadata (if any)
    */
-  constructor(
-    message: string,
-    cause: Error | any = {},
+  public constructor(
+    public message: string,
+    public cause: Error | any = {},
     public meta: any = {},
   ) {
     super(message);

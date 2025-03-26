@@ -14,7 +14,7 @@ type ObjectArrayMethod<T> = (cls: ClassConstructor<T>, key?: string) => T[];
 export class LayeredConfig implements Config {
   public constructor(public readonly sources: ConfigSource[]) {
     if (sources) {
-      sources.sort((l, r) => Comparators.number(l.ordinal, r.ordinal));
+      sources.sort(Comparators.configSource);
     }
   }
 

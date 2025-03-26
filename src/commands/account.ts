@@ -14,11 +14,11 @@ import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, Priv
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
-import {SecretType} from '../core/kube/resources/secret/secret-type.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
 
 interface UpdateAccountConfig {
@@ -61,29 +61,41 @@ export class AccountCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'account';
 
-  private static INIT_FLAGS_LIST = [flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef];
+  private static INIT_FLAGS_LIST = {
+    required: [],
+    optional: [flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef],
+  };
 
-  private static CREATE_FLAGS_LIST = [
-    flags.amount,
-    flags.createAmount,
-    flags.ecdsaPrivateKey,
-    flags.deployment,
-    flags.ed25519PrivateKey,
-    flags.generateEcdsaKey,
-    flags.setAlias,
-    flags.clusterRef,
-  ];
+  private static CREATE_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.amount,
+      flags.createAmount,
+      flags.ecdsaPrivateKey,
+      flags.deployment,
+      flags.ed25519PrivateKey,
+      flags.generateEcdsaKey,
+      flags.setAlias,
+      flags.clusterRef,
+    ],
+  };
 
-  private static UPDATE_FLAGS_LIST = [
-    flags.accountId,
-    flags.amount,
-    flags.deployment,
-    flags.ecdsaPrivateKey,
-    flags.ed25519PrivateKey,
-    flags.clusterRef,
-  ];
+  private static UPDATE_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.accountId,
+      flags.amount,
+      flags.deployment,
+      flags.ecdsaPrivateKey,
+      flags.ed25519PrivateKey,
+      flags.clusterRef,
+    ],
+  };
 
-  private static GET_FLAGS_LIST = [flags.accountId, flags.privateKey, flags.deployment, flags.clusterRef];
+  private static GET_FLAGS_LIST = {
+    required: [],
+    optional: [flags.accountId, flags.privateKey, flags.deployment, flags.clusterRef],
+  };
 
   private async closeConnections(): Promise<void> {
     await this.accountManager.close();
@@ -718,7 +730,10 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'init',
             desc: 'Initialize system accounts with new keys',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.INIT_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...AccountCommand.INIT_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...AccountCommand.INIT_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account init' ===");
               self.logger.info(argv);
@@ -737,7 +752,10 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'create',
             desc: 'Creates a new account with a new key and stores the key in the Kubernetes secrets, if you supply no key one will be generated for you, otherwise you may supply either a ECDSA or ED25519 private key',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.CREATE_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...AccountCommand.CREATE_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...AccountCommand.CREATE_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account create' ===");
               self.logger.info(argv);
@@ -756,7 +774,10 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'update',
             desc: 'Updates an existing account with the provided info, if you want to update the private key, you can supply either ECDSA or ED25519 but not both\n',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.UPDATE_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...AccountCommand.UPDATE_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...AccountCommand.UPDATE_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account update' ===");
               self.logger.info(argv);
@@ -775,7 +796,10 @@ export class AccountCommand extends BaseCommand {
           .command({
             command: 'get',
             desc: 'Gets the account info including the current amount of HBAR',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...AccountCommand.GET_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...AccountCommand.GET_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...AccountCommand.GET_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'account get' ===");
               self.logger.info(argv);

@@ -7,8 +7,8 @@ import {getTestCacheDir, getTestCluster} from '../../test-util.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
-import {NamespaceName} from '../../../src/core/kube/resources/namespace/namespace-name.js';
-import {type K8Factory} from '../../../src/core/kube/k8-factory.js';
+import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type CommandFlag} from '../../../src/types/flag-types.js';
@@ -16,13 +16,13 @@ import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-c
 import {expect} from 'chai';
 import fs from 'fs';
 import {type SoloLogger} from '../../../src/core/logging.js';
-import {type LocalConfig} from '../../../src/core/config/local-config.js';
-import {type K8ClientFactory} from '../../../src/core/kube/k8-client/k8-client-factory.js';
-import {type K8} from '../../../src/core/kube/k8.js';
+import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
+import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
+import {type K8} from '../../../src/integration/kube/k8.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
-import {type Pod} from '../../../src/core/kube/resources/pod/pod.js';
+import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {Templates} from '../../../src/core/templates.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 

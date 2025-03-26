@@ -5,7 +5,7 @@ import {type ConfigManager} from '../../core/config-manager.js';
 import {type KeyManager} from '../../core/key-manager.js';
 import {type ProfileManager} from '../../core/profile-manager.js';
 import {type PlatformInstaller} from '../../core/platform-installer.js';
-import {type K8Factory} from '../../core/kube/k8-factory.js';
+import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type ChartManager} from '../../core/chart-manager.js';
 import {type CertificateManager} from '../../core/certificate-manager.js';
 import {Zippy} from '../../core/zippy.js';
@@ -60,7 +60,7 @@ import {
   type NodeAliases,
   type SkipCheck,
 } from '../../types/aliases.js';
-import {PodName} from '../../core/kube/resources/pod/pod-name.js';
+import {PodName} from '../../integration/kube/resources/pod/pod-name.js';
 import {NodeStatusCodes, NodeStatusEnums, NodeSubcommandType} from '../../core/enumerations.js';
 import {type NodeDeleteConfigClass, type NodeRefreshConfigClass, type NodeUpdateConfigClass} from './configs.js';
 import {type Lock} from '../../core/lock/lock.js';
@@ -69,9 +69,9 @@ import {Duration} from '../../core/time/duration.js';
 import {type NodeAddConfigClass} from './node-add-config.js';
 import {GenesisNetworkDataConstructor} from '../../core/genesis-network-models/genesis-network-data-constructor.js';
 import {NodeOverridesModel} from '../../core/node-overrides-model.js';
-import {type NamespaceName} from '../../core/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../core/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../../core/kube/resources/container/container-ref.js';
+import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
+import {PodRef} from '../../integration/kube/resources/pod/pod-ref.js';
+import {ContainerRef} from '../../integration/kube/resources/container/container-ref.js';
 import {NetworkNodes} from '../../core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
@@ -79,11 +79,11 @@ import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {ConsensusNode} from '../../core/model/consensus-node.js';
-import {type K8} from '../../core/kube/k8.js';
+import {type K8} from '../../integration/kube/k8.js';
 import {Base64} from 'js-base64';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
-import {type LocalConfig} from '../../core/config/local-config.js';
+import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {BaseCommand} from '../base.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
@@ -2067,10 +2067,8 @@ export class NodeCommandTasks {
   }
 
   initialize(argv: any, configInit: ConfigBuilder, lease: Lock | null, shouldLoadNodeClient = true) {
-    const {requiredFlags, requiredFlagsWithDisabledPrompt, optionalFlags} = argv;
-    const allRequiredFlags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt];
-
-    argv.flags = [...requiredFlags, ...requiredFlagsWithDisabledPrompt, ...optionalFlags];
+    const {required, optional} = argv;
+    argv.flags = [...required, ...optional];
 
     // @ts-ignore
     return new Task('Initialize', async (ctx: any, task: SoloListrTaskWrapper<any>) => {
@@ -2081,10 +2079,10 @@ export class NodeCommandTasks {
       this.configManager.update(argv);
 
       // disable the prompts that we don't want to prompt the user for
-      flags.disablePrompts([...requiredFlagsWithDisabledPrompt, ...optionalFlags]);
+      flags.disablePrompts(optional);
 
       const flagsToPrompt = [];
-      for (const pFlag of requiredFlags) {
+      for (const pFlag of required) {
         if (typeof argv[pFlag.name] === 'undefined') {
           flagsToPrompt.push(pFlag);
         }
@@ -2097,7 +2095,7 @@ export class NodeCommandTasks {
       config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
       config.contexts = this.remoteConfigManager.getContexts();
 
-      for (const flag of allRequiredFlags) {
+      for (const flag of required) {
         if (typeof config[flag.constName] === 'undefined') {
           throw new MissingArgumentError(`No value set for required flag: ${flag.name}`, flag.name);
         }

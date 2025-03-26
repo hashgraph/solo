@@ -26,7 +26,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type AnyYargs, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
@@ -34,17 +34,17 @@ import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-
 import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
-import {PvcRef} from '../core/kube/resources/pvc/pvc-ref.js';
-import {PvcName} from '../core/kube/resources/pvc/pvc-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {PvcRef} from '../integration/kube/resources/pvc/pvc-ref.js';
+import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
-import {SecretType} from '../core/kube/resources/secret/secret-type.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
-import {type PodRef} from '../core/kube/resources/pod/pod-ref.js';
+import {type PodRef} from '../integration/kube/resources/pod/pod-ref.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
-import {type Pod} from '../core/kube/resources/pod/pod.js';
+import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
 export interface NetworkDeployConfigClass {
@@ -139,51 +139,68 @@ export class NetworkCommand extends BaseCommand {
     return 'deployConfigs';
   }
 
+  static get DESTROY_FLAGS_LIST() {
+    return {
+      required: [],
+      optional: [
+        flags.deletePvcs,
+        flags.deleteSecrets,
+        flags.enableTimeout,
+        flags.force,
+        flags.deployment,
+        flags.quiet,
+      ],
+    };
+  }
+
   static get DEPLOY_FLAGS_LIST() {
-    return [
-      flags.apiPermissionProperties,
-      flags.app,
-      flags.applicationEnv,
-      flags.applicationProperties,
-      flags.bootstrapProperties,
-      flags.genesisThrottlesFile,
-      flags.cacheDir,
-      flags.chainId,
-      flags.chartDirectory,
-      flags.enablePrometheusSvcMonitor,
-      flags.soloChartVersion,
-      flags.debugNodeAlias,
-      flags.loadBalancerEnabled,
-      flags.log4j2Xml,
-      flags.deployment,
-      flags.persistentVolumeClaims,
-      flags.profileFile,
-      flags.profileName,
-      flags.quiet,
-      flags.releaseTag,
-      flags.settingTxt,
-      flags.networkDeploymentValuesFile,
-      flags.nodeAliasesUnparsed,
-      flags.grpcTlsCertificatePath,
-      flags.grpcWebTlsCertificatePath,
-      flags.grpcTlsKeyPath,
-      flags.grpcWebTlsKeyPath,
-      flags.haproxyIps,
-      flags.envoyIps,
-      flags.storageType,
-      flags.gcsWriteAccessKey,
-      flags.gcsWriteSecrets,
-      flags.gcsEndpoint,
-      flags.gcsBucket,
-      flags.gcsBucketPrefix,
-      flags.awsWriteAccessKey,
-      flags.awsWriteSecrets,
-      flags.awsEndpoint,
-      flags.awsBucket,
-      flags.awsBucketPrefix,
-      flags.backupBucket,
-      flags.googleCredential,
-    ];
+    return {
+      required: [],
+      optional: [
+        flags.apiPermissionProperties,
+        flags.app,
+        flags.applicationEnv,
+        flags.applicationProperties,
+        flags.bootstrapProperties,
+        flags.genesisThrottlesFile,
+        flags.cacheDir,
+        flags.chainId,
+        flags.chartDirectory,
+        flags.enablePrometheusSvcMonitor,
+        flags.soloChartVersion,
+        flags.debugNodeAlias,
+        flags.loadBalancerEnabled,
+        flags.log4j2Xml,
+        flags.deployment,
+        flags.persistentVolumeClaims,
+        flags.profileFile,
+        flags.profileName,
+        flags.quiet,
+        flags.releaseTag,
+        flags.settingTxt,
+        flags.networkDeploymentValuesFile,
+        flags.nodeAliasesUnparsed,
+        flags.grpcTlsCertificatePath,
+        flags.grpcWebTlsCertificatePath,
+        flags.grpcTlsKeyPath,
+        flags.grpcWebTlsKeyPath,
+        flags.haproxyIps,
+        flags.envoyIps,
+        flags.storageType,
+        flags.gcsWriteAccessKey,
+        flags.gcsWriteSecrets,
+        flags.gcsEndpoint,
+        flags.gcsBucket,
+        flags.gcsBucketPrefix,
+        flags.awsWriteAccessKey,
+        flags.awsWriteSecrets,
+        flags.awsEndpoint,
+        flags.awsBucket,
+        flags.awsBucketPrefix,
+        flags.backupBucket,
+        flags.googleCredential,
+      ],
+    };
   }
 
   public static readonly COMMAND_NAME = 'network';
@@ -640,7 +657,8 @@ export class NetworkCommand extends BaseCommand {
     // disable the prompts that we don't want to prompt the user for
     flags.disablePrompts(flagsWithDisabledPrompts);
 
-    await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
+    const allFlags = [...NetworkCommand.DEPLOY_FLAGS_LIST.optional, ...NetworkCommand.DEPLOY_FLAGS_LIST.required];
+    await this.configManager.executePrompt(task, allFlags);
     let namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
     if (!namespace) {
       namespace = NamespaceName.of(this.configManager.getFlag<string>(flags.deployment));
@@ -650,7 +668,7 @@ export class NetworkCommand extends BaseCommand {
     // create a config object for subsequent steps
     const config: NetworkDeployConfigClass = this.configManager.getConfig(
       NetworkCommand.DEPLOY_CONFIGS_NAME,
-      NetworkCommand.DEPLOY_FLAGS_LIST,
+      allFlags,
       [
         'chartPath',
         'keysDir',
@@ -1168,10 +1186,9 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Remove deployment from local configuration',
           task: async (ctx, task) => {
-            const deployments = self.localConfig.deployments;
-            delete deployments[ctx.config.deployment];
-            self.localConfig.setDeployments(deployments);
-            await self.localConfig.write();
+            await this.localConfig.modify(async localConfigData => {
+              localConfigData.removeDeployment(ctx.config.deployment);
+            });
           },
         },
         {
@@ -1234,7 +1251,10 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster-ref setup`",
-            builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST.optional);
+            },
             handler: async (argv: any) => {
               self.logger.info("==== Running 'network deploy' ===");
               self.logger.info(argv);
@@ -1254,16 +1274,10 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy solo network. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
-            builder: (y: any) =>
-              flags.setCommandFlags(
-                y,
-                flags.deletePvcs,
-                flags.deleteSecrets,
-                flags.enableTimeout,
-                flags.force,
-                flags.deployment,
-                flags.quiet,
-              ),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...NetworkCommand.DESTROY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...NetworkCommand.DESTROY_FLAGS_LIST.optional);
+            },
             handler: async (argv: any) => {
               self.logger.info("==== Running 'network destroy' ===");
               self.logger.info(argv);

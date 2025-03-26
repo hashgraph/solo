@@ -11,14 +11,14 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
-import {type CommandBuilder} from '../types/aliases.js';
+import {type AnyYargs, type CommandBuilder} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
 import {prepareChartPath, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
@@ -69,24 +69,35 @@ export class ExplorerCommand extends BaseCommand {
   }
 
   static get DEPLOY_FLAGS_LIST() {
-    return [
-      flags.chartDirectory,
-      flags.clusterRef,
-      flags.enableIngress,
-      flags.enableHederaExplorerTls,
-      flags.hederaExplorerTlsHostName,
-      flags.hederaExplorerStaticIp,
-      flags.hederaExplorerVersion,
-      flags.mirrorNamespace,
-      flags.namespace,
-      flags.deployment,
-      flags.profileFile,
-      flags.profileName,
-      flags.quiet,
-      flags.soloChartVersion,
-      flags.tlsClusterIssuerType,
-      flags.valuesFile,
-    ];
+    return {
+      required: [],
+      optional: [
+        flags.chartDirectory,
+        flags.clusterRef,
+        flags.enableIngress,
+        flags.enableHederaExplorerTls,
+        flags.hederaExplorerTlsHostName,
+        flags.hederaExplorerStaticIp,
+        flags.hederaExplorerVersion,
+        flags.mirrorNamespace,
+        flags.namespace,
+        flags.deployment,
+        flags.profileFile,
+        flags.profileName,
+        flags.quiet,
+        flags.soloChartVersion,
+        flags.tlsClusterIssuerType,
+        flags.valuesFile,
+        flags.clusterSetupNamespace,
+      ],
+    };
+  }
+
+  static get DESTROY_FLAGS_LIST() {
+    return {
+      required: [],
+      optional: [flags.chartDirectory, flags.clusterRef, flags.force, flags.quiet, flags.deployment],
+    };
   }
 
   /**
@@ -184,13 +195,15 @@ export class ExplorerCommand extends BaseCommand {
               flags.profileFile,
             ]);
 
-            await self.configManager.executePrompt(task, ExplorerCommand.DEPLOY_FLAGS_LIST);
+            const allFlags = [
+              ...ExplorerCommand.DEPLOY_FLAGS_LIST.optional,
+              ...ExplorerCommand.DEPLOY_FLAGS_LIST.required,
+            ];
+            await self.configManager.executePrompt(task, allFlags);
 
-            ctx.config = this.configManager.getConfig(
-              ExplorerCommand.DEPLOY_CONFIGS_NAME,
-              ExplorerCommand.DEPLOY_FLAGS_LIST,
-              ['valuesArg'],
-            ) as ExplorerDeployConfigClass;
+            ctx.config = this.configManager.getConfig(ExplorerCommand.DEPLOY_CONFIGS_NAME, allFlags, [
+              'valuesArg',
+            ]) as ExplorerDeployConfigClass;
 
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
             ctx.config.clusterContext = ctx.config.clusterRef
@@ -508,7 +521,10 @@ export class ExplorerCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: 'Deploy explorer',
-            builder: y => flags.setCommandFlags(y, ...ExplorerCommand.DEPLOY_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...ExplorerCommand.DEPLOY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...ExplorerCommand.DEPLOY_FLAGS_LIST.optional);
+            },
             handler: async argv => {
               self.logger.info("==== Running explorer deploy' ===");
               self.logger.info(argv);
@@ -527,15 +543,10 @@ export class ExplorerCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy explorer',
-            builder: y =>
-              flags.setCommandFlags(
-                y,
-                flags.chartDirectory,
-                flags.clusterRef,
-                flags.force,
-                flags.quiet,
-                flags.deployment,
-              ),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...ExplorerCommand.DESTROY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...ExplorerCommand.DESTROY_FLAGS_LIST.optional);
+            },
             handler: async argv => {
               self.logger.info('==== Running explorer destroy ===');
               self.logger.info(argv);

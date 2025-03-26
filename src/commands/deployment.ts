@@ -10,7 +10,7 @@ import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
-import {NamespaceName} from '../core/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
@@ -55,20 +55,33 @@ export class DeploymentCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'deployment';
 
-  private static CREATE_FLAGS_LIST = [flags.quiet, flags.namespace, flags.deployment];
-  private static DELETE_FLAGS_LIST = [flags.quiet, flags.deployment];
+  private static CREATE_FLAGS_LIST = {
+    required: [],
+    optional: [flags.quiet, flags.namespace, flags.deployment],
+  };
 
-  private static ADD_CLUSTER_FLAGS_LIST = [
-    flags.quiet,
-    flags.deployment,
-    flags.clusterRef,
-    flags.enableCertManager,
-    flags.numberOfConsensusNodes,
-    flags.dnsBaseDomain,
-    flags.dnsConsensusNodePattern,
-  ];
+  private static DELETE_FLAGS_LIST = {
+    required: [],
+    optional: [flags.quiet, flags.deployment],
+  };
 
-  private static LIST_DEPLOYMENTS_FLAGS_LIST = [flags.quiet, flags.clusterRef];
+  private static ADD_CLUSTER_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.quiet,
+      flags.deployment,
+      flags.clusterRef,
+      flags.enableCertManager,
+      flags.numberOfConsensusNodes,
+      flags.dnsBaseDomain,
+      flags.dnsConsensusNodePattern,
+    ],
+  };
+
+  private static LIST_DEPLOYMENTS_FLAGS_LIST = {
+    required: [],
+    optional: [flags.quiet, flags.clusterRef],
+  };
 
   /**
    * Create new deployment inside the local config
@@ -118,8 +131,9 @@ export class DeploymentCommand extends BaseCommand {
               throw new SoloError(`Deployment ${deployment} is already added to local config`);
             }
 
-            this.localConfig.deployments[deployment] = {clusters: [], namespace: namespace.name};
-            await this.localConfig.write();
+            await this.localConfig.modify(async localConfigData => {
+              localConfigData.addDeployment(deployment, namespace);
+            });
           },
         },
       ],
@@ -197,10 +211,12 @@ export class DeploymentCommand extends BaseCommand {
         },
         {
           title: 'Remove deployment from local config',
-          task: async (ctx, task) => {
+          task: async ctx => {
             const {deployment} = ctx.config;
-            delete this.localConfig.deployments[deployment];
-            await this.localConfig.write();
+
+            await this.localConfig.modify(async localConfigData => {
+              localConfigData.removeDeployment(deployment);
+            });
           },
         },
       ],
@@ -324,7 +340,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'create',
             desc: 'Creates a solo deployment',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.CREATE_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment create' ===");
               self.logger.info(argv);
@@ -344,7 +363,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'delete',
             desc: 'Deletes a solo deployment',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.DELETE_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.DELETE_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.DELETE_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment delete' ===");
               self.logger.info(argv);
@@ -364,7 +386,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'list',
             desc: 'List solo deployments inside a cluster',
-            builder: y => flags.setCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.LIST_DEPLOYMENTS_FLAGS_LIST.optional);
+            },
             handler: async argv => {
               self.logger.info("==== Running 'deployment list' ===");
               self.logger.info(argv);
@@ -384,7 +409,10 @@ export class DeploymentCommand extends BaseCommand {
           .command({
             command: 'add-cluster',
             desc: 'Adds cluster to solo deployments',
-            builder: (y: AnyYargs) => flags.setCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...DeploymentCommand.ADD_CLUSTER_FLAGS_LIST.optional);
+            },
             handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running 'deployment add-cluster' ===");
               self.logger.info(argv);
@@ -591,12 +619,9 @@ export class DeploymentCommand extends BaseCommand {
 
         task.title = `add cluster-ref: ${clusterRef} for deployment: ${deployment} in local config`;
 
-        const deployments = this.localConfig.deployments;
-
-        deployments[deployment].clusters.push(clusterRef);
-
-        this.localConfig.setDeployments(deployments);
-        await this.localConfig.write();
+        await this.localConfig.modify(async localConfigData => {
+          localConfigData.addClusterRefToDeployment(clusterRef, deployment);
+        });
       },
     };
   }
