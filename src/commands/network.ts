@@ -698,7 +698,6 @@ export class NetworkCommand extends BaseCommand {
       config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
     }
 
-
     if (config.domainNames) {
       config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(config.domainNames);
     }
