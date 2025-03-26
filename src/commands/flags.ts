@@ -2159,18 +2159,6 @@ export class Flags {
     prompt: undefined,
   };
 
-  public static readonly googleCredential: CommandFlag = {
-    constName: 'googleCredential',
-    name: 'google-credential',
-    definition: {
-      defaultValue: '',
-      describe: 'path of google credential file in json format',
-      type: 'string',
-      dataMask: constants.STANDARD_DATAMASK,
-    },
-    prompt: undefined,
-  };
-
   public static readonly storageReadAccessKey: CommandFlag = {
     constName: 'storageReadAccessKey',
     name: 'storage-read-access-key',
@@ -2407,7 +2395,6 @@ export class Flags {
     Flags.storageBucket,
     Flags.storageBucketPrefix,
     Flags.backupBucket,
-    Flags.googleCredential,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,

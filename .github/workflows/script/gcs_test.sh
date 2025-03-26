@@ -31,11 +31,6 @@ else
   storageType=${STORAGE_TYPE}
 fi
 
-if [ -z "${GCP_SERVICE_ACCOUNT_TOKEN}" ]; then
-  echo "GCP_SERVICE_ACCOUNT_TOKEN is not set. Exiting..."
-  exit 1
-fi
-
 if [ -z "${PREFIX}" ]; then
   echo "PREFIX is not set"
 else
@@ -72,8 +67,6 @@ fi
 echo "STORAGE_OPTIONS: " "${STORAGE_OPTIONS[@]}"
 echo "MIRROR_STORAGE_OPTIONS: " "${MIRROR_STORAGE_OPTIONS[@]}"
 
-echo "${GCP_SERVICE_ACCOUNT_TOKEN}" > gcp_service_account.json
-
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
 
@@ -98,8 +91,7 @@ npm run solo-test -- node keys --gossip-keys --tls-keys -i node1 --deployment "$
 npm run solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" -i node1 \
   --storage-type "${storageType}" \
   "${STORAGE_OPTIONS[@]}" \
-  --backup-bucket "${streamBackupBucket}" \
-  --google-credential gcp_service_account.json
+  --backup-bucket "${streamBackupBucket}"
 
 npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"

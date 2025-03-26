@@ -90,7 +90,6 @@ export interface NetworkDeployConfigClass {
   awsBucket: string;
   awsBucketPrefix: string;
   backupBucket: string;
-  googleCredential: string;
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRefs: ClusterRefs;
@@ -198,7 +197,6 @@ export class NetworkCommand extends BaseCommand {
         flags.awsBucket,
         flags.awsBucketPrefix,
         flags.backupBucket,
-        flags.googleCredential,
       ],
     };
   }
@@ -312,27 +310,26 @@ export class NetworkCommand extends BaseCommand {
   }
 
   async prepareBackupUploaderSecrets(config: NetworkDeployConfigClass) {
-    if (config.googleCredential) {
-      const backupData = {};
-      const namespace = config.namespace;
-      const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
-      backupData['saJson'] = Base64.encode(googleCredential);
+    const {gcsWriteAccessKey, gcsWriteSecrets, gcsEndpoint, awsWriteAccessKey, awsWriteSecrets, awsEndpoint} = config;
+    const backupData = {};
+    const namespace = config.namespace;
+    backupData['S3_ACCESS_KEY'] = Base64.encode(gcsWriteAccessKey);
+    backupData['S3_SECRET_KEY'] = Base64.encode(gcsWriteSecrets);
 
-      // create secret in each cluster
-      for (const context of config.contexts) {
-        this.logger.debug(`creating secret for backup uploader using context: ${context}`);
+    // create secret in each cluster
+    for (const context of config.contexts) {
+      this.logger.debug(`creating secret for backup uploader using context: ${context}`);
 
-        const k8client = this.k8Factory.getK8(context);
-        const isBackupSecretCreated = await k8client
-          .secrets()
-          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
+      const k8client = this.k8Factory.getK8(context);
+      const isBackupSecretCreated = await k8client
+        .secrets()
+        .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
 
-        if (!isBackupSecretCreated) {
-          throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
-        }
-
-        this.logger.debug(`created secret for backup uploader using context: ${context}`);
+      if (!isBackupSecretCreated) {
+        throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
       }
+
+      this.logger.debug(`created secret for backup uploader using context: ${context}`);
     }
   }
 
@@ -379,7 +376,6 @@ export class NetworkCommand extends BaseCommand {
     awsBucket: string;
     awsBucketPrefix: string;
     backupBucket: string;
-    googleCredential: string;
     loadBalancerEnabled: boolean;
     clusterRefs: ClusterRefs;
     consensusNodes: ConsensusNode[];
@@ -434,7 +430,6 @@ export class NetworkCommand extends BaseCommand {
     awsBucket: string;
     awsBucketPrefix: string;
     backupBucket: string;
-    googleCredential: string;
     loadBalancerEnabled: boolean;
   }): Record<ClusterRef, string> {
     const valuesArgs: Record<ClusterRef, string> = {};
