@@ -11,7 +11,7 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {getNodeAccountMap, prepareChartPath, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type CommandBuilder, type NodeAliases} from '../types/aliases.js';
+import {type AnyYargs, type CommandBuilder, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {RelayComponent} from '../core/config/remote/components/relay-component.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -43,25 +43,31 @@ export class RelayCommand extends BaseCommand {
   }
 
   static get DEPLOY_FLAGS_LIST() {
-    return [
-      flags.chainId,
-      flags.chartDirectory,
-      flags.clusterRef,
-      flags.deployment,
-      flags.nodeAliasesUnparsed,
-      flags.operatorId,
-      flags.operatorKey,
-      flags.profileFile,
-      flags.profileName,
-      flags.quiet,
-      flags.relayReleaseTag,
-      flags.replicaCount,
-      flags.valuesFile,
-    ];
+    return {
+      required: [],
+      optional: [
+        flags.chainId,
+        flags.chartDirectory,
+        flags.clusterRef,
+        flags.deployment,
+        flags.nodeAliasesUnparsed,
+        flags.operatorId,
+        flags.operatorKey,
+        flags.profileFile,
+        flags.profileName,
+        flags.quiet,
+        flags.relayReleaseTag,
+        flags.replicaCount,
+        flags.valuesFile,
+      ],
+    };
   }
 
   static get DESTROY_FLAGS_LIST() {
-    return [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef];
+    return {
+      required: [],
+      optional: [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef, flags.quiet],
+    };
   }
 
   async prepareValuesArg(
@@ -230,14 +236,13 @@ export class RelayCommand extends BaseCommand {
               flags.profileName,
             ]);
 
-            await self.configManager.executePrompt(task, RelayCommand.DEPLOY_FLAGS_LIST);
+            const allFlags = [...RelayCommand.DEPLOY_FLAGS_LIST.required, ...RelayCommand.DEPLOY_FLAGS_LIST.optional];
+            await self.configManager.executePrompt(task, allFlags);
 
             // prompt if inputs are empty and set it in the context
-            ctx.config = this.configManager.getConfig(
-              RelayCommand.DEPLOY_CONFIGS_NAME,
-              RelayCommand.DEPLOY_FLAGS_LIST,
-              ['nodeAliases'],
-            ) as RelayDeployConfigClass;
+            ctx.config = this.configManager.getConfig(RelayCommand.DEPLOY_CONFIGS_NAME, allFlags, [
+              'nodeAliases',
+            ]) as RelayDeployConfigClass;
 
             ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
@@ -390,7 +395,8 @@ export class RelayCommand extends BaseCommand {
 
             flags.disablePrompts([flags.clusterRef]);
 
-            await self.configManager.executePrompt(task, RelayCommand.DESTROY_FLAGS_LIST);
+            const allFlags = [...RelayCommand.DESTROY_FLAGS_LIST.required, ...RelayCommand.DESTROY_FLAGS_LIST.optional];
+            await self.configManager.executePrompt(task, allFlags);
 
             // prompt if inputs are empty and set it in the context
             ctx.config = {
@@ -465,8 +471,9 @@ export class RelayCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: 'Deploy a JSON RPC relay',
-            builder: (y: any) => {
-              flags.setCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST);
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...RelayCommand.DEPLOY_FLAGS_LIST.optional);
             },
             handler: async (argv: any) => {
               self.logger.info("==== Running 'relay deploy' ===", {argv});
@@ -481,8 +488,10 @@ export class RelayCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy JSON RPC relay',
-            builder: (y: any) =>
-              flags.setCommandFlags(y, flags.chartDirectory, flags.deployment, flags.quiet, flags.nodeAliasesUnparsed),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...RelayCommand.DESTROY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...RelayCommand.DESTROY_FLAGS_LIST.optional);
+            },
             handler: async (argv: any) => {
               self.logger.info("==== Running 'relay destroy' ===", {argv});
               self.logger.debug(argv);

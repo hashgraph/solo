@@ -114,9 +114,26 @@ export class Flags {
    * @param commandFlags a set of command flags
    *
    */
-  public static setCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
+  public static setRequiredCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
     commandFlags.forEach(flag => {
-      y.option(flag.name, flag.definition);
+      y.option(flag.name, {...flag.definition, demandOption: true});
+    });
+  }
+
+  /**
+   * Set flag from the flag option
+   * @param y instance of yargs
+   * @param commandFlags a set of command flags
+   *
+   */
+  public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
+    commandFlags.forEach(flag => {
+      let defaultValue = flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined;
+      defaultValue = defaultValue && flag.definition.dataMask ? flag.definition.dataMask : defaultValue;
+      y.option(flag.name, {
+        ...flag.definition,
+        default: defaultValue,
+      });
     });
   }
 
@@ -1530,6 +1547,7 @@ export class Flags {
       describe: 'Comma separated list of DER encoded ED25519 public keys and must match the order of the node aliases',
       defaultValue: constants.GENESIS_KEY,
       type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
     },
     prompt: undefined,
   };
@@ -2435,9 +2453,8 @@ export class Flags {
   public static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
 
   public static readonly DEFAULT_FLAGS = {
-    requiredFlags: [],
-    requiredFlagsWithDisabledPrompt: [Flags.namespace, Flags.cacheDir, Flags.releaseTag],
-    optionalFlags: [Flags.devMode, Flags.quiet],
+    required: [],
+    optional: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
   };
 
   /**

@@ -12,9 +12,11 @@ import {type RemoteConfigManager} from './config/remote/remote-config-manager.js
 import {type ClusterRef} from './config/remote/types.js';
 import {type LocalConfig} from './config/local/local-config.js';
 import {SoloError} from './errors/solo-error.js';
-import {inject, injectable} from 'tsyringe-neo';
-import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {SilentBreak} from './errors/silent-break.js';
+import {type HelpRenderer} from './help-renderer.js';
 import {patchInject} from './dependency-injection/container-helper.js';
+import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {inject, injectable} from 'tsyringe-neo';
 
 @injectable()
 export class Middlewares {
@@ -24,6 +26,7 @@ export class Middlewares {
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.LocalConfig) private readonly localConfig: LocalConfig,
+    @inject(InjectTokens.HelpRenderer) private readonly helpRenderer: HelpRenderer,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.remoteConfigManager = patchInject(
@@ -34,7 +37,25 @@ export class Middlewares {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.helpRenderer = patchInject(helpRenderer, InjectTokens.HelpRenderer, this.constructor.name);
   }
+
+  public printCustomHelp(rootCmd: any) {
+    const logger = this.logger;
+
+    /**
+     * @param argv - listr Argv
+     */
+    return (argv: any) => {
+      if (!argv['help']) return;
+
+      rootCmd.showHelp((output: string) => {
+        this.helpRenderer.render(rootCmd, output);
+      });
+      throw new SilentBreak('printed help, exiting');
+    };
+  }
+
   public setLoggerDevFlag() {
     const logger = this.logger;
 

@@ -9,6 +9,7 @@ import * as constants from '../constants.js';
 import {Helm} from '../helm.js';
 import {ChartManager} from '../chart-manager.js';
 import {ConfigManager} from '../config-manager.js';
+import {LayeredConfigProvider} from '../../data/configuration/impl/layered-config-provider.js';
 import {AccountManager} from '../account-manager.js';
 import {PlatformInstaller} from '../platform-installer.js';
 import {KeyManager} from '../key-manager.js';
@@ -32,6 +33,7 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
+import {HelpRenderer} from '../help-renderer.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
 import {AccountCommand} from '../../commands/account.js';
@@ -57,7 +59,7 @@ export class Container {
   /**
    * Get the singleton instance of the container
    */
-  static getInstance() {
+  public static getInstance() {
     if (!Container.instance) {
       Container.instance = new Container();
     }
@@ -74,7 +76,7 @@ export class Container {
    * @param testLogger - a test logger to use, if provided
    * @param overrides - mocked instances to use instead of the default implementations
    */
-  init(
+  public init(
     homeDir: string = constants.SOLO_HOME_DIR,
     cacheDir: string = constants.SOLO_CACHE_DIR,
     logLevel: string = 'debug',
@@ -136,6 +138,8 @@ export class Container {
       ObjectMapper: [{useClass: CTObjectMapper}, {lifecycle: Lifecycle.Singleton}],
       KeyFormatter: [{useValue: ConfigKeyFormatter.instance()}],
       Middlewares: [{useClass: Middlewares}, {lifecycle: Lifecycle.Singleton}],
+      HelpRenderer: [{useClass: HelpRenderer}, {lifecycle: Lifecycle.Singleton}],
+      ConfigProvider: [{useClass: LayeredConfigProvider}, {lifecycle: Lifecycle.Singleton}],
     };
 
     const dependencies = {...defaults, ...overrides};
@@ -172,7 +176,7 @@ export class Container {
    * @param testLogger - a test logger to use, if provided
    * @param overrides - mocked instances to use instead of the default implementations
    */
-  reset(
+  public reset(
     homeDir?: string,
     cacheDir?: string,
     logLevel?: string,
@@ -197,7 +201,7 @@ export class Container {
    * @param testLogger - a test logger to use, if provided
    * @param overrides - mocked instances to use instead of the default implementations
    */
-  clearInstances(
+  public clearInstances(
     homeDir?: string,
     cacheDir?: string,
     logLevel?: string,
@@ -216,7 +220,7 @@ export class Container {
   /**
    * only call dispose when you are about to system exit
    */
-  async dispose() {
+  public async dispose() {
     await container.dispose();
   }
 }

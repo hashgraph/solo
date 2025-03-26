@@ -1,1 +1,8 @@
 test/*
+.idea/
+coverage/
+solo-compose/
+junit*.xml
+.github/
+docs/
+*.log
