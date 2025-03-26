@@ -3,7 +3,8 @@
 import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
 import {type HelmRequest} from '../HelmRequest.js';
 import {type Chart} from '../../model/Chart.js';
-import {UpgradeChartOptions} from '../../model/upgrade/UpgradeChartOptions.js';
+import {type UpgradeChartOptions} from '../../model/upgrade/UpgradeChartOptions.js';
+import {UpgradeChartOptionsBuilder} from '../../model/upgrade/UpgradeChartOptionsBuilder.js';
 
 /**
  * A request to upgrade a Helm chart.
@@ -19,7 +20,7 @@ export class ChartUpgradeRequest implements HelmRequest {
   constructor(
     readonly releaseName: string,
     readonly chart: Chart,
-    readonly options: UpgradeChartOptions = UpgradeChartOptions.builder().build(),
+    readonly options: UpgradeChartOptions = UpgradeChartOptionsBuilder.builder().build(),
   ) {
     if (!releaseName) {
       throw new Error('releaseName must not be null');

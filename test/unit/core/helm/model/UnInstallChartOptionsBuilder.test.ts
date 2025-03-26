@@ -4,11 +4,14 @@ import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
 import {type HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/HelmExecutionBuilder.js';
-import {UnInstallChartOptions} from '../../../../../src/integration/helm/model/install/UnInstallChartOptions.js';
+import {UnInstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/UnInstallChartOptionsBuilder.js';
 
 describe('UnInstallChartOptionsBuilder Tests', () => {
   it('Test UnInstallChartOptionsBuilder', () => {
-    const options = UnInstallChartOptions.builder().namespace('test-namespace').kubeContext('test-context').build();
+    const options = UnInstallChartOptionsBuilder.builder()
+      .namespace('test-namespace')
+      .kubeContext('test-context')
+      .build();
 
     // Verify all options are set correctly
     expect(options).to.not.be.null;
@@ -17,7 +20,10 @@ describe('UnInstallChartOptionsBuilder Tests', () => {
   });
 
   it('Test apply method', () => {
-    const options = UnInstallChartOptions.builder().namespace('test-namespace').kubeContext('test-context').build();
+    const options = UnInstallChartOptionsBuilder.builder()
+      .namespace('test-namespace')
+      .kubeContext('test-context')
+      .build();
 
     type MockBuilder = HelmExecutionBuilder & {
       flag: sinon.SinonStub;
@@ -39,7 +45,7 @@ describe('UnInstallChartOptionsBuilder Tests', () => {
   });
 
   it('Test builder with default values', () => {
-    const options = UnInstallChartOptions.defaults();
+    const options = UnInstallChartOptionsBuilder.builder().build();
 
     // Verify default values
     expect(options).to.not.be.null;

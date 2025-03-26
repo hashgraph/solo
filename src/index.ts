@@ -34,8 +34,8 @@ import {type Opts} from './commands/base.js';
 import {type Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
-import {type DefaultHelmClient} from './integration/helm/impl/DefaultHelmClient.js';
 import {type HelpRenderer} from './core/help-renderer.js';
+import {type HelmClient} from './integration/helm/HelmClient.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
@@ -72,7 +72,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   // prepare dependency manger registry
   const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
   const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
-  const helm: DefaultHelmClient = container.resolve(InjectTokens.Helm);
+  const helm: HelmClient = container.resolve(InjectTokens.Helm);
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);

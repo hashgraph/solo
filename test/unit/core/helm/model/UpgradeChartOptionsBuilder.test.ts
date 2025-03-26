@@ -4,11 +4,11 @@ import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
 import {type HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/HelmExecutionBuilder.js';
-import {UpgradeChartOptions} from '../../../../../src/integration/helm/model/upgrade/UpgradeChartOptions.js';
+import {UpgradeChartOptionsBuilder} from '../../../../../src/integration/helm/model/upgrade/UpgradeChartOptionsBuilder.js';
 
 describe('UpgradeChartOptionsBuilder Tests', () => {
   it('Test UpgradeChartOptionsBuilder', () => {
-    const options = UpgradeChartOptions.builder()
+    const options = UpgradeChartOptionsBuilder.builder()
       .namespace('test-namespace')
       .kubeContext('test-context')
       .reuseValues(true)
@@ -24,7 +24,7 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
   });
 
   it('Test apply method', () => {
-    const options = UpgradeChartOptions.builder()
+    const options = UpgradeChartOptionsBuilder.builder()
       .namespace('test-namespace')
       .kubeContext('test-context')
       .reuseValues(true)
@@ -57,7 +57,7 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
   });
 
   it('Test builder with default values', () => {
-    const options = UpgradeChartOptions.builder().build();
+    const options = UpgradeChartOptionsBuilder.builder().build();
 
     // Verify default values
     expect(options).to.not.be.null;
@@ -68,7 +68,7 @@ describe('UpgradeChartOptionsBuilder Tests', () => {
   });
 
   it('Test apply method with default values', () => {
-    const options = UpgradeChartOptions.builder().build();
+    const options = UpgradeChartOptionsBuilder.builder().build();
 
     type MockBuilder = HelmExecutionBuilder & {
       argument: sinon.SinonStub;

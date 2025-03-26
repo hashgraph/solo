@@ -8,19 +8,19 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {type DefaultHelmClient} from '../integration/helm/impl/DefaultHelmClient.js';
 import {Repository} from '../integration/helm/model/Repository.js';
 import {type ReleaseItem} from '../integration/helm/model/release/ReleaseItem.js';
 import {UpgradeChartOptions} from '../integration/helm/model/upgrade/UpgradeChartOptions.js';
 import {Chart} from '../integration/helm/model/Chart.js';
 import {type InstallChartOptions} from '../integration/helm/model/install/InstallChartOptions.js';
 import {InstallChartOptionsBuilder} from '../integration/helm/model/install/InstallChartOptionsBuilder.js';
-import {UnInstallChartOptions} from '../integration/helm/model/install/UnInstallChartOptions.js';
+import {type HelmClient} from '../integration/helm/HelmClient.js';
+import {UnInstallChartOptionsBuilder} from '../integration/helm/model/install/UnInstallChartOptionsBuilder.js';
 
 @injectable()
 export class ChartManager {
   constructor(
-    @inject(InjectTokens.Helm) private readonly helm?: DefaultHelmClient,
+    @inject(InjectTokens.Helm) private readonly helm?: HelmClient,
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
   ) {
     this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
@@ -121,7 +121,10 @@ export class ChartManager {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
       if (isInstalled) {
         this.logger.debug(`uninstalling chart release: ${chartReleaseName}`);
-        const options = UnInstallChartOptions.builder().namespace(namespaceName.name).kubeContext(kubeContext).build();
+        const options = UnInstallChartOptionsBuilder.builder()
+          .namespace(namespaceName.name)
+          .kubeContext(kubeContext)
+          .build();
         await this.helm.uninstallChart(chartReleaseName, options);
         this.logger.debug(`OK: chart release is uninstalled: ${chartReleaseName}`);
       } else {

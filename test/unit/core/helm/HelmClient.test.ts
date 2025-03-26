@@ -9,11 +9,11 @@ import {Chart} from '../../../../src/integration/helm/model/Chart.js';
 import {Repository} from '../../../../src/integration/helm/model/Repository.js';
 import {DefaultHelmClientBuilder} from '../../../../src/integration/helm/impl/DefaultHelmClientBuilder.js';
 import {type InstallChartOptions} from '../../../../src/integration/helm/model/install/InstallChartOptions.js';
-import {UpgradeChartOptionsBuilder} from '../../../../src/integration/helm/model/upgrade/UpgradeChartOptions.js';
+import {UpgradeChartOptionsBuilder} from '../../../../src/integration/helm/model/upgrade/UpgradeChartOptionsBuilder.js';
 import {exec as execCallback} from 'child_process';
 import {promisify} from 'util';
 import {InstallChartOptionsBuilder} from '../../../../src/integration/helm/model/install/InstallChartOptionsBuilder.js';
-import {UnInstallChartOptionsBuilder} from '../../../../src/integration/helm/model/install/UnInstallChartOptions.js';
+import {UnInstallChartOptionsBuilder} from '../../../../src/integration/helm/model/install/UnInstallChartOptionsBuilder.js';
 import {TestChartOptionsBuilder} from '../../../../src/integration/helm/model/test/TestChartOptionsBuilder.js';
 
 const exec = promisify(execCallback);

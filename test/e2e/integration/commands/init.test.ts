@@ -20,13 +20,13 @@ import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../../src/core/constants.js';
-import {type DefaultHelmClient} from '../../../../src/integration/helm/impl/DefaultHelmClient.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
+import {type HelmClient} from '../../../../src/integration/helm/HelmClient.js';
 
 const testLogger = logging.NewLogger('debug', true);
 describe('InitCommand', () => {
   const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
-  const helm: DefaultHelmClient = container.resolve(InjectTokens.Helm);
+  const helm: HelmClient = container.resolve(InjectTokens.Helm);
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
 
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);

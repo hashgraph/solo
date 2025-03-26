@@ -22,10 +22,10 @@ import {Cluster} from '../../../src/core/config/remote/cluster.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
-import {type DefaultHelmClient} from '../../../src/integration/helm/impl/DefaultHelmClient.js';
+import {type HelmClient} from '../../../src/integration/helm/HelmClient.js';
 
 describe('BaseCommand', () => {
-  let helm: DefaultHelmClient;
+  let helm: HelmClient;
   let chartManager: ChartManager;
   let configManager: ConfigManager;
   let depManager: DependencyManager;
