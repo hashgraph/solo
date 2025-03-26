@@ -19,12 +19,15 @@ import {type SoloLogger} from '../../../src/core/logging.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
-import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
+import {DEFAULT_LOCAL_CONFIG_FILE, HEDERA_USER_HOME_DIR} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {Templates} from '../../../src/core/templates.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
+import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
+import {ContainerName} from '../../../src/integration/kube/resources/container/container-name.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -136,20 +139,39 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
 
-  // TODO node setup
+  // TODO node setup still list --node-aliases
   it(`${testName}: node setup`, async () => {
     await main(soloNodeSetupArgv(deployment));
+    const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+    for (let index: number = 0; index < contexts.length; index++) {
+      const k8: K8 = k8Factory.getK8(contexts[index]);
+      const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      expect(pods).to.have.lengthOf(1);
+      const rootContainer: ContainerRef = ContainerRef.of(
+        PodRef.of(namespace, pods[0].podRef.name),
+        ContainerName.of('root'),
+      );
+      expect(await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`)).to
+        .be.true;
+    }
   });
 
   // TODO node start
-  xit(`${testName}: node start`, async () => {
+  it(`${testName}: node start`, async () => {
     await main(soloNodeStartArgv(deployment));
-    // TODO node setup still list --node-aliases
+    // TODO node start still list --node-aliases
   });
 
   // TODO mirror node deploy
   // TODO explorer deploy
   // TODO json rpc relay deploy
+  // TODO json rpc relay destroy
+  // TODO explorer destroy
+  // TODO mirror node destroy
+  // TODO network destroy
+  it(`${testName}: network destroy`, async () => {
+    await main(soloNetworkDestroyArgv(deployment));
+  });
 });
 function newArgv(): string[] {
   return ['${PATH}/node', '${SOLO_ROOT}/solo.ts'];
@@ -253,6 +275,16 @@ function soloNodeStartArgv(deployment: string): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
   argv.push('start');
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argvPushGlobalFlags(argv);
+  return argv;
+}
+
+function soloNetworkDestroyArgv(deployment: string): string[] {
+  const argv: string[] = newArgv();
+  argv.push('network');
+  argv.push('destroy');
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
   argvPushGlobalFlags(argv);
