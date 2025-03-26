@@ -22,6 +22,10 @@ export function resetTestContainer(
     containerOverrides['CommandInvoker'] = [{useClass: CommandInvoker}, {lifecycle: Lifecycle.Singleton}];
   }
 
+  if (testLogger && !containerOverrides['SoloLogger']) {
+    containerOverrides['CommandInvoker'] = [{useValue: testLogger}];
+  }
+
   // For the test suites cacheDir === homeDir is acceptable because the data is temporary
   Container.getInstance().reset(cacheDir, cacheDir, 'debug', true, testLogger, containerOverrides);
 }
