@@ -44,4 +44,5 @@ export const InjectTokens = {
   HelpRenderer: Symbol.for('HelpRenderer'),
   Middlewares: Symbol.for('Middlewares'),
   KeyFormatter: Symbol.for('KeyFormatter'),
+  ConfigProvider: Symbol.for('ConfigProvider'),
 };

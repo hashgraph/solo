@@ -36,7 +36,7 @@ export class FileStorageBackend implements StorageBackend {
     }
 
     if (!stats || !stats.isDirectory()) {
-      throw new Error(`basePath must be a valid directory: ${basePath}`);
+      throw new StorageBackendError(`basePath must be a valid directory: ${basePath}`);
     }
   }
 

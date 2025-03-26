@@ -8,6 +8,7 @@ import {DependencyManager, HelmDependencyManager} from '../dependency-managers/i
 import * as constants from '../constants.js';
 import {ChartManager} from '../chart-manager.js';
 import {ConfigManager} from '../config-manager.js';
+import {LayeredConfigProvider} from '../../data/configuration/impl/layered-config-provider.js';
 import {AccountManager} from '../account-manager.js';
 import {PlatformInstaller} from '../platform-installer.js';
 import {KeyManager} from '../key-manager.js';
@@ -50,7 +51,7 @@ export class Container {
   /**
    * Get the singleton instance of the container
    */
-  static getInstance() {
+  public static getInstance() {
     if (!Container.instance) {
       Container.instance = new Container();
     }
@@ -66,7 +67,7 @@ export class Container {
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
-  init(
+  public init(
     homeDir: string = constants.SOLO_HOME_DIR,
     cacheDir: string = constants.SOLO_CACHE_DIR,
     logLevel: string = 'debug',
@@ -92,6 +93,13 @@ export class Container {
     // Data Layer ObjectMapper
     container.register(InjectTokens.ObjectMapper, {useClass: CTObjectMapper}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.KeyFormatter, {useValue: ConfigKeyFormatter.instance()});
+
+    // Data Layer Config
+    container.register(
+      InjectTokens.ConfigProvider,
+      {useClass: LayeredConfigProvider},
+      {lifecycle: Lifecycle.Singleton},
+    );
 
     container.register(InjectTokens.PackageDownloader, {useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.Zippy, {useClass: Zippy}, {lifecycle: Lifecycle.Singleton});
@@ -200,7 +208,7 @@ export class Container {
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
-  reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
+  public reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
     if (Container.instance && Container.isInitialized) {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Resetting container');
       container.reset();
@@ -217,7 +225,13 @@ export class Container {
    * @param devMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
-  clearInstances(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
+  public clearInstances(
+    homeDir?: string,
+    cacheDir?: string,
+    logLevel?: string,
+    devMode?: boolean,
+    testLogger?: SoloLogger,
+  ) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
       Container.isInitialized = false;
@@ -229,7 +243,7 @@ export class Container {
   /**
    * only call dispose when you are about to system exit
    */
-  async dispose() {
+  public async dispose() {
     await container.dispose();
   }
 }

@@ -26,16 +26,16 @@ import {type AccountManager} from '../../core/account-manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 
-export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
-export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
-export const ADD_CONFIGS_NAME = 'addConfigs';
-export const DELETE_CONFIGS_NAME = 'deleteConfigs';
-export const UPDATE_CONFIGS_NAME = 'updateConfigs';
-export const UPGRADE_CONFIGS_NAME = 'upgradeConfigs';
-export const REFRESH_CONFIGS_NAME = 'refreshConfigs';
-export const KEYS_CONFIGS_NAME = 'keyConfigs';
-export const SETUP_CONFIGS_NAME = 'setupConfigs';
-export const START_CONFIGS_NAME = 'startConfigs';
+const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
+const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
+const ADD_CONFIGS_NAME = 'addConfigs';
+const DELETE_CONFIGS_NAME = 'deleteConfigs';
+const UPDATE_CONFIGS_NAME = 'updateConfigs';
+const UPGRADE_CONFIGS_NAME = 'upgradeConfigs';
+const REFRESH_CONFIGS_NAME = 'refreshConfigs';
+const KEYS_CONFIGS_NAME = 'keyConfigs';
+const SETUP_CONFIGS_NAME = 'setupConfigs';
+const START_CONFIGS_NAME = 'startConfigs';
 
 @injectable()
 export class NodeCommandConfigs {
@@ -300,6 +300,8 @@ export class NodeCommandConfigs {
 
     config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     config.contexts = this.remoteConfigManager.getContexts();
+
+    if (!ctx.config.clusterRef) ctx.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
 
     return config;
   }
