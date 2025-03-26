@@ -3,8 +3,6 @@
 export interface SoloLogger {
   setDevMode(devMode: boolean): void;
 
-  setLevel(level: string): void;
-
   nextTraceId(): void;
 
   prepMeta(meta?: object | any): object | any;

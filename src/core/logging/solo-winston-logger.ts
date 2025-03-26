@@ -67,11 +67,6 @@ export class SoloWinstonLogger implements SoloLogger {
     this.devMode = devMode;
   }
 
-  public setLevel(level: string) {
-    // @ts-ignore
-    this.winstonLogger.setLevel(level);
-  }
-
   public nextTraceId() {
     this.traceId = uuidv4();
   }
