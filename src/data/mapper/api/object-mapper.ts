@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ClassConstructor} from '../../../business/utils/class-constructor.type.js';
+import {type Primitive} from '../../../business/utils/primitive.js';
+import {type PrimitiveArray} from '../../../business/utils/primitive-array.js';
 
 /**
  * The ObjectMapper interface defines the methods for converting between plain javascript objects and class instances.
@@ -51,11 +53,11 @@ export interface ObjectMapper {
   toFlatKeyMap(data: object): Map<string, string>;
 
   /**
-   * Converts a flat Map of key-value pairs into a plain javascript object.
+   * Sets the value of a property on an object hierarchy as specified by the key.
    *
-   * @param cls - The desired class of the resulting object instances.
-   * @param map - The Map of key-value pairs to be converted.
-   * @returns The plain javascript object.
+   * @param obj - The object on which to set the property value.
+   * @param key - The key specifying the property to set.
+   * @param value - The value to set.
    */
-  fromFlatKeyMap<T>(cls: ClassConstructor<T>, map: Map<string, string>): T;
+  applyPropertyValue(obj: object, key: string, value: Primitive | PrimitiveArray | object | object[]): void;
 }

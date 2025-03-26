@@ -134,6 +134,7 @@ const COMMON_ADD_OPTIONAL_FLAGS = [
   flags.generateGossipKeys,
   flags.generateTlsKeys,
   flags.releaseTag,
+  flags.clusterRef,
 ];
 
 export const DELETE_FLAGS = {

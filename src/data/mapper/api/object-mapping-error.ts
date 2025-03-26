@@ -7,7 +7,7 @@ import {SoloError} from '../../../core/errors/solo-error.js';
  * mapped is not in the expected format or a type conversion fails.
  */
 export class ObjectMappingError extends SoloError {
-  constructor(message: string, cause?: Error, meta?: object) {
+  public constructor(message: string, cause?: Error, meta?: object) {
     super(message, cause, meta);
   }
 }

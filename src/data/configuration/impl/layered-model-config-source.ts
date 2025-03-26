@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {LayeredConfigSource} from './layered-config-source.js';
-import {type ModelConfigSource} from '../spi/model-config-source.js';
 import {type ObjectMapper} from '../../mapper/api/object-mapper.js';
 import {type Schema} from '../../schema/migration/api/schema.js';
 import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
@@ -12,9 +11,8 @@ import {type ObjectStorageBackend} from '../../backend/api/object-storage-backen
 
 export abstract class LayeredModelConfigSource<T extends object>
   extends LayeredConfigSource
-  implements ModelConfigSource<T>
+  implements LayeredModelConfigSource<T>
 {
-  public readonly schema: Schema<T>;
   private _modelData: T;
 
   public get modelData(): T {
@@ -27,16 +25,15 @@ export abstract class LayeredModelConfigSource<T extends object>
 
   protected constructor(
     protected readonly key: string,
-    schema: Schema<T>,
+    public readonly schema: Schema<T>,
     backend: ObjectStorageBackend,
     mapper: ObjectMapper,
     prefix?: string,
   ) {
     super(backend, mapper, prefix);
-    this.schema = schema;
 
     if (!key) {
-      throw new IllegalArgumentError('key is required');
+      throw new IllegalArgumentError('key must not be null or undefined');
     }
 
     if (!ReflectAssist.isObjectStorageBackend(this.backend)) {
@@ -44,11 +41,11 @@ export abstract class LayeredModelConfigSource<T extends object>
     }
 
     if (!schema) {
-      throw new IllegalArgumentError('schema is required');
+      throw new IllegalArgumentError('schema must not be null or undefined');
     }
 
     if (!mapper) {
-      throw new IllegalArgumentError('mapper is required');
+      throw new IllegalArgumentError('mapper must not be null or undefined');
     }
   }
 
@@ -57,17 +54,9 @@ export abstract class LayeredModelConfigSource<T extends object>
       throw new ConfigurationError('backend must be an object storage backend');
     }
 
-    this.data.clear();
     this.forest = null;
-
     const value: object = await this.backend.readObject(this.key);
     this.modelData = await this.schema.transform(value);
-    const keyMap: Map<string, string> = this.mapper.toFlatKeyMap(this.modelData);
-
-    for (const [key, value] of keyMap.entries()) {
-      this.data.set(key, value);
-    }
-
-    this.forest = Forest.from(this.data);
+    this.forest = Forest.from(this.mapper.toFlatKeyMap(this.modelData));
   }
 }

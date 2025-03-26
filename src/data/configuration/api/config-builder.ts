@@ -12,12 +12,12 @@ export interface ConfigBuilder {
   /**
    * Adds the default configuration sources to the configuration.
    */
-  addDefaultSources(): ConfigBuilder;
+  withDefaultSources(): ConfigBuilder;
 
   /**
    * Adds the default configuration converters to the configuration.
    */
-  addDefaultConverters(): ConfigBuilder;
+  withDefaultConverters(): ConfigBuilder;
 
   /**
    * Adds the specified configuration sources to the configuration.
@@ -27,13 +27,13 @@ export interface ConfigBuilder {
   withSources(...sources: ConfigSource[]): ConfigBuilder;
 
   /**
-   * Adds the specified configuration converters to the configuration.
+   * Adds the specified value converters to the configuration.
    *
    * @param cls - The class of the configuration to which the value should be converted.
    * @param priority - The priority of the configuration converter.
    * @param converter - The configuration converter to be added.
    */
-  withConverter<T>(cls: ClassConstructor<T>, priority: number, converter: Converter<T>): ConfigBuilder;
+  withConverter<R extends object>(cls: ClassConstructor<R>, priority: number, converter: Converter<R>): ConfigBuilder;
 
   /**
    * Builds a {@link Config} instance.

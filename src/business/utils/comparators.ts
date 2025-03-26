@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {type ConfigSource} from '../../data/configuration/spi/config-source.js';
+
 export class Comparators {
   private constructor() {
     // Utility class
@@ -14,5 +16,9 @@ export class Comparators {
     }
 
     return 0;
+  };
+
+  public static readonly configSource = (l: ConfigSource, r: ConfigSource): number => {
+    return Comparators.number(l.ordinal, r.ordinal);
   };
 }
