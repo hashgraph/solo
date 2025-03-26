@@ -19,7 +19,7 @@ import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
-import {DEFAULT_LOCAL_CONFIG_FILE, HEDERA_USER_HOME_DIR} from '../../../src/core/constants.js';
+import {DEFAULT_LOCAL_CONFIG_FILE, HEDERA_USER_HOME_DIR, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
@@ -27,7 +27,7 @@ import {Templates} from '../../../src/core/templates.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
 import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
-import {ContainerName} from '../../../src/integration/kube/resources/container/container-name.js';
+import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -44,7 +44,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     `${testCluster.replace(soloTestCluster.includes('-c1') ? '-c1' : '-c2', soloTestCluster.includes('-c1') ? '-c2' : '-c1')}`,
   ];
   const testCacheDir: string = getTestCacheDir(testName);
-  let testLogger: SoloLogger;
+  let testLogger: SoloWinstonLogger;
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
@@ -55,7 +55,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       // allowed to fail if the file doesn't exist
     }
     resetForTest(namespace.name, testCacheDir, testLogger, false);
-    testLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+    testLogger = container.resolve<SoloWinstonLogger>(InjectTokens.SoloLogger);
     for (let i: number = 0; i < contexts.length; i++) {
       const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[i]);
       await k8Client.namespaces().delete(namespace);
@@ -146,13 +146,12 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     for (let index: number = 0; index < contexts.length; index++) {
       const k8: K8 = k8Factory.getK8(contexts[index]);
       const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
-      expect(pods).to.have.lengthOf(1);
-      const rootContainer: ContainerRef = ContainerRef.of(
-        PodRef.of(namespace, pods[0].podRef.name),
-        ContainerName.of('root'),
-      );
-      expect(await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`)).to
-        .be.true;
+      expect(pods, 'expect this cluster to have one network node').to.have.lengthOf(1);
+      const rootContainer: ContainerRef = ContainerRef.of(PodRef.of(namespace, pods[0].podRef.name), ROOT_CONTAINER);
+      expect(
+        await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
+        'expect extract-platform.sh to be present on the pods',
+      ).to.be.true;
     }
   });
 
