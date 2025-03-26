@@ -1,7 +1,7 @@
 version: 3
 includes:
   main:
-    taskfile: ../../Taskfile.helper.yml
+    taskfile: ../../Taskfile.yml
     flatten: true
 vars:
   use_port_forwards: "true"
@@ -17,16 +17,10 @@ env:
   MIRROR_NODE_DEPLOY_EXTRA_FLAGS: '--domain-name mirror-node'
   EXPLORER_DEPLOY_EXTRA_FLAGS: '--domain-name relay'
 tasks:
-
-  install:
-    desc: create the cluster, solo init, solo cluster-ref create, solo node keys, solo network deploy
+  domain-name-test:
+    desc: setups the network and tests it
     deps:
       - task: "init"
     cmds:
       - task: "default-with-mirror"
-  destroy:
-    desc: destroy relay, mirror-node, and network
-    deps:
-      - task: "init"
-    cmds:
-      - task: "cluster:destroy"
+      - ( cd ../sdk-network-connection && npm i && node solo-network-connection.js )
