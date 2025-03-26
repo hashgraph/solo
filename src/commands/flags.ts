@@ -1545,7 +1545,6 @@ export class Flags {
     name: 'admin-public-keys',
     definition: {
       describe: 'Comma separated list of DER encoded ED25519 public keys and must match the order of the node aliases',
-      defaultValue: constants.GENESIS_KEY,
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
