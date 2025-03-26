@@ -14,7 +14,7 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
-import {type NodeAlias, type ArgvStruct} from '../types/aliases.js';
+import {type AnyYargs, type CommandBuilder, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -101,34 +101,37 @@ export class MirrorNodeCommand extends BaseCommand {
 
   private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';
 
-  private static readonly DEPLOY_FLAGS_LIST = [
-    flags.clusterRef,
-    flags.chartDirectory,
-    flags.deployment,
-    flags.enableIngress,
-    flags.mirrorStaticIp,
-    flags.profileFile,
-    flags.profileName,
-    flags.quiet,
-    flags.valuesFile,
-    flags.mirrorNodeVersion,
-    flags.pinger,
-    flags.useExternalDatabase,
-    flags.operatorId,
-    flags.operatorKey,
-    flags.storageType,
-    flags.storageReadAccessKey,
-    flags.storageReadSecrets,
-    flags.storageEndpoint,
-    flags.storageBucket,
-    flags.storageBucketPrefix,
-    flags.externalDatabaseHost,
-    flags.externalDatabaseOwnerUsername,
-    flags.externalDatabaseOwnerPassword,
-    flags.externalDatabaseReadonlyUsername,
-    flags.externalDatabaseReadonlyPassword,
-    flags.domainName,
-  ];
+  private static readonly DEPLOY_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.clusterRef,
+      flags.chartDirectory,
+      flags.deployment,
+      flags.enableIngress,
+      flags.mirrorStaticIp,
+      flags.profileFile,
+      flags.profileName,
+      flags.quiet,
+      flags.valuesFile,
+      flags.mirrorNodeVersion,
+      flags.pinger,
+      flags.useExternalDatabase,
+      flags.operatorId,
+      flags.operatorKey,
+      flags.storageType,
+      flags.storageReadAccessKey,
+      flags.storageReadSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
+      flags.storageBucketPrefix,
+      flags.externalDatabaseHost,
+      flags.externalDatabaseOwnerUsername,
+      flags.externalDatabaseOwnerPassword,
+      flags.externalDatabaseReadonlyUsername,
+      flags.externalDatabaseReadonlyPassword,
+      flags.domainName,
+    ],
+  };
 
   async prepareValuesArg(config: MirrorNodeDeployConfigClass): Promise<string> {
     let valuesArg = '';
@@ -256,14 +259,18 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.domainName,
             ]);
 
-            await self.configManager.executePrompt(task, MirrorNodeCommand.DEPLOY_FLAGS_LIST);
+            const allFlags = [
+              ...MirrorNodeCommand.DEPLOY_FLAGS_LIST.required,
+              ...MirrorNodeCommand.DEPLOY_FLAGS_LIST.optional,
+            ];
+            await self.configManager.executePrompt(task, allFlags);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            ctx.config = this.configManager.getConfig(
-              MirrorNodeCommand.DEPLOY_CONFIGS_NAME,
-              MirrorNodeCommand.DEPLOY_FLAGS_LIST,
-              ['chartPath', 'valuesArg', 'namespace'],
-            ) as MirrorNodeDeployConfigClass;
+            ctx.config = this.configManager.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, allFlags, [
+              'chartPath',
+              'valuesArg',
+              'namespace',
+            ]) as MirrorNodeDeployConfigClass;
 
             ctx.config.namespace = namespace;
             ctx.config.chartPath = await helpers.prepareChartPath(
@@ -845,7 +852,10 @@ export class MirrorNodeCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: 'Deploy mirror-node and its components',
-            builder: y => flags.setCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...MirrorNodeCommand.DEPLOY_FLAGS_LIST.optional);
+            },
             handler: async argv => {
               self.logger.info("==== Running 'mirror-node deploy' ===");
               self.logger.info(argv);
@@ -865,7 +875,7 @@ export class MirrorNodeCommand extends BaseCommand {
             command: 'destroy',
             desc: 'Destroy mirror-node components and database',
             builder: y =>
-              flags.setCommandFlags(
+              flags.setOptionalCommandFlags(
                 y,
                 flags.chartDirectory,
                 flags.clusterRef,

@@ -26,7 +26,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type AnyYargs, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
@@ -118,7 +118,7 @@ export class NetworkCommand extends BaseCommand {
   private readonly certificateManager: CertificateManager;
   private profileValuesFile?: Record<ClusterRef, string>;
 
-  constructor(opts: Opts) {
+  public constructor(opts: Opts) {
     super(opts);
 
     if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
@@ -137,12 +137,16 @@ export class NetworkCommand extends BaseCommand {
     this.profileManager = opts.profileManager;
   }
 
-  static get DEPLOY_CONFIGS_NAME() {
-    return 'deployConfigs';
-  }
+  private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';
 
-  static get DEPLOY_FLAGS_LIST() {
-    return [
+  private static readonly DESTROY_FLAGS_LIST = {
+    required: [],
+    optional: [flags.deletePvcs, flags.deleteSecrets, flags.enableTimeout, flags.force, flags.deployment, flags.quiet],
+  };
+
+  private static readonly DEPLOY_FLAGS_LIST = {
+    required: [],
+    optional: [
       flags.apiPermissionProperties,
       flags.app,
       flags.applicationEnv,
@@ -186,8 +190,8 @@ export class NetworkCommand extends BaseCommand {
       flags.backupBucket,
       flags.googleCredential,
       flags.domainNames,
-    ];
-  }
+    ],
+  };
 
   public static readonly COMMAND_NAME = 'network';
 
@@ -651,7 +655,8 @@ export class NetworkCommand extends BaseCommand {
     // disable the prompts that we don't want to prompt the user for
     flags.disablePrompts(flagsWithDisabledPrompts);
 
-    await this.configManager.executePrompt(task, NetworkCommand.DEPLOY_FLAGS_LIST);
+    const allFlags = [...NetworkCommand.DEPLOY_FLAGS_LIST.optional, ...NetworkCommand.DEPLOY_FLAGS_LIST.required];
+    await this.configManager.executePrompt(task, allFlags);
     let namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
     if (!namespace) {
       namespace = NamespaceName.of(this.configManager.getFlag<string>(flags.deployment));
@@ -661,7 +666,7 @@ export class NetworkCommand extends BaseCommand {
     // create a config object for subsequent steps
     const config: NetworkDeployConfigClass = this.configManager.getConfig(
       NetworkCommand.DEPLOY_CONFIGS_NAME,
-      NetworkCommand.DEPLOY_FLAGS_LIST,
+      allFlags,
       [
         'chartPath',
         'keysDir',
@@ -1249,7 +1254,10 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'deploy',
             desc: "Deploy solo network.  Requires the chart `solo-cluster-setup` to have been installed in the cluster.  If it hasn't the following command can be ran: `solo cluster-ref setup`",
-            builder: (y: any) => flags.setCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...NetworkCommand.DEPLOY_FLAGS_LIST.optional);
+            },
             handler: async (argv: any) => {
               self.logger.info("==== Running 'network deploy' ===");
               self.logger.info(argv);
@@ -1269,16 +1277,10 @@ export class NetworkCommand extends BaseCommand {
           .command({
             command: 'destroy',
             desc: 'Destroy solo network. If both --delete-pvcs and --delete-secrets are set to true, the namespace will be deleted.',
-            builder: (y: any) =>
-              flags.setCommandFlags(
-                y,
-                flags.deletePvcs,
-                flags.deleteSecrets,
-                flags.enableTimeout,
-                flags.force,
-                flags.deployment,
-                flags.quiet,
-              ),
+            builder: (y: AnyYargs) => {
+              flags.setRequiredCommandFlags(y, ...NetworkCommand.DESTROY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...NetworkCommand.DESTROY_FLAGS_LIST.optional);
+            },
             handler: async (argv: any) => {
               self.logger.info("==== Running 'network destroy' ===");
               self.logger.info(argv);
