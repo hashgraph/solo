@@ -32,9 +32,10 @@ import {type SoloLogger} from './core/logging.js';
 import {Container} from './core/dependency-injection/container-init.js';
 import {InjectTokens} from './core/dependency-injection/inject-tokens.js';
 import {type Opts} from './commands/base.js';
-import {Middlewares} from './core/middlewares.js';
+import {type Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
+import {type HelpRenderer} from './core/help-renderer.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
@@ -83,6 +84,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   const certificateManager: CertificateManager = container.resolve(InjectTokens.CertificateManager);
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
+  const helpRenderer: HelpRenderer = container.resolve(InjectTokens.HelpRenderer);
 
   const opts: Opts = {
     logger,
@@ -103,7 +105,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   };
 
   logger.debug('Initializing middlewares');
-  const middlewares = new Middlewares(opts);
+  const middlewares: Middlewares = container.resolve(InjectTokens.Middlewares);
 
   logger.debug('Initializing commands');
   const rootCmd = yargs(hideBin(argv))
@@ -111,30 +113,37 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     .usage('Usage:\n  solo <command> [options]')
     .alias('h', 'help')
     .alias('v', 'version')
+    .help(false) // disable default help to enable custom help renderer
     // @ts-expect-error - TS2769: No overload matches this call.
     .command(commands.Initialize(opts))
     .strict()
-    .demand(1, 'Select a command')
+    .demand(1, 'Select a command');
 
-    .middleware(
-      [
-        // @ts-expect-error - TS2322: To assign middlewares
-        middlewares.setLoggerDevFlag(),
-        // @ts-expect-error - TS2322: To assign middlewares
-        middlewares.processArgumentsAndDisplayHeader(),
-        // @ts-expect-error - TS2322: To assign middlewares
-        middlewares.checkIfInitialized(),
-        // @ts-expect-error - TS2322: To assign middlewares
-        middlewares.loadRemoteConfig(),
-      ],
-      false, // applyBeforeValidate is false as otherwise middleware is called twice
-    );
+  rootCmd.middleware(
+    [
+      middlewares.printCustomHelp(rootCmd),
+      // @ts-expect-error - TS2322: To assign middlewares
+      middlewares.setLoggerDevFlag(),
+      // @ts-expect-error - TS2322: To assign middlewares
+      middlewares.processArgumentsAndDisplayHeader(),
+      // @ts-expect-error - TS2322: To assign middlewares
+      middlewares.checkIfInitialized(),
+      // @ts-expect-error - TS2322: To assign middlewares
+      middlewares.loadRemoteConfig(),
+    ],
+    false, // applyBeforeValidate is false as otherwise middleware is called twice
+  );
+
+  // Expand the terminal width to the maximum available
+  rootCmd.wrap(null);
 
   rootCmd.fail((msg, error) => {
     if (msg) {
-      if (msg.includes('Unknown argument')) {
+      if (msg.includes('Unknown argument') || msg.includes('Missing required argument') || msg.includes('Select')) {
         logger.showUser(msg);
-        rootCmd.showHelp();
+        rootCmd.showHelp(output => {
+          helpRenderer.render(rootCmd, output);
+        });
       } else {
         logger.showUserError(new SoloError(`Error running Solo CLI, failure occurred: ${msg ? msg : ''}`));
       }
@@ -144,7 +153,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
 
   logger.debug('Setting up flags');
   // set root level flags
-  flags.setCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
+  flags.setOptionalCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
   logger.debug('Parsing root command (executing the commands)');
   return rootCmd.parse();
 }

@@ -360,14 +360,12 @@ export function prepareEndpoints(endpointType: string, endpoints: string[], defa
 export function addFlagsToArgv(
   argv: any,
   flags: {
-    requiredFlags: CommandFlag[];
-    requiredFlagsWithDisabledPrompt: CommandFlag[];
-    optionalFlags: CommandFlag[];
+    required: CommandFlag[];
+    optional: CommandFlag[];
   },
 ) {
-  argv.requiredFlags = flags.requiredFlags;
-  argv.requiredFlagsWithDisabledPrompt = flags.requiredFlagsWithDisabledPrompt;
-  argv.optionalFlags = flags.optionalFlags;
+  argv.required = flags.required;
+  argv.optional = flags.optional;
 
   return argv;
 }
