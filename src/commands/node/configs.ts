@@ -374,6 +374,8 @@ export class NodeCommandConfigs {
     ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     ctx.config.contexts = this.remoteConfigManager.getContexts();
 
+    if (!ctx.config.clusterRef) ctx.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
+
     return ctx.config;
   }
 
