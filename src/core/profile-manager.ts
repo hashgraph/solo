@@ -528,7 +528,7 @@ export class ProfileManager {
 
       let nodeSeq = 0;
       for (const consensusNode of consensusNodes) {
-        const internalIP: string = helpers.getInternalIp(
+        const internalIP: string = helpers.getInternalAddress(
           releaseVersion,
           NamespaceName.of(consensusNode.namespace),
           consensusNode.name as NodeAlias,
