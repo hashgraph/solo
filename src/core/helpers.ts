@@ -9,7 +9,7 @@ import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
+import {PrivateKey, ServiceEndpoint, Long} from '@hashgraph/sdk';
 import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag-types.js';
 import {type SoloLogger} from './logging/solo-logger.js';
@@ -219,15 +219,14 @@ export function isNumeric(str: string) {
  * @param nodeAliases
  * @returns the map of node IDs to account IDs
  */
-export function getNodeAccountMap(nodeAliases: NodeAliases) {
-  const accountMap = new Map<NodeAlias, string>();
-  const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-  const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
-  let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
+export function getNodeAccountMap(nodeAliases: NodeAliases): Map<NodeAlias, string> {
+  const accountMap: Map<NodeAlias, string> = new Map<NodeAlias, string>();
+  const realm: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
+  const shard: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
+  const firstAccountId: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
 
   nodeAliases.forEach(nodeAlias => {
-    const nodeAccount = `${realm}.${shard}.${accountId}`;
-    accountId = accountId.add(1);
+    const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId)}`;
     accountMap.set(nodeAlias, nodeAccount);
   });
   return accountMap;
