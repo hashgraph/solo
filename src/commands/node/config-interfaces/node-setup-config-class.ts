@@ -17,4 +17,6 @@ export interface NodeSetupConfigClass extends NodeCommonConfigWithNodeAliases {
   keysDir: string;
   stagingDir: string;
   getUnusedConfigs: () => string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }

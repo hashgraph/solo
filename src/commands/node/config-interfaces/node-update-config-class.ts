@@ -32,4 +32,6 @@ export interface NodeUpdateConfigClass extends NodeCommonConfigWithNodeAlias, Ch
   stagingKeysDir: string;
   treasuryKey: PrivateKey;
   curDate: Date;
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }

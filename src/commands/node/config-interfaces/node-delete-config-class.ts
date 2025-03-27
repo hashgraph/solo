@@ -26,4 +26,6 @@ export interface NodeDeleteConfigClass extends NodeCommonConfigWithNodeAlias, Ch
   treasuryKey: PrivateKey;
   curDate: Date;
   refreshedConsensusNodes: ConsensusNode[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
