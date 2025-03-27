@@ -75,7 +75,7 @@ export class Templates {
     return parts.join('-');
   }
 
-  private static extractNodeAliasFromPodName(podName: PodName): NodeAlias {
+  public static extractNodeAliasFromPodName(podName: PodName): NodeAlias {
     const parts = podName.name.split('-');
     if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName.name}`, 3, parts.length);
     return parts[1].trim() as NodeAlias;
