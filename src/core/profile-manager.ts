@@ -340,11 +340,14 @@ export class ProfileManager {
 
     const filesMapping: Record<ClusterRef, string> = {};
 
+    let nodeAliases: NodeAlias[];
     for (const clusterRef of Object.keys(this.remoteConfigManager.getClusterRefs())) {
-      const nodeAliases = consensusNodes
+      nodeAliases = consensusNodes
         .filter(consensusNode => consensusNode.cluster === clusterRef)
         .map(consensusNode => consensusNode.name);
+    }
 
+    for (const clusterRef of Object.keys(this.remoteConfigManager.getClusterRefs())) {
       // generate the YAML
       const yamlRoot = {};
       await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot, domainNamesMapping);
