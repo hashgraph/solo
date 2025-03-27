@@ -24,10 +24,10 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-config-data-wrapper.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
-import * as helpers from '../../../src/core/helpers.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import {getSoloVersion} from '../../../version.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
@@ -89,7 +89,7 @@ describe('ClusterCommand unit tests', () => {
       opts.remoteConfigManager.currentCluster = 'solo-e2e';
       opts.localConfig.localConfigData = new LocalConfigDataWrapper(
         'test@test.com' as EmailAddress,
-        helpers.getSoloVersion(),
+        getSoloVersion(),
         {},
         {'solo-e2e': 'context-1'},
       );

@@ -17,8 +17,6 @@ import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/config-interfaces/node-add-config-class.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {type Optional} from '../types/index.js';
-import {type Version} from './config/remote/types.js';
-import {fileURLToPath} from 'url';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type K8} from '../integration/kube/k8.js';
 import {type Helm} from './helm.js';
@@ -477,19 +475,6 @@ export function extractContextFromConsensusNodes(
   if (!consensusNodes.length) return undefined;
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
-}
-
-export function getSoloVersion(): Version {
-  if (process.env.npm_package_version) {
-    return process.env.npm_package_version;
-  }
-
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-
-  const packageJsonPath = PathEx.resolve(__dirname, '../../package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-  return packageJson.version;
 }
 
 /**

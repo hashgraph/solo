@@ -25,7 +25,6 @@ import {type LockManager} from './core/lock/lock-manager.js';
 import {type CertificateManager} from './core/certificate-manager.js';
 import {type LocalConfig} from './core/config/local/local-config.js';
 import {type RemoteConfigManager} from './core/config/remote/remote-config-manager.js';
-import * as helpers from './core/helpers.js';
 import {type K8Factory} from './integration/kube/k8-factory.js';
 import {CustomProcessOutput} from './core/process-output.js';
 import {type SoloLogger} from './core/logging/solo-logger.js';
@@ -36,6 +35,7 @@ import {type Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
 import {type HelpRenderer} from './core/help-renderer.js';
+import {getSoloVersion} from '../version.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
@@ -67,7 +67,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   if (argv.length >= 3 && ['-version', '--version', '-v', '--v'].includes(argv[2])) {
     logger.showUser(chalk.cyan('\n******************************* Solo *********************************************'));
-    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(helpers.getSoloVersion()));
+    logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(getSoloVersion()));
     logger.showUser(chalk.cyan('**********************************************************************************'));
     throw new UserBreak('displayed version information, exiting');
   }

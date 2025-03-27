@@ -23,12 +23,12 @@ import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases} from 
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {Cluster} from './cluster.js';
-import * as helpers from '../../helpers.js';
 import {ConsensusNode} from '../../model/consensus-node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 import {type DeploymentStates} from './enumerations.js';
 import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
+import {getSoloVersion} from '../../../../version.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -116,7 +116,7 @@ export class RemoteConfigManager {
 
     const lastUpdatedAt = new Date();
     const email = this.localConfig.userEmailAddress;
-    const soloVersion = helpers.getSoloVersion();
+    const soloVersion = getSoloVersion();
     const currentCommand = argv._.join(' ');
 
     this.remoteConfig = new RemoteConfigDataWrapper({
