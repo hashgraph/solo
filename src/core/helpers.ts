@@ -10,7 +10,7 @@ import * as semver from 'semver';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {PrivateKey, ServiceEndpoint, Long} from '@hashgraph/sdk';
-import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag-types.js';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type Duration} from './time/duration.js';
@@ -490,16 +490,6 @@ export function getSoloVersion(): Version {
   const packageJsonPath = PathEx.resolve(__dirname, '../../package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   return packageJson.version;
-}
-
-/**
- * Helper for making deep-clones, works for objects and arrays, ideally with non-class data
- *
- * @param obj - object to be cloned
- * @returns the cloned object
- */
-export function deepClone<T = AnyObject>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
 }
 
 /**

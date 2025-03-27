@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import deepClone from 'deep-clone';
 import {Flags as flags} from '../../src/commands/flags.js';
 import {getTestCacheDir, getTestCluster} from '../test-util.js';
 import {K8Client} from '../../src/integration/kube/k8-client/k8-client.js';
@@ -50,7 +51,7 @@ export class Argv implements CloneTrait<Argv> {
 
   public clone() {
     const cloned = new Argv();
-    cloned.args = helpers.deepClone(this.args);
+    cloned.args = deepClone(this.args);
     cloned.cacheDir = this.cacheDir;
     cloned.deployment = this.deployment;
     return cloned;
