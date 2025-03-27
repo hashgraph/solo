@@ -14,7 +14,7 @@ import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
-import {type AnyYargs, type CommandBuilder, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
+import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -33,7 +33,7 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcRef} from '../integration/kube/resources/pvc/pvc-ref.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
-import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
+import {showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
@@ -86,7 +86,7 @@ export class MirrorNodeCommand extends BaseCommand {
   private readonly accountManager: AccountManager;
   private readonly profileManager: ProfileManager;
 
-  constructor(opts: Opts) {
+  public constructor(opts: Opts) {
     super(opts);
     if (!opts || !opts.accountManager)
       throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
@@ -133,7 +133,7 @@ export class MirrorNodeCommand extends BaseCommand {
     ],
   };
 
-  async prepareValuesArg(config: MirrorNodeDeployConfigClass): Promise<string> {
+  private async prepareValuesArg(config: MirrorNodeDeployConfigClass): Promise<string> {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -229,7 +229,7 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArg;
   }
 
-  async deploy(argv: ArgvStruct): Promise<boolean> {
+  private async deploy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
@@ -491,28 +491,37 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Check pods are ready',
           task: (ctx, task) => {
-            const context = ctx.config.clusterContext;
-            const namespace = ctx.config.namespace;
-
             const subTasks: SoloListrTask<MirrorNodeDeployContext>[] = [
               {
-                name: 'Postgres DB',
+                title: 'Check Postgres DB',
                 labels: ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
                 skip: () => !!ctx.config.useExternalDatabase,
               },
-              {name: 'REST API', labels: ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest']},
-              {name: 'GRPC', labels: ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc']},
-              {name: 'Monitor', labels: ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor']},
-              {name: 'Importer', labels: ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer']},
-            ].map(({name, labels, skip}: {name: string; labels: string[]; skip?: () => boolean}) => {
+              {
+                title: 'Check REST API',
+                labels: ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
+              },
+              {
+                title: 'Check GRPC',
+                labels: ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
+              },
+              {
+                title: 'Check Monitor',
+                labels: ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
+              },
+              {
+                title: 'Check Importer',
+                labels: ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
+              },
+            ].map(({title, labels, skip}: {title: string; labels: string[]; skip?: () => boolean}) => {
               const task: SoloListrTask<MirrorNodeDeployContext> = {
-                title: `Check ${name}`,
+                title: title,
                 task: async () =>
                   await self.k8Factory
-                    .getK8(context)
+                    .getK8(ctx.config.clusterContext)
                     .pods()
                     .waitForReadyStatus(
-                      namespace,
+                      ctx.config.namespace,
                       labels,
                       constants.PODS_READY_MAX_ATTEMPTS,
                       constants.PODS_READY_DELAY,
@@ -539,7 +548,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
                     const namespace = ctx.config.namespace;
-                    const clusterContext = ctx.config.clusterContext;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -669,7 +677,7 @@ export class MirrorNodeCommand extends BaseCommand {
     return true;
   }
 
-  async destroy(argv: ArgvStruct): Promise<boolean> {
+  private async destroy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 

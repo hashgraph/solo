@@ -55,6 +55,7 @@ interface RelayDeployConfigClass {
   releaseName: string;
   valuesArg: string;
   clusterRef: Optional<ClusterRef>;
+  domainName: Optional<string>;
   context: Optional<string>;
 }
 
@@ -96,6 +97,7 @@ export class RelayCommand extends BaseCommand {
       flags.relayReleaseTag,
       flags.replicaCount,
       flags.valuesFile,
+      flags.domainName,
     ],
   };
 
@@ -113,8 +115,9 @@ export class RelayCommand extends BaseCommand {
     operatorID: string,
     operatorKey: string,
     namespace: NamespaceName,
+    domainName: Optional<string>,
     context?: Optional<string>,
-  ) {
+  ): Promise<string> {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -173,6 +176,14 @@ export class RelayCommand extends BaseCommand {
 
     const networkJsonString = await this.prepareNetworkJsonString(nodeAliases, namespace);
     valuesArg += ` --set config.HEDERA_NETWORK='${networkJsonString}'`;
+
+    if (domainName) {
+      valuesArg += helpers.populateHelmArgs({
+        'ingress.enabled': true,
+        'ingress.tls.enabled': false,
+        'ingress.hosts[0].host': domainName,
+      });
+    }
 
     if (valuesFile) {
       valuesArg += helpers.prepareValuesFiles(valuesFile);
@@ -306,6 +317,7 @@ export class RelayCommand extends BaseCommand {
               config.operatorId,
               config.operatorKey,
               config.namespace,
+              config.domainName,
               config.context,
             );
           },
