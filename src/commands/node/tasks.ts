@@ -1167,12 +1167,14 @@ export class NodeCommandTasks {
       task: async (ctx, task) => {
         // @ts-ignore
         if (!ctx.config.nodeAliases || ctx.config.nodeAliases.length === 0) {
-        ctx.config.nodeAliases = helpers.parseNodeAliases(
-          ctx.config.nodeAliasesUnparsed,
-          this.remoteConfigManager.getConsensusNodes(),
-          this.configManager,
-        );
-      }
+          // @ts-ignore
+          ctx.config.nodeAliases = helpers.parseNodeAliases(
+            // @ts-ignore
+            ctx.config.nodeAliasesUnparsed,
+            this.remoteConfigManager.getConsensusNodes(),
+            this.configManager,
+          );
+        }
         if (isGenesis) {
           await this.generateGenesisNetworkJson(
             ctx.config.namespace,

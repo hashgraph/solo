@@ -558,7 +558,7 @@ export class NodeCommandConfigs {
 
     ctx.config.nodeAliases = helpers.parseNodeAliases(
       ctx.config.nodeAliasesUnparsed,
-      config.consensusNodes,
+      ctx.config.consensusNodes,
       this.configManager,
     );
 

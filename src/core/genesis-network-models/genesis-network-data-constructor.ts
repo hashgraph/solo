@@ -15,6 +15,7 @@ import {type AccountManager} from '../account-manager.js';
 import {type ConsensusNode} from '../model/consensus-node.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {type NodeServiceMapping} from '../../types/mappings/node-service-mapping.js';
+import {type NetworkNodeServices} from '../network-node-services.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -29,9 +30,9 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly accountManager: AccountManager,
     private readonly keysDir: string,
-    networkNodeServiceMap: NodeServiceMapping,
-    adminPublicKeyMap: Map<NodeAlias, string>,
-    domainNamesMapping?: Record<NodeAlias, string>,
+    public networkNodeServiceMap: NodeServiceMapping,
+    public adminPublicKeyMap: Map<NodeAlias, string>,
+    public domainNamesMapping?: Record<NodeAlias, string>,
   ) {
     this.initializationPromise = (async () => {
       for (const consensusNode of consensusNodes) {
@@ -54,7 +55,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         if (!adminPubKey) {
           const newKey = PrivateKey.generate();
           adminPubKey = newKey.publicKey;
-          this.accountManager.updateAccountKeys(namespace, accountId, newKey, true);
+          await this.accountManager.updateAccountKeys(namespace, accountId, newKey, true);
         }
 
         const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
