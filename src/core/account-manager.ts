@@ -26,14 +26,14 @@ import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {ResourceNotFoundError} from './errors/resource-not-found-error.js';
 import {SoloError} from './errors/solo-error.js';
 import {Templates} from './templates.js';
-import {type NetworkNodeServices, NetworkNodeServicesBuilder} from './network-node-services.js';
+import {type NetworkNodeServices} from './network-node-services.js';
 
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
-import {isNumeric, sleep} from './helpers.js';
+import {getExternalAddress, isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
@@ -48,6 +48,8 @@ import {SoloService} from './model/solo-service.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type NodeServiceMapping} from '../types/mappings/node-service-mapping.js';
+import {type ConsensusNode} from './model/consensus-node.js';
+import {NetworkNodeServicesBuilder} from './network-node-services-builder.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -485,6 +487,7 @@ export class AccountManager {
 
       // retrieve the list of services and build custom objects for the attributes we need
       for (const service of services) {
+        let loadBalancerEnabled: boolean = false;
         let nodeId: string | number;
         const clusterRef = service.clusterRef;
 
@@ -532,6 +535,7 @@ export class AccountManager {
             break;
           // solo.hedera.com/type: network-node-svc
           case 'network-node-svc':
+            loadBalancerEnabled = service.spec!.type === 'LoadBalancer';
             if (
               service.metadata!.labels!['solo.hedera.com/node-id'] !== '' &&
               isNumeric(service.metadata!.labels!['solo.hedera.com/node-id'])
@@ -559,6 +563,12 @@ export class AccountManager {
             if (nodeId) serviceBuilder.withNodeId(nodeId);
             break;
         }
+        const consensusNode: ConsensusNode = this.remoteConfigManager
+          .getConsensusNodes()
+          .filter(node => node.name === serviceBuilder.nodeAlias)[0];
+        serviceBuilder.withExternalAddress(
+          await getExternalAddress(consensusNode, this.k8Factory.getK8(serviceBuilder.context), loadBalancerEnabled),
+        );
         serviceBuilderMap.set(serviceBuilder.key(), serviceBuilder);
       }
 
