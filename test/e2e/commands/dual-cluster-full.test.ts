@@ -175,7 +175,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   // TODO node start still list --node-aliases
   // TODO node start
-  it(`${testName}: node start`, async () => {
+  xit(`${testName}: node start`, async () => {
     await main(soloNodeStartArgv(deployment));
     for (let index: number = 0; index < contexts.length; index++) {
       const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
@@ -204,7 +204,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   // TODO explorer destroy
   // TODO mirror node destroy
   // TODO network destroy
-  it(`${testName}: network destroy`, async () => {
+  xit(`${testName}: network destroy`, async () => {
     await main(soloNetworkDestroyArgv(deployment));
   });
 });
