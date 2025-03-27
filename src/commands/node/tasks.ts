@@ -1778,7 +1778,7 @@ export class NodeCommandTasks {
     return {
       title: 'Send node update transaction',
       task: async ctx => {
-        const config: NodeUpdateConfigClass = ctx.config;
+        const config = ctx.config;
 
         const nodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
         self.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
@@ -1917,7 +1917,7 @@ export class NodeCommandTasks {
               valuesArgMap,
               config.serviceMap,
               clusterNodeIndexMap,
-              +(config as NodeUpdateConfigClass).newAccountNumber,
+              (config as NodeUpdateConfigClass).newAccountNumber,
               config.nodeAlias,
             );
             break;
@@ -2004,7 +2004,7 @@ export class NodeCommandTasks {
     valuesArgMap: Record<ClusterRef, string>,
     serviceMap: Map<NodeAlias, NetworkNodeServices>,
     clusterNodeIndexMap: Record<ClusterRef, Record<NodeId, /* index in the chart -> */ number>>,
-    newAccountNumber: number,
+    newAccountNumber: string,
     nodeAlias: NodeAlias,
   ): void {
     for (const consensusNode of consensusNodes) {
