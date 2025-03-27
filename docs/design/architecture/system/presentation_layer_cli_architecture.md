@@ -97,6 +97,10 @@ all input via command line arguments. Additionally, each command should provide 
 between different output formats (eg: JSON, YAML, Listr2, etc). This allows the CLI to be used in
 automated scripts or other non-interactive environments.
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ## Command Structure Overview
 
 The commands are organized into a nested hierarchy of groups, resources, and operations.
@@ -111,6 +115,10 @@ Where `group` is the optional general category of the command, `resource` is the
 which an action is to be applied, `operation` is the action to be performed, `flags` are any
 resource or action specific options, and `global_flags` are options that apply to all groups. Global
 flags may be specified at any level of the command hierarchy.
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ### Final Vision
 
@@ -150,6 +158,10 @@ solo explorer node add --deployment <name> --cluster-ref <name>
 solo deployment state destroy --deployment <name> 
 ```
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ## Global Flags
 
 Global flags are options that apply to all commands and can be specified at any level of the command
@@ -167,6 +179,10 @@ The following global flags are supported:
 | `-v, --version`                                                          | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the version number and exits.                                                                                                |
 | `-h, --help`                                                             | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the help information for the supplied command.                                                                               |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ## Groups
 
 The CLI application is designed around the following high-level entities (aka commands):
@@ -183,6 +199,10 @@ The CLI application is designed around the following high-level entities (aka co
 | **Mirror Node**   | `mirror-node`                 | `mirror`                      | Manage Hedera Mirror Node in solo network |                            |
 | **Quick Start**   |                               | `quick-start`                 |                                           |                            |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Group Changes (Rename, Remove, Replace)
 
 The following groups have been removed, renamed, or replaced:
@@ -195,6 +215,10 @@ The following groups have been removed, renamed, or replaced:
 | `node`                        | Manage Hedera platform node in solo network | **Replaced** by the `consensus node` group and resource combination                                                 |
 | `mirror-node`                 | Manage Hedera Mirror Node in solo network   | **Replaced** by the `mirror node` group and resource combination                                                    |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ## Resources by Group
 
 Each group contains a set of resources that can be managed. The sections below lists the resources
@@ -206,11 +230,19 @@ associated with each group.
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Cluster Ref
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Config**    | `config`                      | `config`                      |                            |                            |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ### Consensus
 
@@ -221,6 +253,10 @@ associated with each group.
 | **State**      | `state`                       | `state`                       |                            |                            |
 | **Diagnostic** | `diagnostic`                  | `diagnostic`                  |                            |                            |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Deployment
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
@@ -229,17 +265,29 @@ associated with each group.
 | **Config**    | `config`                      | `config`                      |                            |                            |
 | **State**     | `state`                       | `state`                       |                            |                            |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Explorer
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Keys
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Consensus** | `consensus`                   | `consensus`                   |                            |                            |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ### Ledger
 
@@ -249,17 +297,29 @@ associated with each group.
 | **Account**   | `account`                     | `account`                     |                            |                            |
 | **Crypto**    | `crypto`                      | `crypto`                      |                            |                            |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Mirror
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Relay
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ### Quick Start
 
@@ -268,6 +328,10 @@ associated with each group.
 | **EVM**       |                               | `evm`                         |                            |                            |
 | **Single**    |                               | `single`                      |                            |                            |
 | **Multi**     |                               | `multi`                       |                            |                            |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ## Operations by Resource
 
@@ -287,6 +351,10 @@ operations associated with each resource.
 | **Upgrade**    | `upgrade`      |             |
 | **Destroy**    | `destroy`      |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Cluster Ref
 
 #### Config
@@ -297,6 +365,10 @@ operations associated with each resource.
 | **Info**       | `info`         |             |
 | **Connect**    | `connect`      |             |
 | **Disconnect** | `disconnect`   |             |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
     
 ### Consensus
 
@@ -309,7 +381,11 @@ operations associated with each resource.
 | **Freeze**     | `freeze`       |             |
 | **Upgrade**    | `upgrade`      |             |
 | **Destroy**    | `destroy`      |             |
-    
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>    
+
 #### Node
 
 | Operation Name | Command Syntax | Description |
@@ -325,6 +401,10 @@ operations associated with each resource.
 | **Restart**    | `restart`      |             |
 | **Refresh**    | `refresh`      |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 #### State
 
 | Operation Name | Command Syntax | Description |
@@ -333,6 +413,10 @@ operations associated with each resource.
 | **Download**   | `download`     |             |
 | **Upload**     | `upload`       |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 #### Diagnostic
 
 | Operation Name | Command Syntax | Description |
@@ -340,6 +424,10 @@ operations associated with each resource.
 | **Logs**       | `logs`         |             |
 | **Configs**    | `configs`      |             |
 | **All**        | `all`          |             |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ### Deployment
 
@@ -352,6 +440,10 @@ operations associated with each resource.
 | **Attach**     | `attach`       |             |
 | **Detach**     | `detach`       |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 #### Config
 
 | Operation Name | Command Syntax | Description |
@@ -361,13 +453,21 @@ operations associated with each resource.
 | **Create**     | `create`       |             |
 | **Delete**     | `delete`       |             |
 | **Import**     | `import`       |             |
-    
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 #### State
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
 | **Info**       | `info`         |             |
 | **Destroy**    | `destroy`      |             |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ### Explorer
 
@@ -382,6 +482,10 @@ operations associated with each resource.
 | **Upgrade**    | `upgrade`      |             |
 | **Destroy**    | `destroy`      |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Keys
 
 #### Consensus
@@ -390,15 +494,23 @@ operations associated with each resource.
 |----------------|----------------|-------------|
 | **Generate**   | `generate`     |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Ledger
 
 #### System
 
-| Operation Name     | Command Syntax | Description |
-|--------------------|----------------|-------------|
-| **Init**           | `init`         |             |
-| **Accounts Rekey** | `accounts-rekey` |         |
-| **Staking Setup**  | `staking-setup` |           |
+| Operation Name     | Command Syntax   | Description |
+|--------------------|------------------|-------------|
+| **Init**           | `init`           |             |
+| **Accounts Rekey** | `accounts-rekey` |             |
+| **Staking Setup**  | `staking-setup`  |             |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 #### Account
 
@@ -411,12 +523,20 @@ operations associated with each resource.
 | **Delete**     | `delete`       |             |
 | **Import**     | `import`       |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 #### Crypto
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
 | **Transfer**   | `transfer`     |             |
 | **Balance**    | `balance`      |             |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ### Mirror
 
@@ -431,6 +551,10 @@ operations associated with each resource.
 | **Upgrade**    | `upgrade`      |             |
 | **Destroy**    | `destroy`      |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Relay
 
 #### Node
@@ -444,6 +568,10 @@ operations associated with each resource.
 | **Upgrade**    | `upgrade`      |             |
 | **Destroy**    | `destroy`      |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 ### Quick Start
 
 #### EVM
@@ -454,6 +582,10 @@ operations associated with each resource.
 | **Deploy**     | `deploy`       |             |
 | **Destroy**    | `destroy`      |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
 #### Single
 
 | Operation Name | Command Syntax | Description |
@@ -461,6 +593,10 @@ operations associated with each resource.
 | **Info**       | `info`         |             |
 | **Deploy**     | `deploy`       |             |
 | **Destroy**    | `destroy`      |             |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 #### Multi
 
@@ -470,6 +606,9 @@ operations associated with each resource.
 | **Deploy**     | `deploy`       |             |
 | **Destroy**    | `destroy`      |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
 
 ## Flags by Operation
 
@@ -492,3 +631,6 @@ solo block node list --deployment <name>
 |------------|-----------------------|-------------|
 | Deployment | `--deployment <name>` |             |
 
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
