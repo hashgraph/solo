@@ -7,17 +7,17 @@ import {type NodeAlias} from '../types/aliases.js';
 import {NetworkNodeServices} from './network-node-services.js';
 
 export class NetworkNodeServicesBuilder {
-  public namespace?: NamespaceName;
-  public clusterRef?: ClusterRef;
-  public context?: Context;
-  public deployment?: DeploymentName;
-  public nodeId?: string | number;
-  public haProxyName?: string;
-  public accountId?: string;
+  public namespace: NamespaceName;
+  public clusterRef: ClusterRef;
+  public context: Context;
+  public deployment: DeploymentName;
+  public nodeId: string | number;
+  public haProxyName: string;
+  public accountId: string;
   public haProxyClusterIp!: string;
   public envoyProxyGrpcWebPort!: number;
-  public envoyProxyLoadBalancerIp?: string;
-  public haProxyLoadBalancerIp?: string;
+  public envoyProxyLoadBalancerIp: string;
+  public haProxyLoadBalancerIp: string;
   public haProxyGrpcPort!: string | number;
   public haProxyGrpcsPort!: string | number;
   public haProxyAppSelector!: string;
@@ -25,14 +25,13 @@ export class NetworkNodeServicesBuilder {
   public nodeServiceName!: any;
   public nodeServiceClusterIp!: string;
   public nodeServiceGrpcsPort!: string | number;
-  public envoyProxyClusterIp?: string;
+  public envoyProxyClusterIp: string;
   public envoyProxyName!: string;
   public nodeServiceLoadBalancerIp!: string;
   public nodeServiceGossipPort!: string | number;
   public nodeServiceGrpcPort!: string | number;
   public externalAddress!: string;
-
-  public nodePodName?: PodName;
+  public nodePodName: PodName;
 
   public constructor(public readonly nodeAlias: NodeAlias) {}
 
@@ -162,7 +161,34 @@ export class NetworkNodeServicesBuilder {
   }
 
   public build() {
-    return new NetworkNodeServices(this);
+    return new NetworkNodeServices(
+      this.clusterRef,
+      this.context,
+      this.deployment,
+      this.nodeAlias,
+      this.namespace,
+      this.nodeId,
+      this.nodePodName,
+      this.haProxyName,
+      this.haProxyLoadBalancerIp,
+      this.haProxyClusterIp,
+      this.haProxyGrpcPort,
+      this.haProxyGrpcsPort,
+      this.accountId,
+      this.haProxyAppSelector,
+      this.haProxyPodName,
+      this.nodeServiceName,
+      this.nodeServiceClusterIp,
+      this.nodeServiceLoadBalancerIp,
+      this.nodeServiceGossipPort,
+      this.nodeServiceGrpcPort,
+      this.nodeServiceGrpcsPort,
+      this.envoyProxyName,
+      this.envoyProxyClusterIp,
+      this.envoyProxyLoadBalancerIp,
+      this.envoyProxyGrpcWebPort,
+      this.externalAddress,
+    );
   }
 
   public key() {
