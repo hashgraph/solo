@@ -12,7 +12,7 @@ export abstract class GenesisNetworkDataWrapper {
   protected constructor(public readonly nodeId: NodeId) {}
 
   /**
-   * @param address - a fully qualified domain name
+   * @param address - a fully qualified domain name or IP v4 address
    * @param port
    */
   public addGossipEndpoint(address: string, port: number): void {

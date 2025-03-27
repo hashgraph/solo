@@ -28,7 +28,7 @@ export class GenesisNetworkNodeDataWrapper
   }
 
   /**
-   * @param address - a fully qualified domain name
+   * @param address - a fully qualified domain name or an IPv4 address
    * @param port
    */
   public addServiceEndpoint(address: string, port: number): void {
