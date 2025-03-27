@@ -49,4 +49,6 @@ export interface NodeAddConfigClass {
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRef: ClusterRef;
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
