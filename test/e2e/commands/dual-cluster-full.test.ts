@@ -292,6 +292,7 @@ function soloNetworkDeployArgv(deployment: string): string[] {
   argv.push('deploy');
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
+  argv.push(optionFromFlag(Flags.loadBalancerEnabled)); // have to enable load balancer to resolve cross cluster in multi-cluster
   argvPushGlobalFlags(argv, true, true);
   return argv;
 }
