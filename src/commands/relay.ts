@@ -238,31 +238,6 @@ export class RelayCommand extends BaseCommand {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface RelayDeployConfigClass {
-      chainId: string;
-      chartDirectory: string;
-      namespace: NamespaceName;
-      deployment: string;
-      nodeAliasesUnparsed: string;
-      operatorId: string;
-      operatorKey: string;
-      profileFile: string;
-      profileName: string;
-      relayReleaseTag: string;
-      replicaCount: number;
-      valuesFile: string;
-      isChartInstalled: boolean;
-      nodeAliases: NodeAliases;
-      releaseName: string;
-      valuesArg: string;
-      clusterRef: Optional<ClusterRef>;
-      context: Optional<string>;
-    }
-
-    interface Context {
-      config: RelayDeployConfigClass;
-    }
-
     const tasks = new Listr<RelayDeployContext>(
       [
         {
@@ -289,7 +264,6 @@ export class RelayCommand extends BaseCommand {
               'nodeAliases',
             ]) as RelayDeployConfigClass;
 
-            // Set required properties
             ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
             ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
