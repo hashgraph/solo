@@ -1166,7 +1166,13 @@ export class NodeCommandTasks {
       title: 'Setup network nodes',
       task: async (ctx, task) => {
         // @ts-ignore
-        ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+        if (!ctx.config.nodeAliases || ctx.config.nodeAliases.length === 0) {
+        ctx.config.nodeAliases = helpers.parseNodeAliases(
+          ctx.config.nodeAliasesUnparsed,
+          this.remoteConfigManager.getConsensusNodes(),
+          this.configManager,
+        );
+      }
         if (isGenesis) {
           await this.generateGenesisNetworkJson(
             ctx.config.namespace,

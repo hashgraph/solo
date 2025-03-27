@@ -125,7 +125,11 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         });
 
         it('Node admin key should have been updated, not equal to genesis key', async () => {
-          const nodeAliases = helpers.parseNodeAliases(argv.getArg<string>(flags.nodeAliasesUnparsed));
+          const nodeAliases = helpers.parseNodeAliases(
+            argv.getArg<string>(flags.nodeAliasesUnparsed),
+            bootstrapResp.opts.remoteConfigManager.getConsensusNodes(),
+            bootstrapResp.opts.configManager,
+          );
           for (const nodeAlias of nodeAliases) {
             const keyFromK8 = await k8Factory
               .default()

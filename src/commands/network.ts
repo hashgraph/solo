@@ -687,7 +687,11 @@ export class NetworkCommand extends BaseCommand {
       this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
       argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases;
     } else {
-      config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
+      config.nodeAliases = parseNodeAliases(
+        config.nodeAliasesUnparsed,
+        this.remoteConfigManager.getConsensusNodes(),
+        this.configManager,
+      );
     }
 
     if (config.haproxyIps) {

@@ -34,7 +34,7 @@ export class Argv implements CloneTrait<Argv> {
 
   public build(): ArgvStruct {
     if (this.getArg<string>(flags.nodeAliasesUnparsed)?.split(',')?.length) {
-      const nodeAliases = helpers.parseNodeAliases(this.getArg(flags.nodeAliasesUnparsed));
+      const nodeAliases = helpers.parseNodeAliases(this.getArg(flags.nodeAliasesUnparsed), undefined, undefined);
       this.setArg(flags.numberOfConsensusNodes, nodeAliases.length);
     }
 
