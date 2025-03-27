@@ -25,6 +25,8 @@ import {type Helm} from './helm.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type ConfigManager} from './config-manager.js';
+import {Flags as flags} from '../commands/flags.js';
 
 export function getInternalIp(
   releaseVersion: semver.SemVer | string,
@@ -93,8 +95,23 @@ export function sleep(duration: Duration) {
   });
 }
 
-export function parseNodeAliases(input: string): NodeAliases {
-  return splitFlagInput(input, ',') as NodeAliases;
+export function parseNodeAliases(
+  input: string,
+  consensusNodes: ConsensusNode[],
+  configManager: ConfigManager,
+): NodeAliases {
+  let nodeAliases: NodeAlias[] = splitFlagInput(input, ',') as NodeAliases;
+  if (nodeAliases.length === 0) {
+    nodeAliases = consensusNodes?.map((node: {name: string}) => {
+      return node.name as NodeAlias;
+    });
+    configManager?.setFlag(flags.nodeAliasesUnparsed, nodeAliases.join(','));
+
+    if (!nodeAliases || nodeAliases.length === 0) {
+      return [];
+    }
+  }
+  return nodeAliases;
 }
 
 export function splitFlagInput(input: string, separator = ',') {
