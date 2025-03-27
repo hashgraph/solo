@@ -26,7 +26,7 @@ export function getSoloVersion(): Version {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
 
-  const packageJsonPath = PathEx.resolve(__dirname, '../../package.json');
+  const packageJsonPath = PathEx.resolve(__dirname, './package.json');
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
   return packageJson.version;
 }

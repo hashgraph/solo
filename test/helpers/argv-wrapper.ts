@@ -39,8 +39,7 @@ export class Argv implements CloneTrait<Argv> {
       this.setArg(flags.numberOfConsensusNodes, nodeAliases.length);
     }
 
-    // @ts-expect-error - TS2322: the '_' field is filled during command invocation for Argv reusability
-    const rawArgs: ArgvStruct = helpers.deepClone(this.args);
+    const rawArgs: ArgvStruct = deepClone(this.args);
 
     const _: string[] = [this.command];
     if (this.subcommand) _.push(this.subcommand);
