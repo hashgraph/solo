@@ -26,7 +26,7 @@ import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import * as helpers from '../core/helpers.js';
 
-export interface ExplorerDeployConfigClass {
+interface ExplorerDeployConfigClass {
   chartDirectory: string;
   clusterRef: string;
   clusterContext: string;
