@@ -1545,7 +1545,6 @@ export class Flags {
     name: 'admin-public-keys',
     definition: {
       describe: 'Comma separated list of DER encoded ED25519 public keys and must match the order of the node aliases',
-      defaultValue: constants.GENESIS_KEY,
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2307,6 +2306,29 @@ export class Flags {
     prompt: undefined,
   };
 
+  public static readonly domainName: CommandFlag = {
+    constName: 'domainName',
+    name: 'domain-name',
+    definition: {
+      describe: 'Custom domain name',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly domainNames: CommandFlag = {
+    constName: 'domainNames',
+    name: 'domain-names',
+    definition: {
+      describe:
+        'Custom domain names for consensus nodes mapping for the' +
+        `${chalk.gray('(e.g. node0=domain.name where key is node alias and value is domain name)')}` +
+        'with multiple nodes comma seperated',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   public static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
@@ -2426,6 +2448,8 @@ export class Flags {
     Flags.numberOfConsensusNodes,
     Flags.dnsBaseDomain,
     Flags.dnsConsensusNodePattern,
+    Flags.domainName,
+    Flags.domainNames,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

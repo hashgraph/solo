@@ -11,12 +11,12 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
-import {type AnyYargs, type CommandBuilder} from '../types/aliases.js';
+import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
 import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
-import {type SoloListrTask} from '../types/index.js';
+import {type Optional, type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
@@ -24,8 +24,9 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
+import * as helpers from '../core/helpers.js';
 
-export interface ExplorerDeployConfigClass {
+interface ExplorerDeployConfigClass {
   chartDirectory: string;
   clusterRef: string;
   clusterContext: string;
@@ -44,17 +45,26 @@ export interface ExplorerDeployConfigClass {
   clusterSetupNamespace: NamespaceName;
   getUnusedConfigs: () => string[];
   soloChartVersion: string;
+  domainName: Optional<string>;
 }
 
-interface Context {
+interface ExplorerDeployContext {
   config: ExplorerDeployConfigClass;
   addressBook: string;
+}
+
+interface ExplorerDestroyContext {
+  config: {
+    clusterContext: string;
+    namespace: NamespaceName;
+    isChartInstalled: boolean;
+  };
 }
 
 export class ExplorerCommand extends BaseCommand {
   private readonly profileManager: ProfileManager;
 
-  constructor(opts: Opts) {
+  public constructor(opts: Opts) {
     super(opts);
     if (!opts || !opts.profileManager)
       throw new MissingArgumentError('An instance of core/ProfileManager is required', opts.downloader);
@@ -64,46 +74,41 @@ export class ExplorerCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'explorer';
 
-  static get DEPLOY_CONFIGS_NAME() {
-    return 'deployConfigs';
-  }
+  private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';
 
-  static get DEPLOY_FLAGS_LIST() {
-    return {
-      required: [],
-      optional: [
-        flags.chartDirectory,
-        flags.clusterRef,
-        flags.enableIngress,
-        flags.enableHederaExplorerTls,
-        flags.hederaExplorerTlsHostName,
-        flags.hederaExplorerStaticIp,
-        flags.hederaExplorerVersion,
-        flags.mirrorNamespace,
-        flags.namespace,
-        flags.deployment,
-        flags.profileFile,
-        flags.profileName,
-        flags.quiet,
-        flags.soloChartVersion,
-        flags.tlsClusterIssuerType,
-        flags.valuesFile,
-        flags.clusterSetupNamespace,
-      ],
-    };
-  }
+  private static readonly DEPLOY_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.chartDirectory,
+      flags.clusterRef,
+      flags.enableIngress,
+      flags.enableHederaExplorerTls,
+      flags.hederaExplorerTlsHostName,
+      flags.hederaExplorerStaticIp,
+      flags.hederaExplorerVersion,
+      flags.mirrorNamespace,
+      flags.namespace,
+      flags.deployment,
+      flags.profileFile,
+      flags.profileName,
+      flags.quiet,
+      flags.soloChartVersion,
+      flags.tlsClusterIssuerType,
+      flags.valuesFile,
+      flags.clusterSetupNamespace,
+      flags.domainName,
+    ],
+  };
 
-  static get DESTROY_FLAGS_LIST() {
-    return {
-      required: [],
-      optional: [flags.chartDirectory, flags.clusterRef, flags.force, flags.quiet, flags.deployment],
-    };
-  }
+  private static readonly DESTROY_FLAGS_LIST = {
+    required: [],
+    optional: [flags.chartDirectory, flags.clusterRef, flags.force, flags.quiet, flags.deployment],
+  };
 
   /**
    * @param config - the configuration object
    */
-  async prepareHederaExplorerValuesArg(config: ExplorerDeployConfigClass) {
+  private async prepareHederaExplorerValuesArg(config: ExplorerDeployConfigClass): Promise<string> {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -128,13 +133,21 @@ export class ExplorerCommand extends BaseCommand {
     } else {
       valuesArg += ` --set proxyPass./api="http://${constants.MIRROR_NODE_RELEASE_NAME}-rest" `;
     }
+
+    if (config.domainName) {
+      valuesArg += helpers.populateHelmArgs({
+        'ingress.enabled': true,
+        'ingress.hosts[0].host': config.domainName,
+      });
+    }
+
     return valuesArg;
   }
 
   /**
    * @param config - the configuration object
    */
-  private async prepareCertManagerChartValuesArg(config: ExplorerDeployConfigClass) {
+  private async prepareCertManagerChartValuesArg(config: ExplorerDeployConfigClass): Promise<string> {
     const {tlsClusterIssuerType, namespace} = config;
 
     let valuesArg = '';
@@ -164,7 +177,7 @@ export class ExplorerCommand extends BaseCommand {
     return valuesArg;
   }
 
-  async prepareValuesArg(config: ExplorerDeployConfigClass) {
+  private async prepareValuesArg(config: ExplorerDeployConfigClass) {
     let valuesArg = '';
     if (config.valuesFile) {
       valuesArg += prepareValuesFiles(config.valuesFile);
@@ -172,11 +185,11 @@ export class ExplorerCommand extends BaseCommand {
     return valuesArg;
   }
 
-  async deploy(argv: any) {
+  private async deploy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<ExplorerDeployContext>(
       [
         {
           title: 'Initialize',
@@ -396,19 +409,11 @@ export class ExplorerCommand extends BaseCommand {
     return true;
   }
 
-  async destroy(argv: any) {
+  private async destroy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: {
-        clusterContext: string;
-        namespace: NamespaceName;
-        isChartInstalled: boolean;
-      };
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<ExplorerDestroyContext>(
       [
         {
           title: 'Initialize',
@@ -500,13 +505,12 @@ export class ExplorerCommand extends BaseCommand {
     return true;
   }
 
-  /** Return Yargs command definition for 'explorer' command */
-  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  public getCommandDefinition() {
     const self = this;
     return {
       command: ExplorerCommand.COMMAND_NAME,
       desc: 'Manage Explorer in solo network',
-      builder: yargs => {
+      builder: (yargs: AnyYargs) => {
         return yargs
           .command({
             command: 'deploy',
@@ -515,7 +519,7 @@ export class ExplorerCommand extends BaseCommand {
               flags.setRequiredCommandFlags(y, ...ExplorerCommand.DEPLOY_FLAGS_LIST.required);
               flags.setOptionalCommandFlags(y, ...ExplorerCommand.DEPLOY_FLAGS_LIST.optional);
             },
-            handler: async argv => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info("==== Running explorer deploy' ===");
               self.logger.info(argv);
 
@@ -537,7 +541,7 @@ export class ExplorerCommand extends BaseCommand {
               flags.setRequiredCommandFlags(y, ...ExplorerCommand.DESTROY_FLAGS_LIST.required);
               flags.setOptionalCommandFlags(y, ...ExplorerCommand.DESTROY_FLAGS_LIST.optional);
             },
-            handler: async argv => {
+            handler: async (argv: ArgvStruct) => {
               self.logger.info('==== Running explorer destroy ===');
               self.logger.info(argv);
 
@@ -558,7 +562,7 @@ export class ExplorerCommand extends BaseCommand {
   }
 
   /** Removes the explorer components from remote config. */
-  private removeMirrorNodeExplorerComponents(): SoloListrTask<object> {
+  private removeMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDestroyContext> {
     return {
       title: 'Remove explorer from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -571,7 +575,7 @@ export class ExplorerCommand extends BaseCommand {
   }
 
   /** Adds the explorer components to remote config. */
-  private addMirrorNodeExplorerComponents(): SoloListrTask<{config: {namespace: NamespaceName}}> {
+  private addMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDeployContext> {
     return {
       title: 'Add explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -587,8 +591,5 @@ export class ExplorerCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }

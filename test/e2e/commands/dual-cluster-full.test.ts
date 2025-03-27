@@ -118,9 +118,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: beginning node keys command`);
     expect(container.resolve<SoloLogger>(InjectTokens.SoloLogger)).to.equal(testLogger);
     await main(soloNodeKeysArgv(deployment));
-    const node1Key: Buffer<ArrayBufferLike> = fs.readFileSync(
-      PathEx.joinWithRealPath(testCacheDir, 'keys', 's-private-node1.pem'),
-    );
+    const node1Key: Buffer = fs.readFileSync(PathEx.joinWithRealPath(testCacheDir, 'keys', 's-private-node1.pem'));
     expect(node1Key).to.not.be.null;
     testLogger.info(`${testName}: finished node keys command`);
   });

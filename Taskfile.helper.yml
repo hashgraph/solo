@@ -90,6 +90,7 @@ tasks:
       - echo "NETWORK_DEPLOY_EXTRA_FLAGS=${NETWORK_DEPLOY_EXTRA_FLAGS}"
       - echo "MIRROR_NODE_DEPLOY_EXTRA_FLAGS=${MIRROR_NODE_DEPLOY_EXTRA_FLAGS}"
       - echo "EXPLORER_DEPLOY_EXTRA_FLAGS=${EXPLORER_DEPLOY_EXTRA_FLAGS}"
+      - echo "NODE_SETUP_EXTRA_FLAGS=${NODE_SETUP_EXTRA_FLAGS}"
       - touch {{ .var_check_file }}
 
   readme:
@@ -256,7 +257,7 @@ tasks:
         if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
           export CONSENSUS_NODE_FLAG='--release-tag {{.CONSENSUS_NODE_VERSION}}'
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} -q --dev
+        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- node setup --deployment  "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} ${SOLO} ${NODE_SETUP_EXTRA_FLAGS} -q --dev
 
   solo:network:destroy:
     silent: true
@@ -296,7 +297,7 @@ tasks:
   solo:relay:
     silent: true
     deps:
-      - task: "init"
+      -
     cmds:
       - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay deploy --deployment "${SOLO_DEPLOYMENT}" -i node1 ${RELAY_NODE_DEPLOY_EXTRA_FLAGS} -q --dev
       - |
@@ -480,7 +481,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment  "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
+      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror-node deploy --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
       - |
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
           echo "Port forwarding for Mirror Node Network: grpc:5600, rest:5551"
@@ -498,8 +499,12 @@ tasks:
       - |
         if [[ "${EXPLORER_DEPLOYMENT}" != "" ]]; then
           # create deployment on different namespace
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment create --deployment "${EXPLORER_DEPLOYMENT}" -n "${EXPLORER_NAME_SPACE}" --context ${EXPLORER_CLUSTER_CONTEXT} --email ${SOLO_EMAIL} --deployment-clusters ${EXPLORER_CLUSTER_CONTEXT} --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --node-aliases {{.node_identifiers}} --dev
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer deploy --deployment "${EXPLORER_DEPLOYMENT}" --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- cluster-ref connect --cluster-ref ${EXPLORER_CLUSTER_CONTEXT}  --context ${EXPLORER_CLUSTER_CONTEXT} --email ${SOLO_EMAIL}
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment create --deployment ${EXPLORER_CLUSTER_CONTEXT} --namespace ${EXPLORER_NAME_SPACE}  
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment add-cluster --deployment ${EXPLORER_CLUSTER_CONTEXT} --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --num-consensus-nodes ${SOLO_NETWORK_SIZE}
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- cluster-ref setup --cluster-ref ${EXPLORER_CLUSTER_CONTEXT}
+        
+          npm run solo -- explorer deploy --deployment "${EXPLORER_DEPLOYMENT}" --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
           export EXPLORER_DEPLOYED_NAME_SPACE=${EXPLORER_NAME_SPACE}
         else
           SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer deploy --deployment "${SOLO_DEPLOYMENT}"  --cluster-ref kind-${SOLO_CLUSTER_NAME} --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
@@ -536,6 +541,7 @@ tasks:
         else
           SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer destroy --deployment  "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --force -q --dev || true
         fi
+
 
   clean:
     desc: destroy, then remove cache directory, logs directory, config, and port forwards
