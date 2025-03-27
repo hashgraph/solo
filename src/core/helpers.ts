@@ -551,3 +551,14 @@ export function showVersionBanner(logger: SoloLogger, chartName: string, version
   logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(version));
   logger.showUser(chalk.cyan(printPaddedMessage('', 80)));
 }
+
+/**
+ * Check if the input is a valid IPv4 address
+ * @param input
+ * @returns true if the input is a valid IPv4 address, false otherwise
+ */
+export function isIPv4Address(input: string): boolean {
+  const ipv4Regex =
+    /^(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)$/;
+  return ipv4Regex.test(input);
+}
