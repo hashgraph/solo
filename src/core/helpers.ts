@@ -28,7 +28,7 @@ import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
 
-export function getInternalIp(
+export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
   namespaceName: NamespaceName,
   nodeAlias: NodeAlias,
