@@ -9,12 +9,12 @@ import {type ToJSON} from '../../types/index.js';
 import {type JsonString, type NodeAlias} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis-network-roster-entry-data-wrapper.js';
 import {Templates} from '../templates.js';
-import {type NetworkNodeServices} from '../network-node-services.js';
 import {SoloError} from '../errors/solo-error.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account-manager.js';
 import {type ConsensusNode} from '../model/consensus-node.js';
 import {PathEx} from '../../business/utils/path-ex.js';
+import {type NodeServiceMapping} from '../../types/mappings/node-service-mapping.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -28,8 +28,9 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly accountManager: AccountManager,
     private readonly keysDir: string,
-    private readonly networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeyMap: Map<NodeAlias, string>,
+    domainNamesMapping?: Record<NodeAlias, string>,
   ) {
     this.initializationPromise = (async () => {
       consensusNodes.forEach(consensusNode => {
@@ -74,8 +75,10 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
         rosterDataWrapper.addGossipEndpoint(externalIP, externalPort);
 
+        const domainName = domainNamesMapping?.[consensusNode.name];
+
         // Add service endpoints
-        nodeDataWrapper.addServiceEndpoint(consensusNode.fullyQualifiedDomainName, constants.GRPC_PORT);
+        nodeDataWrapper.addServiceEndpoint(domainName ?? consensusNode.fullyQualifiedDomainName, constants.GRPC_PORT);
       });
     })();
   }
@@ -85,8 +88,9 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     keyManager: KeyManager,
     accountManager: AccountManager,
     keysDir: string,
-    networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeys: string[],
+    domainNamesMapping?: Record<NodeAlias, string>,
   ): Promise<GenesisNetworkDataConstructor> {
     const adminPublicKeyMap: Map<NodeAlias, string> = new Map();
 
@@ -112,6 +116,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
       keysDir,
       networkNodeServiceMap,
       adminPublicKeyMap,
+      domainNamesMapping,
     );
 
     await instance.load();

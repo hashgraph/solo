@@ -13,7 +13,6 @@ import {
   HEDERA_PLATFORM_VERSION_TAG,
 } from './test-util.js';
 import {type NodeAlias} from '../src/types/aliases.js';
-import {type NetworkNodeServices} from '../src/core/network-node-services.js';
 import {Duration} from '../src/core/time/duration.js';
 import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../version-test.js';
 import {NamespaceName} from '../src/integration/kube/resources/namespace/namespace-name.js';
@@ -25,6 +24,7 @@ import {type DeploymentName} from '../src/core/config/remote/types.js';
 import {NodeCommand} from '../src/commands/node/index.js';
 import {NetworkCommand} from '../src/commands/network.js';
 import {AccountCommand} from '../src/commands/account.js';
+import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -57,7 +57,7 @@ export function testNodeAdd(
     } = bootstrapResp;
 
     describe(testDescription, async () => {
-      let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
+      let existingServiceMap: NodeServiceMapping;
       let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
       after(async function () {

@@ -15,7 +15,7 @@ export const GENESIS_KEY =
  * $ kubectl port-forward svc/mirror-grpc -n "${SOLO_NAMESPACE}" 5600:5600 &
  **/
 
-function main() {
+async function main() {
   console.log('begin...');
   const treasuryAccountId = TREASURY_ACCOUNT_ID;
   const treasuryPrivateKey = PrivateKey.fromStringED25519(GENESIS_KEY);
@@ -37,25 +37,25 @@ function main() {
   console.log('client created');
 
   // check balance
+  console.log('checking balance');
   try {
-    console.log('checking balance');
-    new AccountBalanceQuery()
-      .setAccountId('0.0.2')
-      .execute(nodeClient)
-      .then(balance => {
-        console.log('checking balance...end');
-        console.log(`Account ${treasuryAccountId} balance: ${balance?.hbars}`);
-        console.log('...end');
-      })
-      .catch(err => {
-        console.log('failure');
-        console.log(err.message, err.stacktrace);
-      });
+    const balance = await new AccountBalanceQuery().setAccountId('0.0.2').execute(nodeClient);
+
+    console.log('checking balance...end');
+    console.log(`Account ${treasuryAccountId} balance: ${balance?.hbars}`);
+    console.log('...end');
   } catch (e) {
     console.log('failure');
     console.log(e.message, e.stacktrace);
-  } finally {
-    console.log('finally');
   }
 }
-main();
+
+main()
+  .then()
+  .catch(e => {
+    console.log('failure');
+    console.log(e.message, e.stacktrace);
+  })
+  .finally(() => {
+    console.log('finally');
+  });

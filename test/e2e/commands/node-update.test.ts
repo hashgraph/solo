@@ -21,10 +21,10 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DeploymentName} from '../../../src/core/config/remote/types.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
-import {type NetworkNodeServices} from '../../../src/core/network-node-services.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
+import {type NodeServiceMapping} from '../../../src/types/mappings/node-service-mapping.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update');
@@ -52,7 +52,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
   } = bootstrapResp;
 
   describe('Node update', async () => {
-    let existingServiceMap: Map<NodeAlias, NetworkNodeServices>;
+    let existingServiceMap: NodeServiceMapping;
     let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 
     after(async function () {

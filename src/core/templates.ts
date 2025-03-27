@@ -261,6 +261,21 @@ export class Templates {
     return mapping;
   }
 
+  public static parseNodeAliasToDomainNameMapping(unparsed: string): Record<NodeAlias, string> {
+    const mapping: Record<NodeAlias, string> = {};
+
+    unparsed.split(',').forEach(data => {
+      const [nodeAlias, domainName] = data.split('=') as [NodeAlias, string];
+
+      if (!nodeAlias || typeof nodeAlias !== 'string') throw new SoloError(`Can't parse node alias: ${data}`);
+      if (!domainName || typeof domainName !== 'string') throw new SoloError(`Can't parse domain name: ${data}`);
+
+      mapping[nodeAlias] = domainName;
+    });
+
+    return mapping;
+  }
+
   /**
    * Renders the fully qualified domain name for a consensus node. We support the following variables for templating
    * in the dnsConsensusNodePattern: {nodeAlias}, {nodeId}, {namespace}, {cluster}

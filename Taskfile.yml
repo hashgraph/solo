@@ -4,7 +4,7 @@ includes:
     taskfile: ./Taskfile.helper.yml
     flatten: true
 env:
-  SOLO_NETWORK_SIZE: 2
+  SOLO_NETWORK_SIZE: 1
   SOLO_NAMESPACE: solo-e2e
   SOLO_DEPLOYMENT: solo-deployment
   # SOLO_CHART_VERSION: 0.39.0

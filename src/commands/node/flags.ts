@@ -35,6 +35,7 @@ const COMMON_UPDATE_FLAGS_OPTIONAL_FLAGS = [
   flags.force,
   flags.gossipEndpoints,
   flags.grpcEndpoints,
+  flags.domainNames,
 ];
 
 export const UPGRADE_FLAGS = {
@@ -107,6 +108,7 @@ const COMMON_DELETE_OPTIONAL_FLAGS = [
   flags.localBuildPath,
   flags.quiet,
   flags.chartDirectory,
+  flags.domainNames,
   flags.releaseTag,
 ];
 
@@ -129,6 +131,7 @@ const COMMON_ADD_OPTIONAL_FLAGS = [
   flags.localBuildPath,
   flags.chartDirectory,
   flags.quiet,
+  flags.domainNames,
   flags.cacheDir,
   flags.endpointType,
   flags.generateGossipKeys,
@@ -197,6 +200,7 @@ export const REFRESH_FLAGS = {
     flags.nodeAliasesUnparsed,
     flags.releaseTag,
     flags.cacheDir,
+    flags.domainNames,
   ],
 };
 
@@ -254,5 +258,6 @@ export const SETUP_FLAGS = {
     flags.devMode,
     flags.localBuildPath,
     flags.adminPublicKeys,
+    flags.domainNames,
   ],
 };
