@@ -27,16 +27,16 @@ import {type Helm} from '../../core/helm.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 
-export const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
-export const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
-export const ADD_CONFIGS_NAME = 'addConfigs';
-export const DELETE_CONFIGS_NAME = 'deleteConfigs';
-export const UPDATE_CONFIGS_NAME = 'updateConfigs';
-export const UPGRADE_CONFIGS_NAME = 'upgradeConfigs';
-export const REFRESH_CONFIGS_NAME = 'refreshConfigs';
-export const KEYS_CONFIGS_NAME = 'keyConfigs';
-export const SETUP_CONFIGS_NAME = 'setupConfigs';
-export const START_CONFIGS_NAME = 'startConfigs';
+const PREPARE_UPGRADE_CONFIGS_NAME = 'prepareUpgradeConfig';
+const DOWNLOAD_GENERATED_FILES_CONFIGS_NAME = 'downloadGeneratedFilesConfig';
+const ADD_CONFIGS_NAME = 'addConfigs';
+const DELETE_CONFIGS_NAME = 'deleteConfigs';
+const UPDATE_CONFIGS_NAME = 'updateConfigs';
+const UPGRADE_CONFIGS_NAME = 'upgradeConfigs';
+const REFRESH_CONFIGS_NAME = 'refreshConfigs';
+const KEYS_CONFIGS_NAME = 'keyConfigs';
+const SETUP_CONFIGS_NAME = 'setupConfigs';
+const START_CONFIGS_NAME = 'startConfigs';
 
 @injectable()
 export class NodeCommandConfigs {
@@ -213,6 +213,10 @@ export class NodeCommandConfigs {
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
     config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return config;
   }
 
@@ -264,6 +268,10 @@ export class NodeCommandConfigs {
     const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(config.namespace);
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
     config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
 
     return config;
   }
@@ -332,6 +340,12 @@ export class NodeCommandConfigs {
     config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     config.contexts = this.remoteConfigManager.getContexts();
 
+    if (!ctx.config.clusterRef) ctx.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return config;
   }
 
@@ -374,6 +388,10 @@ export class NodeCommandConfigs {
     ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
 
     await this.initializeSetup(ctx.config, this.k8Factory);
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
 
     return ctx.config;
   }
@@ -491,6 +509,10 @@ export class NodeCommandConfigs {
     // set config in the context for later tasks to use
     ctx.config = config;
 
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return ctx.config;
   }
 }
@@ -516,6 +538,8 @@ export interface NodeRefreshConfigClass {
   podRefs: Record<NodeAlias, PodRef>;
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
 
 export interface NodeKeysConfigClass {
@@ -594,6 +618,8 @@ export interface NodeSetupConfigClass {
   getUnusedConfigs: () => string[];
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
 
 export interface NodeUpgradeConfigClass {
@@ -661,6 +687,8 @@ export interface NodeUpdateConfigClass {
   curDate: Date;
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
 
 export interface NodePrepareUpgradeConfigClass {

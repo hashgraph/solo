@@ -85,7 +85,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.downloadNodeGeneratedFiles(),
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
       this.tasks.refreshNodeList(),
-      this.tasks.copyNodeKeysToSecrets(),
+      this.tasks.copyNodeKeysToSecrets('refreshedConsensusNodes'),
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap('Delete network node', NodeSubcommandType.DELETE),
       this.tasks.killNodes(),
@@ -553,13 +553,7 @@ export class NodeCommandHandlers extends CommandHandler {
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(
-          argv,
-          this.configs.deleteConfigBuilder.bind(this.configs),
-          lease,
-
-          false,
-        ),
+        this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease, false),
         this.tasks.loadContextData(argv, NodeCommandHandlers.DELETE_CONTEXT_FILE, NodeHelper.deleteLoadContextParser),
         ...this.deleteExecuteTaskList(argv),
       ],

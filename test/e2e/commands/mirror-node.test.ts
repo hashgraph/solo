@@ -84,6 +84,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv: argv,
           command: MirrorNodeCommand.COMMAND_NAME,
           subcommand: 'deploy',
+          // @ts-expect-error - TS2341: to access private property
           callback: async argv => mirrorNodeCmd.deploy(argv),
         });
 
@@ -91,6 +92,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv: argv,
           command: ExplorerCommand.COMMAND_NAME,
           subcommand: 'deploy',
+          // @ts-expect-error - TS2341: to access private property
           callback: async argv => explorerCommand.deploy(argv),
         });
       } catch (e) {
@@ -213,6 +215,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv: argv,
           command: MirrorNodeCommand.COMMAND_NAME,
           subcommand: 'destroy',
+          // @ts-expect-error - TS2341: to access private property
           callback: async argv => mirrorNodeCmd.destroy(argv),
         });
 
@@ -220,6 +223,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv: argv,
           command: ExplorerCommand.COMMAND_NAME,
           subcommand: 'destroy',
+          // @ts-expect-error - TS2341: to access private property
           callback: async argv => explorerCommand.destroy(argv),
         });
       } catch (e) {
