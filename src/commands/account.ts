@@ -262,7 +262,6 @@ export class AccountCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              config.contextName,
             );
           },
         },
@@ -497,7 +496,6 @@ export class AccountCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               config.deployment,
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              config.contextName,
             );
 
             return ListrLock.newAcquireLockTask(lease, task);
@@ -587,7 +585,6 @@ export class AccountCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               config.deployment,
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              config.contextName,
             );
 
             self.logger.debug('Initialized config', {config});
@@ -685,7 +682,6 @@ export class AccountCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               config.deployment,
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              config.contextName,
             );
 
             self.logger.debug('Initialized config', {config});

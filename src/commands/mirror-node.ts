@@ -295,7 +295,6 @@ export class MirrorNodeCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              ctx.config.clusterContext,
             );
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
@@ -395,9 +394,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   task: async ctx => {
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const portForward = this.configManager.getFlag<boolean>(flags.forcePortForward);
-                    const consensusNodes = this.remoteConfigManager.getConsensusNodes();
-                    const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
-                    const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
                     ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
                       ctx.config.namespace,
                       this.remoteConfigManager.getClusterRefs(),
@@ -405,7 +401,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       this.configManager.getFlag(flags.operatorId),
                       this.configManager.getFlag(flags.operatorKey),
                       portForward,
-                      context,
                     );
                     ctx.config.valuesArg += ` --set "importer.addressBook=${ctx.addressBook}"`;
                   },
@@ -556,7 +551,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       namespace,
                       feesFileIdNum,
                       clusterRefs,
-                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
@@ -564,7 +558,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       namespace,
                       exchangeRatesFileIdNum,
                       clusterRefs,
-                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
@@ -724,7 +717,6 @@ export class MirrorNodeCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              ctx.config.clusterContext,
             );
             return ListrLock.newAcquireLockTask(lease, task);
           },
