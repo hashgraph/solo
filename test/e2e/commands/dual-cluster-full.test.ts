@@ -19,7 +19,12 @@ import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
-import {DEFAULT_LOCAL_CONFIG_FILE, HEDERA_USER_HOME_DIR, ROOT_CONTAINER} from '../../../src/core/constants.js';
+import {
+  DEFAULT_LOCAL_CONFIG_FILE,
+  HEDERA_HAPI_PATH,
+  HEDERA_USER_HOME_DIR,
+  ROOT_CONTAINER,
+} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
@@ -29,6 +34,7 @@ import {ContainerRef} from '../../../src/integration/kube/resources/container/co
 import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
 import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
+import * as constants from '../../../src/core/constants.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -153,14 +159,43 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
         await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
         'expect extract-platform.sh to be present on the pods',
       ).to.be.true;
+      expect(await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_HAPI_PATH}/data/apps/HederaNode.jar`)).to
+        .be.true;
+      expect(
+        await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_HAPI_PATH}/data/config/genesis-network.json`),
+      ).to.be.true;
+      expect(
+        await k8
+          .containers()
+          .readByRef(rootContainer)
+          .execContainer(['bash', '-c', `ls -al ${HEDERA_HAPI_PATH} | grep output`]),
+      ).to.includes('hedera');
     }
   });
 
+  // TODO node start still list --node-aliases
   // TODO node start
   it(`${testName}: node start`, async () => {
     await main(soloNodeStartArgv(deployment));
-    // TODO node start still list --node-aliases
-  });
+    for (let index: number = 0; index < contexts.length; index++) {
+      const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+      const k8: K8 = k8Factory.getK8(contexts[index]);
+      const networkNodePod: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      expect(networkNodePod).to.have.lengthOf(1);
+      const haProxyPod: Pod[] = await k8
+        .pods()
+        .waitForReadyStatus(
+          namespace,
+          [
+            `app=haproxy-${Templates.extractNodeAliasFromPodName(networkNodePod[0].podRef.name)}`,
+            'solo.hedera.com/type=haproxy',
+          ],
+          constants.NETWORK_PROXY_MAX_ATTEMPTS,
+          constants.NETWORK_PROXY_DELAY,
+        );
+      expect(haProxyPod).to.have.lengthOf(1);
+    }
+  }).timeout(Duration.ofMinutes(5).toMillis());
 
   // TODO mirror node deploy
   // TODO explorer deploy
