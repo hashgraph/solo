@@ -99,7 +99,9 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     // If admin keys are passed and if it is not the default value from flags then validate and build the adminPublicKeyMap
     if (adminPublicKeys.length > 0 && !adminPublicKeyIsDefaultValue) {
       if (adminPublicKeys.length !== consensusNodes.length) {
-        throw new SoloError('Provide a comma separated list of DER encoded ED25519 public keys for each node');
+        throw new SoloError(
+          `Provide a comma separated list of DER encoded ED25519 public keys for each node, adminPublicKeys.length=${adminPublicKeys.length} does not match consensusNodes.length=${consensusNodes.length}`,
+        );
       }
 
       adminPublicKeys.forEach((key, i) => {

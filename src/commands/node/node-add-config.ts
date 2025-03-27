@@ -6,6 +6,7 @@ import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {type PrivateKey} from '@hashgraph/sdk';
 import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
 import {type ConsensusNode} from '../../core/model/consensus-node.js';
+import {type ClusterRef} from '../../core/config/remote/types.js';
 
 export interface NodeAddConfigClass {
   app: string;
@@ -47,6 +48,7 @@ export interface NodeAddConfigClass {
   envoyIps: string;
   consensusNodes: ConsensusNode[];
   contexts: string[];
+  clusterRef: ClusterRef;
   domainNames: string;
   domainNamesMapping: Record<NodeAlias, string>;
 }
