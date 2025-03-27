@@ -28,8 +28,9 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly accountManager: AccountManager,
     private readonly keysDir: string,
-    private readonly networkNodeServiceMap: NodeServiceMapping,
+    networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeyMap: Map<NodeAlias, string>,
+    domainNamesMapping?: Record<NodeAlias, string>,
   ) {
     this.initializationPromise = (async () => {
       consensusNodes.forEach(consensusNode => {
@@ -74,8 +75,10 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
         rosterDataWrapper.addGossipEndpoint(externalIP, externalPort);
 
+        const domainName = domainNamesMapping?.[consensusNode.name];
+
         // Add service endpoints
-        nodeDataWrapper.addServiceEndpoint(consensusNode.fullyQualifiedDomainName, constants.GRPC_PORT);
+        nodeDataWrapper.addServiceEndpoint(domainName ?? consensusNode.fullyQualifiedDomainName, constants.GRPC_PORT);
       });
     })();
   }
@@ -87,6 +90,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     keysDir: string,
     networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeys: string[],
+    domainNamesMapping?: Record<NodeAlias, string>,
   ): Promise<GenesisNetworkDataConstructor> {
     const adminPublicKeyMap: Map<NodeAlias, string> = new Map();
 
@@ -112,6 +116,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
       keysDir,
       networkNodeServiceMap,
       adminPublicKeyMap,
+      domainNamesMapping,
     );
 
     await instance.load();

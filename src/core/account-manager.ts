@@ -177,14 +177,12 @@ export class AccountManager {
    * @param [clusterRefs] - the cluster references to use
    * @param [deployment] - k8 deployment name
    * @param [forcePortForward] - whether to force the port forward
-   * @param [context] - k8 context name
    */
   public async loadNodeClient(
     namespace: NamespaceName,
     clusterRefs: ClusterRefs,
     deployment: DeploymentName,
     forcePortForward?: boolean,
-    context?: string,
   ) {
     try {
       this.logger.debug(
@@ -981,10 +979,9 @@ export class AccountManager {
     operatorId: string,
     operatorKey: string,
     forcePortForward: boolean,
-    context: string,
   ): Promise<string> {
     // fetch AddressBook
-    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward);
     const client = this._nodeClient;
 
     if (operatorId && operatorKey) {
@@ -999,11 +996,10 @@ export class AccountManager {
     namespace: NamespaceName,
     fileNum: number,
     clusterRefs: ClusterRefs,
-    context: string,
     deployment?: DeploymentName,
     forcePortForward?: boolean,
   ): Promise<string> {
-    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward, context);
+    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward);
     const client = this._nodeClient;
     const fileId = FileId.fromString(`0.0.${fileNum}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);

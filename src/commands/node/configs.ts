@@ -251,6 +251,10 @@ export class NodeCommandConfigs {
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
     ctx.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return ctx.config;
   }
 
@@ -304,6 +308,10 @@ export class NodeCommandConfigs {
     const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(ctx.config.namespace);
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
     ctx.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
 
     return ctx.config;
   }
@@ -376,6 +384,10 @@ export class NodeCommandConfigs {
 
     if (!ctx.config.clusterRef) ctx.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
 
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
+
     return ctx.config;
   }
 
@@ -430,6 +442,10 @@ export class NodeCommandConfigs {
     ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
 
     await this.initializeSetup(ctx.config, this.k8Factory);
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
 
     return ctx.config;
   }
@@ -560,6 +576,10 @@ export class NodeCommandConfigs {
     ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
     await this.initializeSetup(ctx.config, this.k8Factory);
+
+    if (ctx.config.domainNames) {
+      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    }
 
     return ctx.config;
   }

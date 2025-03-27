@@ -614,7 +614,6 @@ export class NodeCommandTasks {
     accountId: string,
     nodeAlias: NodeAlias,
     stakeAmount: number = HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
-    context?: string,
   ): Promise<void> {
     try {
       const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
@@ -623,7 +622,6 @@ export class NodeCommandTasks {
         this.remoteConfigManager.getClusterRefs(),
         deploymentName,
         this.configManager.getFlag<boolean>(flags.forcePortForward),
-        context,
       );
       const client = this.accountManager._nodeClient;
       const treasuryKey = await this.accountManager.getTreasuryAccountKeys(namespace);
@@ -1177,6 +1175,7 @@ export class NodeCommandTasks {
             ctx.config.keysDir,
             // @ts-ignore
             ctx.config.stagingDir,
+            ctx.config.domainNamesMapping,
           );
         }
 
@@ -1231,12 +1230,14 @@ export class NodeCommandTasks {
    * @param consensusNodes - consensus nodes
    * @param keysDir - keys directory
    * @param stagingDir - staging directory
+   * @param domainNamesMapping
    */
   private async generateGenesisNetworkJson(
     namespace: NamespaceName,
     consensusNodes: ConsensusNode[],
     keysDir: string,
     stagingDir: string,
+    domainNamesMapping?: Record<NodeAlias, string>,
   ): Promise<void> {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap = await this.accountManager.getNodeServiceMap(
@@ -1259,6 +1260,7 @@ export class NodeCommandTasks {
       keysDir,
       networkNodeServiceMap,
       adminPublicKeys,
+      domainNamesMapping,
     );
 
     const genesisNetworkJson = PathEx.join(stagingDir, 'genesis-network.json');

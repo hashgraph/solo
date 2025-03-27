@@ -38,4 +38,6 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, Check
   haproxyIps: string;
   envoyIps: string;
   clusterRef: ClusterRef;
+  domainNames: string;
+  domainNamesMapping: Record<NodeAlias, string>;
 }
