@@ -72,7 +72,7 @@ The CLI should be built using the following tools and libraries:
 - [Chalk](https://www.npmjs.com/package/chalk) for colorized output
 
 ---
- [:arrow_up_small: Back to top](#table-of-contents)
+:arrow_up_small: [Back to top](#table-of-contents)
 
 ## Architecture
 
