@@ -7,7 +7,6 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {bootstrapTestVariables, getTestCluster, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
 import * as constants from '../../../src/core/constants.js';
-import * as logging from '../../../src/core/logging/solo-logger.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -27,9 +26,9 @@ describe('ClusterCommand', () => {
 
   after(() => {
     // @ts-expect-error: TS2339 - to restore
-    logging.SoloLogger.prototype.showUser.restore();
+    SoloWinstonLogger.prototype.showUser.restore();
     // @ts-expect-error: TS2339 - to restore
-    logging.SoloLogger.prototype.showJSON.restore();
+    SoloWinstonLogger.prototype.showJSON.restore();
   });
 
   const TEST_CONTEXT = getTestCluster();
