@@ -180,8 +180,9 @@ export class RelayCommand extends BaseCommand {
     if (domainName) {
       valuesArg += helpers.populateHelmArgs({
         'ingress.enabled': true,
-        'ingress.tls.enabled': false,
         'ingress.hosts[0].host': domainName,
+        'ingress.hosts[0].paths[0].path': '/',
+        'ingress.hosts[0].paths[0].pathType': 'ImplementationSpecific',
       });
     }
 

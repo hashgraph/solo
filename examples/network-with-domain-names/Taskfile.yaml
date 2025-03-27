@@ -6,22 +6,25 @@ includes:
 vars:
   use_port_forwards: "true"
 
+  # Provide the domain names here
   node1_domain_name: "node1"
   mirror_node_domain_name: "mirror-node"
   explorer_domain_name: "explorer"
-
+  relay_domain_name: "relay"
 env:
   SOLO_NETWORK_SIZE: "1"
 
+  # Comment out to don't use domain name
   NETWORK_DEPLOY_EXTRA_FLAGS: '--domain-names node1={{ .node1_domain_name }}'
   NODE_SETUP_EXTRA_FLAGS: '--domain-names node1={{ .node1_domain_name }}'
   MIRROR_NODE_DEPLOY_EXTRA_FLAGS: '--domain-name {{ .mirror_node_domain_name }}'
   EXPLORER_DEPLOY_EXTRA_FLAGS: '--domain-name {{ .explorer_domain_name }}'
+  RELAY_NODE_DEPLOY_EXTRA_FLAGS: '--domain-name {{ .relay_domain_name }}'
 tasks:
-  domain-name-test:
+  test-domain-name:
     desc: setups the network and tests it
     deps:
       - task: "init"
     cmds:
-      - task: "default-with-mirror"
+      - task: "default-with-relay"
       - ( cd ../sdk-network-connection && npm i && node solo-network-connection.js )
