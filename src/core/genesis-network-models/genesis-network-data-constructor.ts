@@ -9,12 +9,12 @@ import {type ToJSON} from '../../types/index.js';
 import {type JsonString, type NodeAlias} from '../../types/aliases.js';
 import {GenesisNetworkRosterEntryDataWrapper} from './genesis-network-roster-entry-data-wrapper.js';
 import {Templates} from '../templates.js';
-import {type NetworkNodeServices} from '../network-node-services.js';
 import {SoloError} from '../errors/solo-error.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {type AccountManager} from '../account-manager.js';
 import {type ConsensusNode} from '../model/consensus-node.js';
 import {PathEx} from '../../business/utils/path-ex.js';
+import {type NodeServiceMapping} from '../../types/mappings/node-service-mapping.js';
 
 /**
  * Used to construct the nodes data and convert them to JSON
@@ -28,7 +28,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly keyManager: KeyManager,
     private readonly accountManager: AccountManager,
     private readonly keysDir: string,
-    networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeyMap: Map<NodeAlias, string>,
     domainNamesMapping?: Record<NodeAlias, string>,
   ) {
@@ -88,7 +88,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     keyManager: KeyManager,
     accountManager: AccountManager,
     keysDir: string,
-    networkNodeServiceMap: Map<string, NetworkNodeServices>,
+    networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeys: string[],
     domainNamesMapping?: Record<NodeAlias, string>,
   ): Promise<GenesisNetworkDataConstructor> {
