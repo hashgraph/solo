@@ -71,7 +71,7 @@ The CLI should be built using the following tools and libraries:
 - [Listr2](https://www.npmjs.com/package/listr2) for user-friendly task lists
 - [Chalk](https://www.npmjs.com/package/chalk) for colorized output
 
-<hr/>
+
 :arrow_up_small: [Back to top](#table-of-contents)
 
 ## Architecture
