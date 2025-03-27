@@ -3,6 +3,61 @@
 The Solo X command line interface (CLI) application is the primary user interface for the Solo X
 platform.
 
+## Table of Contents
+
+- [Standards](#standards)
+- [Architecture](#architecture)
+- [Command Structure Overview](#command-structure-overview)
+  - [Final Vision](#final-vision)
+  - [Example Commands](#example-commands)
+- [Global Flags](#global-flags)
+- [Groups](#groups)
+  - [Group Changes (Rename, Remove, Replace)](#group-changes-rename-remove-replace)
+- [Resources by Group](#resources-by-group)
+  - [Block](#block)
+  - [Cluster Ref](#cluster-ref)
+  - [Consensus](#consensus)
+  - [Deployment](#deployment)
+  - [Explorer](#explorer)
+  - [Keys](#keys)
+  - [Ledger](#ledger)
+  - [Mirror](#mirror)
+  - [Relay](#relay)
+  - [Quick Start](#quick-start)
+- [Operations by Resource](#operations-by-resource)
+  - [Block](#block-1)
+    - [Node](#node)
+  - [Cluster Ref](#cluster-ref-1)
+    - [Config](#config)
+  - [Consensus](#consensus-1)
+    - [Network](#network)
+    - [Node](#node-1)
+    - [State](#state)
+    - [Diagnostic](#diagnostic)
+  - [Deployment](#deployment-1)
+    - [Cluster](#cluster)
+    - [Config](#config-1)
+    - [State](#state-1)
+  - [Explorer](#explorer-1)
+    - [Node](#node-2)
+  - [Keys](#keys-1)
+    - [Consensus](#consensus-1)
+  - [Ledger](#ledger-1)
+    - [System](#system)
+    - [Account](#account)
+    - [Crypto](#crypto)
+  - [Mirror](#mirror-1)
+    - [Node](#node-3)
+  - [Relay](#relay-1)
+    - [Node](#node-4)
+  - [Quick Start](#quick-start-1)
+    - [EVM](#evm)
+    - [Single](#single)
+    - [Multi](#multi)
+- [Flags by Operation](#flags-by-operation)
+  - [Block Node](#block-node)
+    - [List](#list)
+
 ## Standards
 
 The CLI application is designed to be a user-friendly, interactive, and intuitive interface for
@@ -15,6 +70,9 @@ The CLI should be built using the following tools and libraries:
 - [Yargs](https://www.npmjs.com/package/yargs) for command line argument parsing
 - [Listr2](https://www.npmjs.com/package/listr2) for user-friendly task lists
 - [Chalk](https://www.npmjs.com/package/chalk) for colorized output
+
+---
+ [:arrow_up_small: Back to top](#table-of-contents)
 
 ## Architecture
 
@@ -68,7 +126,7 @@ flags may be specified at any level of the command hierarchy.
 | deployment  | state                      | < info \| destroy >                                                                         |
 | explorer    | node                       | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
 | keys        | consensus                  | < generate >                                                                                |
-| ledger      | system                     | < init \| account-rekey \| staking-setup >                                                  |
+| ledger      | system                     | < init \| accounts-rekey \| staking-setup >                                                 |
 | ledger      | account                    | < list \| info \| create \| update \| delete \| import >                                    |
 | ledger      | crypto                     | < transfer \| balance >                                                                     |
 | mirror      | node                       | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
@@ -81,33 +139,34 @@ flags may be specified at any level of the command hierarchy.
 solo cluster-ref config connect --cluster-ref <name> --context <context>
 solo deployment config create --deployment <name> --namespace <name> 
 solo deployment cluster attach --deployment <name> --cluster-ref <name> --num-consensus-nodes 3 
-solo keys consensus generate
-solo network deploy --deployment <name> --no-start # Optionally do not start the network nodes, but do everything else including software install and configuration
+solo keys consensus generate --deployment <name> --gossip-tls-keys --grpc-tls-keys
+solo block node add --deployment <name> --cluster-ref <name> 
+solo consensus network deploy --deployment <name> --no-start # Optionally do not start the network nodes, but do everything else including software install and configuration
 solo mirror node add --deployment <name> --cluster-ref <name> 
 solo relay node add --deployment <name> --cluster-ref <name>
 solo explorer node add --deployment <name> --cluster-ref <name> 
-solo block node add --deployment <name> --cluster-ref <name> 
 # Tear down the deployment when done
 solo deployment state destroy --deployment <name> 
 ```
 
-### Global Flags
+## Global Flags
 
 Global flags are options that apply to all commands and can be specified at any level of the command
 hierarchy. These flags are used to configure the behavior of the CLI application as a whole.
 
 The following global flags are supported:
 
-| Flag                   | Type    | Required | Valid Values                         | Default Value | Description                                                                                                                          |
-|------------------------|---------|----------|--------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `--force-port-forward` | boolean | No       | `true` (present) or `false` (absent) | `true`        | Force port forwarding for all Solo interactions with the remote or local kubernetes cluster.                                         |
-| `--debug`              | boolean | No       | `true` (present) or `false` (absent) | `false`       | Enable verbose diagnostic output and logging.                                                                                        |
-| `--format`             | enum    | No       | `list`, `text`, `json`, or `yaml`    | `list`        | Sets the format for printing command output. The default is a command-specific human-friendly output format.                         |
-| `-q, --quiet`          | boolean | No       | `true` (present) or `false` (absent) | `false`       | Disable all interactive prompts when running solo commands. If input is required, defaults will be used, or an error will be raised. |
-| `-v, --version`        | boolean | No       | `true` (present) or `false` (absent) | `false`       | Display the version number and exits.                                                                                                |
-| `-h, --help`           | boolean | No       | `true` (present) or `false` (absent) | `false`       | Display the help information for the supplied command.                                                                               |
+| Flag                                                                     | Type    | Required | Valid Values                                  | Default Value | Description                                                                                                                          |
+|--------------------------------------------------------------------------|---------|----------|-----------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `--deployment`                                                           | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command.                                       |
+| `--force-port-forward` <br/>(Note: Should be moved to specific commands) | boolean | No       | `true` (present) or `false` (absent)          | `true`        | Force port forwarding for all Solo interactions with the remote or local kubernetes cluster.                                         |
+| `--debug`                                                                | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Enable verbose diagnostic output and logging.                                                                                        |
+| `--format`                                                               | enum    | No       | `list`, `text`, `json`, or `yaml`             | `list`        | Sets the format for printing command output. The default is a command-specific human-friendly output format.                         |
+| `-q, --quiet`                                                            | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Disable all interactive prompts when running solo commands. If input is required, defaults will be used, or an error will be raised. |
+| `-v, --version`                                                          | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the version number and exits.                                                                                                |
+| `-h, --help`                                                             | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the help information for the supplied command.                                                                               |
 
-### Groups & Top-Level Resources
+## Groups
 
 The CLI application is designed around the following high-level entities (aka commands):
 
@@ -123,7 +182,7 @@ The CLI application is designed around the following high-level entities (aka co
 | **Mirror Node**   | `mirror-node`                 | `mirror`                      | Manage Hedera Mirror Node in solo network |                            |
 | **Quick Start**   |                               | `quick-start`                 |                                           |                            |
 
-#### Group Changes (Rename, Remove, Replace)
+### Group Changes (Rename, Remove, Replace)
 
 The following groups have been removed, renamed, or replaced:
 
@@ -135,24 +194,24 @@ The following groups have been removed, renamed, or replaced:
 | `node`                        | Manage Hedera platform node in solo network | **Replaced** by the `consensus node` group and resource combination                                                 |
 | `mirror-node`                 | Manage Hedera Mirror Node in solo network   | **Replaced** by the `mirror node` group and resource combination                                                    |
 
-### Resources by Group
+## Resources by Group
 
 Each group contains a set of resources that can be managed. The sections below lists the resources
 associated with each group.
 
-#### Block
+### Block
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
 
-#### Cluster Ref
+### Cluster Ref
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Config**    | `config`                      | `config`                      |                            |                            |
 
-#### Consensus
+### Consensus
 
 | Resource Name  | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
@@ -161,7 +220,7 @@ associated with each group.
 | **State**      | `state`                       | `state`                       |                            |                            |
 | **Diagnostic** | `diagnostic`                  | `diagnostic`                  |                            |                            |
 
-#### Deployment
+### Deployment
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
@@ -169,19 +228,19 @@ associated with each group.
 | **Config**    | `config`                      | `config`                      |                            |                            |
 | **State**     | `state`                       | `state`                       |                            |                            |
 
-#### Explorer
+### Explorer
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
 
-#### Keys
+### Keys
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Consensus** | `consensus`                   | `consensus`                   |                            |                            |
 
-#### Ledger
+### Ledger
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
@@ -189,19 +248,19 @@ associated with each group.
 | **Account**   | `account`                     | `account`                     |                            |                            |
 | **Crypto**    | `crypto`                      | `crypto`                      |                            |                            |
 
-#### Mirror
+### Mirror
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
 
-#### Relay
+### Relay
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
 | **Node**      | `node`                        | `node`                        |                            |                            |
 
-#### Quick Start
+### Quick Start
 
 | Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
 |---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
@@ -209,218 +268,224 @@ associated with each group.
 | **Single**    |                               | `single`                      |                            |                            |
 | **Multi**     |                               | `multi`                       |                            |                            |
 
-### Operations by Resource
+## Operations by Resource
 
 Each resource contains a set of operations that can be performed. The sections below lists the
 operations associated with each resource.
 
-#### Block
+### Block
 
-##### Node
+#### Node
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Logs**       | `logs`                        | `logs`                        |                            |                            |
-| **Add**        | `add`                         | `add`                         |                            |                            |
-| **Upgrade**    | `upgrade`                     | `upgrade`                     |                            |                            |
-| **Destroy**    | `destroy`                     | `destroy`                     |                            |                            |
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Logs**       | `logs`         |             |
+| **Add**        | `add`          |             |
+| **Upgrade**    | `upgrade`      |             |
+| **Destroy**    | `destroy`      |             |
 
-#### Cluster Ref
+### Cluster Ref
 
-##### Config
+#### Config
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Connect**    | `connect`                     | `connect`                     |                            |                            |
-| **Disconnect** | `disconnect`                  | `disconnect`                  |                            |                            |
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Connect**    | `connect`      |             |
+| **Disconnect** | `disconnect`   |             |
+    
+### Consensus
+
+#### Network
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Info**       | `info`         |             |
+| **Deploy**     | `deploy`       |             |
+| **Freeze**     | `freeze`       |             |
+| **Upgrade**    | `upgrade`      |             |
+| **Destroy**    | `destroy`      |             |
+    
+#### Node
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Logs**       | `logs`         |             |
+| **Add**        | `add`          |             |
+| **Update**     | `update`       |             |
+| **Destroy**    | `destroy`      |             |
+| **Start**      | `start`        |             |
+| **Stop**       | `stop`         |             |
+| **Restart**    | `restart`      |             |
+| **Refresh**    | `refresh`      |             |
+
+#### State
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Download**   | `download`     |             |
+| **Upload**     | `upload`       |             |
+
+#### Diagnostic
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Logs**       | `logs`         |             |
+| **Configs**    | `configs`      |             |
+| **All**        | `all`          |             |
+
+### Deployment
+
+#### Cluster
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Attach**     | `attach`       |             |
+| **Detach**     | `detach`       |             |
+
+#### Config
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Create**     | `create`       |             |
+| **Delete**     | `delete`       |             |
+| **Import**     | `import`       |             |
+    
+#### State
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Info**       | `info`         |             |
+| **Destroy**    | `destroy`      |             |
+
+### Explorer
+
+#### Node
+
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Logs**       | `logs`         |             |
+| **Add**        | `add`          |             |
+| **Upgrade**    | `upgrade`      |             |
+| **Destroy**    | `destroy`      |             |
+
+### Keys
 
 #### Consensus
 
-##### Network
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Generate**   | `generate`     |             |
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Deploy**     | `deploy`                      | `deploy`                      |                            |                            |
-| **Freeze**     | `freeze`                      | `freeze`                      |                            |                            |
-| **Upgrade**    | `upgrade`                     | `upgrade`                     |                            |                            |
-| **Destroy**    | `destroy`                     | `destroy`                     |                            |                            |
+### Ledger
 
-##### Node
+#### System
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Logs**       | `logs`                        | `logs`                        |                            |                            |
-| **Add**        | `add`                         | `add`                         |                            |                            |
-| **Update**     | `update`                      | `update`                      |                            |                            |
-| **Destroy**    | `destroy`                     | `destroy`                     |                            |                            |
-| **Start**      | `start`                       | `start`                       |                            |                            |
-| **Stop**       | `stop`                        | `stop`                        |                            |                            |
-| **Restart**    | `restart`                     | `restart`                     |                            |                            |
-| **Refresh**    | `refresh`                     | `refresh`                     |                            |                            |
+| Operation Name     | Command Syntax | Description |
+|--------------------|----------------|-------------|
+| **Init**           | `init`         |             |
+| **Accounts Rekey** | `accounts-rekey` |         |
+| **Staking Setup**  | `staking-setup` |           |
 
-##### State
+#### Account
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Download**   | `download`                    | `download`                    |                            |                            |
-| **Upload**     | `upload`                      | `upload`                      |                            |                            |
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Create**     | `create`       |             |
+| **Update**     | `update`       |             |
+| **Delete**     | `delete`       |             |
+| **Import**     | `import`       |             |
 
-##### Diagnostic
+#### Crypto
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Logs**       | `logs`                        | `logs`                        |                            |                            |
-| **Configs**    | `configs`                     | `configs`                     |                            |                            |
-| **All**        | `all`                         | `all`                         |                            |                            |
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Transfer**   | `transfer`     |             |
+| **Balance**    | `balance`      |             |
 
-#### Deployment
+### Mirror
 
-##### Cluster
+#### Node
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Attach**     | `attach`                      | `attach`                      |                            |                            |
-| **Detach**     | `detach`                      | `detach`                      |                            |                            |
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Logs**       | `logs`         |             |
+| **Add**        | `add`          |             |
+| **Upgrade**    | `upgrade`      |             |
+| **Destroy**    | `destroy`      |             |
 
-##### Config
+### Relay
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Create**     | `create`                      | `create`                      |                            |                            |
-| **Delete**     | `delete`                      | `delete`                      |                            |                            |
-| **Import**     | `import`                      | `import`                      |                            |                            |
+#### Node
 
-##### State
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **List**       | `list`         |             |
+| **Info**       | `info`         |             |
+| **Logs**       | `logs`         |             |
+| **Add**        | `add`          |             |
+| **Upgrade**    | `upgrade`      |             |
+| **Destroy**    | `destroy`      |             |
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Destroy**    | `destroy`                     | `destroy`                     |                            |                            |
+### Quick Start
 
-#### Explorer
+#### EVM
 
-##### Node
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Info**       | `info`         |             |
+| **Deploy**     | `deploy`       |             |
+| **Destroy**    | `destroy`      |             |
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Logs**       | `logs`                        | `logs`                        |                            |                            |
-| **Add**        | `add`                         | `add`                         |                            |                            |
-| **Upgrade**    | `upgrade`                     | `upgrade`                     |                            |                            |
-| **Destroy**    | `destroy`                     | `destroy`                     |                            |                            |
+#### Single
 
-#### Keys
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Info**       | `info`         |             |
+| **Deploy**     | `deploy`       |             |
+| **Destroy**    | `destroy`      |             |
 
-##### Consensus
+#### Multi
 
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Generate**   | `generate`                    | `generate`                    |                            |                            |
+| Operation Name | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Info**       | `info`         |             |
+| **Deploy**     | `deploy`       |             |
+| **Destroy**    | `destroy`      |             |
 
-#### Ledger
 
-##### System
-
-| Operation Name    | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|-------------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Init**          | `init`                        | `init`                        |                            |                            |
-| **Account-Rekey** | `account-rekey`               | `account-rekey`               |                            |                            |
-| **Staking-Setup** | `staking-setup`               | `staking-setup`               |                            |                            |
-
-##### Account
-
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Create**     | `create`                      | `create`                      |                            |                            |
-| **Update**     | `update`                      | `update`                      |                            |                            |
-| **Delete**     | `delete`                      | `delete`                      |                            |                            |
-| **Import**     | `import`                      | `import`                      |                            |                            |
-
-##### Crypto
-
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Transfer**   | `transfer`                    | `transfer`                    |                            |                            |
-| **Balance**    | `balance`                     | `balance`                     |                            |                            |
-
-#### Mirror
-
-##### Node
-
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Logs**       | `logs`                        | `logs`                        |                            |                            |
-| **Add**        | `add`                         | `add`                         |                            |                            |
-| **Upgrade**    | `upgrade`                     | `upgrade`                     |                            |                            |
-| **Destroy**    | `destroy`                     | `destroy`                     |                            |                            |
-
-#### Relay
-
-##### Node
-
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **List**       | `list`                        | `list`                        |                            |                            |
-| **Info**       | `info`                        | `info`                        |                            |                            |
-| **Logs**       | `logs`                        | `logs`                        |                            |                            |
-
-#### Quick Start
-
-##### EVM
-
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Info**       |                               | `info`                        |                            |                            |
-| **Deploy**     |                               | `deploy`                      |                            |                            |
-| **Destroy**    |                               | `destroy`                     |                            |                            |
-
-##### Single
-
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Info**       |                               | `info`                        |                            |                            |
-| **Deploy**     |                               | `deploy`                      |                            |                            |
-| **Destroy**    |                               | `destroy`                     |                            |                            |
-
-##### Multi
-
-| Operation Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Info**       |                               | `info`                        |                            |                            |
-| **Deploy**     |                               | `deploy`                      |                            |                            |
-| **Destroy**    |                               | `destroy`                     |                            |                            |
-
-### Flags by Operation
+## Flags by Operation
 
 Each operation contains a set of flags that can be used to configure the behavior of the operation.
 The sections below lists the flags associated with each operation.
 
-#### Block Node List
+### Block Node
 
-**Syntax**
+#### List
+
+###### Syntax
 
 ```bash
 solo block node list --deployment <name>
 ```
 
-**Flags**
+###### Flags
 
 | Flag Name  | Command Syntax        | Description |
 |------------|-----------------------|-------------|
