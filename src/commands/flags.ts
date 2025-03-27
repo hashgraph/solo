@@ -2188,7 +2188,19 @@ export class Flags {
     name: 'backup-endpoint',
     definition: {
       defaultValue: '',
-      describe: 'aws storage endpoint URL',
+      describe: 'backup storage endpoint URL',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupRegion: CommandFlag = {
+    constName: 'backupRegion',
+    name: 'backup-region',
+    definition: {
+      defaultValue: 'us-central1',
+      describe: 'backup storage region',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2457,6 +2469,7 @@ export class Flags {
     Flags.backupWriteAccessKey,
     Flags.backupWriteSecrets,
     Flags.backupEndpoint,
+    Flags.backupRegion,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
