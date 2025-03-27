@@ -55,6 +55,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv: argv,
           command: RelayCommand.COMMAND_NAME,
           subcommand: 'deploy',
+          // @ts-expect-error to access private property
           callback: async argv => relayCmd.deploy(argv),
         });
       } catch (e) {
@@ -69,6 +70,7 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           argv: argv,
           command: RelayCommand.COMMAND_NAME,
           subcommand: 'destroy',
+          // @ts-expect-error to access private modifier
           callback: async argv => relayCmd.destroy(argv),
         });
       } catch (e) {

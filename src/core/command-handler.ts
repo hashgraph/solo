@@ -8,7 +8,6 @@ import {SoloError} from './errors/solo-error.js';
 import {type Lock} from './lock/lock.js';
 import * as constants from './constants.js';
 import fs from 'fs';
-import {Task} from './task.js';
 import {ConfigManager} from './config-manager.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {AccountManager} from './account-manager.js';
@@ -75,10 +74,13 @@ export class CommandHandler {
     return dirs;
   }
 
-  public setupHomeDirectoryTask(): Task {
-    return new Task('Setup home directory', async () => {
-      this.setupHomeDirectory();
-    });
+  public setupHomeDirectoryTask() {
+    return {
+      title: 'Setup home directory',
+      task: async () => {
+        this.setupHomeDirectory();
+      },
+    };
   }
 
   public getUnusedConfigs(configName: string): string[] {
