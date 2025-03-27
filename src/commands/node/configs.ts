@@ -507,7 +507,7 @@ export class NodeCommandConfigs {
       ),
       nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: consensusNodes,
+      consensusNodes,
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeStopConfigClass;
 
