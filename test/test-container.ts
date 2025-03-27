@@ -23,7 +23,7 @@ export function resetTestContainer(
   }
 
   if (testLogger && !containerOverrides['SoloLogger']) {
-    containerOverrides['CommandInvoker'] = [{useValue: testLogger}];
+    containerOverrides['SoloLogger'] = [{useValue: testLogger}];
   }
 
   // For the test suites cacheDir === homeDir is acceptable because the data is temporary

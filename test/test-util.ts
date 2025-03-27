@@ -220,7 +220,7 @@ export function e2eTestSuite(
 ): void {
   const testLogger: SoloLogger = getTestLogger();
   const testNamespace: NamespaceName = getTestNamespace(argv);
-  resetForTest(testNamespace.name, undefined, testLogger, false);
+  resetForTest(testNamespace.name, undefined, testLogger, false, containerOverrides);
   if (typeof startNodes !== 'boolean') startNodes = true;
 
   const bootstrapResp = bootstrapTestVariables(testName, argv, {
@@ -310,6 +310,7 @@ export function e2eTestSuite(
       });
 
       it('generate key files', async () => {
+        const localConfig = container.resolve(InjectTokens.LocalConfig);
         await commandInvoker.invoke({
           argv: argv,
           command: NodeCommand.COMMAND_NAME,
