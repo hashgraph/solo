@@ -47,6 +47,7 @@ import {type Service} from '../integration/kube/resources/service/service.js';
 import {SoloService} from './model/solo-service.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type NodeServiceMapping} from '../types/mappings/node-service-mapping.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -270,7 +271,7 @@ export class AccountManager {
    */
   async _getNodeClient(
     namespace: NamespaceName,
-    networkNodeServicesMap: Map<string, NetworkNodeServices>,
+    networkNodeServicesMap: NodeServiceMapping,
     operatorId: string,
     operatorKey: string,
     skipNodeAlias: string,
@@ -464,7 +465,11 @@ export class AccountManager {
    * @param [deployment] - the deployment to use
    * @returns a map of the network node services
    */
-  public async getNodeServiceMap(namespace: NamespaceName, clusterRefs: ClusterRefs, deployment?: string) {
+  public async getNodeServiceMap(
+    namespace: NamespaceName,
+    clusterRefs: ClusterRefs,
+    deployment?: string,
+  ): Promise<NodeServiceMapping> {
     const labelSelector = 'solo.hedera.com/node-name';
 
     const serviceBuilderMap = new Map<NodeAlias, NetworkNodeServicesBuilder>();
@@ -585,7 +590,7 @@ export class AccountManager {
         }
       }
 
-      const serviceMap: Map<NodeAlias, NetworkNodeServices> = new Map<NodeAlias, NetworkNodeServices>();
+      const serviceMap = new Map<NodeAlias, NetworkNodeServices>();
       for (const networkNodeServicesBuilder of serviceBuilderMap.values()) {
         serviceMap.set(networkNodeServicesBuilder.key(), networkNodeServicesBuilder.build());
       }
