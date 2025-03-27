@@ -23,6 +23,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
   public readonly nodes: Record<NodeAlias, GenesisNetworkNodeDataWrapper> = {};
   public readonly rosters: Record<NodeAlias, GenesisNetworkRosterEntryDataWrapper> = {};
   private readonly initializationPromise: Promise<void>;
+
   private constructor(
     private readonly consensusNodes: ConsensusNode[],
     private readonly keyManager: KeyManager,
@@ -33,10 +34,11 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     domainNamesMapping?: Record<NodeAlias, string>,
   ) {
     this.initializationPromise = (async () => {
-      consensusNodes.forEach(consensusNode => {
+      for (const consensusNode of consensusNodes) {
         let adminPubKey: PublicKey;
-        const accountId = AccountId.fromString(networkNodeServiceMap.get(consensusNode.name).accountId);
-        const namespace = networkNodeServiceMap.get(consensusNode.name).namespace;
+        const networkNodeService: NetworkNodeServices = this.networkNodeServiceMap.get(consensusNode.name);
+        const accountId = AccountId.fromString(networkNodeService.accountId);
+        const namespace = networkNodeService.namespace;
 
         if (adminPublicKeyMap.has(consensusNode.name as NodeAlias)) {
           try {
@@ -56,30 +58,28 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         }
 
         const nodeDataWrapper = new GenesisNetworkNodeDataWrapper(
-          +networkNodeServiceMap.get(consensusNode.name).nodeId,
+          +networkNodeService.nodeId,
           adminPubKey,
           consensusNode.name,
         );
         this.nodes[consensusNode.name] = nodeDataWrapper;
         nodeDataWrapper.accountId = accountId;
 
-        const rosterDataWrapper = new GenesisNetworkRosterEntryDataWrapper(
-          +networkNodeServiceMap.get(consensusNode.name).nodeId,
-        );
+        const rosterDataWrapper = new GenesisNetworkRosterEntryDataWrapper(+networkNodeService.nodeId);
         this.rosters[consensusNode.name] = rosterDataWrapper;
         rosterDataWrapper.weight = this.nodes[consensusNode.name].weight = constants.HEDERA_NODE_DEFAULT_STAKE_AMOUNT;
 
         const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
-        const externalIP = consensusNode.fullyQualifiedDomainName;
         // Add gossip endpoints
-        nodeDataWrapper.addGossipEndpoint(externalIP, externalPort);
-        rosterDataWrapper.addGossipEndpoint(externalIP, externalPort);
+        nodeDataWrapper.addGossipEndpoint(networkNodeService.externalAddress, externalPort);
+        rosterDataWrapper.addGossipEndpoint(networkNodeService.externalAddress, externalPort);
 
         const domainName = domainNamesMapping?.[consensusNode.name];
 
         // Add service endpoints
-        nodeDataWrapper.addServiceEndpoint(domainName ?? consensusNode.fullyQualifiedDomainName, constants.GRPC_PORT);
-      });
+        // TODO: do logic to point to HaProxy load balancer IP address else fully qualified domain name
+        nodeDataWrapper.addServiceEndpoint(domainName ?? networkNodeService.externalAddress, constants.GRPC_PORT);
+      }
     })();
   }
 
