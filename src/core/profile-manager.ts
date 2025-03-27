@@ -188,7 +188,7 @@ export class ProfileManager {
     }
   }
 
-  async resourcesForConsensusPod(
+  public async resourcesForConsensusPod(
     profile: AnyObject,
     consensusNodes: ConsensusNode[],
     nodeAliases: NodeAliases,
@@ -197,12 +197,16 @@ export class ProfileManager {
   ): Promise<AnyObject> {
     if (!profile) throw new MissingArgumentError('profile is required');
 
-    const accountMap = getNodeAccountMap(nodeAliases);
+    const accountMap: Map<NodeAlias, string> = getNodeAccountMap(consensusNodes.map(node => node.name));
 
     // set consensus pod level resources
-    for (let nodeIndex = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
+    for (let nodeIndex: number = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot);
-      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, `${nodeIndex}`, yamlRoot);
+      this._setValue(
+        `hedera.nodes.${nodeIndex}.nodeId`,
+        `${Templates.nodeIdFromNodeAlias(nodeAliases[nodeIndex])}`,
+        yamlRoot,
+      );
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot);
     }
 
@@ -340,14 +344,11 @@ export class ProfileManager {
 
     const filesMapping: Record<ClusterRef, string> = {};
 
-    let nodeAliases: NodeAlias[];
     for (const clusterRef of Object.keys(this.remoteConfigManager.getClusterRefs())) {
-      nodeAliases = consensusNodes
+      const nodeAliases: NodeAliases = consensusNodes
         .filter(consensusNode => consensusNode.cluster === clusterRef)
         .map(consensusNode => consensusNode.name);
-    }
 
-    for (const clusterRef of Object.keys(this.remoteConfigManager.getClusterRefs())) {
       // generate the YAML
       const yamlRoot = {};
       await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot, domainNamesMapping);
