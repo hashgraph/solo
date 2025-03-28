@@ -24,7 +24,6 @@ import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 
-@injectable()
 interface RelayDestroyConfigClass {
   chartDirectory: string;
   namespace: NamespaceName;
@@ -67,6 +66,7 @@ interface RelayDeployContext {
   config: RelayDeployConfigClass;
 }
 
+@injectable()
 export class RelayCommand extends BaseCommand {
   public constructor(
     @inject(InjectTokens.ProfileManager) private readonly profileManager: ProfileManager,
