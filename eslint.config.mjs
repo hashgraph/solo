@@ -131,7 +131,23 @@ export default [
       '@typescript-eslint/no-warning-comments': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-function-return-type': [
+        'warn',
+        {
+          allowExpressions: false,
+          allowTypedFunctionExpressions: false,
+          allowHigherOrderFunctions: false,
+        },
+      ],
+      '@typescript-eslint/typedef': [
+        'warn',
+        {
+          variableDeclaration: true,
+          parameter: true,
+          propertyDeclaration: true,
+          memberVariableDeclaration: true,
+        },
+      ],
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
