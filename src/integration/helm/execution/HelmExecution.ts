@@ -158,7 +158,7 @@ export class HelmExecution {
     if (exitCode !== 0) {
       const stdOut = this.standardOutput();
       const stdErr = this.standardError();
-      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+      throw new HelmExecutionException(exitCode, `responseAsTimeout Process exited with code ${exitCode}`, stdOut, stdErr);
     }
     if (responseClass === undefined) {
       return null;
@@ -204,7 +204,12 @@ export class HelmExecution {
     if (exitCode !== 0) {
       const stdOut = this.standardOutput();
       const stdErr = this.standardError();
-      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+      throw new HelmExecutionException(
+        exitCode,
+        `responseAsListTimeout duration ${timeout} Process exited with code ${exitCode}`,
+        stdOut,
+        stdErr,
+      );
     }
 
     const output = this.standardOutput();
@@ -242,7 +247,7 @@ export class HelmExecution {
     if (exitCode !== 0) {
       const stdOut = await this.standardOutput();
       const stdErr = await this.standardError();
-      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+      throw new HelmExecutionException(exitCode, `callTimeout Process exited with code ${exitCode}`, stdOut, stdErr);
     }
   }
 }
