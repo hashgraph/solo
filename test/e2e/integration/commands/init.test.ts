@@ -5,7 +5,6 @@ import {expect} from 'chai';
 
 import {InitCommand} from '../../../../src/commands/init.js';
 import {type DependencyManager} from '../../../../src/core/dependency-managers/index.js';
-import {type Helm} from '../../../../src/core/helm.js';
 import {type ChartManager} from '../../../../src/core/chart-manager.js';
 import {type ConfigManager} from '../../../../src/core/config-manager.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
@@ -21,13 +20,14 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../../src/core/constants.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
+import {type HelmClient} from '../../../../src/integration/helm/HelmClient.js';
 import {SoloWinstonLogger} from '../../../../src/core/logging/solo-winston-logger.js';
 import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 
 const testLogger: SoloLogger = new SoloWinstonLogger('debug', true);
 describe('InitCommand', () => {
   const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
-  const helm: Helm = container.resolve(InjectTokens.Helm);
+  const helm: HelmClient = container.resolve(InjectTokens.Helm);
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
 
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);

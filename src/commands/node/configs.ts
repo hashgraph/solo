@@ -20,7 +20,6 @@ import {type ConfigManager} from '../../core/config-manager.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {type AccountManager} from '../../core/account-manager.js';
-import {type Helm} from '../../core/helm.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {type NodeSetupConfigClass} from './config-interfaces/node-setup-config-class.js';
@@ -73,12 +72,10 @@ export class NodeCommandConfigs {
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager: RemoteConfigManager,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
-    @inject(InjectTokens.Helm) private readonly helm: Helm,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
-    this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
     this.remoteConfigManager = patchInject(
       remoteConfigManager,
@@ -187,12 +184,6 @@ export class NodeCommandConfigs {
 
     await this.initializeSetup(ctx.config, this.k8Factory);
 
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
@@ -233,13 +224,6 @@ export class NodeCommandConfigs {
     ctx.config.existingNodeAliases = [];
 
     await this.initializeSetup(ctx.config, this.k8Factory);
-
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
 
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
@@ -292,13 +276,6 @@ export class NodeCommandConfigs {
 
     await this.initializeSetup(ctx.config, this.k8Factory);
 
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
-
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
         ctx.config.namespace,
@@ -329,7 +306,6 @@ export class NodeCommandConfigs {
   ): Promise<NodeAddConfigClass> {
     ctx.config = this.configManager.getConfig(ADD_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
-      'chartPath',
       'curDate',
       'existingNodeAliases',
       'freezeAdminPrivateKey',
@@ -355,13 +331,6 @@ export class NodeCommandConfigs {
     ctx.config.existingNodeAliases = [];
 
     await this.initializeSetup(ctx.config, this.k8Factory);
-
-    ctx.config.chartPath = await helpers.prepareChartPath(
-      this.helm,
-      ctx.config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
 
     if (shouldLoadNodeClient) {
       ctx.config.nodeClient = await this.accountManager.loadNodeClient(
