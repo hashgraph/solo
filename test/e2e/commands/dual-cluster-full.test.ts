@@ -38,6 +38,16 @@ import * as constants from '../../../src/core/constants.js';
 import {type ExtendedNetServer} from '../../../src/types/index.js';
 import http from 'http';
 import {sleep} from '../../../src/core/helpers.js';
+import {type AccountManager} from '../../../src/core/account-manager.js';
+import {
+  AccountCreateTransaction,
+  Hbar,
+  HbarUnit,
+  PrivateKey,
+  type TransactionReceipt,
+  type TransactionResponse,
+} from '@hashgraph/sdk';
+import {type PackageDownloader} from '../../../src/core/package-downloader.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -45,7 +55,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   this.bail(true);
   const namespace: NamespaceName = NamespaceName.of(testName);
   const deployment: DeploymentName = `${testName}-deployment`;
-  const testClusterRefs: ClusterRef[] = ['e2e-cluster-alpha', 'e2e-cluster-beta'];
+  const testClusterArray: ClusterRef[] = ['e2e-cluster-alpha', 'e2e-cluster-beta'];
   const soloTestCluster: string = getTestCluster();
   const testCluster: string =
     soloTestCluster.includes('c1') || soloTestCluster.includes('c2') ? soloTestCluster : `${soloTestCluster}-c1`;
@@ -53,8 +63,12 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     `${testCluster}`,
     `${testCluster.replace(soloTestCluster.includes('-c1') ? '-c1' : '-c2', soloTestCluster.includes('-c1') ? '-c2' : '-c1')}`,
   ];
+  const testClusterRefs: ClusterRefs = {};
+  testClusterRefs[testClusterArray[0]] = contexts[0];
+  testClusterRefs[testClusterArray[1]] = contexts[1];
   const testCacheDir: string = getTestCacheDir(testName);
   let testLogger: SoloWinstonLogger;
+  const createdAccountIds: string[] = [];
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async (): Promise<void> => {
@@ -89,13 +103,13 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   it(`${testName}: solo cluster-ref connect`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo cluster-ref connect`);
-    for (let index: number = 0; index < testClusterRefs.length; index++) {
-      await main(soloClusterRefConnectArgv(testClusterRefs[index], contexts[index]));
+    for (let index: number = 0; index < testClusterArray.length; index++) {
+      await main(soloClusterRefConnectArgv(testClusterArray[index], contexts[index]));
     }
     const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
     const clusterRefs: ClusterRefs = localConfig.clusterRefs;
-    expect(clusterRefs[testClusterRefs[0]]).to.equal(contexts[0]);
-    expect(clusterRefs[testClusterRefs[1]]).to.equal(contexts[1]);
+    expect(clusterRefs[testClusterArray[0]]).to.equal(contexts[0]);
+    expect(clusterRefs[testClusterArray[1]]).to.equal(contexts[1]);
     testLogger.info(`${testName}: finished solo cluster-ref connect`);
   });
 
@@ -107,22 +121,22 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   it(`${testName}: solo deployment add-cluster`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo deployment add-cluster`);
-    for (let index: number = 0; index < testClusterRefs.length; index++) {
-      await main(soloDeploymentAddClusterArgv(deployment, testClusterRefs[index], 1));
+    for (let index: number = 0; index < testClusterArray.length; index++) {
+      await main(soloDeploymentAddClusterArgv(deployment, testClusterArray[index], 1));
     }
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
     const consensusNodes: Record<string, ConsensusNodeComponent> = remoteConfigManager.components.consensusNodes;
     expect(Object.entries(consensusNodes).length, 'consensus node count should be 2').to.equal(2);
-    expect(consensusNodes['node1'].cluster).to.equal(testClusterRefs[0]);
-    expect(consensusNodes['node2'].cluster).to.equal(testClusterRefs[1]);
+    expect(consensusNodes['node1'].cluster).to.equal(testClusterArray[0]);
+    expect(consensusNodes['node2'].cluster).to.equal(testClusterArray[1]);
     testLogger.info(`${testName}: finished solo deployment add-cluster`);
   });
 
   it(`${testName}: solo cluster-ref setup`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo cluster-ref setup`);
-    for (let index: number = 0; index < testClusterRefs.length; index++) {
-      await main(soloClusterRefSetup(testClusterRefs[index]));
+    for (let index: number = 0; index < testClusterArray.length; index++) {
+      await main(soloClusterRefSetup(testClusterArray[index]));
     }
     testLogger.info(`${testName}: finishing solo cluster-ref setup`);
   });
@@ -196,17 +210,43 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
           constants.NETWORK_PROXY_DELAY,
         );
       expect(haProxyPod).to.have.lengthOf(1);
+      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterRefs));
+      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterRefs));
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
 
   it(`${testName}: mirror node deploy`, async (): Promise<void> => {
-    await main(soloMirrorNodeDeployArgv(deployment, testClusterRefs[1]));
+    await main(soloMirrorNodeDeployArgv(deployment, testClusterArray[1]));
     await verifyMirrorNodeDeployWasSuccessful(contexts, namespace, testLogger);
+    // TODO validate the new accounts are showing up with the mirror node rest url
   }).timeout(Duration.ofMinutes(10).toMillis());
 
   // TODO explorer deploy
   xit(`${testName}: explorer deploy`, async (): Promise<void> => {
-    await main(soloExplorerDeployArgv(deployment, testClusterRefs[1]));
+    await main(soloExplorerDeployArgv(deployment, testClusterArray[1]));
+    const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+    const k8: K8 = k8Factory.getK8(contexts[1]);
+    const hederaExplorerPods: Pod[] = await k8
+      .pods()
+      .list(namespace, [
+        'app.kubernetes.io/instance=hedera-explorer',
+        'app.kubernetes.io/name=hedera-explorer-chart',
+        'app.kubernetes.io/component=hedera-explorer',
+      ]);
+    expect(hederaExplorerPods).to.have.lengthOf(1);
+    let portForwarder: ExtendedNetServer = null;
+    try {
+      portForwarder = await k8.pods().readByRef(hederaExplorerPods[0].podRef).portForward(8_080, 8_080);
+      await sleep(Duration.ofSeconds(2));
+      const guiUrl: string = 'http://127.0.0.1:8080/localnet/dashboard';
+      const packageDownloader: PackageDownloader = container.resolve<PackageDownloader>(InjectTokens.PackageDownloader);
+      expect(await packageDownloader.urlExists(guiUrl), 'the hedera explorer GUI URL should exist').to.be.true;
+      // TODO validate the new accounts are showing up with the hedera explorer url
+    } finally {
+      if (portForwarder) {
+        await k8.pods().readByRef(null).stopPortForward(portForwarder);
+      }
+    }
   });
 
   // TODO json rpc relay deploy
@@ -330,6 +370,37 @@ function soloNodeStartArgv(deployment: DeploymentName): string[] {
   argv.push(deployment);
   argvPushGlobalFlags(argv);
   return argv;
+}
+
+async function verifyAccountCreateWasSuccessful(namespace: NamespaceName, clusterRefs: ClusterRefs): Promise<string> {
+  const accountManager: AccountManager = container.resolve<AccountManager>(InjectTokens.AccountManager);
+  try {
+    await accountManager.refreshNodeClient(namespace, clusterRefs);
+    expect(accountManager._nodeClient).not.to.be.null;
+    const privateKey: PrivateKey = PrivateKey.generate();
+    const amount: number = 100;
+
+    const newAccount: TransactionResponse = await new AccountCreateTransaction()
+      .setKeyWithoutAlias(privateKey)
+      .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar))
+      .execute(accountManager._nodeClient);
+
+    // Get the new account ID
+    const getReceipt: TransactionReceipt = await newAccount.getReceipt(accountManager._nodeClient);
+    const accountInfo: {accountId: string; privateKey: string; balance: number; publicKey: string} = {
+      accountId: getReceipt.accountId.toString(),
+      privateKey: privateKey.toString(),
+      publicKey: privateKey.publicKey.toString(),
+      balance: amount,
+    };
+
+    expect(accountInfo.accountId).not.to.be.null;
+    expect(accountInfo.balance).to.equal(amount);
+
+    return accountInfo.accountId;
+  } finally {
+    await accountManager.close();
+  }
 }
 
 function soloMirrorNodeDeployArgv(deployment: DeploymentName, clusterRef: ClusterRef): string[] {
