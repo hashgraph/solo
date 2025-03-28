@@ -16,3 +16,12 @@ env:
   APPLICATION_PROPERTIES_FLAG: "--application-properties {{.USER_WORKING_DIR}}/application.properties"
   # HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
   # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
+
+  HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
+  ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
+  TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
+  ENABLE_EXPLORER_INGRESS: "--enable-ingress"
+  ENABLE_MIRROR_INGRESS: "--enable-ingress"
+  EXPLORER_NAME_SPACE: "explorer-name-space"
+  EXPLORER_DEPLOYMENT: "explorer-deployment"
+  EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
