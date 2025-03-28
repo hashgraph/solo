@@ -14,7 +14,7 @@ import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
-import {type SoloLogger} from '../core/logging.js';
+import {type SoloLogger} from '../core/logging/solo-logger.js';
 import {type PackageDownloader} from '../core/package-downloader.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type KeyManager} from '../core/key-manager.js';

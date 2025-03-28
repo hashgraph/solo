@@ -682,14 +682,6 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    if (promptForNodeAliases) {
-      config.nodeAliases = this.remoteConfigManager.getConsensusNodes().map(node => node.name);
-      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
-      argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases;
-    } else {
-      config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
-    }
-
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
     }
@@ -723,8 +715,8 @@ export class NetworkCommand extends BaseCommand {
     config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
-
-    config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
+    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed, config.consensusNodes, this.configManager);
+    argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases.join(',');
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 

@@ -13,6 +13,7 @@ import {Flags as flags} from '../flags.js';
 import {type AnyObject, type ArgvStruct} from '../../types/aliases.js';
 import {type NodeAddConfigClass} from './config-interfaces/node-add-config-class.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
+import {type ConsensusNode} from '../../core/model/consensus-node.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type ConfigManager} from '../../core/config-manager.js';
@@ -178,7 +179,11 @@ export class NodeCommandConfigs {
     ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
     ctx.config.curDate = new Date();
     ctx.config.existingNodeAliases = [];
-    ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+    ctx.config.nodeAliases = helpers.parseNodeAliases(
+      ctx.config.nodeAliasesUnparsed,
+      this.remoteConfigManager.getConsensusNodes(),
+      this.configManager,
+    );
 
     await this.initializeSetup(ctx.config, this.k8Factory);
 
@@ -398,7 +403,11 @@ export class NodeCommandConfigs {
   ): Promise<NodeLogsConfigClass> {
     ctx.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
-      nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+      nodeAliases: helpers.parseNodeAliases(
+        this.configManager.getFlag(flags.nodeAliasesUnparsed),
+        this.remoteConfigManager.getConsensusNodes(),
+        this.configManager,
+      ),
       nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
       deployment: this.configManager.getFlag(flags.deployment),
       consensusNodes: this.remoteConfigManager.getConsensusNodes(),
@@ -413,12 +422,17 @@ export class NodeCommandConfigs {
     ctx: NodeStatesContext,
     task: SoloListrTaskWrapper<NodeStatesContext>,
   ): Promise<NodeStatesConfigClass> {
+    const consensusNodes: ConsensusNode[] = this.remoteConfigManager.getConsensusNodes();
     ctx.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
-      nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+      nodeAliases: helpers.parseNodeAliases(
+        this.configManager.getFlag(flags.nodeAliasesUnparsed),
+        consensusNodes,
+        this.configManager,
+      ),
       nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      consensusNodes,
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeStatesConfigClass;
 
@@ -439,7 +453,11 @@ export class NodeCommandConfigs {
     ]) as NodeRefreshConfigClass;
 
     ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+    ctx.config.nodeAliases = helpers.parseNodeAliases(
+      ctx.config.nodeAliasesUnparsed,
+      this.remoteConfigManager.getConsensusNodes(),
+      this.configManager,
+    );
 
     await this.initializeSetup(ctx.config, this.k8Factory);
 
@@ -460,15 +478,12 @@ export class NodeCommandConfigs {
     ]) as NodeKeysConfigClass;
 
     ctx.config.curDate = new Date();
-    ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
-    if (ctx.config.nodeAliases.length === 0) {
-      const consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    ctx.config.nodeAliases = helpers.parseNodeAliases(
+      ctx.config.nodeAliasesUnparsed,
+      this.remoteConfigManager.getConsensusNodes(),
+      this.configManager,
+    );
 
-      ctx.config.nodeAliases = consensusNodes.map(node => node.name);
-      if (ctx.config.nodeAliases.length === 0) {
-        throw new SoloError('no node aliases provided via flags or RemoteConfig');
-      }
-    }
     ctx.config.keysDir = PathEx.join(this.configManager.getFlag(flags.cacheDir), 'keys');
 
     if (!fs.existsSync(ctx.config.keysDir)) {
@@ -482,12 +497,17 @@ export class NodeCommandConfigs {
     ctx: NodeStopContext,
     task: SoloListrTaskWrapper<NodeStopContext>,
   ): Promise<NodeStopConfigClass> {
+    const consensusNodes: ConsensusNode[] = this.remoteConfigManager.getConsensusNodes();
     ctx.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
-      nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+      nodeAliases: helpers.parseNodeAliases(
+        this.configManager.getFlag(flags.nodeAliasesUnparsed),
+        consensusNodes,
+        this.configManager,
+      ),
       nodeAliasesUnparsed: this.configManager.getFlag(flags.nodeAliasesUnparsed),
       deployment: this.configManager.getFlag(flags.deployment),
-      consensusNodes: this.remoteConfigManager.getConsensusNodes(),
+      consensusNodes,
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeStopConfigClass;
 
@@ -536,7 +556,11 @@ export class NodeCommandConfigs {
       }
     }
 
-    ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+    ctx.config.nodeAliases = helpers.parseNodeAliases(
+      ctx.config.nodeAliasesUnparsed,
+      ctx.config.consensusNodes,
+      this.configManager,
+    );
 
     return ctx.config;
   }
@@ -572,8 +596,12 @@ export class NodeCommandConfigs {
     ]) as NodeSetupConfigClass;
 
     ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
     ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    ctx.config.nodeAliases = helpers.parseNodeAliases(
+      ctx.config.nodeAliasesUnparsed,
+      ctx.config.consensusNodes,
+      this.configManager,
+    );
 
     await this.initializeSetup(ctx.config, this.k8Factory);
 

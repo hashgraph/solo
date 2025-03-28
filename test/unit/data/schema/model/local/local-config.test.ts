@@ -13,13 +13,13 @@ import {LocalConfigSchema} from '../../../../../../src/data/schema/migration/imp
 import {CTObjectMapper} from '../../../../../../src/data/mapper/impl/ct-object-mapper.js';
 import {ApplicationVersions} from '../../../../../../src/data/schema/model/common/application-versions.js';
 import {
+  getSoloVersion,
   HEDERA_EXPLORER_VERSION,
   HEDERA_JSON_RPC_RELAY_VERSION,
   HEDERA_PLATFORM_VERSION,
   MIRROR_NODE_VERSION,
   SOLO_CHART_VERSION,
 } from '../../../../../../version.js';
-import {getSoloVersion} from '../../../../../../src/core/helpers.js';
 import {ConfigKeyFormatter} from '../../../../../../src/data/key/config-key-formatter.js';
 
 describe('LocalConfig', () => {
