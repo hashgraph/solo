@@ -12,10 +12,9 @@ import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
-import {Task} from '../core/task.js';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
-import {type SoloLogger} from '../core/logging.js';
+import {type SoloLogger} from '../core/logging/solo-logger.js';
 import {type PackageDownloader} from '../core/package-downloader.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type KeyManager} from '../core/key-manager.js';
@@ -252,9 +251,12 @@ export abstract class BaseCommand extends ShellRunner {
     return dirs;
   }
 
-  public setupHomeDirectoryTask(): Task {
-    return new Task('Setup home directory', async () => {
-      this.setupHomeDirectory();
-    });
+  public setupHomeDirectoryTask() {
+    return {
+      tile: 'Setup home directory',
+      task: async () => {
+        this.setupHomeDirectory();
+      },
+    };
   }
 }

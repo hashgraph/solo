@@ -10,7 +10,6 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config-manager.js';
-import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart-manager.js';
 import {Helm} from '../../../src/core/helm.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
@@ -25,12 +24,14 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-config-data-wrapper.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
-import * as helpers from '../../../src/core/helpers.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import {getSoloVersion} from '../../../version.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
-    logger: sandbox.createStubInstance(SoloLogger),
+    logger: sandbox.createStubInstance<SoloLogger>(SoloWinstonLogger),
     helm: sandbox.createStubInstance(Helm),
     k8Factory: sandbox.createStubInstance(K8ClientFactory),
     chartManager: sandbox.createStubInstance(ChartManager),
@@ -88,7 +89,7 @@ describe('ClusterCommand unit tests', () => {
       opts.remoteConfigManager.currentCluster = 'solo-e2e';
       opts.localConfig.localConfigData = new LocalConfigDataWrapper(
         'test@test.com' as EmailAddress,
-        helpers.getSoloVersion(),
+        getSoloVersion(),
         {},
         {'solo-e2e': 'context-1'},
       );

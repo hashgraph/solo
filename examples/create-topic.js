@@ -27,8 +27,13 @@ async function main() {
 
   const TEST_MESSAGE = 'Hello World';
   try {
+    // if process.env.OPERATOR_KEY string size is 100, it is ECDSA key, if 96, it is ED25519 key
+    const operatorKeySize = process.env.OPERATOR_KEY.length;
     // create topic
-    const operatorKey = PrivateKey.fromStringED25519(process.env.OPERATOR_KEY);
+    const operatorKey =
+      operatorKeySize === 100
+        ? PrivateKey.fromStringECDSA(process.env.OPERATOR_KEY)
+        : PrivateKey.fromStringED25519(process.env.OPERATOR_KEY);
     let transaction = await new TopicCreateTransaction().setAdminKey(operatorKey).freezeWithSigner(wallet);
     transaction = await transaction.signWithSigner(wallet);
     const createResponse = await transaction.executeWithSigner(wallet);
@@ -105,6 +110,7 @@ async function main() {
     }
   } catch (error) {
     console.error(error);
+    throw error;
   }
   provider.close();
 }

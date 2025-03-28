@@ -3,7 +3,7 @@
 import {Flags as flags} from '../../commands/flags.js';
 import {type ConfigManager} from '../config-manager.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
-import {type SoloLogger} from '../logging.js';
+import {type SoloLogger} from '../logging/solo-logger.js';
 import {type Lock, type LockRenewalService} from './lock.js';
 import {IntervalLock} from './interval-lock.js';
 import {LockHolder} from './lock-holder.js';

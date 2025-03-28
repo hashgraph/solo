@@ -7,15 +7,16 @@ import sinon from 'sinon';
 import {expect} from 'chai';
 import {describe, it, afterEach, beforeEach} from 'mocha';
 
-import {NewLogger, SoloLogger} from '../../../src/core/logging.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import winston from 'winston';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 
 describe('Logging', () => {
   let logger: SoloLogger;
   let loggerSpy: SinonSpy;
 
   beforeEach(() => {
-    logger = NewLogger('debug');
+    logger = new SoloWinstonLogger('debug');
     loggerSpy = sinon.spy(winston.Logger.prototype, 'log');
   });
 
@@ -23,7 +24,7 @@ describe('Logging', () => {
   afterEach(() => sinon.restore());
 
   it('should log at correct severity', () => {
-    expect(logger).to.be.instanceof(SoloLogger);
+    expect(logger).to.be.instanceof(SoloWinstonLogger);
     expect(logger).to.be.not.undefined;
     const meta = logger.prepMeta();
 
