@@ -35,6 +35,9 @@ import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
 import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';
+import {type ExtendedNetServer} from '../../../src/types/index.js';
+import http from 'http';
+import {sleep} from '../../../src/core/helpers.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -196,12 +199,16 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
 
-  // TODO mirror node deploy
-  it('${testName}: mirror node deploy', async (): Promise<void> => {
+  it(`${testName}: mirror node deploy`, async (): Promise<void> => {
     await main(soloMirrorNodeDeployArgv(deployment, testClusterRefs[1]));
+    await verifyMirrorNodeDeployWasSuccessful(contexts, namespace, testLogger);
   }).timeout(Duration.ofMinutes(10).toMillis());
 
   // TODO explorer deploy
+  xit(`${testName}: explorer deploy`, async (): Promise<void> => {
+    await main(soloExplorerDeployArgv(deployment, testClusterRefs[1]));
+  });
+
   // TODO json rpc relay deploy
   // TODO json rpc relay destroy
   // TODO explorer destroy
@@ -328,6 +335,77 @@ function soloNodeStartArgv(deployment: DeploymentName): string[] {
 function soloMirrorNodeDeployArgv(deployment: DeploymentName, clusterRef: ClusterRef): string[] {
   const argv: string[] = newArgv();
   argv.push('mirror-node');
+  argv.push('deploy');
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argv.push(optionFromFlag(Flags.clusterRef));
+  argv.push(clusterRef);
+  argv.push(optionFromFlag(Flags.pinger));
+  argvPushGlobalFlags(argv, true, true);
+  return argv;
+}
+
+async function verifyMirrorNodeDeployWasSuccessful(
+  contexts: string[],
+  namespace: NamespaceName,
+  testLogger: SoloWinstonLogger,
+): Promise<void> {
+  const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+  const k8: K8 = k8Factory.getK8(contexts[1]);
+  const mirrorNodeRestPods: Pod[] = await k8
+    .pods()
+    .list(namespace, [
+      'app.kubernetes.io/instance=mirror',
+      'app.kubernetes.io/name=rest',
+      'app.kubernetes.io/component=rest',
+    ]);
+  expect(mirrorNodeRestPods).to.have.lengthOf(1);
+  let portForwarder: ExtendedNetServer = null;
+  try {
+    portForwarder = await k8.pods().readByRef(mirrorNodeRestPods[0].podRef).portForward(5_551, 5_551);
+    await sleep(Duration.ofSeconds(2));
+    const queryUrl: string = 'http://localhost:5551/api/v1/network/nodes';
+    let received: boolean = false;
+    // wait until the transaction reached consensus and retrievable from the mirror node API
+    while (!received) {
+      const req: http.ClientRequest = http.request(
+        queryUrl,
+        {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
+        (res: http.IncomingMessage): void => {
+          res.setEncoding('utf8');
+          res.on('data', (chunk): void => {
+            // convert chunk to json object
+            const obj: {nodes: unknown[]} = JSON.parse(chunk);
+            expect(
+              obj.nodes?.length,
+              "expect there to be two nodes in the mirror node's copy of the address book",
+            ).to.equal(2);
+            // TODO need to enable this, but looks like mirror node currently is getting no service endpoints
+            // expect(
+            //   obj.nodes[0].service_endpoints?.length,
+            //   'expect there to be at least one service endpoint',
+            // ).to.be.greaterThan(0);
+            received = true;
+          });
+        },
+      );
+      req.on('error', (e: Error): void => {
+        testLogger.debug(`problem with request: ${e.message}`, e);
+      });
+      req.end(); // make the request
+      await sleep(Duration.ofSeconds(2));
+    }
+    await sleep(Duration.ofSeconds(1));
+  } finally {
+    if (portForwarder) {
+      await k8.pods().readByRef(null).stopPortForward(portForwarder);
+    }
+  }
+}
+
+function soloExplorerDeployArgv(deployment: DeploymentName, clusterRef: ClusterRef): string[] {
+  const argv: string[] = newArgv();
+  argv.push('explorer');
   argv.push('deploy');
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
