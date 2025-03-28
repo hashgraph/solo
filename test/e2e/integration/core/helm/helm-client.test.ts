@@ -2,19 +2,19 @@
 
 import {expect} from 'chai';
 import {before, describe, it} from 'mocha';
-import {SemanticVersion} from '../../../../src/integration/helm/base/api/version/semantic-version.js';
-import {type HelmClient} from '../../../../src/integration/helm/helm-client.js';
-import {HelmExecutionException} from '../../../../src/integration/helm/helm-execution-exception.js';
-import {Chart} from '../../../../src/integration/helm/model/chart.js';
-import {Repository} from '../../../../src/integration/helm/model/repository.js';
-import {DefaultHelmClientBuilder} from '../../../../src/integration/helm/impl/default-helm-client-builder.js';
-import {type InstallChartOptions} from '../../../../src/integration/helm/model/install/install-chart-options.js';
-import {UpgradeChartOptionsBuilder} from '../../../../src/integration/helm/model/upgrade/upgrade-chart-options-builder.js';
+import {SemanticVersion} from '../../../../../src/integration/helm/base/api/version/semantic-version.js';
+import {type HelmClient} from '../../../../../src/integration/helm/helm-client.js';
+import {HelmExecutionException} from '../../../../../src/integration/helm/helm-execution-exception.js';
+import {Chart} from '../../../../../src/integration/helm/model/chart.js';
+import {Repository} from '../../../../../src/integration/helm/model/repository.js';
+import {DefaultHelmClientBuilder} from '../../../../../src/integration/helm/impl/default-helm-client-builder.js';
+import {type InstallChartOptions} from '../../../../../src/integration/helm/model/install/install-chart-options.js';
+import {UpgradeChartOptionsBuilder} from '../../../../../src/integration/helm/model/upgrade/upgrade-chart-options-builder.js';
 import {exec as execCallback} from 'child_process';
 import {promisify} from 'util';
-import {InstallChartOptionsBuilder} from '../../../../src/integration/helm/model/install/install-chart-options-builder.js';
-import {UnInstallChartOptionsBuilder} from '../../../../src/integration/helm/model/install/un-install-chart-options-builder.js';
-import {TestChartOptionsBuilder} from '../../../../src/integration/helm/model/test/test-chart-options-builder.js';
+import {InstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/install-chart-options-builder.js';
+import {UnInstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/un-install-chart-options-builder.js';
+import {TestChartOptionsBuilder} from '../../../../../src/integration/helm/model/test/test-chart-options-builder.js';
 
 const exec = promisify(execCallback);
 
@@ -35,11 +35,6 @@ describe('HelmClient Tests', () => {
     this.timeout(120000); // 2 minutes timeout for cluster creation
 
     try {
-      // Create test cluster
-      console.log('Creating test cluster...');
-      await exec('kind create cluster -n helm-client-test-cluster');
-      console.log('Test cluster created successfully');
-
       console.log(`Creating namespace ${NAMESPACE}...`);
       await exec(`kubectl create namespace ${NAMESPACE}`);
       console.log(`Namespace ${NAMESPACE} created successfully`);
@@ -61,10 +56,6 @@ describe('HelmClient Tests', () => {
       console.log(`Deleting namespace ${NAMESPACE}...`);
       await exec(`kubectl delete namespace ${NAMESPACE}`);
       console.log(`Namespace ${NAMESPACE} deleted successfully`);
-
-      console.log('Deleting test cluster...');
-      await exec('kind delete cluster -n helm-client-test-cluster');
-      console.log('Test cluster deleted successfully');
     } catch (error) {
       console.error('Error during cleanup:', error);
       // Don't throw the error during cleanup to not mask test failures

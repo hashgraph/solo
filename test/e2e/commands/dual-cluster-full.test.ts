@@ -400,6 +400,10 @@ async function verifyAccountCreateWasSuccessful(namespace: NamespaceName, cluste
     return accountInfo.accountId;
   } finally {
     await accountManager.close();
+    // @ts-expect-error - TS2341: Property _portForwards is private and only accessible within class AccountManager
+    expect(accountManager._portForwards, 'port forwards should be empty after accountManager.close()').to.have.lengthOf(
+      0,
+    );
   }
 }
 
