@@ -6,7 +6,7 @@ import {HelmExecution} from './HelmExecution.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
-import {type SoloLogger} from '../../../core/logging.js';
+import {type SoloLogger} from '../../../core/logging/solo-logger.js';
 
 @injectable()
 /**

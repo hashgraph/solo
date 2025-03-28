@@ -11,11 +11,11 @@ import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-er
 import os from 'os';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
-import * as logging from '../../../src/core/logging.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 
 describe('Zippy', () => {
-  const testLogger = logging.NewLogger('debug', true);
+  const testLogger = new SoloWinstonLogger('debug', true);
   const zippy = new Zippy(testLogger);
 
   describe('unzip', () => {

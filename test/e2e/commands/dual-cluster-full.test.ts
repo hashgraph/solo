@@ -15,16 +15,26 @@ import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {expect} from 'chai';
 import fs from 'fs';
-import {type SoloLogger} from '../../../src/core/logging.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
-import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
+import {
+  DEFAULT_LOCAL_CONFIG_FILE,
+  HEDERA_HAPI_PATH,
+  HEDERA_USER_HOME_DIR,
+  ROOT_CONTAINER,
+} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {Templates} from '../../../src/core/templates.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
+import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
+import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
+import * as constants from '../../../src/core/constants.js';
 
 const testName: string = 'dual-cluster-full';
 
@@ -41,7 +51,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     `${testCluster.replace(soloTestCluster.includes('-c1') ? '-c1' : '-c2', soloTestCluster.includes('-c1') ? '-c2' : '-c1')}`,
   ];
   const testCacheDir: string = getTestCacheDir(testName);
-  let testLogger: SoloLogger;
+  let testLogger: SoloWinstonLogger;
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async () => {
@@ -52,7 +62,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       // allowed to fail if the file doesn't exist
     }
     resetForTest(namespace.name, testCacheDir, testLogger, false);
-    testLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+    testLogger = container.resolve<SoloWinstonLogger>(InjectTokens.SoloLogger);
     for (let i: number = 0; i < contexts.length; i++) {
       const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[i]);
       await k8Client.namespaces().delete(namespace);
@@ -131,24 +141,72 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       expect(await k8.namespaces().has(namespace), `namespace ${namespace} should exist in ${context}`).to.be.true;
       const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       expect(pods).to.have.lengthOf(1);
-      const nodeAlias = Templates.renderNodeAliasFromNumber(index + 1);
+      const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(index + 1);
       expect(pods[0].labels['solo.hedera.com/node-name']).to.equal(nodeAlias);
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
 
-  // TODO node setup
-  xit(`${testName}: node setup`, async () => {
+  // TODO node setup still list --node-aliases
+  it(`${testName}: node setup`, async () => {
     await main(soloNodeSetupArgv(deployment));
+    const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+    for (let index: number = 0; index < contexts.length; index++) {
+      const k8: K8 = k8Factory.getK8(contexts[index]);
+      const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      expect(pods, 'expect this cluster to have one network node').to.have.lengthOf(1);
+      const rootContainer: ContainerRef = ContainerRef.of(PodRef.of(namespace, pods[0].podRef.name), ROOT_CONTAINER);
+      expect(
+        await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
+        'expect extract-platform.sh to be present on the pods',
+      ).to.be.true;
+      expect(await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_HAPI_PATH}/data/apps/HederaNode.jar`)).to
+        .be.true;
+      expect(
+        await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_HAPI_PATH}/data/config/genesis-network.json`),
+      ).to.be.true;
+      expect(
+        await k8
+          .containers()
+          .readByRef(rootContainer)
+          .execContainer(['bash', '-c', `ls -al ${HEDERA_HAPI_PATH} | grep output`]),
+      ).to.includes('hedera');
+    }
   });
 
+  // TODO node start still list --node-aliases
   // TODO node start
   xit(`${testName}: node start`, async () => {
     await main(soloNodeStartArgv(deployment));
-  });
+    for (let index: number = 0; index < contexts.length; index++) {
+      const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+      const k8: K8 = k8Factory.getK8(contexts[index]);
+      const networkNodePod: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
+      expect(networkNodePod).to.have.lengthOf(1);
+      const haProxyPod: Pod[] = await k8
+        .pods()
+        .waitForReadyStatus(
+          namespace,
+          [
+            `app=haproxy-${Templates.extractNodeAliasFromPodName(networkNodePod[0].podRef.name)}`,
+            'solo.hedera.com/type=haproxy',
+          ],
+          constants.NETWORK_PROXY_MAX_ATTEMPTS,
+          constants.NETWORK_PROXY_DELAY,
+        );
+      expect(haProxyPod).to.have.lengthOf(1);
+    }
+  }).timeout(Duration.ofMinutes(5).toMillis());
 
   // TODO mirror node deploy
   // TODO explorer deploy
   // TODO json rpc relay deploy
+  // TODO json rpc relay destroy
+  // TODO explorer destroy
+  // TODO mirror node destroy
+  // TODO network destroy
+  xit(`${testName}: network destroy`, async () => {
+    await main(soloNetworkDestroyArgv(deployment));
+  });
 });
 function newArgv(): string[] {
   return ['${PATH}/node', '${SOLO_ROOT}/solo.ts'];
@@ -234,6 +292,7 @@ function soloNetworkDeployArgv(deployment: string): string[] {
   argv.push('deploy');
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
+  argv.push(optionFromFlag(Flags.loadBalancerEnabled)); // have to enable load balancer to resolve cross cluster in multi-cluster
   argvPushGlobalFlags(argv, true, true);
   return argv;
 }
@@ -252,6 +311,16 @@ function soloNodeStartArgv(deployment: string): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
   argv.push('start');
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argvPushGlobalFlags(argv);
+  return argv;
+}
+
+function soloNetworkDestroyArgv(deployment: string): string[] {
+  const argv: string[] = newArgv();
+  argv.push('network');
+  argv.push('destroy');
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
   argvPushGlobalFlags(argv);

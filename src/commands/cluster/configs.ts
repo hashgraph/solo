@@ -11,7 +11,7 @@ import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
 import {type ConfigManager} from '../../core/config-manager.js';
-import {type SoloLogger} from '../../core/logging.js';
+import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import {type ChartManager} from '../../core/chart-manager.js';
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {type ArgvStruct} from '../../types/aliases.js';

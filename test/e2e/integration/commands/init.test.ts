@@ -13,7 +13,6 @@ import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {type KeyManager} from '../../../../src/core/key-manager.js';
 import {type LockManager} from '../../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../../src/core/config/remote/remote-config-manager.js';
-import * as logging from '../../../../src/core/logging.js';
 import sinon from 'sinon';
 import {BASE_TEST_DIR} from '../../../test-util.js';
 import {Duration} from '../../../../src/core/time/duration.js';
@@ -22,8 +21,10 @@ import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tok
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../../src/core/constants.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
 import {type HelmClient} from '../../../../src/integration/helm/HelmClient.js';
+import {SoloWinstonLogger} from '../../../../src/core/logging/solo-winston-logger.js';
+import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 
-const testLogger = logging.NewLogger('debug', true);
+const testLogger: SoloLogger = new SoloWinstonLogger('debug', true);
 describe('InitCommand', () => {
   const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
   const helm: HelmClient = container.resolve(InjectTokens.Helm);

@@ -19,7 +19,7 @@ import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLock} from '../../../src/core/lock/listr-lock.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis-network-models/genesis-network-data-constructor.js';
 import {container} from 'tsyringe-neo';
-import {type SoloLogger} from '../../../src/core/logging.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';

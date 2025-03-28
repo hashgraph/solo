@@ -7,6 +7,7 @@ import type crypto from 'crypto';
 import {type ListrTask, type ListrTaskWrapper} from 'listr2';
 import {type PublicKey} from '@hashgraph/sdk';
 import {type JsonString} from './aliases.js';
+import {type Listr} from 'listr2';
 
 // NOTE: DO NOT add any Solo imports in this file to avoid circular dependencies
 
@@ -80,6 +81,8 @@ export interface ToJSON {
 export type SoloListrTask<T> = ListrTask<T, any, any>;
 
 export type SoloListrTaskWrapper<T> = ListrTaskWrapper<T, any, any>;
+
+export type SoloListr<T> = Listr<T, any, any>;
 
 export interface ServiceEndpoint {
   ipAddressV4?: string;

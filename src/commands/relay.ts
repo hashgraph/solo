@@ -265,7 +265,11 @@ export class RelayCommand extends BaseCommand {
             ]) as RelayDeployConfigClass;
 
             ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-            ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+            ctx.config.nodeAliases = helpers.parseNodeAliases(
+              ctx.config.nodeAliasesUnparsed,
+              this.remoteConfigManager.getConsensusNodes(),
+              this.configManager,
+            );
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
 
             if (ctx.config.clusterRef) {
@@ -417,6 +421,8 @@ export class RelayCommand extends BaseCommand {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
+                this.remoteConfigManager.getConsensusNodes(),
+                this.configManager,
               ),
               clusterRef: self.configManager.getFlag<string>(flags.clusterRef) as string,
             } as RelayDestroyConfigClass;

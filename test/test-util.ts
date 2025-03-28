@@ -19,9 +19,8 @@ import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKe
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
-import {type SoloLogger} from '../src/core/logging.js';
+import {type SoloLogger} from '../src/core/logging/solo-logger.js';
 import {type NodeAlias} from '../src/types/aliases.js';
-import {type NetworkNodeServices} from '../src/core/network-node-services.js';
 import {type K8Factory} from '../src/integration/kube/k8-factory.js';
 import {type AccountManager} from '../src/core/account-manager.js';
 import {type PlatformInstaller} from '../src/core/platform-installer.js';
@@ -51,6 +50,7 @@ import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '
 import {CommandInvoker} from './helpers/command-invoker.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
 import {type HelmClient} from '../src/integration/helm/HelmClient.js';
+import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
 
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
@@ -445,7 +445,7 @@ export function accountCreationShouldSucceed(
 }
 
 export async function getNodeAliasesPrivateKeysHash(
-  networkNodeServicesMap: Map<NodeAlias, NetworkNodeServices>,
+  networkNodeServicesMap: NodeServiceMapping,
   k8Factory: K8Factory,
   destDir: string,
 ) {

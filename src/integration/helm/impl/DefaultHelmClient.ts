@@ -30,8 +30,8 @@ import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveReq
 import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
-import {type SoloLogger} from '../../../core/logging.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
+import {type SoloLogger} from '../../../core/logging/solo-logger.js';
 
 @injectable()
 /**
