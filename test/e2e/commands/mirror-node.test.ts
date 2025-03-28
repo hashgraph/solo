@@ -16,7 +16,7 @@ import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror-node.js';
 import {PrivateKey, Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
 import * as http from 'http';
-import {PackageDownloader} from '../../../src/core/package-downloader.js';
+import {type PackageDownloader} from '../../../src/core/package-downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
@@ -51,9 +51,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
       opts: {k8Factory, accountManager, logger, commandInvoker, remoteConfigManager},
     } = bootstrapResp;
 
-    const mirrorNodeCmd = new MirrorNodeCommand(bootstrapResp.opts);
-    const explorerCommand = new ExplorerCommand(bootstrapResp.opts);
-    const downloader = new PackageDownloader(logger);
+    const mirrorNodeCmd = container.resolve(InjectTokens.MirrorNodeCommand) as MirrorNodeCommand;
+    const explorerCommand = container.resolve(InjectTokens.ExplorerCommand) as ExplorerCommand;
+    const downloader = container.resolve(InjectTokens.PackageDownloader) as PackageDownloader;
 
     const testMessage = 'Mirror node test message';
     let portForwarder = null;
