@@ -171,11 +171,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
           .execContainer(['bash', '-c', `ls -al ${HEDERA_HAPI_PATH} | grep output`]),
       ).to.includes('hedera');
     }
-  });
+  }).timeout(Duration.ofMinutes(2).toMillis());
 
   // TODO node start still list --node-aliases
-  // TODO node start
-  xit(`${testName}: node start`, async () => {
+  it(`${testName}: node start`, async () => {
     await main(soloNodeStartArgv(deployment));
     for (let index: number = 0; index < contexts.length; index++) {
       const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
