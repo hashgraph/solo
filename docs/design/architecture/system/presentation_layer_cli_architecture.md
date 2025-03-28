@@ -1,62 +1,66 @@
 # Presentation Layer - CLI Application Architecture
 
+<!--suppress HtmlDeprecatedAttribute -->
+
 The Solo X command line interface (CLI) application is the primary user interface for the Solo X
 platform.
 
 ## Table of Contents
 
+<div id="table-of-contents"></div>
+
 - [Standards](#standards)
 - [Architecture](#architecture)
 - [Command Structure Overview](#command-structure-overview)
-  - [Final Vision](#final-vision)
-  - [Example Commands](#example-commands)
+    - [Final Vision](#final-vision)
+    - [Example Commands](#example-commands)
 - [Global Flags](#global-flags)
 - [Groups](#groups)
-  - [Group Changes (Rename, Remove, Replace)](#group-changes-rename-remove-replace)
+    - [Group Changes (Rename, Remove, Replace)](#group-changes-rename-remove-replace)
 - [Resources by Group](#resources-by-group)
-  - [Block](#block)
-  - [Cluster Ref](#cluster-ref)
-  - [Consensus](#consensus)
-  - [Deployment](#deployment)
-  - [Explorer](#explorer)
-  - [Keys](#keys)
-  - [Ledger](#ledger)
-  - [Mirror](#mirror)
-  - [Relay](#relay)
-  - [Quick Start](#quick-start)
+    - [Block](#block)
+    - [Cluster Ref](#cluster-ref)
+    - [Consensus](#consensus)
+    - [Deployment](#deployment)
+    - [Explorer](#explorer)
+    - [Keys](#keys)
+    - [Ledger](#ledger)
+    - [Mirror](#mirror)
+    - [Relay](#relay)
+    - [Quick Start](#quick-start)
 - [Operations by Resource](#operations-by-resource)
-  - [Block](#block-1)
-    - [Node](#node)
-  - [Cluster Ref](#cluster-ref-1)
-    - [Config](#config)
-  - [Consensus](#consensus-1)
-    - [Network](#network)
-    - [Node](#node-1)
-    - [State](#state)
-    - [Diagnostic](#diagnostic)
-  - [Deployment](#deployment-1)
-    - [Cluster](#cluster)
-    - [Config](#config-1)
-    - [State](#state-1)
-  - [Explorer](#explorer-1)
-    - [Node](#node-2)
-  - [Keys](#keys-1)
+    - [Block](#block-1)
+        - [Node](#node)
+    - [Cluster Ref](#cluster-ref-1)
+        - [Config](#config)
     - [Consensus](#consensus-1)
-  - [Ledger](#ledger-1)
-    - [System](#system)
-    - [Account](#account)
-    - [Crypto](#crypto)
-  - [Mirror](#mirror-1)
-    - [Node](#node-3)
-  - [Relay](#relay-1)
-    - [Node](#node-4)
-  - [Quick Start](#quick-start-1)
-    - [EVM](#evm)
-    - [Single](#single)
-    - [Multi](#multi)
+        - [Network](#network)
+        - [Node](#node-1)
+        - [State](#state)
+        - [Diagnostic](#diagnostic)
+    - [Deployment](#deployment-1)
+        - [Cluster](#cluster)
+        - [Config](#config-1)
+        - [State](#state-1)
+    - [Explorer](#explorer-1)
+        - [Node](#node-2)
+    - [Keys](#keys-1)
+        - [Consensus](#consensus-1)
+    - [Ledger](#ledger-1)
+        - [System](#system)
+        - [Account](#account)
+        - [Crypto](#crypto)
+    - [Mirror](#mirror-1)
+        - [Node](#node-3)
+    - [Relay](#relay-1)
+        - [Node](#node-4)
+    - [Quick Start](#quick-start-1)
+        - [EVM](#evm)
+        - [Single](#single)
+        - [Multi](#multi)
 - [Flags by Operation](#flags-by-operation)
-  - [Block Node](#block-node)
-    - [List](#list)
+    - [Block Node](#block-node)
+        - [List](#list)
 
 ## Standards
 
@@ -187,17 +191,17 @@ The following global flags are supported:
 
 The CLI application is designed around the following high-level entities (aka commands):
 
-| Name              | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current)                | Description <br/>(Desired) |
-|-------------------|-------------------------------|-------------------------------|-------------------------------------------|----------------------------|
-| **Block Node**    |                               | `block`                       |                                           |                            |
-| **Cluster Ref**   | `cluster-ref`                 | `cluster-ref`                 | Manage solo testing cluster               |                            |
-| **Consensus**     |                               | `consensus`                   |                                           |                            |
-| **Deployment**    | `deployment`                  | `deployment`                  | Manage solo network deployment            |                            |
-| **Explorer Node** | `explorer`                    | `explorer`                    | Manage Explorer in solo network           |                            |
-| **Ledger**        |                               | `ledger`                      |                                           |                            |
-| **Relay Node**    | `relay`                       | `relay`                       | Manage JSON RPC relays in solo network    |                            |
-| **Mirror Node**   | `mirror-node`                 | `mirror`                      | Manage Hedera Mirror Node in solo network |                            |
-| **Quick Start**   |                               | `quick-start`                 |                                           |                            |
+| Name              | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current)                | Description <br/>(Desired)                                                                                                                  |
+|-------------------|-------------------------------|-------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| **Block Node**    |                               | `block`                       |                                           | Block Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.     |
+| **Cluster Ref**   | `cluster-ref`                 | `cluster-ref`                 | Manage solo testing cluster               | Manages the relationship between Kubernetes context names and Solo internal cluster references which are an alias for a kubernetes context. |
+| **Consensus**     |                               | `consensus`                   |                                           | Consensus Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment. |
+| **Deployment**    | `deployment`                  | `deployment`                  | Manage solo network deployment            |                                                                                                                                             |
+| **Explorer Node** | `explorer`                    | `explorer`                    | Manage Explorer in solo network           |                                                                                                                                             |
+| **Ledger**        |                               | `ledger`                      |                                           |                                                                                                                                             |
+| **Relay Node**    | `relay`                       | `relay`                       | Manage JSON RPC relays in solo network    |                                                                                                                                             |
+| **Mirror Node**   | `mirror-node`                 | `mirror`                      | Manage Hedera Mirror Node in solo network |                                                                                                                                             |
+| **Quick Start**   |                               | `quick-start`                 |                                           |                                                                                                                                             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -226,9 +230,9 @@ associated with each group.
 
 ### Block
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Node**      | `node`                        | `node`                        |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **Node**      | `node`         |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -236,9 +240,9 @@ associated with each group.
 
 ### Cluster Ref
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Config**    | `config`                      | `config`                      |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **Config**    | `config`       |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -246,12 +250,12 @@ associated with each group.
 
 ### Consensus
 
-| Resource Name  | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|----------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Network**    | `network`                     | `network`                     |                            |                            |
-| **Node**       | `node`                        | `node`                        |                            |                            |
-| **State**      | `state`                       | `state`                       |                            |                            |
-| **Diagnostic** | `diagnostic`                  | `diagnostic`                  |                            |                            |
+| Resource Name  | Command Syntax | Description |
+|----------------|----------------|-------------|
+| **Network**    | `network`      |             |
+| **Node**       | `node`         |             |
+| **State**      | `state`        |             |
+| **Diagnostic** | `diagnostic`   |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -259,11 +263,11 @@ associated with each group.
 
 ### Deployment
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Cluster**   |                               | `cluster`                     |                            |                            |
-| **Config**    | `config`                      | `config`                      |                            |                            |
-| **State**     | `state`                       | `state`                       |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **Cluster**   | `cluster`      |             |
+| **Config**    | `config`       |             |
+| **State**     | `state`        |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -271,9 +275,9 @@ associated with each group.
 
 ### Explorer
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Node**      | `node`                        | `node`                        |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **Node**      | `node`         |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -281,9 +285,9 @@ associated with each group.
 
 ### Keys
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Consensus** | `consensus`                   | `consensus`                   |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **Consensus** | `consensus`    |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -291,11 +295,11 @@ associated with each group.
 
 ### Ledger
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **System**    |                               | `system`                      |                            |                            |
-| **Account**   | `account`                     | `account`                     |                            |                            |
-| **Crypto**    | `crypto`                      | `crypto`                      |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **System**    |                |             |
+| **Account**   |                |             |
+| **Crypto**    |                |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -303,9 +307,9 @@ associated with each group.
 
 ### Mirror
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Node**      | `node`                        | `node`                        |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **Node**      | `node`         |             |\
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -313,9 +317,9 @@ associated with each group.
 
 ### Relay
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **Node**      | `node`                        | `node`                        |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **Node**      | `node`         |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -323,11 +327,11 @@ associated with each group.
 
 ### Quick Start
 
-| Resource Name | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current) | Description <br/>(Desired) |
-|---------------|-------------------------------|-------------------------------|----------------------------|----------------------------|
-| **EVM**       |                               | `evm`                         |                            |                            |
-| **Single**    |                               | `single`                      |                            |                            |
-| **Multi**     |                               | `multi`                       |                            |                            |
+| Resource Name | Command Syntax | Description |
+|---------------|----------------|-------------|
+| **EVM**       | `evm`          |             |
+| **Single**    | `single`       |             |
+| **Multi**     | `multi`        |             |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -369,7 +373,7 @@ operations associated with each resource.
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
 </p>
-    
+
 ### Consensus
 
 #### Network
