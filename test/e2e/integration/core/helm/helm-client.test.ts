@@ -15,6 +15,10 @@ import {promisify} from 'util';
 import {InstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/install-chart-options-builder.js';
 import {UnInstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/un-install-chart-options-builder.js';
 import {TestChartOptionsBuilder} from '../../../../../src/integration/helm/model/test/test-chart-options-builder.js';
+import {InjectTokens} from '../../../../../src/core/dependency-injection/inject-tokens.js';
+import {type K8Factory} from '../../../../../src/integration/kube/k8-factory.js';
+import {container} from 'tsyringe-neo';
+import {type K8} from '../../../../../src/integration/kube/k8.js';
 
 const exec = promisify(execCallback);
 
@@ -189,7 +193,8 @@ describe('HelmClient Tests', () => {
       await helmClient.installChart(HAPROXY_RELEASE_NAME, HAPROXY_CHART, options);
 
       // List releases with specific kube context
-      const releaseItems = await helmClient.listReleases(false, NAMESPACE, 'kind-helm-client-test-cluster');
+      const k8: K8 = container.resolve<K8Factory>(InjectTokens.K8Factory).default();
+      const releaseItems = await helmClient.listReleases(false, NAMESPACE, k8.contexts().readCurrent());
       expect(releaseItems).to.not.be.null.and.to.not.be.empty;
       const releaseItem = releaseItems.find(item => item.name === HAPROXY_RELEASE_NAME);
       expect(releaseItem).to.not.be.null;
