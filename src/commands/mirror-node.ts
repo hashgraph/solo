@@ -40,6 +40,7 @@ import {PathEx} from '../business/utils/path-ex.js';
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
+  clusterRef: ClusterRef;
   namespace: NamespaceName;
   enableIngress: boolean;
   mirrorStaticIp: string;
@@ -278,9 +279,8 @@ export class MirrorNodeCommand extends BaseCommand {
             // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
-            ctx.config.clusterContext = clusterRef
-              ? this.localConfig.clusterRefs[clusterRef]
+            ctx.config.clusterContext = ctx.config.clusterRef
+              ? this.localConfig.clusterRefs[ctx.config.clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             await self.accountManager.loadNodeClient(
@@ -875,11 +875,10 @@ export class MirrorNodeCommand extends BaseCommand {
       task: async (ctx): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {
-            config: {namespace},
+            config: {namespace, clusterRef},
           } = ctx;
-          const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add(new MirrorNodeComponent('mirrorNode', cluster, namespace.name));
+          remoteConfig.components.add(new MirrorNodeComponent('mirrorNode', clusterRef, namespace.name));
         });
       },
     };
