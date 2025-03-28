@@ -41,7 +41,7 @@ const testName: string = 'dual-cluster-full';
 describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): Promise<void> {
   this.bail(true);
   const namespace: NamespaceName = NamespaceName.of(testName);
-  const deployment: string = `${testName}-deployment`;
+  const deployment: DeploymentName = `${testName}-deployment`;
   const testClusterRefs: ClusterRef[] = ['e2e-cluster-alpha', 'e2e-cluster-beta'];
   const soloTestCluster: string = getTestCluster();
   const testCluster: string =
@@ -197,6 +197,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   }).timeout(Duration.ofMinutes(5).toMillis());
 
   // TODO mirror node deploy
+  it('${testName}: mirror node deploy', async (): Promise<void> => {
+    await main(soloMirrorNodeDeployArgv(deployment, testClusterRefs[1]));
+  }).timeout(Duration.ofMinutes(10).toMillis());
+
   // TODO explorer deploy
   // TODO json rpc relay deploy
   // TODO json rpc relay destroy
@@ -207,6 +211,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     await main(soloNetworkDestroyArgv(deployment));
   });
 });
+
 function newArgv(): string[] {
   return ['${PATH}/node', '${SOLO_ROOT}/solo.ts'];
 }
@@ -236,7 +241,7 @@ function soloClusterRefConnectArgv(clusterRef: ClusterRef, context: string): str
   return argv;
 }
 
-function soloDeploymentCreateArgv(deployment: string, namespace: NamespaceName): string[] {
+function soloDeploymentCreateArgv(deployment: DeploymentName, namespace: NamespaceName): string[] {
   const argv: string[] = newArgv();
   argv.push('deployment');
   argv.push('create');
@@ -248,7 +253,11 @@ function soloDeploymentCreateArgv(deployment: string, namespace: NamespaceName):
   return argv;
 }
 
-function soloDeploymentAddClusterArgv(deployment: string, clusterRef: ClusterRef, numberOfNodes: number): string[] {
+function soloDeploymentAddClusterArgv(
+  deployment: DeploymentName,
+  clusterRef: ClusterRef,
+  numberOfNodes: number,
+): string[] {
   const argv: string[] = newArgv();
   argv.push('deployment');
   argv.push('add-cluster');
@@ -285,7 +294,7 @@ function soloNodeKeysArgv(deployment: DeploymentName): string[] {
   return argv;
 }
 
-function soloNetworkDeployArgv(deployment: string): string[] {
+function soloNetworkDeployArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
   argv.push('network');
   argv.push('deploy');
@@ -296,7 +305,7 @@ function soloNetworkDeployArgv(deployment: string): string[] {
   return argv;
 }
 
-function soloNodeSetupArgv(deployment: string): string[] {
+function soloNodeSetupArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
   argv.push('setup');
@@ -306,7 +315,7 @@ function soloNodeSetupArgv(deployment: string): string[] {
   return argv;
 }
 
-function soloNodeStartArgv(deployment: string): string[] {
+function soloNodeStartArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
   argv.push('node');
   argv.push('start');
@@ -316,7 +325,19 @@ function soloNodeStartArgv(deployment: string): string[] {
   return argv;
 }
 
-function soloNetworkDestroyArgv(deployment: string): string[] {
+function soloMirrorNodeDeployArgv(deployment: DeploymentName, clusterRef: ClusterRef): string[] {
+  const argv: string[] = newArgv();
+  argv.push('mirror-node');
+  argv.push('deploy');
+  argv.push(optionFromFlag(Flags.deployment));
+  argv.push(deployment);
+  argv.push(optionFromFlag(Flags.clusterRef));
+  argv.push(clusterRef);
+  argvPushGlobalFlags(argv, true, true);
+  return argv;
+}
+
+function soloNetworkDestroyArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
   argv.push('network');
   argv.push('destroy');
