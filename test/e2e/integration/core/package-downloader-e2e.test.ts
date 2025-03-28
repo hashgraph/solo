@@ -8,11 +8,11 @@ import {expect} from 'chai';
 import * as fs from 'fs';
 import {PackageDownloader} from '../../../../src/core/package-downloader.js';
 import {Templates} from '../../../../src/core/templates.js';
-import * as logging from '../../../../src/core/logging.js';
 import {Duration} from '../../../../src/core/time/duration.js';
+import {SoloWinstonLogger} from '../../../../src/core/logging/solo-winston-logger.js';
 
 describe('PackageDownloaderE2E', () => {
-  const testLogger = logging.NewLogger('debug', true);
+  const testLogger = new SoloWinstonLogger('debug', true);
   const downloader = new PackageDownloader(testLogger);
 
   it('should succeed with a valid Hedera release tag', async () => {

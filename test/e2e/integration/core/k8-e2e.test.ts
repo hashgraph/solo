@@ -13,7 +13,6 @@ import {SoloError} from '../../../../src/core/errors/solo-error.js';
 import * as constants from '../../../../src/core/constants.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {type ConfigManager} from '../../../../src/core/config-manager.js';
-import * as logging from '../../../../src/core/logging.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import crypto from 'crypto';
 import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
@@ -30,6 +29,8 @@ import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
 import {Argv} from '../../../helpers/argv-wrapper.js';
 import {type Pod} from '../../../../src/integration/kube/resources/pod/pod.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
+import {SoloWinstonLogger} from '../../../../src/core/logging/solo-winston-logger.js';
+import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
@@ -53,7 +54,7 @@ async function createPod(
 }
 
 describe('K8', () => {
-  const testLogger = logging.NewLogger('debug', true);
+  const testLogger: SoloLogger = new SoloWinstonLogger('debug', true);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
   const testNamespace = NamespaceName.of('k8-e2e');

@@ -6,4 +6,5 @@ export interface ServiceSpec {
   readonly clusterIP?: string;
   readonly ports?: ServicePort[];
   readonly selector?: {[key: string]: string};
+  readonly type?: string;
 }

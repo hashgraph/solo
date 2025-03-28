@@ -2,6 +2,7 @@
 
 import {type NodeId} from '../../types/aliases.js';
 import {type ServiceEndpoint} from '../../types/index.js';
+import {isIPv4Address} from '../helpers.js';
 
 export abstract class GenesisNetworkDataWrapper {
   public gossipEndpoint: ServiceEndpoint[] = [];
@@ -11,10 +12,15 @@ export abstract class GenesisNetworkDataWrapper {
   protected constructor(public readonly nodeId: NodeId) {}
 
   /**
-   * @param domainName - a fully qualified domain name
+   * @param address - a fully qualified domain name or IP v4 address
    * @param port
    */
-  public addGossipEndpoint(domainName: string, port: number): void {
-    this.gossipEndpoint.push({domainName, port, ipAddressV4: ''});
+  public addGossipEndpoint(address: string, port: number): void {
+    const isIpV4Address: boolean = isIPv4Address(address);
+    this.gossipEndpoint.push({
+      domainName: isIpV4Address ? '' : address,
+      port,
+      ipAddressV4: isIpV4Address ? address : '',
+    });
   }
 }

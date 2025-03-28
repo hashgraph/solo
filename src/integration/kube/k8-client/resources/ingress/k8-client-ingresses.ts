@@ -2,7 +2,7 @@
 
 import {type Ingresses} from '../../../resources/ingress/ingresses.js';
 import {type NamespaceName} from '../../../resources/namespace/namespace-name.js';
-import {SoloLogger} from '../../../../../core/logging.js';
+import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import {type V1IngressList, type NetworkingV1Api, type V1Ingress} from '@kubernetes/client-node';
 import {container} from 'tsyringe-neo';
 import {type IncomingMessage} from 'http';
@@ -11,12 +11,13 @@ import {ResourceType} from '../../../resources/resource-type.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';
 import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
+import {InjectTokens} from '../../../../../core/dependency-injection/inject-tokens.js';
 
 export class K8ClientIngresses implements Ingresses {
   private readonly logger: SoloLogger;
 
-  constructor(private readonly networkingApi: NetworkingV1Api) {
-    this.logger = container.resolve(SoloLogger);
+  public constructor(private readonly networkingApi: NetworkingV1Api) {
+    this.logger = container.resolve(InjectTokens.SoloLogger);
   }
 
   public async listForAllNamespaces(): Promise<string[]> {

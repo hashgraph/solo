@@ -14,7 +14,7 @@ import * as https from 'https';
 import * as http from 'http';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {StatusCodes} from 'http-status-codes';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';

@@ -2,7 +2,7 @@
 
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {patchInject} from './dependency-injection/container-helper.js';
 
 type Table = string[][];

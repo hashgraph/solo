@@ -20,7 +20,7 @@ import {K8ClientBase} from '../../k8-client-base.js';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
 import {MissingArgumentError} from '../../../../../core/errors/missing-argument-error.js';
 import * as constants from '../../../../../core/constants.js';
-import {type SoloLogger} from '../../../../../core/logging.js';
+import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import {container} from 'tsyringe-neo';
 import {type ContainerName} from '../../../resources/container/container-name.js';
 import {PodName} from '../../../resources/pod/pod-name.js';

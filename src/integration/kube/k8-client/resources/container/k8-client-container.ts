@@ -15,12 +15,14 @@ import fs from 'fs';
 import {type LocalContextObject} from '../../../../../types/index.js';
 import * as stream from 'node:stream';
 import {v4 as uuid4} from 'uuid';
-import {type SoloLogger} from '../../../../../core/logging.js';
+import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import os from 'os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import {InjectTokens} from '../../../../../core/dependency-injection/inject-tokens.js';
 import {PathEx} from '../../../../../business/utils/path-ex.js';
+
+type EventErrorWithUrl = {name: string; message: string; stack?: string; target?: {url?: string}};
 
 export class K8ClientContainer implements Container {
   private readonly logger: SoloLogger;
@@ -117,7 +119,7 @@ export class K8ClientContainer implements Container {
 
             conn.on('error', e => {
               self.deleteTempFile(tmpFile);
-              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
+              return self.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`, e);
             });
 
             self.registerConnectionOnMessage(messagePrefix);
@@ -146,11 +148,14 @@ export class K8ClientContainer implements Container {
                     localContext,
                     `${messagePrefix} files did not match, srcFileSize=${srcFileSize}, stat.size=${stat?.size}`,
                   );
-                } catch {
-                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`);
+                } catch (e) {
+                  return self.exitWithError(localContext, `${messagePrefix} failed to complete download`, e);
                 }
               });
             });
+          })
+          .catch(e => {
+            self.exitWithError(localContext, `${messagePrefix} failed to exec copyFrom: ${e.message}`, e);
           });
 
         self.registerErrorStreamOnData(localContext, errPassthroughStream);
@@ -238,6 +243,9 @@ export class K8ClientContainer implements Container {
               self.logger.info(`${messagePrefix} Successfully copied!`);
               return resolve(true);
             });
+          })
+          .catch(e => {
+            self.exitWithError(localContext, `${messagePrefix} failed to copyTo: ${e.message}`, e);
           });
 
         self.registerErrorStreamOnData(localContext, errPassthroughStream);
@@ -321,6 +329,9 @@ export class K8ClientContainer implements Container {
               });
             }
           });
+        })
+        .catch(e => {
+          self.exitWithError(localContext, `${messagePrefix} failed to exec command: ${e.message}`, e);
         });
 
       self.registerErrorStreamOnData(localContext, errPassthroughStream);
@@ -440,12 +451,15 @@ export class K8ClientContainer implements Container {
     }
   }
 
-  private exitWithError(localContext: LocalContextObject, errorMessage: string) {
+  private exitWithError(localContext: LocalContextObject, errorMessage: string, e?: EventErrorWithUrl) {
     localContext.errorMessage = localContext.errorMessage
       ? `${localContext.errorMessage}:${errorMessage}`
       : errorMessage;
+    localContext.errorMessage = e?.target?.url
+      ? `${localContext.errorMessage}:${e.target.url}`
+      : localContext.errorMessage;
     this.logger.warn(errorMessage);
-    return localContext.reject(new SoloError(localContext.errorMessage));
+    return localContext.reject(new SoloError(localContext.errorMessage, e));
   }
 
   private handleCallback(status: string, localContext: LocalContextObject, messagePrefix: string) {
@@ -461,7 +475,7 @@ export class K8ClientContainer implements Container {
     conn: WebSocket.WebSocket,
   ) {
     conn.on('error', e => {
-      return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`);
+      return this.exitWithError(localContext, `${messagePrefix} failed, connection error: ${e.message}`, e);
     });
   }
 
@@ -483,7 +497,7 @@ export class K8ClientContainer implements Container {
     stream: stream.PassThrough | fs.WriteStream,
   ) {
     stream.on('error', err => {
-      return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`);
+      return this.exitWithError(localContext, `${messagePrefix} error encountered, err: ${err.toString()}`, err);
     });
   }
 

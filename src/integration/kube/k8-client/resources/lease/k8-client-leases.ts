@@ -13,7 +13,7 @@ import {type NamespaceName} from '../../../resources/namespace/namespace-name.js
 import type http from 'node:http';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
 import {getReasonPhrase, StatusCodes} from 'http-status-codes';
-import {type SoloLogger} from '../../../../../core/logging.js';
+import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import {container} from 'tsyringe-neo';
 import {sleep} from '../../../../../core/helpers.js';
 import {Duration} from '../../../../../core/time/duration.js';

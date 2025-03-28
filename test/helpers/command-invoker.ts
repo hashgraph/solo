@@ -6,7 +6,7 @@ import {type RemoteConfigManager} from '../../src/core/config/remote/remote-conf
 import {type AnyObject, type ArgvStruct} from '../../src/types/aliases.js';
 import {type Argv} from './argv-wrapper.js';
 import {type ConfigManager} from '../../src/core/config-manager.js';
-import {type SoloLogger} from '../../src/core/logging.js';
+import {type SoloLogger} from '../../src/core/logging/solo-logger.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../src/integration/kube/k8-factory.js';

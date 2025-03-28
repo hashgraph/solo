@@ -7,10 +7,10 @@ import sinon from 'sinon';
 import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import {ShellRunner} from '../../../src/core/shell-runner.js';
-import {SoloLogger} from '../../../src/core/logging.js';
 import {ChildProcess} from 'child_process';
 import {Readable} from 'stream';
 import {Duration} from '../../../src/core/time/duration.js';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 
 describe('ShellRunner', () => {
   let shellRunner: ShellRunner,
@@ -23,8 +23,8 @@ describe('ShellRunner', () => {
     shellRunner = new ShellRunner();
 
     // Spy on methods
-    loggerDebugStub = sinon.stub(SoloLogger.prototype, 'debug');
-    loggerInfoStub = sinon.stub(SoloLogger.prototype, 'info');
+    loggerDebugStub = sinon.stub(SoloWinstonLogger.prototype, 'debug');
+    loggerInfoStub = sinon.stub(SoloWinstonLogger.prototype, 'info');
     childProcessSpy = sinon.spy(ChildProcess.prototype, 'on');
     readableSpy = sinon.spy(Readable.prototype, 'on');
   });

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NodeAlias} from '../../../types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type PrivateKey} from '@hashgraph/sdk';
 import {type CheckedNodesConfigClass, type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
 import {type Client} from '@hashgraph/sdk';
@@ -22,7 +22,7 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, Check
   localBuildPath: string;
   releaseTag: string;
   adminKey: PrivateKey;
-  chartPath: string;
+  allNodeAliases: NodeAliases;
   curDate: Date;
   freezeAdminPrivateKey: string;
   keysDir: string;
