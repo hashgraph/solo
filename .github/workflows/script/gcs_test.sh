@@ -45,7 +45,7 @@ else
 
         "--backupWriteSecrets" "${GCS_SECRET_KEY}"
         "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
-        "--backupEndpoint" "https://storage.googleapis.com"
+        "--backupEndpoint" "storage.googleapis.com"
         "--backupRegion" "us-central1"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
@@ -58,7 +58,7 @@ else
 
         "--backupWriteSecrets" "${GCS_SECRET_KEY}"
         "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
-        "--backupEndpoint" "https://storage.googleapis.com"
+        "--backupEndpoint" "storage.googleapis.com"
         "--backupRegion" "us-central1"
     )
   fi
