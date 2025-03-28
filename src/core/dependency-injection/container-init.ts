@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {container, Lifecycle} from 'tsyringe-neo';
-import {SoloLogger} from '../logging.js';
+import {type SoloLogger} from '../logging/solo-logger.js';
 import {PackageDownloader} from '../package-downloader.js';
 import {Zippy} from '../zippy.js';
 import {DependencyManager, HelmDependencyManager} from '../dependency-managers/index.js';
@@ -46,6 +46,7 @@ import {NetworkCommand} from '../../commands/network.js';
 import {NodeCommand} from '../../commands/node/index.js';
 import {ClusterCommand} from '../../commands/cluster/index.js';
 import {Middlewares} from '../middlewares.js';
+import {SoloWinstonLogger} from '../logging/solo-winston-logger.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -102,7 +103,7 @@ export class Container {
       LockRenewalService: [{useClass: IntervalLockRenewalService}, {lifecycle: Lifecycle.Singleton}],
       LockManager: [{useClass: LockManager}, {lifecycle: Lifecycle.Singleton}],
       K8Factory: [{useClass: K8ClientFactory}, {lifecycle: Lifecycle.Singleton}],
-      SoloLogger: [{useClass: SoloLogger}, {lifecycle: Lifecycle.Singleton}],
+      SoloLogger: [{useClass: SoloWinstonLogger}, {lifecycle: Lifecycle.Singleton}],
       PackageDownloader: [{useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton}],
       Zippy: [{useClass: Zippy}, {lifecycle: Lifecycle.Singleton}],
       DependencyManager: [{useClass: DependencyManager}, {lifecycle: Lifecycle.Singleton}],

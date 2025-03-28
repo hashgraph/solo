@@ -3,9 +3,8 @@
 import {inject, injectable} from 'tsyringe-neo';
 import {SoloError} from './errors/solo-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {Flags, Flags as flags} from '../commands/flags.js';
-import * as helpers from './helpers.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag-types.js';
 import {patchInject} from './dependency-injection/container-helper.js';
@@ -15,6 +14,7 @@ import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ArgvStruct, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {getSoloVersion} from '../../version.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -39,7 +39,7 @@ export class ConfigManager {
   public reset(): void {
     this.config = {
       flags: {},
-      version: helpers.getSoloVersion(),
+      version: getSoloVersion(),
       updatedAt: new Date().toISOString(),
     };
   }

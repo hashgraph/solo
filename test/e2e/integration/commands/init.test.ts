@@ -14,7 +14,10 @@ import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tok
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../../src/core/constants.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
 import {resetTestContainer} from '../../../test-container.js';
+import {SoloWinstonLogger} from '../../../../src/core/logging/solo-winston-logger.js';
+import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 
+const testLogger: SoloLogger = new SoloWinstonLogger('debug', true);
 describe('InitCommand', () => {
   let sandbox = sinon.createSandbox();
   let initCmd: InitCommand;

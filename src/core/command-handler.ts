@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {inject, injectable} from 'tsyringe-neo';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {Listr} from 'listr2';
 import {SoloError} from './errors/solo-error.js';
 import {type Lock} from './lock/lock.js';
 import * as constants from './constants.js';
 import fs from 'fs';
-import {Task} from './task.js';
 import {type ConfigManager} from './config-manager.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type AccountManager} from './account-manager.js';
@@ -17,7 +16,7 @@ import {type AccountManager} from './account-manager.js';
 export class CommandHandler {
   protected readonly _configMaps = new Map<string, any>();
 
-  constructor(
+  public constructor(
     @inject(InjectTokens.SoloLogger) public readonly logger?: SoloLogger,
     @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
     @inject(InjectTokens.AccountManager) private readonly accountManager?: AccountManager,
@@ -75,10 +74,13 @@ export class CommandHandler {
     return dirs;
   }
 
-  public setupHomeDirectoryTask(): Task {
-    return new Task('Setup home directory', async () => {
-      this.setupHomeDirectory();
-    });
+  public setupHomeDirectoryTask() {
+    return {
+      title: 'Setup home directory',
+      task: async () => {
+        this.setupHomeDirectory();
+      },
+    };
   }
 
   public getUnusedConfigs(configName: string): string[] {

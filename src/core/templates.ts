@@ -75,7 +75,7 @@ export class Templates {
     return parts.join('-');
   }
 
-  private static extractNodeAliasFromPodName(podName: PodName): NodeAlias {
+  public static extractNodeAliasFromPodName(podName: PodName): NodeAlias {
     const parts = podName.name.split('-');
     if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName.name}`, 3, parts.length);
     return parts[1].trim() as NodeAlias;
@@ -256,6 +256,21 @@ export class Templates {
     unparsed.split(',').forEach(data => {
       const [nodeAlias, ip] = data.split('=') as [NodeAlias, IP];
       mapping[nodeAlias] = ip;
+    });
+
+    return mapping;
+  }
+
+  public static parseNodeAliasToDomainNameMapping(unparsed: string): Record<NodeAlias, string> {
+    const mapping: Record<NodeAlias, string> = {};
+
+    unparsed.split(',').forEach(data => {
+      const [nodeAlias, domainName] = data.split('=') as [NodeAlias, string];
+
+      if (!nodeAlias || typeof nodeAlias !== 'string') throw new SoloError(`Can't parse node alias: ${data}`);
+      if (!domainName || typeof domainName !== 'string') throw new SoloError(`Can't parse domain name: ${data}`);
+
+      mapping[nodeAlias] = domainName;
     });
 
     return mapping;

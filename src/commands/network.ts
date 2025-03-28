@@ -95,6 +95,8 @@ export interface NetworkDeployConfigClass {
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRefs: ClusterRefs;
+  domainNames?: string;
+  domainNamesMapping?: Record<NodeAlias, string>;
 }
 
 export interface NetworkDestroyContext {
@@ -114,7 +116,7 @@ export interface NetworkDestroyContext {
 export class NetworkCommand extends BaseCommand {
   private profileValuesFile?: Record<ClusterRef, string>;
 
-  constructor(
+  public constructor(
     @inject(InjectTokens.CertificateManager) private readonly certificateManager: CertificateManager,
     @inject(InjectTokens.KeyManager) private readonly keyManager: KeyManager,
     @inject(InjectTokens.PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
@@ -128,73 +130,61 @@ export class NetworkCommand extends BaseCommand {
     this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
   }
 
-  static get DEPLOY_CONFIGS_NAME() {
-    return 'deployConfigs';
-  }
+  private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';
 
-  static get DESTROY_FLAGS_LIST() {
-    return {
-      required: [],
-      optional: [
-        flags.deletePvcs,
-        flags.deleteSecrets,
-        flags.enableTimeout,
-        flags.force,
-        flags.deployment,
-        flags.quiet,
-      ],
-    };
-  }
+  private static readonly DESTROY_FLAGS_LIST = {
+    required: [],
+    optional: [flags.deletePvcs, flags.deleteSecrets, flags.enableTimeout, flags.force, flags.deployment, flags.quiet],
+  };
 
-  static get DEPLOY_FLAGS_LIST() {
-    return {
-      required: [],
-      optional: [
-        flags.apiPermissionProperties,
-        flags.app,
-        flags.applicationEnv,
-        flags.applicationProperties,
-        flags.bootstrapProperties,
-        flags.genesisThrottlesFile,
-        flags.cacheDir,
-        flags.chainId,
-        flags.chartDirectory,
-        flags.enablePrometheusSvcMonitor,
-        flags.soloChartVersion,
-        flags.debugNodeAlias,
-        flags.loadBalancerEnabled,
-        flags.log4j2Xml,
-        flags.deployment,
-        flags.persistentVolumeClaims,
-        flags.profileFile,
-        flags.profileName,
-        flags.quiet,
-        flags.releaseTag,
-        flags.settingTxt,
-        flags.networkDeploymentValuesFile,
-        flags.nodeAliasesUnparsed,
-        flags.grpcTlsCertificatePath,
-        flags.grpcWebTlsCertificatePath,
-        flags.grpcTlsKeyPath,
-        flags.grpcWebTlsKeyPath,
-        flags.haproxyIps,
-        flags.envoyIps,
-        flags.storageType,
-        flags.gcsWriteAccessKey,
-        flags.gcsWriteSecrets,
-        flags.gcsEndpoint,
-        flags.gcsBucket,
-        flags.gcsBucketPrefix,
-        flags.awsWriteAccessKey,
-        flags.awsWriteSecrets,
-        flags.awsEndpoint,
-        flags.awsBucket,
-        flags.awsBucketPrefix,
-        flags.backupBucket,
-        flags.googleCredential,
-      ],
-    };
-  }
+  private static readonly DEPLOY_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.apiPermissionProperties,
+      flags.app,
+      flags.applicationEnv,
+      flags.applicationProperties,
+      flags.bootstrapProperties,
+      flags.genesisThrottlesFile,
+      flags.cacheDir,
+      flags.chainId,
+      flags.chartDirectory,
+      flags.enablePrometheusSvcMonitor,
+      flags.soloChartVersion,
+      flags.debugNodeAlias,
+      flags.loadBalancerEnabled,
+      flags.log4j2Xml,
+      flags.deployment,
+      flags.persistentVolumeClaims,
+      flags.profileFile,
+      flags.profileName,
+      flags.quiet,
+      flags.releaseTag,
+      flags.settingTxt,
+      flags.networkDeploymentValuesFile,
+      flags.nodeAliasesUnparsed,
+      flags.grpcTlsCertificatePath,
+      flags.grpcWebTlsCertificatePath,
+      flags.grpcTlsKeyPath,
+      flags.grpcWebTlsKeyPath,
+      flags.haproxyIps,
+      flags.envoyIps,
+      flags.storageType,
+      flags.gcsWriteAccessKey,
+      flags.gcsWriteSecrets,
+      flags.gcsEndpoint,
+      flags.gcsBucket,
+      flags.gcsBucketPrefix,
+      flags.awsWriteAccessKey,
+      flags.awsWriteSecrets,
+      flags.awsEndpoint,
+      flags.awsBucket,
+      flags.awsBucketPrefix,
+      flags.backupBucket,
+      flags.googleCredential,
+      flags.domainNames,
+    ],
+  };
 
   public static readonly COMMAND_NAME = 'network';
 
@@ -376,13 +366,19 @@ export class NetworkCommand extends BaseCommand {
     loadBalancerEnabled: boolean;
     clusterRefs: ClusterRefs;
     consensusNodes: ConsensusNode[];
+    domainNamesMapping?: Record<NodeAlias, string>;
   }): Promise<Record<ClusterRef, string>> {
     const valuesArgs: Record<ClusterRef, string> = this.prepareValuesArg(config);
 
     // prepare values files for each cluster
     const valuesArgMap: Record<ClusterRef, string> = {};
-    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(profileName, config.consensusNodes);
+    const profileName = this.configManager.getFlag(flags.profileName);
+
+    this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
+      profileName,
+      config.consensusNodes,
+      config.domainNamesMapping,
+    );
 
     const valuesFiles: Record<ClusterRef, string> = BaseCommand.prepareValuesFilesMapMulticluster(
       config.clusterRefs,
@@ -429,6 +425,7 @@ export class NetworkCommand extends BaseCommand {
     backupBucket: string;
     googleCredential: string;
     loadBalancerEnabled: boolean;
+    domainNamesMapping?: Record<NodeAlias, string>;
   }): Record<ClusterRef, string> {
     const valuesArgs: Record<ClusterRef, string> = {};
     const clusterRefs: ClusterRef[] = [];
@@ -645,6 +642,7 @@ export class NetworkCommand extends BaseCommand {
       flags.gcsBucket,
       flags.gcsBucketPrefix,
       flags.nodeAliasesUnparsed,
+      flags.domainNames,
     ];
 
     // disable the prompts that we don't want to prompt the user for
@@ -677,20 +675,16 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    if (promptForNodeAliases) {
-      config.nodeAliases = this.remoteConfigManager.getConsensusNodes().map(node => node.name);
-      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
-      argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases;
-    } else {
-      config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
-    }
-
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
     }
 
     if (config.envoyIps) {
       config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
+    }
+
+    if (config.domainNames) {
+      config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(config.domainNames);
     }
 
     // compute values
@@ -714,8 +708,8 @@ export class NetworkCommand extends BaseCommand {
     config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
-
-    config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
+    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed, config.consensusNodes, this.configManager);
+    argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases.join(',');
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 

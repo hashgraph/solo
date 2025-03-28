@@ -13,7 +13,7 @@ import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
-import {type SoloLogger} from '../../../src/core/logging.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {resetForTest} from '../../test-container.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {ComponentsDataWrapper} from '../../../src/core/config/remote/components-data-wrapper.js';

@@ -4,6 +4,7 @@ import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import {type CommandFlag} from '../types/flag-types.js';
 import fs from 'fs';
+import deepClone from 'deep-clone';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -13,7 +14,6 @@ import {
   number as numberPrompt,
   confirm as confirmPrompt,
 } from '@inquirer/prompts';
-import * as helpers from '../core/helpers.js';
 import validator from 'validator';
 import {type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type ClusterRef} from '../core/config/remote/types.js';
@@ -372,7 +372,7 @@ export class Flags {
         if (initial < 0) {
           const input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
             message: 'Select profile for solo network deployment',
-            choices: helpers.cloneArray(choices).map(profile => ({name: profile, value: profile})),
+            choices: deepClone(choices).map(profile => ({name: profile, value: profile})),
           })) as string;
 
           if (!input) {
@@ -1545,7 +1545,6 @@ export class Flags {
     name: 'admin-public-keys',
     definition: {
       describe: 'Comma separated list of DER encoded ED25519 public keys and must match the order of the node aliases',
-      defaultValue: constants.GENESIS_KEY,
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2307,6 +2306,29 @@ export class Flags {
     prompt: undefined,
   };
 
+  public static readonly domainName: CommandFlag = {
+    constName: 'domainName',
+    name: 'domain-name',
+    definition: {
+      describe: 'Custom domain name',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly domainNames: CommandFlag = {
+    constName: 'domainNames',
+    name: 'domain-names',
+    definition: {
+      describe:
+        'Custom domain names for consensus nodes mapping for the' +
+        `${chalk.gray('(e.g. node0=domain.name where key is node alias and value is domain name)')}` +
+        'with multiple nodes comma seperated',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   public static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
@@ -2426,6 +2448,8 @@ export class Flags {
     Flags.numberOfConsensusNodes,
     Flags.dnsBaseDomain,
     Flags.dnsConsensusNodePattern,
+    Flags.domainName,
+    Flags.domainNames,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

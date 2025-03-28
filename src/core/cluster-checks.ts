@@ -3,7 +3,7 @@
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import * as constants from './constants.js';
 import {patchInject} from './dependency-injection/container-helper.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';

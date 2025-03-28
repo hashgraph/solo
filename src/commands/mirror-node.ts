@@ -13,7 +13,7 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
-import {type AnyYargs, type CommandBuilder, type NodeAlias} from '../types/aliases.js';
+import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
@@ -32,14 +32,14 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcRef} from '../integration/kube/resources/pvc/pvc-ref.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
-import {extractContextFromConsensusNodes, showVersionBanner} from '../core/helpers.js';
+import {showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 
-export interface MirrorNodeDeployConfigClass {
+interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
   namespace: NamespaceName;
@@ -67,16 +67,26 @@ export interface MirrorNodeDeployConfigClass {
   externalDatabaseOwnerPassword: Optional<string>;
   externalDatabaseReadonlyUsername: Optional<string>;
   externalDatabaseReadonlyPassword: Optional<string>;
+  domainName: Optional<string>;
 }
 
-export interface Context {
+interface MirrorNodeDeployContext {
   config: MirrorNodeDeployConfigClass;
   addressBook: string;
 }
 
+interface MirrorNodeDestroyContext {
+  config: {
+    namespace: NamespaceName;
+    clusterContext: string;
+    isChartInstalled: boolean;
+    clusterRef?: Optional<ClusterRef>;
+  };
+}
+
 @injectable()
 export class MirrorNodeCommand extends BaseCommand {
-  constructor(
+  public constructor(
     @inject(InjectTokens.AccountManager) private readonly accountManager?: AccountManager,
     @inject(InjectTokens.ProfileManager) private readonly profileManager?: ProfileManager,
   ) {
@@ -88,44 +98,41 @@ export class MirrorNodeCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'mirror-node';
 
-  static get DEPLOY_CONFIGS_NAME() {
-    return 'deployConfigs';
-  }
+  private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';
 
-  static get DEPLOY_FLAGS_LIST() {
-    return {
-      required: [],
-      optional: [
-        flags.clusterRef,
-        flags.chartDirectory,
-        flags.deployment,
-        flags.enableIngress,
-        flags.mirrorStaticIp,
-        flags.profileFile,
-        flags.profileName,
-        flags.quiet,
-        flags.valuesFile,
-        flags.mirrorNodeVersion,
-        flags.pinger,
-        flags.useExternalDatabase,
-        flags.operatorId,
-        flags.operatorKey,
-        flags.storageType,
-        flags.storageReadAccessKey,
-        flags.storageReadSecrets,
-        flags.storageEndpoint,
-        flags.storageBucket,
-        flags.storageBucketPrefix,
-        flags.externalDatabaseHost,
-        flags.externalDatabaseOwnerUsername,
-        flags.externalDatabaseOwnerPassword,
-        flags.externalDatabaseReadonlyUsername,
-        flags.externalDatabaseReadonlyPassword,
-      ],
-    };
-  }
+  private static readonly DEPLOY_FLAGS_LIST = {
+    required: [],
+    optional: [
+      flags.clusterRef,
+      flags.chartDirectory,
+      flags.deployment,
+      flags.enableIngress,
+      flags.mirrorStaticIp,
+      flags.profileFile,
+      flags.profileName,
+      flags.quiet,
+      flags.valuesFile,
+      flags.mirrorNodeVersion,
+      flags.pinger,
+      flags.useExternalDatabase,
+      flags.operatorId,
+      flags.operatorKey,
+      flags.storageType,
+      flags.storageReadAccessKey,
+      flags.storageReadSecrets,
+      flags.storageEndpoint,
+      flags.storageBucket,
+      flags.storageBucketPrefix,
+      flags.externalDatabaseHost,
+      flags.externalDatabaseOwnerUsername,
+      flags.externalDatabaseOwnerPassword,
+      flags.externalDatabaseReadonlyUsername,
+      flags.externalDatabaseReadonlyPassword,
+      flags.domainName,
+    ],
+  };
 
-  async prepareValuesArg(config: MirrorNodeDeployConfigClass) {
+  private async prepareValuesArg(config: MirrorNodeDeployConfigClass): Promise<string> {
     let valuesArg = '';
 
     const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
@@ -167,6 +174,14 @@ export class MirrorNodeCommand extends BaseCommand {
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI=${config.storageEndpoint}`;
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageReadAccessKey}`;
       valuesArg += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageReadSecrets}`;
+    }
+
+    if (config.domainName) {
+      valuesArg += helpers.populateHelmArgs({
+        'ingress.enabled': true,
+        'ingress.tls.enabled': false,
+        'ingress.hosts[0].host': config.domainName,
+      });
     }
 
     // if the useExternalDatabase populate all the required values before installing the chart
@@ -213,11 +228,11 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArg;
   }
 
-  async deploy(argv: any) {
+  private async deploy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<MirrorNodeDeployContext>(
       [
         {
           title: 'Initialize',
@@ -240,6 +255,7 @@ export class MirrorNodeCommand extends BaseCommand {
               flags.externalDatabaseReadonlyPassword,
               flags.profileFile,
               flags.profileName,
+              flags.domainName,
             ]);
 
             const allFlags = [
@@ -278,7 +294,6 @@ export class MirrorNodeCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              ctx.config.clusterContext,
             );
             if (ctx.config.pinger) {
               const startAccId = constants.HEDERA_NODE_ACCOUNT_ID_START;
@@ -371,16 +386,13 @@ export class MirrorNodeCommand extends BaseCommand {
         {
           title: 'Enable mirror-node',
           task: (_, parentTask) => {
-            return parentTask.newListr<Context>(
+            return parentTask.newListr<MirrorNodeDeployContext>(
               [
                 {
                   title: 'Prepare address book',
                   task: async ctx => {
                     const deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
                     const portForward = this.configManager.getFlag<boolean>(flags.forcePortForward);
-                    const consensusNodes = this.remoteConfigManager.getConsensusNodes();
-                    const nodeAlias = `node${consensusNodes[0].nodeId}` as NodeAlias;
-                    const context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
                     ctx.addressBook = await self.accountManager.prepareAddressBookBase64(
                       ctx.config.namespace,
                       this.remoteConfigManager.getClusterRefs(),
@@ -388,7 +400,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       this.configManager.getFlag(flags.operatorId),
                       this.configManager.getFlag(flags.operatorKey),
                       portForward,
-                      context,
                     );
                     ctx.config.valuesArg += ` --set "importer.addressBook=${ctx.addressBook}"`;
                   },
@@ -439,6 +450,7 @@ export class MirrorNodeCommand extends BaseCommand {
                       ctx.config.valuesArg,
                       ctx.config.clusterContext,
                     );
+
                     showVersionBanner(self.logger, constants.MIRROR_NODE_RELEASE_NAME, ctx.config.mirrorNodeVersion);
 
                     if (ctx.config.enableIngress) {
@@ -477,81 +489,53 @@ export class MirrorNodeCommand extends BaseCommand {
         },
         {
           title: 'Check pods are ready',
-          task: (_, parentTask) => {
-            return parentTask.newListr(
-              [
-                {
-                  title: 'Check Postgres DB',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                  skip: ctx => !!ctx.config.useExternalDatabase,
-                },
-                {
-                  title: 'Check REST API',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-                {
-                  title: 'Check GRPC',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-                {
-                  title: 'Check Monitor',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-                {
-                  title: 'Check Importer',
-                  task: async ctx =>
-                    await self.k8Factory
-                      .getK8(ctx.config.clusterContext)
-                      .pods()
-                      .waitForReadyStatus(
-                        ctx.config.namespace,
-                        ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
-                        constants.PODS_READY_MAX_ATTEMPTS,
-                        constants.PODS_READY_DELAY,
-                      ),
-                },
-              ],
+          task: (ctx, task) => {
+            const subTasks: SoloListrTask<MirrorNodeDeployContext>[] = [
               {
-                concurrent: true,
-                rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+                title: 'Check Postgres DB',
+                labels: ['app.kubernetes.io/component=postgresql', 'app.kubernetes.io/name=postgres'],
+                skip: () => !!ctx.config.useExternalDatabase,
               },
-            );
+              {
+                title: 'Check REST API',
+                labels: ['app.kubernetes.io/component=rest', 'app.kubernetes.io/name=rest'],
+              },
+              {
+                title: 'Check GRPC',
+                labels: ['app.kubernetes.io/component=grpc', 'app.kubernetes.io/name=grpc'],
+              },
+              {
+                title: 'Check Monitor',
+                labels: ['app.kubernetes.io/component=monitor', 'app.kubernetes.io/name=monitor'],
+              },
+              {
+                title: 'Check Importer',
+                labels: ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'],
+              },
+            ].map(({title, labels, skip}: {title: string; labels: string[]; skip?: () => boolean}) => {
+              const task: SoloListrTask<MirrorNodeDeployContext> = {
+                title: title,
+                task: async () =>
+                  await self.k8Factory
+                    .getK8(ctx.config.clusterContext)
+                    .pods()
+                    .waitForReadyStatus(
+                      ctx.config.namespace,
+                      labels,
+                      constants.PODS_READY_MAX_ATTEMPTS,
+                      constants.PODS_READY_DELAY,
+                    ),
+              };
+
+              if (skip) task.skip = skip;
+
+              return task;
+            });
+
+            return task.newListr(subTasks, {
+              concurrent: true,
+              rendererOptions: constants.LISTR_DEFAULT_RENDERER_OPTION,
+            });
           },
         },
         {
@@ -563,7 +547,6 @@ export class MirrorNodeCommand extends BaseCommand {
                   title: 'Insert data in public.file_data',
                   task: async ctx => {
                     const namespace = ctx.config.namespace;
-                    const clusterContext = ctx.config.clusterContext;
 
                     const feesFileIdNum = 111;
                     const exchangeRatesFileIdNum = 112;
@@ -575,7 +558,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       namespace,
                       feesFileIdNum,
                       clusterRefs,
-                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
@@ -583,7 +565,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       namespace,
                       exchangeRatesFileIdNum,
                       clusterRefs,
-                      clusterContext,
                       deployment,
                       this.configManager.getFlag<boolean>(flags.forcePortForward),
                     );
@@ -695,20 +676,11 @@ export class MirrorNodeCommand extends BaseCommand {
     return true;
   }
 
-  async destroy(argv: any) {
+  private async destroy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: {
-        namespace: NamespaceName;
-        clusterContext: string;
-        isChartInstalled: boolean;
-        clusterRef?: Optional<ClusterRef>;
-      };
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks = new Listr<MirrorNodeDestroyContext>(
       [
         {
           title: 'Initialize',
@@ -752,7 +724,6 @@ export class MirrorNodeCommand extends BaseCommand {
               self.remoteConfigManager.getClusterRefs(),
               self.configManager.getFlag<DeploymentName>(flags.deployment),
               self.configManager.getFlag<boolean>(flags.forcePortForward),
-              ctx.config.clusterContext,
             );
             return ListrLock.newAcquireLockTask(lease, task);
           },
@@ -833,8 +804,7 @@ export class MirrorNodeCommand extends BaseCommand {
     return true;
   }
 
-  /** Return Yargs command definition for 'mirror-mirror-node' command */
-  getCommandDefinition(): {command: string; desc: string; builder: CommandBuilder} {
+  public getCommandDefinition() {
     const self = this;
     return {
       command: MirrorNodeCommand.COMMAND_NAME,
@@ -896,7 +866,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node components from remote config. */
-  public removeMirrorNodeComponents(): SoloListrTask<any> {
+  public removeMirrorNodeComponents(): SoloListrTask<MirrorNodeDestroyContext> {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -909,7 +879,7 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Adds the mirror node components to remote config. */
-  public addMirrorNodeComponents(): SoloListrTask<any> {
+  public addMirrorNodeComponents(): SoloListrTask<MirrorNodeDeployContext> {
     return {
       title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -926,8 +896,5 @@ export class MirrorNodeCommand extends BaseCommand {
     };
   }
 
-  close(): Promise<void> {
-    // no-op
-    return Promise.resolve();
-  }
+  public async close(): Promise<void> {} // no-op
 }

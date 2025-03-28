@@ -17,7 +17,7 @@ import * as constants from './constants.js';
 import {type ConfigManager} from './config-manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
 import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -188,20 +188,25 @@ export class ProfileManager {
     }
   }
 
-  async resourcesForConsensusPod(
+  public async resourcesForConsensusPod(
     profile: AnyObject,
     consensusNodes: ConsensusNode[],
     nodeAliases: NodeAliases,
     yamlRoot: AnyObject,
+    domainNamesMapping: Record<NodeAlias, string>,
   ): Promise<AnyObject> {
     if (!profile) throw new MissingArgumentError('profile is required');
 
-    const accountMap = getNodeAccountMap(nodeAliases);
+    const accountMap: Map<NodeAlias, string> = getNodeAccountMap(consensusNodes.map(node => node.name));
 
     // set consensus pod level resources
-    for (let nodeIndex = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
+    for (let nodeIndex: number = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot);
-      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, `${nodeIndex}`, yamlRoot);
+      this._setValue(
+        `hedera.nodes.${nodeIndex}.nodeId`,
+        `${Templates.nodeIdFromNodeAlias(nodeAliases[nodeIndex])}`,
+        yamlRoot,
+      );
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot);
     }
 
@@ -219,6 +224,7 @@ export class ProfileManager {
       consensusNodes,
       stagingDir,
       this.configManager.getFlag(flags.releaseTag),
+      domainNamesMapping,
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId),
       this.configManager.getFlag(flags.loadBalancerEnabled),
@@ -325,11 +331,13 @@ export class ProfileManager {
    * Prepare a values file for Solo Helm chart
    * @param profileName - resource profile name
    * @param consensusNodes - the list of consensus nodes
+   * @param domainNamesMapping
    * @returns mapping of cluster-ref to the full path to the values file
    */
   public async prepareValuesForSoloChart(
     profileName: string,
     consensusNodes: ConsensusNode[],
+    domainNamesMapping: Record<NodeAlias, string>,
   ): Promise<Record<ClusterRef, string>> {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName);
@@ -337,13 +345,13 @@ export class ProfileManager {
     const filesMapping: Record<ClusterRef, string> = {};
 
     for (const clusterRef of Object.keys(this.remoteConfigManager.getClusterRefs())) {
-      const nodeAliases = consensusNodes
+      const nodeAliases: NodeAliases = consensusNodes
         .filter(consensusNode => consensusNode.cluster === clusterRef)
         .map(consensusNode => consensusNode.name);
 
       // generate the YAML
       const yamlRoot = {};
-      await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot);
+      await this.resourcesForConsensusPod(profile, consensusNodes, nodeAliases, yamlRoot, domainNamesMapping);
       this.resourcesForHaProxyPod(profile, yamlRoot);
       this.resourcesForEnvoyProxyPod(profile, yamlRoot);
       this.resourcesForMinioTenantPod(profile, yamlRoot);
@@ -473,6 +481,7 @@ export class ProfileManager {
    * @param consensusNodes - the list of consensus nodes
    * @param destPath - path to the destination directory to write the config.txt file
    * @param releaseTagOverride - release tag override
+   * @param domainNamesMapping
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
    * @param [loadBalancerEnabled] - whether the load balancer is enabled (flag is not set by default)
@@ -483,6 +492,7 @@ export class ProfileManager {
     consensusNodes: ConsensusNode[],
     destPath: string,
     releaseTagOverride: string,
+    domainNamesMapping: Record<NodeAlias, string>,
     appName = constants.HEDERA_APP_NAME,
     chainId = constants.HEDERA_CHAIN_ID,
     loadBalancerEnabled: boolean = false,
@@ -518,18 +528,24 @@ export class ProfileManager {
 
       let nodeSeq = 0;
       for (const consensusNode of consensusNodes) {
-        const internalIP: string = helpers.getInternalIp(
+        const internalIP: string = helpers.getInternalAddress(
           releaseVersion,
           NamespaceName.of(consensusNode.namespace),
           consensusNode.name as NodeAlias,
         );
 
-        // const externalIP = consensusNode.fullyQualifiedDomainName;
-        const externalIP = await helpers.getExternalAddress(
-          consensusNode,
-          this.k8Factory.getK8(consensusNode.context),
-          loadBalancerEnabled,
-        );
+        let externalIP: string;
+
+        const domainName: Optional<string> = domainNamesMapping?.[consensusNode.name];
+        if (domainName) {
+          externalIP = domainName;
+        } else {
+          externalIP = await helpers.getExternalAddress(
+            consensusNode,
+            this.k8Factory.getK8(consensusNode.context),
+            loadBalancerEnabled,
+          );
+        }
 
         const account = nodeAccountMap.get(consensusNode.name as NodeAlias);
 

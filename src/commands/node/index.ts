@@ -8,6 +8,8 @@ import {type NodeCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {inject, injectable} from 'tsyringe-neo';
+import {type ExtendedNetServer} from '../../types/index.js';
+import {type AnyYargs} from '../../types/aliases.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -16,7 +18,7 @@ import {inject, injectable} from 'tsyringe-neo';
 export class NodeCommand extends BaseCommand {
   public _portForwards: any;
 
-  constructor(
+  public constructor(
     @inject(InjectTokens.AccountManager) private readonly accountManager?: AccountManager,
     @inject(InjectTokens.NodeCommandHandlers) public readonly handlers?: NodeCommandHandlers,
   ) {
@@ -34,7 +36,7 @@ export class NodeCommand extends BaseCommand {
    * - calls the accountManager.close()
    * - for all portForwards, calls k8Factory.default().pods().readByRef(null).stopPortForward(srv)
    */
-  async close() {
+  public async close(): Promise<void> {
     await this.accountManager.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
@@ -46,16 +48,16 @@ export class NodeCommand extends BaseCommand {
     this._portForwards = [];
   }
 
-  getUnusedConfigs(configName: string): string[] {
+  public getUnusedConfigs(configName: string): string[] {
     return this.handlers.getUnusedConfigs(configName);
   }
 
-  getCommandDefinition() {
+  public getCommandDefinition() {
     const self = this;
     return {
       command: NodeCommand.COMMAND_NAME,
       desc: 'Manage Hedera platform node in solo network',
-      builder: (yargs: any) => {
+      builder: (yargs: AnyYargs) => {
         return yargs
           .command(
             new YargsCommand(

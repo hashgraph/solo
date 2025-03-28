@@ -140,7 +140,7 @@ describe('ProfileManager', () => {
         }
 
         profileManager.loadProfiles(true);
-        const valuesFileMapping = await profileManager.prepareValuesForSoloChart(input.profileName, consensusNodes);
+        const valuesFileMapping = await profileManager.prepareValuesForSoloChart(input.profileName, consensusNodes, {});
         const valuesFile = Object.values(valuesFileMapping)[0];
 
         expect(valuesFile).not.to.be.null;
@@ -180,7 +180,7 @@ describe('ProfileManager', () => {
         configManager.setFlag(flags.applicationEnv, file);
         const destFile = PathEx.join(stagingDir, 'templates', 'application.env');
         fs.cpSync(file, destFile, {force: true});
-        const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart('test', consensusNodes);
+        const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart('test', consensusNodes, {});
         const cachedValuesFile = Object.values(cachedValuesFileMapping)[0];
         const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());
         expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents);
@@ -247,6 +247,7 @@ describe('ProfileManager', () => {
         consensusNodes,
         destPath,
         version.HEDERA_PLATFORM_VERSION,
+        {},
       );
 
       // expect that the config.txt file was created and exists
@@ -271,7 +272,7 @@ describe('ProfileManager', () => {
     it('should fail when no nodeAliases', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       try {
-        await profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, '', version.HEDERA_PLATFORM_VERSION);
+        await profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, '', version.HEDERA_PLATFORM_VERSION, {});
       } catch (e) {
         expect(e).to.be.instanceOf(MissingArgumentError);
         expect(e.message).to.include('nodeAccountMap the map of node IDs to account IDs is required');
@@ -288,6 +289,7 @@ describe('ProfileManager', () => {
           consensusNodes,
           destPath,
           version.HEDERA_PLATFORM_VERSION,
+          {},
         );
       } catch (e) {
         expect(e.message).to.contain('config destPath does not exist');
