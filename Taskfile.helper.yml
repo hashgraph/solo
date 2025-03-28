@@ -24,9 +24,6 @@ vars:
   solo_install_file:
     sh: (echo "/tmp/solo-${USER}-solo-install-$(date +%Y%m%d%H%M%S)")
 
-env:
-
-
 tasks:
   solo:
     cmds:
