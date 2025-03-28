@@ -3,7 +3,7 @@
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {patchInject} from './dependency-injection/container-helper.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {UserBreak} from './errors/user-break.js';
 import {SilentBreak} from './errors/silent-break.js';
 

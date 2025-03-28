@@ -13,7 +13,7 @@ import {type Lease} from '../../integration/kube/resources/lease/lease.js';
 import {LockAcquisitionError} from './lock-acquisition-error.js';
 import {LockRelinquishmentError} from './lock-relinquishment-error.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
-import {type SoloLogger} from '../logging.js';
+import {type SoloLogger} from '../logging/solo-logger.js';
 import {container} from 'tsyringe-neo';
 
 /**

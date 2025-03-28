@@ -51,7 +51,7 @@ import {
 } from '../../core/helpers.js';
 import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
-import {type SoloLogger} from '../../core/logging.js';
+import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import {
   type AnyListrContext,
   type AnyObject,
@@ -1166,7 +1166,15 @@ export class NodeCommandTasks {
       title: 'Setup network nodes',
       task: async (ctx, task) => {
         // @ts-ignore
-        ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+        if (!ctx.config.nodeAliases || ctx.config.nodeAliases.length === 0) {
+          // @ts-ignore
+          ctx.config.nodeAliases = helpers.parseNodeAliases(
+            // @ts-ignore
+            ctx.config.nodeAliasesUnparsed,
+            this.remoteConfigManager.getConsensusNodes(),
+            this.configManager,
+          );
+        }
         if (isGenesis) {
           await this.generateGenesisNetworkJson(
             ctx.config.namespace,
@@ -1715,7 +1723,7 @@ export class NodeCommandTasks {
           }
 
           endpoints = [
-            `${helpers.getInternalIp(config.releaseTag, config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
+            `${helpers.getInternalAddress(config.releaseTag, config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
             `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`,
           ];
         } else {

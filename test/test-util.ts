@@ -19,7 +19,7 @@ import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKe
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'crypto';
 import {AccountCommand} from '../src/commands/account.js';
-import {type SoloLogger} from '../src/core/logging.js';
+import {type SoloLogger} from '../src/core/logging/solo-logger.js';
 import {type NodeAlias} from '../src/types/aliases.js';
 import {type K8Factory} from '../src/integration/kube/k8-factory.js';
 import {type AccountManager} from '../src/core/account-manager.js';
