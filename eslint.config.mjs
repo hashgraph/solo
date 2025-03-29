@@ -20,10 +20,13 @@ export default [
     files: ['**/*.ts', '**/*.tsx'],
   })),
   {
-    ignores: ['docs/**/*', 'dist/*', '**/dist/*'],
+    ignores: [
+      'docs/**/*', // Documentation files
+      'dist/*', // Distribution files
+    ],
   },
   {
-    // all files not excluded, mostly js files
+    // Rules for all files not excluded
     languageOptions: {
       globals: {
         ...globals.mocha,
