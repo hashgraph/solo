@@ -186,6 +186,14 @@ export default [
       ],
       'no-invalid-this': ['off', {}],
       '@typescript-eslint/no-unused-expressions': 'off',
+      'unicorn/filename-case': [
+        'error',
+        {
+          case: 'kebabCase',
+          // Optional: Ensure this rule only applies to TypeScript files
+          ignore: ['.*\\.d\\.ts$'], // Ignore TypeScript declaration files if needed
+        },
+      ],
       'unicorn/prefer-node-protocol': 'warn', // TODO error
       'unicorn/prefer-spread': 'warn', // TODO error
       'unicorn/no-null': 'warn', // TODO error
