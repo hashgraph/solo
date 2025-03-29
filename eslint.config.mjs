@@ -8,7 +8,6 @@ import eslintPluginPrettier from 'eslint-plugin-prettier';
 import tsEslint from 'typescript-eslint';
 import headers from 'eslint-plugin-headers';
 import tsdoc from 'eslint-plugin-tsdoc';
-// eslint-disable-next-line n/no-unpublished-import
 import unusedImports from 'eslint-plugin-unused-imports';
 
 export default [
@@ -95,6 +94,7 @@ export default [
             'typescript-eslint',
             'eslint-plugin-headers',
             'eslint-plugin-tsdoc',
+            'eslint-plugin-unused-imports',
           ],
           convertPath: [
             {
