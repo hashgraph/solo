@@ -20,7 +20,7 @@ import {DependencyManager} from '../../../src/core/dependency-managers/index.js'
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import {DefaultHelmClient} from '../../../src/integration/helm/impl/DefaultHelmClient.js';
+import {DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-config-data-wrapper.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';

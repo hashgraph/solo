@@ -34,7 +34,7 @@ import {type Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
 import {type HelpRenderer} from './core/help-renderer.js';
-import {type HelmClient} from './integration/helm/HelmClient.js';
+import {type HelmClient} from './integration/helm/helm-client.js';
 import {getSoloVersion} from '../version.js';
 
 export async function main(argv: string[], context?: {logger: SoloLogger}) {

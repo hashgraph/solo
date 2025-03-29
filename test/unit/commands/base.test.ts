@@ -22,7 +22,7 @@ import {Cluster} from '../../../src/core/config/remote/cluster.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
-import {type HelmClient} from '../../../src/integration/helm/HelmClient.js';
+import {type HelmClient} from '../../../src/integration/helm/helm-client.js';
 
 describe('BaseCommand', () => {
   let helm: HelmClient;
