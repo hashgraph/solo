@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {UpgradeChartOptions} from './UpgradeChartOptions.js';
+import {UpgradeChartOptions} from './upgrade-chart-options.js';
 
 /**
  * Builder for {@link UpgradeChartOptions}.

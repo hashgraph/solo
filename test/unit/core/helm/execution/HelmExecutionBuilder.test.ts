@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/HelmExecutionBuilder.js';
+import {HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/helm-execution-builder.js';
 import {expect} from 'chai';
 
 describe('HelmExecutionBuilder', () => {

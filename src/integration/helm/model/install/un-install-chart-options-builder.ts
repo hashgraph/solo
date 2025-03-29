@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {UnInstallChartOptions} from './UnInstallChartOptions.js';
+import {UnInstallChartOptions} from './un-install-chart-options.js';
 
 /**
  * Builder for {@link UnInstallChartOptions}.

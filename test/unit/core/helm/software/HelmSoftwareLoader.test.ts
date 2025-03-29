@@ -5,8 +5,8 @@ import {describe, it} from 'mocha';
 import {platform, arch} from 'os';
 import {existsSync} from 'fs';
 import {execSync} from 'child_process';
-import {SemanticVersion} from '../../../../../src/integration/helm/base/api/version/SemanticVersion.js';
-import {HelmSoftwareLoader} from '../../../../../src/integration/helm/resource/HelmSoftwareLoader.js';
+import {SemanticVersion} from '../../../../../src/integration/helm/base/api/version/semantic-version.js';
+import {HelmSoftwareLoader} from '../../../../../src/integration/helm/resource/helm-software-loader.js';
 
 describe('Helm Software Loader Test', () => {
   const currentPlatform = platform();

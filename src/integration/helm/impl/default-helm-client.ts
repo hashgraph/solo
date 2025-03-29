@@ -1,33 +1,33 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Define BiFunction type for TypeScript
-import {type UnInstallChartOptions} from '../model/install/UnInstallChartOptions.js';
+import {type UnInstallChartOptions} from '../model/install/un-install-chart-options.js';
 
 type BiFunction<T, U, R> = (t: T, u: U) => R;
 
-import {type HelmClient} from '../HelmClient.js';
-import {type HelmExecution} from '../execution/HelmExecution.js';
-import {HelmExecutionBuilder} from '../execution/HelmExecutionBuilder.js';
-import {type Chart} from '../model/Chart.js';
-import {Repository} from '../model/Repository.js';
-import {Version} from '../model/Version.js';
-import {Release} from '../model/chart/Release.js';
-import {type InstallChartOptions} from '../model/install/InstallChartOptions.js';
-import {type UpgradeChartOptions} from '../model/upgrade/UpgradeChartOptions.js';
-import {ReleaseItem} from '../model/release/ReleaseItem.js';
-import {type TestChartOptions} from '../model/test/TestChartOptions.js';
-import {type HelmRequest} from '../request/HelmRequest.js';
-import {ChartDependencyUpdateRequest} from '../request/chart/ChartDependencyUpdateRequest.js';
-import {ChartInstallRequest} from '../request/chart/ChartInstallRequest.js';
-import {ChartTestRequest} from '../request/chart/ChartTestRequest.js';
-import {ChartUninstallRequest} from '../request/chart/ChartUninstallRequest.js';
-import {ChartUpgradeRequest} from '../request/chart/ChartUpgradeRequest.js';
-import {VersionRequest} from '../request/common/VersionRequest.js';
-import {ReleaseListRequest} from '../request/release/ReleaseListRequest.js';
-import {RepositoryAddRequest} from '../request/repository/RepositoryAddRequest.js';
-import {RepositoryListRequest} from '../request/repository/RepositoryListRequest.js';
-import {RepositoryRemoveRequest} from '../request/repository/RepositoryRemoveRequest.js';
-import {type SemanticVersion} from '../base/api/version/SemanticVersion.js';
+import {type HelmClient} from '../helm-client.js';
+import {type HelmExecution} from '../execution/helm-execution.js';
+import {HelmExecutionBuilder} from '../execution/helm-execution-builder.js';
+import {type Chart} from '../model/chart.js';
+import {Repository} from '../model/repository.js';
+import {Version} from '../model/version.js';
+import {Release} from '../model/chart/release.js';
+import {type InstallChartOptions} from '../model/install/install-chart-options.js';
+import {type UpgradeChartOptions} from '../model/upgrade/upgrade-chart-options.js';
+import {ReleaseItem} from '../model/release/release-item.js';
+import {type TestChartOptions} from '../model/test/test-chart-options.js';
+import {type HelmRequest} from '../request/helm-request.js';
+import {ChartDependencyUpdateRequest} from '../request/chart/chart-dependency-update-request.js';
+import {ChartInstallRequest} from '../request/chart/chart-install-request.js';
+import {ChartTestRequest} from '../request/chart/chart-test-request.js';
+import {ChartUninstallRequest} from '../request/chart/chart-uninstall-request.js';
+import {ChartUpgradeRequest} from '../request/chart/chart-upgrade-request.js';
+import {VersionRequest} from '../request/common/version-request.js';
+import {ReleaseListRequest} from '../request/release/release-list-request.js';
+import {RepositoryAddRequest} from '../request/repository/repository-add-request.js';
+import {RepositoryListRequest} from '../request/repository/repository-list-request.js';
+import {RepositoryRemoveRequest} from '../request/repository/repository-remove-request.js';
+import {type SemanticVersion} from '../base/api/version/semantic-version.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';

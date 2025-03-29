@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
-import {type HelmRequest} from '../HelmRequest.js';
-import {type UnInstallChartOptions} from '../../model/install/UnInstallChartOptions.js';
+import {type HelmExecutionBuilder} from '../../execution/helm-execution-builder.js';
+import {type HelmRequest} from '../helm-request.js';
+import {type UnInstallChartOptions} from '../../model/install/un-install-chart-options.js';
 
 /**
  * A request to uninstall a Helm chart.

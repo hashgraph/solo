@@ -3,9 +3,9 @@
 import {expect} from 'chai';
 import sinon from 'sinon';
 import {describe, it} from 'mocha';
-import {ChartTestRequest} from '../../../../../src/integration/helm/request/chart/ChartTestRequest.js';
-import {type HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/HelmExecutionBuilder.js';
-import {TestChartOptionsBuilder} from '../../../../../src/integration/helm/model/test/TestChartOptionsBuilder.js';
+import {ChartTestRequest} from '../../../../../src/integration/helm/request/chart/chart-test-request.js';
+import {type HelmExecutionBuilder} from '../../../../../src/integration/helm/execution/helm-execution-builder.js';
+import {TestChartOptionsBuilder} from '../../../../../src/integration/helm/model/test/test-chart-options-builder.js';
 
 describe('ChartTestRequest Tests', () => {
   it('Test ChartTestRequest constructor validation', () => {

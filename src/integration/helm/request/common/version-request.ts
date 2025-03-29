@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
-import {type HelmRequest} from '../HelmRequest.js';
+import {type HelmExecutionBuilder} from '../../execution/helm-execution-builder.js';
+import {type HelmRequest} from '../helm-request.js';
 
 /**
  * A request to get the version of the Helm CLI.

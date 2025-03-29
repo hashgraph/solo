@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SemanticVersion} from '../base/api/version/SemanticVersion.js';
+import {SemanticVersion} from '../base/api/version/semantic-version.js';
 
 /**
  * The response from the helm version command.

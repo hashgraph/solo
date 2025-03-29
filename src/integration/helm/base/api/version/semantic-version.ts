@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {InvalidSemanticVersionException} from './InvalidSemanticVersionException.js';
+import {InvalidSemanticVersionException} from './invalid-semantic-version-exception.js';
 
 /**
  * A standard representation of a semantic version number.

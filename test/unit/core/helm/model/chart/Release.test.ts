@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {Release} from '../../../../../../src/integration/helm/model/chart/Release.js';
+import {Release} from '../../../../../../src/integration/helm/model/chart/release.js';
 import {readFileSync} from 'fs';
 import {join} from 'path';
 import {fileURLToPath} from 'url';

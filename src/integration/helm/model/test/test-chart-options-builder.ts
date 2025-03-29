@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {TestChartOptions} from './TestChartOptions.js';
+import {TestChartOptions} from './test-chart-options.js';
 
 /**
  * The builder for the TestChartOptions.

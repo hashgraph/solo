@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ChartMetadata} from './ChartMetadata.js';
+import {type ChartMetadata} from './chart-metadata.js';
 
 /**
  * Represents information about a Helm chart.

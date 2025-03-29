@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {HelmConfigurationException} from '../HelmConfigurationException.js';
+import {HelmConfigurationException} from '../helm-configuration-exception.js';
 import {ShellRunner} from '../../../core/shell-runner.js';
 
 /**

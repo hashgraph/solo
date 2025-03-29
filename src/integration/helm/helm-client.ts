@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type SemanticVersion} from './base/api/version/SemanticVersion.js';
-import {type Chart} from './model/Chart.js';
-import {type InstallChartOptions} from './model/install/InstallChartOptions.js';
-import {type UpgradeChartOptions} from './model/upgrade/UpgradeChartOptions.js';
-import {type Release} from './model/chart/Release.js';
-import {type Repository} from './model/Repository.js';
-import {type ReleaseItem} from './model/release/ReleaseItem.js';
-import {type TestChartOptions} from './model/test/TestChartOptions.js';
-import {type UnInstallChartOptions} from './model/install/UnInstallChartOptions.js';
+import {type SemanticVersion} from './base/api/version/semantic-version.js';
+import {type Chart} from './model/chart.js';
+import {type InstallChartOptions} from './model/install/install-chart-options.js';
+import {type UpgradeChartOptions} from './model/upgrade/upgrade-chart-options.js';
+import {type Release} from './model/chart/release.js';
+import {type Repository} from './model/repository.js';
+import {type ReleaseItem} from './model/release/release-item.js';
+import {type TestChartOptions} from './model/test/test-chart-options.js';
+import {type UnInstallChartOptions} from './model/install/un-install-chart-options.js';
 
 /**
  * The HelmClient is a bridge between TypeScript and the Helm CLI. The client is highly dependent on specific features

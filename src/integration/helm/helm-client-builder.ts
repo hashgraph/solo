@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type HelmClient} from './HelmClient.js';
+import {type HelmClient} from './helm-client.js';
 
 /**
  * HelmClientBuilder is used to construct instances of HelmClient. This interface defines the standard

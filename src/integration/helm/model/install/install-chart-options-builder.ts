@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {InstallChartOptions} from './InstallChartOptions.js';
+import {InstallChartOptions} from './install-chart-options.js';
 
 /**
  * The builder for the InstallChartOptions.

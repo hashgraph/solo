@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
-import {type Options} from '../Options.js';
+import {type HelmExecutionBuilder} from '../../execution/helm-execution-builder.js';
+import {type Options} from '../options.js';
 
 /**
  * Represents the options to use when testing a chart.

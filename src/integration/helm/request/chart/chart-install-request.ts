@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type HelmExecutionBuilder} from '../../execution/HelmExecutionBuilder.js';
-import {type HelmRequest} from '../HelmRequest.js';
-import {type Chart} from '../../model/Chart.js';
-import {type InstallChartOptions} from '../../model/install/InstallChartOptions.js';
-import {InstallChartOptionsBuilder} from '../../model/install/InstallChartOptionsBuilder.js';
+import {type HelmExecutionBuilder} from '../../execution/helm-execution-builder.js';
+import {type HelmRequest} from '../helm-request.js';
+import {type Chart} from '../../model/chart.js';
+import {type InstallChartOptions} from '../../model/install/install-chart-options.js';
+import {InstallChartOptionsBuilder} from '../../model/install/install-chart-options-builder.js';
 
 /**
  * A request to install a Helm chart.
