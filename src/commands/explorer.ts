@@ -79,6 +79,7 @@ export class ExplorerCommand extends BaseCommand {
   private static readonly DEPLOY_FLAGS_LIST = {
     required: [],
     optional: [
+      flags.cacheDir,
       flags.chartDirectory,
       flags.clusterRef,
       flags.enableIngress,
