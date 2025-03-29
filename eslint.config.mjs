@@ -12,10 +12,10 @@ import tsdoc from 'eslint-plugin-tsdoc';
 import unusedImports from 'eslint-plugin-unused-imports';
 
 export default [
-  eslintJs['configs']['recommended'],
-  nodePlugin['configs']['flat/recommended'],
+  eslintJs.configs.recommended,
+  nodePlugin.configs['flat/recommended'],
   eslintConfigPrettier,
-  ...tsEslint['configs']['recommended'].map(config => ({
+  ...tsEslint.configs.recommended.map(config => ({
     ...config,
     files: ['**/*.ts', '**/*.tsx'],
   })),
@@ -29,7 +29,7 @@ export default [
     // Rules for all files not excluded
     languageOptions: {
       globals: {
-        ...globals['mocha'],
+        ...globals.mocha,
         ...globals.node,
       },
       ecmaVersion: 'latest',
