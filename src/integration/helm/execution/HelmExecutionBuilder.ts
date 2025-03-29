@@ -225,7 +225,7 @@ export class HelmExecutionBuilder {
 
     command.push(...this._positionals);
 
-    this.logger.debug(`Helm command: helm ${command.slice(1).join(' ')}`);
+    this.logger.debug(`Helm command: ${this._workingDirectory} ${command.slice(1).join(' ')}`);
 
     return command;
   }
