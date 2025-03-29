@@ -12,10 +12,10 @@ import tsdoc from 'eslint-plugin-tsdoc';
 import unusedImports from 'eslint-plugin-unused-imports';
 
 export default [
-  eslintJs.configs.recommended,
-  nodePlugin.configs['flat/recommended'],
+  eslintJs['configs']['recommended'],
+  nodePlugin['configs']['flat/recommended'],
   eslintConfigPrettier,
-  ...tsEslint.configs.recommended.map(config => ({
+  ...tsEslint['configs']['recommended'].map(config => ({
     ...config,
     files: ['**/*.ts', '**/*.tsx'],
   })),
@@ -29,7 +29,7 @@ export default [
     // Rules for all files not excluded
     languageOptions: {
       globals: {
-        ...globals.mocha,
+        ...globals['mocha'],
         ...globals.node,
       },
       ecmaVersion: 'latest',
@@ -39,6 +39,9 @@ export default [
       n: nodePlugin,
       prettier: eslintPluginPrettier,
       headers: headers,
+      tsdoc: tsdoc,
+      'unused-imports': unusedImports,
+      '@typescript-eslint': tsEslint,
     },
     rules: {
       'headers/header-format': [
@@ -110,24 +113,6 @@ export default [
         },
       ],
       'no-prototype-builtins': 'off',
-    },
-  },
-  {
-    // all ts files
-    files: ['**/*.ts'],
-    plugins: {
-      tsdoc: tsdoc,
-      'unused-imports': unusedImports,
-    },
-    languageOptions: {
-      globals: {
-        ...globals.mocha,
-        ...globals.node,
-      },
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-    },
-    rules: {
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
@@ -193,7 +178,7 @@ export default [
     },
   },
   {
-    // test ts files
+    // exclude certain rules for test ts files
     files: ['test/**/*.ts'],
     rules: {
       'no-invalid-this': ['off', {}],
