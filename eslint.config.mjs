@@ -182,14 +182,16 @@ export default [
           argsIgnorePattern: '^_',
         },
       ],
+      'no-invalid-this': ['off', {}],
+      '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
   {
-    // exclude certain rules for test ts files
-    files: ['test/**/*.ts'],
+    // include certain rules for source ts files (everything except test files)
+    ignores: ['test/**/*.ts'],
     rules: {
-      'no-invalid-this': ['off', {}],
-      '@typescript-eslint/no-unused-expressions': 'off',
+      'no-invalid-this': ['error', {}],
+      '@typescript-eslint/no-unused-expressions': 'error',
     },
   },
 ];
