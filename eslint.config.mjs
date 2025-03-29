@@ -21,7 +21,10 @@ export default [
   {
     ignores: [
       'docs/**/*', // Documentation files
-      'dist/*', // Distribution files
+      'dist/**/*', // Distribution files
+      'node_modules/**/*', // Node modules
+      'coverage/**/*', // Coverage files
+      '**/*.*js', // JavaScript files
     ],
   },
   {
@@ -30,6 +33,10 @@ export default [
       globals: {
         ...globals.mocha,
         ...globals.node,
+      },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -40,7 +47,7 @@ export default [
       headers: headers,
       tsdoc: tsdoc,
       'unused-imports': unusedImports,
-      '@typescript-eslint': tsEslint,
+      '@typescript-eslint': tsEslint.plugin,
     },
     rules: {
       'headers/header-format': [
