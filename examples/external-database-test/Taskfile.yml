@@ -30,6 +30,19 @@ env:
     --external-database-owner-password {{.postgres_password}}
     --external-database-read-username {{.postgres_readonly_username}}
     --external-database-read-password {{.postgres_readonly_password}}
+
+  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
+  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
+  MIRROR_RELEASE_NAME: mirror
+  SOLO_EMAIL: john@doe.com
+  HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
+  ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
+  TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
+  ENABLE_EXPLORER_INGRESS: "--enable-ingress"
+  ENABLE_MIRROR_INGRESS: "--enable-ingress"
+  EXPLORER_NAME_SPACE: "explorer-name-space"
+  EXPLORER_DEPLOYMENT: ""
+  EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
 tasks:
   install:external-database:
     desc: create the cluster, solo init, solo cluster-ref create, solo node keys, solo network deploy
@@ -60,7 +73,7 @@ tasks:
             -d {{.postgres_mirror_node_database_name}}
       - task: "solo:relay"
       - name: "Run smoke test"
-        cmd: (cd ../../ && bash ./.github/workflows/script/solo_smoke_test.sh)
+        cmd: (cd ../../ && ./.github/workflows/script/solo_smoke_test.sh)
 
   destroy:external-database:
     desc: destroy relay, mirror-node, and network
