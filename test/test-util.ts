@@ -144,7 +144,6 @@ export function bootstrapTestVariables(
 
   const deployment: string = argv.getArg<DeploymentName>(flags.deployment) || `${namespace.name}-deployment`;
   const cacheDir: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDir(testName);
-  resetForTest(namespace.name, cacheDir);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   configManager.update(argv.build());
 

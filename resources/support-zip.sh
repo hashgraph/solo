@@ -49,7 +49,9 @@ AddToFileList ${CONFIG_DIR}
 AddToFileList ${KEYS_DIR}
 AddToFileList ${UPGRADE_DIR}
 echo "creating zip file" | tee -a ${LOG_FILE}
-jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}"
+#jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}"
+zip "${ZIP_FULLPATH}" -@ < "${FILE_LIST}" | tee -a ${LOG_FILE}
 echo "...end support-zip.sh" | tee -a ${LOG_FILE}
-jar -u -v --file=${ZIP_FULLPATH} ${OUTPUT_DIR}/support-zip.log
+#jar -u -v --file=${ZIP_FULLPATH} ${OUTPUT_DIR}/support-zip.log
+zip -u -v "${ZIP_FULLPATH}" ${OUTPUT_DIR}/support-zip.log
 exit 0
