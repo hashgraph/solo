@@ -303,12 +303,12 @@ export class AccountCommand extends BaseCommand {
                     const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
 
                     for (const currentSet of context_.accountsBatchedSet) {
-                      const accumulatorStart = `${realm}.${shard}.${currentSet[0]}`;
-                      const accumulatorEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
+                      const accountStart = `${realm}.${shard}.${currentSet[0]}`;
+                      const accountEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
                       const rangeString =
-                        accumulatorStart !== accumulatorEnd
-                          ? `${chalk.yellow(accumulatorStart)} to ${chalk.yellow(accumulatorEnd)}`
-                          : `${chalk.yellow(accumulatorStart)}`;
+                        accountStart !== accountEnd
+                          ? `${chalk.yellow(accountStart)} to ${chalk.yellow(accountEnd)}`
+                          : `${chalk.yellow(accountStart)}`;
 
                       subTasks.push({
                         title: `Updating accounts [${rangeString}]`,
