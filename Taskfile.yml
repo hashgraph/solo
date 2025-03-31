@@ -138,9 +138,9 @@ tasks:
           --ignore 'test/e2e/commands/separate_node*.ts' 
           --ignore 'test/e2e/commands/relay*.ts' 
           --ignore 'test/e2e/commands/dual-*.ts'
-          --ignore 'test/e2e/commands/separated_node_add.test.ts' 
-          --ignore 'test/e2e/commands/separated_node_delete.test.ts' 
-          --ignore 'test/e2e/commands/separated_node_update.test.ts' 
+          --ignore 'test/e2e/commands/separate_node_add.test.ts' 
+          --ignore 'test/e2e/commands/separate_node_delete.test.ts' 
+          --ignore 'test/e2e/commands/separate_node_update.test.ts' 
           --ignore 'test/e2e/commands/separate_node_upgrade.test.ts' 
         {{ .reporter_options_prefix }}-e2e-standard.xml --timeout 30000"
 
