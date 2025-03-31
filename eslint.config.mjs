@@ -217,7 +217,6 @@ export default [
       'unicorn/no-for-loop': 'warn', // TODO error
       'unicorn/prefer-ternary': 'warn', // TODO error
       'unicorn/no-negated-condition': 'warn', // TODO error
-      'unicorn/prefer-at': 'warn', // TODO error
       'unicorn/prefer-string-replace-all': 'warn', // TODO error
       'unicorn/prefer-string-raw': 'warn', // TODO error
       'unicorn/prefer-number-properties': 'warn', // TODO error
