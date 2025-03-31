@@ -129,15 +129,19 @@ tasks:
   test-e2e-standard:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Standard Tests\"
-        {{ .reporter_prefix }}='coverage/e2e-standard'
-        {{ .mocha_bin }} 'test/e2e/**/*.ts'
-          --ignore 'test/unit/**/*.ts'
-          --ignore 'test/e2e/integration/**/*.ts'
-          --ignore 'test/e2e/commands/mirror_node*.ts'
-          --ignore 'test/e2e/commands/node*.ts'
-          --ignore 'test/e2e/commands/separate_node*.ts'
-          --ignore 'test/e2e/commands/relay*.ts'
+        {{ .reporter_prefix }}='coverage/e2e-standard' 
+        {{ .mocha_bin }} 'test/e2e/**/*.ts' 
+          --ignore 'test/unit/**/*.ts' 
+          --ignore 'test/e2e/integration/**/*.ts' 
+          --ignore 'test/e2e/commands/mirror_node*.ts' 
+          --ignore 'test/e2e/commands/node*.ts' 
+          --ignore 'test/e2e/commands/separate_node*.ts' 
+          --ignore 'test/e2e/commands/relay*.ts' 
           --ignore 'test/e2e/commands/dual-*.ts'
+          --ignore 'test/e2e/commands/separated_node_add.test.ts' 
+          --ignore 'test/e2e/commands/separated_node_delete.test.ts' 
+          --ignore 'test/e2e/commands/separated_node_update.test.ts' 
+          --ignore 'test/e2e/commands/separate_node_upgrade.test.ts' 
         {{ .reporter_options_prefix }}-e2e-standard.xml --timeout 30000"
 
   test-e2e-mirror-node:
