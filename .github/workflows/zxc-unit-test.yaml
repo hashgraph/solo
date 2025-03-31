@@ -103,7 +103,7 @@ jobs:
 
       - name: Run Helm Client Unit Tests
         if: ${{ runner.os == 'linux' }}
-        run: npm run test-helm
+        run: task test-helm
 
       - name: Publish Windows Unit Test Report
         uses: EnricoMi/publish-unit-test-result-action/windows/bash@170bf24d20d201b842d7a52403b73ed297e6645b # v2.18.0
