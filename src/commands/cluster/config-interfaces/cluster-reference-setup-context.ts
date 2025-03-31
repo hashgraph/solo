@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ClusterRefSetupConfigClass as ClusterReferenceSetupConfigClass} from './cluster-ref-setup-config-class.js';
+import {type ClusterReferenceSetupConfigClass} from './cluster-reference-setup-config-class.js';
 
 export interface ClusterReferenceSetupContext {
   config: ClusterReferenceSetupConfigClass;

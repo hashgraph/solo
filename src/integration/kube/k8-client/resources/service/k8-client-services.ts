@@ -11,7 +11,7 @@ import {ResourceType} from '../../../resources/resource-type.js';
 import {K8ClientService} from './k8-client-service.js';
 import {type ServiceSpec} from '../../../resources/service/service-spec.js';
 import {type ServiceStatus} from '../../../resources/service/service-status.js';
-import {type ServiceRef} from '../../../resources/service/service-ref.js';
+import {type ServiceReference as ServiceReference} from '../../../resources/service/service-reference.js';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
 import {type IncomingMessage} from 'http';
 
@@ -57,14 +57,14 @@ export class K8ClientServices extends K8ClientBase implements Services {
   }
 
   public async create(
-    serviceRef: ServiceRef,
+    serviceReference: ServiceReference,
     labels: Record<string, string>,
     servicePort: number,
     podTargetPort: number,
   ): Promise<Service> {
     const v1SvcMetadata = new V1ObjectMeta();
-    v1SvcMetadata.name = serviceRef.name.toString();
-    v1SvcMetadata.namespace = serviceRef.namespace.toString();
+    v1SvcMetadata.name = serviceReference.name.toString();
+    v1SvcMetadata.namespace = serviceReference.namespace.toString();
     v1SvcMetadata.labels = labels;
 
     const v1SvcPort = new V1ServicePort();
@@ -80,19 +80,19 @@ export class K8ClientServices extends K8ClientBase implements Services {
 
     let result: {response: IncomingMessage; body: V1Service};
     try {
-      result = await this.kubeClient.createNamespacedService(serviceRef.namespace.toString(), v1Svc);
-    } catch (e) {
-      throw new SoloError('Failed to create service', e);
+      result = await this.kubeClient.createNamespacedService(serviceReference.namespace.toString(), v1Svc);
+    } catch (error) {
+      throw new SoloError('Failed to create service', error);
     }
 
     KubeApiResponse.check(
       result.response,
       ResourceOperation.CREATE,
       ResourceType.SERVICE,
-      serviceRef.namespace,
-      serviceRef.name.toString(),
+      serviceReference.namespace,
+      serviceReference.name.toString(),
     );
 
-    return this.wrapService(serviceRef.namespace, result.body);
+    return this.wrapService(serviceReference.namespace, result.body);
   }
 }

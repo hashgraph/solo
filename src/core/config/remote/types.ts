@@ -11,8 +11,8 @@ export type DeploymentName = string;
 export type Context = string;
 export type ComponentName = string;
 
-export type ClusterRef = string;
-export type ClusterRefs = Record<ClusterRef, Context>;
+export type ClusterReference = string;
+export type ClusterReferences = Record<ClusterReference, Context>;
 
 export interface IMigration {
   migratedAt: Date;
@@ -22,7 +22,7 @@ export interface IMigration {
 
 export interface Component {
   name: ComponentName;
-  cluster: ClusterRef;
+  cluster: ClusterReference;
   namespace: NamespaceNameAsString;
 }
 
@@ -58,7 +58,7 @@ export type RemoteConfigCommonFlagsStruct = {
 export interface RemoteConfigDataStructure {
   metadata: RemoteConfigMetadataStructure;
   version: Version;
-  clusters: Record<ClusterRef, ICluster>;
+  clusters: Record<ClusterReference, ICluster>;
   components: ComponentsDataStructure;
   commandHistory: string[];
   lastExecutedCommand: string;

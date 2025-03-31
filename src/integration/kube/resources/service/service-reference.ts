@@ -8,7 +8,7 @@ import {type ServiceName} from './service-name.js';
 /**
  * Represents a Kubernetes service reference which includes the namespace name and service name.
  */
-export class ServiceRef extends ResourceReference<ServiceName> {
+export class ServiceReference extends ResourceReference<ServiceName> {
   private constructor(namespace: NamespaceName, name: PodName) {
     super(namespace, name);
   }
@@ -18,7 +18,7 @@ export class ServiceRef extends ResourceReference<ServiceName> {
    * @param namespace The namespace name.
    * @param serviceName The service name.
    */
-  public static of(namespace: NamespaceName, serviceName: ServiceName): ServiceRef {
-    return new ServiceRef(namespace, serviceName);
+  public static of(namespace: NamespaceName, serviceName: ServiceName): ServiceReference {
+    return new ServiceReference(namespace, serviceName);
   }
 }

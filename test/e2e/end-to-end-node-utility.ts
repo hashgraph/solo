@@ -21,14 +21,14 @@ import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type PodName} from '../../src/integration/kube/resources/pod/pod-name.js';
-import {PodRef as PodReference} from '../../src/integration/kube/resources/pod/pod-ref.js';
+import {PodReference as PodReference} from '../../src/integration/kube/resources/pod/pod-reference.js';
 import {type NetworkNodes} from '../../src/core/network-nodes.js';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../helpers/argv-wrapper.js';
 import {type SoloListrTaskWrapper} from '../../src/types/index.js';
 import {type Pod} from '../../src/integration/kube/resources/pod/pod.js';
 
-export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
+export function endToEndNodeKeyRefreshTest(testName: string, mode: string, releaseTag = HEDERA_PLATFORM_VERSION_TAG) {
   const namespace = NamespaceName.of(testName);
   const argv = Argv.getDefaultArgv(namespace);
   argv.setArg(flags.namespace, namespace.name);

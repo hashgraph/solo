@@ -8,21 +8,21 @@ export interface Container {
    * Copy a file from a container
    *
    * It overwrites any existing file at the destination directory
-   * @param srcPath - the path to the file to copy
-   * @param destDir - the destination directory
+   * @param sourcePath - the path to the file to copy
+   * @param destinationDirectory - the destination directory
    */
-  copyFrom(srcPath: string, destDir: string): Promise<unknown>;
+  copyFrom(sourcePath: string, destinationDirectory: string): Promise<unknown>;
 
   /**
    * Copy a file into a container
    *
    * It overwrites any existing file inside the container at the destination directory
    * @param srcPath - the path of the local file to copy
-   * @param destDir - the remote destination directory
+   * @param destinationDirectory - the remote destination directory
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
-  copyTo(srcPath: string, destDir: string, filter?: TarCreateFilter | undefined): Promise<boolean>;
+  copyTo(sourcePath: string, destinationDirectory: string, filter?: TarCreateFilter | undefined): Promise<boolean>;
 
   /**
    * Invoke sh command within a container and return the console output as string
@@ -33,16 +33,16 @@ export interface Container {
 
   /**
    * Check if a directory exists in the specified container
-   * @param destPath - the path to the directory inside the container
+   * @param destinationPath - the path to the directory inside the container
    */
-  hasDir(destPath: string): Promise<boolean>;
+  hasDir(destinationPath: string): Promise<boolean>;
 
   /**
    * Check if a file exists in the specified container
-   * @param destPath - the remote path to the file
+   * @param destinationPath - the remote path to the file
    * @param [filters] - optional filters to apply to the tar stream
    */
-  hasFile(destPath: string, filters?: object): Promise<boolean>;
+  hasFile(destinationPath: string, filters?: object): Promise<boolean>;
 
   /**
    * List files and directories in a container
@@ -57,14 +57,14 @@ export interface Container {
    *    modifiedAt: Jan 15 13:50
    *    name: config.txt
    * }]
-   * @param destPath - the remote path to the directory
+   * @param destinationPath - the remote path to the directory
    * @returns a promise that returns array of directory entries, custom object
    */
-  listDir(destPath: string): Promise<any[] | TDirectoryData[]>;
+  listDir(destinationPath: string): Promise<any[] | TDirectoryData[]>;
 
   /**
    * Make a directory in the specified container
-   * @param destPath - the remote path to the directory
+   * @param destinationPath - the remote path to the directory
    */
-  mkdir(destPath: string): Promise<string>;
+  mkdir(destinationPath: string): Promise<string>;
 }

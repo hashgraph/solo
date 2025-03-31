@@ -36,8 +36,8 @@ export class CommandHandler {
     const tasks = new Listr([...actionTasks], options);
     try {
       await tasks.run();
-    } catch (e: Error | any) {
-      throw new SoloError(`${errorString}: ${e.message}`, e);
+    } catch (error: Error | any) {
+      throw new SoloError(`${errorString}: ${error.message}`, error);
     } finally {
       const promises = [];
       if (lease) promises.push(lease.release());
@@ -51,7 +51,7 @@ export class CommandHandler {
    * @param dirs a list of directories that need to be created in sequence
    */
   public setupHomeDirectory(
-    dirs: string[] = [
+    directories: string[] = [
       constants.SOLO_HOME_DIR,
       constants.SOLO_LOGS_DIR,
       constants.SOLO_CACHE_DIR,
@@ -61,17 +61,17 @@ export class CommandHandler {
     const self = this;
 
     try {
-      dirs.forEach(dirPath => {
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, {recursive: true});
+      directories.forEach(directoryPath => {
+        if (!fs.existsSync(directoryPath)) {
+          fs.mkdirSync(directoryPath, {recursive: true});
         }
-        self.logger.debug(`OK: setup directory: ${dirPath}`);
+        self.logger.debug(`OK: setup directory: ${directoryPath}`);
       });
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to create directory: ${e.message}`, e);
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to create directory: ${error.message}`, error);
     }
 
-    return dirs;
+    return directories;
   }
 
   public setupHomeDirectoryTask() {

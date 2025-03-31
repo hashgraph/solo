@@ -17,13 +17,13 @@ export class UpgradeChartOptions implements Options {
     namespace?: string,
     kubeContext?: string,
     reuseValues: boolean = false,
-    extraArgs?: string,
+    extraArguments?: string,
     version?: string,
   ) {
     this._namespace = namespace;
     this._kubeContext = kubeContext;
     this._reuseValues = reuseValues;
-    this._extraArgs = extraArgs;
+    this._extraArgs = extraArguments;
     this._version = version;
   }
 

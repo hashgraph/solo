@@ -16,13 +16,13 @@ describe('PackageDownloaderE2E', () => {
   const downloader = new PackageDownloader(testLogger);
 
   it('should succeed with a valid Hedera release tag', async () => {
-    const testCacheDir = 'test/data/tmp';
+    const testCacheDirectory = 'test/data/tmp';
 
     const tag = 'v0.42.5';
     const releasePrefix = Templates.prepareReleasePrefix(tag);
 
-    const destinationPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`;
-    await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be.equal(destinationPath);
+    const destinationPath = `${testCacheDirectory}/${releasePrefix}/build-${tag}.zip`;
+    await expect(downloader.fetchPlatform(tag, testCacheDirectory)).to.eventually.be.equal(destinationPath);
     expect(fs.existsSync(destinationPath)).to.be.ok;
     testLogger.showUser(destinationPath);
   }).timeout(Duration.ofMinutes(3).toMillis());

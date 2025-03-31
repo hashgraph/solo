@@ -17,7 +17,7 @@ import {resetForTest} from '../../test-container.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {ComponentsDataWrapper} from '../../../src/core/config/remote/components-data-wrapper.js';
 import {createComponentsDataWrapper} from '../core/config/remote/components-data-wrapper.test.js';
-import {type ClusterRefs} from '../../../src/core/config/remote/types.js';
+import {type ClusterReferences} from '../../../src/core/config/remote/types.js';
 import {Cluster} from '../../../src/core/config/remote/cluster.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
@@ -82,7 +82,7 @@ describe('BaseCommand', () => {
       argv.setArg(flags.valuesFile, 'file3');
       configManager.update(argv.build());
 
-      const extraVars = ['var1', 'var2'];
+      const extraVariables = ['var1', 'var2'];
 
       interface newClassInstance {
         releaseTag: string;
@@ -97,7 +97,7 @@ describe('BaseCommand', () => {
       const newClassInstance1 = baseCmd.configManager.getConfig(
         NEW_CLASS1_NAME,
         flagsList,
-        extraVars,
+        extraVariables,
       ) as newClassInstance;
       expect(newClassInstance1.releaseTag).to.equal('releaseTag1');
       expect(newClassInstance1.tlsClusterIssuerType).to.equal('type2');
@@ -110,7 +110,7 @@ describe('BaseCommand', () => {
       const newClassInstance2 = baseCmd.configManager.getConfig(
         NEW_CLASS2_NAME,
         flagsList,
-        extraVars,
+        extraVariables,
       ) as newClassInstance;
       newClassInstance2.var1 = 'var1';
       newClassInstance2.var2 = 'var2';
@@ -126,7 +126,7 @@ describe('BaseCommand', () => {
       const newClassInstance3 = baseCmd.configManager.getConfig(
         NEW_CLASS3_NAME,
         flagsList,
-        extraVars,
+        extraVariables,
       ) as newClassInstance;
       newClassInstance3.var1 = 'var1';
       expect(newClassInstance3.var1).to.equal('var1');
@@ -240,11 +240,11 @@ describe('BaseCommand', () => {
     });
 
     it('should return clusters references', () => {
-      const expectedClusterRefs = {cluster: 'context1', cluster2: 'context2'};
+      const expectedClusterReferences = {cluster: 'context1', cluster2: 'context2'};
       // @ts-expect-error - TS2445: to access private property
-      const clusterRefs: ClusterRefs = baseCmd.remoteConfigManager.getClusterRefs();
-      Object.keys(clusterRefs).forEach(clusterRef => {
-        expect(clusterRefs[clusterRef]).to.equal(expectedClusterRefs[clusterRef]);
+      const clusterReferences: ClusterReferences = baseCmd.remoteConfigManager.getClusterRefs();
+      Object.keys(clusterReferences).forEach(clusterReference => {
+        expect(clusterReferences[clusterReference]).to.equal(expectedClusterReferences[clusterReference]);
       });
     });
   });

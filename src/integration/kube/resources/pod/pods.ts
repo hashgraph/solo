@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NamespaceName} from '../namespace/namespace-name.js';
-import {type PodRef} from './pod-ref.js';
+import {type PodReference as PodReference} from './pod-reference.js';
 import {type Pod} from './pod.js';
 import {type ContainerName} from '../container/container-name.js';
 
 export interface Pods {
   /**
    * Get a pod by reference for running operations against.  You can use null if you only want to use stopPortForward()
-   * @param podRef - the reference to the pod
+   * @param podReference - the reference to the pod
    * @returns a pod object
    */
-  readByRef(podRef: PodRef): Pod;
+  readByReference(podReference: PodReference): Pod;
 
   /**
    * Get a pod by name
    * @returns Pod - pod object
-   * @param podRef - the reference to the pod
+   * @param podReference - the reference to the pod
    */
-  read(podRef: PodRef): Promise<Pod>;
+  read(podReference: PodReference): Promise<Pod>;
 
   /**
    * Get pods by labels
@@ -62,7 +62,7 @@ export interface Pods {
 
   /**
    * Create a pod
-   * @param podRef - the reference to the pod
+   * @param podReference - the reference to the pod
    * @param labels - list of label records where the key is the label name and the value is the label value
    * @param containerName - the name of the container
    * @param containerImage - the image of the container
@@ -71,7 +71,7 @@ export interface Pods {
    * @returns the pod that was created
    */
   create(
-    podRef: PodRef,
+    podReference: PodReference,
     labels: Record<string, string>,
     containerName: ContainerName,
     containerImage: string,

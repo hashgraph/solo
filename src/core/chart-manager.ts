@@ -38,20 +38,20 @@ export class ChartManager {
    */
   async setup(repoURLs: Map<string, string> = constants.DEFAULT_CHART_REPO, force = true) {
     try {
-      const forceUpdateArg = force ? '--force-update' : '';
+      const forceUpdateArgument = force ? '--force-update' : '';
 
       const promises: Promise<string>[] = [];
       for (const [name, url] of repoURLs.entries()) {
-        promises.push(this.addRepo(name, url, forceUpdateArg));
+        promises.push(this.addRepo(name, url, forceUpdateArgument));
       }
 
       return await Promise.all(promises); // urls
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to setup chart repositories: ${e.message}`, e);
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to setup chart repositories: ${error.message}`, error);
     }
   }
 
-  async addRepo(name: string, url: string, forceUpdateArg: string) {
+  async addRepo(name: string, url: string, forceUpdateArgument: string) {
     this.logger.debug(`Adding repo ${name} -> ${url}`, {repoName: name, repoURL: url});
     await this.helm.addRepository(new Repository(name, url));
     return url;
@@ -67,8 +67,8 @@ export class ChartManager {
       const result: ReleaseItem[] = await this.helm.listReleases(!namespaceName, namespaceName?.name, kubeContext);
       // convert to string[]
       return result.map(release => `${release.name} [${release.chart}]`);
-    } catch (e: Error | any) {
-      this.logger.showUserError(e);
+    } catch (error: Error | any) {
+      this.logger.showUserError(error);
     }
     return [];
   }
@@ -79,7 +79,7 @@ export class ChartManager {
     chartName: string,
     repoName: string,
     version: string,
-    valuesArg = '',
+    valuesArgument = '',
     kubeContext: string,
   ) {
     try {
@@ -89,7 +89,7 @@ export class ChartManager {
         const builder = InstallChartOptionsBuilder.builder()
           .version(version)
           .kubeContext(kubeContext)
-          .extraArgs(valuesArg);
+          .extraArgs(valuesArgument);
         if (namespaceName) {
           builder.createNamespace(true);
           builder.namespace(namespaceName.name);
@@ -100,8 +100,8 @@ export class ChartManager {
       } else {
         this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartName}) (${repoName})`);
       }
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to install chart ${chartReleaseName}: ${e.message}`, e);
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to install chart ${chartReleaseName}: ${error.message}`, error);
     }
 
     return true;
@@ -130,8 +130,8 @@ export class ChartManager {
       } else {
         this.logger.debug(`OK: chart release is already uninstalled: ${chartReleaseName}`);
       }
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to uninstall chart ${chartReleaseName}: ${e.message}`, e);
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to uninstall chart ${chartReleaseName}: ${error.message}`, error);
     }
 
     return true;
@@ -143,7 +143,7 @@ export class ChartManager {
     chartName: string,
     repoName: string,
     version = '',
-    valuesArg = '',
+    valuesArgument = '',
     kubeContext?: string,
   ) {
     try {
@@ -152,14 +152,14 @@ export class ChartManager {
         namespaceName.name,
         kubeContext,
         true,
-        valuesArg,
+        valuesArgument,
         version,
       );
       const chart: Chart = new Chart(chartName, repoName);
       await this.helm.upgradeChart(chartReleaseName, chart, options);
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`);
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e);
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to upgrade chart ${chartReleaseName}: ${error.message}`, error);
     }
 
     return true;

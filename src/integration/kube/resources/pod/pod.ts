@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ExtendedNetServer} from '../../../../types/index.js';
-import {type PodRef} from './pod-ref.js';
+import {type PodReference as PodReference} from './pod-reference.js';
 import {type ContainerName} from '../container/container-name.js';
 import {type PodCondition} from './pod-condition.js';
 
@@ -9,7 +9,7 @@ export interface Pod {
   /**
    * The pod reference
    */
-  readonly podRef: PodRef;
+  readonly podReference: PodReference;
 
   /**
    * The labels of the pod

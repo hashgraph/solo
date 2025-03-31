@@ -11,7 +11,7 @@ import {SoloError} from '../../core/errors/solo-error.js';
 import {UserBreak} from '../../core/errors/user-break.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type SoloListrTask} from '../../types/index.js';
-import {type ClusterRef} from '../../core/config/remote/types.js';
+import {type ClusterReference} from '../../core/config/remote/types.js';
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
@@ -25,10 +25,10 @@ import {type ClusterChecks} from '../../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {SOLO_CLUSTER_SETUP_CHART} from '../../core/constants.js';
-import {type ClusterRefConnectContext} from './config-interfaces/cluster-ref-connect-context.js';
-import {type ClusterRefDefaultContext} from './config-interfaces/cluster-ref-default-context.js';
-import {type ClusterRefSetupContext} from './config-interfaces/cluster-ref-setup-context.js';
-import {type ClusterRefResetContext} from './config-interfaces/cluster-ref-reset-context.js';
+import {type ClusterReferenceConnectContext} from './config-interfaces/cluster-reference-connect-context.js';
+import {type ClusterReferenceDefaultContext} from './config-interfaces/cluster-reference-default-context.js';
+import {type ClusterReferenceSetupContext} from './config-interfaces/cluster-reference-setup-context.js';
+import {type ClusterReferenceResetContext} from './config-interfaces/cluster-reference-reset-context.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 
 @injectable()
@@ -49,56 +49,56 @@ export class ClusterCommandTasks {
     this.leaseManager = patchInject(leaseManager, InjectTokens.LockManager, this.constructor.name);
   }
 
-  public connectClusterRef(): SoloListrTask<ClusterRefConnectContext> {
+  public connectClusterRef(): SoloListrTask<ClusterReferenceConnectContext> {
     return {
       title: 'Associate a context with a cluster reference: ',
-      task: async (ctx, task) => {
-        task.title += ctx.config.clusterRef;
+      task: async (context_, task) => {
+        task.title += context_.config.clusterRef;
 
         await this.localConfig.modify(async localConfigData => {
-          localConfigData.addClusterRef(ctx.config.clusterRef, ctx.config.context);
+          localConfigData.addClusterRef(context_.config.clusterRef, context_.config.context);
         });
       },
     };
   }
 
-  public disconnectClusterRef(): SoloListrTask<ClusterRefDefaultContext> {
+  public disconnectClusterRef(): SoloListrTask<ClusterReferenceDefaultContext> {
     return {
       title: 'Remove cluster reference ',
-      task: async (ctx, task) => {
-        task.title += ctx.config.clusterRef;
+      task: async (context_, task) => {
+        task.title += context_.config.clusterRef;
 
         await this.localConfig.modify(async localConfigData => {
-          localConfigData.removeClusterRef(ctx.config.clusterRef);
+          localConfigData.removeClusterRef(context_.config.clusterRef);
         });
       },
     };
   }
 
-  public testConnectionToCluster(clusterRef?: ClusterRef): SoloListrTask<ClusterRefConnectContext> {
+  public testConnectionToCluster(clusterReference?: ClusterReference): SoloListrTask<ClusterReferenceConnectContext> {
     const self = this;
     return {
       title: 'Test connection to cluster: ',
-      task: async (ctx, task) => {
-        task.title += clusterRef ?? ctx.config.clusterRef;
+      task: async (context_, task) => {
+        task.title += clusterReference ?? context_.config.clusterRef;
         try {
-          await self.k8Factory.getK8(ctx.config.context).namespaces().list();
+          await self.k8Factory.getK8(context_.config.context).namespaces().list();
         } catch {
           task.title = `${task.title} - ${chalk.red('Cluster connection failed')}`;
           throw new SoloError(
-            `${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(ctx.config.context, ctx.config.clusterRef)}`,
+            `${ErrorMessages.INVALID_CONTEXT_FOR_CLUSTER_DETAILED(context_.config.context, context_.config.clusterRef)}`,
           );
         }
       },
     };
   }
 
-  public validateClusterRefs(): SoloListrTask<ClusterRefConnectContext> {
+  public validateClusterRefs(): SoloListrTask<ClusterReferenceConnectContext> {
     const self = this;
     return {
       title: 'Validating cluster ref: ',
-      task: async (ctx, task) => {
-        const {clusterRef} = ctx.config;
+      task: async (context_, task) => {
+        const {clusterRef} = context_.config;
         task.title = clusterRef;
 
         if (self.localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
@@ -120,12 +120,12 @@ export class ClusterCommandTasks {
     prometheusStackEnabled = flags.deployPrometheusStack.definition.defaultValue as boolean,
     minioEnabled = flags.deployMinio.definition.defaultValue as boolean,
   ): string {
-    let valuesArg = chartDirectory ? `-f ${PathEx.join(chartDirectory, 'solo-cluster-setup', 'values.yaml')}` : '';
+    let valuesArgument = chartDirectory ? `-f ${PathEx.join(chartDirectory, 'solo-cluster-setup', 'values.yaml')}` : '';
 
-    valuesArg += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
-    valuesArg += ` --set cloud.minio.enabled=${minioEnabled}`;
+    valuesArgument += ` --set cloud.prometheusStack.enabled=${prometheusStackEnabled}`;
+    valuesArgument += ` --set cloud.minio.enabled=${minioEnabled}`;
 
-    return valuesArg;
+    return valuesArgument;
   }
 
   /** Show list of installed chart */
@@ -143,8 +143,8 @@ export class ClusterCommandTasks {
 
     return {
       title: 'Initialize',
-      task: async (ctx, task) => {
-        ctx.config = await configInit(argv, ctx, task);
+      task: async (context_, task) => {
+        context_.config = await configInit(argv, context_, task);
       },
     };
   }
@@ -153,8 +153,8 @@ export class ClusterCommandTasks {
     return {
       title: 'List all available clusters',
       task: async () => {
-        const clusterRefs = this.localConfig.clusterRefs;
-        const clusterList = Object.entries(clusterRefs).map(
+        const clusterReferences = this.localConfig.clusterRefs;
+        const clusterList = Object.entries(clusterReferences).map(
           ([clusterName, clusterContext]) => `${clusterName}:${clusterContext}`,
         );
         this.logger.showList('Cluster references and the respective contexts', clusterList);
@@ -165,26 +165,28 @@ export class ClusterCommandTasks {
   public getClusterInfo(): SoloListrTask<AnyListrContext> {
     return {
       title: 'Get cluster info',
-      task: async (ctx, task) => {
-        const clusterRef = ctx.config.clusterRef;
-        const clusterRefs = this.localConfig.clusterRefs;
+      task: async (context_, task) => {
+        const clusterReference = context_.config.clusterRef;
+        const clusterReferences = this.localConfig.clusterRefs;
         const deployments = this.localConfig.deployments;
 
-        if (!clusterRefs[clusterRef]) {
-          throw new Error(`Cluster "${clusterRef}" not found in the LocalConfig`);
+        if (!clusterReferences[clusterReference]) {
+          throw new Error(`Cluster "${clusterReference}" not found in the LocalConfig`);
         }
 
-        const context = clusterRefs[clusterRef];
+        const context = clusterReferences[clusterReference];
         const deploymentsWithSelectedCluster = Object.entries(deployments)
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .filter(([_, deployment]) => deployment.clusters.includes(clusterRef))
+          .filter(([_, deployment]) => deployment.clusters.includes(clusterReference))
           .map(([deploymentName, deployment]) => ({
             name: deploymentName,
             namespace: deployment.namespace || 'default',
           }));
 
         task.output =
-          `Cluster Reference: ${clusterRef}\n` + `Associated Context: ${context}\n` + 'Deployments using this Cluster:';
+          `Cluster Reference: ${clusterReference}\n` +
+          `Associated Context: ${context}\n` +
+          'Deployments using this Cluster:';
 
         if (deploymentsWithSelectedCluster.length) {
           task.output +=
@@ -199,72 +201,75 @@ export class ClusterCommandTasks {
     };
   }
 
-  public prepareChartValues(): SoloListrTask<ClusterRefSetupContext> {
+  public prepareChartValues(): SoloListrTask<ClusterReferenceSetupContext> {
     const self = this;
 
     return {
       title: 'Prepare chart values',
-      task: async ctx => {
+      task: async context_ => {
         // if minio is already present, don't deploy it
-        if (ctx.config.deployMinio && (await self.clusterChecks.isMinioInstalled(ctx.config.clusterSetupNamespace))) {
-          ctx.config.deployMinio = false;
+        if (
+          context_.config.deployMinio &&
+          (await self.clusterChecks.isMinioInstalled(context_.config.clusterSetupNamespace))
+        ) {
+          context_.config.deployMinio = false;
         }
 
         // if prometheus is found, don't deploy it
         if (
-          ctx.config.deployPrometheusStack &&
-          !(await self.clusterChecks.isPrometheusInstalled(ctx.config.clusterSetupNamespace))
+          context_.config.deployPrometheusStack &&
+          !(await self.clusterChecks.isPrometheusInstalled(context_.config.clusterSetupNamespace))
         ) {
-          ctx.config.deployPrometheusStack = false;
+          context_.config.deployPrometheusStack = false;
         }
 
         // If all are already present or not wanted, skip installation
-        if (!ctx.config.deployPrometheusStack && !ctx.config.deployMinio) {
-          ctx.isChartInstalled = true;
+        if (!context_.config.deployPrometheusStack && !context_.config.deployMinio) {
+          context_.isChartInstalled = true;
           return;
         }
 
-        ctx.valuesArg = this.prepareValuesArg(
-          ctx.config.chartDirectory,
-          ctx.config.deployPrometheusStack,
-          ctx.config.deployMinio,
+        context_.valuesArg = this.prepareValuesArg(
+          context_.config.chartDirectory,
+          context_.config.deployPrometheusStack,
+          context_.config.deployMinio,
         );
       },
-      skip: ctx => ctx.isChartInstalled,
+      skip: context_ => context_.isChartInstalled,
     };
   }
 
-  public installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterRefSetupContext> {
+  public installClusterChart(argv: ArgvStruct): SoloListrTask<ClusterReferenceSetupContext> {
     const self = this;
     return {
       title: `Install '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-      task: async ctx => {
-        const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
-        const version = ctx.config.soloChartVersion;
-        const valuesArg = ctx.valuesArg;
+      task: async context_ => {
+        const clusterSetupNamespace = context_.config.clusterSetupNamespace;
+        const version = context_.config.soloChartVersion;
+        const valuesArgument = context_.valuesArg;
 
         try {
           await this.chartManager.install(
             clusterSetupNamespace,
             constants.SOLO_CLUSTER_SETUP_CHART,
             constants.SOLO_CLUSTER_SETUP_CHART,
-            ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
+            context_.config.chartDirectory ? context_.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
             version,
-            valuesArg,
-            ctx.config.context,
+            valuesArgument,
+            context_.config.context,
           );
           showVersionBanner(self.logger, SOLO_CLUSTER_SETUP_CHART, version);
-        } catch (e) {
+        } catch (error) {
           // if error, uninstall the chart and rethrow the error
           self.logger.debug(
             `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
-            e,
+            error,
           );
           try {
             await this.chartManager.uninstall(
               clusterSetupNamespace,
               constants.SOLO_CLUSTER_SETUP_CHART,
-              ctx.config.context,
+              context_.config.context,
             );
           } catch {
             // ignore error during uninstall since we are doing the best-effort uninstall here
@@ -272,19 +277,19 @@ export class ClusterCommandTasks {
 
           throw new SoloError(
             `Error on installing ${constants.SOLO_CLUSTER_SETUP_CHART}. attempting to rollback by uninstalling the chart`,
-            e,
+            error,
           );
         }
 
         if (argv.dev) {
-          await this.showInstalledChartList(clusterSetupNamespace, ctx.config.context);
+          await this.showInstalledChartList(clusterSetupNamespace, context_.config.context);
         }
       },
-      skip: ctx => ctx.isChartInstalled,
+      skip: context_ => context_.isChartInstalled,
     };
   }
 
-  public acquireNewLease(): SoloListrTask<ClusterRefResetContext> {
+  public acquireNewLease(): SoloListrTask<ClusterReferenceResetContext> {
     return {
       title: 'Acquire new lease',
       task: async (_, task) => {
@@ -294,12 +299,12 @@ export class ClusterCommandTasks {
     };
   }
 
-  public uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterRefResetContext> {
+  public uninstallClusterChart(argv: ArgvStruct): SoloListrTask<ClusterReferenceResetContext> {
     const self = this;
     return {
       title: `Uninstall '${constants.SOLO_CLUSTER_SETUP_CHART}' chart`,
-      task: async (ctx, task) => {
-        const clusterSetupNamespace = ctx.config.clusterSetupNamespace;
+      task: async (context_, task) => {
+        const clusterSetupNamespace = context_.config.clusterSetupNamespace;
 
         if (!argv.force && (await self.clusterChecks.isRemoteConfigPresentInAnyNamespace())) {
           const confirm = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
@@ -322,7 +327,7 @@ export class ClusterCommandTasks {
           await this.showInstalledChartList(clusterSetupNamespace);
         }
       },
-      skip: ctx => !ctx.isChartInstalled,
+      skip: context_ => !context_.isChartInstalled,
     };
   }
 }

@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type PodRef as PodReference} from '../pod/pod-ref.js';
+import {type PodReference as PodReference} from '../pod/pod-reference.js';
 import {type ContainerName} from './container-name.js';
-import {NestedResourceRef as NestedResourceReference} from '../nested-resource-ref.js';
+import {NestedResourceReference as NestedResourceReference} from '../nested-resource-reference.js';
 
 /**
  * Represents a Kubernetes pod reference which includes the namespace name and pod name.
  */
-export class ContainerRef extends NestedResourceReference<PodReference, ContainerName> {
+export class ContainerReference extends NestedResourceReference<PodReference, ContainerName> {
   private constructor(parentReference: PodReference, name: ContainerName) {
     super(parentReference, name);
   }
@@ -17,7 +17,7 @@ export class ContainerRef extends NestedResourceReference<PodReference, Containe
    * @param podRef The namespace name.
    * @param containerName The pod name.
    */
-  public static of(podReference: PodReference, containerName: ContainerName): ContainerRef {
-    return new ContainerRef(podReference, containerName);
+  public static of(podReference: PodReference, containerName: ContainerName): ContainerReference {
+    return new ContainerReference(podReference, containerName);
   }
 }

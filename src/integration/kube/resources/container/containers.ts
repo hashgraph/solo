@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ContainerRef} from './container-ref.js';
+import {type ContainerReference as ContainerReference} from './container-reference.js';
 import {type Container} from './container.js';
 
 export interface Containers {
@@ -9,5 +9,5 @@ export interface Containers {
    * @param containerRef - the reference to the container
    * @returns a container object
    */
-  readByRef(containerRef: ContainerRef): Container;
+  readByRef(containerReference: ContainerReference): Container;
 }

@@ -2,7 +2,7 @@
 
 import {registerDecorator, type ValidationOptions, type ValidationArguments} from 'class-validator';
 
-const isObject = obj => obj === Object(obj);
+const isObject = object => object === Object(object);
 
 export const IsDeployments = (validationOptions?: ValidationOptions) => {
   return function (object: any, propertyName: string) {
@@ -15,7 +15,7 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
         ...validationOptions,
       },
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any, arguments_: ValidationArguments) {
           if (!isObject(value)) return false;
           if (Object.keys(value).length === 0) return true;
 
@@ -26,7 +26,7 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
             if (!Array.isArray(value[key].clusters)) return false;
             if (!value[key].namespace || typeof value[key].namespace !== 'string' || !value[key].namespace.length)
               return false;
-            if (!value[key].clusters.every(val => typeof val === 'string')) return false;
+            if (!value[key].clusters.every(value_ => typeof value_ === 'string')) return false;
             return true;
           });
         },
@@ -35,7 +35,7 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
   };
 };
 
-export const IsClusterRefs = (validationOptions?: ValidationOptions) => {
+export const IsClusterReferences = (validationOptions?: ValidationOptions) => {
   return function (object: any, propertyName: string) {
     registerDecorator({
       name: 'IsClusterRefs',
@@ -46,7 +46,7 @@ export const IsClusterRefs = (validationOptions?: ValidationOptions) => {
         ...validationOptions,
       },
       validator: {
-        validate(value: any, args: ValidationArguments) {
+        validate(value: any, arguments_: ValidationArguments) {
           if (!isObject(value)) return false;
           if (Object.keys(value).length === 0) return true;
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {e2eNodeKeyRefreshTest} from '../e2e-node-util.js';
+import {endToEndNodeKeyRefreshTest} from '../end-to-end-node-utility.js';
 
-e2eNodeKeyRefreshTest('node-cmd-e2e-pem-stop', 'stop');
+endToEndNodeKeyRefreshTest('node-cmd-e2e-pem-stop', 'stop');

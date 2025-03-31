@@ -59,11 +59,11 @@ describe('LocalConfig', () => {
         new Deployment('deployment', 'solo-e2e', ['cluster-1']),
       ];
 
-      const clusterRefs: Map<string, string> = new Map<string, string>();
-      clusterRefs.set('cluster-1', 'context-1');
-      clusterRefs.set('cluster-2', 'context-2');
-      clusterRefs.set('e2e-cluster-1', 'kind-solo-e2e-c1');
-      clusterRefs.set('e2e-cluster-2', 'kind-solo-e2e-c2');
+      const clusterReferences: Map<string, string> = new Map<string, string>();
+      clusterReferences.set('cluster-1', 'context-1');
+      clusterReferences.set('cluster-2', 'context-2');
+      clusterReferences.set('e2e-cluster-1', 'kind-solo-e2e-c1');
+      clusterReferences.set('e2e-cluster-2', 'kind-solo-e2e-c2');
 
       const versions = new ApplicationVersions(
         new SemVer(getSoloVersion()),
@@ -73,7 +73,7 @@ describe('LocalConfig', () => {
         new SemVer(HEDERA_EXPLORER_VERSION),
         new SemVer(HEDERA_JSON_RPC_RELAY_VERSION),
       );
-      const lc = new LocalConfig(1, versions, deployments, clusterRefs);
+      const lc = new LocalConfig(1, versions, deployments, clusterReferences);
       const newPlainObject: object = instanceToPlain(lc);
 
       expect(newPlainObject).to.not.be.undefined.and.to.not.be.null;

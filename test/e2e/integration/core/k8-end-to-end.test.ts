@@ -19,10 +19,10 @@ import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.j
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodRef as PodReference} from '../../../../src/integration/kube/resources/pod/pod-ref.js';
+import {PodReference as PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
 import {ContainerName} from '../../../../src/integration/kube/resources/container/container-name.js';
 import {ContainerReference as ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
-import {ServiceRef as ServiceReference} from '../../../../src/integration/kube/resources/service/service-ref.js';
+import {ServiceReference as ServiceReference} from '../../../../src/integration/kube/resources/service/service-reference.js';
 import {ServiceName} from '../../../../src/integration/kube/resources/service/service-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
@@ -159,10 +159,10 @@ describe('K8', () => {
         .waitForReadyStatus(testNamespace, [`app=${podLabelValue}`], 20);
       expect(pods).to.have.lengthOf(1);
 
-      const localTmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'k8-test'));
-      const remoteTmpDir = '/tmp';
+      const localTemporaryDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'k8-test'));
+      const remoteTemporaryDirectory = '/tmp';
       const fileName = path.basename(localFilePath);
-      const remoteFilePath = `${remoteTmpDir}/${fileName}`;
+      const remoteFilePath = `${remoteTemporaryDirectory}/${fileName}`;
       const originalFileData = fs.readFileSync(localFilePath);
       const originalFileHash = crypto.createHash('sha384').update(originalFileData).digest('hex');
       const originalStat = fs.statSync(localFilePath);
@@ -173,7 +173,7 @@ describe('K8', () => {
           .default()
           .containers()
           .readByRef(ContainerReference.of(podReference, containerName))
-          .copyTo(localFilePath, remoteTmpDir),
+          .copyTo(localFilePath, remoteTemporaryDirectory),
       ).to.be.true;
 
       // download the same file
@@ -182,9 +182,9 @@ describe('K8', () => {
           .default()
           .containers()
           .readByRef(ContainerReference.of(podReference, containerName))
-          .copyFrom(remoteFilePath, localTmpDir),
+          .copyFrom(remoteFilePath, localTemporaryDirectory),
       ).to.be.true;
-      const downloadedFilePath = PathEx.joinWithRealPath(localTmpDir, fileName);
+      const downloadedFilePath = PathEx.joinWithRealPath(localTemporaryDirectory, fileName);
       const downloadedFileData = fs.readFileSync(downloadedFilePath);
       const downloadedFileHash = crypto.createHash('sha384').update(downloadedFileData).digest('hex');
       const downloadedStat = fs.statSync(downloadedFilePath);
@@ -199,7 +199,7 @@ describe('K8', () => {
         .readByRef(ContainerReference.of(podReference, containerName))
         .execContainer(['rm', '-f', remoteFilePath]);
 
-      fs.rmdirSync(localTmpDir, {recursive: true});
+      fs.rmdirSync(localTemporaryDirectory, {recursive: true});
     }).timeout(defaultTimeout);
   });
 
@@ -224,10 +224,10 @@ describe('K8', () => {
             done();
           });
 
-          s.on('error', async e => {
+          s.on('error', async error => {
             s.destroy();
             await k8Factory.default().pods().readByReference(podReference).stopPortForward(server);
-            done(new SoloError(`could not connect to local port '${localPort}': ${e.message}`, e));
+            done(new SoloError(`could not connect to local port '${localPort}': ${error.message}`, error));
           });
 
           s.connect(localPort);

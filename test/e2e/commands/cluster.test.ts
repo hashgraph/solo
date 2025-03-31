@@ -5,7 +5,12 @@ import {it, describe, after, before, afterEach, beforeEach} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {bootstrapTestVariables, getTestCluster, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
+import {
+  bootstrapTestVariables,
+  getTestCluster,
+  getTestCacheDirectory,
+  HEDERA_PLATFORM_VERSION_TAG,
+} from '../../test-utility.js';
 import * as constants from '../../../src/core/constants.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
@@ -93,7 +98,7 @@ describe('ClusterCommand', () => {
 
     await clusterCmd.handlers.connect(argv.build());
 
-    const localConfigPath = PathEx.joinWithRealPath(getTestCacheDir(), constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigPath = PathEx.joinWithRealPath(getTestCacheDirectory(), constants.DEFAULT_LOCAL_CONFIG_FILE);
     const localConfigYaml = fs.readFileSync(localConfigPath).toString();
     const localConfigData = yaml.parse(localConfigYaml);
 
@@ -121,9 +126,9 @@ describe('ClusterCommand', () => {
     try {
       await clusterCmd.handlers.reset(argv.build());
       expect.fail();
-    } catch (e) {
-      console.error(e.message);
-      expect(e.message).to.include('Error on cluster reset');
+    } catch (error) {
+      console.error(error.message);
+      expect(error.message).to.include('Error on cluster reset');
     }
   }).timeout(Duration.ofMinutes(1).toMillis());
 
@@ -134,43 +139,43 @@ describe('ClusterCommand', () => {
 
   // 'solo cluster-ref connect' tests
   function getClusterConnectDefaultArgv(): {argv: Argv; clusterRef: string; contextName: string} {
-    const clusterRef = TEST_CLUSTER;
+    const clusterReference = TEST_CLUSTER;
     const contextName = TEST_CONTEXT;
 
     const argv = Argv.initializeEmpty();
-    argv.setArg(flags.clusterRef, clusterRef);
+    argv.setArg(flags.clusterRef, clusterReference);
     argv.setArg(flags.quiet, true);
     argv.setArg(flags.context, contextName);
     argv.setArg(flags.userEmailAddress, 'test@test.com');
-    return {argv, clusterRef, contextName};
+    return {argv, clusterRef: clusterReference, contextName};
   }
 
   it('cluster-ref connect should fail with cluster ref that already exists', async () => {
-    const clusterRef = 'duplicated';
+    const clusterReference = 'duplicated';
     const {argv} = getClusterConnectDefaultArgv();
-    argv.setArg(flags.clusterRef, clusterRef);
+    argv.setArg(flags.clusterRef, clusterReference);
 
     try {
       await clusterCmd.handlers.connect(argv.build());
       await clusterCmd.handlers.connect(argv.build());
       expect.fail();
-    } catch (e) {
-      expect(e.message).to.include(`Cluster ref ${clusterRef} already exists inside local config`);
+    } catch (error) {
+      expect(error.message).to.include(`Cluster ref ${clusterReference} already exists inside local config`);
     }
   });
 
   it('cluster-ref connect should fail with invalid context name', async () => {
-    const clusterRef = 'test-context-name';
+    const clusterReference = 'test-context-name';
     const contextName = 'INVALID_CONTEXT';
     const {argv} = getClusterConnectDefaultArgv();
-    argv.setArg(flags.clusterRef, clusterRef);
+    argv.setArg(flags.clusterRef, clusterReference);
     argv.setArg(flags.context, contextName);
 
     try {
       await clusterCmd.handlers.connect(argv.build());
       expect.fail();
-    } catch (e) {
-      expect(e.message).to.include(`Context ${contextName} is not valid for cluster test-context-name`);
+    } catch (error) {
+      expect(error.message).to.include(`Context ${contextName} is not valid for cluster test-context-name`);
     }
   });
 });

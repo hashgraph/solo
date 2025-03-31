@@ -21,13 +21,13 @@ import {EnvoyProxyComponent} from '../../../../src/core/config/remote/components
 import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../../src/integration/kube/resources/pod/pod-ref.js';
+import {PodReference as PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
 import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
 import {ContainerName} from '../../../../src/integration/kube/resources/container/container-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
 import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
-import {getTestCacheDir} from '../../../test-util.js';
+import {getTestCacheDirectory} from '../../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
 
@@ -37,7 +37,7 @@ describe('RemoteConfigValidator', () => {
   let configManager: ConfigManager;
   let k8Factory: K8Factory;
   let localConfig: LocalConfig;
-  const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`;
+  const filePath = `${getTestCacheDirectory('LocalConfig')}/localConfig.yaml`;
 
   before(async () => {
     configManager = container.resolve(InjectTokens.ConfigManager);
@@ -90,15 +90,15 @@ describe('RemoteConfigValidator', () => {
         .default()
         .pods()
         .create(
-          PodRef.of(namespace, PodName.of(name)),
+          PodReference.of(namespace, PodName.of(name)),
           labels,
           ContainerName.of(name),
           'alpine:latest',
           ['/bin/sh', '-c', 'apk update && apk upgrade && apk add --update bash && sleep 7200'],
           ['bash', '-c', 'exit 0'],
         );
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       throw new Error('Error creating pod');
     }
   }
@@ -109,8 +109,8 @@ describe('RemoteConfigValidator', () => {
         // @ts-expect-error - TS2341: Property is private
         await Promise.all(RemoteConfigValidator.validateRelays(namespace, components, k8Factory, localConfig));
         throw new Error();
-      } catch (e) {
-        expect(e).to.be.instanceOf(SoloError);
+      } catch (error) {
+        expect(error).to.be.instanceOf(SoloError);
       }
     });
 
@@ -129,8 +129,8 @@ describe('RemoteConfigValidator', () => {
         // @ts-expect-error - TS2341: Property is private
         await Promise.all(RemoteConfigValidator.validateHaProxies(namespace, components, k8Factory, localConfig));
         throw new Error();
-      } catch (e) {
-        expect(e).to.be.instanceOf(SoloError);
+      } catch (error) {
+        expect(error).to.be.instanceOf(SoloError);
       }
     });
 
@@ -148,8 +148,8 @@ describe('RemoteConfigValidator', () => {
         // @ts-expect-error - TS2341: Property is private
         await Promise.all(RemoteConfigValidator.validateMirrorNodes(namespace, components, k8Factory, localConfig));
         throw new Error();
-      } catch (e) {
-        expect(e).to.be.instanceOf(SoloError);
+      } catch (error) {
+        expect(error).to.be.instanceOf(SoloError);
       }
     });
 
@@ -169,8 +169,8 @@ describe('RemoteConfigValidator', () => {
         // @ts-expect-error - TS2341: Property is private
         await Promise.all(RemoteConfigValidator.validateEnvoyProxies(namespace, components, k8Factory, localConfig));
         throw new Error();
-      } catch (e) {
-        expect(e).to.be.instanceOf(SoloError);
+      } catch (error) {
+        expect(error).to.be.instanceOf(SoloError);
       }
     });
 
@@ -188,8 +188,8 @@ describe('RemoteConfigValidator', () => {
         // @ts-expect-error - TS2341: Property is private
         await Promise.all(RemoteConfigValidator.validateConsensusNodes(namespace, components, k8Factory, localConfig));
         throw new Error();
-      } catch (e) {
-        expect(e).to.be.instanceOf(SoloError);
+      } catch (error) {
+        expect(error).to.be.instanceOf(SoloError);
       }
     });
 
@@ -209,8 +209,8 @@ describe('RemoteConfigValidator', () => {
           RemoteConfigValidator.validateMirrorNodeExplorers(namespace, components, k8Factory, localConfig),
         );
         throw new Error();
-      } catch (e) {
-        expect(e).to.be.instanceOf(SoloError);
+      } catch (error) {
+        expect(error).to.be.instanceOf(SoloError);
       }
     });
 

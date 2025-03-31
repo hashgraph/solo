@@ -3,10 +3,14 @@
 import {describe} from 'mocha';
 
 import {Flags} from '../../../src/commands/flags.js';
-import {getTestCacheDir, getTestCluster} from '../../test-util.js';
+import {getTestCacheDirectory, getTestCluster} from '../../test-utility.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
-import {type ClusterRef, type ClusterRefs, type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {
+  type ClusterReference,
+  type ClusterReferences,
+  type DeploymentName,
+} from '../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
@@ -30,8 +34,8 @@ import {type ConsensusNodeComponent} from '../../../src/core/config/remote/compo
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {Templates} from '../../../src/core/templates.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
-import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
-import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
+import {ContainerReference as ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
+import {PodReference as PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
 import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';
@@ -51,11 +55,11 @@ import {type PackageDownloader} from '../../../src/core/package-downloader.js';
 
 const testName: string = 'dual-cluster-full';
 
-describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): Promise<void> {
+describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTest(): Promise<void> {
   this.bail(true);
   const namespace: NamespaceName = NamespaceName.of(testName);
   const deployment: DeploymentName = `${testName}-deployment`;
-  const testClusterArray: ClusterRef[] = ['e2e-cluster-alpha', 'e2e-cluster-beta'];
+  const testClusterArray: ClusterReference[] = ['e2e-cluster-alpha', 'e2e-cluster-beta'];
   const soloTestCluster: string = getTestCluster();
   const testCluster: string =
     soloTestCluster.includes('c1') || soloTestCluster.includes('c2') ? soloTestCluster : `${soloTestCluster}-c1`;
@@ -63,25 +67,25 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     `${testCluster}`,
     `${testCluster.replace(soloTestCluster.includes('-c1') ? '-c1' : '-c2', soloTestCluster.includes('-c1') ? '-c2' : '-c1')}`,
   ];
-  const testClusterRefs: ClusterRefs = {};
-  testClusterRefs[testClusterArray[0]] = contexts[0];
-  testClusterRefs[testClusterArray[1]] = contexts[1];
-  const testCacheDir: string = getTestCacheDir(testName);
+  const testClusterReferences: ClusterReferences = {};
+  testClusterReferences[testClusterArray[0]] = contexts[0];
+  testClusterReferences[testClusterArray[1]] = contexts[1];
+  const testCacheDirectory: string = getTestCacheDirectory(testName);
   let testLogger: SoloWinstonLogger;
   const createdAccountIds: string[] = [];
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async (): Promise<void> => {
-    fs.rmSync(testCacheDir, {recursive: true, force: true});
+    fs.rmSync(testCacheDirectory, {recursive: true, force: true});
     try {
-      fs.rmSync(PathEx.joinWithRealPath(testCacheDir, '..', DEFAULT_LOCAL_CONFIG_FILE), {force: true});
+      fs.rmSync(PathEx.joinWithRealPath(testCacheDirectory, '..', DEFAULT_LOCAL_CONFIG_FILE), {force: true});
     } catch {
       // allowed to fail if the file doesn't exist
     }
-    resetForTest(namespace.name, testCacheDir, testLogger, false);
+    resetForTest(namespace.name, testCacheDirectory, testLogger, false);
     testLogger = container.resolve<SoloWinstonLogger>(InjectTokens.SoloLogger);
-    for (let i: number = 0; i < contexts.length; i++) {
-      const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[i]);
+    for (let index: number = 0; index < contexts.length; index++) {
+      const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[index]);
       await k8Client.namespaces().delete(namespace);
     }
     testLogger.info(`${testName}: starting dual cluster full e2e test`);
@@ -89,7 +93,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
 
   beforeEach(async (): Promise<void> => {
     testLogger.info(`${testName}: resetting containers for each test`);
-    resetForTest(namespace.name, testCacheDir, testLogger, false);
+    resetForTest(namespace.name, testCacheDirectory, testLogger, false);
     testLogger.info(`${testName}: finished resetting containers for each test`);
   });
 
@@ -104,12 +108,12 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   it(`${testName}: solo cluster-ref connect`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo cluster-ref connect`);
     for (let index: number = 0; index < testClusterArray.length; index++) {
-      await main(soloClusterRefConnectArgv(testClusterArray[index], contexts[index]));
+      await main(soloClusterReferenceConnectArgv(testClusterArray[index], contexts[index]));
     }
     const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
-    const clusterRefs: ClusterRefs = localConfig.clusterRefs;
-    expect(clusterRefs[testClusterArray[0]]).to.equal(contexts[0]);
-    expect(clusterRefs[testClusterArray[1]]).to.equal(contexts[1]);
+    const clusterReferences: ClusterReferences = localConfig.clusterRefs;
+    expect(clusterReferences[testClusterArray[0]]).to.equal(contexts[0]);
+    expect(clusterReferences[testClusterArray[1]]).to.equal(contexts[1]);
     testLogger.info(`${testName}: finished solo cluster-ref connect`);
   });
 
@@ -136,7 +140,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
   it(`${testName}: solo cluster-ref setup`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo cluster-ref setup`);
     for (let index: number = 0; index < testClusterArray.length; index++) {
-      await main(soloClusterRefSetup(testClusterArray[index]));
+      await main(soloClusterReferenceSetup(testClusterArray[index]));
     }
     testLogger.info(`${testName}: finishing solo cluster-ref setup`);
   });
@@ -145,7 +149,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     testLogger.info(`${testName}: beginning node keys command`);
     expect(container.resolve<SoloLogger>(InjectTokens.SoloLogger)).to.equal(testLogger);
     await main(soloNodeKeysArgv(deployment));
-    const node1Key: Buffer = fs.readFileSync(PathEx.joinWithRealPath(testCacheDir, 'keys', 's-private-node1.pem'));
+    const node1Key: Buffer = fs.readFileSync(
+      PathEx.joinWithRealPath(testCacheDirectory, 'keys', 's-private-node1.pem'),
+    );
     expect(node1Key).to.not.be.null;
     testLogger.info(`${testName}: finished node keys command`);
   });
@@ -171,7 +177,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       const k8: K8 = k8Factory.getK8(contexts[index]);
       const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       expect(pods, 'expect this cluster to have one network node').to.have.lengthOf(1);
-      const rootContainer: ContainerRef = ContainerRef.of(PodRef.of(namespace, pods[0].podRef.name), ROOT_CONTAINER);
+      const rootContainer: ContainerReference = ContainerReference.of(
+        PodReference.of(namespace, pods[0].podReference.name),
+        ROOT_CONTAINER,
+      );
       expect(
         await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
         'expect extract-platform.sh to be present on the pods',
@@ -203,15 +212,15 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
         .waitForReadyStatus(
           namespace,
           [
-            `app=haproxy-${Templates.extractNodeAliasFromPodName(networkNodePod[0].podRef.name)}`,
+            `app=haproxy-${Templates.extractNodeAliasFromPodName(networkNodePod[0].podReference.name)}`,
             'solo.hedera.com/type=haproxy',
           ],
           constants.NETWORK_PROXY_MAX_ATTEMPTS,
           constants.NETWORK_PROXY_DELAY,
         );
       expect(haProxyPod).to.have.lengthOf(1);
-      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterRefs));
-      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterRefs));
+      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterReferences));
+      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterReferences));
     }
   }).timeout(Duration.ofMinutes(5).toMillis());
 
@@ -236,7 +245,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
     expect(hederaExplorerPods).to.have.lengthOf(1);
     let portForwarder: ExtendedNetServer = null;
     try {
-      portForwarder = await k8.pods().readByRef(hederaExplorerPods[0].podRef).portForward(8_080, 8_080);
+      portForwarder = await k8.pods().readByReference(hederaExplorerPods[0].podReference).portForward(8_080, 8_080);
       await sleep(Duration.ofSeconds(2));
       const guiUrl: string = 'http://127.0.0.1:8080/localnet/dashboard';
       const packageDownloader: PackageDownloader = container.resolve<PackageDownloader>(InjectTokens.PackageDownloader);
@@ -244,7 +253,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullE2eTest(): 
       // TODO validate the new accounts are showing up with the hedera explorer url
     } finally {
       if (portForwarder) {
-        await k8.pods().readByRef(null).stopPortForward(portForwarder);
+        await k8.pods().readByReference(null).stopPortForward(portForwarder);
       }
     }
   });
@@ -274,12 +283,12 @@ function soloInitArgv(): string[] {
   return argv;
 }
 
-function soloClusterRefConnectArgv(clusterRef: ClusterRef, context: string): string[] {
+function soloClusterReferenceConnectArgv(clusterReference: ClusterReference, context: string): string[] {
   const argv: string[] = newArgv();
   argv.push('cluster-ref');
   argv.push('connect');
   argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterRef);
+  argv.push(clusterReference);
   argv.push(optionFromFlag(Flags.context));
   argv.push(context);
   argv.push(optionFromFlag(Flags.userEmailAddress));
@@ -302,7 +311,7 @@ function soloDeploymentCreateArgv(deployment: DeploymentName, namespace: Namespa
 
 function soloDeploymentAddClusterArgv(
   deployment: DeploymentName,
-  clusterRef: ClusterRef,
+  clusterReference: ClusterReference,
   numberOfNodes: number,
 ): string[] {
   const argv: string[] = newArgv();
@@ -311,19 +320,19 @@ function soloDeploymentAddClusterArgv(
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
   argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterRef);
+  argv.push(clusterReference);
   argv.push(optionFromFlag(Flags.numberOfConsensusNodes));
   argv.push(numberOfNodes.toString());
   argvPushGlobalFlags(argv);
   return argv;
 }
 
-function soloClusterRefSetup(clusterRef: ClusterRef): string[] {
+function soloClusterReferenceSetup(clusterReference: ClusterReference): string[] {
   const argv: string[] = newArgv();
   argv.push('cluster-ref');
   argv.push('setup');
   argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterRef);
+  argv.push(clusterReference);
   argvPushGlobalFlags(argv, false, true);
   return argv;
 }
@@ -372,10 +381,13 @@ function soloNodeStartArgv(deployment: DeploymentName): string[] {
   return argv;
 }
 
-async function verifyAccountCreateWasSuccessful(namespace: NamespaceName, clusterRefs: ClusterRefs): Promise<string> {
+async function verifyAccountCreateWasSuccessful(
+  namespace: NamespaceName,
+  clusterReferences: ClusterReferences,
+): Promise<string> {
   const accountManager: AccountManager = container.resolve<AccountManager>(InjectTokens.AccountManager);
   try {
-    await accountManager.refreshNodeClient(namespace, clusterRefs);
+    await accountManager.refreshNodeClient(namespace, clusterReferences);
     expect(accountManager._nodeClient).not.to.be.null;
     const privateKey: PrivateKey = PrivateKey.generate();
     const amount: number = 100;
@@ -407,14 +419,14 @@ async function verifyAccountCreateWasSuccessful(namespace: NamespaceName, cluste
   }
 }
 
-function soloMirrorNodeDeployArgv(deployment: DeploymentName, clusterRef: ClusterRef): string[] {
+function soloMirrorNodeDeployArgv(deployment: DeploymentName, clusterReference: ClusterReference): string[] {
   const argv: string[] = newArgv();
   argv.push('mirror-node');
   argv.push('deploy');
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
   argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterRef);
+  argv.push(clusterReference);
   argv.push(optionFromFlag(Flags.pinger));
   argvPushGlobalFlags(argv, true, true);
   return argv;
@@ -437,22 +449,22 @@ async function verifyMirrorNodeDeployWasSuccessful(
   expect(mirrorNodeRestPods).to.have.lengthOf(1);
   let portForwarder: ExtendedNetServer = null;
   try {
-    portForwarder = await k8.pods().readByRef(mirrorNodeRestPods[0].podRef).portForward(5_551, 5_551);
+    portForwarder = await k8.pods().readByReference(mirrorNodeRestPods[0].podReference).portForward(5_551, 5_551);
     await sleep(Duration.ofSeconds(2));
     const queryUrl: string = 'http://localhost:5551/api/v1/network/nodes';
     let received: boolean = false;
     // wait until the transaction reached consensus and retrievable from the mirror node API
     while (!received) {
-      const req: http.ClientRequest = http.request(
+      const request: http.ClientRequest = http.request(
         queryUrl,
         {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
-        (res: http.IncomingMessage): void => {
-          res.setEncoding('utf8');
-          res.on('data', (chunk): void => {
+        (response: http.IncomingMessage): void => {
+          response.setEncoding('utf8');
+          response.on('data', (chunk): void => {
             // convert chunk to json object
-            const obj: {nodes: unknown[]} = JSON.parse(chunk);
+            const object: {nodes: unknown[]} = JSON.parse(chunk);
             expect(
-              obj.nodes?.length,
+              object.nodes?.length,
               "expect there to be two nodes in the mirror node's copy of the address book",
             ).to.equal(2);
             // TODO need to enable this, but looks like mirror node currently is getting no service endpoints
@@ -464,28 +476,28 @@ async function verifyMirrorNodeDeployWasSuccessful(
           });
         },
       );
-      req.on('error', (e: Error): void => {
-        testLogger.debug(`problem with request: ${e.message}`, e);
+      request.on('error', (error: Error): void => {
+        testLogger.debug(`problem with request: ${error.message}`, error);
       });
-      req.end(); // make the request
+      request.end(); // make the request
       await sleep(Duration.ofSeconds(2));
     }
     await sleep(Duration.ofSeconds(1));
   } finally {
     if (portForwarder) {
-      await k8.pods().readByRef(null).stopPortForward(portForwarder);
+      await k8.pods().readByReference(null).stopPortForward(portForwarder);
     }
   }
 }
 
-function soloExplorerDeployArgv(deployment: DeploymentName, clusterRef: ClusterRef): string[] {
+function soloExplorerDeployArgv(deployment: DeploymentName, clusterReference: ClusterReference): string[] {
   const argv: string[] = newArgv();
   argv.push('explorer');
   argv.push('deploy');
   argv.push(optionFromFlag(Flags.deployment));
   argv.push(deployment);
   argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterRef);
+  argv.push(clusterReference);
   argvPushGlobalFlags(argv, true, true);
   return argv;
 }
@@ -502,20 +514,20 @@ function soloNetworkDestroyArgv(deployment: DeploymentName): string[] {
 
 function argvPushGlobalFlags(
   argv: string[],
-  shouldSetTestCacheDir: boolean = false,
-  shouldSetChartDir: boolean = false,
+  shouldSetTestCacheDirectory: boolean = false,
+  shouldSetChartDirectory: boolean = false,
 ): string[] {
   argv.push(optionFromFlag(Flags.devMode));
   argv.push(optionFromFlag(Flags.quiet));
 
-  if (shouldSetChartDir && process.env.SOLO_CHARTS_DIR && process.env.SOLO_CHARTS_DIR !== '') {
+  if (shouldSetChartDirectory && process.env.SOLO_CHARTS_DIR && process.env.SOLO_CHARTS_DIR !== '') {
     argv.push(optionFromFlag(Flags.chartDirectory));
     argv.push(process.env.SOLO_CHARTS_DIR);
   }
 
-  if (shouldSetTestCacheDir) {
+  if (shouldSetTestCacheDirectory) {
     argv.push(optionFromFlag(Flags.cacheDir));
-    argv.push(getTestCacheDir(testName));
+    argv.push(getTestCacheDirectory(testName));
   }
 
   return argv;

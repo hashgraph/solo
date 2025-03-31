@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ResourceRef as ResourceReference} from './resource-ref.js';
+import {type ResourceReference} from './resource-reference.js';
 import {type ResourceName} from './resource-name.js';
-import {MissingParentResourceRefError as MissingParentResourceReferenceError} from '../errors/missing-parent-resource-error.js';
+import {MissingParentResourceReferenceError as MissingParentResourceReferenceError} from '../errors/missing-parent-resource-reference-error.js';
 import {MissingResourceNameError} from '../errors/missing-resource-name-error.js';
 
-export abstract class NestedResourceRef<P extends ResourceReference<any>, T extends ResourceName> {
+export abstract class NestedResourceReference<P extends ResourceReference<any>, T extends ResourceName> {
   protected constructor(
     public readonly parentReference: P,
     public readonly name: T,
@@ -19,12 +19,16 @@ export abstract class NestedResourceRef<P extends ResourceReference<any>, T exte
   }
 
   /**
-   * Compares this instance with another NestedResourceRef.
-   * @param other The other NestedResourceRef instance.
+   * Compares this instance with another NestedResourceReference.
+   * @param other The other NestedResourceReference instance.
    * @returns true if both instances have the same parent reference and name.
    */
-  public equals(other: NestedResourceRef<P, T>): boolean {
-    return other instanceof NestedResourceRef && this.parentRef.equals(other.parentRef) && this.name.equals(other.name);
+  public equals(other: NestedResourceReference<P, T>): boolean {
+    return (
+      other instanceof NestedResourceReference &&
+      this.parentReference.equals(other.parentReference) &&
+      this.name.equals(other.name)
+    );
   }
 
   /**
@@ -32,6 +36,6 @@ export abstract class NestedResourceRef<P extends ResourceReference<any>, T exte
    * @returns The nested resource reference as a string.
    */
   public toString(): string {
-    return `{parentRef: ${this.parentRef}, name: ${this.name}}`;
+    return `{parentRef: ${this.parentReference}, name: ${this.name}}`;
   }
 }

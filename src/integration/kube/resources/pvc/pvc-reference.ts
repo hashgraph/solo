@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ResourceRef as ResourceReference} from '../resource-ref.js';
+import {ResourceReference as ResourceReference} from '../resource-reference.js';
 import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type PvcName} from './pvc-name.js';
 
 /**
  * Represents a Kubernetes PVC (persistent volume claim) reference which includes the namespace name and PVC name.
  */
-export class PvcRef extends ResourceReference<PvcName> {
+export class PvcReference extends ResourceReference<PvcName> {
   private constructor(namespace: NamespaceName, name: PvcName) {
     super(namespace, name);
   }
@@ -17,7 +17,7 @@ export class PvcRef extends ResourceReference<PvcName> {
    * @param namespace The namespace name.
    * @param pvcName The PVC name.
    */
-  public static of(namespace: NamespaceName, pvcName: PvcName): PvcRef {
-    return new PvcRef(namespace, pvcName);
+  public static of(namespace: NamespaceName, pvcName: PvcName): PvcReference {
+    return new PvcReference(namespace, pvcName);
   }
 }

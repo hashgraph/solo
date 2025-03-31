@@ -14,11 +14,11 @@ export class ErrorHandler {
   }
 
   public handle(error: Error | any): void {
-    const err = this.extractBreak(error);
-    if (err instanceof UserBreak) {
-      this.handleUserBreak(err);
-    } else if (err instanceof SilentBreak) {
-      this.handleSilentBreak(err);
+    const error_ = this.extractBreak(error);
+    if (error_ instanceof UserBreak) {
+      this.handleUserBreak(error_);
+    } else if (error_ instanceof SilentBreak) {
+      this.handleSilentBreak(error_);
     } else {
       this.handleError(error);
     }
@@ -41,12 +41,12 @@ export class ErrorHandler {
    * Returns the UserBreak or SilentBreak if found, otherwise false
    * @param err
    */
-  private extractBreak(err: Error | any): UserBreak | SilentBreak | false {
-    if (err instanceof UserBreak || err instanceof SilentBreak) {
-      return err;
+  private extractBreak(error: Error | any): UserBreak | SilentBreak | false {
+    if (error instanceof UserBreak || error instanceof SilentBreak) {
+      return error;
     }
-    if (err?.cause) {
-      return this.extractBreak(err.cause);
+    if (error?.cause) {
+      return this.extractBreak(error.cause);
     }
     return false;
   }

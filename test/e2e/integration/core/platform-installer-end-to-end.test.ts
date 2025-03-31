@@ -23,8 +23,8 @@ const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
 const namespace = NamespaceName.of('pkg-installer-e2e');
 const argv = Argv.getDefaultArgv(namespace);
-const testCacheDir = getTestCacheDirectory();
-argv.setArg(flags.cacheDir, testCacheDir);
+const testCacheDirectory = getTestCacheDirectory();
+argv.setArg(flags.cacheDir, testCacheDirectory);
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1');
 argv.setArg(flags.clusterRef, getTestCluster());
@@ -57,8 +57,8 @@ endToEndTestSuite(namespace.name, argv, {startNodes: false}, bootstrapResp => {
     before(function () {
       this.timeout(defaultTimeout);
 
-      if (!fs.existsSync(testCacheDir)) {
-        fs.mkdirSync(testCacheDir);
+      if (!fs.existsSync(testCacheDirectory)) {
+        fs.mkdirSync(testCacheDirectory);
       }
     });
 

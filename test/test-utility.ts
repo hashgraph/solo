@@ -40,7 +40,7 @@ import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from './test-container.js';
 import {NamespaceName} from '../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodRef as PodReference} from '../src/integration/kube/resources/pod/pod-ref.js';
+import {PodReference as PodReference} from '../src/integration/kube/resources/pod/pod-reference.js';
 import {ContainerReference as ContainerReference} from '../src/integration/kube/resources/container/container-reference.js';
 import {type NetworkNodes} from '../src/core/network-nodes.js';
 import {InjectTokens} from '../src/core/dependency-injection/inject-tokens.js';
@@ -144,8 +144,8 @@ export function bootstrapTestVariables(
   );
 
   const deployment: string = argv.getArg<DeploymentName>(flags.deployment) || `${namespace.name}-deployment`;
-  const cacheDir: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDirectory(testName);
-  resetForTest(namespace.name, cacheDir);
+  const cacheDirectory: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDirectory(testName);
+  resetForTest(namespace.name, cacheDirectory);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   configManager.update(argv.build());
 
@@ -176,7 +176,7 @@ export function bootstrapTestVariables(
     depManager,
     keyManager,
     accountManager,
-    cacheDir,
+    cacheDir: cacheDirectory,
     profileManager,
     leaseManager,
     certificateManager,

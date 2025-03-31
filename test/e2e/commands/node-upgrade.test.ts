@@ -4,14 +4,14 @@ import {after, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
+import {endToEndTestSuite, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import fs from 'fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
+import {PodReference as PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference as ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
 import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
@@ -33,7 +33,7 @@ const zipFile = 'upgrade.zip';
 
 const TEST_VERSION_STRING = '0.100.0';
 
-e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
   const {
     opts: {k8Factory, commandInvoker, logger},
     cmd: {nodeCmd, accountCmd},
@@ -58,18 +58,18 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('should succeed with upgrade', async () => {
       // create file version.txt at tmp directory
-      const tmpDir = getTmpDir();
-      fs.writeFileSync(`${tmpDir}/version.txt`, TEST_VERSION_STRING);
+      const temporaryDirectory = getTemporaryDirectory();
+      fs.writeFileSync(`${temporaryDirectory}/version.txt`, TEST_VERSION_STRING);
 
       // create upgrade.zip file from tmp directory using zippy.ts
       const zipper = new Zippy(logger);
-      await zipper.zip(tmpDir, zipFile);
+      await zipper.zip(temporaryDirectory, zipFile);
 
-      const tempDir = 'contextDir';
+      const temporaryDirectory2 = 'contextDir';
 
       argv.setArg(flags.upgradeZipFile, zipFile);
-      argv.setArg(flags.outputDir, tempDir);
-      argv.setArg(flags.inputDir, tempDir);
+      argv.setArg(flags.outputDir, temporaryDirectory2);
+      argv.setArg(flags.inputDir, temporaryDirectory2);
 
       await commandInvoker.invoke({
         argv: argv,
@@ -81,16 +81,16 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('network nodes version file was upgraded', async () => {
       // copy the version.txt file from the pod data/upgrade/current directory
-      const tmpDir = getTmpDir();
+      const temporaryDirectory = getTemporaryDirectory();
       const pods: Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
       await k8Factory
         .default()
         .containers()
-        .readByRef(ContainerRef.of(PodRef.of(namespace, pods[0].podRef.name), ROOT_CONTAINER))
-        .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
+        .readByRef(ContainerReference.of(PodReference.of(namespace, pods[0].podReference.name), ROOT_CONTAINER))
+        .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, temporaryDirectory);
 
       // compare the version.txt
-      const version = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');
+      const version = fs.readFileSync(`${temporaryDirectory}/version.txt`, 'utf8');
       expect(version).to.equal(TEST_VERSION_STRING);
     }).timeout(Duration.ofMinutes(5).toMillis());
   });

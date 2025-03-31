@@ -12,10 +12,10 @@ import * as constants from '../../../../../src/core/constants.js';
 import {CommonFlagsDataWrapper} from '../../../../../src/core/config/remote/common-flags-data-wrapper.js';
 
 const configManagerMock = {
-  update: (...args: any) => true,
-  getFlag: (...args: any) => true,
-  hasFlag: (...args: any) => true,
-  setFlag: (...args: any) => true,
+  update: (...arguments_: any) => true,
+  getFlag: (...arguments_: any) => true,
+  hasFlag: (...arguments_: any) => true,
+  setFlag: (...arguments_: any) => true,
 };
 
 async function createRemoteConfigDataWrapper() {
@@ -59,7 +59,7 @@ describe('RemoteConfigDataWrapper', async () => {
     expect(dataWrapper.commandHistory).to.include(command);
 
     it('should be able to handle overflow', () => {
-      for (let i = 0; i < constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY; i++) {
+      for (let index = 0; index < constants.SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY; index++) {
         dataWrapper.addCommandToHistory(command);
       }
     });

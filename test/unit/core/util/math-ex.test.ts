@@ -27,35 +27,49 @@ describe('MathEx', () => {
   });
 
   it('testLongFloorDivMod', () => {
-    testLongFloorDivMod(4, 0, 0, 0, true, true);
-    testLongFloorDivMod(4, 3, 1, 1, false, false);
-    testLongFloorDivMod(3, 3, 1, 0, false, false);
-    testLongFloorDivMod(2, 3, 0, 2, false, false);
-    testLongFloorDivMod(1, 3, 0, 1, false, false);
-    testLongFloorDivMod(0, 3, 0, 0, false, false);
-    testLongFloorDivMod(4, -3, -2, -2, false, false);
-    testLongFloorDivMod(3, -3, -1, 0, false, false);
-    testLongFloorDivMod(2, -3, -1, -1, false, false);
-    testLongFloorDivMod(1, -3, -1, -2, false, false);
-    testLongFloorDivMod(0, -3, 0, 0, false, false);
-    testLongFloorDivMod(-1, 3, -1, 2, false, false);
-    testLongFloorDivMod(-2, 3, -1, 1, false, false);
-    testLongFloorDivMod(-3, 3, -1, 0, false, false);
-    testLongFloorDivMod(-4, 3, -2, 2, false, false);
-    testLongFloorDivMod(-1, -3, 0, -1, false, false);
-    testLongFloorDivMod(-2, -3, 0, -2, false, false);
-    testLongFloorDivMod(-3, -3, 1, 0, false, false);
-    testLongFloorDivMod(-4, -3, 1, -1, false, false);
+    testLongFloorDivModule(4, 0, 0, 0, true, true);
+    testLongFloorDivModule(4, 3, 1, 1, false, false);
+    testLongFloorDivModule(3, 3, 1, 0, false, false);
+    testLongFloorDivModule(2, 3, 0, 2, false, false);
+    testLongFloorDivModule(1, 3, 0, 1, false, false);
+    testLongFloorDivModule(0, 3, 0, 0, false, false);
+    testLongFloorDivModule(4, -3, -2, -2, false, false);
+    testLongFloorDivModule(3, -3, -1, 0, false, false);
+    testLongFloorDivModule(2, -3, -1, -1, false, false);
+    testLongFloorDivModule(1, -3, -1, -2, false, false);
+    testLongFloorDivModule(0, -3, 0, 0, false, false);
+    testLongFloorDivModule(-1, 3, -1, 2, false, false);
+    testLongFloorDivModule(-2, 3, -1, 1, false, false);
+    testLongFloorDivModule(-3, 3, -1, 0, false, false);
+    testLongFloorDivModule(-4, 3, -2, 2, false, false);
+    testLongFloorDivModule(-1, -3, 0, -1, false, false);
+    testLongFloorDivModule(-2, -3, 0, -2, false, false);
+    testLongFloorDivModule(-3, -3, 1, 0, false, false);
+    testLongFloorDivModule(-4, -3, 1, -1, false, false);
 
-    testLongFloorDivMod(Number.MAX_SAFE_INTEGER, 1, Number.MAX_SAFE_INTEGER, 0, false, false);
-    testLongFloorDivMod(Number.MAX_SAFE_INTEGER, -1, -Number.MAX_SAFE_INTEGER, 0, false, false);
-    testLongFloorDivMod(Number.MAX_SAFE_INTEGER, 3, Math.floor(Number.MAX_SAFE_INTEGER / 3), 1, false, false);
-    testLongFloorDivMod(Number.MAX_SAFE_INTEGER - 1, 3, Math.floor(Number.MAX_SAFE_INTEGER - 1) / 3, 0, false, false);
-    testLongFloorDivMod(Number.MIN_SAFE_INTEGER, 3, Math.floor(Number.MIN_SAFE_INTEGER / 3), 1, false, false);
-    testLongFloorDivMod(Number.MIN_SAFE_INTEGER + 1, 3, Math.floor(Number.MIN_SAFE_INTEGER / 3) + 1, 0, false, false);
-    testLongFloorDivMod(Number.MIN_SAFE_INTEGER + 1, -1, Number.MAX_SAFE_INTEGER - 1, 0, false, false);
+    testLongFloorDivModule(Number.MAX_SAFE_INTEGER, 1, Number.MAX_SAFE_INTEGER, 0, false, false);
+    testLongFloorDivModule(Number.MAX_SAFE_INTEGER, -1, -Number.MAX_SAFE_INTEGER, 0, false, false);
+    testLongFloorDivModule(Number.MAX_SAFE_INTEGER, 3, Math.floor(Number.MAX_SAFE_INTEGER / 3), 1, false, false);
+    testLongFloorDivModule(
+      Number.MAX_SAFE_INTEGER - 1,
+      3,
+      Math.floor(Number.MAX_SAFE_INTEGER - 1) / 3,
+      0,
+      false,
+      false,
+    );
+    testLongFloorDivModule(Number.MIN_SAFE_INTEGER, 3, Math.floor(Number.MIN_SAFE_INTEGER / 3), 1, false, false);
+    testLongFloorDivModule(
+      Number.MIN_SAFE_INTEGER + 1,
+      3,
+      Math.floor(Number.MIN_SAFE_INTEGER / 3) + 1,
+      0,
+      false,
+      false,
+    );
+    testLongFloorDivModule(Number.MIN_SAFE_INTEGER + 1, -1, Number.MAX_SAFE_INTEGER - 1, 0, false, false);
     // Special case of integer overflow
-    testLongFloorDivMod(Number.MIN_SAFE_INTEGER, -1, Number.MAX_SAFE_INTEGER, 0, false, false);
+    testLongFloorDivModule(Number.MIN_SAFE_INTEGER, -1, Number.MAX_SAFE_INTEGER, 0, false, false);
   });
 });
 
@@ -66,8 +80,8 @@ function testLongExact(x: number, y: number) {
     const sum = MathEx.addExact(x, y);
 
     checkResult('addExact', x, y, sum, resultBig);
-  } catch (e: ArithmeticError | any) {
-    checkError('addExact', x, y, resultBig, e);
+  } catch (error: ArithmeticError | any) {
+    checkError('addExact', x, y, resultBig, error);
   }
 
   try {
@@ -75,8 +89,8 @@ function testLongExact(x: number, y: number) {
     const diff = MathEx.subtractExact(x, y);
 
     checkResult('subtractExact', x, y, diff, resultBig);
-  } catch (e: ArithmeticError | any) {
-    checkError('subtractExact', x, y, resultBig, e);
+  } catch (error: ArithmeticError | any) {
+    checkError('subtractExact', x, y, resultBig, error);
   }
 
   try {
@@ -84,8 +98,8 @@ function testLongExact(x: number, y: number) {
     const product = MathEx.multiplyExact(x, y);
 
     checkResult('multiplyExact', x, y, product, resultBig);
-  } catch (e: ArithmeticError | any) {
-    checkError('multiplyExact', x, y, resultBig, e);
+  } catch (error: ArithmeticError | any) {
+    checkError('multiplyExact', x, y, resultBig, error);
   }
 }
 
@@ -94,13 +108,13 @@ function testLongExactTwice(x: number, y: number) {
   testLongExact(y, x);
 }
 
-function checkError(message: string, x: number, y: number, resultBig: bigint, e: Error) {
-  if (!(e instanceof ArithmeticError)) {
-    throw e;
+function checkError(message: string, x: number, y: number, resultBig: bigint, error: Error) {
+  if (!(error instanceof ArithmeticError)) {
+    throw error;
   }
 
   if (Number.isSafeInteger(Number(resultBig))) {
-    expect.fail(`${message}(${x}, ${y}); Unexpected exception: ${e}`);
+    expect.fail(`${message}(${x}, ${y}); Unexpected exception: ${error}`);
   }
 }
 
@@ -114,16 +128,16 @@ function checkResult(message: string, x: number, y: number, result: number, expe
   }
 }
 
-function testLongFloorDivMod(
+function testLongFloorDivModule(
   x: number,
   y: number,
   divExpected: number,
-  modExpected: number,
+  moduleExpected: number,
   divThrows: boolean,
-  modThrows: boolean,
+  moduleThrows: boolean,
 ) {
   testLongFloorDiv(x, y, divExpected, divThrows);
-  testLongFloorMod(x, y, modExpected, modThrows);
+  testLongFloorModule(x, y, moduleExpected, moduleThrows);
 }
 
 function testLongFloorDiv(x: number, y: number, expected: number, shouldThrow: boolean) {
@@ -136,18 +150,18 @@ function testLongFloorDiv(x: number, y: number, expected: number, shouldThrow: b
     if (shouldThrow) {
       expect.fail(`floorDiv(${x}, ${y}); expected an arithmetic error`);
     }
-  } catch (e: ArithmeticError | any) {
-    if (!(e instanceof ArithmeticError)) {
-      throw e;
+  } catch (error: ArithmeticError | any) {
+    if (!(error instanceof ArithmeticError)) {
+      throw error;
     }
 
     if (!shouldThrow) {
-      expect.fail(`floorDiv(${x}, ${y}); Unexpected exception: ${e}`);
+      expect.fail(`floorDiv(${x}, ${y}); Unexpected exception: ${error}`);
     }
   }
 }
 
-function testLongFloorMod(x: number, y: number, expected: number, shouldThrow: boolean) {
+function testLongFloorModule(x: number, y: number, expected: number, shouldThrow: boolean) {
   try {
     const result = MathEx.floorMod(x, y);
     if (result !== expected) {
@@ -157,17 +171,17 @@ function testLongFloorMod(x: number, y: number, expected: number, shouldThrow: b
     if (shouldThrow) {
       expect.fail(`floorMod(${x}, ${y}); expected an arithmetic error`);
     }
-  } catch (e: ArithmeticError | any) {
-    if (!(e instanceof ArithmeticError)) {
-      throw e;
+  } catch (error: ArithmeticError | any) {
+    if (!(error instanceof ArithmeticError)) {
+      throw error;
     }
 
-    if (e instanceof ArithmeticError && y !== 0) {
-      expect.fail(`floorMod(${x}, ${y}); Unexpected arithmetic error: ${e}`);
+    if (error instanceof ArithmeticError && y !== 0) {
+      expect.fail(`floorMod(${x}, ${y}); Unexpected arithmetic error: ${error}`);
     }
 
     if (!shouldThrow) {
-      expect.fail(`floorMod(${x}, ${y}); Unexpected exception: ${e}`);
+      expect.fail(`floorMod(${x}, ${y}); Unexpected exception: ${error}`);
     }
   }
 }

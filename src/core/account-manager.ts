@@ -38,11 +38,11 @@ import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../integration/kube/resources/pod/pod-ref.js';
+import {PodReference as PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {type ClusterRefs, type DeploymentName} from './config/remote/types.js';
+import {type ClusterReferences, type DeploymentName} from './config/remote/types.js';
 import {type Service} from '../integration/kube/resources/service/service.js';
 import {SoloService} from './model/solo-service.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
@@ -102,8 +102,8 @@ export class AccountManager {
             publicKey: Base64.decode(secret.data.publicKey),
           };
         }
-      } catch (e) {
-        if (!(e instanceof ResourceNotFoundError)) throw e;
+      } catch (error) {
+        if (!(error instanceof ResourceNotFoundError)) throw error;
       }
     }
 
@@ -138,8 +138,8 @@ export class AccountManager {
     let currentBatch = [];
     for (const [start, end] of accountRange) {
       let batchCounter = start;
-      for (let i = start; i <= end; i++) {
-        currentBatch.push(i);
+      for (let index = start; index <= end; index++) {
+        currentBatch.push(index);
         batchCounter++;
 
         if (batchCounter % batchSize === 0) {
@@ -164,7 +164,7 @@ export class AccountManager {
     this._nodeClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
+        await this.k8Factory.default().pods().readByReference(null).stopPortForward(srv);
       }
     }
 
@@ -182,7 +182,7 @@ export class AccountManager {
    */
   public async loadNodeClient(
     namespace: NamespaceName,
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     deployment: DeploymentName,
     forcePortForward?: boolean,
   ) {
@@ -194,7 +194,7 @@ export class AccountManager {
         this.logger.debug(
           `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
         );
-        await this.refreshNodeClient(namespace, clusterRefs, undefined, deployment, forcePortForward);
+        await this.refreshNodeClient(namespace, clusterReferences, undefined, deployment, forcePortForward);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
@@ -202,14 +202,14 @@ export class AccountManager {
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
-          await this.refreshNodeClient(namespace, clusterRefs, undefined, deployment, forcePortForward);
+          await this.refreshNodeClient(namespace, clusterReferences, undefined, deployment, forcePortForward);
         }
       }
 
       return this._nodeClient!;
-    } catch (e) {
-      const message = `failed to load node client: ${e.message}`;
-      throw new SoloError(message, e);
+    } catch (error) {
+      const message = `failed to load node client: ${error.message}`;
+      throw new SoloError(message, error);
     }
   }
 
@@ -223,7 +223,7 @@ export class AccountManager {
    */
   async refreshNodeClient(
     namespace: NamespaceName,
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     skipNodeAlias?: NodeAlias,
     deployment?: DeploymentName,
     forcePortForward?: boolean,
@@ -235,7 +235,7 @@ export class AccountManager {
       }
 
       const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
-      const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterRefs, deployment);
+      const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterReferences, deployment);
 
       this._nodeClient = await this._getNodeClient(
         namespace,
@@ -247,9 +247,9 @@ export class AccountManager {
 
       this.logger.debug('node client has been refreshed');
       return this._nodeClient;
-    } catch (e) {
-      const message = `failed to refresh node client: ${e.message}`;
-      throw new SoloError(message, e);
+    } catch (error) {
+      const message = `failed to refresh node client: ${error.message}`;
+      throw new SoloError(message, error);
     }
   }
 
@@ -334,8 +334,8 @@ export class AccountManager {
       this.startIntervalPinger(operatorId);
 
       return this._nodeClient;
-    } catch (e) {
-      throw new SoloError(`failed to setup node client: ${e.message}`, e);
+    } catch (error) {
+      throw new SoloError(`failed to setup node client: ${error.message}`, error);
     }
   }
 
@@ -355,9 +355,9 @@ export class AccountManager {
           if (!constants.SKIP_NODE_PING) {
             await this._nodeClient.ping(AccountId.fromString(operatorId));
           }
-        } catch (e) {
-          const message = `failed to ping node client while running the interval pinger: ${e.message}`;
-          throw new SoloError(message, e);
+        } catch (error) {
+          const message = `failed to ping node client while running the interval pinger: ${error.message}`;
+          throw new SoloError(message, error);
         }
       }
     }, interval);
@@ -370,7 +370,7 @@ export class AccountManager {
   ): Promise<Record<SdkNetworkEndpoint, AccountId>> {
     this.logger.debug(`configuring node access for node: ${networkNodeService.nodeAlias}`);
 
-    const obj: Record<SdkNetworkEndpoint, AccountId> = {};
+    const object: Record<SdkNetworkEndpoint, AccountId> = {};
     const port = +networkNodeService.haProxyGrpcPort;
     const accountId = AccountId.fromString(networkNodeService.accountId as string);
 
@@ -382,11 +382,11 @@ export class AccountManager {
         this.logger.debug(`using load balancer IP: ${host}:${targetPort}`);
 
         try {
-          obj[`${host}:${targetPort}`] = accountId;
-          await this.pingNetworkNode(obj, accountId);
+          object[`${host}:${targetPort}`] = accountId;
+          await this.pingNetworkNode(object, accountId);
           this.logger.debug(`successfully pinged network node: ${host}:${targetPort}`);
 
-          return obj;
+          return object;
         } catch {
           // if the connection fails, then we should use the local host port forward
         }
@@ -400,19 +400,19 @@ export class AccountManager {
           await this.k8Factory
             .getK8(networkNodeService.context)
             .pods()
-            .readByRef(PodRef.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
+            .readByReference(PodReference.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
             .portForward(localPort, port),
         );
       }
 
       this.logger.debug(`using local host port forward: ${host}:${targetPort}`);
-      obj[`${host}:${targetPort}`] = accountId;
+      object[`${host}:${targetPort}`] = accountId;
 
-      await this.testNodeClientConnection(obj, accountId);
+      await this.testNodeClientConnection(object, accountId);
 
-      return obj;
-    } catch (e) {
-      throw new SoloError(`failed to configure node access: ${e.message}`, e);
+      return object;
+    } catch (error) {
+      throw new SoloError(`failed to configure node access: ${error.message}`, error);
     }
   }
 
@@ -423,7 +423,7 @@ export class AccountManager {
    * @throws {@link SoloError} if the ping fails
    */
   private async testNodeClientConnection(
-    obj: Record<SdkNetworkEndpoint, AccountId>,
+    object: Record<SdkNetworkEndpoint, AccountId>,
     accountId: AccountId,
   ): Promise<void> {
     const maxRetries = constants.NODE_CLIENT_PING_MAX_RETRIES;
@@ -436,25 +436,25 @@ export class AccountManager {
       while (!success && currentRetry < maxRetries) {
         try {
           this.logger.debug(
-            `attempting to ping network node: ${Object.keys(obj)[0]}, attempt: ${currentRetry}, of ${maxRetries}`,
+            `attempting to ping network node: ${Object.keys(object)[0]}, attempt: ${currentRetry}, of ${maxRetries}`,
           );
-          await this.pingNetworkNode(obj, accountId);
+          await this.pingNetworkNode(object, accountId);
           success = true;
 
           return;
-        } catch (e) {
-          this.logger.error(`failed to ping network node: ${Object.keys(obj)[0]}, ${e.message}`);
+        } catch (error) {
+          this.logger.error(`failed to ping network node: ${Object.keys(object)[0]}, ${error.message}`);
           currentRetry++;
           await sleep(Duration.ofMillis(sleepInterval));
         }
       }
-    } catch (e) {
-      const message = `failed testing node client connection for network node: ${Object.keys(obj)[0]}, after ${maxRetries} retries: ${e.message}`;
-      throw new SoloError(message, e);
+    } catch (error) {
+      const message = `failed testing node client connection for network node: ${Object.keys(object)[0]}, after ${maxRetries} retries: ${error.message}`;
+      throw new SoloError(message, error);
     }
 
     if (currentRetry >= maxRetries) {
-      throw new SoloError(`failed to ping network node: ${Object.keys(obj)[0]}, after ${maxRetries} retries`);
+      throw new SoloError(`failed to ping network node: ${Object.keys(object)[0]}, after ${maxRetries} retries`);
     }
 
     return;
@@ -469,7 +469,7 @@ export class AccountManager {
    */
   public async getNodeServiceMap(
     namespace: NamespaceName,
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     deployment?: string,
   ): Promise<NodeServiceMapping> {
     const labelSelector = 'solo.hedera.com/node-name';
@@ -478,10 +478,10 @@ export class AccountManager {
 
     try {
       const services: SoloService[] = [];
-      for (const [clusterRef, context] of Object.entries(clusterRefs)) {
+      for (const [clusterReference, context] of Object.entries(clusterReferences)) {
         const serviceList: Service[] = await this.k8Factory.getK8(context).services().list(namespace, [labelSelector]);
         services.push(
-          ...serviceList.map(service => SoloService.getFromK8Service(service, clusterRef, context, deployment)),
+          ...serviceList.map(service => SoloService.getFromK8Service(service, clusterReference, context, deployment)),
         );
       }
 
@@ -489,7 +489,7 @@ export class AccountManager {
       for (const service of services) {
         let loadBalancerEnabled: boolean = false;
         let nodeId: string | number;
-        const clusterRef = service.clusterRef;
+        const clusterReference = service.clusterReference;
 
         let serviceBuilder = new NetworkNodeServicesBuilder(
           service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
@@ -502,8 +502,8 @@ export class AccountManager {
             service.metadata.labels['solo.hedera.com/node-name'] as NodeAlias,
           );
           serviceBuilder.withNamespace(namespace);
-          serviceBuilder.withClusterRef(clusterRef);
-          serviceBuilder.withContext(clusterRefs[clusterRef]);
+          serviceBuilder.withClusterRef(clusterReference);
+          serviceBuilder.withContext(clusterReferences[clusterReference]);
           serviceBuilder.withDeployment(deployment);
         }
 
@@ -578,10 +578,10 @@ export class AccountManager {
           .getK8(serviceBuilder.context)
           .pods()
           .list(namespace, [`app=${serviceBuilder.haProxyAppSelector}`]);
-        serviceBuilder.withHaProxyPodName(podList[0].podRef.name);
+        serviceBuilder.withHaProxyPodName(podList[0].podReference.name);
       }
 
-      for (const [_, context] of Object.entries(clusterRefs)) {
+      for (const [_, context] of Object.entries(clusterReferences)) {
         // get the pod name of the network node
         const pods: Pod[] = await this.k8Factory
           .getK8(context)
@@ -591,7 +591,7 @@ export class AccountManager {
           if (!pod.labels?.hasOwnProperty('solo.hedera.com/node-name')) {
             continue;
           }
-          const podName: PodName = pod.podRef.name;
+          const podName: PodName = pod.podReference.name;
           const nodeAlias: NodeAlias = pod.labels!['solo.hedera.com/node-name'] as NodeAlias;
           const serviceBuilder: NetworkNodeServicesBuilder = serviceBuilderMap.get(
             nodeAlias,
@@ -607,8 +607,8 @@ export class AccountManager {
 
       this.logger.debug('node services have been loaded');
       return serviceMap;
-    } catch (e) {
-      throw new SoloError(`failed to get node services: ${e.message}`, e);
+    } catch (error) {
+      throw new SoloError(`failed to get node services: ${error.message}`, error);
     }
   }
 
@@ -636,11 +636,11 @@ export class AccountManager {
 
     const accountUpdatePromiseArray = [];
 
-    for (const accountNum of currentSet) {
+    for (const accountNumber of currentSet) {
       accountUpdatePromiseArray.push(
         this.updateAccountKeys(
           namespace,
-          AccountId.fromString(`${realm}.${shard}.${accountNum}`),
+          AccountId.fromString(`${realm}.${shard}.${accountNumber}`),
           genesisKey,
           updateSecrets,
         ),
@@ -694,8 +694,10 @@ export class AccountManager {
     let keys: Key[];
     try {
       keys = await this.getAccountKeys(accountId);
-    } catch (e) {
-      this.logger.error(`failed to get keys for accountId ${accountId.toString()}, e: ${e.toString()}\n  ${e.stack}`);
+    } catch (error) {
+      this.logger.error(
+        `failed to get keys for accountId ${accountId.toString()}, e: ${error.toString()}\n  ${error.stack}`,
+      );
       return {
         status: REJECTED,
         reason: REASON_FAILED_TO_GET_KEYS,
@@ -758,8 +760,8 @@ export class AccountManager {
           };
         }
       }
-    } catch (e) {
-      this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${e.toString()}`);
+    } catch (error) {
+      this.logger.error(`failed to create secret for accountId ${accountId.toString()}, e: ${error.toString()}`);
       return {
         status: REJECTED,
         reason: REASON_FAILED_TO_CREATE_K8S_S_KEY,
@@ -776,8 +778,8 @@ export class AccountManager {
           value: accountId.toString(),
         };
       }
-    } catch (e) {
-      this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${e.toString()}`);
+    } catch (error) {
+      this.logger.error(`failed to update account keys for accountId ${accountId.toString()}, e: ${error.toString()}`);
       return {
         status: REJECTED,
         reason: REASON_FAILED_TO_UPDATE_ACCOUNT,
@@ -938,13 +940,13 @@ export class AccountManager {
           `failed to create secret for accountId ${accountInfo.accountId.toString()}, keys were sent to log file`,
         );
       }
-    } catch (e) {
-      if (e instanceof SoloError) {
-        throw e;
+    } catch (error) {
+      if (error instanceof SoloError) {
+        throw error;
       }
       throw new SoloError(
-        `failed to create secret for accountId ${accountInfo.accountId.toString()}, e: ${e.toString()}`,
-        e,
+        `failed to create secret for accountId ${accountInfo.accountId.toString()}, e: ${error.toString()}`,
+        error,
       );
     }
 
@@ -974,8 +976,8 @@ export class AccountManager {
       );
 
       return receipt.status === Status.Success;
-    } catch (e) {
-      throw new SoloError(`transfer amount failed with an error: ${e.toString()}`, e);
+    } catch (error) {
+      throw new SoloError(`transfer amount failed with an error: ${error.toString()}`, error);
     }
   }
 
@@ -984,14 +986,14 @@ export class AccountManager {
    */
   async prepareAddressBookBase64(
     namespace: NamespaceName,
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     deployment: DeploymentName,
     operatorId: string,
     operatorKey: string,
     forcePortForward: boolean,
   ): Promise<string> {
     // fetch AddressBook
-    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward);
+    await this.loadNodeClient(namespace, clusterReferences, deployment, forcePortForward);
     const client = this._nodeClient;
 
     if (operatorId && operatorKey) {
@@ -1004,14 +1006,14 @@ export class AccountManager {
 
   async getFileContents(
     namespace: NamespaceName,
-    fileNum: number,
-    clusterRefs: ClusterRefs,
+    fileNumber: number,
+    clusterReferences: ClusterReferences,
     deployment?: DeploymentName,
     forcePortForward?: boolean,
   ): Promise<string> {
-    await this.loadNodeClient(namespace, clusterRefs, deployment, forcePortForward);
+    await this.loadNodeClient(namespace, clusterReferences, deployment, forcePortForward);
     const client = this._nodeClient;
-    const fileId = FileId.fromString(`0.0.${fileNum}`);
+    const fileId = FileId.fromString(`0.0.${fileNumber}`);
     const queryFees = new FileContentsQuery().setFileId(fileId);
     return Buffer.from(await queryFees.execute(client)).toString('hex');
   }
@@ -1022,20 +1024,20 @@ export class AccountManager {
    * @param accountId - the account id to ping
    * @throws {@link SoloError} if the ping fails
    */
-  private async pingNetworkNode(obj: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
+  private async pingNetworkNode(object: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId) {
     let nodeClient: Client;
     try {
-      nodeClient = Client.fromConfig({network: obj, scheduleNetworkUpdate: false});
-      this.logger.debug(`pinging network node: ${Object.keys(obj)[0]}`);
+      nodeClient = Client.fromConfig({network: object, scheduleNetworkUpdate: false});
+      this.logger.debug(`pinging network node: ${Object.keys(object)[0]}`);
 
       if (!constants.SKIP_NODE_PING) {
         await nodeClient.ping(accountId);
       }
-      this.logger.debug(`ping successful for network node: ${Object.keys(obj)[0]}`);
+      this.logger.debug(`ping successful for network node: ${Object.keys(object)[0]}`);
 
       return;
-    } catch (e) {
-      throw new SoloError(`failed to ping network node: ${Object.keys(obj)[0]} ${e.message}`, e);
+    } catch (error) {
+      throw new SoloError(`failed to ping network node: ${Object.keys(object)[0]} ${error.message}`, error);
     } finally {
       if (nodeClient) {
         try {

@@ -6,33 +6,33 @@ import each from 'mocha-each';
 
 import fs from 'fs';
 import {HelmDependencyManager} from '../../../../../src/core/dependency-managers/index.js';
-import {getTestCacheDir, getTmpDir} from '../../../../test-util.js';
+import {getTestCacheDirectory, getTemporaryDirectory} from '../../../../test-utility.js';
 import * as version from '../../../../../version.js';
 import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 
 describe('HelmDependencyManager', () => {
-  const tmpDir = PathEx.join(getTmpDir(), 'bin');
+  const temporaryDirectory = PathEx.join(getTemporaryDirectory(), 'bin');
 
-  before(() => fs.mkdirSync(tmpDir));
+  before(() => fs.mkdirSync(temporaryDirectory));
 
   after(() => {
-    if (fs.existsSync(tmpDir)) {
-      fs.rmSync(tmpDir, {recursive: true});
+    if (fs.existsSync(temporaryDirectory)) {
+      fs.rmSync(temporaryDirectory, {recursive: true});
     }
   });
 
   it('should return helm version', () => {
-    const helmDependencyManager = new HelmDependencyManager(undefined, undefined, tmpDir);
+    const helmDependencyManager = new HelmDependencyManager(undefined, undefined, temporaryDirectory);
     expect(helmDependencyManager.getHelmVersion()).to.equal(version.HELM_VERSION);
   });
 
   it('should be able to check when helm not installed', () => {
-    const helmDependencyManager = new HelmDependencyManager(undefined, undefined, tmpDir);
+    const helmDependencyManager = new HelmDependencyManager(undefined, undefined, temporaryDirectory);
     expect(helmDependencyManager.isInstalled()).not.to.be.ok;
   });
 
   it('should be able to check when helm is installed', () => {
-    const helmDependencyManager = new HelmDependencyManager(undefined, undefined, tmpDir);
+    const helmDependencyManager = new HelmDependencyManager(undefined, undefined, temporaryDirectory);
     fs.writeFileSync(helmDependencyManager.getHelmPath(), '');
     expect(helmDependencyManager.isInstalled()).to.be.ok;
   });
@@ -47,22 +47,22 @@ describe('HelmDependencyManager', () => {
       const helmDependencyManager = new HelmDependencyManager(
         undefined,
         undefined,
-        tmpDir,
+        temporaryDirectory,
         input.osPlatform,
         input.osArch,
       );
 
-      if (fs.existsSync(tmpDir)) {
-        fs.rmSync(tmpDir, {recursive: true});
+      if (fs.existsSync(temporaryDirectory)) {
+        fs.rmSync(temporaryDirectory, {recursive: true});
       }
 
       helmDependencyManager.uninstall();
       expect(helmDependencyManager.isInstalled()).not.to.be.ok;
 
-      expect(await helmDependencyManager.install(getTestCacheDir())).to.be.true;
+      expect(await helmDependencyManager.install(getTestCacheDirectory())).to.be.true;
       expect(helmDependencyManager.isInstalled()).to.be.ok;
 
-      fs.rmSync(tmpDir, {recursive: true});
+      fs.rmSync(temporaryDirectory, {recursive: true});
     });
   });
 });
