@@ -54,7 +54,7 @@ tasks:
   check:
     cmds:
       - npx remark . --quiet --frail
-      - npx eslint .
+      - npx eslint . | tee eslint.log && tsx lint-formatter.ts eslint.log
       - npx tsc
       - npx madge --circular {{.TASKFILE_DIR}}/src/*
       - npx typedoc --emit none
