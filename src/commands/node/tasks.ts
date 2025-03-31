@@ -1646,7 +1646,9 @@ export class NodeCommandTasks {
             name: networkNodeServices.nodeAlias,
             nodeId: networkNodeServices.nodeId,
           });
-          maxNum = Math.max(maxNum, AccountId.fromString(networkNodeServices.accountId).num);
+          maxNum = Long.fromNumber(
+            Math.max(maxNum.toNumber(), AccountId.fromString(networkNodeServices.accountId).num.toNumber()),
+          );
           lastNodeAlias = networkNodeServices.nodeAlias;
         }
 
@@ -2475,7 +2477,7 @@ export class NodeCommandTasks {
         ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
         // if the consensusNodes does not contain the nodeAlias then add it
-        if (!ctx.config.consensusNodes.find((node: ConsensusNode) => node.name === nodeAlias)) {
+        if (!ctx.config.consensusNodes.some((node: ConsensusNode) => node.name === nodeAlias)) {
           const cluster = this.remoteConfigManager.clusters[clusterRef];
 
           ctx.config.consensusNodes.push(

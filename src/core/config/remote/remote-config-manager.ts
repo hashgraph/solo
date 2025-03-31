@@ -495,10 +495,14 @@ export class RemoteConfigManager {
    * @returns an object of cluster references.
    */
   public getClusterRefs(): ClusterRefs {
-    return this.getConsensusNodes().reduce((acc, node) => {
+    const nodes = this.getConsensusNodes();
+    const acc: ClusterRefs = {};
+
+    for (const node of nodes) {
       acc[node.cluster] ||= node.context;
-      return acc;
-    }, {} as ClusterRefs);
+    }
+
+    return acc;
   }
 
   private getContextForFirstCluster(): string {
