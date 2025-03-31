@@ -49,7 +49,7 @@ import {Argv} from './helpers/argv-wrapper.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import {CommandInvoker} from './helpers/command-invoker.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
-import {type HelmClient} from '../src/integration/helm/HelmClient.js';
+import {type HelmClient} from '../src/integration/helm/helm-client.js';
 import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
 
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;

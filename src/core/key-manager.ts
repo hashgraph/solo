@@ -77,7 +77,7 @@ export class KeyManager {
     // However for private key there should be a single item.
     // So, we just being careful here to pick the last item (similar to how last PEM data represents the actual cert in
     // a certificate bundle)
-    const lastItem = items[items.length - 1];
+    const lastItem = items.at(-1);
 
     return await crypto.subtle.importKey('pkcs8', lastItem, algo, false, keyUsages);
   }

@@ -128,7 +128,7 @@ export function splitFlagInput(input: string, separator = ',') {
  * @returns a new array with the same elements as the input array
  */
 export function cloneArray<T>(arr: T[]): T[] {
-  return JSON.parse(JSON.stringify(arr));
+  return structuredClone(arr);
 }
 
 export function getTmpDir() {

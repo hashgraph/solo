@@ -33,7 +33,8 @@
     "version.ts",
     "version-test.ts",
     "solo.ts",
-    "test"
+    "test",
+    "lint-formatter.ts",
   ],
   "ts-node": {
     "esm": true,

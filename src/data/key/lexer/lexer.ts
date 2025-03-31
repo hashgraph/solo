@@ -355,7 +355,7 @@ export class Lexer {
       );
     }
 
-    if (root.children.find(n => n.name === segment)) {
+    if (root.children.some(n => n.name === segment)) {
       throw new ConfigKeyError(
         `Cannot add a leaf node to another leaf node [ parent: '${root.path()}', child: '${segment}' ]`,
       );

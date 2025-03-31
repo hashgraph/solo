@@ -304,7 +304,7 @@ export class AccountCommand extends BaseCommand {
 
                     for (const currentSet of ctx.accountsBatchedSet) {
                       const accStart = `${realm}.${shard}.${currentSet[0]}`;
-                      const accEnd = `${realm}.${shard}.${currentSet[currentSet.length - 1]}`;
+                      const accEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
                       const rangeStr =
                         accStart !== accEnd
                           ? `${chalk.yellow(accStart)} to ${chalk.yellow(accEnd)}`

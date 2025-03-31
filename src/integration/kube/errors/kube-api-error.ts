@@ -12,6 +12,6 @@ export class KubeApiError extends SoloError {
    * @param meta - optional metadata to be reported.
    */
   public constructor(message: string, statusCode: number, cause?: Error, meta?: object) {
-    super(message + `, statusCode: ${statusCode}`, cause, {...meta, ...{statusCode: statusCode}});
+    super(message + `, statusCode: ${statusCode}`, cause, {...meta, statusCode: statusCode});
   }
 }

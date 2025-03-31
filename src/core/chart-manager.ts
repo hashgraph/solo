@@ -8,14 +8,14 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {Repository} from '../integration/helm/model/Repository.js';
-import {type ReleaseItem} from '../integration/helm/model/release/ReleaseItem.js';
-import {UpgradeChartOptions} from '../integration/helm/model/upgrade/UpgradeChartOptions.js';
-import {Chart} from '../integration/helm/model/Chart.js';
-import {type InstallChartOptions} from '../integration/helm/model/install/InstallChartOptions.js';
-import {InstallChartOptionsBuilder} from '../integration/helm/model/install/InstallChartOptionsBuilder.js';
-import {type HelmClient} from '../integration/helm/HelmClient.js';
-import {UnInstallChartOptionsBuilder} from '../integration/helm/model/install/UnInstallChartOptionsBuilder.js';
+import {Repository} from '../integration/helm/model/repository.js';
+import {type ReleaseItem} from '../integration/helm/model/release/release-item.js';
+import {UpgradeChartOptions} from '../integration/helm/model/upgrade/upgrade-chart-options.js';
+import {Chart} from '../integration/helm/model/chart.js';
+import {type InstallChartOptions} from '../integration/helm/model/install/install-chart-options.js';
+import {InstallChartOptionsBuilder} from '../integration/helm/model/install/install-chart-options-builder.js';
+import {type HelmClient} from '../integration/helm/helm-client.js';
+import {UnInstallChartOptionsBuilder} from '../integration/helm/model/install/un-install-chart-options-builder.js';
 
 @injectable()
 export class ChartManager {

@@ -21,7 +21,7 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
-import {type HelmClient} from '../integration/helm/HelmClient.js';
+import {type HelmClient} from '../integration/helm/helm-client.js';
 
 export interface Opts {
   logger: SoloLogger;

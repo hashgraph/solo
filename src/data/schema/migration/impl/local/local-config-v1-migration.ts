@@ -3,7 +3,6 @@
 import {type SchemaMigration} from '../../api/schema-migration.js';
 import {VersionRange} from '../../../../../business/utils/version-range.js';
 import {Version} from '../../../../../business/utils/version.js';
-import deepClone from 'deep-clone';
 import {
   getSoloVersion,
   HEDERA_EXPLORER_VERSION,
@@ -12,7 +11,7 @@ import {
   MIRROR_NODE_VERSION,
   SOLO_CHART_VERSION,
 } from '../../../../../../version.js';
-import os from 'os';
+import os from 'node:os';
 import {IllegalArgumentError} from '../../../../../business/errors/illegal-argument-error.js';
 import {InvalidSchemaVersionError} from '../../api/invalid-schema-version-error.js';
 
@@ -31,7 +30,7 @@ export class LocalConfigV1Migration implements SchemaMigration {
       throw new IllegalArgumentError('source must not be null or undefined');
     }
 
-    const clone = deepClone(source);
+    const clone: any = structuredClone(source);
 
     if (clone.schemaVersion && clone.schemaVersion !== 0) {
       // this case should never happen considering the field was not present in version 0 and should default to zero

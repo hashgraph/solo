@@ -4,7 +4,6 @@ import {type Schema} from './schema.js';
 import {type SchemaMigration} from './schema-migration.js';
 import {Version} from '../../../../business/utils/version.js';
 import {type ClassConstructor} from '../../../../business/utils/class-constructor.type.js';
-import deepClone from 'deep-clone';
 import {type ObjectMapper} from '../../../mapper/api/object-mapper.js';
 import {SchemaValidationError} from './schema-validation-error.js';
 
@@ -21,7 +20,7 @@ export abstract class SchemaBase<T> implements Schema<T> {
       return null;
     }
 
-    const clone = deepClone(data);
+    const clone: any = structuredClone(data);
     let dataVersion: number = clone.schemaVersion;
     if (!dataVersion) {
       dataVersion = sourceVersion ? sourceVersion.value : 0;
