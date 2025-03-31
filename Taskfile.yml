@@ -63,6 +63,7 @@ tasks:
       - "{{ .test_prefix }}=\"Unit Tests\" 
         {{ .reporter_prefix }}='coverage/unit' 
         {{ .mocha_bin }} 'test/unit/**/*.ts' 
+          -exclude 'test/unit/core/helm/**/*.ts' 
         {{ .reporter_options_prefix }}.xml"
 
   test-mathex:
@@ -99,6 +100,13 @@ tasks:
         {{ .reporter_prefix }}='coverage/e2e-leases'
         {{ .mocha_bin }} 'test/e2e/integration/core/lease*.test.ts'
         {{ .reporter_options_prefix }}-e2e-integration.xml"
+
+  test-helm:
+    cmds:
+      - "{{ .test_prefix }}=\"Helm Unit Tests\"
+        {{ .reporter_prefix }}='coverage/unit-helm'
+        {{ .mocha_bin }} 'test/unit/core/helm/**/*.ts'
+        {{ .reporter_options_prefix }}.xml"
 
   test-e2e-standard:
     cmds:
