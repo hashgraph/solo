@@ -59,7 +59,6 @@ tasks:
       - chmod 755 docs/site/generate_help.sh
       - task: "build"
       - docs/site/generate_help.sh
-      - npx eslint --fix .
 
   build:hugo:
     cmds:
