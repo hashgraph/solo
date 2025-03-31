@@ -10,7 +10,7 @@ import {ComponentsDataWrapper} from './components-data-wrapper.js';
 import {RemoteConfigValidator} from './remote-config-validator.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {type ClusterRef, type ClusterRefs, type DeploymentName, type Version} from './types.js';
-import {type SoloLogger} from '../../logging.js';
+import {type SoloLogger} from '../../logging/solo-logger.js';
 import {type ConfigManager} from '../../config-manager.js';
 import {type LocalConfig} from '../local/local-config.js';
 import {type Optional} from '../../../types/index.js';
@@ -22,12 +22,12 @@ import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases} from 
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {Cluster} from './cluster.js';
-import * as helpers from '../../helpers.js';
 import {ConsensusNode} from '../../model/consensus-node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
 import {type DeploymentStates} from './enumerations.js';
 import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
+import {getSoloVersion} from '../../../../version.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -71,7 +71,7 @@ export class RemoteConfigManager {
    * @returns the remote configuration data's clusters cloned
    */
   public get clusters(): Record<ClusterRef, Cluster> {
-    return helpers.deepClone(this.remoteConfig.clusters);
+    return structuredClone(this.remoteConfig.clusters);
   }
 
   /* ---------- Readers and Modifiers ---------- */
@@ -115,7 +115,7 @@ export class RemoteConfigManager {
 
     const lastUpdatedAt = new Date();
     const email = this.localConfig.userEmailAddress;
-    const soloVersion = helpers.getSoloVersion();
+    const soloVersion = getSoloVersion();
     const currentCommand = argv._.join(' ');
 
     this.remoteConfig = new RemoteConfigDataWrapper({
@@ -494,10 +494,14 @@ export class RemoteConfigManager {
    * @returns an object of cluster references.
    */
   public getClusterRefs(): ClusterRefs {
-    return this.getConsensusNodes().reduce((acc, node) => {
+    const nodes = this.getConsensusNodes();
+    const acc: ClusterRefs = {};
+
+    for (const node of nodes) {
       acc[node.cluster] ||= node.context;
-      return acc;
-    }, {} as ClusterRefs);
+    }
+
+    return acc;
   }
 
   private getContextForFirstCluster(): string {

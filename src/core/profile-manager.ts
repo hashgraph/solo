@@ -17,7 +17,7 @@ import * as constants from './constants.js';
 import {type ConfigManager} from './config-manager.js';
 import * as helpers from './helpers.js';
 import {getNodeAccountMap} from './helpers.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {type AnyObject, type DirPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
 import {type Optional} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -176,7 +176,7 @@ export class ProfileManager {
       let itemKey = key;
 
       // if it is an array key like extraEnv[0].JAVA_OPTS, convert it into a dot separated key as extraEnv.0.JAVA_OPTS
-      if (key.indexOf('[') !== -1) {
+      if (key.includes('[')) {
         itemKey = key.replace('[', '.').replace(']', '');
       }
 
@@ -188,7 +188,7 @@ export class ProfileManager {
     }
   }
 
-  async resourcesForConsensusPod(
+  public async resourcesForConsensusPod(
     profile: AnyObject,
     consensusNodes: ConsensusNode[],
     nodeAliases: NodeAliases,
@@ -197,12 +197,16 @@ export class ProfileManager {
   ): Promise<AnyObject> {
     if (!profile) throw new MissingArgumentError('profile is required');
 
-    const accountMap = getNodeAccountMap(nodeAliases);
+    const accountMap: Map<NodeAlias, string> = getNodeAccountMap(consensusNodes.map(node => node.name));
 
     // set consensus pod level resources
-    for (let nodeIndex = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
+    for (let nodeIndex: number = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
       this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot);
-      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, `${nodeIndex}`, yamlRoot);
+      this._setValue(
+        `hedera.nodes.${nodeIndex}.nodeId`,
+        `${Templates.nodeIdFromNodeAlias(nodeAliases[nodeIndex])}`,
+        yamlRoot,
+      );
       this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot);
     }
 
@@ -341,7 +345,7 @@ export class ProfileManager {
     const filesMapping: Record<ClusterRef, string> = {};
 
     for (const clusterRef of Object.keys(this.remoteConfigManager.getClusterRefs())) {
-      const nodeAliases = consensusNodes
+      const nodeAliases: NodeAliases = consensusNodes
         .filter(consensusNode => consensusNode.cluster === clusterRef)
         .map(consensusNode => consensusNode.name);
 
@@ -391,7 +395,7 @@ export class ProfileManager {
   public async prepareValuesForRpcRelayChart(profileName: string) {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName) as AnyObject;
-    if (!profile.rpcRelay) return Promise.resolve(); // use chart defaults
+    if (!profile.rpcRelay) return ''; // use chart defaults
 
     // generate the YAML
     const yamlRoot = {};
@@ -438,7 +442,7 @@ export class ProfileManager {
   public async prepareValuesForMirrorNodeChart(profileName: string) {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName) as AnyObject;
-    if (!profile.mirror) return Promise.resolve(); // use chart defaults
+    if (!profile.mirror) return ''; // use chart defaults
 
     // generate the YAML
     const yamlRoot = {};
@@ -524,7 +528,7 @@ export class ProfileManager {
 
       let nodeSeq = 0;
       for (const consensusNode of consensusNodes) {
-        const internalIP: string = helpers.getInternalIp(
+        const internalIP: string = helpers.getInternalAddress(
           releaseVersion,
           NamespaceName.of(consensusNode.namespace),
           consensusNode.name as NodeAlias,

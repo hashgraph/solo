@@ -10,10 +10,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {ConfigManager} from '../../../src/core/config-manager.js';
-import {SoloLogger} from '../../../src/core/logging.js';
 import {ChartManager} from '../../../src/core/chart-manager.js';
-import {Helm} from '../../../src/core/helm.js';
-import {ROOT_DIR} from '../../../src/core/constants.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
 import {LocalConfig} from '../../../src/core/config/local/local-config.js';
@@ -23,15 +20,17 @@ import {DependencyManager} from '../../../src/core/dependency-managers/index.js'
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-config-data-wrapper.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
-import * as helpers from '../../../src/core/helpers.js';
-import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import {getSoloVersion} from '../../../version.js';
 
 const getBaseCommandOpts = (context: string) => {
   const opts = {
-    logger: sandbox.createStubInstance(SoloLogger),
-    helm: sandbox.createStubInstance(Helm),
+    logger: sandbox.createStubInstance<SoloLogger>(SoloWinstonLogger),
+    helm: sandbox.createStubInstance(DefaultHelmClient),
     k8Factory: sandbox.createStubInstance(K8ClientFactory),
     chartManager: sandbox.createStubInstance(ChartManager),
     configManager: sandbox.createStubInstance(ConfigManager),
@@ -88,7 +87,7 @@ describe('ClusterCommand unit tests', () => {
       opts.remoteConfigManager.currentCluster = 'solo-e2e';
       opts.localConfig.localConfigData = new LocalConfigDataWrapper(
         'test@test.com' as EmailAddress,
-        helpers.getSoloVersion(),
+        getSoloVersion(),
         {},
         {'solo-e2e': 'context-1'},
       );
@@ -100,10 +99,8 @@ describe('ClusterCommand unit tests', () => {
 
       expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
-      expect(opts.chartManager.install.args[0][2]).to.equal(
-        constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_CLUSTER_SETUP_CHART,
-      );
-      expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+      expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+      expect(opts.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
     });
 
     it('Should use local chart directory', async () => {
@@ -113,9 +110,7 @@ describe('ClusterCommand unit tests', () => {
       const clusterCommand = new ClusterCommand(opts);
       await clusterCommand.handlers.setup(argv.build());
 
-      expect(opts.chartManager.install.args[0][2]).to.equal(
-        PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_CLUSTER_SETUP_CHART),
-      );
+      expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
     });
   });
 });

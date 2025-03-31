@@ -8,8 +8,8 @@ import eslintPluginPrettier from 'eslint-plugin-prettier';
 import tsEslint from 'typescript-eslint';
 import headers from 'eslint-plugin-headers';
 import tsdoc from 'eslint-plugin-tsdoc';
-// eslint-disable-next-line n/no-unpublished-import
 import unusedImports from 'eslint-plugin-unused-imports';
+import eslintPluginUnicorn from 'eslint-plugin-unicorn';
 
 export default [
   eslintJs.configs.recommended,
@@ -19,15 +19,31 @@ export default [
     ...config,
     files: ['**/*.ts', '**/*.tsx'],
   })),
+  eslintPluginUnicorn.configs.recommended,
   {
-    ignores: ['docs/**/*', 'dist/*', '**/dist/*'],
+    ignores: [
+      '.git/**/*', // Git files
+      '.github/**/*', // GitHub files
+      '.idea/**/*', // IDE files
+      'coverage/**/*', // Coverage files
+      'docs/**/*', // Documentation files
+      'examples/**/*', // Example files
+      'dist/**/*', // Distribution files
+      'node_modules/**/*', // Node modules
+      'coverage/**/*', // Coverage files
+      '**/*.*js', // JavaScript files
+    ],
   },
   {
-    // all files not excluded, mostly js files
+    // Rules for all files not excluded
     languageOptions: {
       globals: {
         ...globals.mocha,
         ...globals.node,
+      },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
       ecmaVersion: 'latest',
       sourceType: 'module',
@@ -36,6 +52,9 @@ export default [
       n: nodePlugin,
       prettier: eslintPluginPrettier,
       headers: headers,
+      tsdoc: tsdoc,
+      'unused-imports': unusedImports,
+      '@typescript-eslint': tsEslint.plugin,
     },
     rules: {
       'headers/header-format': [
@@ -89,6 +108,7 @@ export default [
             'typescript-eslint',
             'eslint-plugin-headers',
             'eslint-plugin-tsdoc',
+            'eslint-plugin-unused-imports',
           ],
           convertPath: [
             {
@@ -107,31 +127,29 @@ export default [
         },
       ],
       'no-prototype-builtins': 'off',
-    },
-  },
-  {
-    // all ts files
-    files: ['**/*.ts'],
-    plugins: {
-      tsdoc: tsdoc,
-      'unused-imports': unusedImports,
-    },
-    languageOptions: {
-      globals: {
-        ...globals.mocha,
-        ...globals.node,
-      },
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-    },
-    rules: {
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-non-null-assertion': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       '@typescript-eslint/no-warning-comments': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-function-return-type': [
+        'warn',
+        {
+          allowExpressions: false,
+          allowTypedFunctionExpressions: false,
+          allowHigherOrderFunctions: false,
+        },
+      ],
+      '@typescript-eslint/typedef': [
+        'warn',
+        {
+          variableDeclaration: true,
+          parameter: true,
+          propertyDeclaration: true,
+          memberVariableDeclaration: true,
+        },
+      ],
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/ban-types': 'off',
       '@typescript-eslint/camelcase': 'off',
@@ -171,14 +189,53 @@ export default [
           argsIgnorePattern: '^_',
         },
       ],
+      'no-invalid-this': ['off', {}],
+      '@typescript-eslint/no-unused-expressions': 'off',
+      'unicorn/filename-case': [
+        'error',
+        {
+          case: 'kebabCase',
+          // Optional: Ensure this rule only applies to TypeScript files
+          ignore: ['.*\\.d\\.ts$'], // Ignore TypeScript declaration files if needed
+        },
+      ],
+      'unicorn/prefer-node-protocol': 'warn', // TODO error
+      'unicorn/prefer-spread': 'warn', // TODO error
+      'unicorn/no-null': 'warn', // TODO error
+      'unicorn/text-encoding-identifier-case': 'warn', // TODO error
+      'unicorn/switch-case-braces': 'warn', // TODO error
+      'unicorn/prefer-array-find': 'warn', // TODO error
+      'unicorn/prevent-abbreviations': 'warn', // TODO error
+      'unicorn/no-array-for-each': 'warn', // TODO error
+      'unicorn/catch-error-name': 'warn', // TODO error
+      'unicorn/no-this-assignment': 'warn', // TODO error
+      'unicorn/consistent-function-scoping': 'warn', // TODO error
+      'unicorn/error-message': 'warn', // TODO error
+      'unicorn/import-style': 'warn', // TODO error
+      'unicorn/prefer-optional-catch-binding': 'warn', // TODO error
+      'unicorn/prefer-string-slice': 'warn', // TODO error
+      'unicorn/no-useless-undefined': 'warn', // TODO error
+      'unicorn/prefer-export-from': 'warn', // TODO error
+      'unicorn/no-await-expression-member': 'warn', // TODO error
+      'unicorn/numeric-separators-style': 'warn', // TODO error
+      'unicorn/no-array-push-push': 'warn', // TODO error
+      'unicorn/no-for-loop': 'warn', // TODO error
+      'unicorn/prefer-ternary': 'warn', // TODO error
+      'unicorn/no-negated-condition': 'warn', // TODO error
+      'unicorn/prefer-string-replace-all': 'warn', // TODO error
+      'unicorn/prefer-string-raw': 'warn', // TODO error
+      'unicorn/prefer-number-properties': 'warn', // TODO error
+      'unicorn/prefer-logical-operator-over-ternary': 'warn', // TODO error
+      'unicorn/no-lonely-if': 'warn', // TODO error
+      'unicorn/explicit-length-check': 'warn', // TODO error
     },
   },
   {
-    // test ts files
-    files: ['test/**/*.ts'],
+    // include certain rules for source ts files (everything except test files)
+    ignores: ['test/**/*.ts'],
     rules: {
-      'no-invalid-this': ['off', {}],
-      '@typescript-eslint/no-unused-expressions': 'off',
+      'no-invalid-this': ['error', {}],
+      '@typescript-eslint/no-unused-expressions': 'error',
     },
   },
 ];

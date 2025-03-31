@@ -9,7 +9,7 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand, type Opts} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap, prepareChartPath, showVersionBanner} from '../core/helpers.js';
+import {getNodeAccountMap, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
@@ -20,6 +20,7 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {type ClusterRef, type DeploymentName} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
+import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
@@ -49,7 +50,6 @@ interface RelayDeployConfigClass {
   relayReleaseTag: string;
   replicaCount: number;
   valuesFile: string;
-  chartPath: string;
   isChartInstalled: boolean;
   nodeAliases: NodeAliases;
   releaseName: string;
@@ -265,7 +265,11 @@ export class RelayCommand extends BaseCommand {
             ]) as RelayDeployConfigClass;
 
             ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-            ctx.config.nodeAliases = helpers.parseNodeAliases(ctx.config.nodeAliasesUnparsed);
+            ctx.config.nodeAliases = helpers.parseNodeAliases(
+              ctx.config.nodeAliasesUnparsed,
+              this.remoteConfigManager.getConsensusNodes(),
+              this.configManager,
+            );
             ctx.config.releaseName = self.prepareReleaseName(ctx.config.nodeAliases);
 
             if (ctx.config.clusterRef) {
@@ -294,14 +298,6 @@ export class RelayCommand extends BaseCommand {
           title: 'Prepare chart values',
           task: async ctx => {
             const config = ctx.config;
-
-            config.chartPath = await prepareChartPath(
-              self.helm,
-              config.chartDirectory,
-              constants.JSON_RPC_RELAY_CHART,
-              constants.JSON_RPC_RELAY_CHART,
-            );
-
             await self.accountManager.loadNodeClient(
               ctx.config.namespace,
               self.remoteConfigManager.getClusterRefs(),
@@ -333,7 +329,8 @@ export class RelayCommand extends BaseCommand {
             await self.chartManager.install(
               config.namespace,
               config.releaseName,
-              config.chartPath,
+              JSON_RPC_RELAY_CHART,
+              JSON_RPC_RELAY_CHART,
               '',
               config.valuesArg,
               kubeContext,
@@ -424,6 +421,8 @@ export class RelayCommand extends BaseCommand {
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
               nodeAliases: helpers.parseNodeAliases(
                 self.configManager.getFlag<string>(flags.nodeAliasesUnparsed) as string,
+                this.remoteConfigManager.getConsensusNodes(),
+                this.configManager,
               ),
               clusterRef: self.configManager.getFlag<string>(flags.clusterRef) as string,
             } as RelayDestroyConfigClass;

@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {container, Lifecycle} from 'tsyringe-neo';
-import {SoloLogger} from '../logging.js';
+import {type SoloLogger} from '../logging/solo-logger.js';
 import {PackageDownloader} from '../package-downloader.js';
 import {Zippy} from '../zippy.js';
 import {DependencyManager, HelmDependencyManager} from '../dependency-managers/index.js';
 import * as constants from '../constants.js';
-import {Helm} from '../helm.js';
 import {ChartManager} from '../chart-manager.js';
 import {ConfigManager} from '../config-manager.js';
 import {LayeredConfigProvider} from '../../data/configuration/impl/layered-config-provider.js';
@@ -33,10 +32,13 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
+import {HelmExecutionBuilder} from '../../integration/helm/execution/helm-execution-builder.js';
+import {DefaultHelmClient} from '../../integration/helm/impl/default-helm-client.js';
 import {HelpRenderer} from '../help-renderer.js';
 import {Middlewares} from '../middlewares.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
+import {SoloWinstonLogger} from '../logging/solo-winston-logger.js';
 
 /**
  * Container class to manage the dependency injection container
@@ -85,7 +87,7 @@ export class Container {
       container.registerInstance(InjectTokens.SoloLogger, testLogger);
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using test logger');
     } else {
-      container.register(InjectTokens.SoloLogger, {useClass: SoloLogger}, {lifecycle: Lifecycle.Singleton});
+      container.register(InjectTokens.SoloLogger, {useClass: SoloWinstonLogger}, {lifecycle: Lifecycle.Singleton});
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using default logger');
     }
 
@@ -106,7 +108,12 @@ export class Container {
 
     // Helm & HelmDependencyManager
     container.register(InjectTokens.OsPlatform, {useValue: os.platform()});
-    container.register(InjectTokens.Helm, {useClass: Helm}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.Helm, {useClass: DefaultHelmClient}, {lifecycle: Lifecycle.Singleton});
+    container.register(
+      InjectTokens.HelmExecutionBuilder,
+      {useClass: HelmExecutionBuilder},
+      {lifecycle: Lifecycle.Singleton},
+    );
 
     // HelmDependencyManager
     container.register(InjectTokens.HelmInstallationDir, {

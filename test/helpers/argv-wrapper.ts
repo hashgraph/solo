@@ -34,12 +34,11 @@ export class Argv implements CloneTrait<Argv> {
 
   public build(): ArgvStruct {
     if (this.getArg<string>(flags.nodeAliasesUnparsed)?.split(',')?.length) {
-      const nodeAliases = helpers.parseNodeAliases(this.getArg(flags.nodeAliasesUnparsed));
+      const nodeAliases = helpers.parseNodeAliases(this.getArg(flags.nodeAliasesUnparsed), undefined, undefined);
       this.setArg(flags.numberOfConsensusNodes, nodeAliases.length);
     }
 
-    // @ts-expect-error - TS2322: the '_' field is filled during command invocation for Argv reusability
-    const rawArgs: ArgvStruct = helpers.deepClone(this.args);
+    const rawArgs: ArgvStruct = structuredClone(this.args) as ArgvStruct;
 
     const _: string[] = [this.command];
     if (this.subcommand) _.push(this.subcommand);
@@ -50,7 +49,7 @@ export class Argv implements CloneTrait<Argv> {
 
   public clone() {
     const cloned = new Argv();
-    cloned.args = helpers.deepClone(this.args);
+    cloned.args = structuredClone(this.args);
     cloned.cacheDir = this.cacheDir;
     cloned.deployment = this.deployment;
     return cloned;

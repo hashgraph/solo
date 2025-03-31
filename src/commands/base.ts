@@ -5,8 +5,6 @@ import {ShellRunner} from '../core/shell-runner.js';
 import {type LockManager} from '../core/lock/lock-manager.js';
 import {type LocalConfig} from '../core/config/local/local-config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote-config-manager.js';
-import {type Helm} from '../core/helm.js';
-import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type ChartManager} from '../core/chart-manager.js';
 import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
@@ -14,7 +12,7 @@ import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
-import {type SoloLogger} from '../core/logging.js';
+import {type SoloLogger} from '../core/logging/solo-logger.js';
 import {type PackageDownloader} from '../core/package-downloader.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type KeyManager} from '../core/key-manager.js';
@@ -22,10 +20,12 @@ import {type AccountManager} from '../core/account-manager.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {type HelmClient} from '../integration/helm/helm-client.js';
 
 export interface Opts {
   logger: SoloLogger;
-  helm: Helm;
+  helm: HelmClient;
   k8Factory: K8Factory;
   downloader: PackageDownloader;
   platformInstaller: PlatformInstaller;
@@ -42,7 +42,7 @@ export interface Opts {
 }
 
 export abstract class BaseCommand extends ShellRunner {
-  protected readonly helm: Helm;
+  protected readonly helm: HelmClient;
   protected readonly k8Factory: K8Factory;
   protected readonly chartManager: ChartManager;
   public readonly configManager: ConfigManager;

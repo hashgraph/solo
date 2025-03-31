@@ -4,29 +4,27 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import util from 'util';
-import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {PrivateKey, ServiceEndpoint} from '@hashgraph/sdk';
-import {type AnyObject, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {PrivateKey, ServiceEndpoint, Long} from '@hashgraph/sdk';
+import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag-types.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/config-interfaces/node-add-config-class.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {type Optional} from '../types/index.js';
-import {type Version} from './config/remote/types.js';
-import {fileURLToPath} from 'url';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type K8} from '../integration/kube/k8.js';
-import {type Helm} from './helm.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type ConfigManager} from './config-manager.js';
+import {Flags as flags} from '../commands/flags.js';
 
-export function getInternalIp(
+export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
   namespaceName: NamespaceName,
   nodeAlias: NodeAlias,
@@ -93,8 +91,23 @@ export function sleep(duration: Duration) {
   });
 }
 
-export function parseNodeAliases(input: string): NodeAliases {
-  return splitFlagInput(input, ',') as NodeAliases;
+export function parseNodeAliases(
+  input: string,
+  consensusNodes: ConsensusNode[],
+  configManager: ConfigManager,
+): NodeAliases {
+  let nodeAliases: NodeAlias[] = splitFlagInput(input, ',') as NodeAliases;
+  if (nodeAliases.length === 0) {
+    nodeAliases = consensusNodes?.map((node: {name: string}) => {
+      return node.name as NodeAlias;
+    });
+    configManager?.setFlag(flags.nodeAliasesUnparsed, nodeAliases.join(','));
+
+    if (!nodeAliases || nodeAliases.length === 0) {
+      return [];
+    }
+  }
+  return nodeAliases;
 }
 
 export function splitFlagInput(input: string, separator = ',') {
@@ -115,7 +128,7 @@ export function splitFlagInput(input: string, separator = ',') {
  * @returns a new array with the same elements as the input array
  */
 export function cloneArray<T>(arr: T[]): T[] {
-  return JSON.parse(JSON.stringify(arr));
+  return structuredClone(arr);
 }
 
 export function getTmpDir() {
@@ -202,15 +215,14 @@ export function isNumeric(str: string) {
  * @param nodeAliases
  * @returns the map of node IDs to account IDs
  */
-export function getNodeAccountMap(nodeAliases: NodeAliases) {
-  const accountMap = new Map<NodeAlias, string>();
-  const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-  const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
-  let accountId = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
+export function getNodeAccountMap(nodeAliases: NodeAliases): Map<NodeAlias, string> {
+  const accountMap: Map<NodeAlias, string> = new Map<NodeAlias, string>();
+  const realm: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
+  const shard: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
+  const firstAccountId: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
 
   nodeAliases.forEach(nodeAlias => {
-    const nodeAccount = `${realm}.${shard}.${accountId}`;
-    accountId = accountId.add(1);
+    const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId)}`;
     accountMap.set(nodeAlias, nodeAccount);
   });
   return accountMap;
@@ -412,19 +424,6 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
   }
 }
 
-export async function prepareChartPath(helm: Helm, chartDir: string, chartRepo: string, chartReleaseName: string) {
-  if (!chartRepo) throw new MissingArgumentError('chart repo name is required');
-  if (!chartReleaseName) throw new MissingArgumentError('chart release name is required');
-
-  if (chartDir) {
-    const chartPath = PathEx.join(chartDir, chartReleaseName);
-    await helm.dependency('update', chartPath);
-    return chartPath;
-  }
-
-  return `${chartRepo}/${chartReleaseName}`;
-}
-
 export function prepareValuesFiles(valuesFile: string) {
   let valuesArg = '';
   if (valuesFile) {
@@ -461,29 +460,6 @@ export function extractContextFromConsensusNodes(
   if (!consensusNodes.length) return undefined;
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
-}
-
-export function getSoloVersion(): Version {
-  if (process.env.npm_package_version) {
-    return process.env.npm_package_version;
-  }
-
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-
-  const packageJsonPath = PathEx.resolve(__dirname, '../../package.json');
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-  return packageJson.version;
-}
-
-/**
- * Helper for making deep-clones, works for objects and arrays, ideally with non-class data
- *
- * @param obj - object to be cloned
- * @returns the cloned object
- */
-export function deepClone<T = AnyObject>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
 }
 
 /**
@@ -534,4 +510,15 @@ export function showVersionBanner(logger: SoloLogger, chartName: string, version
   logger.showUser(chalk.cyan(printPaddedMessage(` ${type} ${chartName} chart `, 80)));
   logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(version));
   logger.showUser(chalk.cyan(printPaddedMessage('', 80)));
+}
+
+/**
+ * Check if the input is a valid IPv4 address
+ * @param input
+ * @returns true if the input is a valid IPv4 address, false otherwise
+ */
+export function isIPv4Address(input: string): boolean {
+  const ipv4Regex =
+    /^(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)$/;
+  return ipv4Regex.test(input);
 }

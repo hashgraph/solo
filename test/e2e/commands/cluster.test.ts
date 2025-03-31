@@ -7,7 +7,6 @@ import {expect} from 'chai';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {bootstrapTestVariables, getTestCluster, getTestCacheDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
 import * as constants from '../../../src/core/constants.js';
-import * as logging from '../../../src/core/logging.js';
 import {sleep} from '../../../src/core/helpers.js';
 import * as version from '../../../version.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -16,19 +15,20 @@ import {Argv} from '../../helpers/argv-wrapper.js';
 import * as fs from 'node:fs';
 import * as yaml from 'yaml';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
   before(() => {
-    sinon.stub(logging.SoloLogger.prototype, 'showUser');
-    sinon.stub(logging.SoloLogger.prototype, 'showJSON');
+    sinon.stub(SoloWinstonLogger.prototype, 'showUser');
+    sinon.stub(SoloWinstonLogger.prototype, 'showJSON');
   });
 
   after(() => {
     // @ts-expect-error: TS2339 - to restore
-    logging.SoloLogger.prototype.showUser.restore();
+    SoloWinstonLogger.prototype.showUser.restore();
     // @ts-expect-error: TS2339 - to restore
-    logging.SoloLogger.prototype.showJSON.restore();
+    SoloWinstonLogger.prototype.showJSON.restore();
   });
 
   const TEST_CONTEXT = getTestCluster();

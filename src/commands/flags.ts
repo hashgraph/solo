@@ -13,7 +13,6 @@ import {
   number as numberPrompt,
   confirm as confirmPrompt,
 } from '@inquirer/prompts';
-import * as helpers from '../core/helpers.js';
 import validator from 'validator';
 import {type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type ClusterRef} from '../core/config/remote/types.js';
@@ -369,10 +368,10 @@ export class Flags {
     ): Promise<string> {
       try {
         const initial = choices.indexOf(input);
-        if (initial < 0) {
+        if (initial === -1) {
           const input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
             message: 'Select profile for solo network deployment',
-            choices: helpers.cloneArray(choices).map(profile => ({name: profile, value: profile})),
+            choices: structuredClone(choices).map(profile => ({name: profile, value: profile})),
           })) as string;
 
           if (!input) {

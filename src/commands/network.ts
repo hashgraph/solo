@@ -17,7 +17,6 @@ import {
   resolveValidJsonFilePath,
   sleep,
   parseNodeAliases,
-  prepareChartPath,
   showVersionBanner,
 } from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
@@ -61,7 +60,6 @@ export interface NetworkDeployConfigClass {
   profileFile: string;
   profileName: string;
   releaseTag: string;
-  chartPath: string;
   keysDir: string;
   nodeAliases: NodeAliases;
   stagingDir: string;
@@ -673,7 +671,6 @@ export class NetworkCommand extends BaseCommand {
       NetworkCommand.DEPLOY_CONFIGS_NAME,
       allFlags,
       [
-        'chartPath',
         'keysDir',
         'nodeAliases',
         'stagingDir',
@@ -687,14 +684,6 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
-    if (promptForNodeAliases) {
-      config.nodeAliases = this.remoteConfigManager.getConsensusNodes().map(node => node.name);
-      this.configManager.setFlag(flags.nodeAliasesUnparsed, config.nodeAliases.join(','));
-      argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases;
-    } else {
-      config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed);
-    }
-
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
     }
@@ -706,14 +695,6 @@ export class NetworkCommand extends BaseCommand {
     if (config.domainNames) {
       config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(config.domainNames);
     }
-
-    // compute values
-    config.chartPath = await prepareChartPath(
-      this.helm,
-      config.chartDirectory,
-      constants.SOLO_TESTING_CHART_URL,
-      constants.SOLO_DEPLOYMENT_CHART,
-    );
 
     // compute other config parameters
     config.keysDir = PathEx.join(config.cacheDir, 'keys');
@@ -728,8 +709,8 @@ export class NetworkCommand extends BaseCommand {
     config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     config.contexts = this.remoteConfigManager.getContexts();
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
-
-    config.nodeAliases = config.consensusNodes.map(node => node.name) as NodeAliases;
+    config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed, config.consensusNodes, this.configManager);
+    argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases.join(',');
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 
@@ -935,7 +916,8 @@ export class NetworkCommand extends BaseCommand {
               await this.chartManager.install(
                 config.namespace,
                 constants.SOLO_DEPLOYMENT_CHART,
-                ctx.config.chartPath,
+                constants.SOLO_DEPLOYMENT_CHART,
+                ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                 config.soloChartVersion,
                 config.valuesArgMap[clusterRef],
                 config.clusterRefs[clusterRef],
@@ -1017,7 +999,8 @@ export class NetworkCommand extends BaseCommand {
                   await this.chartManager.upgrade(
                     config.namespace,
                     constants.SOLO_DEPLOYMENT_CHART,
-                    ctx.config.chartPath,
+                    constants.SOLO_DEPLOYMENT_CHART,
+                    ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                     config.soloChartVersion,
                     config.valuesArgMap[clusterRef],
                     config.clusterRefs[clusterRef],

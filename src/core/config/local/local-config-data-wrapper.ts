@@ -12,7 +12,6 @@ import {
   type Version,
 } from '../remote/types.js';
 import {IsClusterRefs, IsDeployments} from '../../validator-decorators.js';
-import deepClone from 'deep-clone';
 import {SoloError} from '../../errors/solo-error.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 
@@ -59,11 +58,11 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
   }
 
   public get deployments(): Deployments {
-    return deepClone(this._deployments);
+    return structuredClone(this._deployments);
   }
 
   public get clusterRefs(): ClusterRefs {
-    return deepClone(this._clusterRefs);
+    return structuredClone(this._clusterRefs);
   }
 
   public addClusterRef(clusterRef: ClusterRef, context: string): void {

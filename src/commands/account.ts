@@ -242,7 +242,11 @@ export class AccountCommand extends BaseCommand {
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
               clusterRef: self.configManager.getFlag(flags.clusterRef) as ClusterRef,
               namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
-              nodeAliases: helpers.parseNodeAliases(this.configManager.getFlag(flags.nodeAliasesUnparsed)),
+              nodeAliases: helpers.parseNodeAliases(
+                this.configManager.getFlag(flags.nodeAliasesUnparsed),
+                this.remoteConfigManager.getConsensusNodes(),
+                this.configManager,
+              ),
             } as Config;
 
             config.contextName =
@@ -300,7 +304,7 @@ export class AccountCommand extends BaseCommand {
 
                     for (const currentSet of ctx.accountsBatchedSet) {
                       const accStart = `${realm}.${shard}.${currentSet[0]}`;
-                      const accEnd = `${realm}.${shard}.${currentSet[currentSet.length - 1]}`;
+                      const accEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
                       const rangeStr =
                         accStart !== accEnd
                           ? `${chalk.yellow(accStart)} to ${chalk.yellow(accEnd)}`

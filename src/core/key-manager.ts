@@ -8,7 +8,7 @@ import {SoloError} from './errors/solo-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import * as constants from './constants.js';
-import {type SoloLogger} from './logging.js';
+import {type SoloLogger} from './logging/solo-logger.js';
 import {Templates} from './templates.js';
 import * as helpers from './helpers.js';
 import chalk from 'chalk';
@@ -77,7 +77,7 @@ export class KeyManager {
     // However for private key there should be a single item.
     // So, we just being careful here to pick the last item (similar to how last PEM data represents the actual cert in
     // a certificate bundle)
-    const lastItem = items[items.length - 1];
+    const lastItem = items.at(-1);
 
     return await crypto.subtle.importKey('pkcs8', lastItem, algo, false, keyUsages);
   }

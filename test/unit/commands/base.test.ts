@@ -3,7 +3,6 @@
 import {expect} from 'chai';
 
 import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
-import {type Helm} from '../../../src/core/helm.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
@@ -13,7 +12,7 @@ import {BaseCommand} from '../../../src/commands/base.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
-import {type SoloLogger} from '../../../src/core/logging.js';
+import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {resetForTest} from '../../test-container.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {ComponentsDataWrapper} from '../../../src/core/config/remote/components-data-wrapper.js';
@@ -23,9 +22,10 @@ import {Cluster} from '../../../src/core/config/remote/cluster.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
+import {type HelmClient} from '../../../src/integration/helm/helm-client.js';
 
 describe('BaseCommand', () => {
-  let helm: Helm;
+  let helm: HelmClient;
   let chartManager: ChartManager;
   let configManager: ConfigManager;
   let depManager: DependencyManager;
