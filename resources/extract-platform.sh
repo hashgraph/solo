@@ -45,7 +45,7 @@ ls -al | tee -a ${LOG_FILE}
 #jar xvf "${BUILD_ZIP_FILE}" | tee -a ${LOG_FILE}
 
 # Fix for M4 chips being unable to execute the jar command
-dnf install zip unzip -y | tee -a ${LOG_FILE}
+dnf install unzip -y | tee -a ${LOG_FILE}
 unzip -o "${BUILD_ZIP_FILE}" -d "${HAPI_DIR}" | tee -a ${LOG_FILE}
 [[ $? -ne 0 ]] && echo "Failure occurred during decompress" && exit 1
 echo "................................end: extract-platform.sh" | tee -a ${LOG_FILE}

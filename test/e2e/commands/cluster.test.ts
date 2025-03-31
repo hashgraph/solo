@@ -16,6 +16,7 @@ import * as fs from 'node:fs';
 import * as yaml from 'yaml';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
+import {resetForTest} from '../../test-container.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
@@ -66,6 +67,7 @@ describe('ClusterCommand', () => {
   });
 
   beforeEach(() => {
+    resetForTest(namespace.name);
     configManager.reset();
   });
 
