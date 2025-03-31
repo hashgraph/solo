@@ -7,6 +7,8 @@ import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
 import {type SoloLogger} from '../../../core/logging/solo-logger.js';
+import {Templates} from '../../../core/templates.js';
+import * as constants from '../../../core/constants.js';
 
 @injectable()
 /**
@@ -72,6 +74,7 @@ export class HelmExecutionBuilder {
       } else {
         this.helmExecutable = execSync('which helm').toString().trim();
       }
+      this.helmExecutable = Templates.installationPath(constants.HELM, this.osPlatform);
     } catch (error) {
       this.logger?.error('Failed to find helm executable:', error);
       throw new Error('Failed to find helm executable. Please ensure helm is installed and in your PATH.');
