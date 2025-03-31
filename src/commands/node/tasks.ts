@@ -1260,7 +1260,7 @@ export class NodeCommandTasks {
       adminPublicKeys = splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys));
     } else {
       // set adminPublicKeys as array of constants.GENESIS_KEY with the same size consensus nodes
-      adminPublicKeys = Array(consensusNodes.length).fill(constants.GENESIS_KEY);
+      adminPublicKeys = Array.from({length: consensusNodes.length}).fill(constants.GENESIS_KEY);
     }
     const genesisNetworkData = await GenesisNetworkDataConstructor.initialize(
       consensusNodes,
@@ -1646,10 +1646,7 @@ export class NodeCommandTasks {
             name: networkNodeServices.nodeAlias,
             nodeId: networkNodeServices.nodeId,
           });
-          maxNum =
-            maxNum > AccountId.fromString(networkNodeServices.accountId).num
-              ? maxNum
-              : AccountId.fromString(networkNodeServices.accountId).num;
+          maxNum = Math.max(maxNum, AccountId.fromString(networkNodeServices.accountId).num);
           lastNodeAlias = networkNodeServices.nodeAlias;
         }
 
@@ -2421,7 +2418,7 @@ export class NodeCommandTasks {
 
         const flagsToPrompt = [];
         for (const pFlag of required) {
-          if (typeof argv[pFlag.name] === 'undefined') {
+          if (argv[pFlag.name] === undefined) {
             flagsToPrompt.push(pFlag);
           }
         }
@@ -2434,7 +2431,7 @@ export class NodeCommandTasks {
         config.contexts = this.remoteConfigManager.getContexts();
 
         for (const flag of required) {
-          if (typeof config[flag.constName] === 'undefined') {
+          if (config[flag.constName] === undefined) {
             throw new MissingArgumentError(`No value set for required flag: ${flag.name}`, flag.name);
           }
         }

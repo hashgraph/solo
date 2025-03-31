@@ -52,7 +52,7 @@ export class K8ClientContainer implements Container {
       throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`);
     }
     // handle symbolic link
-    if (entries[0].name.indexOf(' -> ') > -1) {
+    if (entries[0].name.includes(' -> ')) {
       const redirectSrcPath = `${path.dirname(srcPath)}/${entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4)}`;
       entries = await self.listDir(redirectSrcPath);
       if (entries.length !== 1) {

@@ -176,7 +176,7 @@ export class ProfileManager {
       let itemKey = key;
 
       // if it is an array key like extraEnv[0].JAVA_OPTS, convert it into a dot separated key as extraEnv.0.JAVA_OPTS
-      if (key.indexOf('[') !== -1) {
+      if (key.includes('[')) {
         itemKey = key.replace('[', '.').replace(']', '');
       }
 
@@ -395,7 +395,7 @@ export class ProfileManager {
   public async prepareValuesForRpcRelayChart(profileName: string) {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName) as AnyObject;
-    if (!profile.rpcRelay) return Promise.resolve(); // use chart defaults
+    if (!profile.rpcRelay) return; // use chart defaults
 
     // generate the YAML
     const yamlRoot = {};
@@ -442,7 +442,7 @@ export class ProfileManager {
   public async prepareValuesForMirrorNodeChart(profileName: string) {
     if (!profileName) throw new MissingArgumentError('profileName is required');
     const profile = this.getProfile(profileName) as AnyObject;
-    if (!profile.mirror) return Promise.resolve(); // use chart defaults
+    if (!profile.mirror) return; // use chart defaults
 
     // generate the YAML
     const yamlRoot = {};

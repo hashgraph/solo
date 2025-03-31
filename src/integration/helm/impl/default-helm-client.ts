@@ -54,12 +54,12 @@ export class DefaultHelmClient implements HelmClient {
     request.apply(builder);
     const execution = builder.build();
     if (execution instanceof Promise) {
-      throw new Error('Unexpected async execution');
+      throw new TypeError('Unexpected async execution');
     }
     const versionClass = Version as unknown as new () => Version;
     const result = await execution.responseAs(versionClass);
     if (!(result instanceof Version)) {
-      throw new Error('Unexpected response type');
+      throw new TypeError('Unexpected response type');
     }
     return result.asSemanticVersion();
   }
