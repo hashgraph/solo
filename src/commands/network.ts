@@ -309,10 +309,12 @@ export class NetworkCommand extends BaseCommand {
     const {backupWriteAccessKey, backupWriteSecrets, backupEndpoint, backupRegion} = config;
     const backupData = {};
     const namespace = config.namespace;
-    backupData['S3_ACCESS_KEY'] = Base64.encode(backupWriteAccessKey);
-    backupData['S3_SECRET_KEY'] = Base64.encode(backupWriteSecrets);
-    backupData['S3_ENDPOINT'] = Base64.encode(backupEndpoint);
-    backupData['S3_REGION'] = Base64.encode(backupRegion);
+    backupData['AWS_ACCESS_KEY_ID'] = Base64.encode(backupWriteAccessKey);
+    backupData['AWS_SECRET_ACCESS_KEY'] = Base64.encode(backupWriteSecrets);
+    backupData['RCLONE_CONFIG_BACKUPS_ENDPOINT'] = Base64.encode(backupEndpoint);
+    backupData['RCLONE_CONFIG_BACKUPS_REGION'] = Base64.encode(backupRegion);
+    backupData['RCLONE_CONFIG_BACKUPS_TYPE'] = Base64.encode('s3');
+    backupData['RCLONE_CONFIG_BACKUPS_PROVIDER'] = Base64.encode('GCS');
 
     // create secret in each cluster
     for (const context of config.contexts) {
