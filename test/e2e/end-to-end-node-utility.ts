@@ -7,10 +7,10 @@ import {Flags as flags} from '../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  e2eTestSuite,
+  endToEndTestSuite,
   getTestCluster,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../test-util.js';
+} from '../test-utility.js';
 import {sleep} from '../../src/core/helpers.js';
 import {type NodeAlias} from '../../src/types/aliases.js';
 import {type ConfigManager} from '../../src/core/config-manager.js';
@@ -21,7 +21,7 @@ import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type PodName} from '../../src/integration/kube/resources/pod/pod-name.js';
-import {PodRef} from '../../src/integration/kube/resources/pod/pod-ref.js';
+import {PodRef as PodReference} from '../../src/integration/kube/resources/pod/pod-ref.js';
 import {type NetworkNodes} from '../../src/core/network-nodes.js';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../helpers/argv-wrapper.js';
@@ -39,7 +39,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
   argv.setArg(flags.clusterRef, getTestCluster());
   argv.setArg(flags.devMode, true);
 
-  e2eTestSuite(testName, argv, {}, bootstrapResp => {
+  endToEndTestSuite(testName, argv, {}, bootstrapResp => {
     const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
     const {
@@ -74,8 +74,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
             expect(readyPods).to.not.be.null;
             expect(readyPods).to.not.be.undefined;
             expect(readyPods.length).to.be.greaterThan(0);
-          } catch (e) {
-            logger.showUserError(e);
+          } catch (error) {
+            logger.showUserError(error);
             expect.fail();
           } finally {
             await nodeCmd.close();
@@ -91,7 +91,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
 
           const podName = await nodeRefreshTestSetup(argv, k8Factory, nodeAlias);
           if (mode === 'kill') {
-            await k8Factory.default().pods().readByRef(PodRef.of(namespace, podName)).killPod();
+            await k8Factory.default().pods().readByReference(PodReference.of(namespace, podName)).killPod();
           } else if (mode === 'stop') {
             await commandInvoker.invoke({
               argv: argv,
@@ -125,8 +125,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
             expect((await nodeTasks.checkNetworkNodePod(namespace, nodeAlias)).name.toString()).to.equal(
               `network-${nodeAlias}-0`,
             );
-          } catch (e) {
-            logger.showUserError(e);
+          } catch (error) {
+            logger.showUserError(error);
             expect.fail();
           } finally {
             await nodeCmd.close();
@@ -143,8 +143,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
               subcommand: 'refresh',
               callback: async argv => nodeCmd.handlers.refresh(argv),
             });
-          } catch (e) {
-            logger.showUserError(e);
+          } catch (error) {
+            logger.showUserError(error);
             expect.fail();
           } finally {
             await nodeCmd.close();
@@ -169,8 +169,8 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
                 15,
               ),
             ).to.be.rejected;
-          } catch (e) {
-            expect(e).not.to.be.null;
+          } catch (error) {
+            expect(error).not.to.be.null;
           } finally {
             await nodeCmd.close();
           }
@@ -191,7 +191,7 @@ export function e2eNodeKeyRefreshTest(testName: string, mode: string, releaseTag
           ]);
 
         if (podArray.length > 0) {
-          const podName: PodName = podArray[0].podRef.name;
+          const podName: PodName = podArray[0].podReference.name;
           logger.info(`nodeRefreshTestSetup: podName: ${podName.name}`);
           return podName;
         }

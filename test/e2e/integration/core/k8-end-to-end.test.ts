@@ -19,10 +19,10 @@ import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.j
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../../src/integration/kube/resources/pod/pod-ref.js';
+import {PodRef as PodReference} from '../../../../src/integration/kube/resources/pod/pod-ref.js';
 import {ContainerName} from '../../../../src/integration/kube/resources/container/container-name.js';
-import {ContainerRef} from '../../../../src/integration/kube/resources/container/container-ref.js';
-import {ServiceRef} from '../../../../src/integration/kube/resources/service/service-ref.js';
+import {ContainerReference as ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
+import {ServiceRef as ServiceReference} from '../../../../src/integration/kube/resources/service/service-ref.js';
 import {ServiceName} from '../../../../src/integration/kube/resources/service/service-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
@@ -35,7 +35,7 @@ import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 
 async function createPod(
-  podRef: PodRef,
+  podReference: PodReference,
   containerName: ContainerName,
   podLabelValue: string,
   k8Factory: K8Factory,
@@ -44,7 +44,7 @@ async function createPod(
     .default()
     .pods()
     .create(
-      podRef,
+      podReference,
       {app: podLabelValue},
       containerName,
       'alpine:latest',
@@ -60,7 +60,7 @@ describe('K8', () => {
   const testNamespace = NamespaceName.of('k8-e2e');
   const argv = Argv.initializeEmpty();
   const podName = PodName.of(`test-pod-${uuid4()}`);
-  const podRef = PodRef.of(testNamespace, podName);
+  const podReference = PodReference.of(testNamespace, podName);
   const containerName = ContainerName.of('alpine');
   const podLabelValue = `test-${uuid4()}`;
   const serviceName = `test-service-${uuid4()}`;
@@ -73,25 +73,25 @@ describe('K8', () => {
       if (!(await k8Factory.default().namespaces().has(testNamespace))) {
         await k8Factory.default().namespaces().create(testNamespace);
       }
-      await createPod(podRef, containerName, podLabelValue, k8Factory);
+      await createPod(podReference, containerName, podLabelValue, k8Factory);
 
-      const serviceRef: ServiceRef = ServiceRef.of(testNamespace, ServiceName.of(serviceName));
-      await k8Factory.default().services().create(serviceRef, {app: 'svc-test'}, 80, 80);
-    } catch (e) {
-      console.log(`${e}, ${e.stack}`);
-      throw e;
+      const serviceReference: ServiceReference = ServiceReference.of(testNamespace, ServiceName.of(serviceName));
+      await k8Factory.default().services().create(serviceReference, {app: 'svc-test'}, 80, 80);
+    } catch (error) {
+      console.log(`${error}, ${error.stack}`);
+      throw error;
     }
   });
 
   after(async function () {
     this.timeout(defaultTimeout);
     try {
-      await k8Factory.default().pods().readByRef(PodRef.of(testNamespace, podName)).killPod();
+      await k8Factory.default().pods().readByReference(PodReference.of(testNamespace, podName)).killPod();
       argv.setArg(flags.namespace, constants.SOLO_SETUP_NAMESPACE.name);
       configManager.update(argv.build());
-    } catch (e) {
-      console.log(e);
-      throw e;
+    } catch (error) {
+      console.log(error);
+      throw error;
     }
   });
 
@@ -141,7 +141,11 @@ describe('K8', () => {
       .pods()
       .list(testNamespace, [`app=${podLabelValue}`]);
     expect(
-      await k8Factory.default().containers().readByRef(ContainerRef.of(pods[0].podRef, containerName)).hasDir('/tmp'),
+      await k8Factory
+        .default()
+        .containers()
+        .readByRef(ContainerReference.of(pods[0].podReference, containerName))
+        .hasDir('/tmp'),
     ).to.be.true;
   }).timeout(defaultTimeout);
 
@@ -168,7 +172,7 @@ describe('K8', () => {
         await k8Factory
           .default()
           .containers()
-          .readByRef(ContainerRef.of(podRef, containerName))
+          .readByRef(ContainerReference.of(podReference, containerName))
           .copyTo(localFilePath, remoteTmpDir),
       ).to.be.true;
 
@@ -177,7 +181,7 @@ describe('K8', () => {
         await k8Factory
           .default()
           .containers()
-          .readByRef(ContainerRef.of(podRef, containerName))
+          .readByRef(ContainerReference.of(podReference, containerName))
           .copyFrom(remoteFilePath, localTmpDir),
       ).to.be.true;
       const downloadedFilePath = PathEx.joinWithRealPath(localTmpDir, fileName);
@@ -192,7 +196,7 @@ describe('K8', () => {
       await k8Factory
         .default()
         .containers()
-        .readByRef(ContainerRef.of(podRef, containerName))
+        .readByRef(ContainerReference.of(podReference, containerName))
         .execContainer(['rm', '-f', remoteFilePath]);
 
       fs.rmdirSync(localTmpDir, {recursive: true});
@@ -203,11 +207,11 @@ describe('K8', () => {
     const podName = Templates.renderNetworkPodName('node1');
     const localPort = +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT;
     try {
-      const podRef: PodRef = PodRef.of(testNamespace, podName);
+      const podReference: PodReference = PodReference.of(testNamespace, podName);
       k8Factory
         .default()
         .pods()
-        .readByRef(podRef)
+        .readByReference(podReference)
         .portForward(localPort, +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT)
         .then(server => {
           expect(server).not.to.be.null;
@@ -216,20 +220,20 @@ describe('K8', () => {
           const s = new net.Socket();
           s.on('ready', async () => {
             s.destroy();
-            await k8Factory.default().pods().readByRef(podRef).stopPortForward(server);
+            await k8Factory.default().pods().readByReference(podReference).stopPortForward(server);
             done();
           });
 
           s.on('error', async e => {
             s.destroy();
-            await k8Factory.default().pods().readByRef(podRef).stopPortForward(server);
+            await k8Factory.default().pods().readByReference(podReference).stopPortForward(server);
             done(new SoloError(`could not connect to local port '${localPort}': ${e.message}`, e));
           });
 
           s.connect(localPort);
         });
-    } catch (e) {
-      testLogger.showUserError(e);
+    } catch (error) {
+      testLogger.showUserError(error);
       expect.fail();
     }
     // TODO enhance this test to do something with the port, this pod isn't even running, but it is still passing
@@ -240,35 +244,35 @@ describe('K8', () => {
       .default()
       .pods()
       .list(testNamespace, [`app=${podLabelValue}`]);
-    const podName: PodName = pods[0].podRef.name;
+    const podName: PodName = pods[0].podReference.name;
     const output = await k8Factory
       .default()
       .containers()
-      .readByRef(ContainerRef.of(PodRef.of(testNamespace, podName), containerName))
+      .readByRef(ContainerReference.of(PodReference.of(testNamespace, podName), containerName))
       .execContainer(['cat', '/etc/hostname']);
     expect(output.indexOf(podName.name)).to.equal(0);
   }).timeout(defaultTimeout);
 
   it('should be able to list persistent volume claims', async () => {
-    const pvcRef: PodRef = PodRef.of(testNamespace, PodName.of(`test-pvc-${uuid4()}`));
+    const pvcReference: PodReference = PodReference.of(testNamespace, PodName.of(`test-pvc-${uuid4()}`));
     try {
-      await k8Factory.default().pvcs().create(pvcRef, {storage: '50Mi'}, ['ReadWriteOnce']);
+      await k8Factory.default().pvcs().create(pvcReference, {storage: '50Mi'}, ['ReadWriteOnce']);
       const pvcs: string[] = await k8Factory.default().pvcs().list(testNamespace, undefined);
       expect(pvcs).to.have.length.greaterThan(0);
-    } catch (e) {
-      console.error(e);
-      throw e;
+    } catch (error) {
+      console.error(error);
+      throw error;
     } finally {
-      await k8Factory.default().pvcs().delete(pvcRef);
+      await k8Factory.default().pvcs().delete(pvcReference);
     }
   }).timeout(defaultTimeout);
 
   it('should be able to kill a pod', async () => {
     const podName = PodName.of(`test-pod-${uuid4()}`);
-    const podRef = PodRef.of(testNamespace, podName);
+    const podReference = PodReference.of(testNamespace, podName);
     const podLabelValue = `test-${uuid4()}`;
-    await createPod(podRef, containerName, podLabelValue, k8Factory);
-    await k8Factory.default().pods().readByRef(podRef).killPod();
+    await createPod(podReference, containerName, podLabelValue, k8Factory);
+    await k8Factory.default().pods().readByReference(podReference).killPod();
     const newPods = await k8Factory
       .default()
       .pods()

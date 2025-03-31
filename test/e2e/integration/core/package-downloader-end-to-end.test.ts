@@ -21,9 +21,9 @@ describe('PackageDownloaderE2E', () => {
     const tag = 'v0.42.5';
     const releasePrefix = Templates.prepareReleasePrefix(tag);
 
-    const destPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`;
-    await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be.equal(destPath);
-    expect(fs.existsSync(destPath)).to.be.ok;
-    testLogger.showUser(destPath);
+    const destinationPath = `${testCacheDir}/${releasePrefix}/build-${tag}.zip`;
+    await expect(downloader.fetchPlatform(tag, testCacheDir)).to.eventually.be.equal(destinationPath);
+    expect(fs.existsSync(destinationPath)).to.be.ok;
+    testLogger.showUser(destinationPath);
   }).timeout(Duration.ofMinutes(3).toMillis());
 });

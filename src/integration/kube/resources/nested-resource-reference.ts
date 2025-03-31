@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type ResourceRef} from './resource-ref.js';
+import {type ResourceRef as ResourceReference} from './resource-ref.js';
 import {type ResourceName} from './resource-name.js';
-import {MissingParentResourceRefError} from '../errors/missing-parent-resource-error.js';
+import {MissingParentResourceRefError as MissingParentResourceReferenceError} from '../errors/missing-parent-resource-error.js';
 import {MissingResourceNameError} from '../errors/missing-resource-name-error.js';
 
-export abstract class NestedResourceRef<P extends ResourceRef<any>, T extends ResourceName> {
+export abstract class NestedResourceRef<P extends ResourceReference<any>, T extends ResourceName> {
   protected constructor(
-    public readonly parentRef: P,
+    public readonly parentReference: P,
     public readonly name: T,
   ) {
-    if (!parentRef) {
-      throw new MissingParentResourceRefError();
+    if (!parentReference) {
+      throw new MissingParentResourceReferenceError();
     }
     if (!name) {
       throw new MissingResourceNameError();

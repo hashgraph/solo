@@ -2,7 +2,7 @@
 
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 
-export interface ClusterRefResetConfigClass {
+export interface ClusterReferenceResetConfigClass {
   clusterName: string;
   clusterSetupNamespace: NamespaceName;
 }

@@ -2,12 +2,12 @@
 
 import {type PodName} from './pod-name.js';
 import {type NamespaceName} from '../namespace/namespace-name.js';
-import {ResourceRef} from '../resource-ref.js';
+import {ResourceReference as ResourceReference} from '../resource-reference.js';
 
 /**
  * Represents a Kubernetes pod reference which includes the namespace name and pod name.
  */
-export class PodRef extends ResourceRef<PodName> {
+export class PodRef extends ResourceReference<PodName> {
   private constructor(namespace: NamespaceName, name: PodName) {
     super(namespace, name);
   }
