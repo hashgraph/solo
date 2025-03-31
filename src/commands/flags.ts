@@ -369,7 +369,7 @@ export class Flags {
     ): Promise<string> {
       try {
         const initial = choices.indexOf(input);
-        if (initial < 0) {
+        if (initial === -1) {
           const input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
             message: 'Select profile for solo network deployment',
             choices: deepClone(choices).map(profile => ({name: profile, value: profile})),

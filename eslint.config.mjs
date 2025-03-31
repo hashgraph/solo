@@ -219,23 +219,13 @@ export default [
       'unicorn/no-negated-condition': 'warn', // TODO error
       'unicorn/prefer-at': 'warn', // TODO error
       'unicorn/prefer-string-replace-all': 'warn', // TODO error
-      'unicorn/prefer-includes': 'warn', // TODO error
       'unicorn/no-useless-spread': 'warn', // TODO error
       'unicorn/prefer-string-raw': 'warn', // TODO error
-      'unicorn/prefer-type-error': 'warn', // TODO error
       'unicorn/prefer-number-properties': 'warn', // TODO error
       'unicorn/prefer-logical-operator-over-ternary': 'warn', // TODO error
-      'unicorn/no-empty-file': 'warn', // TODO error
-      'unicorn/prefer-array-some': 'warn', // TODO error
       'unicorn/no-lonely-if': 'warn', // TODO error
       'unicorn/explicit-length-check': 'warn', // TODO error
-      'unicorn/no-useless-promise-resolve-reject': 'warn', // TODO error
       'unicorn/prefer-structured-clone': 'warn', // TODO error
-      'unicorn/no-array-reduce': 'warn', // TODO error
-      'unicorn/no-typeof-undefined': 'warn', // TODO error
-      'unicorn/prefer-math-min-max': 'warn', // TODO error
-      'unicorn/new-for-builtins': 'warn', // TODO error
-      'unicorn/consistent-existence-index-check': 'warn', // TODO error
     },
   },
   {
