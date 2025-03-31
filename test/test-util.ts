@@ -32,7 +32,6 @@ import {type RemoteConfigManager} from '../src/core/config/remote/remote-config-
 import * as constants from '../src/core/constants.js';
 import {Templates} from '../src/core/templates.js';
 import {type ConfigManager} from '../src/core/config-manager.js';
-import {type Helm} from '../src/core/helm.js';
 import {type ChartManager} from '../src/core/chart-manager.js';
 import {type PackageDownloader} from '../src/core/package-downloader.js';
 import {type KeyManager} from '../src/core/key-manager.js';
@@ -50,6 +49,7 @@ import {Argv} from './helpers/argv-wrapper.js';
 import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
 import {type CommandInvoker} from './helpers/command-invoker.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
+import {type HelmClient} from '../src/integration/helm/helm-client.js';
 import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
 
 export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
@@ -84,7 +84,7 @@ export function getTmpDir() {
 
 interface TestOpts {
   logger: SoloLogger;
-  helm: Helm;
+  helm: HelmClient;
   k8Factory: K8Factory;
   chartManager: ChartManager;
   configManager: ConfigManager;
@@ -150,7 +150,7 @@ export function bootstrapTestVariables(
 
   const downloader: PackageDownloader = container.resolve(InjectTokens.PackageDownloader);
   const depManager: DependencyManager = container.resolve(InjectTokens.DependencyManager);
-  const helm: Helm = container.resolve(InjectTokens.Helm);
+  const helm: HelmClient = container.resolve(InjectTokens.Helm);
   const chartManager: ChartManager = container.resolve(InjectTokens.ChartManager);
   const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
   const k8Factory: K8Factory = k8FactoryArg || container.resolve(InjectTokens.K8Factory);

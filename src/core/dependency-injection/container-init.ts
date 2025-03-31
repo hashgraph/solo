@@ -6,7 +6,6 @@ import {PackageDownloader} from '../package-downloader.js';
 import {Zippy} from '../zippy.js';
 import {DependencyManager, HelmDependencyManager} from '../dependency-managers/index.js';
 import * as constants from '../constants.js';
-import {Helm} from '../helm.js';
 import {ChartManager} from '../chart-manager.js';
 import {ConfigManager} from '../config-manager.js';
 import {LayeredConfigProvider} from '../../data/configuration/impl/layered-config-provider.js';
@@ -33,6 +32,8 @@ import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
 import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
+import {HelmExecutionBuilder} from '../../integration/helm/execution/helm-execution-builder.js';
+import {DefaultHelmClient} from '../../integration/helm/impl/default-helm-client.js';
 import {HelpRenderer} from '../help-renderer.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {ConfigKeyFormatter} from '../../data/key/config-key-formatter.js';
@@ -107,7 +108,8 @@ export class Container {
       PackageDownloader: [{useClass: PackageDownloader}, {lifecycle: Lifecycle.Singleton}],
       Zippy: [{useClass: Zippy}, {lifecycle: Lifecycle.Singleton}],
       DependencyManager: [{useClass: DependencyManager}, {lifecycle: Lifecycle.Singleton}],
-      Helm: [{useClass: Helm}, {lifecycle: Lifecycle.Singleton}],
+      Helm: [{useClass: DefaultHelmClient}, {lifecycle: Lifecycle.Singleton}],
+      HelmExecutionBuilder: [{useClass: HelmExecutionBuilder}, {lifecycle: Lifecycle.Singleton}],
       HelmDependencyManager: [{useClass: HelmDependencyManager}, {lifecycle: Lifecycle.Singleton}],
       ChartManager: [{useClass: ChartManager}, {lifecycle: Lifecycle.Singleton}],
       ConfigManager: [{useClass: ConfigManager}, {lifecycle: Lifecycle.Singleton}],

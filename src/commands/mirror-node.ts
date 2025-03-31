@@ -42,13 +42,13 @@ import {patchInject} from '../core/dependency-injection/container-helper.js';
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
   clusterContext: string;
+  clusterRef: ClusterRef;
   namespace: NamespaceName;
   enableIngress: boolean;
   mirrorStaticIp: string;
   profileFile: string;
   profileName: string;
   valuesFile: string;
-  chartPath: string;
   valuesArg: string;
   quiet: boolean;
   mirrorNodeVersion: string;
@@ -103,6 +103,7 @@ export class MirrorNodeCommand extends BaseCommand {
   private static readonly DEPLOY_FLAGS_LIST = {
     required: [],
     optional: [
+      flags.cacheDir,
       flags.clusterRef,
       flags.chartDirectory,
       flags.deployment,
@@ -266,27 +267,19 @@ export class MirrorNodeCommand extends BaseCommand {
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
             ctx.config = this.configManager.getConfig(MirrorNodeCommand.DEPLOY_CONFIGS_NAME, allFlags, [
-              'chartPath',
               'valuesArg',
               'namespace',
             ]) as MirrorNodeDeployConfigClass;
 
             ctx.config.namespace = namespace;
-            ctx.config.chartPath = await helpers.prepareChartPath(
-              self.helm,
-              '', // don't use chartPath which is for local solo-charts only
-              constants.MIRROR_NODE_RELEASE_NAME,
-              constants.MIRROR_NODE_CHART,
-            );
 
             // predefined values first
             ctx.config.valuesArg += helpers.prepareValuesFiles(constants.MIRROR_NODE_VALUES_FILE);
             // user defined values later to override predefined values
             ctx.config.valuesArg += await self.prepareValuesArg(ctx.config);
 
-            const clusterRef = this.configManager.getFlag<string>(flags.clusterRef) as string;
-            ctx.config.clusterContext = clusterRef
-              ? this.localConfig.clusterRefs[clusterRef]
+            ctx.config.clusterContext = ctx.config.clusterRef
+              ? this.localConfig.clusterRefs[ctx.config.clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
             await self.accountManager.loadNodeClient(
@@ -416,17 +409,11 @@ export class MirrorNodeCommand extends BaseCommand {
                     }
                     mirrorIngressControllerValuesArg += ` --set fullnameOverride=${constants.MIRROR_INGRESS_CONTROLLER}`;
 
-                    const ingressControllerChartPath = await helpers.prepareChartPath(
-                      self.helm,
-                      '', // don't use chartPath which is for local solo-charts only
-                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
-                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
-                    );
-
                     await self.chartManager.install(
                       config.namespace,
                       constants.INGRESS_CONTROLLER_RELEASE_NAME,
-                      ingressControllerChartPath,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
+                      constants.INGRESS_CONTROLLER_RELEASE_NAME,
                       INGRESS_CONTROLLER_VERSION,
                       mirrorIngressControllerValuesArg,
                       ctx.config.clusterContext,
@@ -445,7 +432,8 @@ export class MirrorNodeCommand extends BaseCommand {
                     await self.chartManager.install(
                       ctx.config.namespace,
                       constants.MIRROR_NODE_RELEASE_NAME,
-                      ctx.config.chartPath,
+                      constants.MIRROR_NODE_CHART,
+                      constants.MIRROR_NODE_RELEASE_NAME,
                       ctx.config.mirrorNodeVersion,
                       ctx.config.valuesArg,
                       ctx.config.clusterContext,
@@ -886,11 +874,10 @@ export class MirrorNodeCommand extends BaseCommand {
       task: async (ctx): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {
-            config: {namespace},
+            config: {namespace, clusterRef},
           } = ctx;
-          const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add(new MirrorNodeComponent('mirrorNode', cluster, namespace.name));
+          remoteConfig.components.add(new MirrorNodeComponent('mirrorNode', clusterRef, namespace.name));
         });
       },
     };

@@ -1989,12 +1989,12 @@ export class NodeCommandTasks {
             await self.chartManager.upgrade(
               config.namespace,
               constants.SOLO_DEPLOYMENT_CHART,
-              ctx.config.chartPath,
+              constants.SOLO_DEPLOYMENT_CHART,
+              ctx.config.chartDirectory ? ctx.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
               config.soloChartVersion,
               valuesArgs,
               context,
             );
-
             showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
           }),
         );

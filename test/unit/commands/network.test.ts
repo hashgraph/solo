@@ -10,7 +10,6 @@ import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
-import {type Helm} from '../../../src/core/helm.js';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {type LockManager} from '../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
@@ -31,6 +30,7 @@ import {K8Client} from '../../../src/integration/kube/k8-client/k8-client.js';
 import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
+import {type DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {type CertificateManager} from '../../../src/core/certificate-manager.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
@@ -63,7 +63,7 @@ describe('NetworkCommand unit tests', () => {
     const platformInstallerStub = sinon.stub() as unknown as PlatformInstaller;
     const keyManagerStub = sinon.stub() as unknown as KeyManager;
     const depManagerStub = sinon.stub() as unknown as DependencyManager;
-    const helmStub = sinon.stub() as unknown as Helm;
+    const helmStub = sinon.stub() as unknown as DefaultHelmClient;
     let containerOverrides: any;
 
     beforeEach(() => {
@@ -192,10 +192,8 @@ describe('NetworkCommand unit tests', () => {
 
         expect(opts.chartManager.install.args[0][0].name).to.equal('solo-e2e');
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(opts.chartManager.install.args[0][2]).to.equal(
-          constants.SOLO_TESTING_CHART_URL + '/' + constants.SOLO_DEPLOYMENT_CHART,
-        );
-        expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+        expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+        expect(opts.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
       } finally {
         sinon.restore();
       }
@@ -214,10 +212,8 @@ describe('NetworkCommand unit tests', () => {
         await networkCommand.deploy(argv.build());
         expect(opts.chartManager.install.args[0][0].name).to.equal('solo-e2e');
         expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(opts.chartManager.install.args[0][2]).to.equal(
-          PathEx.join(ROOT_DIR, 'test-directory', constants.SOLO_DEPLOYMENT_CHART),
-        );
-        expect(opts.chartManager.install.args[0][3]).to.equal(version.SOLO_CHART_VERSION);
+        expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+        expect(opts.chartManager.install.args[0][3]).to.equal(PathEx.join(ROOT_DIR, 'test-directory'));
       } finally {
         sinon.restore();
       }

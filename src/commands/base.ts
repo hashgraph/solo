@@ -5,11 +5,11 @@ import {ShellRunner} from '../core/shell-runner.js';
 import {type LockManager} from '../core/lock/lock-manager.js';
 import {type LocalConfig} from '../core/config/local/local-config.js';
 import {type RemoteConfigManager} from '../core/config/remote/remote-config-manager.js';
-import {type Helm} from '../core/helm.js';
-import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type ChartManager} from '../core/chart-manager.js';
 import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {type HelmClient} from '../integration/helm/helm-client.js';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
 import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
@@ -21,7 +21,7 @@ import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 
 export abstract class BaseCommand extends ShellRunner {
   constructor(
-    @inject(InjectTokens.Helm) protected readonly helm?: Helm,
+    @inject(InjectTokens.Helm) protected readonly helm?: HelmClient,
     @inject(InjectTokens.K8Factory) protected readonly k8Factory?: K8Factory,
     @inject(InjectTokens.ChartManager) protected readonly chartManager?: ChartManager,
     @inject(InjectTokens.ConfigManager) public readonly configManager?: ConfigManager,
