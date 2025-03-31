@@ -9,13 +9,20 @@ import {Flags as flags} from './flags.js';
 import chalk from 'chalk';
 import {type EmailAddress} from '../core/config/remote/types.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {injectable} from 'tsyringe-neo';
 import {getSoloVersion} from '../../version.js';
 
 /**
  * Defines the core functionalities of 'init' command
  */
+@injectable()
 export class InitCommand extends BaseCommand {
   public static readonly COMMAND_NAME = 'init';
+
+  // Although empty, tsyringe requires the constructor to be present
+  public constructor() {
+    super();
+  }
 
   /** Executes the init CLI command */
   async init(argv: any) {

@@ -35,7 +35,11 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
   } = bootstrapResp;
 
   describe('RelayCommand', async () => {
-    const relayCmd = new RelayCommand(bootstrapResp.opts);
+    let relayCmd: RelayCommand;
+
+    before(() => {
+      relayCmd = container.resolve(InjectTokens.RelayCommand);
+    });
 
     after(async function () {
       this.timeout(Duration.ofMinutes(5).toMillis());
