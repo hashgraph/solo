@@ -22,7 +22,12 @@ export default [
   eslintPluginUnicorn.configs.recommended,
   {
     ignores: [
+      '.git/**/*', // Git files
+      '.github/**/*', // GitHub files
+      '.idea/**/*', // IDE files
+      'coverage/**/*', // Coverage files
       'docs/**/*', // Documentation files
+      'examples/**/*', // Example files
       'dist/**/*', // Distribution files
       'node_modules/**/*', // Node modules
       'coverage/**/*', // Coverage files
