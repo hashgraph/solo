@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as constants from './constants.js';
-import {type Helm} from './helm.js';
 import chalk from 'chalk';
 import {SoloError} from './errors/solo-error.js';
 import {type SoloLogger} from './logging/solo-logger.js';
@@ -9,11 +8,19 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
+import {Repository} from '../integration/helm/model/repository.js';
+import {type ReleaseItem} from '../integration/helm/model/release/release-item.js';
+import {UpgradeChartOptions} from '../integration/helm/model/upgrade/upgrade-chart-options.js';
+import {Chart} from '../integration/helm/model/chart.js';
+import {type InstallChartOptions} from '../integration/helm/model/install/install-chart-options.js';
+import {InstallChartOptionsBuilder} from '../integration/helm/model/install/install-chart-options-builder.js';
+import {type HelmClient} from '../integration/helm/helm-client.js';
+import {UnInstallChartOptionsBuilder} from '../integration/helm/model/install/un-install-chart-options-builder.js';
 
 @injectable()
 export class ChartManager {
   constructor(
-    @inject(InjectTokens.Helm) private readonly helm?: Helm,
+    @inject(InjectTokens.Helm) private readonly helm?: HelmClient,
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
   ) {
     this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
@@ -46,7 +53,7 @@ export class ChartManager {
 
   async addRepo(name: string, url: string, forceUpdateArg: string) {
     this.logger.debug(`Adding repo ${name} -> ${url}`, {repoName: name, repoURL: url});
-    await this.helm.repo('add', name, url, forceUpdateArg);
+    await this.helm.addRepository(new Repository(name, url));
     return url;
   }
 
@@ -56,22 +63,21 @@ export class ChartManager {
    * @param kubeContext - the kube context
    */
   async getInstalledCharts(namespaceName: NamespaceName, kubeContext?: string) {
-    const namespaceArg = namespaceName ? `-n ${namespaceName.name}` : '--all-namespaces';
-    const contextArg = kubeContext ? `--kube-context ${kubeContext}` : '';
-
     try {
-      return await this.helm.list(` ${contextArg} ${namespaceArg} --no-headers | awk '{print $1 " [" $9"]"}'`);
+      const result: ReleaseItem[] = await this.helm.listReleases(!namespaceName, namespaceName?.name, kubeContext);
+      // convert to string[]
+      return result.map(release => `${release.name} [${release.chart}]`);
     } catch (e: Error | any) {
       this.logger.showUserError(e);
     }
-
     return [];
   }
 
   async install(
     namespaceName: NamespaceName,
     chartReleaseName: string,
-    chartPath: string,
+    chartName: string,
+    repoName: string,
     version: string,
     valuesArg = '',
     kubeContext: string,
@@ -79,19 +85,20 @@ export class ChartManager {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
       if (!isInstalled) {
-        const versionArg = version ? `--version ${version}` : '';
-        const namespaceArg = namespaceName ? `-n ${namespaceName} --create-namespace` : '';
-        let contextArg = '';
-        if (kubeContext) {
-          contextArg = `--kube-context ${kubeContext}`;
+        this.logger.debug(`> installing chart:${chartName}`);
+        const builder = InstallChartOptionsBuilder.builder()
+          .version(version)
+          .kubeContext(kubeContext)
+          .extraArgs(valuesArg);
+        if (namespaceName) {
+          builder.createNamespace(true);
+          builder.namespace(namespaceName.name);
         }
-        this.logger.debug(`> installing chart:${chartPath}`);
-        await this.helm.install(
-          `${chartReleaseName} ${chartPath} ${versionArg} ${namespaceArg} ${valuesArg} ${contextArg}`,
-        );
-        this.logger.debug(`OK: chart is installed: ${chartReleaseName} (${chartPath})`);
+        const options: InstallChartOptions = builder.build();
+        await this.helm.installChart(chartReleaseName, new Chart(chartName, repoName), options);
+        this.logger.debug(`OK: chart is installed: ${chartReleaseName} (${chartName}) (${repoName})`);
       } else {
-        this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartPath})`);
+        this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartName}) (${repoName})`);
       }
     } catch (e: Error | any) {
       throw new SoloError(`failed to install chart ${chartReleaseName}: ${e.message}`, e);
@@ -113,12 +120,12 @@ export class ChartManager {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
       if (isInstalled) {
-        let contextArg = '';
-        if (kubeContext) {
-          contextArg = `--kube-context ${kubeContext}`;
-        }
         this.logger.debug(`uninstalling chart release: ${chartReleaseName}`);
-        await this.helm.uninstall(`-n ${namespaceName} ${chartReleaseName} ${contextArg}`);
+        const options = UnInstallChartOptionsBuilder.builder()
+          .namespace(namespaceName.name)
+          .kubeContext(kubeContext)
+          .build();
+        await this.helm.uninstallChart(chartReleaseName, options);
         this.logger.debug(`OK: chart release is uninstalled: ${chartReleaseName}`);
       } else {
         this.logger.debug(`OK: chart release is already uninstalled: ${chartReleaseName}`);
@@ -133,22 +140,23 @@ export class ChartManager {
   async upgrade(
     namespaceName: NamespaceName,
     chartReleaseName: string,
-    chartPath: string,
+    chartName: string,
+    repoName: string,
     version = '',
     valuesArg = '',
     kubeContext?: string,
   ) {
-    const versionArg = version ? `--version ${version}` : '';
-
     try {
       this.logger.debug(chalk.cyan('> upgrading chart:'), chalk.yellow(`${chartReleaseName}`));
-      let contextArg = '';
-      if (kubeContext) {
-        contextArg = `--kube-context ${kubeContext}`;
-      }
-      await this.helm.upgrade(
-        `-n ${namespaceName.name} ${chartReleaseName} ${chartPath} ${versionArg} --reuse-values ${valuesArg} ${contextArg}`,
+      const options: UpgradeChartOptions = new UpgradeChartOptions(
+        namespaceName.name,
+        kubeContext,
+        true,
+        valuesArg,
+        version,
       );
+      const chart: Chart = new Chart(chartName, repoName);
+      await this.helm.upgradeChart(chartReleaseName, chart, options);
       this.logger.debug(chalk.green('OK'), `chart '${chartReleaseName}' is upgraded`);
     } catch (e: Error | any) {
       throw new SoloError(`failed to upgrade chart ${chartReleaseName}: ${e.message}`, e);

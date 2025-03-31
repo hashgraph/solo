@@ -84,6 +84,27 @@ jobs:
       - name: Run Unit Tests
         run: task test
 
+      - name: Setup Helm
+        uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4.3.0
+        if: ${{ runner.os == 'linux' }}
+        with:
+          version: "v3.12.3" # helm version
+
+      - name: Setup Kind
+        uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
+        if: ${{ runner.os == 'linux' }}
+        with:
+          install_only: true
+          node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
+          version: v0.26.0
+          kubectl_version: v1.31.4
+          verbosity: 3
+          wait: 120s
+
+      - name: Run Helm Client Unit Tests
+        if: ${{ runner.os == 'linux' }}
+        run: npm run test-helm
+
       - name: Publish Windows Unit Test Report
         uses: EnricoMi/publish-unit-test-result-action/windows/bash@170bf24d20d201b842d7a52403b73ed297e6645b # v2.18.0
         if: ${{ runner.os == 'Windows' && steps.npm-deps.conclusion == 'success' && !cancelled() }}
@@ -104,6 +125,13 @@ jobs:
         with:
           name: Unit Test Coverage Report
           path: 'coverage/unit'
+
+      - name: Publish HelmClient Unit Test Coverage Report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: ${{ runner.os == 'linux' && !cancelled() }}
+        with:
+          name: HelmClient Unit Test Coverage Report
+          path: 'coverage/unit-helm'
 
       - name: Publish Test Reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
