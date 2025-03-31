@@ -69,7 +69,7 @@ tasks:
 
   test-setup:
     cmds:
-      - sh {{.TASKFILE_DIR}}/test/e2e/setup-e2e.sh
+      - SOLO_CLUSTER_DUALITY=1 sh {{.TASKFILE_DIR}}/test/e2e/dual-cluster/setup-dual-e2e.sh
 
   dual-cluster-setup:
     cmds:
@@ -80,178 +80,178 @@ tasks:
     cmds:
       - "{{ .test_prefix }}=\"Unit Tests\" 
         {{ .reporter_prefix }}='coverage/unit' 
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/unit/**/*.ts' 
-          --exclude '{{.TASKFILE_DIR}}/test/unit/core/helm/**/*.ts' 
+        {{ .mocha_bin }} 'test/unit/**/*.ts' 
+          --exclude 'test/unit/core/helm/**/*.ts' 
         {{ .reporter_options_prefix }}.xml"
 
   test-mathex:
     cmds:
       - "{{ .test_prefix }}=\"MathEx Unit Tests\"
         {{ .reporter_prefix }}='coverage/unit-mathex'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/unit/**/math_ex*.ts'
+        {{ .mocha_bin }} 'test/unit/**/math_ex*.ts'
         {{ .reporter_options_prefix }}.xml"
 
   test-data:
     cmds:
       - "{{ .test_prefix }}=\"Data Layer Unit Tests\"
         {{ .reporter_prefix }}='coverage/unit-data'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/unit/data/**'
+        {{ .mocha_bin }} 'test/unit/data/**'
         {{ .reporter_options_prefix }}.xml"
 
   test-e2e-all:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E All Tests\" 
         {{ .reporter_prefix }}='coverage/e2e-all' 
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/**/*.ts'
+        {{ .mocha_bin }} 'test/e2e/**/*.ts'
         {{ .reporter_options_prefix }}-e2e-all.xml"
 
   test-e2e-integration:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Integration Tests\"
         {{ .reporter_prefix }}='coverage/e2e-integration'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/integration/**/*.ts'
+        {{ .mocha_bin }} 'test/e2e/integration/**/*.ts'
         {{ .reporter_options_prefix }}-e2e-integration.xml"
 
   test-e2e-leases:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Lease Tests\"
         {{ .reporter_prefix }}='coverage/e2e-leases'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/integration/core/lease*.test.ts'
+        {{ .mocha_bin }} 'test/e2e/integration/core/lease*.test.ts'
         {{ .reporter_options_prefix }}-e2e-integration.xml"
 
   test-helm:
     cmds:
       - "{{ .test_prefix }}=\"Helm Unit Tests\"
         {{ .reporter_prefix }}='coverage/unit-helm'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/unit/core/helm/**/*.ts'
+        {{ .mocha_bin }} 'test/unit/core/helm/**/*.ts'
         {{ .reporter_options_prefix }}.xml"
 
   test-e2e-standard:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Standard Tests\"
         {{ .reporter_prefix }}='coverage/e2e-standard' 
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/**/*.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/unit/**/*.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/integration/**/*.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/mirror_node*.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/node*.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node*.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/relay*.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/dual-*.ts'
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_add.test.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_delete.test.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_update.test.ts' 
-          --ignore '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_upgrade.test.ts' 
+        {{ .mocha_bin }} 'test/e2e/**/*.ts' 
+          --ignore 'test/unit/**/*.ts' 
+          --ignore 'test/e2e/integration/**/*.ts' 
+          --ignore 'test/e2e/commands/mirror_node*.ts' 
+          --ignore 'test/e2e/commands/node*.ts' 
+          --ignore 'test/e2e/commands/separate_node*.ts' 
+          --ignore 'test/e2e/commands/relay*.ts' 
+          --ignore 'test/e2e/commands/dual-*.ts'
+          --ignore 'test/e2e/commands/separate_node_add.test.ts' 
+          --ignore 'test/e2e/commands/separate_node_delete.test.ts' 
+          --ignore 'test/e2e/commands/separate_node_update.test.ts' 
+          --ignore 'test/e2e/commands/separate_node_upgrade.test.ts' 
         {{ .reporter_options_prefix }}-e2e-standard.xml --timeout 30000"
 
   test-e2e-mirror-node:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Mirror Node Tests\"
         {{ .reporter_prefix }}='coverage/e2e-mirror-node'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/mirror_node.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/mirror_node.test.ts'
         {{ .reporter_options_prefix }}-e2e-mirror-node.xml"
 
   test-e2e-node-pem-stop:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node PEM Stop Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-pem-stop'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_pem_stop.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_pem_stop.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-pem-stop.xml"
 
   test-e2e-node-pem-kill:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node PEM Kill Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-pem-kill'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_pem_kill.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_pem_kill.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-pem-kill.xml"
 
   test-e2e-node-local-hedera:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Local Hedera Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-local-hedera'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_local_hedera.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_local_hedera.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-local-hedera.xml"
 
   test-e2e-node-local-ptt:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Local PTT Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-local-ptt'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_local_ptt.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_local_ptt.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-local-ptt.xml"
 
   test-e2e-node-add:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Add Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-add'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_add.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_add.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-add.xml"
 
   test-e2e-node-add-local:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Add Local Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-add-local'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_add_local.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_add_local.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-add-local.xml"
 
   test-e2e-node-add-separate:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Add - Separate commands Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-add-separate'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_add.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/separate_node_add.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-add-separate.xml"
 
   test-e2e-node-update:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Update Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-update'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_update.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_update.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-update.xml"
 
   test-e2e-node-update-separate:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Update - Separate commands Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-update-separate'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_update.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/separate_node_update.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-update-separate.xml"
 
   test-e2e-node-delete:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Delete Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-delete'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_delete.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_delete.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-delete.xml"
 
   test-e2e-node-delete-separate:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Delete - Separate commands Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-delete-separate'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_delete.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/separate_node_delete.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-delete-separate.xml"
 
   test-e2e-node-upgrade:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Upgrade Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-upgrade'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/node_upgrade.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/node_upgrade.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-upgrade.xml"
 
   test-e2e-node-upgrade-separate:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Node Upgrade - Separate commands Tests\"
         {{ .reporter_prefix }}='coverage/e2e-node-upgrade-separate'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/separate_node_upgrade.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/separate_node_upgrade.test.ts'
         {{ .reporter_options_prefix }}-e2e-node-upgrade-separate.xml"
 
   test-e2e-relay:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Relay Tests\"
         {{ .reporter_prefix }}='coverage/e2e-relay'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/relay.test.ts'
+        {{ .mocha_bin }} 'test/e2e/commands/relay.test.ts'
         {{ .reporter_options_prefix }}-e2e-relay.xml"
 
   test-e2e-dual-cluster-full:
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Dual Cluster Full Test\"
         {{ .reporter_prefix }}='coverage/e2e-dual-cluster-full'
-        {{ .mocha_bin }} '{{.TASKFILE_DIR}}/test/e2e/commands/dual_cluster_full.test.ts' 
+        {{ .mocha_bin }} 'test/e2e/commands/dual_cluster_full.test.ts' 
         {{ .reporter_options_prefix }}-e2e-dual-cluster-full.xml"
