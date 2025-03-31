@@ -191,17 +191,17 @@ The following global flags are supported:
 
 The CLI application is designed around the following high-level entities (aka commands):
 
-| Name              | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current)                | Description <br/>(Desired)                                                                                                                  |
-|-------------------|-------------------------------|-------------------------------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| **Block Node**    |                               | `block`                       |                                           | Block Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.     |
-| **Cluster Ref**   | `cluster-ref`                 | `cluster-ref`                 | Manage solo testing cluster               | Manages the relationship between Kubernetes context names and Solo internal cluster references which are an alias for a kubernetes context. |
-| **Consensus**     |                               | `consensus`                   |                                           | Consensus Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment. |
-| **Deployment**    | `deployment`                  | `deployment`                  | Manage solo network deployment            |                                                                                                                                             |
-| **Explorer Node** | `explorer`                    | `explorer`                    | Manage Explorer in solo network           |                                                                                                                                             |
-| **Ledger**        |                               | `ledger`                      |                                           |                                                                                                                                             |
-| **Relay Node**    | `relay`                       | `relay`                       | Manage JSON RPC relays in solo network    |                                                                                                                                             |
-| **Mirror Node**   | `mirror-node`                 | `mirror`                      | Manage Hedera Mirror Node in solo network |                                                                                                                                             |
-| **Quick Start**   |                               | `quick-start`                 |                                           |                                                                                                                                             |
+| Name              | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current)                | Description <br/>(Desired)                                                                                                                                                     |
+|-------------------|-------------------------------|-------------------------------|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Block Node**    |                               | `block`                       |                                           | Block Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                        |
+| **Cluster Ref**   | `cluster-ref`                 | `cluster-ref`                 | Manage solo testing cluster               | Manages the relationship between Kubernetes context names and Solo internal cluster references which are an alias for a kubernetes context.                                    |
+| **Consensus**     |                               | `consensus`                   |                                           | Consensus Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                    |
+| **Deployment**    | `deployment`                  | `deployment`                  | Manage solo network deployment            | Create, modify, and delete deployment configurations. Deployments are required for most of the other commands.                                                                 |
+| **Explorer Node** | `explorer`                    | `explorer`                    | Manage Explorer in solo network           | Explorer Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                     |
+| **Ledger**        |                               | `ledger`                      |                                           | System, Account, and Crypto ledger-based management operations. These commands require an operational set of consensus nodes and may require an operational mirror node.       |
+| **Relay Node**    | `relay`                       | `relay`                       | Manage JSON RPC relays in solo network    | RPC Relay Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                    |
+| **Mirror Node**   | `mirror-node`                 | `mirror`                      | Manage Hedera Mirror Node in solo network | Mirror Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                       |
+| **Quick Start**   |                               | `quick-start`                 |                                           | Quick start commands for new and returning users who need a preset environment type. These commands use reasonable defaults to provide a single command out of box experience. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -230,9 +230,9 @@ associated with each group.
 
 ### Block
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **Node**      | `node`         |             |
+| Resource Name | Command Syntax | Description                                                                                          |
+|---------------|----------------|------------------------------------------------------------------------------------------------------|
+| **Node**      | `node`         | Create, manage, or destroy block node instances. Operates on a single block node instance at a time. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -240,9 +240,9 @@ associated with each group.
 
 ### Cluster Ref
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **Config**    | `config`       |             |
+| Resource Name | Command Syntax | Description                                                                                       |
+|---------------|----------------|---------------------------------------------------------------------------------------------------|
+| **Config**    | `config`       | List, create, manage, and remove associations between Kubernetes contexts and Solo cluster names. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -250,12 +250,12 @@ associated with each group.
 
 ### Consensus
 
-| Resource Name  | Command Syntax | Description |
-|----------------|----------------|-------------|
-| **Network**    | `network`      |             |
-| **Node**       | `node`         |             |
-| **State**      | `state`        |             |
-| **Diagnostic** | `diagnostic`   |             |
+| Resource Name  | Command Syntax | Description                                                                                                                                   |
+|----------------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **Network**    | `network`      | Ledger/network wide consensus operations such as freeze, upgrade, and deploy. Operates on the entire ledger and all consensus node instances. |
+| **Node**       | `node`         | List, create, manage, or destroy consensus node instances. Operates on a single consensus node instance at a time.                            |
+| **State**      | `state`        | List, download, and upload consensus node state backups to/from individual consensus node instances.                                          |
+| **Diagnostic** | `diagnostic`   | Capture diagnostic information such as logs, signed states, and ledger/network/node configurations.                                           |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
