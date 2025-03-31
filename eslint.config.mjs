@@ -224,7 +224,6 @@ export default [
       'unicorn/prefer-logical-operator-over-ternary': 'warn', // TODO error
       'unicorn/no-lonely-if': 'warn', // TODO error
       'unicorn/explicit-length-check': 'warn', // TODO error
-      'unicorn/prefer-structured-clone': 'warn', // TODO error
     },
   },
   {

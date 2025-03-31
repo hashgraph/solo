@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import deepClone from 'deep-clone';
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/solo-error.js';
 import {RemoteConfigDataWrapper} from './remote-config-data-wrapper.js';
@@ -72,7 +71,7 @@ export class RemoteConfigManager {
    * @returns the remote configuration data's clusters cloned
    */
   public get clusters(): Record<ClusterRef, Cluster> {
-    return deepClone(this.remoteConfig.clusters);
+    return structuredClone(this.remoteConfig.clusters);
   }
 
   /* ---------- Readers and Modifiers ---------- */

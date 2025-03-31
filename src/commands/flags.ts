@@ -4,7 +4,6 @@ import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import {type CommandFlag} from '../types/flag-types.js';
 import fs from 'fs';
-import deepClone from 'deep-clone';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -372,7 +371,7 @@ export class Flags {
         if (initial === -1) {
           const input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
             message: 'Select profile for solo network deployment',
-            choices: deepClone(choices).map(profile => ({name: profile, value: profile})),
+            choices: structuredClone(choices).map(profile => ({name: profile, value: profile})),
           })) as string;
 
           if (!input) {
