@@ -47,6 +47,7 @@ else
         "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
         "--backupEndpoint" "storage.googleapis.com"
         "--backupRegion" "us-central1"
+        "--backup-bucket" "${streamBackupBucket}"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
     STORAGE_OPTIONS=(
@@ -60,6 +61,7 @@ else
         "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
         "--backupEndpoint" "storage.googleapis.com"
         "--backupRegion" "us-central1"
+        "--backup-bucket" "${streamBackupBucket}"
     )
   fi
 
@@ -100,8 +102,7 @@ npm run solo-test -- node keys --gossip-keys --tls-keys -i node1 --deployment "$
 
 npm run solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" -i node1 \
   --storage-type "${storageType}" \
-  "${STORAGE_OPTIONS[@]}" \
-  --backup-bucket "${streamBackupBucket}"
+  "${STORAGE_OPTIONS[@]}"
 
 npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
