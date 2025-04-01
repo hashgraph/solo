@@ -84,7 +84,9 @@ export class RemoteConfigManager {
    * @throws if the configuration is not loaded before modification, will throw a SoloError {@link SoloError}
    */
   public async modify(callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void>): Promise<void> {
-    if (!this.remoteConfig) throw new SoloError('Attempting to modify remote config without loading it first');
+    if (!this.remoteConfig) {
+      throw new SoloError('Attempting to modify remote config without loading it first');
+    }
 
     // Call the callback function to modify the remote config
     await callback(this.remoteConfig);
@@ -155,7 +157,9 @@ export class RemoteConfigManager {
    * @returns true if the configuration is loaded successfully.
    */
   private async load(namespace?: NamespaceName, context?: string): Promise<void> {
-    if (this.remoteConfig) return;
+    if (this.remoteConfig) {
+      return;
+    }
     try {
       const configMap = await this.getConfigMap(namespace, context);
 
@@ -199,7 +203,9 @@ export class RemoteConfigManager {
     // Compare clusters
     const clusters1 = Object.keys(remoteConfig1.clusters);
     const clusters2 = Object.keys(remoteConfig2.clusters);
-    if (clusters1.length !== clusters2.length) return false;
+    if (clusters1.length !== clusters2.length) {
+      return false;
+    }
 
     for (const index in clusters1) {
       if (clusters1[index] !== clusters2[index]) {
@@ -231,7 +237,9 @@ export class RemoteConfigManager {
     await this.load();
 
     this.logger.info('Remote config loaded');
-    if (!validate) return;
+    if (!validate) {
+      return;
+    }
 
     await RemoteConfigValidator.validateComponents(
       this.configManager.getFlag(flags.namespace),
@@ -329,8 +337,12 @@ export class RemoteConfigManager {
    * @throws if the ConfigMap could not be read and the error is not a 404 status, will throw a SoloError {@link SoloError}
    */
   public async getConfigMap(namespace?: NamespaceName, context?: string): Promise<ConfigMap> {
-    if (!namespace) namespace = await this.getNamespace();
-    if (!context) context = this.configManager.getFlag(flags.context) ?? this.getContextForFirstCluster();
+    if (!namespace) {
+      namespace = await this.getNamespace();
+    }
+    if (!context) {
+      context = this.configManager.getFlag(flags.context) ?? this.getContextForFirstCluster();
+    }
 
     try {
       const configMap = await this.k8Factory
@@ -392,7 +404,9 @@ export class RemoteConfigManager {
   }
 
   private async setDefaultNamespaceAndDeploymentIfNotSet(argv: AnyObject): Promise<void> {
-    if (this.configManager.hasFlag(flags.namespace)) return;
+    if (this.configManager.hasFlag(flags.namespace)) {
+      return;
+    }
 
     // TODO: Current quick fix for commands where namespace is not passed
     let deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
@@ -423,7 +437,9 @@ export class RemoteConfigManager {
   }
 
   private setDefaultContextIfNotSet(): void {
-    if (this.configManager.hasFlag(flags.context)) return;
+    if (this.configManager.hasFlag(flags.context)) {
+      return;
+    }
 
     const context = this.getContextForFirstCluster() ?? this.k8Factory.default().contexts().readCurrent();
 

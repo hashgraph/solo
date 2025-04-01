@@ -145,7 +145,9 @@ export class CertificateManager {
     }
 
     for (const {certType, title, certs, keys} of [grpcTlsParsedValues, grpcWebTlsParsedValue]) {
-      if (!certs.length) continue;
+      if (!certs.length) {
+        continue;
+      }
 
       for (let index = 0; index < certs.length; index++) {
         const nodeAlias = certs[index].nodeAlias;
@@ -202,7 +204,9 @@ export class CertificateManager {
 
   private getNamespace() {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
+    if (!ns) {
+      throw new MissingArgumentError('namespace is not set');
+    }
     return ns;
   }
 }

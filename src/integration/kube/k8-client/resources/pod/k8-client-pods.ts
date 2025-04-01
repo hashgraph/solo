@@ -125,7 +125,9 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     maxAttempts = 10,
     delay = 500,
   ): Promise<Pod[]> {
-    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
+    if (!conditionsMap || conditionsMap.size === 0) {
+      throw new MissingArgumentError('pod conditions are required');
+    }
 
     return await this.waitForRunningPhase(namespace, labels, maxAttempts, delay, pod => {
       if (pod.conditions?.length > 0) {

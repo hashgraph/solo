@@ -23,6 +23,7 @@ import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
+import {ShellRunner} from './shell-runner.js';
 
 export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
@@ -208,7 +209,9 @@ export function backupOldPemKeys(
 }
 
 export function isNumeric(string_: string) {
-  if (typeof string_ !== 'string') return false; // we only process strings!
+  if (typeof string_ !== 'string') {
+    return false;
+  } // we only process strings!
   return (
     !isNaN(string_ as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(string_))
@@ -472,8 +475,12 @@ export function extractContextFromConsensusNodes(
   nodeAlias: NodeAlias,
   consensusNodes?: ConsensusNode[],
 ): Optional<string> {
-  if (!consensusNodes) return undefined;
-  if (!consensusNodes.length) return undefined;
+  if (!consensusNodes) {
+    return undefined;
+  }
+  if (!consensusNodes.length) {
+    return undefined;
+  }
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
 }
@@ -537,4 +544,18 @@ export function isIPv4Address(input: string): boolean {
   const ipv4Regex =
     /^(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)$/;
   return ipv4Regex.test(input);
+}
+
+/** Get the Apple Silicon chip type */
+export async function getAppleSiliconChipset(logger: SoloLogger, ) {
+  const isMacOS = process.platform === 'darwin';
+  const isArm64 = process.arch === 'arm64';
+  if (isMacOS && isArm64) {
+    logger.info('Running on macOS with ARM architecture (likely Apple Silicon).');
+    const shellRunner = new ShellRunner();
+    return await shellRunner.run('sysctl -n machdep.cpu.brand_string');
+  } else {
+    logger.info('Not running on macOS ARM (Apple Silicon).');
+    return ["unknown"];
+  }
 }

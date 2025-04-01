@@ -191,6 +191,7 @@ export default [
       ],
       'no-invalid-this': ['off', {}],
       '@typescript-eslint/no-unused-expressions': 'off',
+      'curly': ['error', 'all'],
       'unicorn/filename-case': [
         'error',
         {

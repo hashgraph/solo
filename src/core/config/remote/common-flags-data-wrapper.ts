@@ -50,7 +50,9 @@ export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsS
         const isForced = this.configManager.getFlag<boolean>(flags.force);
 
         // if the quiet or forced flag is passed don't prompt the user
-        if (isQuiet === true || isForced === true) return;
+        if (isQuiet === true || isForced === true) {
+          return;
+        }
 
         const answer = await selectPrompt<string>({
           message: 'Value in remote config differs with the one you are passing, choose which you want to use',

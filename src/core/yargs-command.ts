@@ -14,15 +14,24 @@ export class YargsCommand {
     const {command, description, commandDef, handler} = options;
     const {required, optional} = flags;
 
-    if (!command) throw new IllegalArgumentError("A string is required as the 'command' property", command);
-    if (!description) throw new IllegalArgumentError("A string is required as the 'description' property", description);
-    if (!required)
+    if (!command) {
+      throw new IllegalArgumentError("A string is required as the 'command' property", command);
+    }
+    if (!description) {
+      throw new IllegalArgumentError("A string is required as the 'description' property", description);
+    }
+    if (!required) {
       throw new IllegalArgumentError("An array of CommandFlag is required as the 'required' property", required);
-    if (!optional)
+    }
+    if (!optional) {
       throw new IllegalArgumentError("An array of CommandFlag is required as the 'optional' property", optional);
-    if (!commandDef)
+    }
+    if (!commandDef) {
       throw new IllegalArgumentError("An instance of BaseCommand is required as the 'commandDef' property", commandDef);
-    if (!handler) throw new IllegalArgumentError("A string is required as the 'handler' property", handler);
+    }
+    if (!handler) {
+      throw new IllegalArgumentError("A string is required as the 'handler' property", handler);
+    }
 
     let commandNamespace = '';
     if (commandDef.getCommandDefinition) {
@@ -44,7 +53,9 @@ export class YargsCommand {
           await commandDef.handlers[handler](argv)
             .then((r: any) => {
               commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
-              if (!r) throw new SoloError(`${commandNamespace} ${command} failed, expected returned value to be true`);
+              if (!r) {
+                throw new SoloError(`${commandNamespace} ${command} failed, expected returned value to be true`);
+              }
             })
             .catch((error: Error | any) => {
               commandDef.logger.showUserError(error);

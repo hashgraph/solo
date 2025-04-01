@@ -122,15 +122,21 @@ export class NetworkCommand extends BaseCommand {
   public constructor(options: Options) {
     super(options);
 
-    if (!options || !options.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!options || !options.keyManager)
+    if (!options || !options.k8Factory) {
+      throw new Error('An instance of core/K8Factory is required');
+    }
+    if (!options || !options.keyManager) {
       throw new IllegalArgumentError('An instance of core/KeyManager is required', options.keyManager);
-    if (!options || !options.platformInstaller)
+    }
+    if (!options || !options.platformInstaller) {
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', options.platformInstaller);
-    if (!options || !options.profileManager)
+    }
+    if (!options || !options.profileManager) {
       throw new MissingArgumentError('An instance of core/ProfileManager is required', options.downloader);
-    if (!options || !options.certificateManager)
+    }
+    if (!options || !options.certificateManager) {
       throw new MissingArgumentError('An instance of core/CertificateManager is required', options.certificateManager);
+    }
 
     this.certificateManager = options.certificateManager;
     this.keyManager = options.keyManager;
@@ -450,7 +456,9 @@ export class NetworkCommand extends BaseCommand {
     // initialize the valueArgs
     for (const consensusNode of config.consensusNodes) {
       // add the cluster to the list of clusters
-      if (!clusterReferences[consensusNode.cluster]) clusterReferences.push(consensusNode.cluster);
+      if (!clusterReferences[consensusNode.cluster]) {
+        clusterReferences.push(consensusNode.cluster);
+      }
 
       // set the extraEnv settings on the nodes for running with a local build or tool
       if (config.app !== constants.HEDERA_APP_NAME) {
@@ -480,16 +488,18 @@ export class NetworkCommand extends BaseCommand {
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.GCS_ONLY
     ) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] += ' --set cloud.gcs.enabled=true';
+      }
     }
 
     if (
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.AWS_ONLY
     ) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] += ' --set cloud.s3.enabled=true';
+      }
     }
 
     if (
@@ -497,50 +507,58 @@ export class NetworkCommand extends BaseCommand {
       config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] += ' --set cloud.minio.enabled=false';
+      }
     }
 
     if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] += ' --set cloud.generateNewSecrets=false';
+      }
     }
 
     if (config.gcsBucket) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] +=
           ` --set cloud.buckets.streamBucket=${config.gcsBucket}` +
           ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`;
+      }
     }
 
     if (config.gcsBucketPrefix) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
+      }
     }
 
     if (config.awsBucket) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] +=
           ` --set cloud.buckets.streamBucket=${config.awsBucket}` +
           ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`;
+      }
     }
 
     if (config.awsBucketPrefix) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`;
+      }
     }
 
     if (config.backupBucket) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] +=
           ' --set defaults.sidecars.backupUploader.enabled=true' +
           ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+      }
     }
 
-    for (const clusterReference of clusterReferences)
+    for (const clusterReference of clusterReferences) {
       valuesArguments[clusterReference] +=
         ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"` +
         ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
+    }
 
     // Iterate over each node and set static IPs for HAProxy
     this.addArgForEachRecord(
@@ -559,17 +577,19 @@ export class NetworkCommand extends BaseCommand {
     );
 
     if (config.resolvedThrottlesFile) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] +=
           ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
+      }
     }
 
     if (config.loadBalancerEnabled) {
-      for (const clusterReference of clusterReferences)
+      for (const clusterReference of clusterReferences) {
         valuesArguments[clusterReference] +=
           ' --set "defaults.haproxy.service.type=LoadBalancer"' +
           ' --set "defaults.envoyProxy.service.type=LoadBalancer"' +
           ' --set "defaults.consensus.service.type=LoadBalancer"';
+      }
     }
 
     return valuesArguments;
@@ -1258,7 +1278,9 @@ export class NetworkCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `network deploy`====');
 
-                  if (!r) throw new SoloError('Error deploying network, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error deploying network, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error deploying network: ${error.message}`, error);
@@ -1281,7 +1303,9 @@ export class NetworkCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `network destroy`====');
 
-                  if (!r) throw new SoloError('Error destroying network, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error destroying network, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error destroying network: ${error.message}`, error);
