@@ -1,8 +1,5 @@
 version: 3
 includes:
-  helpers:
-    taskfile: ./examples/Taskfile.examples.yml
-    flatten: true
   tests:
     taskfile: ./Taskfile.tests.yml
     flatten: true
