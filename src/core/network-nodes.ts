@@ -6,7 +6,7 @@ import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
 import fs from 'node:fs';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import * as constants from './constants.js';
-import {sleep} from './helpers.js';
+import {getAppleSiliconChipset, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type SoloLogger} from './logging/solo-logger.js';
@@ -76,6 +76,7 @@ export class NetworkNodes {
       const scriptName = 'support-zip.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       const k8 = this.k8Factory.getK8(context);
+      const chipType = (await  getAppleSiliconChipset(this.logger)).join('');
 
       await k8.containers().readByRef(containerReference).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
 
@@ -93,7 +94,7 @@ export class NetworkNodes {
         .containers()
         .readByRef(containerReference)
         .execContainer(['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
-      await k8.containers().readByRef(containerReference).execContainer(`${HEDERA_HAPI_PATH}/${scriptName}`);
+      await k8.containers().readByRef(containerReference).execContainer(`${HEDERA_HAPI_PATH}/${scriptName} ${chipType}`);
       await k8
         .containers()
         .readByRef(containerReference)

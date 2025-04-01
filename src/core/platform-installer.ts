@@ -17,7 +17,7 @@ import chalk from 'chalk';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type NodeAlias} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
-import {sleep} from './helpers.js';
+import {getAppleSiliconChipset, sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -27,6 +27,7 @@ import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {ShellRunner} from './shell-runner.js';
 
 /** PlatformInstaller install platform code in the root-container of a network pod */
 @injectable()
@@ -96,6 +97,7 @@ export class PlatformInstaller {
     }
   }
 
+
   /** Fetch and extract platform code into the container */
   async fetchPlatform(podReference: PodReference, tag: string, context?: string) {
     if (!podReference) {
@@ -106,6 +108,8 @@ export class PlatformInstaller {
     }
 
     try {
+      const chipType = (await  getAppleSiliconChipset(this.logger)).join('');
+      this.logger.info(`chipType: ${chipType}`);
       const scriptName = 'extract-platform.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       await this.copyFiles(podReference, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
@@ -119,7 +123,7 @@ export class PlatformInstaller {
       const k8Containers = this.k8Factory.getK8(context).containers();
 
       await k8Containers.readByRef(containerReference).execContainer(`chmod +x ${extractScript}`);
-      await k8Containers.readByRef(containerReference).execContainer([extractScript, tag]);
+      await k8Containers.readByRef(containerReference).execContainer([extractScript, tag, chipType]);
 
       return true;
     } catch (error) {
