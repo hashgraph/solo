@@ -1923,7 +1923,7 @@ export class NodeCommandTasks {
 
         // Make sure valuesArgMap is initialized with empty strings
         const valuesArgumentMap: Record<ClusterReference, string> = {};
-        Object.keys(clusterReferences).forEach(clusterReference => (valuesArgumentMap[clusterReference] = ''));
+        for (const clusterReference of Object.keys(clusterReferences)) valuesArgumentMap[clusterReference] = '';
 
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
@@ -1946,10 +1946,11 @@ export class NodeCommandTasks {
         for (const clusterReference of Object.keys(clusterReferences)) {
           clusterNodeIndexMap[clusterReference] = {};
 
-          consensusNodes
+          for (const [index, node] of consensusNodes
             .filter(node => node.cluster === clusterReference)
             .sort((a, b) => a.nodeId - b.nodeId)
-            .forEach((node, index) => (clusterNodeIndexMap[clusterReference][node.nodeId] = index));
+            .entries())
+            clusterNodeIndexMap[clusterReference][node.nodeId] = index;
         }
 
         switch (transactionType) {
@@ -2100,15 +2101,15 @@ export class NodeCommandTasks {
     },
   ): void {
     // Add existing nodes
-    consensusNodes.forEach(node => {
-      if (node.name === nodeAlias) return;
+    for (const node of consensusNodes) {
+      if (node.name === nodeAlias) continue;
       const index = clusterNodeIndexMap[clusterReference][node.nodeId];
 
       valuesArgumentMap[clusterReference] +=
         ` --set "hedera.nodes[${index}].accountId=${serviceMap.get(node.name).accountId}"` +
         ` --set "hedera.nodes[${index}].name=${node.name}"` +
         ` --set "hedera.nodes[${index}].nodeId=${node.nodeId}"`;
-    });
+    }
 
     // Add new node
     const index = clusterNodeIndexMap[clusterReference][nodeId];

@@ -226,10 +226,10 @@ export function getNodeAccountMap(nodeAliases: NodeAliases): Map<NodeAlias, stri
   const shard: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
   const firstAccountId: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
 
-  nodeAliases.forEach(nodeAlias => {
+  for (const nodeAlias of nodeAliases) {
     const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId)}`;
     accountMap.set(nodeAlias, nodeAccount);
-  });
+  }
   return accountMap;
 }
 
@@ -444,10 +444,10 @@ export function prepareValuesFiles(valuesFile: string) {
   let valuesArgument = '';
   if (valuesFile) {
     const valuesFiles = valuesFile.split(',');
-    valuesFiles.forEach(vf => {
+    for (const vf of valuesFiles) {
       const vfp = PathEx.resolve(vf);
       valuesArgument += ` --values ${vfp}`;
-    });
+    }
   }
 
   return valuesArgument;

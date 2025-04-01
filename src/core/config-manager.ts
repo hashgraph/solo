@@ -213,31 +213,33 @@ export class ConfigManager {
         this.usedConfigs = new Map();
 
         // add the flags as properties to this class
-        flags?.forEach(flag => {
-          // @ts-ignore
-          this[`_${flag.constName}`] = self.getFlag(flag);
-          Object.defineProperty(this, flag.constName, {
-            get() {
-              this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
-              return this[`_${flag.constName}`];
-            },
-          });
-        });
+        if (flags)
+          for (const flag of flags) {
+            // @ts-ignore
+            this[`_${flag.constName}`] = self.getFlag(flag);
+            Object.defineProperty(this, flag.constName, {
+              get() {
+                this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
+                return this[`_${flag.constName}`];
+              },
+            });
+          }
 
         // add the extra properties as properties to this class
-        extraProperties?.forEach(name => {
-          // @ts-ignore
-          this[`_${name}`] = '';
-          Object.defineProperty(this, name, {
-            get() {
-              this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
-              return this[`_${name}`];
-            },
-            set(value) {
-              this[`_${name}`] = value;
-            },
-          });
-        });
+        if (extraProperties)
+          for (const name of extraProperties) {
+            // @ts-ignore
+            this[`_${name}`] = '';
+            Object.defineProperty(this, name, {
+              get() {
+                this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
+                return this[`_${name}`];
+              },
+              set(value) {
+                this[`_${name}`] = value;
+              },
+            });
+          }
       }
 
       /** Get the list of unused configurations that were not accessed */
@@ -245,18 +247,20 @@ export class ConfigManager {
         const unusedConfigs: string[] = [];
 
         // add the flag constName to the unusedConfigs array if it was not accessed
-        flags?.forEach(flag => {
-          if (!this.usedConfigs.has(flag.constName)) {
-            unusedConfigs.push(flag.constName);
+        if (flags)
+          for (const flag of flags) {
+            if (!this.usedConfigs.has(flag.constName)) {
+              unusedConfigs.push(flag.constName);
+            }
           }
-        });
 
         // add the extra properties to the unusedConfigs array if it was not accessed
-        extraProperties?.forEach(item => {
-          if (!this.usedConfigs.has(item)) {
-            unusedConfigs.push(item);
+        if (extraProperties)
+          for (const item of extraProperties) {
+            if (!this.usedConfigs.has(item)) {
+              unusedConfigs.push(item);
+            }
           }
-        });
         return unusedConfigs;
       }
     };

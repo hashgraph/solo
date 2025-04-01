@@ -121,7 +121,7 @@ describe('ProfileManager', () => {
   const testCases = [{profileName: 'test', profileFile: testProfileFile}];
 
   describe('determine chart values for a profile', () => {
-    testCases.forEach(input => {
+    for (const input of testCases) {
       it(`should determine Solo chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile);
         configManager.setFlag(flags.namespace, 'test-namespace');
@@ -231,7 +231,7 @@ describe('ProfileManager', () => {
         expect(valuesYaml.resources.limits.cpu).not.to.be.null;
         expect(valuesYaml.resources.limits.memory).not.to.be.null;
       });
-    });
+    }
   });
 
   describe('prepareConfigText', () => {

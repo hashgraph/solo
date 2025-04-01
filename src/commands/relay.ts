@@ -211,12 +211,12 @@ export class RelayCommand extends BaseCommand {
       this.remoteConfigManager.getClusterRefs(),
       deploymentName,
     );
-    nodeAliases.forEach(nodeAlias => {
+    for (const nodeAlias of nodeAliases) {
       const haProxyClusterIp = networkNodeServicesMap.get(nodeAlias).haProxyClusterIp;
       const haProxyGrpcPort = networkNodeServicesMap.get(nodeAlias).haProxyGrpcPort;
       const networkKey = `${haProxyClusterIp}:${haProxyGrpcPort}`;
       networkIds[networkKey] = accountMap.get(nodeAlias);
-    });
+    }
 
     return JSON.stringify(networkIds);
   }
@@ -227,9 +227,9 @@ export class RelayCommand extends BaseCommand {
     }
 
     let releaseName = 'relay';
-    nodeAliases.forEach(nodeAlias => {
+    for (const nodeAlias of nodeAliases) {
       releaseName += `-${nodeAlias}`;
-    });
+    }
 
     return releaseName;
   }

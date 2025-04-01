@@ -12,7 +12,7 @@ export class NodeOverridesModel {
   private readonly endpointOverrides: GossipEndpoint[] = [];
 
   public constructor(nodeAliases: NodeAliases, networkNodeServiceMap: NodeServiceMapping) {
-    nodeAliases.forEach(nodeAlias => {
+    for (const nodeAlias of nodeAliases) {
       const nodeId = +networkNodeServiceMap.get(nodeAlias).nodeId;
 
       const localClusterPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
@@ -21,7 +21,7 @@ export class NodeOverridesModel {
       this.interfaceBindings.push({nodeId, hostname: localClusterHostName, port: localClusterPort});
       // TODO future, add endpointOverrides for addresses external to cluster in multi-cluster support situation
       //  this.endpointOverrides.push({nodeId, hostname: externalHostname, port: externalPort});
-    });
+    }
   }
 
   /**
