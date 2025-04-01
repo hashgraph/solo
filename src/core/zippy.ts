@@ -60,7 +60,7 @@ export class Zippy {
     try {
       const zip = new AdmZip(sourcePath, {readEntries: true});
 
-      zip.getEntries().forEach(zipEntry => {
+      for (const zipEntry of zip.getEntries()) {
         if (verbose) {
           self.logger.debug(`Extracting file: ${zipEntry.entryName} -> ${destinationPath}/${zipEntry.entryName} ...`, {
             src: zipEntry.entryName,
@@ -75,7 +75,7 @@ export class Zippy {
             `Extracted: ${zipEntry.entryName} -> ${destinationPath}/${zipEntry.entryName}`,
           );
         }
-      });
+      }
 
       return destinationPath;
     } catch (error: Error | any) {

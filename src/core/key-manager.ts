@@ -160,9 +160,9 @@ export class KeyManager {
 
     const keyPem = await this.convertPrivateKeyToPem(nodeKey.privateKey);
     const certPems: string[] = [];
-    nodeKey.certificateChain.forEach(cert => {
+    for (const cert of nodeKey.certificateChain) {
       certPems.push(cert.toString('pem'));
-    });
+    }
 
     const self = this;
     return new Promise((resolve, reject) => {
@@ -176,9 +176,9 @@ export class KeyManager {
           fs.rmSync(nodeKeyFiles.certificateFile);
         }
 
-        certPems.forEach(certPem => {
+        for (const certPem of certPems) {
           fs.writeFileSync(nodeKeyFiles.certificateFile, certPem + '\n', {flag: 'a'});
-        });
+        }
 
         self.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
           nodeKeyFiles,
@@ -237,10 +237,10 @@ export class KeyManager {
     const certPems = x509.PemConverter.decode(certBytes.toString());
 
     const certs: x509.X509Certificate[] = [];
-    certPems.forEach(certPem => {
+    for (const certPem of certPems) {
       const cert = new x509.X509Certificate(certPem);
       certs.push(cert);
-    });
+    }
 
     const certChain = await new x509.X509ChainBuilder({certificates: certs.slice(1)}).build(certs[0]);
 

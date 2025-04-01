@@ -253,10 +253,10 @@ export class Templates {
   public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {
     const mapping: Record<NodeAlias, IP> = {};
 
-    unparsed.split(',').forEach(data => {
+    for (const data of unparsed.split(',')) {
       const [nodeAlias, ip] = data.split('=') as [NodeAlias, IP];
       mapping[nodeAlias] = ip;
-    });
+    }
 
     return mapping;
   }
@@ -264,14 +264,14 @@ export class Templates {
   public static parseNodeAliasToDomainNameMapping(unparsed: string): Record<NodeAlias, string> {
     const mapping: Record<NodeAlias, string> = {};
 
-    unparsed.split(',').forEach(data => {
+    for (const data of unparsed.split(',')) {
       const [nodeAlias, domainName] = data.split('=') as [NodeAlias, string];
 
       if (!nodeAlias || typeof nodeAlias !== 'string') throw new SoloError(`Can't parse node alias: ${data}`);
       if (!domainName || typeof domainName !== 'string') throw new SoloError(`Can't parse domain name: ${data}`);
 
       mapping[nodeAlias] = domainName;
-    });
+    }
 
     return mapping;
   }
@@ -305,9 +305,9 @@ export class Templates {
       '{cluster}': cluster,
     };
 
-    Object.entries(searchReplace).forEach(([search, replace]) => {
+    for (const [search, replace] of Object.entries(searchReplace)) {
       dnsConsensusNodePattern = dnsConsensusNodePattern.replace(search, replace);
-    });
+    }
 
     return `${dnsConsensusNodePattern}.${dnsBaseDomain}`;
   }

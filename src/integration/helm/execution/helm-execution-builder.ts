@@ -191,9 +191,9 @@ export class HelmExecutionBuilder {
   build(): HelmExecution {
     const command = this.buildCommand();
     const environment: Record<string, string> = {...process.env};
-    this._environmentVariables.forEach((value, key) => {
+    for (const [key, value] of this._environmentVariables.entries()) {
       environment[key] = value;
-    });
+    }
 
     return new HelmExecution(command, this._workingDirectory, environment);
   }
@@ -208,17 +208,17 @@ export class HelmExecutionBuilder {
     command.push(...this._subcommands);
     command.push(...this._flags);
 
-    this._arguments.forEach((value, key) => {
+    for (const [key, value] of this._arguments.entries()) {
       command.push(`--${key}`);
       command.push(value);
-    });
+    }
 
-    this._optionsWithMultipleValues.forEach(entry => {
-      entry.value.forEach(value => {
+    for (const entry of this._optionsWithMultipleValues) {
+      for (const value of entry.value) {
         command.push(`--${entry.key}`);
         command.push(value);
-      });
-    });
+      }
+    }
 
     command.push(...this._positionals);
 

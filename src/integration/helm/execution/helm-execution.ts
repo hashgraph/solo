@@ -52,20 +52,20 @@ export class HelmExecution {
       // const output: string[] = [];
       this.process.stdout.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
             this.output.push(item);
           }
-        });
+        }
       });
 
       this.process.stderr.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
             this.errOutput.push(item.trim());
           }
-        });
+        }
       });
 
       this.process.on('close', code => {

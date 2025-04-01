@@ -35,11 +35,11 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
   public validate(): void {
     super.validate();
 
-    this.consensusNodeAliases.forEach(alias => {
+    for (const alias of this.consensusNodeAliases) {
       if (!alias || typeof alias !== 'string') {
         throw new SoloError(`Invalid consensus node alias: ${alias}, aliases ${this.consensusNodeAliases}`);
       }
-    });
+    }
   }
 
   public toObject(): IRelayComponent {
