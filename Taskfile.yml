@@ -1,7 +1,7 @@
 version: 3
 includes:
   helpers:
-    taskfile: ./Taskfile.helper.yml
+    taskfile: ./examples/Taskfile.examples.yml
     flatten: true
   tests:
     taskfile: ./Taskfile.tests.yml
@@ -36,20 +36,6 @@ env:
   EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
 
 tasks:
-  install:
-    desc: create the cluster, solo init, solo cluster-ref create, solo node keys, solo network deploy
-    deps:
-      - task: "init"
-    cmds:
-      - task: "cluster:create"
-      - task: "solo:init"
-      - task: "solo:cluster:setup"
-      - task: "solo:cluster-ref:connect"
-      - task: "solo:deployment:create"
-      - task: "solo:deployment:add-cluster"
-      - task: "solo:keys"
-      - task: "solo:network:deploy"
-
   check:
     cmds:
       - npx remark . --quiet --frail
