@@ -69,7 +69,9 @@ export class KeyManager {
    * @param [keyUsages]
    */
   async convertPemToPrivateKey(pemString: string, algo: any, keyUsages: KeyUsage[] = ['sign']) {
-    if (!algo) throw new MissingArgumentError('algo is required');
+    if (!algo) {
+      throw new MissingArgumentError('algo is required');
+    }
 
     const items = x509.PemConverter.decode(pemString);
 
@@ -88,8 +90,12 @@ export class KeyManager {
    * @param keysDirectory - directory where keys and certs are stored
    */
   prepareNodeKeyFilePaths(nodeAlias: NodeAlias, keysDirectory: string): PrivateKeyAndCertificateObject {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
-    if (!keysDirectory) throw new MissingArgumentError('keysDirectory is required');
+    if (!nodeAlias) {
+      throw new MissingArgumentError('nodeAlias is required');
+    }
+    if (!keysDirectory) {
+      throw new MissingArgumentError('keysDirectory is required');
+    }
 
     const keyFile = PathEx.join(keysDirectory, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
     const certFile = PathEx.join(keysDirectory, Templates.renderGossipPemPublicKeyFile(nodeAlias));
@@ -106,8 +112,12 @@ export class KeyManager {
    * @param keysDirectory - directory where keys and certs are stored
    */
   prepareTLSKeyFilePaths(nodeAlias: NodeAlias, keysDirectory: string): PrivateKeyAndCertificateObject {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
-    if (!keysDirectory) throw new MissingArgumentError('keysDirectory is required');
+    if (!nodeAlias) {
+      throw new MissingArgumentError('nodeAlias is required');
+    }
+    if (!keysDirectory) {
+      throw new MissingArgumentError('keysDirectory is required');
+    }
 
     const keyFile = PathEx.join(keysDirectory, `hedera-${nodeAlias}.key`);
     const certFile = PathEx.join(keysDirectory, `hedera-${nodeAlias}.crt`);
@@ -334,8 +344,12 @@ export class KeyManager {
     nodeAlias: NodeAlias,
     distinguishedName: x509.Name = new x509.Name(`CN=${nodeAlias}`),
   ): Promise<NodeKeyObject> {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
-    if (!distinguishedName) throw new MissingArgumentError('distinguishedName is required');
+    if (!nodeAlias) {
+      throw new MissingArgumentError('nodeAlias is required');
+    }
+    if (!distinguishedName) {
+      throw new MissingArgumentError('distinguishedName is required');
+    }
 
     try {
       const currentDate = new Date();

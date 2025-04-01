@@ -43,12 +43,16 @@ export class PlatformInstaller {
 
   private _getNamespace(): NamespaceName {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
+    if (!ns) {
+      throw new MissingArgumentError('namespace is not set');
+    }
     return ns;
   }
 
   validatePlatformReleaseDir(releaseDirectory: string) {
-    if (!releaseDirectory) throw new MissingArgumentError('releaseDirectory is required');
+    if (!releaseDirectory) {
+      throw new MissingArgumentError('releaseDirectory is required');
+    }
     if (!fs.existsSync(releaseDirectory)) {
       throw new IllegalArgumentError('releaseDirectory does not exists', releaseDirectory);
     }
@@ -94,8 +98,12 @@ export class PlatformInstaller {
 
   /** Fetch and extract platform code into the container */
   async fetchPlatform(podReference: PodReference, tag: string, context?: string) {
-    if (!podReference) throw new MissingArgumentError('podReference is required');
-    if (!tag) throw new MissingArgumentError('tag is required');
+    if (!podReference) {
+      throw new MissingArgumentError('podReference is required');
+    }
+    if (!tag) {
+      throw new MissingArgumentError('tag is required');
+    }
 
     try {
       const scriptName = 'extract-platform.sh';
@@ -166,9 +174,15 @@ export class PlatformInstaller {
   }
 
   async copyGossipKeys(consensusNode: ConsensusNode, stagingDirectory: string, consensusNodes: ConsensusNode[]) {
-    if (!consensusNode) throw new MissingArgumentError('consensusNode is required');
-    if (!stagingDirectory) throw new MissingArgumentError('stagingDirectory is required');
-    if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
+    if (!consensusNode) {
+      throw new MissingArgumentError('consensusNode is required');
+    }
+    if (!stagingDirectory) {
+      throw new MissingArgumentError('stagingDirectory is required');
+    }
+    if (!consensusNodes || consensusNodes.length <= 0) {
+      throw new MissingArgumentError('consensusNodes cannot be empty');
+    }
 
     try {
       const sourceFiles = [];
@@ -222,8 +236,12 @@ export class PlatformInstaller {
   }
 
   async copyTLSKeys(consensusNodes: ConsensusNode[], stagingDirectory: string, contexts: string[]) {
-    if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
-    if (!stagingDirectory) throw new MissingArgumentError('stagingDirectory is required');
+    if (!consensusNodes || consensusNodes.length <= 0) {
+      throw new MissingArgumentError('consensusNodes cannot be empty');
+    }
+    if (!stagingDirectory) {
+      throw new MissingArgumentError('stagingDirectory is required');
+    }
 
     try {
       const data = {};
@@ -276,8 +294,12 @@ export class PlatformInstaller {
     container = constants.ROOT_CONTAINER,
     context?: string,
   ) {
-    if (!podReference) throw new MissingArgumentError('podReference is required');
-    if (!destinationPath) throw new MissingArgumentError('destPath is required');
+    if (!podReference) {
+      throw new MissingArgumentError('podReference is required');
+    }
+    if (!destinationPath) {
+      throw new MissingArgumentError('destPath is required');
+    }
     const containerReference = ContainerReference.of(podReference, container);
 
     const recursiveFlag = recursive ? '-R' : '';
@@ -296,7 +318,9 @@ export class PlatformInstaller {
 
   async setPlatformDirPermissions(podReference: PodReference, context?: string) {
     const self = this;
-    if (!podReference) throw new MissingArgumentError('podReference is required');
+    if (!podReference) {
+      throw new MissingArgumentError('podReference is required');
+    }
 
     try {
       const destinationPaths = [constants.HEDERA_HAPI_PATH, constants.HEDERA_HGCAPP_DIR];

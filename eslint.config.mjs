@@ -191,6 +191,7 @@ export default [
       ],
       'no-invalid-this': ['off', {}],
       '@typescript-eslint/no-unused-expressions': 'off',
+      'curly': ['error', 'all'],
       'unicorn/filename-case': [
         'error',
         {
@@ -199,32 +200,32 @@ export default [
           ignore: ['.*\\.d\\.ts$'], // Ignore TypeScript declaration files if needed
         },
       ],
-      'unicorn/prefer-spread': 'warn', // TODO error
-      'unicorn/no-null': 'warn', // TODO error
-      'unicorn/text-encoding-identifier-case': 'warn', // TODO error
-      'unicorn/switch-case-braces': 'warn', // TODO error
-      'unicorn/prefer-array-find': 'warn', // TODO error
-      'unicorn/catch-error-name': 'warn', // TODO error
-      'unicorn/no-this-assignment': 'warn', // TODO error
-      'unicorn/consistent-function-scoping': 'warn', // TODO error
-      'unicorn/error-message': 'warn', // TODO error
-      'unicorn/import-style': 'warn', // TODO error
-      'unicorn/prefer-optional-catch-binding': 'warn', // TODO error
-      'unicorn/prefer-string-slice': 'warn', // TODO error
-      'unicorn/no-useless-undefined': 'warn', // TODO error
-      'unicorn/prefer-export-from': 'warn', // TODO error
-      'unicorn/no-await-expression-member': 'warn', // TODO error
-      'unicorn/numeric-separators-style': 'warn', // TODO error
-      'unicorn/no-array-push-push': 'warn', // TODO error
-      'unicorn/no-for-loop': 'warn', // TODO error
-      'unicorn/prefer-ternary': 'warn', // TODO error
-      'unicorn/no-negated-condition': 'warn', // TODO error
-      'unicorn/prefer-string-replace-all': 'warn', // TODO error
-      'unicorn/prefer-string-raw': 'warn', // TODO error
-      'unicorn/prefer-number-properties': 'warn', // TODO error
-      'unicorn/prefer-logical-operator-over-ternary': 'warn', // TODO error
-      'unicorn/no-lonely-if': 'warn', // TODO error
-      'unicorn/explicit-length-check': 'warn', // TODO error
+      'unicorn/prefer-spread': 'off', // TODO error
+      'unicorn/no-null': 'off', // TODO error
+      'unicorn/text-encoding-identifier-case': 'off', // TODO error
+      'unicorn/switch-case-braces': 'off', // TODO error
+      'unicorn/prefer-array-find': 'off', // TODO error
+      'unicorn/catch-error-name': 'off', // TODO error
+      'unicorn/no-this-assignment': 'off', // TODO error
+      'unicorn/consistent-function-scoping': 'off', // TODO error
+      'unicorn/error-message': 'off', // TODO error
+      'unicorn/import-style': 'off', // TODO error
+      'unicorn/prefer-optional-catch-binding': 'off', // TODO error
+      'unicorn/prefer-string-slice': 'off', // TODO error
+      'unicorn/no-useless-undefined': 'off', // TODO error
+      'unicorn/prefer-export-from': 'off', // TODO error
+      'unicorn/no-await-expression-member': 'off', // TODO error
+      'unicorn/numeric-separators-style': 'off', // TODO error
+      'unicorn/no-array-push-push': 'off', // TODO error
+      'unicorn/no-for-loop': 'off', // TODO error
+      'unicorn/prefer-ternary': 'off', // TODO error
+      'unicorn/no-negated-condition': 'off', // TODO error
+      'unicorn/prefer-string-replace-all': 'off', // TODO error
+      'unicorn/prefer-string-raw': 'off', // TODO error
+      'unicorn/prefer-number-properties': 'off', // TODO error
+      'unicorn/prefer-logical-operator-over-ternary': 'off', // TODO error
+      'unicorn/no-lonely-if': 'off', // TODO error
+      'unicorn/explicit-length-check': 'off', // TODO error
     },
   },
   {

@@ -27,9 +27,15 @@ export class Zippy {
    * @returns path to the output zip file
    */
   async zip(sourcePath: string, destinationPath: string, verbose = false) {
-    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
-    if (!destinationPath) throw new MissingArgumentError('destPath is required');
-    if (!destinationPath.endsWith('.zip')) throw new MissingArgumentError('destPath must be a path to a zip file');
+    if (!sourcePath) {
+      throw new MissingArgumentError('srcPath is required');
+    }
+    if (!destinationPath) {
+      throw new MissingArgumentError('destPath is required');
+    }
+    if (!destinationPath.endsWith('.zip')) {
+      throw new MissingArgumentError('destPath must be a path to a zip file');
+    }
 
     try {
       const zip = new AdmZip('', {});
@@ -52,10 +58,16 @@ export class Zippy {
   unzip(sourcePath: string, destinationPath: string, verbose = false) {
     const self = this;
 
-    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
-    if (!destinationPath) throw new MissingArgumentError('destPath is required');
+    if (!sourcePath) {
+      throw new MissingArgumentError('srcPath is required');
+    }
+    if (!destinationPath) {
+      throw new MissingArgumentError('destPath is required');
+    }
 
-    if (!fs.existsSync(sourcePath)) throw new IllegalArgumentError('srcPath does not exists', sourcePath);
+    if (!fs.existsSync(sourcePath)) {
+      throw new IllegalArgumentError('srcPath does not exists', sourcePath);
+    }
 
     try {
       const zip = new AdmZip(sourcePath, {readEntries: true});
@@ -84,12 +96,19 @@ export class Zippy {
   }
 
   tar(sourcePath: string, destinationPath: string) {
-    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
-    if (!destinationPath) throw new MissingArgumentError('destPath is required');
-    if (!destinationPath.endsWith('.tar.gz'))
+    if (!sourcePath) {
+      throw new MissingArgumentError('srcPath is required');
+    }
+    if (!destinationPath) {
+      throw new MissingArgumentError('destPath is required');
+    }
+    if (!destinationPath.endsWith('.tar.gz')) {
       throw new MissingArgumentError('destPath must be a path to a tar.gz file');
+    }
 
-    if (!fs.existsSync(sourcePath)) throw new IllegalArgumentError('srcPath does not exists', sourcePath);
+    if (!fs.existsSync(sourcePath)) {
+      throw new IllegalArgumentError('srcPath does not exists', sourcePath);
+    }
 
     try {
       tar.c(
@@ -107,10 +126,16 @@ export class Zippy {
   }
 
   untar(sourcePath: string, destinationPath: string) {
-    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
-    if (!destinationPath) throw new MissingArgumentError('destPath is required');
+    if (!sourcePath) {
+      throw new MissingArgumentError('srcPath is required');
+    }
+    if (!destinationPath) {
+      throw new MissingArgumentError('destPath is required');
+    }
 
-    if (!fs.existsSync(sourcePath)) throw new IllegalArgumentError('srcPath does not exists', sourcePath);
+    if (!fs.existsSync(sourcePath)) {
+      throw new IllegalArgumentError('srcPath does not exists', sourcePath);
+    }
     if (!fs.existsSync(destinationPath)) {
       fs.mkdirSync(destinationPath);
     }

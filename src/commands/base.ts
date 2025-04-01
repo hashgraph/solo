@@ -52,14 +52,27 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly remoteConfigManager: RemoteConfigManager;
 
   constructor(options: Options) {
-    if (!options || !options.helm) throw new Error('An instance of core/Helm is required');
-    if (!options || !options.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!options || !options.chartManager) throw new Error('An instance of core/ChartManager is required');
-    if (!options || !options.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!options || !options.depManager) throw new Error('An instance of core/DependencyManager is required');
-    if (!options || !options.localConfig) throw new Error('An instance of core/LocalConfig is required');
-    if (!options || !options.remoteConfigManager)
+    if (!options || !options.helm) {
+      throw new Error('An instance of core/Helm is required');
+    }
+    if (!options || !options.k8Factory) {
+      throw new Error('An instance of core/K8Factory is required');
+    }
+    if (!options || !options.chartManager) {
+      throw new Error('An instance of core/ChartManager is required');
+    }
+    if (!options || !options.configManager) {
+      throw new Error('An instance of core/ConfigManager is required');
+    }
+    if (!options || !options.depManager) {
+      throw new Error('An instance of core/DependencyManager is required');
+    }
+    if (!options || !options.localConfig) {
+      throw new Error('An instance of core/LocalConfig is required');
+    }
+    if (!options || !options.remoteConfigManager) {
       throw new Error('An instance of core/config/RemoteConfigManager is required');
+    }
     super();
 
     this.helm = options.helm;
@@ -92,7 +105,9 @@ export abstract class BaseCommand extends ShellRunner {
   ): Record<ClusterReference, string> {
     // initialize the map with an empty array for each cluster-ref
     const valuesFiles: Record<ClusterReference, string> = {[Flags.KEY_COMMON]: ''};
-    for (const clusterReference of Object.keys(clusterReferences)) valuesFiles[clusterReference] = '';
+    for (const clusterReference of Object.keys(clusterReferences)) {
+      valuesFiles[clusterReference] = '';
+    }
 
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
@@ -108,7 +123,9 @@ export abstract class BaseCommand extends ShellRunner {
         const valuesArgument = ` --values ${file}`;
 
         if (clusterReference === Flags.KEY_COMMON) {
-          for (const clusterReference_ of Object.keys(valuesFiles)) valuesFiles[clusterReference_] += valuesArgument;
+          for (const clusterReference_ of Object.keys(valuesFiles)) {
+            valuesFiles[clusterReference_] += valuesArgument;
+          }
         } else {
           valuesFiles[clusterReference] += valuesArgument;
         }

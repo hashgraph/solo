@@ -40,7 +40,9 @@ export class CommandHandler {
       throw new SoloError(`${errorString}: ${error.message}`, error);
     } finally {
       const promises = [];
-      if (lease) promises.push(lease.release());
+      if (lease) {
+        promises.push(lease.release());
+      }
       await this.accountManager.close();
       await Promise.all(promises);
     }

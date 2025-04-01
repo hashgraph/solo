@@ -218,7 +218,9 @@ export function endToEndTestSuite(
   }: Cmd & {startNodes?: boolean},
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ): void {
-  if (typeof startNodes !== 'boolean') startNodes = true;
+  if (typeof startNodes !== 'boolean') {
+    startNodes = true;
+  }
 
   const bootstrapResp = bootstrapTestVariables(testName, argv, {
     k8FactoryArg,

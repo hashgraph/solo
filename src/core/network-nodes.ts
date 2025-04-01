@@ -44,11 +44,15 @@ export class NetworkNodes {
           .getK8(context)
           .pods()
           .list(namespace, ['solo.hedera.com/type=network-node']);
-        for (const pod of pods) podsData.push({pod, context});
+        for (const pod of pods) {
+          podsData.push({pod, context});
+        }
       }
     } else {
       const pods = await this.k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
-      for (const pod of pods) podsData.push({pod});
+      for (const pod of pods) {
+        podsData.push({pod});
+      }
     }
 
     const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');

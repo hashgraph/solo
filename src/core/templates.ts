@@ -71,21 +71,29 @@ export class Templates {
 
   public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix = ''): string {
     const parts = [prefix, nodeAlias];
-    if (suffix) parts.push(suffix);
+    if (suffix) {
+      parts.push(suffix);
+    }
     return parts.join('-');
   }
 
   public static extractNodeAliasFromPodName(podName: PodName): NodeAlias {
     const parts = podName.name.split('-');
-    if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName.name}`, 3, parts.length);
+    if (parts.length !== 3) {
+      throw new DataValidationError(`pod name is malformed : ${podName.name}`, 3, parts.length);
+    }
     return parts[1].trim() as NodeAlias;
   }
 
   static prepareReleasePrefix(tag: string): string {
-    if (!tag) throw new MissingArgumentError('tag cannot be empty');
+    if (!tag) {
+      throw new MissingArgumentError('tag cannot be empty');
+    }
 
     const parsed = tag.split('.');
-    if (parsed.length < 3) throw new Error(`tag (${tag}) must include major, minor and patch fields (e.g. v0.40.4)`);
+    if (parsed.length < 3) {
+      throw new Error(`tag (${tag}) must include major, minor and patch fields (e.g. v0.40.4)`);
+    }
     return `${parsed[0]}.${parsed[1]}`;
   }
 
@@ -267,8 +275,12 @@ export class Templates {
     for (const data of unparsed.split(',')) {
       const [nodeAlias, domainName] = data.split('=') as [NodeAlias, string];
 
-      if (!nodeAlias || typeof nodeAlias !== 'string') throw new SoloError(`Can't parse node alias: ${data}`);
-      if (!domainName || typeof domainName !== 'string') throw new SoloError(`Can't parse domain name: ${data}`);
+      if (!nodeAlias || typeof nodeAlias !== 'string') {
+        throw new SoloError(`Can't parse node alias: ${data}`);
+      }
+      if (!domainName || typeof domainName !== 'string') {
+        throw new SoloError(`Can't parse domain name: ${data}`);
+      }
 
       mapping[nodeAlias] = domainName;
     }

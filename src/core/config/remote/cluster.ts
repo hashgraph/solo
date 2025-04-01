@@ -12,14 +12,26 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     public readonly dnsBaseDomain: string = 'cluster.local', // example: 'us-west-2.gcp.charlie.sphere'`
     public readonly dnsConsensusNodePattern: string = 'network-{nodeAlias}-svc.{namespace}.svc', // example: '{nodeId}.consensus.prod'`
   ) {
-    if (!name) throw new SoloError('name is required');
-    if (typeof name !== 'string') throw new SoloError(`Invalid type for name: ${typeof name}`);
+    if (!name) {
+      throw new SoloError('name is required');
+    }
+    if (typeof name !== 'string') {
+      throw new SoloError(`Invalid type for name: ${typeof name}`);
+    }
 
-    if (!namespace) throw new SoloError('namespace is required');
-    if (typeof namespace !== 'string') throw new SoloError(`Invalid type for namespace: ${typeof namespace}`);
+    if (!namespace) {
+      throw new SoloError('namespace is required');
+    }
+    if (typeof namespace !== 'string') {
+      throw new SoloError(`Invalid type for namespace: ${typeof namespace}`);
+    }
 
-    if (!deployment) throw new SoloError('deployment is required');
-    if (typeof deployment !== 'string') throw new SoloError(`Invalid type for deployment: ${typeof deployment}`);
+    if (!deployment) {
+      throw new SoloError('deployment is required');
+    }
+    if (typeof deployment !== 'string') {
+      throw new SoloError(`Invalid type for deployment: ${typeof deployment}`);
+    }
   }
 
   public toObject(): ICluster {

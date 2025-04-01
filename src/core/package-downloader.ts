@@ -158,7 +158,9 @@ export class PackageDownloader {
    */
   async verifyChecksum(sourceFile: string, checksum: string, algo = 'sha256') {
     const computed = await this.computeFileHash(sourceFile, algo);
-    if (checksum !== computed) throw new DataValidationError('checksum', checksum, computed);
+    if (checksum !== computed) {
+      throw new DataValidationError('checksum', checksum, computed);
+    }
   }
 
   /**
@@ -176,9 +178,15 @@ export class PackageDownloader {
     algo = 'sha256',
     force = false,
   ) {
-    if (!packageURL) throw new Error('package URL is required');
-    if (!checksumURL) throw new Error('checksum URL is required');
-    if (!destinationDirectory) throw new Error('destination directory path is required');
+    if (!packageURL) {
+      throw new Error('package URL is required');
+    }
+    if (!checksumURL) {
+      throw new Error('checksum URL is required');
+    }
+    if (!destinationDirectory) {
+      throw new Error('destination directory path is required');
+    }
 
     this.logger.debug(`Downloading package: ${packageURL}, checksum: ${checksumURL}`);
     if (!fs.existsSync(destinationDirectory)) {
@@ -195,7 +203,9 @@ export class PackageDownloader {
 
       await this.fetchFile(checksumURL, checksumFile);
       const checksumData = fs.readFileSync(checksumFile).toString();
-      if (!checksumData) throw new SoloError(`unable to read checksum file: ${checksumFile}`);
+      if (!checksumData) {
+        throw new SoloError(`unable to read checksum file: ${checksumFile}`);
+      }
       const checksum = checksumData.split(' ')[0];
       await this.fetchFile(packageURL, packageFile);
       await this.verifyChecksum(packageFile, checksum, algo);
@@ -224,7 +234,9 @@ export class PackageDownloader {
    * @returns full path to the downloaded file
    */
   async fetchPlatform(tag: string, destinationDirectory: string, force = false) {
-    if (!tag) throw new MissingArgumentError('tag is required');
+    if (!tag) {
+      throw new MissingArgumentError('tag is required');
+    }
     if (!destinationDirectory) {
       throw new MissingArgumentError('destination directory path is required');
     }

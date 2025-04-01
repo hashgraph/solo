@@ -129,7 +129,9 @@ describe('ProfileManager', () => {
         const resources = ['templates', 'profiles'];
         for (const directoryName of resources) {
           const sourceDirectory = PathEx.joinWithRealPath(constants.RESOURCES_DIR, directoryName);
-          if (!fs.existsSync(sourceDirectory)) continue;
+          if (!fs.existsSync(sourceDirectory)) {
+            continue;
+          }
 
           const destinationDirectory = PathEx.resolve(PathEx.join(cacheDirectory, directoryName));
           if (!fs.existsSync(destinationDirectory)) {

@@ -103,7 +103,9 @@ export class AccountManager {
           };
         }
       } catch (error) {
-        if (!(error instanceof ResourceNotFoundError)) throw error;
+        if (!(error instanceof ResourceNotFoundError)) {
+          throw error;
+        }
       }
     }
 
@@ -311,7 +313,9 @@ export class AccountManager {
       this.logger.debug(`configured node access for ${Object.keys(nodes).length} nodes`);
 
       let formattedNetworkConnection = '';
-      for (const key of Object.keys(nodes)) formattedNetworkConnection += `${key}:${nodes[key]}, `;
+      for (const key of Object.keys(nodes)) {
+        formattedNetworkConnection += `${key}:${nodes[key]}, `;
+      }
       this.logger.info(`creating client from network configuration: [${formattedNetworkConnection}]`);
 
       // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work
@@ -560,7 +564,9 @@ export class AccountManager {
               .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
               .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
 
-            if (nodeId) serviceBuilder.withNodeId(nodeId);
+            if (nodeId) {
+              serviceBuilder.withNodeId(nodeId);
+            }
             break;
         }
         const consensusNode: ConsensusNode = this.remoteConfigManager

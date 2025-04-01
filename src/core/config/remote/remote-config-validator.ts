@@ -56,7 +56,9 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
+        if (!pods.length) {
+          throw new Error('Pod not found');
+        } // to return the generic error message
       } catch (error) {
         RemoteConfigValidator.throwValidationError('Relay', component, error);
       }
@@ -75,7 +77,9 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
+        if (!pods.length) {
+          throw new Error('Pod not found');
+        } // to return the generic error message
       } catch (error) {
         RemoteConfigValidator.throwValidationError('HaProxy', component, error);
       }
@@ -94,7 +98,9 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
+        if (!pods.length) {
+          throw new Error('Pod not found');
+        } // to return the generic error message
       } catch (error) {
         RemoteConfigValidator.throwValidationError('Mirror node', component, error);
       }
@@ -113,7 +119,9 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
+        if (!pods.length) {
+          throw new Error('Pod not found');
+        } // to return the generic error message
       } catch (error) {
         RemoteConfigValidator.throwValidationError('Envoy proxy', component, error);
       }
@@ -127,15 +135,18 @@ export class RemoteConfigValidator {
     localConfig: LocalConfig,
   ): Promise<void>[] {
     return Object.values(components.consensusNodes).map(async component => {
-      if (component.state === ConsensusNodeStates.REQUESTED || component.state === ConsensusNodeStates.NON_DEPLOYED)
+      if (component.state === ConsensusNodeStates.REQUESTED || component.state === ConsensusNodeStates.NON_DEPLOYED) {
         return;
+      }
 
       const context = localConfig.clusterRefs[component.cluster];
       const labels = [`app=network-${component.name}`];
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
+        if (!pods.length) {
+          throw new Error('Pod not found');
+        } // to return the generic error message
       } catch (error) {
         RemoteConfigValidator.throwValidationError('Consensus node', component, error);
       }
@@ -154,7 +165,9 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
+        if (!pods.length) {
+          throw new Error('Pod not found');
+        } // to return the generic error message
       } catch (error) {
         RemoteConfigValidator.throwValidationError('Mirror node explorer', component, error);
       }

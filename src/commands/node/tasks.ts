@@ -437,7 +437,9 @@ export class NodeCommandTasks {
     task.title = `${title} - status ${chalk.yellow('STARTING')}, attempt ${chalk.blueBright(`0/${maxAttempts}`)}`;
 
     const consensusNodes = this.remoteConfigManager.getConsensusNodes();
-    if (!context) context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
+    if (!context) {
+      context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
+    }
 
     let attempt = 0;
     let success = false;
@@ -1161,7 +1163,9 @@ export class NodeCommandTasks {
           this.remoteConfigManager.getClusterRefs(),
           context_.config.deployment,
         );
-        if (!context_.config.serviceMap.has(context_.config.nodeAlias)) return;
+        if (!context_.config.serviceMap.has(context_.config.nodeAlias)) {
+          return;
+        }
 
         context_.config.podRefs[context_.config.nodeAlias] = PodReference.of(
           context_.config.namespace,
@@ -1923,7 +1927,9 @@ export class NodeCommandTasks {
 
         // Make sure valuesArgMap is initialized with empty strings
         const valuesArgumentMap: Record<ClusterReference, string> = {};
-        for (const clusterReference of Object.keys(clusterReferences)) valuesArgumentMap[clusterReference] = '';
+        for (const clusterReference of Object.keys(clusterReferences)) {
+          valuesArgumentMap[clusterReference] = '';
+        }
 
         if (!config.serviceMap) {
           config.serviceMap = await self.accountManager.getNodeServiceMap(
@@ -1949,8 +1955,9 @@ export class NodeCommandTasks {
           for (const [index, node] of consensusNodes
             .filter(node => node.cluster === clusterReference)
             .sort((a, b) => a.nodeId - b.nodeId)
-            .entries())
+            .entries()) {
             clusterNodeIndexMap[clusterReference][node.nodeId] = index;
+          }
         }
 
         switch (transactionType) {
@@ -2102,7 +2109,9 @@ export class NodeCommandTasks {
   ): void {
     // Add existing nodes
     for (const node of consensusNodes) {
-      if (node.name === nodeAlias) continue;
+      if (node.name === nodeAlias) {
+        continue;
+      }
       const index = clusterNodeIndexMap[clusterReference][node.nodeId];
 
       valuesArgumentMap[clusterReference] +=
@@ -2122,14 +2131,18 @@ export class NodeCommandTasks {
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);
       const ip: string = config.haproxyIpsParsed?.[nodeAlias];
-      if (ip) valuesArgumentMap[clusterReference] += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
+      if (ip) {
+        valuesArgumentMap[clusterReference] += ` --set "hedera.nodes[${index}].haproxyStaticIP=${ip}"`;
+      }
     }
 
     // Set static IPs for Envoy Proxy
     if (config.envoyIps) {
       config.envoyIpsParsed = Templates.parseNodeAliasToIpMapping(config.envoyIps);
       const ip: string = config.envoyIpsParsed?.[nodeAlias];
-      if (ip) valuesArgumentMap[clusterReference] += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
+      if (ip) {
+        valuesArgumentMap[clusterReference] += ` --set "hedera.nodes[${index}].envoyProxyStaticIP=${ip}"`;
+      }
     }
   }
 

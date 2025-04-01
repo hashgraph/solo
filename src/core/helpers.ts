@@ -208,7 +208,9 @@ export function backupOldPemKeys(
 }
 
 export function isNumeric(string_: string) {
-  if (typeof string_ !== 'string') return false; // we only process strings!
+  if (typeof string_ !== 'string') {
+    return false;
+  } // we only process strings!
   return (
     !isNaN(string_ as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !isNaN(parseFloat(string_))
@@ -472,8 +474,12 @@ export function extractContextFromConsensusNodes(
   nodeAlias: NodeAlias,
   consensusNodes?: ConsensusNode[],
 ): Optional<string> {
-  if (!consensusNodes) return undefined;
-  if (!consensusNodes.length) return undefined;
+  if (!consensusNodes) {
+    return undefined;
+  }
+  if (!consensusNodes.length) {
+    return undefined;
+  }
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
 }

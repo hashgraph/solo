@@ -41,8 +41,9 @@ export class K8ClientContainer implements Container {
     const guid = uuid4();
     const messagePrefix = `copyFrom[${this.containerReference.parentReference.name},${guid}]: `;
 
-    if (!(await self.pods.read(this.containerReference.parentReference)))
+    if (!(await self.pods.read(this.containerReference.parentReference))) {
       throw new IllegalArgumentError(`Invalid pod ${this.containerReference.parentReference.name}`);
+    }
 
     self.logger.info(`${messagePrefix}[srcPath=${sourcePath}, destDir=${destinationDirectory}]`);
 
@@ -181,8 +182,9 @@ export class K8ClientContainer implements Container {
     const guid = uuid4();
     const messagePrefix = `copyTo[${this.containerReference.parentReference.name},${guid}]: `;
 
-    if (!(await self.pods.read(this.containerReference.parentReference)))
+    if (!(await self.pods.read(this.containerReference.parentReference))) {
       throw new IllegalArgumentError(`Invalid pod ${this.containerReference.parentReference.name}`);
+    }
 
     self.logger.info(`${messagePrefix}[srcPath=${sourcePath}, destDir=${destinationDirectory}]`);
 
@@ -267,10 +269,13 @@ export class K8ClientContainer implements Container {
     const guid = uuid4();
     const messagePrefix = `execContainer[${this.containerReference.parentReference.name},${guid}]:`;
 
-    if (!(await self.pods.read(this.containerReference.parentReference)))
+    if (!(await self.pods.read(this.containerReference.parentReference))) {
       throw new IllegalArgumentError(`Invalid pod ${this.containerReference.parentReference.name}`);
+    }
 
-    if (!command) throw new MissingArgumentError('command cannot be empty');
+    if (!command) {
+      throw new MissingArgumentError('command cannot be empty');
+    }
     if (!Array.isArray(command)) {
       command = command.split(' ');
     }
@@ -403,7 +408,9 @@ export class K8ClientContainer implements Container {
   public async listDir(destinationPath: string): Promise<any[] | TDirectoryData[]> {
     try {
       const output = (await this.execContainer(['ls', '-la', destinationPath])) as string;
-      if (!output) return [];
+      if (!output) {
+        return [];
+      }
 
       // parse the output and return the entries
       const items: TDirectoryData[] = [];

@@ -70,10 +70,14 @@ export class ConfigManager {
 
   /** Update the config using the argv */
   public update(argv: ArgvStruct): void {
-    if (!argv || Object.keys(argv).length === 0) return;
+    if (!argv || Object.keys(argv).length === 0) {
+      return;
+    }
 
     for (const flag of flags.allFlags) {
-      if (argv[flag.name] === undefined) continue;
+      if (argv[flag.name] === undefined) {
+        continue;
+      }
 
       let value = argv[flag.name];
       switch (flag.definition.type) {
@@ -142,7 +146,9 @@ export class ConfigManager {
       })
       .join(', ');
 
-    if (flagMessage) this.logger.debug(`Updated config with flags: ${flagMessage}`);
+    if (flagMessage) {
+      this.logger.debug(`Updated config with flags: ${flagMessage}`);
+    }
   }
 
   /** Check if a flag value is set */
@@ -160,7 +166,9 @@ export class ConfigManager {
 
   /** Set value for the flag */
   public setFlag<T>(flag: CommandFlag, value: T): void {
-    if (!flag || !flag.name) throw new MissingArgumentError('flag must have a name');
+    if (!flag || !flag.name) {
+      throw new MissingArgumentError('flag must have a name');
+    }
     // if it is a namespace then convert it to NamespaceName
     if (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name) {
       if (value instanceof NamespaceName) {
@@ -213,7 +221,7 @@ export class ConfigManager {
         this.usedConfigs = new Map();
 
         // add the flags as properties to this class
-        if (flags)
+        if (flags) {
           for (const flag of flags) {
             // @ts-ignore
             this[`_${flag.constName}`] = self.getFlag(flag);
@@ -224,9 +232,10 @@ export class ConfigManager {
               },
             });
           }
+        }
 
         // add the extra properties as properties to this class
-        if (extraProperties)
+        if (extraProperties) {
           for (const name of extraProperties) {
             // @ts-ignore
             this[`_${name}`] = '';
@@ -240,6 +249,7 @@ export class ConfigManager {
               },
             });
           }
+        }
       }
 
       /** Get the list of unused configurations that were not accessed */
@@ -247,20 +257,22 @@ export class ConfigManager {
         const unusedConfigs: string[] = [];
 
         // add the flag constName to the unusedConfigs array if it was not accessed
-        if (flags)
+        if (flags) {
           for (const flag of flags) {
             if (!this.usedConfigs.has(flag.constName)) {
               unusedConfigs.push(flag.constName);
             }
           }
+        }
 
         // add the extra properties to the unusedConfigs array if it was not accessed
-        if (extraProperties)
+        if (extraProperties) {
           for (const item of extraProperties) {
             if (!this.usedConfigs.has(item)) {
               unusedConfigs.push(item);
             }
           }
+        }
         return unusedConfigs;
       }
     };
