@@ -17,7 +17,7 @@ import chalk from 'chalk';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type NodeAlias} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
-import {get_apple_silicon, sleep} from './helpers.js';
+import {getAppleSiliconChipset, sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -100,7 +100,7 @@ export class PlatformInstaller {
     if (!tag) throw new MissingArgumentError('tag is required');
 
     try {
-      const chipType = (await  get_apple_silicon(this.logger)).join('');
+      const chipType = (await  getAppleSiliconChipset(this.logger)).join('');
       this.logger.info(`chipType: ${chipType}`);
       const scriptName = 'extract-platform.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path

@@ -541,7 +541,7 @@ export function isIPv4Address(input: string): boolean {
 }
 
 /** Get the Apple Silicon chip type */
-export async function get_apple_silicon(logger: SoloLogger, ) {
+export async function getAppleSiliconChipset(logger: SoloLogger, ) {
   const isMacOS = process.platform === 'darwin';
   const isArm64 = process.arch === 'arm64';
   if (isMacOS && isArm64) {
