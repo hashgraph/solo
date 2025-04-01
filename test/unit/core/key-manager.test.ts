@@ -3,8 +3,8 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import fs from 'fs';
-import os from 'os';
+import fs from 'node:fs';
+import os from 'node:os';
 import {type KeyManager} from '../../../src/core/key-manager.js';
 import * as constants from '../../../src/core/constants.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';

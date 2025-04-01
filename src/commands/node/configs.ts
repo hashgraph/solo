@@ -6,7 +6,7 @@ import * as constants from '../../core/constants.js';
 import {PrivateKey} from '@hashgraph/sdk';
 import {SoloError} from '../../core/errors/solo-error.js';
 import * as helpers from '../../core/helpers.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {checkNamespace} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';

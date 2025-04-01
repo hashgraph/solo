@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
+import fs from 'node:fs';
 import {stringify} from 'yaml';
 import {expect} from 'chai';
 import {LocalConfig} from '../../../src/core/config/local/local-config.js';

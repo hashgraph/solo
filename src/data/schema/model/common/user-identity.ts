@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Exclude, Expose} from 'class-transformer';
-import os from 'os';
+import os from 'node:os';
 
 @Exclude()
 export class UserIdentity {

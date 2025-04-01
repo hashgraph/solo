@@ -5,7 +5,7 @@ import {type NamespaceName} from '../../../resources/namespace/namespace-name.js
 import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import {type V1IngressList, type NetworkingV1Api, type V1Ingress} from '@kubernetes/client-node';
 import {container} from 'tsyringe-neo';
-import {type IncomingMessage} from 'http';
+import {type IncomingMessage} from 'node:http';
 import {ResourceReadError, ResourceUpdateError} from '../../../errors/resource-operation-errors.js';
 import {ResourceType} from '../../../resources/resource-type.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';

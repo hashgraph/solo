@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 import {SoloError} from '../../core/errors/solo-error.js';
 
 export class PathEx {

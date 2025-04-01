@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import {SoloError} from './errors/solo-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
@@ -9,7 +9,7 @@ import * as yaml from 'yaml';
 import dot from 'dot-object';
 import * as semver from 'semver';
 import {type SemVer} from 'semver';
-import {readFile, writeFile} from 'fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 
 import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import {Listr} from 'listr2';
-import * as path from 'path';
+import * as path from 'node:path';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
