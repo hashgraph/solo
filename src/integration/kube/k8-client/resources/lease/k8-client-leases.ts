@@ -157,7 +157,9 @@ export class K8ClientLeases implements Leases {
   ): void {
     const statusCode = +response?.statusCode || StatusCodes.INTERNAL_SERVER_ERROR;
 
-    if (statusCode <= StatusCodes.ACCEPTED) return;
+    if (statusCode <= StatusCodes.ACCEPTED) {
+      return;
+    }
     errorMessage += `, statusCode: ${statusCode}`;
     this.logger.error(errorMessage, error);
 

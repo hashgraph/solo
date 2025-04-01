@@ -27,9 +27,15 @@ export class LockHolder {
    * @param processId - the process identifier.
    */
   private constructor(username: string, hostname: string, processId: number) {
-    if (!username) throw new MissingArgumentError('username is required');
-    if (!hostname) throw new MissingArgumentError('hostname is required');
-    if (!processId) throw new MissingArgumentError('pid is required');
+    if (!username) {
+      throw new MissingArgumentError('username is required');
+    }
+    if (!hostname) {
+      throw new MissingArgumentError('hostname is required');
+    }
+    if (!processId) {
+      throw new MissingArgumentError('pid is required');
+    }
 
     this._username = username;
     this._hostname = hostname;

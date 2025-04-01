@@ -157,8 +157,12 @@ export class SemanticVersion {
    * @returns true if the objects are equal, false otherwise
    */
   public equals(object: unknown): boolean {
-    if (this === object) return true;
-    if (!(object instanceof SemanticVersion)) return false;
+    if (this === object) {
+      return true;
+    }
+    if (!(object instanceof SemanticVersion)) {
+      return false;
+    }
     return (
       this._major === object._major &&
       this._minor === object._minor &&
@@ -205,7 +209,9 @@ export class SemanticVersion {
    * @returns comparison result
    */
   private compareStrings(a: string, b: string): number {
-    if (a === b) return 0;
+    if (a === b) {
+      return 0;
+    }
     return a < b ? -1 : 1;
   }
 }

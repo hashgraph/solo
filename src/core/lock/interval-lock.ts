@@ -59,10 +59,18 @@ export class IntervalLock implements Lock {
     leaseName: string | null = null,
     durationSeconds: number | null = null,
   ) {
-    if (!k8Factory) throw new MissingArgumentError('k8Factory is required');
-    if (!renewalService) throw new MissingArgumentError('renewalService is required');
-    if (!lockHolder) throw new MissingArgumentError('_lockHolder is required');
-    if (!namespace) throw new MissingArgumentError('_namespace is required');
+    if (!k8Factory) {
+      throw new MissingArgumentError('k8Factory is required');
+    }
+    if (!renewalService) {
+      throw new MissingArgumentError('renewalService is required');
+    }
+    if (!lockHolder) {
+      throw new MissingArgumentError('_lockHolder is required');
+    }
+    if (!namespace) {
+      throw new MissingArgumentError('_namespace is required');
+    }
 
     this._lockHolder = lockHolder;
     this._namespace = namespace;

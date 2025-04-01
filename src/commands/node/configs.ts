@@ -371,7 +371,9 @@ export class NodeCommandConfigs {
     context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
     context_.config.contexts = this.remoteConfigManager.getContexts();
 
-    if (!context_.config.clusterRef) context_.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
+    if (!context_.config.clusterRef) {
+      context_.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
+    }
 
     if (context_.config.domainNames) {
       context_.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(context_.config.domainNames);

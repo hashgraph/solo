@@ -670,7 +670,9 @@ export class Flags {
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: string,
     ): Promise<string> {
-      if (input === 'false') return '';
+      if (input === 'false') {
+        return '';
+      }
       try {
         if (input && !fs.existsSync(input)) {
           input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, {
@@ -879,7 +881,9 @@ export class Flags {
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: string,
     ): Promise<string | void> {
-      if (input) return;
+      if (input) {
+        return;
+      }
       try {
         input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
           default: Flags.tlsClusterIssuerType.definition.defaultValue as string,

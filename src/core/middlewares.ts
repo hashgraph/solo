@@ -47,7 +47,9 @@ export class Middlewares {
      * @param argv - listr Argv
      */
     return (argv: any) => {
-      if (!argv['help']) return;
+      if (!argv['help']) {
+        return;
+      }
 
       rootCmd.showHelp((output: string) => {
         this.helpRenderer.render(rootCmd, output);

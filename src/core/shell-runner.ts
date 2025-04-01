@@ -53,7 +53,9 @@ export class ShellRunner {
           error.stack = callStack;
 
           if (verbose) {
-            for (const m of errorOutput) self.logger.showUser(chalk.red(m));
+            for (const m of errorOutput) {
+              self.logger.showUser(chalk.red(m));
+            }
           }
 
           self.logger.error(`Error executing: '${cmd}'`, {

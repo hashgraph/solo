@@ -66,8 +66,9 @@ export class ExplorerCommand extends BaseCommand {
 
   public constructor(options: Options) {
     super(options);
-    if (!options || !options.profileManager)
+    if (!options || !options.profileManager) {
       throw new MissingArgumentError('An instance of core/ProfileManager is required', options.downloader);
+    }
 
     this.profileManager = options.profileManager;
   }
@@ -530,7 +531,9 @@ export class ExplorerCommand extends BaseCommand {
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running explorer deploy`====');
-                  if (!r) throw new Error('Explorer deployment failed, expected return value to be true');
+                  if (!r) {
+                    throw new Error('Explorer deployment failed, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Explorer deployment failed: ${error.message}`, error);
@@ -552,7 +555,9 @@ export class ExplorerCommand extends BaseCommand {
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running explorer destroy ====');
-                  if (!r) throw new SoloError('Explorer destruction failed, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Explorer destruction failed, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Explorer destruction failed: ${error.message}`, error);

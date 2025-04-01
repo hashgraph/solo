@@ -142,7 +142,9 @@ export class SoloWinstonLogger implements SoloLogger {
     this.showUser(chalk.green(`\n *** ${title} ***`));
     this.showUser(chalk.green('-------------------------------------------------------------------------------'));
     if (items.length > 0) {
-      for (const name of items) this.showUser(chalk.cyan(` - ${name}`));
+      for (const name of items) {
+        this.showUser(chalk.cyan(` - ${name}`));
+      }
     } else {
       this.showUser(chalk.blue('[ None ]'));
     }

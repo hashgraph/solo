@@ -70,8 +70,9 @@ export class RelayCommand extends BaseCommand {
   public constructor(options: Options) {
     super(options);
 
-    if (!options || !options.profileManager)
+    if (!options || !options.profileManager) {
       throw new MissingArgumentError('An instance of core/ProfileManager is required', options.downloader);
+    }
 
     this.profileManager = options.profileManager;
     this.accountManager = options.accountManager;
@@ -278,7 +279,9 @@ export class RelayCommand extends BaseCommand {
 
             if (context_.config.clusterRef) {
               const context = self.remoteConfigManager.getClusterRefs()[context_.config.clusterRef];
-              if (context) context_.config.context = context;
+              if (context) {
+                context_.config.context = context;
+              }
             }
 
             self.logger.debug('Initialized config', {config: context_.config});
@@ -433,7 +436,9 @@ export class RelayCommand extends BaseCommand {
 
             if (context_.config.clusterRef) {
               const context = self.remoteConfigManager.getClusterRefs()[context_.config.clusterRef];
-              if (context) context_.config.context = context;
+              if (context) {
+                context_.config.context = context;
+              }
             }
 
             context_.config.releaseName = this.prepareReleaseName(context_.config.nodeAliases);
@@ -504,7 +509,9 @@ export class RelayCommand extends BaseCommand {
 
               await self.deploy(argv).then(r => {
                 self.logger.info('==== Finished running `relay deploy`====');
-                if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
+                if (!r) {
+                  throw new SoloError('Error deploying relay, expected return value to be true');
+                }
               });
             },
           })
@@ -522,7 +529,9 @@ export class RelayCommand extends BaseCommand {
               await self.destroy(argv).then(r => {
                 self.logger.info('==== Finished running `relay destroy`====');
 
-                if (!r) throw new SoloError('Error destroying relay, expected return value to be true');
+                if (!r) {
+                  throw new SoloError('Error destroying relay, expected return value to be true');
+                }
               });
             },
           })

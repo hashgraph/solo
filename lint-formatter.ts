@@ -15,7 +15,9 @@ type Violation = {
 
 class LintFormatter {
   public constructor(private readonly inputFile: string) {
-    if (!existsSync(inputFile)) assert.fail(`Input file does not exist: ${inputFile}`);
+    if (!existsSync(inputFile)) {
+      assert.fail(`Input file does not exist: ${inputFile}`);
+    }
   }
 
   public transformOutput(): void {
@@ -24,8 +26,12 @@ class LintFormatter {
     let currentFile: string = '';
     for (const line of input.toString().split('\n')) {
       const tokens: string[] = line.trim().split(/\s+/);
-      if (tokens.length === 0) continue;
-      if (line.includes('errors') && line.includes('warnings')) continue;
+      if (tokens.length === 0) {
+        continue;
+      }
+      if (line.includes('errors') && line.includes('warnings')) {
+        continue;
+      }
 
       if (tokens[0].includes(path.sep) && tokens[0].endsWith('.ts')) {
         currentFile = tokens[0];
