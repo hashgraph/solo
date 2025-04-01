@@ -119,8 +119,8 @@ export class LockHolder {
   public isProcessAlive(): boolean {
     try {
       return process.kill(this.processId, 0);
-    } catch (e: any) {
-      return e.code === 'EPERM';
+    } catch (error: any) {
+      return error.code === 'EPERM';
     }
   }
 
@@ -138,7 +138,7 @@ export class LockHolder {
    * @returns a new leaseholder instance.
    */
   public static fromJson(json: string): LockHolder {
-    const obj: ReturnType<LockHolder['toObject']> = JSON.parse(json);
-    return new LockHolder(obj.username, obj.hostname, obj.pid);
+    const object: ReturnType<LockHolder['toObject']> = JSON.parse(json);
+    return new LockHolder(object.username, object.hostname, object.pid);
   }
 }

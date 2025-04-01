@@ -5,7 +5,7 @@ import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {ClusterCommand} from '../../../src/commands/cluster/index.js';
-import {HEDERA_PLATFORM_VERSION_TAG, getTestCluster} from '../../test-util.js';
+import {HEDERA_PLATFORM_VERSION_TAG, getTestCluster} from '../../test-utility.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -27,8 +27,8 @@ import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.j
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {getSoloVersion} from '../../../version.js';
 
-const getBaseCommandOpts = (context: string) => {
-  const opts = {
+const getBaseCommandOptions = (context: string) => {
+  const options = {
     logger: sandbox.createStubInstance<SoloLogger>(SoloWinstonLogger),
     helm: sandbox.createStubInstance(DefaultHelmClient),
     k8Factory: sandbox.createStubInstance(K8ClientFactory),
@@ -37,8 +37,8 @@ const getBaseCommandOpts = (context: string) => {
     depManager: sandbox.createStubInstance(DependencyManager),
     localConfig: sandbox.createStubInstance(LocalConfig),
   };
-  opts.k8Factory.default.returns(new K8Client(context));
-  return opts;
+  options.k8Factory.default.returns(new K8Client(context));
+  return options;
 };
 
 const testName = 'cluster-cmd-unit';
@@ -63,7 +63,7 @@ describe('ClusterCommand unit tests', () => {
   });
 
   describe('Chart Install Function is called correctly', () => {
-    let opts: any;
+    let options: any;
 
     afterEach(() => {
       sandbox.restore();
@@ -72,20 +72,20 @@ describe('ClusterCommand unit tests', () => {
     beforeEach(() => {
       const k8Client = new K8Client(undefined);
       const context = k8Client.contexts().readCurrent();
-      opts = getBaseCommandOpts(context);
-      opts.logger = container.resolve(InjectTokens.SoloLogger);
-      opts.helm = container.resolve(InjectTokens.Helm);
-      opts.chartManager = container.resolve(InjectTokens.ChartManager);
-      opts.helm.dependency = sandbox.stub();
+      options = getBaseCommandOptions(context);
+      options.logger = container.resolve(InjectTokens.SoloLogger);
+      options.helm = container.resolve(InjectTokens.Helm);
+      options.chartManager = container.resolve(InjectTokens.ChartManager);
+      options.helm.dependency = sandbox.stub();
 
-      opts.chartManager.isChartInstalled = sandbox.stub().returns(false);
-      opts.chartManager.install = sandbox.stub().returns(true);
+      options.chartManager.isChartInstalled = sandbox.stub().returns(false);
+      options.chartManager.install = sandbox.stub().returns(true);
 
-      opts.configManager = container.resolve(InjectTokens.ConfigManager);
-      opts.remoteConfigManager = sandbox.stub();
+      options.configManager = container.resolve(InjectTokens.ConfigManager);
+      options.remoteConfigManager = sandbox.stub();
 
-      opts.remoteConfigManager.currentCluster = 'solo-e2e';
-      opts.localConfig.localConfigData = new LocalConfigDataWrapper(
+      options.remoteConfigManager.currentCluster = 'solo-e2e';
+      options.localConfig.localConfigData = new LocalConfigDataWrapper(
         'test@test.com' as EmailAddress,
         getSoloVersion(),
         {},
@@ -94,23 +94,23 @@ describe('ClusterCommand unit tests', () => {
     });
 
     it('Install function is called with expected parameters', async () => {
-      const clusterCommand = new ClusterCommand(opts);
+      const clusterCommand = new ClusterCommand(options);
       await clusterCommand.handlers.setup(argv.build());
 
-      expect(opts.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
-      expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
-      expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
-      expect(opts.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
+      expect(options.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
+      expect(options.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+      expect(options.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+      expect(options.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
     });
 
     it('Should use local chart directory', async () => {
       argv.setArg(flags.chartDirectory, 'test-directory');
       argv.setArg(flags.force, true);
 
-      const clusterCommand = new ClusterCommand(opts);
+      const clusterCommand = new ClusterCommand(options);
       await clusterCommand.handlers.setup(argv.build());
 
-      expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
+      expect(options.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
     });
   });
 });

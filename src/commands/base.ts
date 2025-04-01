@@ -10,7 +10,7 @@ import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
 import * as constants from '../core/constants.js';
 import fs from 'fs';
-import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
 import {type SoloLogger} from '../core/logging/solo-logger.js';
 import {type PackageDownloader} from '../core/package-downloader.js';
@@ -23,7 +23,7 @@ import {PathEx} from '../business/utils/path-ex.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type HelmClient} from '../integration/helm/helm-client.js';
 
-export interface Opts {
+export interface Options {
   logger: SoloLogger;
   helm: HelmClient;
   k8Factory: K8Factory;
@@ -51,25 +51,25 @@ export abstract class BaseCommand extends ShellRunner {
   public readonly localConfig: LocalConfig;
   protected readonly remoteConfigManager: RemoteConfigManager;
 
-  constructor(opts: Opts) {
-    if (!opts || !opts.helm) throw new Error('An instance of core/Helm is required');
-    if (!opts || !opts.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!opts || !opts.chartManager) throw new Error('An instance of core/ChartManager is required');
-    if (!opts || !opts.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!opts || !opts.depManager) throw new Error('An instance of core/DependencyManager is required');
-    if (!opts || !opts.localConfig) throw new Error('An instance of core/LocalConfig is required');
-    if (!opts || !opts.remoteConfigManager)
+  constructor(options: Options) {
+    if (!options || !options.helm) throw new Error('An instance of core/Helm is required');
+    if (!options || !options.k8Factory) throw new Error('An instance of core/K8Factory is required');
+    if (!options || !options.chartManager) throw new Error('An instance of core/ChartManager is required');
+    if (!options || !options.configManager) throw new Error('An instance of core/ConfigManager is required');
+    if (!options || !options.depManager) throw new Error('An instance of core/DependencyManager is required');
+    if (!options || !options.localConfig) throw new Error('An instance of core/LocalConfig is required');
+    if (!options || !options.remoteConfigManager)
       throw new Error('An instance of core/config/RemoteConfigManager is required');
     super();
 
-    this.helm = opts.helm;
-    this.k8Factory = opts.k8Factory;
-    this.chartManager = opts.chartManager;
-    this.configManager = opts.configManager;
-    this.depManager = opts.depManager;
-    this.leaseManager = opts.leaseManager;
-    this.localConfig = opts.localConfig;
-    this.remoteConfigManager = opts.remoteConfigManager;
+    this.helm = options.helm;
+    this.k8Factory = options.k8Factory;
+    this.chartManager = options.chartManager;
+    this.configManager = options.configManager;
+    this.depManager = options.depManager;
+    this.leaseManager = options.leaseManager;
+    this.localConfig = options.localConfig;
+    this.remoteConfigManager = options.remoteConfigManager;
   }
 
   /**
@@ -85,50 +85,50 @@ export abstract class BaseCommand extends ShellRunner {
    * @param profileValuesFile - mapping of clusterRef to the profile values file full path
    */
   static prepareValuesFilesMapMulticluster(
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     chartDirectory?: string,
-    profileValuesFile?: Record<ClusterRef, string>,
+    profileValuesFile?: Record<ClusterReference, string>,
     valuesFileInput?: string,
-  ): Record<ClusterRef, string> {
+  ): Record<ClusterReference, string> {
     // initialize the map with an empty array for each cluster-ref
-    const valuesFiles: Record<ClusterRef, string> = {[Flags.KEY_COMMON]: ''};
-    Object.keys(clusterRefs).forEach(clusterRef => (valuesFiles[clusterRef] = ''));
+    const valuesFiles: Record<ClusterReference, string> = {[Flags.KEY_COMMON]: ''};
+    Object.keys(clusterReferences).forEach(clusterReference => (valuesFiles[clusterReference] = ''));
 
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
       const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
-      for (const clusterRef in valuesFiles) {
-        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      for (const clusterReference in valuesFiles) {
+        valuesFiles[clusterReference] += ` --values ${chartValuesFile}`;
       }
     }
 
     if (profileValuesFile) {
-      Object.entries(profileValuesFile).forEach(([clusterRef, file]) => {
-        const valuesArg = ` --values ${file}`;
+      Object.entries(profileValuesFile).forEach(([clusterReference, file]) => {
+        const valuesArgument = ` --values ${file}`;
 
-        if (clusterRef === Flags.KEY_COMMON) {
-          Object.keys(valuesFiles).forEach(clusterRef => (valuesFiles[clusterRef] += valuesArg));
+        if (clusterReference === Flags.KEY_COMMON) {
+          Object.keys(valuesFiles).forEach(clusterReference_ => (valuesFiles[clusterReference_] += valuesArgument));
         } else {
-          valuesFiles[clusterRef] += valuesArg;
+          valuesFiles[clusterReference] += valuesArgument;
         }
       });
     }
 
     if (valuesFileInput) {
       const parsed = Flags.parseValuesFilesInput(valuesFileInput);
-      Object.entries(parsed).forEach(([clusterRef, files]) => {
+      Object.entries(parsed).forEach(([clusterReference, files]) => {
         let vf = '';
         files.forEach(file => {
           vf += ` --values ${file}`;
         });
 
-        if (clusterRef === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([clusterRef]) => {
-            valuesFiles[clusterRef] += vf;
+        if (clusterReference === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterReference_]) => {
+            valuesFiles[clusterReference_] += vf;
           });
         } else {
-          valuesFiles[clusterRef] += vf;
+          valuesFiles[clusterReference] += vf;
         }
       });
     }
@@ -154,60 +154,60 @@ export abstract class BaseCommand extends ShellRunner {
    * @param profileValuesFile - the profile values file full path
    */
   static prepareValuesFilesMap(
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     chartDirectory?: string,
     profileValuesFile?: string,
     valuesFileInput?: string,
-  ): Record<ClusterRef, string> {
+  ): Record<ClusterReference, string> {
     // initialize the map with an empty array for each cluster-ref
-    const valuesFiles: Record<ClusterRef, string> = {
+    const valuesFiles: Record<ClusterReference, string> = {
       [Flags.KEY_COMMON]: '',
     };
-    Object.keys(clusterRefs).forEach(clusterRef => {
-      valuesFiles[clusterRef] = '';
+    Object.keys(clusterReferences).forEach(clusterReference => {
+      valuesFiles[clusterReference] = '';
     });
 
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
       const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
-      for (const clusterRef in valuesFiles) {
-        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      for (const clusterReference in valuesFiles) {
+        valuesFiles[clusterReference] += ` --values ${chartValuesFile}`;
       }
     }
 
     if (profileValuesFile) {
       const parsed = Flags.parseValuesFilesInput(profileValuesFile);
-      Object.entries(parsed).forEach(([clusterRef, files]) => {
+      Object.entries(parsed).forEach(([clusterReference, files]) => {
         let vf = '';
         files.forEach(file => {
           vf += ` --values ${file}`;
         });
 
-        if (clusterRef === Flags.KEY_COMMON) {
+        if (clusterReference === Flags.KEY_COMMON) {
           Object.entries(valuesFiles).forEach(([cf]) => {
             valuesFiles[cf] += vf;
           });
         } else {
-          valuesFiles[clusterRef] += vf;
+          valuesFiles[clusterReference] += vf;
         }
       });
     }
 
     if (valuesFileInput) {
       const parsed = Flags.parseValuesFilesInput(valuesFileInput);
-      Object.entries(parsed).forEach(([clusterRef, files]) => {
+      Object.entries(parsed).forEach(([clusterReference, files]) => {
         let vf = '';
         files.forEach(file => {
           vf += ` --values ${file}`;
         });
 
-        if (clusterRef === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([clusterRef]) => {
-            valuesFiles[clusterRef] += vf;
+        if (clusterReference === Flags.KEY_COMMON) {
+          Object.entries(valuesFiles).forEach(([clusterReference_]) => {
+            valuesFiles[clusterReference_] += vf;
           });
         } else {
-          valuesFiles[clusterRef] += vf;
+          valuesFiles[clusterReference] += vf;
         }
       });
     }
@@ -226,9 +226,9 @@ export abstract class BaseCommand extends ShellRunner {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  public setupHomeDirectory(dirs: string[] = []) {
-    if (!dirs || dirs?.length === 0) {
-      dirs = [
+  public setupHomeDirectory(directories: string[] = []) {
+    if (!directories || directories?.length === 0) {
+      directories = [
         constants.SOLO_HOME_DIR,
         constants.SOLO_LOGS_DIR,
         this.configManager.getFlag<string>(Flags.cacheDir) || constants.SOLO_CACHE_DIR,
@@ -238,17 +238,17 @@ export abstract class BaseCommand extends ShellRunner {
     const self = this;
 
     try {
-      dirs.forEach(dirPath => {
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, {recursive: true});
+      directories.forEach(directoryPath => {
+        if (!fs.existsSync(directoryPath)) {
+          fs.mkdirSync(directoryPath, {recursive: true});
         }
-        self.logger.debug(`OK: setup directory: ${dirPath}`);
+        self.logger.debug(`OK: setup directory: ${directoryPath}`);
       });
-    } catch (e) {
-      throw new SoloError(`failed to create directory: ${e.message}`, e);
+    } catch (error) {
+      throw new SoloError(`failed to create directory: ${error.message}`, error);
     }
 
-    return dirs;
+    return directories;
   }
 
   public setupHomeDirectoryTask() {

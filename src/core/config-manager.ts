@@ -75,49 +75,49 @@ export class ConfigManager {
     for (const flag of flags.allFlags) {
       if (argv[flag.name] === undefined) continue;
 
-      let val = argv[flag.name];
+      let value = argv[flag.name];
       switch (flag.definition.type) {
         case 'string':
-          if (val && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
+          if (value && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
             this.logger.debug(
-              `Resolving directory path for '${flag.name}': ${val}, to: ${PathEx.resolve(val)}, note: ~/ is not supported`,
+              `Resolving directory path for '${flag.name}': ${value}, to: ${PathEx.resolve(value)}, note: ~/ is not supported`,
             );
-            val = PathEx.resolve(val);
+            value = PathEx.resolve(value);
           }
           // if it is a namespace flag then convert it to NamespaceName
-          else if (val && (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name)) {
-            if (val instanceof NamespaceName) {
-              this.config.flags[flag.name] = val;
+          else if (value && (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name)) {
+            if (value instanceof NamespaceName) {
+              this.config.flags[flag.name] = value;
             } else {
-              this.config.flags[flag.name] = NamespaceName.of(val);
+              this.config.flags[flag.name] = NamespaceName.of(value);
             }
             break;
           }
-          this.config.flags[flag.name] = `${val}`; // force convert to string
+          this.config.flags[flag.name] = `${value}`; // force convert to string
           break;
 
         case 'number':
           try {
             if (flags.integerFlags.has(flag.name)) {
-              this.config.flags[flag.name] = Number.parseInt(val);
+              this.config.flags[flag.name] = Number.parseInt(value);
             } else {
-              this.config.flags[flag.name] = Number.parseFloat(val);
+              this.config.flags[flag.name] = Number.parseFloat(value);
             }
-          } catch (e) {
-            throw new SoloError(`invalid number value '${val}': ${e.message}`, e);
+          } catch (error) {
+            throw new SoloError(`invalid number value '${value}': ${error.message}`, error);
           }
           break;
 
         case 'boolean':
-          this.config.flags[flag.name] = val === true || val === 'true'; // use comparison to enforce boolean value
+          this.config.flags[flag.name] = value === true || value === 'true'; // use comparison to enforce boolean value
           break;
 
         case 'StorageType':
           // @ts-expect-error: TS2475: const enums can only be used in property or index access expressions
-          if (!Object.values(constants.StorageType).includes(`${val}`)) {
-            throw new SoloError(`Invalid storage type value '${val}'`);
+          if (!Object.values(constants.StorageType).includes(`${value}`)) {
+            throw new SoloError(`Invalid storage type value '${value}'`);
           } else {
-            this.config.flags[flag.name] = val;
+            this.config.flags[flag.name] = value;
           }
           break;
         default:
@@ -280,9 +280,9 @@ export class ConfigManager {
 
   public getFlagFile(flag: CommandFlag): string {
     if (this.getFlag(flag) === flag.definition.defaultValue) {
-      const cacheDir: string =
+      const cacheDirectory: string =
         this.getFlag<string>(flags.cacheDir) || (flags.cacheDir.definition.defaultValue as string);
-      return PathEx.join(cacheDir, this.getFlag(flag));
+      return PathEx.join(cacheDirectory, this.getFlag(flag));
     }
     return this.getFlag(flag);
   }

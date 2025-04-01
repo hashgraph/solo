@@ -21,8 +21,8 @@ import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {type PodRef} from '../integration/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../integration/kube/resources/container/container-ref.js';
+import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
@@ -47,130 +47,136 @@ export class PlatformInstaller {
     return ns;
   }
 
-  validatePlatformReleaseDir(releaseDir: string) {
-    if (!releaseDir) throw new MissingArgumentError('releaseDir is required');
-    if (!fs.existsSync(releaseDir)) {
-      throw new IllegalArgumentError('releaseDir does not exists', releaseDir);
+  validatePlatformReleaseDir(releaseDirectory: string) {
+    if (!releaseDirectory) throw new MissingArgumentError('releaseDirectory is required');
+    if (!fs.existsSync(releaseDirectory)) {
+      throw new IllegalArgumentError('releaseDirectory does not exists', releaseDirectory);
     }
 
-    const dataDir = `${releaseDir}/data`;
-    const appsDir = `${releaseDir}/${constants.HEDERA_DATA_APPS_DIR}`;
-    const libDir = `${releaseDir}/${constants.HEDERA_DATA_LIB_DIR}`;
+    const dataDirectory = `${releaseDirectory}/data`;
+    const appsDirectory = `${releaseDirectory}/${constants.HEDERA_DATA_APPS_DIR}`;
+    const libraryDirectory = `${releaseDirectory}/${constants.HEDERA_DATA_LIB_DIR}`;
 
-    if (!fs.existsSync(dataDir)) {
-      throw new IllegalArgumentError('releaseDir does not have data directory', releaseDir);
+    if (!fs.existsSync(dataDirectory)) {
+      throw new IllegalArgumentError('releaseDirectory does not have data directory', releaseDirectory);
     }
 
-    if (!fs.existsSync(appsDir)) {
-      throw new IllegalArgumentError(`'${constants.HEDERA_DATA_APPS_DIR}' missing in '${releaseDir}'`, releaseDir);
-    }
-
-    if (!fs.existsSync(libDir)) {
-      throw new IllegalArgumentError(`'${constants.HEDERA_DATA_LIB_DIR}' missing in '${releaseDir}'`, releaseDir);
-    }
-
-    // @ts-ignore
-    if (!fs.statSync(appsDir).isEmpty()) {
+    if (!fs.existsSync(appsDirectory)) {
       throw new IllegalArgumentError(
-        `'${constants.HEDERA_DATA_APPS_DIR}' is empty in releaseDir: ${releaseDir}`,
-        releaseDir,
+        `'${constants.HEDERA_DATA_APPS_DIR}' missing in '${releaseDirectory}'`,
+        releaseDirectory,
+      );
+    }
+
+    if (!fs.existsSync(libraryDirectory)) {
+      throw new IllegalArgumentError(
+        `'${constants.HEDERA_DATA_LIB_DIR}' missing in '${releaseDirectory}'`,
+        releaseDirectory,
       );
     }
 
     // @ts-ignore
-    if (!fs.statSync(libDir).isEmpty()) {
+    if (!fs.statSync(appsDirectory).isEmpty()) {
       throw new IllegalArgumentError(
-        `'${constants.HEDERA_DATA_LIB_DIR}' is empty in releaseDir: ${releaseDir}`,
-        releaseDir,
+        `'${constants.HEDERA_DATA_APPS_DIR}' is empty in releaseDir: ${releaseDirectory}`,
+        releaseDirectory,
+      );
+    }
+
+    // @ts-ignore
+    if (!fs.statSync(libraryDirectory).isEmpty()) {
+      throw new IllegalArgumentError(
+        `'${constants.HEDERA_DATA_LIB_DIR}' is empty in releaseDir: ${releaseDirectory}`,
+        releaseDirectory,
       );
     }
   }
 
   /** Fetch and extract platform code into the container */
-  async fetchPlatform(podRef: PodRef, tag: string, context?: string) {
-    if (!podRef) throw new MissingArgumentError('podRef is required');
+  async fetchPlatform(podReference: PodReference, tag: string, context?: string) {
+    if (!podReference) throw new MissingArgumentError('podReference is required');
     if (!tag) throw new MissingArgumentError('tag is required');
 
     try {
       const scriptName = 'extract-platform.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
-      await this.copyFiles(podRef, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
+      await this.copyFiles(podReference, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
 
       // wait a few seconds before calling the script to avoid "No such file" error
       await sleep(Duration.ofSeconds(2));
 
       const extractScript = `${constants.HEDERA_USER_HOME_DIR}/${scriptName}`; // inside the container
-      const containerRef = ContainerRef.of(podRef, constants.ROOT_CONTAINER);
+      const containerReference = ContainerReference.of(podReference, constants.ROOT_CONTAINER);
 
       const k8Containers = this.k8Factory.getK8(context).containers();
 
-      await k8Containers.readByRef(containerRef).execContainer(`chmod +x ${extractScript}`);
-      await k8Containers.readByRef(containerRef).execContainer([extractScript, tag]);
+      await k8Containers.readByRef(containerReference).execContainer(`chmod +x ${extractScript}`);
+      await k8Containers.readByRef(containerReference).execContainer([extractScript, tag]);
 
       return true;
-    } catch (e) {
-      const message = `failed to extract platform code in this pod '${podRef}' while using the '${context}' context: ${e.message}`;
-      throw new SoloError(message, e);
+    } catch (error) {
+      const message = `failed to extract platform code in this pod '${podReference}' while using the '${context}' context: ${error.message}`;
+      throw new SoloError(message, error);
     }
   }
 
   /**
    * Copy a list of files to a directory in the container
-   * @param podRef - pod reference
-   * @param srcFiles - list of source files
-   * @param destDir - destination directory
+   * @param podReference - pod reference
+   * @param sourceFiles - list of source files
+   * @param destinationDirectory - destination directory
    * @param [container] - name of the container
    * @param [context]
    * @returns a list of paths of the copied files insider the container
    */
   async copyFiles(
-    podRef: PodRef,
-    srcFiles: string[],
-    destDir: string,
+    podReference: PodReference,
+    sourceFiles: string[],
+    destinationDirectory: string,
     container = constants.ROOT_CONTAINER,
     context?: string,
   ) {
     try {
-      const containerRef = ContainerRef.of(podRef, container);
+      const containerReference = ContainerReference.of(podReference, container);
       const copiedFiles: string[] = [];
 
       // prepare the file mapping
-      for (const srcPath of srcFiles) {
-        if (!fs.existsSync(srcPath)) {
-          throw new SoloError(`file does not exist: ${srcPath}`);
+      for (const sourcePath of sourceFiles) {
+        if (!fs.existsSync(sourcePath)) {
+          throw new SoloError(`file does not exist: ${sourcePath}`);
         }
 
         const k8Containers = this.k8Factory.getK8(context).containers();
 
-        if (!(await k8Containers.readByRef(containerRef).hasDir(destDir))) {
-          await k8Containers.readByRef(containerRef).mkdir(destDir);
+        if (!(await k8Containers.readByRef(containerReference).hasDir(destinationDirectory))) {
+          await k8Containers.readByRef(containerReference).mkdir(destinationDirectory);
         }
 
-        this.logger.debug(`Copying file into ${podRef.name}: ${srcPath} -> ${destDir}`);
-        await k8Containers.readByRef(containerRef).copyTo(srcPath, destDir);
+        this.logger.debug(`Copying file into ${podReference.name}: ${sourcePath} -> ${destinationDirectory}`);
+        await k8Containers.readByRef(containerReference).copyTo(sourcePath, destinationDirectory);
 
-        const fileName = path.basename(srcPath);
-        copiedFiles.push(PathEx.join(destDir, fileName));
+        const fileName = path.basename(sourcePath);
+        copiedFiles.push(PathEx.join(destinationDirectory, fileName));
       }
 
       return copiedFiles;
-    } catch (e) {
-      throw new SoloError(`failed to copy files to pod '${podRef.name}': ${e.message}`, e);
+    } catch (error) {
+      throw new SoloError(`failed to copy files to pod '${podReference.name}': ${error.message}`, error);
     }
   }
 
-  async copyGossipKeys(consensusNode: ConsensusNode, stagingDir: string, consensusNodes: ConsensusNode[]) {
+  async copyGossipKeys(consensusNode: ConsensusNode, stagingDirectory: string, consensusNodes: ConsensusNode[]) {
     if (!consensusNode) throw new MissingArgumentError('consensusNode is required');
-    if (!stagingDir) throw new MissingArgumentError('stagingDir is required');
+    if (!stagingDirectory) throw new MissingArgumentError('stagingDirectory is required');
     if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
 
     try {
-      const srcFiles = [];
+      const sourceFiles = [];
 
       // copy private keys for the node
-      srcFiles.push(
+      sourceFiles.push(
         PathEx.joinWithRealPath(
-          stagingDir,
+          stagingDirectory,
           'keys',
           Templates.renderGossipPemPrivateKeyFile(consensusNode.name as NodeAlias),
         ),
@@ -178,9 +184,9 @@ export class PlatformInstaller {
 
       // copy all public keys for all nodes
       consensusNodes.forEach(consensusNode => {
-        srcFiles.push(
+        sourceFiles.push(
           PathEx.joinWithRealPath(
-            stagingDir,
+            stagingDirectory,
             'keys',
             Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias),
           ),
@@ -188,9 +194,9 @@ export class PlatformInstaller {
       });
 
       const data = {};
-      for (const srcFile of srcFiles) {
-        const fileContents = fs.readFileSync(srcFile);
-        const fileName = path.basename(srcFile);
+      for (const sourceFile of sourceFiles) {
+        const fileContents = fs.readFileSync(sourceFile);
+        const fileName = path.basename(sourceFile);
         // @ts-ignore
         data[fileName] = Base64.encode(fileContents);
       }
@@ -209,39 +215,39 @@ export class PlatformInstaller {
       if (!secretCreated) {
         throw new SoloError(`failed to create secret for gossip keys for node '${consensusNode.name}'`);
       }
-    } catch (e: Error | any) {
-      const message = `failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(consensusNode.name as NodeAlias)}': ${e.message}`;
-      throw new SoloError(message, e);
+    } catch (error: Error | any) {
+      const message = `failed to copy gossip keys to secret '${Templates.renderGossipKeySecretName(consensusNode.name as NodeAlias)}': ${error.message}`;
+      throw new SoloError(message, error);
     }
   }
 
-  async copyTLSKeys(consensusNodes: ConsensusNode[], stagingDir: string, contexts: string[]) {
+  async copyTLSKeys(consensusNodes: ConsensusNode[], stagingDirectory: string, contexts: string[]) {
     if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
-    if (!stagingDir) throw new MissingArgumentError('stagingDir is required');
+    if (!stagingDirectory) throw new MissingArgumentError('stagingDirectory is required');
 
     try {
       const data = {};
 
       for (const consensusNode of consensusNodes) {
-        const srcFiles = [];
-        srcFiles.push(
+        const sourceFiles = [];
+        sourceFiles.push(
           PathEx.joinWithRealPath(
-            stagingDir,
+            stagingDirectory,
             'keys',
             Templates.renderTLSPemPrivateKeyFile(consensusNode.name as NodeAlias),
           ),
         );
-        srcFiles.push(
+        sourceFiles.push(
           PathEx.joinWithRealPath(
-            stagingDir,
+            stagingDirectory,
             'keys',
             Templates.renderTLSPemPublicKeyFile(consensusNode.name as NodeAlias),
           ),
         );
 
-        for (const srcFile of srcFiles) {
-          const fileContents = fs.readFileSync(srcFile);
-          const fileName = path.basename(srcFile);
+        for (const sourceFile of sourceFiles) {
+          const fileContents = fs.readFileSync(sourceFile);
+          const fileName = path.basename(sourceFile);
           // @ts-ignore
           data[fileName] = Base64.encode(fileContents);
         }
@@ -257,66 +263,66 @@ export class PlatformInstaller {
           throw new SoloError('failed to create secret for TLS keys');
         }
       }
-    } catch (e: Error | any) {
-      throw new SoloError('failed to copy TLS keys to secret', e);
+    } catch (error: Error | any) {
+      throw new SoloError('failed to copy TLS keys to secret', error);
     }
   }
 
   async setPathPermission(
-    podRef: PodRef,
-    destPath: string,
+    podReference: PodReference,
+    destinationPath: string,
     mode = '0755',
     recursive = true,
     container = constants.ROOT_CONTAINER,
     context?: string,
   ) {
-    if (!podRef) throw new MissingArgumentError('podRef is required');
-    if (!destPath) throw new MissingArgumentError('destPath is required');
-    const containerRef = ContainerRef.of(podRef, container);
+    if (!podReference) throw new MissingArgumentError('podReference is required');
+    if (!destinationPath) throw new MissingArgumentError('destPath is required');
+    const containerReference = ContainerReference.of(podReference, container);
 
     const recursiveFlag = recursive ? '-R' : '';
 
     const k8Containers = this.k8Factory.getK8(context).containers();
 
     await k8Containers
-      .readByRef(containerRef)
-      .execContainer(['bash', '-c', `chown ${recursiveFlag} hedera:hedera ${destPath} 2>/dev/null || true`]);
+      .readByRef(containerReference)
+      .execContainer(['bash', '-c', `chown ${recursiveFlag} hedera:hedera ${destinationPath} 2>/dev/null || true`]);
     await k8Containers
-      .readByRef(containerRef)
-      .execContainer(['bash', '-c', `chmod ${recursiveFlag} ${mode} ${destPath} 2>/dev/null || true`]);
+      .readByRef(containerReference)
+      .execContainer(['bash', '-c', `chmod ${recursiveFlag} ${mode} ${destinationPath} 2>/dev/null || true`]);
 
     return true;
   }
 
-  async setPlatformDirPermissions(podRef: PodRef, context?: string) {
+  async setPlatformDirPermissions(podReference: PodReference, context?: string) {
     const self = this;
-    if (!podRef) throw new MissingArgumentError('podRef is required');
+    if (!podReference) throw new MissingArgumentError('podReference is required');
 
     try {
-      const destPaths = [constants.HEDERA_HAPI_PATH, constants.HEDERA_HGCAPP_DIR];
+      const destinationPaths = [constants.HEDERA_HAPI_PATH, constants.HEDERA_HGCAPP_DIR];
 
-      for (const destPath of destPaths) {
-        await self.setPathPermission(podRef, destPath, undefined, undefined, undefined, context);
+      for (const destinationPath of destinationPaths) {
+        await self.setPathPermission(podReference, destinationPath, undefined, undefined, undefined, context);
       }
 
       return true;
-    } catch (e) {
-      throw new SoloError(`failed to set permission in '${podRef.name}'`, e);
+    } catch (error) {
+      throw new SoloError(`failed to set permission in '${podReference.name}'`, error);
     }
   }
 
   /** Return a list of task to perform node directory setup */
-  taskSetup(podRef: PodRef, stagingDir: string, isGenesis: boolean, context?: string) {
+  taskSetup(podReference: PodReference, stagingDirectory: string, isGenesis: boolean, context?: string) {
     const self = this;
     return new Listr(
       [
         {
           title: 'Copy configuration files',
-          task: async () => await self.copyConfigurationFiles(stagingDir, podRef, isGenesis, context),
+          task: async () => await self.copyConfigurationFiles(stagingDirectory, podReference, isGenesis, context),
         },
         {
           title: 'Set file permissions',
-          task: async () => await self.setPlatformDirPermissions(podRef, context),
+          task: async () => await self.setPlatformDirPermissions(podReference, context),
         },
       ],
       {
@@ -330,20 +336,31 @@ export class PlatformInstaller {
 
   /**
    * Copy configuration files to the network consensus node pod
-   * @param stagingDir - staging directory path
-   * @param podRef - pod reference
+   * @param stagingDirectory - staging directory path
+   * @param podReference - pod reference
    * @param isGenesis - true if this is `solo node setup` and we are at genesis
    * @param context
    */
-  private async copyConfigurationFiles(stagingDir: string, podRef: PodRef, isGenesis: boolean, context?: string) {
+  private async copyConfigurationFiles(
+    stagingDirectory: string,
+    podReference: PodReference,
+    isGenesis: boolean,
+    context?: string,
+  ) {
     if (isGenesis) {
-      const genesisNetworkJson = [PathEx.joinWithRealPath(stagingDir, 'genesis-network.json')];
-      await this.copyFiles(podRef, genesisNetworkJson, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
+      const genesisNetworkJson = [PathEx.joinWithRealPath(stagingDirectory, 'genesis-network.json')];
+      await this.copyFiles(
+        podReference,
+        genesisNetworkJson,
+        `${constants.HEDERA_HAPI_PATH}/data/config`,
+        undefined,
+        context,
+      );
     }
 
     // TODO: temporarily disable this until we add logic to only set this when the user provides the node override gossip endpoints for each node they want to override
-    // const nodeOverridesYaml = [PathEx.joinWithRealPath(stagingDir, constants.NODE_OVERRIDE_FILE)];
-    // await this.copyFiles(podRef, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
+    // const nodeOverridesYaml = [PathEx.joinWithRealPath(stagingDirectory, constants.NODE_OVERRIDE_FILE)];
+    // await this.copyFiles(podReference, nodeOverridesYaml, `${constants.HEDERA_HAPI_PATH}/data/config`, undefined, context);
   }
 
   /**
@@ -357,16 +374,16 @@ export class PlatformInstaller {
    * <li>${staging}/keys/hedera-<nodeAlias>.key: gRPC TLS key for a node</li>
    * <li>${staging}/keys/hedera-<nodeAlias>.crt: gRPC TLS cert for a node</li>
    *
-   * @param stagingDir staging directory path
+   * @param stagingDirectory staging directory path
    * @param consensusNodes list of consensus nodes
    * @param contexts list of k8s contexts
    */
-  copyNodeKeys(stagingDir: string, consensusNodes: ConsensusNode[], contexts: string[]) {
+  copyNodeKeys(stagingDirectory: string, consensusNodes: ConsensusNode[], contexts: string[]) {
     const self = this;
     const subTasks = [];
     subTasks.push({
       title: 'Copy TLS keys',
-      task: async () => await self.copyTLSKeys(consensusNodes, stagingDir, contexts),
+      task: async () => await self.copyTLSKeys(consensusNodes, stagingDirectory, contexts),
     });
 
     for (const consensusNode of consensusNodes) {
@@ -377,7 +394,7 @@ export class PlatformInstaller {
             [
               {
                 title: 'Copy Gossip keys',
-                task: async () => await self.copyGossipKeys(consensusNode, stagingDir, consensusNodes),
+                task: async () => await self.copyGossipKeys(consensusNode, stagingDirectory, consensusNodes),
               },
             ],
             {

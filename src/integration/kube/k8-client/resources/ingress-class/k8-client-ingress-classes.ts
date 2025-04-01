@@ -23,8 +23,8 @@ export class K8ClientIngressClasses implements IngressClasses {
       }
 
       return ingressClasses;
-    } catch (e) {
-      throw new SoloError('Failed to list IngressClasses:', e);
+    } catch (error) {
+      throw new SoloError('Failed to list IngressClasses:', error);
     }
   }
 
@@ -41,16 +41,16 @@ export class K8ClientIngressClasses implements IngressClasses {
     };
     try {
       await this.networkingApi.createIngressClass(ingressClass);
-    } catch (e) {
-      throw new ResourceCreateError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, e);
+    } catch (error) {
+      throw new ResourceCreateError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, error);
     }
   }
 
   public async delete(ingressClassName: string) {
     try {
       await this.networkingApi.deleteIngressClass(ingressClassName);
-    } catch (e) {
-      throw new ResourceDeleteError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, e);
+    } catch (error) {
+      throw new ResourceDeleteError(ResourceType.INGRESS_CLASS, undefined, ingressClassName, error);
     }
   }
 }

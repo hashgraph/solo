@@ -9,7 +9,7 @@ import * as yaml from 'yaml';
 import {ComponentsDataWrapper} from './components-data-wrapper.js';
 import {RemoteConfigValidator} from './remote-config-validator.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
-import {type ClusterRef, type ClusterRefs, type DeploymentName, type Version} from './types.js';
+import {type ClusterReference, type ClusterReferences, type DeploymentName, type Version} from './types.js';
 import {type SoloLogger} from '../../logging/solo-logger.js';
 import {type ConfigManager} from '../../config-manager.js';
 import {type LocalConfig} from '../local/local-config.js';
@@ -58,7 +58,7 @@ export class RemoteConfigManager {
 
   /* ---------- Getters ---------- */
 
-  public get currentCluster(): ClusterRef {
+  public get currentCluster(): ClusterReference {
     return this.k8Factory.default().clusters().readCurrent();
   }
 
@@ -70,7 +70,7 @@ export class RemoteConfigManager {
   /**
    * @returns the remote configuration data's clusters cloned
    */
-  public get clusters(): Record<ClusterRef, Cluster> {
+  public get clusters(): Record<ClusterReference, Cluster> {
     return structuredClone(this.remoteConfig.clusters);
   }
 
@@ -104,13 +104,19 @@ export class RemoteConfigManager {
     nodeAliases: NodeAliases,
     namespace: NamespaceName,
     deployment: DeploymentName,
-    clusterRef: ClusterRef,
+    clusterReference: ClusterReference,
     context: string,
     dnsBaseDomain: string,
     dnsConsensusNodePattern: string,
   ): Promise<void> {
-    const clusters: Record<ClusterRef, Cluster> = {
-      [clusterRef]: new Cluster(clusterRef, namespace.name, deployment, dnsBaseDomain, dnsConsensusNodePattern),
+    const clusters: Record<ClusterReference, Cluster> = {
+      [clusterReference]: new Cluster(
+        clusterReference,
+        namespace.name,
+        deployment,
+        dnsBaseDomain,
+        dnsConsensusNodePattern,
+      ),
     };
 
     const lastUpdatedAt = new Date();
@@ -123,7 +129,7 @@ export class RemoteConfigManager {
       metadata: new RemoteConfigMetadata(namespace.name, deployment, state, lastUpdatedAt, email, soloVersion),
       commandHistory: [currentCommand],
       lastExecutedCommand: currentCommand,
-      components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterRef, namespace.name),
+      components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterReference, namespace.name),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 
@@ -154,8 +160,8 @@ export class RemoteConfigManager {
       const configMap = await this.getConfigMap(namespace, context);
 
       this.remoteConfig = RemoteConfigDataWrapper.fromConfigmap(this.configManager, configMap);
-    } catch (e) {
-      throw new SoloError('Failed to load remote config from cluster', e);
+    } catch (error) {
+      throw new SoloError('Failed to load remote config from cluster', error);
     }
   }
 
@@ -195,8 +201,8 @@ export class RemoteConfigManager {
     const clusters2 = Object.keys(remoteConfig2.clusters);
     if (clusters1.length !== clusters2.length) return false;
 
-    for (const i in clusters1) {
-      if (clusters1[i] !== clusters2[i]) {
+    for (const index in clusters1) {
+      if (clusters1[index] !== clusters2[index]) {
         return false;
       }
     }
@@ -337,10 +343,10 @@ export class RemoteConfigManager {
       }
 
       return configMap;
-    } catch (e) {
+    } catch (error) {
       throw new SoloError(
         `Failed to read remote config from cluster for namespace: ${namespace}, context: ${context}`,
-        e,
+        error,
       );
     }
   }
@@ -372,13 +378,13 @@ export class RemoteConfigManager {
       throw new SoloError('Failed to get deployment');
     }
 
-    const clusterRefs: ClusterRef[] = this.localConfig.deployments[deploymentName]?.clusters;
+    const clusterReferences: ClusterReference[] = this.localConfig.deployments[deploymentName]?.clusters;
 
-    if (!clusterRefs) {
+    if (!clusterReferences) {
       throw new SoloError(`Failed to get get cluster refs from local config for deployment ${deploymentName}`);
     }
 
-    const contexts = clusterRefs.map(clusterRef => this.localConfig.clusterRefs[clusterRef]);
+    const contexts = clusterReferences.map(clusterReference => this.localConfig.clusterRefs[clusterReference]);
 
     await Promise.all(
       contexts.map(context => this.k8Factory.getK8(context).configMaps().replace(namespace, name, labels, data)),
@@ -493,25 +499,25 @@ export class RemoteConfigManager {
    * Gets a list of distinct cluster references from the consensus nodes.
    * @returns an object of cluster references.
    */
-  public getClusterRefs(): ClusterRefs {
+  public getClusterRefs(): ClusterReferences {
     const nodes = this.getConsensusNodes();
-    const acc: ClusterRefs = {};
+    const accumulator: ClusterReferences = {};
 
     for (const node of nodes) {
-      acc[node.cluster] ||= node.context;
+      accumulator[node.cluster] ||= node.context;
     }
 
-    return acc;
+    return accumulator;
   }
 
   private getContextForFirstCluster(): string {
     const deploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
 
-    const clusterRef: ClusterRef = this.localConfig.deployments[deploymentName].clusters[0];
+    const clusterReference: ClusterReference = this.localConfig.deployments[deploymentName].clusters[0];
 
-    const context = this.localConfig.clusterRefs[clusterRef];
+    const context = this.localConfig.clusterRefs[clusterReference];
 
-    this.logger.debug(`Using context ${context} for cluster ${clusterRef} for deployment ${deploymentName}`);
+    this.logger.debug(`Using context ${context} for cluster ${clusterReference} for deployment ${deploymentName}`);
 
     return context;
   }

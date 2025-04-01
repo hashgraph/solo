@@ -2,7 +2,7 @@
 
 import {type Pod} from '../../../resources/pod/pod.js';
 import {type ExtendedNetServer} from '../../../../../types/index.js';
-import {PodRef} from '../../../resources/pod/pod-ref.js';
+import {PodReference} from '../../../resources/pod/pod-reference.js';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
 import {sleep} from '../../../../../core/helpers.js';
 import {Duration} from '../../../../../core/time/duration.js';
@@ -34,7 +34,7 @@ export class K8ClientPod implements Pod {
   private readonly logger: SoloLogger;
 
   constructor(
-    public readonly podRef: PodRef,
+    public readonly podReference: PodReference,
     private readonly pods: Pods,
     private readonly kubeClient: CoreV1Api,
     private readonly kubeConfig: KubeConfig,
@@ -53,8 +53,8 @@ export class K8ClientPod implements Pod {
   public async killPod(): Promise<void> {
     try {
       const result = await this.kubeClient.deleteNamespacedPod(
-        this.podRef.name.toString(),
-        this.podRef.namespace.toString(),
+        this.podReference.name.toString(),
+        this.podReference.namespace.toString(),
         undefined,
         undefined,
         1,
@@ -62,13 +62,13 @@ export class K8ClientPod implements Pod {
 
       if (result.response.statusCode !== StatusCodes.OK) {
         throw new SoloError(
-          `Failed to delete pod ${this.podRef.name} in namespace ${this.podRef.namespace}: statusCode: ${result.response.statusCode}`,
+          `Failed to delete pod ${this.podReference.name} in namespace ${this.podReference.namespace}: statusCode: ${result.response.statusCode}`,
         );
       }
 
       let podExists: boolean = true;
       while (podExists) {
-        const pod: Pod = await this.pods.read(this.podRef);
+        const pod: Pod = await this.pods.read(this.podReference);
 
         if (!pod?.deletionTimestamp) {
           podExists = false;
@@ -76,39 +76,39 @@ export class K8ClientPod implements Pod {
           await sleep(Duration.ofSeconds(1));
         }
       }
-    } catch (e) {
-      const errorMessage = `Failed to delete pod ${this.podRef.name} in namespace ${this.podRef.namespace}: ${e.message}`;
+    } catch (error) {
+      const errorMessage = `Failed to delete pod ${this.podReference.name} in namespace ${this.podReference.namespace}: ${error.message}`;
 
-      if (e.body?.code === StatusCodes.NOT_FOUND || e.response?.body?.code === StatusCodes.NOT_FOUND) {
-        this.logger.info(`Pod not found: ${errorMessage}`, e);
+      if (error.body?.code === StatusCodes.NOT_FOUND || error.response?.body?.code === StatusCodes.NOT_FOUND) {
+        this.logger.info(`Pod not found: ${errorMessage}`, error);
         return;
       }
 
-      throw new SoloError(errorMessage, e);
+      throw new SoloError(errorMessage, error);
     }
   }
 
   public async portForward(localPort: number, podPort: number): Promise<ExtendedNetServer> {
     try {
       this.logger.debug(
-        `Creating port-forwarder for ${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`,
+        `Creating port-forwarder for ${this.podReference.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`,
       );
 
-      const ns: NamespaceName = this.podRef.namespace;
+      const ns: NamespaceName = this.podReference.namespace;
       const forwarder: PortForward = new PortForward(this.kubeConfig, false);
 
       const server = (await net.createServer(socket => {
-        forwarder.portForward(ns.name, this.podRef.name.toString(), [podPort], socket, null, socket, 3);
+        forwarder.portForward(ns.name, this.podReference.name.toString(), [podPort], socket, null, socket, 3);
       })) as ExtendedNetServer;
 
       // add info for logging
-      server.info = `${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
+      server.info = `${this.podReference.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}`;
       server.localPort = localPort;
       this.logger.debug(`Starting port-forwarder [${server.info}]`);
       return server.listen(localPort, constants.LOCAL_HOST);
-    } catch (e) {
-      const message: string = `failed to start port-forwarder [${this.podRef.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${e.message}`;
-      throw new SoloError(message, e);
+    } catch (error) {
+      const message: string = `failed to start port-forwarder [${this.podReference.name}:${podPort} -> ${constants.LOCAL_HOST}:${localPort}]: ${error.message}`;
+      throw new SoloError(message, error);
     }
   }
 
@@ -125,14 +125,14 @@ export class K8ClientPod implements Pod {
 
     // try to close the websocket server
     await new Promise<void>((resolve, reject) => {
-      server.close(e => {
-        if (e) {
-          if (e.message?.includes('Server is not running')) {
+      server.close(error => {
+        if (error) {
+          if (error.message?.includes('Server is not running')) {
             this.logger.debug(`Server not running, port-forwarder [${server.info}]`);
             resolve();
           } else {
-            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${e.message}`, e);
-            reject(e);
+            this.logger.debug(`Failed to stop port-forwarder [${server.info}]: ${error.message}`, error);
+            reject(error);
           }
         } else {
           this.logger.debug(`Stopped port-forwarder [${server.info}]`);
@@ -151,8 +151,8 @@ export class K8ClientPod implements Pod {
         const isPortOpen = await new Promise(resolve => {
           const testServer: net.Server = net
             .createServer()
-            .once('error', err => {
-              if (err) {
+            .once('error', error => {
+              if (error) {
                 resolve(false);
               }
             })
@@ -185,8 +185,8 @@ export class K8ClientPod implements Pod {
 
   public static toV1Pod(pod: Pod): V1Pod {
     const v1Metadata: V1ObjectMeta = new V1ObjectMeta();
-    v1Metadata.name = pod.podRef.name.toString();
-    v1Metadata.namespace = pod.podRef.namespace.toString();
+    v1Metadata.name = pod.podReference.name.toString();
+    v1Metadata.namespace = pod.podReference.namespace.toString();
     v1Metadata.labels = pod.labels;
 
     const v1ExecAction: V1ExecAction = new V1ExecAction();
@@ -215,7 +215,7 @@ export class K8ClientPod implements Pod {
     if (!v1Pod) return null;
 
     return new K8ClientPod(
-      PodRef.of(NamespaceName.of(v1Pod.metadata?.namespace), PodName.of(v1Pod.metadata?.name)),
+      PodReference.of(NamespaceName.of(v1Pod.metadata?.namespace), PodName.of(v1Pod.metadata?.name)),
       pods,
       coreV1Api,
       kubeConfig,

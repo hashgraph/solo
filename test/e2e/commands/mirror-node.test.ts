@@ -7,10 +7,10 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  e2eTestSuite,
+  endToEndTestSuite,
   getTestCluster,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../test-util.js';
+} from '../../test-utility.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror-node.js';
@@ -45,7 +45,7 @@ argv.setArg(flags.pinger, true);
 argv.setArg(flags.enableHederaExplorerTls, true);
 argv.setArg(flags.enableIngress, true);
 
-e2eTestSuite(testName, argv, {}, bootstrapResp => {
+endToEndTestSuite(testName, argv, {}, bootstrapResp => {
   describe('MirrorNodeCommand', async () => {
     const {
       opts: {k8Factory, accountManager, logger, commandInvoker, remoteConfigManager},
@@ -95,8 +95,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           // @ts-expect-error - TS2341: to access private property
           callback: async argv => explorerCommand.deploy(argv),
         });
-      } catch (e) {
-        logger.showUserError(e);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(10).toMillis());
@@ -116,15 +116,19 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           .list(namespace, ['app.kubernetes.io/component=hedera-explorer']);
         const explorerPod: Pod = pods[0];
 
-        portForwarder = await k8Factory.default().pods().readByRef(explorerPod.podRef).portForward(8_080, 8_080);
+        portForwarder = await k8Factory
+          .default()
+          .pods()
+          .readByReference(explorerPod.podReference)
+          .portForward(8_080, 8_080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running
         const apiURL = 'http://127.0.0.1:8080/api/v1/transactions';
         expect(await downloader.urlExists(apiURL)).to.be.true;
         await sleep(Duration.ofSeconds(2));
-      } catch (e) {
-        logger.showUserError(e);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());
@@ -136,8 +140,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         await sleep(Duration.ofSeconds(2));
 
         logger.debug('mirror node API and explorer GUI are running');
-      } catch (e) {
-        logger.showUserError(e);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());
@@ -159,8 +163,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
         const submitReceipt = await submitResponse.getReceipt(accountManager._nodeClient);
         expect(submitReceipt.status).to.deep.equal(Status.Success);
-      } catch (e) {
-        logger.showUserError(e);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());
@@ -177,34 +181,38 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
 
         // wait until the transaction reached consensus and retrievable from the mirror node API
         while (!received) {
-          const req = http.request(queryURL, {method: 'GET', timeout: 100, headers: {Connection: 'close'}}, res => {
-            res.setEncoding('utf8');
-            res.on('data', chunk => {
-              // convert chunk to json object
-              const obj = JSON.parse(chunk);
-              if (obj.messages.length === 0) {
-                logger.debug('No messages yet');
-              } else {
-                // convert message from base64 to utf-8
-                const base64 = obj.messages[0].message;
-                const buff = Buffer.from(base64, 'base64');
-                receivedMessage = buff.toString('utf-8');
-                logger.debug(`Received message: ${receivedMessage}`);
-                received = true;
-              }
-            });
+          const request = http.request(
+            queryURL,
+            {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
+            response => {
+              response.setEncoding('utf8');
+              response.on('data', chunk => {
+                // convert chunk to json object
+                const object = JSON.parse(chunk);
+                if (object.messages.length === 0) {
+                  logger.debug('No messages yet');
+                } else {
+                  // convert message from base64 to utf-8
+                  const base64 = object.messages[0].message;
+                  const buff = Buffer.from(base64, 'base64');
+                  receivedMessage = buff.toString('utf-8');
+                  logger.debug(`Received message: ${receivedMessage}`);
+                  received = true;
+                }
+              });
+            },
+          );
+          request.on('error', error => {
+            logger.debug(`problem with request: ${error.message}`);
           });
-          req.on('error', e => {
-            logger.debug(`problem with request: ${e.message}`);
-          });
-          req.end(); // make the request
+          request.end(); // make the request
           await sleep(Duration.ofSeconds(2));
         }
         await sleep(Duration.ofSeconds(1));
         expect(receivedMessage).to.equal(testMessage);
-        await k8Factory.default().pods().readByRef(null).stopPortForward(portForwarder);
-      } catch (e) {
-        logger.showUserError(e);
+        await k8Factory.default().pods().readByReference(null).stopPortForward(portForwarder);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(5).toMillis());
@@ -226,8 +234,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           // @ts-expect-error - TS2341: to access private property
           callback: async argv => explorerCommand.destroy(argv),
         });
-      } catch (e) {
-        logger.showUserError(e);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
     }).timeout(Duration.ofMinutes(1).toMillis());

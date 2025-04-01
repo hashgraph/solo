@@ -17,10 +17,10 @@ describe('ChartInstallRequest Tests', () => {
     expect(chartInstallRequest).to.not.be.null;
     expect(chartInstallRequest.releaseName).to.equal('apache');
 
-    const opts = InstallChartOptionsBuilder.builder().timeout('9m0s').atomic(true).build();
-    const nonDefaultOptRequest = new ChartInstallRequest('apache', chart, opts);
+    const options = InstallChartOptionsBuilder.builder().timeout('9m0s').atomic(true).build();
+    const nonDefaultOptRequest = new ChartInstallRequest('apache', chart, options);
 
-    expect(nonDefaultOptRequest.options).to.equal(opts);
+    expect(nonDefaultOptRequest.options).to.equal(options);
     expect(nonDefaultOptRequest.options).to.not.be.null;
     expect(nonDefaultOptRequest.options).not.equal(InstallChartOptionsBuilder.builder().build());
   });

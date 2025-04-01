@@ -31,8 +31,8 @@ export class FileStorageBackend implements StorageBackend {
     let stats: Stats;
     try {
       stats = lstatSync(basePath);
-    } catch (e) {
-      throw new StorageBackendError('basePath must exist and be valid', e);
+    } catch (error) {
+      throw new StorageBackendError('basePath must exist and be valid', error);
     }
 
     if (!stats || !stats.isDirectory()) {
@@ -61,8 +61,8 @@ export class FileStorageBackend implements StorageBackend {
       }
 
       return entries.filter(item => statSync(PathEx.join(this.basePath, item))?.isFile());
-    } catch (e) {
-      throw new StorageBackendError('Error listing files in base path', e);
+    } catch (error) {
+      throw new StorageBackendError('Error listing files in base path', error);
     }
   }
 
@@ -74,8 +74,8 @@ export class FileStorageBackend implements StorageBackend {
     const filePath: string = PathEx.join(this.basePath, key);
     try {
       return readFileSync(filePath);
-    } catch (e) {
-      throw new StorageBackendError(`error reading file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error reading file: ${filePath}`, error);
     }
   }
 
@@ -91,8 +91,8 @@ export class FileStorageBackend implements StorageBackend {
     const filePath: string = PathEx.join(this.basePath, key);
     try {
       writeFileSync(filePath, data, {flag: 'w'});
-    } catch (e) {
-      throw new StorageBackendError(`error writing file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error writing file: ${filePath}`, error);
     }
   }
 
@@ -105,8 +105,8 @@ export class FileStorageBackend implements StorageBackend {
     let stats: Stats;
     try {
       stats = statSync(filePath);
-    } catch (e) {
-      throw new StorageBackendError(`file not found or is not readable: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`file not found or is not readable: ${filePath}`, error);
     }
 
     if (!stats) {
@@ -119,8 +119,8 @@ export class FileStorageBackend implements StorageBackend {
 
     try {
       unlinkSync(filePath);
-    } catch (e) {
-      throw new StorageBackendError(`error deleting file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error deleting file: ${filePath}`, error);
     }
   }
 }

@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
+import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -51,57 +51,57 @@ argv.setArg(flags.chartDirectory, undefined);
 
 describe('NetworkCommand unit tests', () => {
   describe('Chart Install Function is called correctly', () => {
-    let opts: any;
+    let options: any;
 
     beforeEach(() => {
       resetForTest();
-      opts = {};
+      options = {};
 
-      opts.logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+      options.logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
 
-      opts.configManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
-      opts.configManager.update(argv.build());
+      options.configManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
+      options.configManager.update(argv.build());
 
-      opts.k8Factory = sinon.stub() as unknown as K8Factory;
+      options.k8Factory = sinon.stub() as unknown as K8Factory;
       const k8Stub = sinon.stub();
 
-      opts.k8Factory.default = sinon.stub().returns(k8Stub);
-      opts.k8Factory.default().namespaces = sinon.stub().returns({
+      options.k8Factory.default = sinon.stub().returns(k8Stub);
+      options.k8Factory.default().namespaces = sinon.stub().returns({
         has: sinon.stub().returns(true),
       });
-      opts.k8Factory.default().contexts = sinon.stub().returns({
+      options.k8Factory.default().contexts = sinon.stub().returns({
         readCurrent: sinon.stub().returns(new K8Client(undefined).contexts().readCurrent()),
       });
-      opts.k8Factory.default().configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
-      opts.k8Factory.default().configMaps.read = sinon.stub();
-      opts.k8Factory.default().pods = sinon.stub().returns({
+      options.k8Factory.default().configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
+      options.k8Factory.default().configMaps.read = sinon.stub();
+      options.k8Factory.default().pods = sinon.stub().returns({
         waitForRunningPhase: sinon.stub(),
         waitForReadyStatus: sinon.stub(),
       });
-      opts.k8Factory.default().leases = sinon.stub().returns({
+      options.k8Factory.default().leases = sinon.stub().returns({
         read: sinon.stub(),
       });
-      opts.k8Factory.default().logger = opts.logger;
+      options.k8Factory.default().logger = options.logger;
 
-      opts.k8Factory.getK8 = sinon.stub().returns(k8Stub);
-      opts.k8Factory.getK8().namespaces = sinon.stub().returns({
+      options.k8Factory.getK8 = sinon.stub().returns(k8Stub);
+      options.k8Factory.getK8().namespaces = sinon.stub().returns({
         has: sinon.stub().returns(true),
       });
-      opts.k8Factory.getK8().configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
-      opts.k8Factory.getK8().configMaps.read = sinon.stub();
-      opts.k8Factory.getK8().pods = sinon.stub().returns({
+      options.k8Factory.getK8().configMaps = sinon.stub() as unknown as K8ClientConfigMaps;
+      options.k8Factory.getK8().configMaps.read = sinon.stub();
+      options.k8Factory.getK8().pods = sinon.stub().returns({
         waitForRunningPhase: sinon.stub(),
         waitForReadyStatus: sinon.stub(),
       });
-      opts.k8Factory.getK8().leases = sinon.stub().returns({
+      options.k8Factory.getK8().leases = sinon.stub().returns({
         read: sinon.stub(),
       });
-      opts.k8Factory.getK8().logger = opts.logger;
+      options.k8Factory.getK8().logger = options.logger;
 
-      opts.k8Factory.default().clusters = sinon.stub().returns({
+      options.k8Factory.default().clusters = sinon.stub().returns({
         list: sinon.stub().returns([{name: 'solo-e2e'}]),
       });
-      opts.k8Factory.default().clusters().readCurrent = sinon.stub().returns('solo-e2e');
+      options.k8Factory.default().clusters().readCurrent = sinon.stub().returns('solo-e2e');
 
       const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
       clusterChecksStub.isMinioInstalled = sinon.stub();
@@ -109,45 +109,45 @@ describe('NetworkCommand unit tests', () => {
       clusterChecksStub.isCertManagerInstalled = sinon.stub();
       container.registerInstance(InjectTokens.ClusterChecks, clusterChecksStub);
 
-      container.registerInstance(InjectTokens.K8Factory, opts.k8Factory);
+      container.registerInstance(InjectTokens.K8Factory, options.k8Factory);
 
-      opts.depManager = sinon.stub() as unknown as DependencyManager;
-      container.registerInstance<DependencyManager>(InjectTokens.DependencyManager, opts.depManager);
-      opts.localConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
-      opts.helm = container.resolve<DefaultHelmClient>(InjectTokens.Helm);
-      opts.helm.dependency = sinon.stub();
+      options.depManager = sinon.stub() as unknown as DependencyManager;
+      container.registerInstance<DependencyManager>(InjectTokens.DependencyManager, options.depManager);
+      options.localConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
+      options.helm = container.resolve<DefaultHelmClient>(InjectTokens.Helm);
+      options.helm.dependency = sinon.stub();
 
       ListrLock.newAcquireLockTask = sinon.stub().returns({
         run: sinon.stub().returns({}),
       });
 
-      opts.keyManager = container.resolve<KeyManager>(InjectTokens.KeyManager);
-      opts.keyManager.copyGossipKeysToStaging = sinon.stub();
-      opts.keyManager.copyNodeKeysToStaging = sinon.stub();
+      options.keyManager = container.resolve<KeyManager>(InjectTokens.KeyManager);
+      options.keyManager.copyGossipKeysToStaging = sinon.stub();
+      options.keyManager.copyNodeKeysToStaging = sinon.stub();
 
-      opts.platformInstaller = sinon.stub();
-      opts.platformInstaller.copyNodeKeys = sinon.stub();
-      container.registerInstance(InjectTokens.PlatformInstaller, opts.platformInstaller);
+      options.platformInstaller = sinon.stub();
+      options.platformInstaller.copyNodeKeys = sinon.stub();
+      container.registerInstance(InjectTokens.PlatformInstaller, options.platformInstaller);
 
-      opts.profileManager = container.resolve<ProfileManager>(InjectTokens.ProfileManager);
-      opts.profileManager.prepareValuesForSoloChart = sinon.stub();
+      options.profileManager = container.resolve<ProfileManager>(InjectTokens.ProfileManager);
+      options.profileManager.prepareValuesForSoloChart = sinon.stub();
 
-      opts.certificateManager = sinon.stub();
-      container.registerInstance(InjectTokens.CertificateManager, opts.certificateManager);
+      options.certificateManager = sinon.stub();
+      container.registerInstance(InjectTokens.CertificateManager, options.certificateManager);
 
-      opts.chartManager = container.resolve<ChartManager>(InjectTokens.ChartManager);
-      opts.chartManager.isChartInstalled = sinon.stub().returns(true);
-      opts.chartManager.isChartInstalled.onSecondCall().returns(false);
-      opts.chartManager.install = sinon.stub().returns(true);
-      opts.chartManager.uninstall = sinon.stub().returns(true);
+      options.chartManager = container.resolve<ChartManager>(InjectTokens.ChartManager);
+      options.chartManager.isChartInstalled = sinon.stub().returns(true);
+      options.chartManager.isChartInstalled.onSecondCall().returns(false);
+      options.chartManager.install = sinon.stub().returns(true);
+      options.chartManager.uninstall = sinon.stub().returns(true);
 
-      opts.remoteConfigManager = container.resolve<RemoteConfigManager>(InjectTokens.RemoteConfigManager);
-      opts.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
+      options.remoteConfigManager = container.resolve<RemoteConfigManager>(InjectTokens.RemoteConfigManager);
+      options.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
 
-      opts.localConfig.localConfigData._clusterRefs = {'solo-e2e': 'context-1'};
+      options.localConfig.localConfigData._clusterRefs = {'solo-e2e': 'context-1'};
 
-      opts.leaseManager = container.resolve<LockManager>(InjectTokens.LockManager);
-      opts.leaseManager.currentNamespace = sinon.stub().returns(testName);
+      options.leaseManager = container.resolve<LockManager>(InjectTokens.LockManager);
+      options.leaseManager.currentNamespace = sinon.stub().returns(testName);
 
       GenesisNetworkDataConstructor.initialize = sinon.stub().returns(null);
     });
@@ -158,17 +158,17 @@ describe('NetworkCommand unit tests', () => {
 
     it('Install function is called with expected parameters', async () => {
       try {
-        const networkCommand = new NetworkCommand(opts);
-        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
-        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
-        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
+        const networkCommand = new NetworkCommand(options);
+        options.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
+        options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
+        options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
         await networkCommand.deploy(argv.build());
 
-        expect(opts.chartManager.install.args[0][0].name).to.equal('solo-e2e');
-        expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(opts.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
+        expect(options.chartManager.install.args[0][0].name).to.equal('solo-e2e');
+        expect(options.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+        expect(options.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+        expect(options.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
       } finally {
         sinon.restore();
       }
@@ -178,17 +178,17 @@ describe('NetworkCommand unit tests', () => {
       try {
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
-        const networkCommand = new NetworkCommand(opts);
+        const networkCommand = new NetworkCommand(options);
 
-        opts.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
-        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
-        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
+        options.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
+        options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
+        options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
         await networkCommand.deploy(argv.build());
-        expect(opts.chartManager.install.args[0][0].name).to.equal('solo-e2e');
-        expect(opts.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(opts.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(opts.chartManager.install.args[0][3]).to.equal(PathEx.join(ROOT_DIR, 'test-directory'));
+        expect(options.chartManager.install.args[0][0].name).to.equal('solo-e2e');
+        expect(options.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+        expect(options.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+        expect(options.chartManager.install.args[0][3]).to.equal(PathEx.join(ROOT_DIR, 'test-directory'));
       } finally {
         sinon.restore();
       }
@@ -205,13 +205,13 @@ describe('NetworkCommand unit tests', () => {
 
         const task = sinon.stub();
 
-        opts.remoteConfigManager.getConsensusNodes = sinon
+        options.remoteConfigManager.getConsensusNodes = sinon
           .stub()
           .returns([new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn')]);
-        opts.remoteConfigManager.getContexts = sinon.stub().returns(['context-1']);
-        opts.remoteConfigManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
+        options.remoteConfigManager.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
 
-        const networkCommand = new NetworkCommand(opts);
+        const networkCommand = new NetworkCommand(options);
         const config = await networkCommand.prepareConfig(task, argv.build());
 
         expect(config.valuesArgMap).to.not.empty;

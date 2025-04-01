@@ -34,44 +34,44 @@ export class ShellRunner {
         });
       });
 
-      const errOutput: string[] = [];
+      const errorOutput: string[] = [];
       child.stderr.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
         items.forEach(item => {
           if (item) {
-            errOutput.push(item.trim());
+            errorOutput.push(item.trim());
           }
         });
       });
 
       child.on('exit', (code, signal) => {
         if (code) {
-          const err = new Error(`Command exit with error code ${code}: ${cmd}`);
+          const error = new Error(`Command exit with error code ${code}: ${cmd}`);
 
           // include the callStack to the parent run() instead of from inside this handler.
           // this is needed to ensure we capture the proper callstack for easier debugging.
-          err.stack = callStack;
+          error.stack = callStack;
 
           if (verbose) {
-            errOutput.forEach(m => self.logger.showUser(chalk.red(m)));
+            errorOutput.forEach(m => self.logger.showUser(chalk.red(m)));
           }
 
           self.logger.error(`Error executing: '${cmd}'`, {
             commandExitCode: code,
             commandExitSignal: signal,
             commandOutput: output,
-            errOutput,
-            error: {message: err.message, stack: err.stack},
+            errOutput: errorOutput,
+            error: {message: error.message, stack: error.stack},
           });
 
-          reject(err);
+          reject(error);
         }
 
         self.logger.debug(`Finished executing: '${cmd}'`, {
           commandExitCode: code,
           commandExitSignal: signal,
           commandOutput: output,
-          errOutput,
+          errOutput: errorOutput,
         });
         resolve(output);
       });

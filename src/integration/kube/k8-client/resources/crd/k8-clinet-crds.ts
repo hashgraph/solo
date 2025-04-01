@@ -18,13 +18,13 @@ export class K8ClientCRDs implements Crds {
       const response = await this.networkingApi.readCustomResourceDefinition(crdName);
       this.logger.debug(`CRD ${crdName} exists, response:`, response);
       return true;
-    } catch (err) {
-      if (err.response && err.response.statusCode === 404) {
+    } catch (error) {
+      if (error.response && error.response.statusCode === 404) {
         this.logger.error(`CRD ${crdName} does not exist.`);
         return false;
       } else {
-        this.logger.error('Error checking CRD:', err);
-        throw err; // Re-throw unexpected errors
+        this.logger.error('Error checking CRD:', error);
+        throw error; // Re-throw unexpected errors
       }
     }
   }
