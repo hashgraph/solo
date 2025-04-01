@@ -121,10 +121,10 @@ export class ConfigManager {
 
         case 'StorageType': {
           // @ts-expect-error: TS2475: const enums can only be used in property or index access expressions
-          if (!Object.values(constants.StorageType).includes(`${value}`)) {
-            throw new SoloError(`Invalid storage type value '${value}'`);
-          } else {
+          if (Object.values(constants.StorageType).includes(`${value}`)) {
             this.config.flags[flag.name] = value;
+          } else {
+            throw new SoloError(`Invalid storage type value '${value}'`);
           }
           break;
         }
@@ -166,7 +166,7 @@ export class ConfigManager {
    * @returns value of the flag or undefined if flag value is not available
    */
   public getFlag<T = string>(flag: CommandFlag): T {
-    return this.config.flags[flag.name] !== undefined ? this.config.flags[flag.name] : undefined;
+    return this.config.flags[flag.name] === undefined ? undefined : this.config.flags[flag.name];
   }
 
   /** Set value for the flag */

@@ -84,7 +84,9 @@ export class ChartManager {
   ) {
     try {
       const isInstalled = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
-      if (!isInstalled) {
+      if (isInstalled) {
+        this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartName}) (${repoName})`);
+      } else {
         this.logger.debug(`> installing chart:${chartName}`);
         const builder = InstallChartOptionsBuilder.builder()
           .version(version)
@@ -97,8 +99,6 @@ export class ChartManager {
         const options: InstallChartOptions = builder.build();
         await this.helm.installChart(chartReleaseName, new Chart(chartName, repoName), options);
         this.logger.debug(`OK: chart is installed: ${chartReleaseName} (${chartName}) (${repoName})`);
-      } else {
-        this.logger.debug(`OK: chart is already installed:${chartReleaseName} (${chartName}) (${repoName})`);
       }
     } catch (error: Error | any) {
       throw new SoloError(`failed to install chart ${chartReleaseName}: ${error.message}`, error);

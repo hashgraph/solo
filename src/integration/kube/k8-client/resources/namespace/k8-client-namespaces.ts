@@ -30,10 +30,10 @@ export class K8ClientNamespaces implements Namespaces {
         while (namespaceExists) {
           const response = await this.kubeClient.readNamespace(namespace.name);
 
-          if (!response?.body?.metadata?.deletionTimestamp) {
-            namespaceExists = false;
-          } else {
+          if (response?.body?.metadata?.deletionTimestamp) {
             await sleep(Duration.ofSeconds(1));
+          } else {
+            namespaceExists = false;
           }
         }
       } catch {

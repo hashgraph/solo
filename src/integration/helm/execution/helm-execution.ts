@@ -70,7 +70,9 @@ export class HelmExecution {
 
       this.process.on('close', code => {
         this.exitCodeValue = code;
-        if (code !== 0) {
+        if (code === 0) {
+          resolve();
+        } else {
           reject(
             new HelmExecutionException(
               code || 1,
@@ -79,8 +81,6 @@ export class HelmExecution {
               this.standardError(),
             ),
           );
-        } else {
-          resolve();
         }
       });
     });
@@ -145,13 +145,13 @@ export class HelmExecution {
    * @returns A promise that resolves with the parsed response or rejects on timeout
    */
   async responseAsTimeout<T>(responseClass: new (...arguments_: any[]) => T, timeout: Duration | null): Promise<T> {
-    if (timeout !== null) {
+    if (timeout === null) {
+      await this.waitFor();
+    } else {
       const success = await this.waitForTimeout(timeout);
       if (!success) {
         throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
       }
-    } else {
-      await this.waitFor();
     }
 
     const exitCode = this.exitCode();
@@ -194,13 +194,13 @@ export class HelmExecution {
     responseClass: new (...arguments_: any[]) => T,
     timeout: Duration | null,
   ): Promise<T[]> {
-    if (timeout !== null) {
+    if (timeout === null) {
+      await this.waitFor();
+    } else {
       const success = await this.waitForTimeout(timeout);
       if (!success) {
         throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
       }
-    } else {
-      await this.waitFor();
     }
 
     const exitCode = this.exitCode();
@@ -232,13 +232,13 @@ export class HelmExecution {
    * @returns A promise that resolves when the command completes or rejects on timeout
    */
   async callTimeout(timeout: Duration | null): Promise<void> {
-    if (timeout !== null) {
+    if (timeout === null) {
+      await this.waitFor();
+    } else {
       const success = await this.waitForTimeout(timeout);
       if (!success) {
         throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
       }
-    } else {
-      await this.waitFor();
     }
 
     const exitCode = this.exitCode();

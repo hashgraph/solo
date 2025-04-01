@@ -80,10 +80,10 @@ export class IntervalLock implements Lock {
     }
 
     // In most production cases, the environment variable should be preferred over the constructor argument.
-    if (!durationSeconds) {
-      this._durationSeconds = +process.env.SOLO_LEASE_DURATION || IntervalLock.DEFAULT_LEASE_DURATION;
-    } else {
+    if (durationSeconds) {
       this._durationSeconds = durationSeconds;
+    } else {
+      this._durationSeconds = +process.env.SOLO_LEASE_DURATION || IntervalLock.DEFAULT_LEASE_DURATION;
     }
   }
 
@@ -381,13 +381,13 @@ export class IntervalLock implements Lock {
    */
   private async createOrRenewLease(lease: Lease): Promise<void> {
     try {
-      if (!lease) {
+      if (lease) {
+        await this.k8Factory.default().leases().renew(this.namespace, this.leaseName, lease);
+      } else {
         await this.k8Factory
           .default()
           .leases()
           .create(this.namespace, this.leaseName, this.lockHolder.toJson(), this.durationSeconds);
-      } else {
-        await this.k8Factory.default().leases().renew(this.namespace, this.leaseName, lease);
       }
 
       if (!this.scheduleId) {

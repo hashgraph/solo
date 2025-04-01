@@ -452,15 +452,15 @@ export class NetworkCommand extends BaseCommand {
       }
 
       // set the extraEnv settings on the nodes for running with a local build or tool
-      if (config.app !== constants.HEDERA_APP_NAME) {
+      if (config.app === constants.HEDERA_APP_NAME) {
+        // make sure each cluster has an empty string for the valuesArg
+        valuesArguments[consensusNode.cluster] = '';
+      } else {
         extraEnvironmentIndex = 1; // used to add the debug options when using a tool or local build of hedera
         let valuesArgument: string = valuesArguments[consensusNode.cluster] ?? '';
         valuesArgument += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`;
         valuesArgument += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].value=com.swirlds.platform.Browser"`;
         valuesArguments[consensusNode.cluster] = valuesArgument;
-      } else {
-        // make sure each cluster has an empty string for the valuesArg
-        valuesArguments[consensusNode.cluster] = '';
       }
     }
 
@@ -618,12 +618,12 @@ export class NetworkCommand extends BaseCommand {
     // check and create namespace in each cluster
     for (const context of config.contexts) {
       const k8client = this.k8Factory.getK8(context);
-      if (!(await k8client.namespaces().has(namespace))) {
+      if (await k8client.namespaces().has(namespace)) {
+        this.logger.debug(`namespace '${namespace}' found using context: ${context}`);
+      } else {
         this.logger.debug(`creating namespace '${namespace}' using context: ${context}`);
         await k8client.namespaces().create(namespace);
         this.logger.debug(`created namespace '${namespace}' using context: ${context}`);
-      } else {
-        this.logger.debug(`namespace '${namespace}' found using context: ${context}`);
       }
     }
   }

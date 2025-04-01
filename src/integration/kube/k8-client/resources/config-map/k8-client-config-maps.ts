@@ -202,12 +202,12 @@ export class K8ClientConfigMaps implements ConfigMaps {
 
     KubeApiResponse.check(result.response, ResourceOperation.UPDATE, ResourceType.CONFIG_MAP, namespace, name);
 
-    if (!result.body) {
+    if (result.body) {
+      return;
+    } else {
       throw new SoloError(
         `Failed to patch ConfigMap ${name} in namespace ${namespace}, no config map returned from patch`,
       );
-    } else {
-      return;
     }
   }
 }
