@@ -49,12 +49,14 @@ export class Flags {
         const promptOptions = {default: defaultValue, message: promptMessage};
 
         switch (type) {
-          case 'input':
+          case 'input': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, promptOptions);
             break;
-          case 'toggle':
+          }
+          case 'toggle': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
             break;
+          }
           case 'number': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(numberPrompt, promptOptions);
             break;

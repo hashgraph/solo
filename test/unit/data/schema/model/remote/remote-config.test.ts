@@ -65,24 +65,30 @@ function migrateConsensusNodes(plainObject: MigrationCandidate) {
     const oldConsensusNode = plainObject.components.consensusNodes[plainConsensusNodeKey];
     let migratedState: string;
     switch (oldConsensusNode.state) {
-      case 'requested':
+      case 'requested': {
         migratedState = DeploymentPhase.REQUESTED;
         break;
-      case 'initialized':
+      }
+      case 'initialized': {
         migratedState = DeploymentPhase.DEPLOYED;
         break;
-      case 'setup':
+      }
+      case 'setup': {
         migratedState = DeploymentPhase.CONFIGURED;
         break;
-      case 'started':
+      }
+      case 'started': {
         migratedState = DeploymentPhase.STARTED;
         break;
-      case 'freezed':
+      }
+      case 'freezed': {
         migratedState = DeploymentPhase.FROZEN;
         break;
-      case 'stopped':
+      }
+      case 'stopped': {
         migratedState = DeploymentPhase.STOPPED;
         break;
+      }
     }
     const newConsensusNode = {
       id: oldConsensusNode.nodeId,

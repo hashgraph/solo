@@ -754,7 +754,7 @@ export class NodeCommandTasks {
           self.logger.debug(`Freeze admin account balance: ${balance.hbars}`);
 
           // transfer some tiny amount to the freeze admin account
-          await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100000);
+          await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 100_000);
 
           // set operator of freeze transaction as freeze admin account
           nodeClient.setOperator(FREEZE_ADMIN_ACCOUNT, freezeAdminPrivateKey);
@@ -1451,20 +1451,23 @@ export class NodeCommandTasks {
         let skipNodeAlias: NodeAlias;
 
         switch (transactionType) {
-          case NodeSubcommandType.ADD:
+          case NodeSubcommandType.ADD: {
             break;
-          case NodeSubcommandType.UPDATE:
+          }
+          case NodeSubcommandType.UPDATE: {
             if (config.newAccountNumber) {
               // update map with current account ids
               accountMap.set(config.nodeAlias, config.newAccountNumber);
               skipNodeAlias = config.nodeAlias;
             }
             break;
-          case NodeSubcommandType.DELETE:
+          }
+          case NodeSubcommandType.DELETE: {
             if (config.nodeAlias) {
               accountMap.delete(config.nodeAlias);
               skipNodeAlias = config.nodeAlias;
             }
+          }
         }
 
         config.nodeClient = await self.accountManager.refreshNodeClient(
@@ -1954,7 +1957,7 @@ export class NodeCommandTasks {
         }
 
         switch (transactionType) {
-          case NodeSubcommandType.UPDATE:
+          case NodeSubcommandType.UPDATE: {
             this.prepareValuesArgForNodeUpdate(
               consensusNodes,
               valuesArgumentMap,
@@ -1964,7 +1967,8 @@ export class NodeCommandTasks {
               config.nodeAlias,
             );
             break;
-          case NodeSubcommandType.DELETE:
+          }
+          case NodeSubcommandType.DELETE: {
             this.prepareValuesArgForNodeDelete(
               consensusNodes,
               valuesArgumentMap,
@@ -1974,7 +1978,8 @@ export class NodeCommandTasks {
               clusterNodeIndexMap,
             );
             break;
-          case NodeSubcommandType.ADD:
+          }
+          case NodeSubcommandType.ADD: {
             this.prepareValuesArgForNodeAdd(
               consensusNodes,
               valuesArgumentMap,
@@ -1987,6 +1992,7 @@ export class NodeCommandTasks {
               config as NodeAddConfigClass,
             );
             break;
+          }
         }
 
         // Add profile values files
