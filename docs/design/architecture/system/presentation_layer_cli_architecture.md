@@ -61,6 +61,11 @@ platform.
 - [Flags by Operation](#flags-by-operation)
     - [Block Node](#block-node)
         - [List](#list)
+        - [Info](#info)
+        - [Logs](#logs)
+        - [Add](#add)
+        - [Upgrade](#upgrade)
+        - [Destroy](#destroy)
 
 ## Standards
 
