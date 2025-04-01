@@ -17,7 +17,7 @@ import chalk from 'chalk';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type NodeAlias} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
-import {sleep} from './helpers.js';
+import {get_apple_silicon, sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -94,27 +94,13 @@ export class PlatformInstaller {
   }
 
 
-  /** Get the Apple Silicon chip type */
-  async get_apple_silicon() {
-    const isMacOS = process.platform === 'darwin';
-    const isArm64 = process.arch === 'arm64';
-    if (isMacOS && isArm64) {
-      this.logger.info('Running on macOS with ARM architecture (likely Apple Silicon).');
-      const shellRunner = new ShellRunner();
-      return await shellRunner.run('sysctl -n machdep.cpu.brand_string');
-    } else {
-      this.logger.info('Not running on macOS ARM (Apple Silicon).');
-      return ["unknown"];
-    }
-  }
-
   /** Fetch and extract platform code into the container */
   async fetchPlatform(podReference: PodReference, tag: string, context?: string) {
     if (!podReference) throw new MissingArgumentError('podReference is required');
     if (!tag) throw new MissingArgumentError('tag is required');
 
     try {
-      const chipType = (await  this.get_apple_silicon()).join('');
+      const chipType = (await  get_apple_silicon(this.logger)).join('');
       this.logger.info(`chipType: ${chipType}`);
       const scriptName = 'extract-platform.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
