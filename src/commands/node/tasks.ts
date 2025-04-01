@@ -171,7 +171,7 @@ export class NodeCommandTasks {
       const parts = line.split('=');
       if (parts.length === 2) {
         if (parts[0] === 'hedera.config.version') {
-          let version = parseInt(parts[1]);
+          let version = Number.parseInt(parts[1]);
           line = `hedera.config.version=${++version}`;
         }
         newLines.push(line);
@@ -476,7 +476,7 @@ export class NodeCommandTasks {
           throw new SoloError('missing status line'); // Guard
         }
 
-        const statusNumber = parseInt(statusLine.split(' ').pop());
+        const statusNumber = Number.parseInt(statusLine.split(' ').pop());
 
         if (statusNumber === status) {
           task.title = `${title} - status ${chalk.green(NodeStatusEnums[status])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
@@ -1695,7 +1695,7 @@ export class NodeCommandTasks {
 
         const lastNodeIdMatch = lastNodeAlias.match(/\d+$/);
         if (lastNodeIdMatch.length) {
-          const incremented = parseInt(lastNodeIdMatch[0]) + 1;
+          const incremented = Number.parseInt(lastNodeIdMatch[0]) + 1;
           lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString()) as NodeAlias;
         }
 

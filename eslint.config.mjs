@@ -220,7 +220,6 @@ export default [
       'unicorn/no-negated-condition': 'warn', // TODO error
       'unicorn/prefer-string-replace-all': 'warn', // TODO error
       'unicorn/prefer-string-raw': 'warn', // TODO error
-      'unicorn/prefer-number-properties': 'warn', // TODO error
       'unicorn/prefer-logical-operator-over-ternary': 'warn', // TODO error
       'unicorn/no-lonely-if': 'warn', // TODO error
       'unicorn/explicit-length-check': 'warn', // TODO error

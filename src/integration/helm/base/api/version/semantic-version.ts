@@ -82,9 +82,9 @@ export class SemanticVersion {
     }
 
     try {
-      const major = parseInt(matcher[2], 10);
-      const minor = parseInt(matcher[3], 10);
-      const patch = parseInt(matcher[4], 10);
+      const major = Number.parseInt(matcher[2], 10);
+      const minor = Number.parseInt(matcher[3], 10);
+      const patch = Number.parseInt(matcher[4], 10);
       const prerelease = SemanticVersion.nullToBlank(matcher[5]);
       const build = SemanticVersion.nullToBlank(matcher[6]);
 

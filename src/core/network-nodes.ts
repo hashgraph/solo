@@ -76,7 +76,7 @@ export class NetworkNodes {
       const scriptName = 'support-zip.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       const k8 = this.k8Factory.getK8(context);
-      const chipType = (await  getAppleSiliconChipset(this.logger)).join('');
+      const chipType = (await getAppleSiliconChipset(this.logger)).join('');
 
       await k8.containers().readByRef(containerReference).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
 
@@ -94,7 +94,10 @@ export class NetworkNodes {
         .containers()
         .readByRef(containerReference)
         .execContainer(['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
-      await k8.containers().readByRef(containerReference).execContainer(`${HEDERA_HAPI_PATH}/${scriptName} ${chipType}`);
+      await k8
+        .containers()
+        .readByRef(containerReference)
+        .execContainer(`${HEDERA_HAPI_PATH}/${scriptName} ${chipType}`);
       await k8
         .containers()
         .readByRef(containerReference)

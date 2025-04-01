@@ -191,7 +191,7 @@ export class AccountCommand extends BaseCommand {
     }
 
     const hbarAmount = Number.parseFloat(amount.toString());
-    if (amount && isNaN(hbarAmount)) {
+    if (amount && Number.isNaN(hbarAmount)) {
       throw new SoloError(`The HBAR amount was invalid: ${amount}`);
     }
 

@@ -213,8 +213,8 @@ export function isNumeric(string_: string) {
     return false;
   } // we only process strings!
   return (
-    !isNaN(string_ as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
-    !isNaN(parseFloat(string_))
+    !Number.isNaN(string_ as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+    !Number.isNaN(Number.parseFloat(string_))
   ); // ...and ensure strings of whitespace fail
 }
 
@@ -246,7 +246,7 @@ export function parseIpAddressToUint8Array(ipAddress: string) {
   const uint8Array = new Uint8Array(4);
 
   for (let index = 0; index < 4; index++) {
-    uint8Array[index] = parseInt(parts[index], 10);
+    uint8Array[index] = Number.parseInt(parts[index], 10);
   }
 
   return uint8Array;
@@ -547,7 +547,7 @@ export function isIPv4Address(input: string): boolean {
 }
 
 /** Get the Apple Silicon chip type */
-export async function getAppleSiliconChipset(logger: SoloLogger, ) {
+export async function getAppleSiliconChipset(logger: SoloLogger) {
   const isMacOS = process.platform === 'darwin';
   const isArm64 = process.arch === 'arm64';
   if (isMacOS && isArm64) {
@@ -556,6 +556,6 @@ export async function getAppleSiliconChipset(logger: SoloLogger, ) {
     return await shellRunner.run('sysctl -n machdep.cpu.brand_string');
   } else {
     logger.info('Not running on macOS ARM (Apple Silicon).');
-    return ["unknown"];
+    return ['unknown'];
   }
 }
