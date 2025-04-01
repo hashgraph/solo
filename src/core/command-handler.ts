@@ -61,12 +61,12 @@ export class CommandHandler {
     const self = this;
 
     try {
-      directories.forEach(directoryPath => {
+      for (const directoryPath of directories) {
         if (!fs.existsSync(directoryPath)) {
           fs.mkdirSync(directoryPath, {recursive: true});
         }
         self.logger.debug(`OK: setup directory: ${directoryPath}`);
-      });
+      }
     } catch (error: Error | any) {
       throw new SoloError(`failed to create directory: ${error.message}`, error);
     }

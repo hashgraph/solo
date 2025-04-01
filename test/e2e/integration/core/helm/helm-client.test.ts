@@ -37,7 +37,7 @@ describe('HelmClient Tests', () => {
   let helmClient: HelmClient;
 
   before(async function () {
-    this.timeout(120000); // 2 minutes timeout for cluster creation
+    this.timeout(120_000); // 2 minutes timeout for cluster creation
 
     try {
       console.log(`Creating namespace ${NAMESPACE}...`);
@@ -431,11 +431,11 @@ describe('HelmClient Tests', () => {
   describe('Parameterized Chart Installation with Options Executes Successfully', function () {
     this.timeout(INSTALL_TIMEOUT * 1000);
 
-    getChartInstallOptionsTestParameters().forEach(parameters => {
+    for (const parameters of getChartInstallOptionsTestParameters()) {
       it(parameters.name, async () => {
         await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
         await testChartInstallWithCleanup(parameters.options);
       });
-    });
+    }
   });
 });

@@ -456,7 +456,7 @@ export class RemoteConfigManager {
 
     const consensusNodes: ConsensusNode[] = [];
 
-    Object.values(this.components.consensusNodes).forEach(node => {
+    for (const node of Object.values(this.components.consensusNodes)) {
       this.logger.debug(`Adding consensus node ${node.name} , node.cluster = ${node.cluster}`);
 
       const cluster = this.clusters[node.cluster];
@@ -481,7 +481,7 @@ export class RemoteConfigManager {
           ),
         ),
       );
-    });
+    }
 
     // return the consensus nodes
     return consensusNodes;

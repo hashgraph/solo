@@ -154,15 +154,17 @@ export class Templates {
     installationDirectory: string = PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
   ) {
     switch (dep) {
-      case constants.HELM:
+      case constants.HELM: {
         if (osPlatform === constants.OS_WINDOWS) {
           return PathEx.join(installationDirectory, `${dep}.exe`);
         }
 
         return PathEx.join(installationDirectory, dep);
+      }
 
-      default:
+      default: {
         throw new SoloError(`unknown dep: ${dep}`);
+      }
     }
   }
 
@@ -209,12 +211,14 @@ export class Templates {
   static renderGrpcTlsCertificatesSecretName(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy Proxy
-      case GrpcProxyTlsEnums.GRPC:
+      case GrpcProxyTlsEnums.GRPC: {
         return `haproxy-proxy-secret-${nodeAlias}`;
+      }
 
       //? Envoy Proxy
-      case GrpcProxyTlsEnums.GRPC_WEB:
+      case GrpcProxyTlsEnums.GRPC_WEB: {
         return `envoy-proxy-secret-${nodeAlias}`;
+      }
     }
   }
 
@@ -229,12 +233,14 @@ export class Templates {
   static renderGrpcTlsCertificatesSecretLabelObject(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy Proxy
-      case GrpcProxyTlsEnums.GRPC:
+      case GrpcProxyTlsEnums.GRPC: {
         return {'haproxy-proxy-secret': nodeAlias};
+      }
 
       //? Envoy Proxy
-      case GrpcProxyTlsEnums.GRPC_WEB:
+      case GrpcProxyTlsEnums.GRPC_WEB: {
         return {'envoy-proxy-secret': nodeAlias};
+      }
     }
   }
 
@@ -253,10 +259,10 @@ export class Templates {
   public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {
     const mapping: Record<NodeAlias, IP> = {};
 
-    unparsed.split(',').forEach(data => {
+    for (const data of unparsed.split(',')) {
       const [nodeAlias, ip] = data.split('=') as [NodeAlias, IP];
       mapping[nodeAlias] = ip;
-    });
+    }
 
     return mapping;
   }
@@ -264,14 +270,14 @@ export class Templates {
   public static parseNodeAliasToDomainNameMapping(unparsed: string): Record<NodeAlias, string> {
     const mapping: Record<NodeAlias, string> = {};
 
-    unparsed.split(',').forEach(data => {
+    for (const data of unparsed.split(',')) {
       const [nodeAlias, domainName] = data.split('=') as [NodeAlias, string];
 
       if (!nodeAlias || typeof nodeAlias !== 'string') throw new SoloError(`Can't parse node alias: ${data}`);
       if (!domainName || typeof domainName !== 'string') throw new SoloError(`Can't parse domain name: ${data}`);
 
       mapping[nodeAlias] = domainName;
-    });
+    }
 
     return mapping;
   }
@@ -305,9 +311,9 @@ export class Templates {
       '{cluster}': cluster,
     };
 
-    Object.entries(searchReplace).forEach(([search, replace]) => {
+    for (const [search, replace] of Object.entries(searchReplace)) {
       dnsConsensusNodePattern = dnsConsensusNodePattern.replace(search, replace);
-    });
+    }
 
     return `${dnsConsensusNodePattern}.${dnsBaseDomain}`;
   }

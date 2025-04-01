@@ -183,7 +183,7 @@ export class PlatformInstaller {
       );
 
       // copy all public keys for all nodes
-      consensusNodes.forEach(consensusNode => {
+      for (const consensusNode of consensusNodes) {
         sourceFiles.push(
           PathEx.joinWithRealPath(
             stagingDirectory,
@@ -191,7 +191,7 @@ export class PlatformInstaller {
             Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias),
           ),
         );
-      });
+      }
 
       const data = {};
       for (const sourceFile of sourceFiles) {

@@ -243,9 +243,9 @@ describe('BaseCommand', () => {
       const expectedClusterReferences = {cluster: 'context1', cluster2: 'context2'};
       // @ts-expect-error - TS2445: to access private property
       const clusterReferences: ClusterReferences = baseCmd.remoteConfigManager.getClusterRefs();
-      Object.keys(clusterReferences).forEach(clusterReference => {
+      for (const clusterReference of Object.keys(clusterReferences)) {
         expect(clusterReferences[clusterReference]).to.equal(expectedClusterReferences[clusterReference]);
-      });
+      }
     });
   });
 });

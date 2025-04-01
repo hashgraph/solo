@@ -34,9 +34,9 @@ export class K8ClientIngresses implements Ingresses {
       return [];
     } else {
       const ingressNames = [];
-      result.body.items.forEach(ingress => {
+      for (const ingress of result.body.items) {
         ingressNames.push(ingress.metadata?.name ?? '');
-      });
+      }
       return ingressNames;
     }
   }
@@ -47,12 +47,12 @@ export class K8ClientIngresses implements Ingresses {
     await this.networkingApi
       .listIngressForAllNamespaces()
       .then(response => {
-        response.body.items.forEach(ingress => {
+        for (const ingress of response.body.items) {
           const currentIngressName = ingress.metadata.name;
           if (currentIngressName.includes(name)) {
             ingresses.push(currentIngressName);
           }
-        });
+        }
       })
       .catch(error => {
         throw new SoloError(`Error listing Ingresses: ${error}`);

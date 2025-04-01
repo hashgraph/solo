@@ -132,7 +132,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`);
     }
 
-    Object.entries(this.clusters).forEach(([clusterReference, cluster]: [ClusterReference, Cluster]): void => {
+    for (const [clusterReference, cluster] of Object.entries(this.clusters)) {
       if (!clusterReference || typeof clusterReference !== 'string') {
         throw new SoloError(`Invalid remote config cluster-ref: ${clusterReference}`);
       }
@@ -150,7 +150,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
           `Invalid remote config namespace: ${cluster.namespace} for cluster-ref: ${clusterReference}`,
         );
       }
-    });
+    }
   }
 
   public toObject(): RemoteConfigDataStructure {

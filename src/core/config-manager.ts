@@ -77,7 +77,7 @@ export class ConfigManager {
 
       let value = argv[flag.name];
       switch (flag.definition.type) {
-        case 'string':
+        case 'string': {
           if (value && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
             this.logger.debug(
               `Resolving directory path for '${flag.name}': ${value}, to: ${PathEx.resolve(value)}, note: ~/ is not supported`,
@@ -95,8 +95,9 @@ export class ConfigManager {
           }
           this.config.flags[flag.name] = `${value}`; // force convert to string
           break;
+        }
 
-        case 'number':
+        case 'number': {
           try {
             if (flags.integerFlags.has(flag.name)) {
               this.config.flags[flag.name] = Number.parseInt(value);
@@ -107,12 +108,14 @@ export class ConfigManager {
             throw new SoloError(`invalid number value '${value}': ${error.message}`, error);
           }
           break;
+        }
 
-        case 'boolean':
+        case 'boolean': {
           this.config.flags[flag.name] = value === true || value === 'true'; // use comparison to enforce boolean value
           break;
+        }
 
-        case 'StorageType':
+        case 'StorageType': {
           // @ts-expect-error: TS2475: const enums can only be used in property or index access expressions
           if (!Object.values(constants.StorageType).includes(`${value}`)) {
             throw new SoloError(`Invalid storage type value '${value}'`);
@@ -120,8 +123,10 @@ export class ConfigManager {
             this.config.flags[flag.name] = value;
           }
           break;
-        default:
+        }
+        default: {
           throw new SoloError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`);
+        }
       }
     }
 
@@ -213,31 +218,33 @@ export class ConfigManager {
         this.usedConfigs = new Map();
 
         // add the flags as properties to this class
-        flags?.forEach(flag => {
-          // @ts-ignore
-          this[`_${flag.constName}`] = self.getFlag(flag);
-          Object.defineProperty(this, flag.constName, {
-            get() {
-              this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
-              return this[`_${flag.constName}`];
-            },
-          });
-        });
+        if (flags)
+          for (const flag of flags) {
+            // @ts-ignore
+            this[`_${flag.constName}`] = self.getFlag(flag);
+            Object.defineProperty(this, flag.constName, {
+              get() {
+                this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
+                return this[`_${flag.constName}`];
+              },
+            });
+          }
 
         // add the extra properties as properties to this class
-        extraProperties?.forEach(name => {
-          // @ts-ignore
-          this[`_${name}`] = '';
-          Object.defineProperty(this, name, {
-            get() {
-              this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
-              return this[`_${name}`];
-            },
-            set(value) {
-              this[`_${name}`] = value;
-            },
-          });
-        });
+        if (extraProperties)
+          for (const name of extraProperties) {
+            // @ts-ignore
+            this[`_${name}`] = '';
+            Object.defineProperty(this, name, {
+              get() {
+                this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
+                return this[`_${name}`];
+              },
+              set(value) {
+                this[`_${name}`] = value;
+              },
+            });
+          }
       }
 
       /** Get the list of unused configurations that were not accessed */
@@ -245,18 +252,20 @@ export class ConfigManager {
         const unusedConfigs: string[] = [];
 
         // add the flag constName to the unusedConfigs array if it was not accessed
-        flags?.forEach(flag => {
-          if (!this.usedConfigs.has(flag.constName)) {
-            unusedConfigs.push(flag.constName);
+        if (flags)
+          for (const flag of flags) {
+            if (!this.usedConfigs.has(flag.constName)) {
+              unusedConfigs.push(flag.constName);
+            }
           }
-        });
 
         // add the extra properties to the unusedConfigs array if it was not accessed
-        extraProperties?.forEach(item => {
-          if (!this.usedConfigs.has(item)) {
-            unusedConfigs.push(item);
+        if (extraProperties)
+          for (const item of extraProperties) {
+            if (!this.usedConfigs.has(item)) {
+              unusedConfigs.push(item);
+            }
           }
-        });
         return unusedConfigs;
       }
     };

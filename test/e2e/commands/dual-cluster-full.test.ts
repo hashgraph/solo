@@ -245,7 +245,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
     expect(hederaExplorerPods).to.have.lengthOf(1);
     let portForwarder: ExtendedNetServer = null;
     try {
-      portForwarder = await k8.pods().readByReference(hederaExplorerPods[0].podReference).portForward(8_080, 8_080);
+      portForwarder = await k8.pods().readByReference(hederaExplorerPods[0].podReference).portForward(8080, 8080);
       await sleep(Duration.ofSeconds(2));
       const guiUrl: string = 'http://127.0.0.1:8080/localnet/dashboard';
       const packageDownloader: PackageDownloader = container.resolve<PackageDownloader>(InjectTokens.PackageDownloader);
@@ -449,7 +449,7 @@ async function verifyMirrorNodeDeployWasSuccessful(
   expect(mirrorNodeRestPods).to.have.lengthOf(1);
   let portForwarder: ExtendedNetServer = null;
   try {
-    portForwarder = await k8.pods().readByReference(mirrorNodeRestPods[0].podReference).portForward(5_551, 5_551);
+    portForwarder = await k8.pods().readByReference(mirrorNodeRestPods[0].podReference).portForward(5551, 5551);
     await sleep(Duration.ofSeconds(2));
     const queryUrl: string = 'http://localhost:5551/api/v1/network/nodes';
     let received: boolean = false;

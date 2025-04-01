@@ -49,12 +49,14 @@ export class Flags {
         const promptOptions = {default: defaultValue, message: promptMessage};
 
         switch (type) {
-          case 'input':
+          case 'input': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, promptOptions);
             break;
-          case 'toggle':
+          }
+          case 'toggle': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
             break;
+          }
           case 'number': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(numberPrompt, promptOptions);
             break;
@@ -114,9 +116,9 @@ export class Flags {
    *
    */
   public static setRequiredCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
-    commandFlags.forEach(flag => {
+    for (const flag of commandFlags) {
       y.option(flag.name, {...flag.definition, demandOption: true});
-    });
+    }
   }
 
   /**
@@ -126,14 +128,14 @@ export class Flags {
    *
    */
   public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
-    commandFlags.forEach(flag => {
+    for (const flag of commandFlags) {
       let defaultValue = flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined;
       defaultValue = defaultValue && flag.definition.dataMask ? flag.definition.dataMask : defaultValue;
       y.option(flag.name, {
         ...flag.definition,
         default: defaultValue,
       });
-    });
+    }
   }
 
   public static readonly devMode: CommandFlag = {
@@ -263,7 +265,7 @@ export class Flags {
     const valuesFiles: Record<ClusterReference, Array<string>> = {};
     if (input) {
       const inputItems = input.split(',');
-      inputItems.forEach(v => {
+      for (const v of inputItems) {
         const parts = v.split('=');
 
         let clusterReference: string;
@@ -281,7 +283,7 @@ export class Flags {
           valuesFiles[clusterReference] = [];
         }
         valuesFiles[clusterReference].push(valuesFile);
-      });
+      }
     }
 
     return valuesFiles;
@@ -2498,11 +2500,11 @@ export class Flags {
 
   /** Resets the definition.disablePrompt for all flags */
   private static resetDisabledPrompts() {
-    Flags.allFlags.forEach(f => {
+    for (const f of Flags.allFlags) {
       if (f.definition.disablePrompt) {
         delete f.definition.disablePrompt;
       }
-    });
+    }
   }
 
   public static readonly allFlagsMap = new Map(Flags.allFlags.map(f => [f.name, f]));
