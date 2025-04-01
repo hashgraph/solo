@@ -126,25 +126,25 @@ flags may be specified at any level of the command hierarchy.
 
 ### Final Vision
 
-| Group       | Resource                   | Operation(s)                                                                                |
-|-------------|----------------------------|---------------------------------------------------------------------------------------------|
-| block       | node                       | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| cluster-ref | config                     | < list \| info \| connect \| disconnect >                                                   |
-| consensus   | network                    | < info \| deploy \| freeze \| upgrade \| destroy >                                          |
-| consensus   | node                       | < list \| info \| logs \| add \| update \| destroy \| start \| stop \| restart \| refresh > |
-| consensus   | state                      | < list \| download \| upload >                                                              |
-| consensus   | diagnostic                 | < logs \| configs \| all >                                                                  |
-| deployment  | config                     | < list \| info \| create \| delete \| import >                                              |
-| deployment  | cluster                    | < list \| info \| attach \| detach >                                                        |
-| deployment  | state                      | < info \| destroy >                                                                         |
-| explorer    | node                       | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| keys        | consensus                  | < generate >                                                                                |
-| ledger      | system                     | < init \| accounts-rekey \| staking-setup >                                                 |
-| ledger      | account                    | < list \| info \| create \| update \| delete \| import >                                    |
-| ledger      | crypto                     | < transfer \| balance >                                                                     |
-| mirror      | node                       | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| relay       | node                       | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| quick-start | < evm \| single \| multi > | < info \| deploy \| destroy >                                                               |
+| Group       | Resource            | Operation(s)                                                                                |
+|-------------|---------------------|---------------------------------------------------------------------------------------------|
+| block       | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
+| cluster-ref | config              | < list \| info \| connect \| disconnect >                                                   |
+| consensus   | network             | < info \| deploy \| freeze \| upgrade \| destroy >                                          |
+| consensus   | node                | < list \| info \| logs \| add \| update \| destroy \| start \| stop \| restart \| refresh > |
+| consensus   | state               | < list \| download \| upload >                                                              |
+| consensus   | diagnostic          | < logs \| configs \| all >                                                                  |
+| deployment  | config              | < list \| info \| create \| delete \| import >                                              |
+| deployment  | cluster             | < list \| info \| attach \| detach >                                                        |
+| deployment  | state               | < info \| destroy >                                                                         |
+| explorer    | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
+| keys        | consensus           | < generate >                                                                                |
+| ledger      | system              | < init \| accounts-rekey \| staking-setup >                                                 |
+| ledger      | account             | < list \| info \| create \| update \| delete \| import >                                    |
+| ledger      | crypto              | < transfer \| balance >                                                                     |
+| mirror      | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
+| relay       | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
+| quick-start | < single \| multi > | < info \| deploy \| destroy >                                                               |
 
 #### Example Commands
 
@@ -173,15 +173,14 @@ hierarchy. These flags are used to configure the behavior of the CLI application
 
 The following global flags are supported:
 
-| Flag                                                                     | Type    | Required | Valid Values                                  | Default Value | Description                                                                                                                          |
-|--------------------------------------------------------------------------|---------|----------|-----------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `--deployment`                                                           | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command.                                       |
-| `--force-port-forward` <br/>(Note: Should be moved to specific commands) | boolean | No       | `true` (present) or `false` (absent)          | `true`        | Force port forwarding for all Solo interactions with the remote or local kubernetes cluster.                                         |
-| `--debug`                                                                | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Enable verbose diagnostic output and logging.                                                                                        |
-| `--format`                                                               | enum    | No       | `list`, `text`, `json`, or `yaml`             | `list`        | Sets the format for printing command output. The default is a command-specific human-friendly output format.                         |
-| `-q, --quiet`                                                            | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Disable all interactive prompts when running solo commands. If input is required, defaults will be used, or an error will be raised. |
-| `-v, --version`                                                          | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the version number and exits.                                                                                                |
-| `-h, --help`                                                             | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the help information for the supplied command.                                                                               |
+| Flag            | Type    | Required | Valid Values                                  | Default Value | Description                                                                                                                          |
+|-----------------|---------|----------|-----------------------------------------------|---------------|--------------------------------------------------------------------------------------------------------------------------------------|
+| `--deployment`  | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command.                                       |
+| `--debug`       | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Enable verbose diagnostic output and logging.                                                                                        |
+| `--format`      | enum    | No       | `list`, `text`, `json`, or `yaml`             | `list`        | Sets the format for printing command output. The default is a command-specific human-friendly output format.                         |
+| `-q, --quiet`   | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Disable all interactive prompts when running solo commands. If input is required, defaults will be used, or an error will be raised. |
+| `-v, --version` | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the version number and exits.                                                                                                |
+| `-h, --help`    | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Display the help information for the supplied command.                                                                               |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -263,11 +262,11 @@ associated with each group.
 
 ### Deployment
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **Cluster**   | `cluster`      |             |
-| **Config**    | `config`       |             |
-| **State**     | `state`        |             |
+| Resource Name | Command Syntax | Description                                                                                                                                       |
+|---------------|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Cluster**   | `cluster`      | View and manage Kubernetes clusters used by a deployment.                                                                                         |
+| **Config**    | `config`       | List, view, create, delete, and import deployments. These commands affect the local configuration only.                                           |
+| **State**     | `state`        | View the actual state of the deployment on the Kubernetes clusters or teardown/destroy all remote and local configuration for a given deployment. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -275,9 +274,9 @@ associated with each group.
 
 ### Explorer
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **Node**      | `node`         |             |
+| Resource Name | Command Syntax | Description                                                                                                      |
+|---------------|----------------|------------------------------------------------------------------------------------------------------------------|
+| **Node**      | `node`         | List, create, manage, or destroy explorer node instances. Operates on a single explorer node instance at a time. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -285,9 +284,9 @@ associated with each group.
 
 ### Keys
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **Consensus** | `consensus`    |             |
+| Resource Name | Command Syntax | Description                                                                                    |
+|---------------|----------------|------------------------------------------------------------------------------------------------|
+| **Consensus** | `consensus`    | Generate unique cryptographic keys (gossip or grpc TLS keys) for the Consensus Node instances. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -295,11 +294,11 @@ associated with each group.
 
 ### Ledger
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **System**    |                |             |
-| **Account**   |                |             |
-| **Crypto**    |                |             |
+| Resource Name | Command Syntax | Description                                                                                                                      |
+|---------------|----------------|----------------------------------------------------------------------------------------------------------------------------------|
+| **System**    | `system`       | Perform a full ledger initialization on a new deployment, rekey privileged/system accounts, or setup network staking parameters. |
+| **Account**   | `account`      | View, list, create, update, delete, and import ledger accounts.                                                                  |
+| **Crypto**    | `crypto`       | Transfer native crypto tokens or query native token account balances.                                                            |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -307,9 +306,9 @@ associated with each group.
 
 ### Mirror
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **Node**      | `node`         |             |\
+| Resource Name | Command Syntax | Description                                                                                                  |
+|---------------|----------------|--------------------------------------------------------------------------------------------------------------|
+| **Node**      | `node`         | List, create, manage, or destroy mirror node instances. Operates on a single mirror node instance at a time. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -317,9 +316,9 @@ associated with each group.
 
 ### Relay
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **Node**      | `node`         |             |
+| Resource Name | Command Syntax | Description                                                                                                |
+|---------------|----------------|------------------------------------------------------------------------------------------------------------|
+| **Node**      | `node`         | List, create, manage, or destroy relay node instances. Operates on a single relay node instance at a time. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -327,11 +326,10 @@ associated with each group.
 
 ### Quick Start
 
-| Resource Name | Command Syntax | Description |
-|---------------|----------------|-------------|
-| **EVM**       | `evm`          |             |
-| **Single**    | `single`       |             |
-| **Multi**     | `multi`        |             |
+| Resource Name | Command Syntax | Description                                                                                                                                                  |
+|---------------|----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Single**    | `single`       | Creates a uniquely named deployment with a single consensus node, mirror node, block node, relay node, and explorer node.                                    |
+| **Multi**     | `multi`        | Creates a uniquely named deployment with a four consensus nodes, a single mirror node, a single block node, a single relay node, and a single explorer node. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -346,14 +344,14 @@ operations associated with each resource.
 
 #### Node
 
-| Operation Name | Command Syntax | Description |
-|----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Logs**       | `logs`         |             |
-| **Add**        | `add`          |             |
-| **Upgrade**    | `upgrade`      |             |
-| **Destroy**    | `destroy`      |             |
+| Operation Name | Command Syntax | Description                                                                                                                                                                                    |
+|----------------|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **List**       | `list`         | Lists the block nodes configured for the specified deployment. Requires access to all Kubernetes clusters attached to the deployment.                                                          |
+| **Info**       | `info`         | Displays detailed status information for a single block node configured in the specified deployment. Requires access to all Kubernetes clusters attached to the deployment.                    |
+| **Logs**       | `logs`         | Displays the system logs for a single block node configured in the specified deployment. Requires access to all Kubernetes clusters attached to the deployment.                                |
+| **Add**        | `add`          | Creates and configures a new block node instance for the specified deployment using the specified Kubernetes cluster. The cluster must be accessible and attached to the specified deployment. |
+| **Upgrade**    | `upgrade`      | Upgrades a single block node instance in the specified deployment. Requires access to all Kubernetes clusters attached to the deployment.                                                      |
+| **Destroy**    | `destroy`      | Destroys a single block node instance in the specified deployment. Requires access to all Kubernetes clusters attached to the deployment.                                                      |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -363,12 +361,12 @@ operations associated with each resource.
 
 #### Config
 
-| Operation Name | Command Syntax | Description |
-|----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Connect**    | `connect`      |             |
-| **Disconnect** | `disconnect`   |             |
+| Operation Name | Command Syntax | Description                                                                                                                              |
+|----------------|----------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| **List**       | `list`         | Lists the configured Kubernetes context to internal Solo cluster mappings.                                                               |
+| **Info**       | `info`         | Displays the status information and attached deployments for a given Solo internal cluster mapping.                                      |
+| **Connect**    | `connect`      | Creates a new internal Solo cluster name to a Kubernetes context or maps a Kubernetes context to an existing internal Solo cluster name. |
+| **Disconnect** | `disconnect`   | Removes the Kubernetes context associated with an internal Solo cluster name.                                                            |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -631,9 +629,110 @@ solo block node list --deployment <name>
 
 ###### Flags
 
-| Flag Name  | Command Syntax        | Description |
-|------------|-----------------------|-------------|
-| Deployment | `--deployment <name>` |             |
+| Flag           | Type   | Required | Valid Values                                  | Default Value | Description                                                                                    |
+|----------------|--------|----------|-----------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
+| `--deployment` | string | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command. |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+#### Info
+
+###### Syntax
+
+```bash
+solo block node info --deployment <name> --id <id>
+```
+
+###### Flags
+
+| Flag           | Type    | Required | Valid Values                                  | Default Value | Description                                                                                    |
+|----------------|---------|----------|-----------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
+| `--deployment` | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command. |
+| `--id`         | integer | Yes      | Any integer value `>= 0`                      |               | The unique identifier of the block node instance to view.                                      |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+#### Logs
+
+###### Syntax
+
+```bash
+solo block node logs --deployment <name> --id <id>
+```
+
+###### Flags
+
+| Flag           | Type    | Required | Valid Values                                  | Default Value | Description                                                                                    |
+|----------------|---------|----------|-----------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
+| `--deployment` | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command. |
+| `--id`         | integer | Yes      | Any integer value `>= 0`                      |               | The unique identifier of the block node instance to view.                                      |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+#### Add
+
+###### Syntax
+
+```bash
+solo block node add --deployment <name> --cluster-ref <name> [--chart-version <semver>] [--enable-ingress] [--domain-name <name>] [--values-file <path>]
+```
+
+###### Flags
+
+| Flag               | Type    | Required | Valid Values                                  | Default Value    | Description                                                                                               |
+|--------------------|---------|----------|-----------------------------------------------|------------------|-----------------------------------------------------------------------------------------------------------|
+| `--deployment`     | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |                  | The name of an existing deployment which was created via the deployment config create command.            |
+| `--cluster-ref`    | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |                  | The name of an existing cluster reference which was created via the "cluster-ref config connect" command. |
+| `--chart-version`  | semver  | No       | Any SemVer compatible string                  |                  | The version of the Block Node helm chart to be used.                                                      |
+| `--enable-ingress` | boolean | No       | `true` (present) or `false` (absent)          | `false` (absent) | Enable ingress support for the block node instance.                                                       |
+| `--domain-name`    | string  | No       | Any RFC-1034 compliant string                 |                  | The domain name to be used for ingress support.                                                           |
+| `--values-file`    | path    | No       | Any valid existing file path                  |                  | A Helm values file used to override the computed defaults.                                                |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+#### Upgrade
+
+###### Syntax
+
+```bash
+solo block node upgrade --deployment <name> --id <id> --chart-version <semver>
+```
+
+###### Flags
+
+| Flag              | Type    | Required | Valid Values                                  | Default Value | Description                                                                                                                                   |
+|-------------------|---------|----------|-----------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `--deployment`    | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command.                                                |
+| `--id`            | integer | Yes      | Any integer value `>= 0`                      |               | The unique identifier of the block node instance to upgrade.                                                                                  |
+| `--chart-version` | semver  | No       | Any SemVer compatible string                  |               | The Block Node helm chart version to which the instance should be upgraded. This version must be greater than the currently deployed version. |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+#### Destroy
+
+###### Syntax
+
+```bash
+solo block node logs --deployment <name> --id <id> [--force]
+```
+
+###### Flags
+
+| Flag           | Type    | Required | Valid Values                                  | Default Value | Description                                                                                    |
+|----------------|---------|----------|-----------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
+| `--deployment` | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command. |
+| `--id`         | integer | Yes      | Any integer value `>= 0`                      |               | The unique identifier of the block node instance to destroy.                                   |
+| `-f, --force`  | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Force the deletion of all provisioned block node resources.                                    |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
