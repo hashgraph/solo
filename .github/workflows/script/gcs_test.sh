@@ -124,7 +124,7 @@ npm run solo-test -- node stop -i node1 --deployment "${SOLO_DEPLOYMENT}"
 
 echo "Waiting for backup uploader to run"
 # manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
-kubectl exec network-node1-0 -c backup-uploader -n solo-e2e -- /backup.sh
+kubectl exec network-node1-0 -c backup-uploader -n solo-e2e -- /app/backup.sh
 
 echo "Retrieve logs and check if it include the error message"
 # example : {"level":"error","msg":"Updated modification time ......}
