@@ -3,7 +3,7 @@
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
 import {Flags as flags} from '../commands/flags.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 

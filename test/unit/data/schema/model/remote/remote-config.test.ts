@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {readFileSync} from 'fs';
+import {readFileSync} from 'node:fs';
 import {parse} from 'yaml';
 import {expect} from 'chai';
 import {beforeEach} from 'mocha';
-import os from 'os';
+import os from 'node:os';
 import {instanceToPlain, plainToInstance} from 'class-transformer';
 import {RemoteConfig} from '../../../../../../src/data/schema/model/remote/remote-config.js';
 import {LedgerPhase} from '../../../../../../src/data/schema/model/remote/ledger-phase.js';

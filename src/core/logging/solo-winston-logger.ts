@@ -2,7 +2,7 @@
 
 import * as winston from 'winston';
 import {v4 as uuidv4} from 'uuid';
-import * as util from 'util';
+import * as util from 'node:util';
 import chalk from 'chalk';
 import * as constants from '../constants.js';
 import {inject, injectable} from 'tsyringe-neo';

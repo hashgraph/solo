@@ -7,7 +7,7 @@ import {Listr} from 'listr2';
 import {SoloError} from './errors/solo-error.js';
 import {type Lock} from './lock/lock.js';
 import * as constants from './constants.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {type ConfigManager} from './config-manager.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type AccountManager} from './account-manager.js';

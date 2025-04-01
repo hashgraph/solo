@@ -18,7 +18,7 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {expect} from 'chai';
-import fs from 'fs';
+import fs from 'node:fs';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
@@ -40,7 +40,7 @@ import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-log
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ExtendedNetServer} from '../../../src/types/index.js';
-import http from 'http';
+import http from 'node:http';
 import {sleep} from '../../../src/core/helpers.js';
 import {type AccountManager} from '../../../src/core/account-manager.js';
 import {

@@ -7,7 +7,7 @@ import {bootstrapTestVariables, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_T
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';

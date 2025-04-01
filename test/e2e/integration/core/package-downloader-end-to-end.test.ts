@@ -5,7 +5,7 @@ import 'chai-as-promised';
 import {it, describe} from 'mocha';
 import {expect} from 'chai';
 
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import {PackageDownloader} from '../../../../src/core/package-downloader.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Duration} from '../../../../src/core/time/duration.js';

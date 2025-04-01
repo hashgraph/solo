@@ -2,7 +2,7 @@
 
 import {Listr} from 'listr2';
 import {BaseCommand} from './base.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import * as constants from '../core/constants.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';

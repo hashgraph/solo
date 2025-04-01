@@ -4,7 +4,7 @@ import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
 import each from 'mocha-each';
 
-import fs from 'fs';
+import fs from 'node:fs';
 import {HelmDependencyManager} from '../../../../../src/core/dependency-managers/index.js';
 import {getTestCacheDirectory, getTemporaryDirectory} from '../../../../test-utility.js';
 import * as version from '../../../../../version.js';

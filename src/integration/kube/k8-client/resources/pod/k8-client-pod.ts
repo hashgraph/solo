@@ -22,7 +22,7 @@ import {
 } from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import * as constants from '../../../../../core/constants.js';
-import net from 'net';
+import net from 'node:net';
 import {InjectTokens} from '../../../../../core/dependency-injection/inject-tokens.js';
 import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {ContainerName} from '../../../resources/container/container-name.js';

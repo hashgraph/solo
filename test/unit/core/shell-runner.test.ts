@@ -7,8 +7,8 @@ import sinon from 'sinon';
 import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import {ShellRunner} from '../../../src/core/shell-runner.js';
-import {ChildProcess} from 'child_process';
-import {Readable} from 'stream';
+import {ChildProcess} from 'node:child_process';
+import {Readable} from 'node:stream';
 import {Duration} from '../../../src/core/time/duration.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 

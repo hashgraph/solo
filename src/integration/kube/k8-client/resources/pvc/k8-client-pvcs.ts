@@ -17,7 +17,7 @@ import {KubeApiResponse} from '../../../kube-api-response.js';
 import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {ResourceType} from '../../../resources/resource-type.js';
 import {K8ClientPvc} from './k8-client-pvc.js';
-import {type IncomingMessage} from 'http';
+import {type IncomingMessage} from 'node:http';
 import {type PvcReference} from '../../../resources/pvc/pvc-reference.js';
 
 export class K8ClientPvcs implements Pvcs {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
+import fs from 'node:fs';
 import * as yaml from 'yaml';
 import {MissingArgumentError} from '../../errors/missing-argument-error.js';
 import {SoloError} from '../../errors/solo-error.js';

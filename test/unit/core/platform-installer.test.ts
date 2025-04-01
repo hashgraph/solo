@@ -3,8 +3,8 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import * as fs from 'fs';
-import * as os from 'os';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as constants from '../../../src/core/constants.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';

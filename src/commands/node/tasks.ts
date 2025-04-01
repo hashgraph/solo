@@ -36,9 +36,9 @@ import {
 } from '@hashgraph/sdk';
 import {SoloError} from '../../core/errors/solo-error.js';
 import {MissingArgumentError} from '../../core/errors/missing-argument-error.js';
-import path from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
+import path from 'node:path';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
 import * as helpers from '../../core/helpers.js';
 import {
   addDebugOptions,

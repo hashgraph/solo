@@ -10,13 +10,13 @@ import {type ContainerReference} from '../../../resources/container/container-re
 import {IllegalArgumentError} from '../../../../../core/errors/illegal-argument-error.js';
 import {MissingArgumentError} from '../../../../../core/errors/missing-argument-error.js';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 import {type LocalContextObject} from '../../../../../types/index.js';
 import * as stream from 'node:stream';
 import {v4 as uuid4} from 'uuid';
 import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
-import os from 'os';
+import os from 'node:os';
 import {Exec, type KubeConfig} from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import {InjectTokens} from '../../../../../core/dependency-injection/inject-tokens.js';

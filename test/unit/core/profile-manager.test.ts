@@ -3,7 +3,7 @@
 import {expect} from 'chai';
 import {after, describe, it} from 'mocha';
 
-import fs from 'fs';
+import fs from 'node:fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
