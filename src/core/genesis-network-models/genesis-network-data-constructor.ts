@@ -73,6 +73,8 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         const externalPort = +constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT;
         // Add gossip endpoints
         nodeDataWrapper.addGossipEndpoint(networkNodeService.externalAddress, externalPort);
+        nodeDataWrapper.addGossipEndpoint(networkNodeService.externalAddress, externalPort);
+        rosterDataWrapper.addGossipEndpoint(networkNodeService.externalAddress, externalPort);
         rosterDataWrapper.addGossipEndpoint(networkNodeService.externalAddress, externalPort);
 
         const domainName = domainNamesMapping?.[consensusNode.name];
