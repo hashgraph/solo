@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn, type ChildProcessWithoutNullStreams} from 'child_process';
+import {spawn, type ChildProcessWithoutNullStreams} from 'node:child_process';
 import {HelmExecutionException} from '../helm-execution-exception.js';
 import {HelmParserException} from '../helm-parser-exception.js';
 import {type Duration} from '../../../core/time/duration.js';

@@ -2,8 +2,8 @@
 
 import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
-import {dirname} from 'path';
-import {fileURLToPath} from 'url';
+import {dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {ContainerName} from '../integration/kube/resources/container/container-name.js';
 import {PathEx} from '../business/utils/path-ex.js';

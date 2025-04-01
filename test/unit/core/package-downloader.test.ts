@@ -4,8 +4,8 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
 import {PackageDownloader} from '../../../src/core/package-downloader.js';
-import * as fs from 'fs';
-import * as os from 'os';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
 import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
 import {ResourceNotFoundError} from '../../../src/core/errors/resource-not-found-error.js';

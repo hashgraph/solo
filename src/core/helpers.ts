@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import util from 'util';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import util from 'node:util';
 import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';

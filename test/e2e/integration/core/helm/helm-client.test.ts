@@ -10,8 +10,8 @@ import {Repository} from '../../../../../src/integration/helm/model/repository.j
 import {DefaultHelmClientBuilder} from '../../../../../src/integration/helm/impl/default-helm-client-builder.js';
 import {type InstallChartOptions} from '../../../../../src/integration/helm/model/install/install-chart-options.js';
 import {UpgradeChartOptionsBuilder} from '../../../../../src/integration/helm/model/upgrade/upgrade-chart-options-builder.js';
-import {exec as execCallback} from 'child_process';
-import {promisify} from 'util';
+import {exec as execCallback} from 'node:child_process';
+import {promisify} from 'node:util';
 import {InstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/install-chart-options-builder.js';
 import {UnInstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/un-install-chart-options-builder.js';
 import {TestChartOptionsBuilder} from '../../../../../src/integration/helm/model/test/test-chart-options-builder.js';

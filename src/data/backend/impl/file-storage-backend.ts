@@ -5,7 +5,7 @@ import {StorageOperation} from '../api/storage-operation.js';
 import {type Stats, statSync, lstatSync, readdirSync, writeFileSync, unlinkSync} from 'node:fs';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
-import {readFileSync} from 'fs';
+import {readFileSync} from 'node:fs';
 import {PathEx} from '../../../business/utils/path-ex.js';
 
 /**

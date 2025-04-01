@@ -3,7 +3,7 @@
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import * as constants from './constants.js';
 import {sleep} from './helpers.js';

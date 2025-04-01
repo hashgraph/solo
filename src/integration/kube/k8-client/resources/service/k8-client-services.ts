@@ -13,7 +13,7 @@ import {type ServiceSpec} from '../../../resources/service/service-spec.js';
 import {type ServiceStatus} from '../../../resources/service/service-status.js';
 import {type ServiceReference} from '../../../resources/service/service-reference.js';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
-import {type IncomingMessage} from 'http';
+import {type IncomingMessage} from 'node:http';
 
 export class K8ClientServices extends K8ClientBase implements Services {
   public constructor(private readonly kubeClient: CoreV1Api) {

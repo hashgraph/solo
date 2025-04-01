@@ -15,7 +15,7 @@ import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror-node.js';
 import {PrivateKey, Status, TopicCreateTransaction, TopicMessageSubmitTransaction} from '@hashgraph/sdk';
-import * as http from 'http';
+import * as http from 'node:http';
 import {PackageDownloader} from '../../../src/core/package-downloader.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {ExplorerCommand} from '../../../src/commands/explorer.js';

@@ -18,7 +18,7 @@ import {LockManager} from '../lock/lock-manager.js';
 import {CertificateManager} from '../certificate-manager.js';
 import {LocalConfig} from '../config/local/local-config.js';
 import {RemoteConfigManager} from '../config/remote/remote-config-manager.js';
-import os from 'os';
+import os from 'node:os';
 import * as version from '../../../version.js';
 import {NetworkNodes} from '../network-nodes.js';
 import {ClusterChecks} from '../cluster-checks.js';

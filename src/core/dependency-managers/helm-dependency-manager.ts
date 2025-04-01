@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
-import * as util from 'util';
+import fs from 'node:fs';
+import * as util from 'node:util';
 import {MissingArgumentError} from '../errors/missing-argument-error.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';

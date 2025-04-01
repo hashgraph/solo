@@ -4,7 +4,7 @@ import {it, describe, after, before} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 
 import {endToEndTestSuite, getTestCacheDirectory, getTestCluster, getTestLogger} from '../../../test-utility.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';

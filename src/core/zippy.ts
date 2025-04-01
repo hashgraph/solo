@@ -3,11 +3,11 @@
 import {SoloError} from './errors/solo-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import AdmZip from 'adm-zip';
 import * as tar from 'tar';
 import chalk from 'chalk';
-import path from 'path';
+import path from 'node:path';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
