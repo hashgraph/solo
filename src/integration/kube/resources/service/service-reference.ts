@@ -2,7 +2,7 @@
 
 import {type PodName} from '../pod/pod-name.js';
 import {type NamespaceName} from '../namespace/namespace-name.js';
-import {ResourceReference as ResourceReference} from '../resource-reference.js';
+import {ResourceReference} from '../resource-reference.js';
 import {type ServiceName} from './service-name.js';
 
 /**

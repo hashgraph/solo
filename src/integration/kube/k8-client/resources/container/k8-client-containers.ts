@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Containers} from '../../../resources/container/containers.js';
-import {type ContainerReference as ContainerReference} from '../../../resources/container/container-reference.js';
+import {type ContainerReference} from '../../../resources/container/container-reference.js';
 import {type Container} from '../../../resources/container/container.js';
 import {K8ClientContainer} from './k8-client-container.js';
 import {type KubeConfig} from '@kubernetes/client-node';

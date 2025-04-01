@@ -65,7 +65,7 @@ export class Container {
    * @param homeDirectory - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDirectory - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
-   * @param devMode - if true, show full stack traces in error messages
+   * @param developmentMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
   public init(
@@ -206,7 +206,7 @@ export class Container {
    * @param homeDirectory - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDirectory - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
-   * @param devMode - if true, show full stack traces in error messages
+   * @param developmentMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
   public reset(
@@ -229,7 +229,7 @@ export class Container {
    * @param homeDirectory - the home directory to use, defaults to constants.SOLO_HOME_DIR
    * @param cacheDirectory - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
-   * @param devMode - if true, show full stack traces in error messages
+   * @param developmentMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
   public clearInstances(

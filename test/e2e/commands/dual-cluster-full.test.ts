@@ -34,8 +34,8 @@ import {type ConsensusNodeComponent} from '../../../src/core/config/remote/compo
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {Templates} from '../../../src/core/templates.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
-import {ContainerReference as ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
-import {PodReference as PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
+import {PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
 import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';

@@ -11,7 +11,7 @@ import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-er
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
 import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
 import {container} from 'tsyringe-neo';
-import {PodReference as PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
+import {PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';

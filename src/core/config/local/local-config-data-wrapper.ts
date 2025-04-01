@@ -11,7 +11,7 @@ import {
   type EmailAddress,
   type Version,
 } from '../remote/types.js';
-import {IsClusterReferences as IsClusterReferences, IsDeployments} from '../../validator-decorators.js';
+import {IsClusterReferences, IsDeployments} from '../../validator-decorators.js';
 import {SoloError} from '../../errors/solo-error.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 

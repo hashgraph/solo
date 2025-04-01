@@ -2,7 +2,7 @@
 
 import {type Pod} from '../../../resources/pod/pod.js';
 import {type ExtendedNetServer} from '../../../../../types/index.js';
-import {PodReference as PodReference} from '../../../resources/pod/pod-reference.js';
+import {PodReference} from '../../../resources/pod/pod-reference.js';
 import {SoloError} from '../../../../../core/errors/solo-error.js';
 import {sleep} from '../../../../../core/helpers.js';
 import {Duration} from '../../../../../core/time/duration.js';

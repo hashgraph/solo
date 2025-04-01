@@ -2,7 +2,7 @@
 
 import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type Pvc} from './pvc.js';
-import {type PvcReference as PvcReference} from './pvc-reference.js';
+import {type PvcReference} from './pvc-reference.js';
 
 export interface Pvcs {
   /**

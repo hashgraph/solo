@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type PodReference as PodReference} from '../pod/pod-reference.js';
+import {type PodReference} from '../pod/pod-reference.js';
 import {type ContainerName} from './container-name.js';
-import {NestedResourceReference as NestedResourceReference} from '../nested-resource-reference.js';
+import {NestedResourceReference} from '../nested-resource-reference.js';
 
 /**
  * Represents a Kubernetes pod reference which includes the namespace name and pod name.

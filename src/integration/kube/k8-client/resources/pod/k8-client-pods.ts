@@ -12,7 +12,7 @@ import {
 } from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
-import {PodReference as PodReference} from '../../../resources/pod/pod-reference.js';
+import {PodReference} from '../../../resources/pod/pod-reference.js';
 import {type Pod} from '../../../resources/pod/pod.js';
 import {K8ClientPod} from './k8-client-pod.js';
 import {Duration} from '../../../../../core/time/duration.js';

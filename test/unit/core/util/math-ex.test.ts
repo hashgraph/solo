@@ -27,30 +27,30 @@ describe('MathEx', () => {
   });
 
   it('testLongFloorDivMod', () => {
-    testLongFloorDivModule(4, 0, 0, 0, true, true);
-    testLongFloorDivModule(4, 3, 1, 1, false, false);
-    testLongFloorDivModule(3, 3, 1, 0, false, false);
-    testLongFloorDivModule(2, 3, 0, 2, false, false);
-    testLongFloorDivModule(1, 3, 0, 1, false, false);
-    testLongFloorDivModule(0, 3, 0, 0, false, false);
-    testLongFloorDivModule(4, -3, -2, -2, false, false);
-    testLongFloorDivModule(3, -3, -1, 0, false, false);
-    testLongFloorDivModule(2, -3, -1, -1, false, false);
-    testLongFloorDivModule(1, -3, -1, -2, false, false);
-    testLongFloorDivModule(0, -3, 0, 0, false, false);
-    testLongFloorDivModule(-1, 3, -1, 2, false, false);
-    testLongFloorDivModule(-2, 3, -1, 1, false, false);
-    testLongFloorDivModule(-3, 3, -1, 0, false, false);
-    testLongFloorDivModule(-4, 3, -2, 2, false, false);
-    testLongFloorDivModule(-1, -3, 0, -1, false, false);
-    testLongFloorDivModule(-2, -3, 0, -2, false, false);
-    testLongFloorDivModule(-3, -3, 1, 0, false, false);
-    testLongFloorDivModule(-4, -3, 1, -1, false, false);
+    testLongFloorDivModulo(4, 0, 0, 0, true, true);
+    testLongFloorDivModulo(4, 3, 1, 1, false, false);
+    testLongFloorDivModulo(3, 3, 1, 0, false, false);
+    testLongFloorDivModulo(2, 3, 0, 2, false, false);
+    testLongFloorDivModulo(1, 3, 0, 1, false, false);
+    testLongFloorDivModulo(0, 3, 0, 0, false, false);
+    testLongFloorDivModulo(4, -3, -2, -2, false, false);
+    testLongFloorDivModulo(3, -3, -1, 0, false, false);
+    testLongFloorDivModulo(2, -3, -1, -1, false, false);
+    testLongFloorDivModulo(1, -3, -1, -2, false, false);
+    testLongFloorDivModulo(0, -3, 0, 0, false, false);
+    testLongFloorDivModulo(-1, 3, -1, 2, false, false);
+    testLongFloorDivModulo(-2, 3, -1, 1, false, false);
+    testLongFloorDivModulo(-3, 3, -1, 0, false, false);
+    testLongFloorDivModulo(-4, 3, -2, 2, false, false);
+    testLongFloorDivModulo(-1, -3, 0, -1, false, false);
+    testLongFloorDivModulo(-2, -3, 0, -2, false, false);
+    testLongFloorDivModulo(-3, -3, 1, 0, false, false);
+    testLongFloorDivModulo(-4, -3, 1, -1, false, false);
 
-    testLongFloorDivModule(Number.MAX_SAFE_INTEGER, 1, Number.MAX_SAFE_INTEGER, 0, false, false);
-    testLongFloorDivModule(Number.MAX_SAFE_INTEGER, -1, -Number.MAX_SAFE_INTEGER, 0, false, false);
-    testLongFloorDivModule(Number.MAX_SAFE_INTEGER, 3, Math.floor(Number.MAX_SAFE_INTEGER / 3), 1, false, false);
-    testLongFloorDivModule(
+    testLongFloorDivModulo(Number.MAX_SAFE_INTEGER, 1, Number.MAX_SAFE_INTEGER, 0, false, false);
+    testLongFloorDivModulo(Number.MAX_SAFE_INTEGER, -1, -Number.MAX_SAFE_INTEGER, 0, false, false);
+    testLongFloorDivModulo(Number.MAX_SAFE_INTEGER, 3, Math.floor(Number.MAX_SAFE_INTEGER / 3), 1, false, false);
+    testLongFloorDivModulo(
       Number.MAX_SAFE_INTEGER - 1,
       3,
       Math.floor(Number.MAX_SAFE_INTEGER - 1) / 3,
@@ -58,8 +58,8 @@ describe('MathEx', () => {
       false,
       false,
     );
-    testLongFloorDivModule(Number.MIN_SAFE_INTEGER, 3, Math.floor(Number.MIN_SAFE_INTEGER / 3), 1, false, false);
-    testLongFloorDivModule(
+    testLongFloorDivModulo(Number.MIN_SAFE_INTEGER, 3, Math.floor(Number.MIN_SAFE_INTEGER / 3), 1, false, false);
+    testLongFloorDivModulo(
       Number.MIN_SAFE_INTEGER + 1,
       3,
       Math.floor(Number.MIN_SAFE_INTEGER / 3) + 1,
@@ -67,9 +67,9 @@ describe('MathEx', () => {
       false,
       false,
     );
-    testLongFloorDivModule(Number.MIN_SAFE_INTEGER + 1, -1, Number.MAX_SAFE_INTEGER - 1, 0, false, false);
+    testLongFloorDivModulo(Number.MIN_SAFE_INTEGER + 1, -1, Number.MAX_SAFE_INTEGER - 1, 0, false, false);
     // Special case of integer overflow
-    testLongFloorDivModule(Number.MIN_SAFE_INTEGER, -1, Number.MAX_SAFE_INTEGER, 0, false, false);
+    testLongFloorDivModulo(Number.MIN_SAFE_INTEGER, -1, Number.MAX_SAFE_INTEGER, 0, false, false);
   });
 });
 
@@ -128,16 +128,16 @@ function checkResult(message: string, x: number, y: number, result: number, expe
   }
 }
 
-function testLongFloorDivModule(
+function testLongFloorDivModulo(
   x: number,
   y: number,
   divExpected: number,
-  moduleExpected: number,
+  moduloExpected: number,
   divThrows: boolean,
-  moduleThrows: boolean,
+  moduloThrows: boolean,
 ) {
   testLongFloorDiv(x, y, divExpected, divThrows);
-  testLongFloorModule(x, y, moduleExpected, moduleThrows);
+  testLongFloorModulo(x, y, moduloExpected, moduloThrows);
 }
 
 function testLongFloorDiv(x: number, y: number, expected: number, shouldThrow: boolean) {
@@ -161,9 +161,9 @@ function testLongFloorDiv(x: number, y: number, expected: number, shouldThrow: b
   }
 }
 
-function testLongFloorModule(x: number, y: number, expected: number, shouldThrow: boolean) {
+function testLongFloorModulo(x: number, y: number, expected: number, shouldThrow: boolean) {
   try {
-    const result = MathEx.floorMod(x, y);
+    const result = MathEx.floorModulo(x, y);
     if (result !== expected) {
       expect.fail(`floorMod(${x}, ${y}) = ${result}; expected ${expected}`);
     }

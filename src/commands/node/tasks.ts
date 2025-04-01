@@ -72,8 +72,8 @@ import {type NodeAddConfigClass} from './config-interfaces/node-add-config-class
 import {GenesisNetworkDataConstructor} from '../../core/genesis-network-models/genesis-network-data-constructor.js';
 import {NodeOverridesModel} from '../../core/node-overrides-model.js';
 import {type NamespaceName} from '../../integration/kube/resources/namespace/namespace-name.js';
-import {PodReference as PodReference} from '../../integration/kube/resources/pod/pod-reference.js';
-import {ContainerReference as ContainerReference} from '../../integration/kube/resources/container/container-reference.js';
+import {PodReference} from '../../integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../../integration/kube/resources/container/container-reference.js';
 import {NetworkNodes} from '../../core/network-nodes.js';
 import {container, inject, injectable} from 'tsyringe-neo';
 import {type Optional, type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';

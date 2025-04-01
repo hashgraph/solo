@@ -2,7 +2,7 @@
 
 import {type PodName} from './pod-name.js';
 import {type NamespaceName} from '../namespace/namespace-name.js';
-import {ResourceReference as ResourceReference} from '../resource-reference.js';
+import {ResourceReference} from '../resource-reference.js';
 
 /**
  * Represents a Kubernetes pod reference which includes the namespace name and pod name.

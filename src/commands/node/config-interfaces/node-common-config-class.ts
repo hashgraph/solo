@@ -3,7 +3,7 @@
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type ConsensusNode} from '../../../core/model/consensus-node.js';
-import {type PodReference as PodReference} from '../../../integration/kube/resources/pod/pod-reference.js';
+import {type PodReference} from '../../../integration/kube/resources/pod/pod-reference.js';
 import {type NodeServiceMapping} from '../../../types/mappings/node-service-mapping.js';
 
 export interface NodeCommonConfigClass {

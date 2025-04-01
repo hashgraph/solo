@@ -21,7 +21,7 @@ import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type PodName} from '../../src/integration/kube/resources/pod/pod-name.js';
-import {PodReference as PodReference} from '../../src/integration/kube/resources/pod/pod-reference.js';
+import {PodReference} from '../../src/integration/kube/resources/pod/pod-reference.js';
 import {type NetworkNodes} from '../../src/core/network-nodes.js';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../helpers/argv-wrapper.js';

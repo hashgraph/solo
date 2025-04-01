@@ -34,14 +34,14 @@ import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-compon
 import {v4 as uuidv4} from 'uuid';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {PvcReference as PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
+import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
-import {type PodReference as PodReference} from '../integration/kube/resources/pod/pod-reference.js';
+import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';

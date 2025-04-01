@@ -2,7 +2,7 @@
 
 import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type Service} from './service.js';
-import {type ServiceReference as ServiceReference} from './service-reference.js';
+import {type ServiceReference} from './service-reference.js';
 
 export interface Services {
   /**

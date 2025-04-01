@@ -21,8 +21,8 @@ import {sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {type PodReference as PodReference} from '../integration/kube/resources/pod/pod-reference.js';
-import {ContainerReference as ContainerReference} from '../integration/kube/resources/container/container-reference.js';
+import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
@@ -122,8 +122,8 @@ export class PlatformInstaller {
 
   /**
    * Copy a list of files to a directory in the container
-   * @param podRef - pod reference
-   * @param srcFiles - list of source files
+   * @param podReference - pod reference
+   * @param sourceFiles - list of source files
    * @param destinationDirectory - destination directory
    * @param [container] - name of the container
    * @param [context]
@@ -337,7 +337,7 @@ export class PlatformInstaller {
   /**
    * Copy configuration files to the network consensus node pod
    * @param stagingDirectory - staging directory path
-   * @param podRef - pod reference
+   * @param podReference - pod reference
    * @param isGenesis - true if this is `solo node setup` and we are at genesis
    * @param context
    */

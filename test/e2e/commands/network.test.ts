@@ -12,7 +12,7 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
-import {PodReference as PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
+import {PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {NodeCommand} from '../../../src/commands/node/index.js';
 import {InitCommand} from '../../../src/commands/init.js';

@@ -17,7 +17,7 @@ export interface Container {
    * Copy a file into a container
    *
    * It overwrites any existing file inside the container at the destination directory
-   * @param srcPath - the path of the local file to copy
+   * @param sourcePath - the path of the local file to copy
    * @param destinationDirectory - the remote destination directory
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation

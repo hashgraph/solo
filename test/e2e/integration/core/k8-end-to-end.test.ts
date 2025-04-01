@@ -19,10 +19,10 @@ import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.j
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodReference as PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
+import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
 import {ContainerName} from '../../../../src/integration/kube/resources/container/container-name.js';
-import {ContainerReference as ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
-import {ServiceReference as ServiceReference} from '../../../../src/integration/kube/resources/service/service-reference.js';
+import {ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
+import {ServiceReference} from '../../../../src/integration/kube/resources/service/service-reference.js';
 import {ServiceName} from '../../../../src/integration/kube/resources/service/service-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';

@@ -18,7 +18,7 @@ import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {ResourceType} from '../../../resources/resource-type.js';
 import {K8ClientPvc} from './k8-client-pvc.js';
 import {type IncomingMessage} from 'http';
-import {type PvcReference as PvcReference} from '../../../resources/pvc/pvc-reference.js';
+import {type PvcReference} from '../../../resources/pvc/pvc-reference.js';
 
 export class K8ClientPvcs implements Pvcs {
   constructor(private readonly kubeClient: CoreV1Api) {}

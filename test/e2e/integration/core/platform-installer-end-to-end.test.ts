@@ -15,8 +15,8 @@ import {type AccountManager} from '../../../../src/core/account-manager.js';
 import {type PlatformInstaller} from '../../../../src/core/platform-installer.js';
 import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
-import {PodReference as PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
-import {ContainerReference as ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
+import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
 import {Argv} from '../../../helpers/argv-wrapper.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
