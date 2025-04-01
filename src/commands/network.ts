@@ -342,7 +342,9 @@ export class NetworkCommand extends BaseCommand {
         await this.prepareStreamUploaderSecrets(config);
       }
 
-      await this.prepareBackupUploaderSecrets(config);
+      if (config.backupBucket) {
+        await this.prepareBackupUploaderSecrets(config);
+      }
     } catch (error: Error | any) {
       throw new SoloError('Failed to create Kubernetes storage secret', error);
     }
