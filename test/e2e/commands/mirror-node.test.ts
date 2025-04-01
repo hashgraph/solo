@@ -120,7 +120,7 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
           .default()
           .pods()
           .readByReference(explorerPod.podReference)
-          .portForward(8_080, 8_080);
+          .portForward(8080, 8080);
         await sleep(Duration.ofSeconds(2));
 
         // check if mirror node api server is running

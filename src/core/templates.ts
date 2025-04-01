@@ -154,15 +154,17 @@ export class Templates {
     installationDirectory: string = PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
   ) {
     switch (dep) {
-      case constants.HELM:
+      case constants.HELM: {
         if (osPlatform === constants.OS_WINDOWS) {
           return PathEx.join(installationDirectory, `${dep}.exe`);
         }
 
         return PathEx.join(installationDirectory, dep);
+      }
 
-      default:
+      default: {
         throw new SoloError(`unknown dep: ${dep}`);
+      }
     }
   }
 
@@ -209,12 +211,14 @@ export class Templates {
   static renderGrpcTlsCertificatesSecretName(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy Proxy
-      case GrpcProxyTlsEnums.GRPC:
+      case GrpcProxyTlsEnums.GRPC: {
         return `haproxy-proxy-secret-${nodeAlias}`;
+      }
 
       //? Envoy Proxy
-      case GrpcProxyTlsEnums.GRPC_WEB:
+      case GrpcProxyTlsEnums.GRPC_WEB: {
         return `envoy-proxy-secret-${nodeAlias}`;
+      }
     }
   }
 
@@ -229,12 +233,14 @@ export class Templates {
   static renderGrpcTlsCertificatesSecretLabelObject(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy Proxy
-      case GrpcProxyTlsEnums.GRPC:
+      case GrpcProxyTlsEnums.GRPC: {
         return {'haproxy-proxy-secret': nodeAlias};
+      }
 
       //? Envoy Proxy
-      case GrpcProxyTlsEnums.GRPC_WEB:
+      case GrpcProxyTlsEnums.GRPC_WEB: {
         return {'envoy-proxy-secret': nodeAlias};
+      }
     }
   }
 

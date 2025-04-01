@@ -37,7 +37,7 @@ describe('HelmClient Tests', () => {
   let helmClient: HelmClient;
 
   before(async function () {
-    this.timeout(120000); // 2 minutes timeout for cluster creation
+    this.timeout(120_000); // 2 minutes timeout for cluster creation
 
     try {
       console.log(`Creating namespace ${NAMESPACE}...`);

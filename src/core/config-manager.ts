@@ -77,7 +77,7 @@ export class ConfigManager {
 
       let value = argv[flag.name];
       switch (flag.definition.type) {
-        case 'string':
+        case 'string': {
           if (value && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
             this.logger.debug(
               `Resolving directory path for '${flag.name}': ${value}, to: ${PathEx.resolve(value)}, note: ~/ is not supported`,
@@ -95,8 +95,9 @@ export class ConfigManager {
           }
           this.config.flags[flag.name] = `${value}`; // force convert to string
           break;
+        }
 
-        case 'number':
+        case 'number': {
           try {
             if (flags.integerFlags.has(flag.name)) {
               this.config.flags[flag.name] = Number.parseInt(value);
@@ -107,12 +108,14 @@ export class ConfigManager {
             throw new SoloError(`invalid number value '${value}': ${error.message}`, error);
           }
           break;
+        }
 
-        case 'boolean':
+        case 'boolean': {
           this.config.flags[flag.name] = value === true || value === 'true'; // use comparison to enforce boolean value
           break;
+        }
 
-        case 'StorageType':
+        case 'StorageType': {
           // @ts-expect-error: TS2475: const enums can only be used in property or index access expressions
           if (!Object.values(constants.StorageType).includes(`${value}`)) {
             throw new SoloError(`Invalid storage type value '${value}'`);
@@ -120,8 +123,10 @@ export class ConfigManager {
             this.config.flags[flag.name] = value;
           }
           break;
-        default:
+        }
+        default: {
           throw new SoloError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`);
+        }
       }
     }
 

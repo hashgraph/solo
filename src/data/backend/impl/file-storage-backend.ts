@@ -45,10 +45,12 @@ export class FileStorageBackend implements StorageBackend {
       case StorageOperation.List:
       case StorageOperation.ReadBytes:
       case StorageOperation.WriteBytes:
-      case StorageOperation.Delete:
+      case StorageOperation.Delete: {
         return true;
-      default:
+      }
+      default: {
         return false;
+      }
     }
   }
 

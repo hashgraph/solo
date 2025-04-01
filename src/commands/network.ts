@@ -1197,7 +1197,7 @@ export class NetworkCommand extends BaseCommand {
                   // remove all components data from the remote configuration
                   await self.remoteConfigManager.deleteComponents();
                 }
-              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
+              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000);
 
               await self.destroyTask(context_, task);
 

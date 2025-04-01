@@ -202,7 +202,6 @@ export default [
       'unicorn/prefer-spread': 'warn', // TODO error
       'unicorn/no-null': 'warn', // TODO error
       'unicorn/text-encoding-identifier-case': 'warn', // TODO error
-      'unicorn/switch-case-braces': 'warn', // TODO error
       'unicorn/prefer-array-find': 'warn', // TODO error
       'unicorn/catch-error-name': 'warn', // TODO error
       'unicorn/no-this-assignment': 'warn', // TODO error
@@ -214,7 +213,6 @@ export default [
       'unicorn/no-useless-undefined': 'warn', // TODO error
       'unicorn/prefer-export-from': 'warn', // TODO error
       'unicorn/no-await-expression-member': 'warn', // TODO error
-      'unicorn/numeric-separators-style': 'warn', // TODO error
       'unicorn/no-array-push-push': 'warn', // TODO error
       'unicorn/no-for-loop': 'warn', // TODO error
       'unicorn/prefer-ternary': 'warn', // TODO error
