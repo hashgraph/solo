@@ -48,3 +48,9 @@ tasks:
       - npx tsc
       - npx madge --circular {{.TASKFILE_DIR}}/src/*
       - npx typedoc --emit none
+
+  build:
+    cmds:
+      - rm -Rf dist
+      - npx tsc
+      - node {{.TASKFILE_DIR}}/../resources/post-build-script.js

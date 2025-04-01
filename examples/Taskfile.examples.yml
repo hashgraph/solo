@@ -54,10 +54,6 @@ tasks:
     cmds:
       - task: "solo:network:destroy"
 
-  solo:
-    cmds:
-      - node --no-deprecation --no-warnings {{.TASKFILE_DIR}}/../dist/solo.js {{ .CLI_ARGS }}
-
   build:
     cmds:
       - rm -Rf dist
