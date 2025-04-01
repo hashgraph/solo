@@ -203,7 +203,7 @@ export class DeploymentCommand extends BaseCommand {
                 .getK8(context)
                 .configMaps()
                 .list(namespace, ['app.kubernetes.io/managed-by=Helm']);
-              if (remoteConfigExists || namespaceExists || existingConfigMaps.length) {
+              if (remoteConfigExists || namespaceExists || existingConfigMaps.length > 0) {
                 throw new SoloError(`Deployment ${deployment} has remote resources in cluster: ${clusterReference}`);
               }
             }
@@ -528,7 +528,7 @@ export class DeploymentCommand extends BaseCommand {
         const existingClusterReferences = this.localConfig.deployments[deployment].clusters;
 
         // if there is no remote config don't validate deployment state
-        if (!existingClusterReferences.length) {
+        if (existingClusterReferences.length === 0) {
           context_.config.state = DeploymentStates.PRE_GENESIS;
 
           // if the user can't be prompted for '--num-consensus-nodes' fail

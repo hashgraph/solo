@@ -478,7 +478,7 @@ export function extractContextFromConsensusNodes(
   if (!consensusNodes) {
     return undefined;
   }
-  if (!consensusNodes.length) {
+  if (consensusNodes.length === 0) {
     return undefined;
   }
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);

@@ -145,7 +145,7 @@ export class CertificateManager {
     }
 
     for (const {certType, title, certs, keys} of [grpcTlsParsedValues, grpcWebTlsParsedValue]) {
-      if (!certs.length) {
+      if (certs.length === 0) {
         continue;
       }
 

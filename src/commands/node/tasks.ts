@@ -1694,7 +1694,7 @@ export class NodeCommandTasks {
         }
 
         const lastNodeIdMatch = lastNodeAlias.match(/\d+$/);
-        if (lastNodeIdMatch.length) {
+        if (lastNodeIdMatch.length > 0) {
           const incremented = Number.parseInt(lastNodeIdMatch[0]) + 1;
           lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString()) as NodeAlias;
         }

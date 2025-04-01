@@ -97,7 +97,7 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
   public validate(): void {
     const errors = validateSync(this, {});
 
-    if (errors.length) {
+    if (errors.length > 0) {
       // throw the first error:
       const property = Object.keys(errors[0]?.constraints);
       if (property[0]) {

@@ -56,7 +56,7 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) {
+        if (pods.length === 0) {
           throw new Error('Pod not found');
         } // to return the generic error message
       } catch (error) {
@@ -77,7 +77,7 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) {
+        if (pods.length === 0) {
           throw new Error('Pod not found');
         } // to return the generic error message
       } catch (error) {
@@ -98,7 +98,7 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) {
+        if (pods.length === 0) {
           throw new Error('Pod not found');
         } // to return the generic error message
       } catch (error) {
@@ -119,7 +119,7 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) {
+        if (pods.length === 0) {
           throw new Error('Pod not found');
         } // to return the generic error message
       } catch (error) {
@@ -144,7 +144,7 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) {
+        if (pods.length === 0) {
           throw new Error('Pod not found');
         } // to return the generic error message
       } catch (error) {
@@ -165,7 +165,7 @@ export class RemoteConfigValidator {
       try {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-        if (!pods.length) {
+        if (pods.length === 0) {
           throw new Error('Pod not found');
         } // to return the generic error message
       } catch (error) {

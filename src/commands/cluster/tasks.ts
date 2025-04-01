@@ -188,7 +188,7 @@ export class ClusterCommandTasks {
           `Associated Context: ${context}\n` +
           'Deployments using this Cluster:';
 
-        if (deploymentsWithSelectedCluster.length) {
+        if (deploymentsWithSelectedCluster.length > 0) {
           task.output +=
             '\n' +
             deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n');

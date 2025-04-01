@@ -298,7 +298,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 .pods()
                 .list(namespace, ['solo.hedera.com/type=network-node']);
 
-              if (networkPods.length) {
+              if (networkPods.length > 0) {
                 const pod = networkPods[0];
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.accountId=${startAccumulatorId}`;
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.podIp}`;
@@ -369,7 +369,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 missingFlags.push(flags.externalDatabaseReadonlyPassword);
               }
 
-              if (missingFlags.length) {
+              if (missingFlags.length > 0) {
                 const errorMessage =
                   'There are missing values that need to be provided when' +
                   `${chalk.cyan(`--${flags.useExternalDatabase.name}`)} is provided: `;

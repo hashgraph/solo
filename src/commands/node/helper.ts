@@ -128,7 +128,7 @@ export class NodeHelper {
   ) {
     const config = context_.config;
 
-    if (contextData.newAdminKey && contextData.newAdminKey.length) {
+    if (contextData.newAdminKey && contextData.newAdminKey.length > 0) {
       config.newAdminKey = PrivateKey.fromStringED25519(contextData.newAdminKey);
     }
 
