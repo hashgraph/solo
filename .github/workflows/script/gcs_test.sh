@@ -123,16 +123,18 @@ node examples/create-topic.js
 
 npm run solo-test -- node stop -i node1 --deployment "${SOLO_DEPLOYMENT}"
 
-echo "Waiting for backup uploader to run"
-# manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
-kubectl exec network-node1-0 -c backup-uploader -n solo-e2e -- /app/backup.sh
+if [ "${storageType}" == "aws_only" ] || [ "${storageType}" == "gcs_only" ]; then
+  echo "Waiting for backup uploader to run"
+  # manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
+  kubectl exec network-node1-0 -c backup-uploader -n solo-e2e -- /app/backup.sh
 
-echo "Retrieve logs and check if it include the error message"
-# example : {"level":"error","msg":"Updated modification time ......}
-kubectl logs network-node1-0 -c backup-uploader -n solo-e2e > backup-uploader.log
-if grep -q \""error\"" backup-uploader.log; then
-  echo "Backup uploader logs contain error message"
-  exit 1
+  echo "Retrieve logs and check if it include the error message"
+  # example : {"level":"error","msg":"Updated modification time ......}
+  kubectl logs network-node1-0 -c backup-uploader -n solo-e2e > backup-uploader.log
+  if grep -q \""error\"" backup-uploader.log; then
+    echo "Backup uploader logs contain error message"
+    exit 1
+  fi
 fi
 
 npm run solo-test -- network destroy --deployment "${SOLO_DEPLOYMENT}" --force -q
