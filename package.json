@@ -31,7 +31,6 @@
     "chalk": "^5.4.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "deep-clone": "^4.0.0",
     "dot-object": "^2.1.5",
     "dotenv": "^16.4.7",
     "elliptic": "^6.6.1",
@@ -51,7 +50,7 @@
     "validator": "^13.15.0",
     "winston": "^3.17.0",
     "ws": "^8.18.1",
-    "yaml": "^2.7.0",
+    "yaml": "^2.7.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {

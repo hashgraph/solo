@@ -52,7 +52,7 @@ export class K8ClientContainer implements Container {
       throw new SoloError(`${messagePrefix}invalid source path: ${srcPath}`);
     }
     // handle symbolic link
-    if (entries[0].name.indexOf(' -> ') > -1) {
+    if (entries[0].name.includes(' -> ')) {
       const redirectSrcPath = `${path.dirname(srcPath)}/${entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4)}`;
       entries = await self.listDir(redirectSrcPath);
       if (entries.length !== 1) {
@@ -405,7 +405,7 @@ export class K8ClientContainer implements Container {
         line = line.replace(/\s+/g, '|');
         const parts = line.split('|');
         if (parts.length >= 9) {
-          let name = parts[parts.length - 1];
+          let name = parts.at(-1);
           // handle unique file format (without single quotes): 'usedAddressBook_vHederaSoftwareVersion{hapiVersion=v0.53.0, servicesVersion=v0.53.0}_2024-07-30-20-39-06_node_0.txt.debug'
           for (let i = parts.length - 1; i > 8; i--) {
             name = `${parts[i - 1]} ${name}`;

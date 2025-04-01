@@ -29,7 +29,7 @@ import {CustomProcessOutput} from './core/process-output.js';
 import {type SoloLogger} from './core/logging/solo-logger.js';
 import {Container} from './core/dependency-injection/container-init.js';
 import {InjectTokens} from './core/dependency-injection/inject-tokens.js';
-import {type Opts} from './commands/base.js';
+import {type Opts as Options} from './commands/base.js';
 import {type Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';
@@ -40,8 +40,8 @@ import {getSoloVersion} from '../version.js';
 export async function main(argv: string[], context?: {logger: SoloLogger}) {
   try {
     Container.getInstance().init();
-  } catch (e) {
-    console.error(`Error initializing container: ${e?.message}`, e);
+  } catch (error) {
+    console.error(`Error initializing container: ${error?.message}`, error);
     throw new SoloError('Error initializing container');
   }
 
@@ -59,8 +59,8 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
       ),
     );
   });
-  process.on('uncaughtException', (err, origin) => {
-    logger.showUserError(new SoloError(`Uncaught Exception: ${err}, origin: ${origin}`, err));
+  process.on('uncaughtException', (error, origin) => {
+    logger.showUserError(new SoloError(`Uncaught Exception: ${error}, origin: ${origin}`, error));
   });
 
   logger.debug('Initializing Solo CLI');
@@ -89,7 +89,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
   const helpRenderer: HelpRenderer = container.resolve(InjectTokens.HelpRenderer);
 
-  const opts: Opts = {
+  const options: Options = {
     logger,
     helm,
     k8Factory,
@@ -118,7 +118,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     .alias('v', 'version')
     .help(false) // disable default help to enable custom help renderer
     // @ts-expect-error - TS2769: No overload matches this call.
-    .command(commands.Initialize(opts))
+    .command(commands.Initialize(options))
     .strict()
     .demand(1, 'Select a command');
 
@@ -140,15 +140,19 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
   // Expand the terminal width to the maximum available
   rootCmd.wrap(null);
 
-  rootCmd.fail((msg, error) => {
-    if (msg) {
-      if (msg.includes('Unknown argument') || msg.includes('Missing required argument') || msg.includes('Select')) {
-        logger.showUser(msg);
+  rootCmd.fail((message, error) => {
+    if (message) {
+      if (
+        message.includes('Unknown argument') ||
+        message.includes('Missing required argument') ||
+        message.includes('Select')
+      ) {
+        logger.showUser(message);
         rootCmd.showHelp(output => {
           helpRenderer.render(rootCmd, output);
         });
       } else {
-        logger.showUserError(new SoloError(`Error running Solo CLI, failure occurred: ${msg ? msg : ''}`));
+        logger.showUserError(new SoloError(`Error running Solo CLI, failure occurred: ${message ? message : ''}`));
       }
       rootCmd.exit(0, error);
     }
@@ -156,7 +160,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
 
   logger.debug('Setting up flags');
   // set root level flags
-  flags.setOptionalCommandFlags(rootCmd, ...[flags.devMode, flags.forcePortForward]);
+  flags.setOptionalCommandFlags(rootCmd, flags.devMode, flags.forcePortForward);
   logger.debug('Parsing root command (executing the commands)');
   return rootCmd.parse();
 }
