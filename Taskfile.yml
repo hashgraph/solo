@@ -53,4 +53,4 @@ tasks:
     cmds:
       - rm -Rf dist
       - npx tsc
-      - node {{.TASKFILE_DIR}}/../resources/post-build-script.js
+      - node {{.TASKFILE_DIR}}/resources/post-build-script.js
