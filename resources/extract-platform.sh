@@ -42,11 +42,17 @@ echo "HAPI_DIR=${HAPI_DIR}" | tee -a ${LOG_FILE}
 cd ${HAPI_DIR}
 pwd | tee -a ${LOG_FILE}
 ls -al | tee -a ${LOG_FILE}
-#jar xvf "${BUILD_ZIP_FILE}" | tee -a ${LOG_FILE}
 
-# Fix for M4 chips being unable to execute the jar command
-dnf install unzip -y | tee -a ${LOG_FILE}
-unzip -o "${BUILD_ZIP_FILE}" -d "${HAPI_DIR}" | tee -a ${LOG_FILE}
+cpu_info=$(sysctl -n machdep.cpu.brand_string)
+if [[ "$cpu_info" =~ "M4" ]]; then
+    echo "Running on an M4 chip"
+    dnf install unzip -y | tee -a ${LOG_FILE}
+    unzip -o "${BUILD_ZIP_FILE}" -d "${HAPI_DIR}" | tee -a ${LOG_FILE}
+else
+    echo "Running on other OS or chip. CPU info: $cpu_info"
+    jar xvf "${BUILD_ZIP_FILE}" | tee -a ${LOG_FILE}
+fi
+
 [[ $? -ne 0 ]] && echo "Failure occurred during decompress" && exit 1
 echo "................................end: extract-platform.sh" | tee -a ${LOG_FILE}
 exit 0
