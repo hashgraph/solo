@@ -18,7 +18,7 @@ tasks:
       - task: "check-doc-dir"
       - task: "clean"
       - task: "install"
-      - task: "build"
+      - task: "build:all"
 
   start:
     cmds:
@@ -46,12 +46,18 @@ tasks:
       - rm -Rf themes
       - rm -f .hugo_build.lock
 
-  build:
+  build:all:
     cmds:
       - task: "build:typedoc"
       - task: "build:copy"
       - task: "build:help"
       - task: "build:hugo"
+
+  build:
+    cmds:
+      - rm -Rf dist
+      - npx tsc
+      - node {{.TASKFILE_DIR}}/../resources/post-build-script.js
 
   build:help:
     dir: ../..
