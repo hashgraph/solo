@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as x509 from '@peculiar/x509';
-import os from 'os';
+import os from 'node:os';
 import {DataValidationError} from './errors/data-validation-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
@@ -13,7 +13,7 @@ import {PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {type ClusterRef, type NamespaceNameAsString} from './config/remote/types.js';
+import {type ClusterReference, type NamespaceNameAsString} from './config/remote/types.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
 export class Templates {
@@ -33,15 +33,15 @@ export class Templates {
     return `network-${nodeAlias}`;
   }
 
-  public static renderNodeAliasFromNumber(num: number): NodeAlias {
-    return `node${num}`;
+  public static renderNodeAliasFromNumber(number_: number): NodeAlias {
+    return `node${number_}`;
   }
 
   public static renderNodeAliasesFromCount(count: number, existingNodesCount: number): NodeAliases {
     const nodeAliases: NodeAliases = [];
     let nodeNumber = existingNodesCount + 1;
 
-    for (let i = 0; i < count; i++) {
+    for (let index = 0; index < count; index++) {
       nodeAliases.push(Templates.renderNodeAliasFromNumber(nodeNumber));
       nodeNumber++;
     }
@@ -130,10 +130,10 @@ export class Templates {
     return new x509.Name(`CN=${nodeAlias},ST=${state},L=${locality},O=${org},OU=${orgUnit},C=${country}`);
   }
 
-  public static renderStagingDir(cacheDir: string, releaseTagOverride: string): string {
+  public static renderStagingDir(cacheDirectory: string, releaseTagOverride: string): string {
     let releaseTag = releaseTagOverride;
-    if (!cacheDir) {
-      throw new IllegalArgumentError('cacheDir cannot be empty');
+    if (!cacheDirectory) {
+      throw new IllegalArgumentError('cacheDirectory cannot be empty');
     }
 
     if (!releaseTag) {
@@ -145,21 +145,21 @@ export class Templates {
       throw new IllegalArgumentError('releasePrefix cannot be empty');
     }
 
-    return PathEx.resolve(PathEx.join(cacheDir, releasePrefix, 'staging', releaseTag));
+    return PathEx.resolve(PathEx.join(cacheDirectory, releasePrefix, 'staging', releaseTag));
   }
 
   public static installationPath(
     dep: string,
     osPlatform: NodeJS.Platform | string = os.platform(),
-    installationDir: string = PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
+    installationDirectory: string = PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
   ) {
     switch (dep) {
       case constants.HELM:
         if (osPlatform === constants.OS_WINDOWS) {
-          return PathEx.join(installationDir, `${dep}.exe`);
+          return PathEx.join(installationDirectory, `${dep}.exe`);
         }
 
-        return PathEx.join(installationDir, dep);
+        return PathEx.join(installationDirectory, dep);
 
       default:
         throw new SoloError(`unknown dep: ${dep}`);
@@ -180,10 +180,10 @@ export class Templates {
   }
 
   public static nodeIdFromNodeAlias(nodeAlias: NodeAlias): NodeId {
-    for (let i = nodeAlias.length - 1; i > 0; i--) {
+    for (let index = nodeAlias.length - 1; index > 0; index--) {
       // @ts-ignore
-      if (isNaN(nodeAlias[i])) {
-        return parseInt(nodeAlias.substring(i + 1, nodeAlias.length)) - 1;
+      if (isNaN(nodeAlias[index])) {
+        return parseInt(nodeAlias.substring(index + 1, nodeAlias.length)) - 1;
       }
     }
 
@@ -294,7 +294,7 @@ export class Templates {
     nodeAlias: string,
     nodeId: number,
     namespace: NamespaceNameAsString,
-    cluster: ClusterRef,
+    cluster: ClusterReference,
     dnsBaseDomain: string,
     dnsConsensusNodePattern: string,
   ) {

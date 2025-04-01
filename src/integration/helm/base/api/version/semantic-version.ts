@@ -89,10 +89,10 @@ export class SemanticVersion {
       const build = SemanticVersion.nullToBlank(matcher[6]);
 
       return new SemanticVersion(major, minor, patch, prerelease, build);
-    } catch (e) {
+    } catch (error) {
       throw new InvalidSemanticVersionException(
         `The supplied version '${version}' is not a valid semantic version`,
-        e as Error,
+        error as Error,
       );
     }
   }
@@ -156,15 +156,15 @@ export class SemanticVersion {
    * @param obj the object to compare with
    * @returns true if the objects are equal, false otherwise
    */
-  public equals(obj: unknown): boolean {
-    if (this === obj) return true;
-    if (!(obj instanceof SemanticVersion)) return false;
+  public equals(object: unknown): boolean {
+    if (this === object) return true;
+    if (!(object instanceof SemanticVersion)) return false;
     return (
-      this._major === obj._major &&
-      this._minor === obj._minor &&
-      this._patch === obj._patch &&
-      this._prerelease === obj._prerelease &&
-      this._build === obj._build
+      this._major === object._major &&
+      this._minor === object._minor &&
+      this._patch === object._patch &&
+      this._prerelease === object._prerelease &&
+      this._build === object._build
     );
   }
 
@@ -193,8 +193,8 @@ export class SemanticVersion {
    * @param str the string to check
    * @returns the string or blank if null/undefined
    */
-  private static nullToBlank(str: string | null | undefined): string {
-    return str ?? '';
+  private static nullToBlank(string_: string | null | undefined): string {
+    return string_ ?? '';
   }
 
   /**

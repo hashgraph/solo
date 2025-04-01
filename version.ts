@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Version} from './src/core/config/remote/types.js';
-import {fileURLToPath} from 'url';
-import path from 'path';
+import {fileURLToPath} from 'node:url';
+import path from 'node:path';
 import {PathEx} from './src/business/utils/path-ex.js';
-import fs from 'fs';
+import fs from 'node:fs';
 
 /**
  * This file should only contain versions for dependencies and the function to get the Solo version.

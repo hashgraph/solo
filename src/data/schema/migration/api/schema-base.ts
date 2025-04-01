@@ -37,16 +37,16 @@ export abstract class SchemaBase<T> implements Schema<T> {
 
     const versionJumps: number[] = this.migrations.map(value => value.version.value).sort();
 
-    for (let i = 1; i < versionJumps.length; i++) {
-      if (versionJumps[i] === versionJumps[i - 1]) {
-        throw new SchemaValidationError(`Duplicate migration version '${versionJumps[i]}'`);
+    for (let index = 1; index < versionJumps.length; index++) {
+      if (versionJumps[index] === versionJumps[index - 1]) {
+        throw new SchemaValidationError(`Duplicate migration version '${versionJumps[index]}'`);
       }
     }
 
     let currentVersion: Version<number> = this.nextVersionJump(new Version(0));
 
-    for (let i = 0; i < versionJumps.length; i++) {
-      const v: Version<number> = new Version(versionJumps[i]);
+    for (let index = 0; index < versionJumps.length; index++) {
+      const v: Version<number> = new Version(versionJumps[index]);
       if (!v.equals(currentVersion)) {
         throw new SchemaValidationError(
           `Invalid migration version sequence detected; expected version '${v.value}' but got '${currentVersion.value}'`,

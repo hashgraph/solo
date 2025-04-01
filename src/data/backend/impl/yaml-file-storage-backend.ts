@@ -26,8 +26,8 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
 
     try {
       return parse(data.toString('utf-8'));
-    } catch (e) {
-      throw new StorageBackendError(`error parsing yaml file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error parsing yaml file: ${filePath}`, error);
     }
   }
 
@@ -40,8 +40,8 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
     try {
       const yamlData: string = stringify(data, {sortMapEntries: true});
       await this.writeBytes(key, Buffer.from(yamlData, 'utf-8'));
-    } catch (e) {
-      throw new StorageBackendError(`error writing yaml file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error writing yaml file: ${filePath}`, error);
     }
   }
 }

@@ -199,13 +199,11 @@ export default [
           ignore: ['.*\\.d\\.ts$'], // Ignore TypeScript declaration files if needed
         },
       ],
-      'unicorn/prefer-node-protocol': 'warn', // TODO error
       'unicorn/prefer-spread': 'warn', // TODO error
       'unicorn/no-null': 'warn', // TODO error
       'unicorn/text-encoding-identifier-case': 'warn', // TODO error
       'unicorn/switch-case-braces': 'warn', // TODO error
       'unicorn/prefer-array-find': 'warn', // TODO error
-      'unicorn/prevent-abbreviations': 'warn', // TODO error
       'unicorn/no-array-for-each': 'warn', // TODO error
       'unicorn/catch-error-name': 'warn', // TODO error
       'unicorn/no-this-assignment': 'warn', // TODO error

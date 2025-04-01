@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {type PodRef} from '../integration/kube/resources/pod/pod-ref.js';
+import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER, SOLO_LOGS_DIR} from './constants.js';
-import fs from 'fs';
-import {ContainerRef} from '../integration/kube/resources/container/container-ref.js';
+import fs from 'node:fs';
+import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import * as constants from './constants.js';
 import {sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
@@ -61,25 +61,25 @@ export class NetworkNodes {
   }
 
   private async getLog(pod: Pod, namespace: NamespaceName, timeString: string, context?: string) {
-    const podRef: PodRef = pod.podRef;
-    this.logger.debug(`getNodeLogs(${pod.podRef.name.name}): begin...`);
-    const targetDir = PathEx.join(SOLO_LOGS_DIR, namespace.name, timeString);
+    const podReference: PodReference = pod.podReference;
+    this.logger.debug(`getNodeLogs(${pod.podReference.name.name}): begin...`);
+    const targetDirectory = PathEx.join(SOLO_LOGS_DIR, namespace.name, timeString);
     try {
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, {recursive: true});
+      if (!fs.existsSync(targetDirectory)) {
+        fs.mkdirSync(targetDirectory, {recursive: true});
       }
-      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
+      const containerReference = ContainerReference.of(podReference, ROOT_CONTAINER);
       const scriptName = 'support-zip.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       const k8 = this.k8Factory.getK8(context);
 
-      await k8.containers().readByRef(containerRef).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
+      await k8.containers().readByRef(containerReference).copyTo(sourcePath, `${HEDERA_HAPI_PATH}`);
 
       await sleep(Duration.ofSeconds(3)); // wait for the script to sync to the file system
 
       await k8
         .containers()
-        .readByRef(containerRef)
+        .readByRef(containerReference)
         .execContainer([
           'bash',
           '-c',
@@ -87,16 +87,19 @@ export class NetworkNodes {
         ]);
       await k8
         .containers()
-        .readByRef(containerRef)
+        .readByRef(containerReference)
         .execContainer(['bash', '-c', `sudo chmod 0755 ${HEDERA_HAPI_PATH}/${scriptName}`]);
-      await k8.containers().readByRef(containerRef).execContainer(`${HEDERA_HAPI_PATH}/${scriptName}`);
-      await k8.containers().readByRef(containerRef).copyFrom(`${HEDERA_HAPI_PATH}/data/${podRef.name}.zip`, targetDir);
-    } catch (e) {
+      await k8.containers().readByRef(containerReference).execContainer(`${HEDERA_HAPI_PATH}/${scriptName}`);
+      await k8
+        .containers()
+        .readByRef(containerReference)
+        .copyFrom(`${HEDERA_HAPI_PATH}/data/${podReference.name}.zip`, targetDirectory);
+    } catch (error) {
       // not throw error here, so we can continue to finish downloading logs from other pods
       // and also delete namespace in the end
-      this.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podRef}`, e);
+      this.logger.error(`${constants.NODE_LOG_FAILURE_MSG} ${podReference}`, error);
     }
-    this.logger.debug(`getNodeLogs(${pod.podRef.name.name}): ...end`);
+    this.logger.debug(`getNodeLogs(${pod.podReference.name.name}): ...end`);
   }
 
   /**
@@ -121,24 +124,27 @@ export class NetworkNodes {
   }
 
   private async getState(pod: Pod, namespace: NamespaceName, context?: string) {
-    const podRef: PodRef = pod.podRef;
-    this.logger.debug(`getNodeState(${pod.podRef.name.name}): begin...`);
-    const targetDir = PathEx.join(SOLO_LOGS_DIR, namespace.name);
+    const podReference: PodReference = pod.podReference;
+    this.logger.debug(`getNodeState(${pod.podReference.name.name}): begin...`);
+    const targetDirectory = PathEx.join(SOLO_LOGS_DIR, namespace.name);
     try {
-      if (!fs.existsSync(targetDir)) {
-        fs.mkdirSync(targetDir, {recursive: true});
+      if (!fs.existsSync(targetDirectory)) {
+        fs.mkdirSync(targetDirectory, {recursive: true});
       }
-      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podRef.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
-      const containerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
+      const zipCommand = `tar -czf ${HEDERA_HAPI_PATH}/${podReference.name}-state.zip -C ${HEDERA_HAPI_PATH}/data/saved .`;
+      const containerReference = ContainerReference.of(podReference, ROOT_CONTAINER);
 
       const k8 = this.k8Factory.getK8(context);
 
-      await k8.containers().readByRef(containerRef).execContainer(zipCommand);
-      await k8.containers().readByRef(containerRef).copyFrom(`${HEDERA_HAPI_PATH}/${podRef.name}-state.zip`, targetDir);
-    } catch (e: Error | unknown) {
-      this.logger.error(`failed to download state from pod ${podRef.name}`, e);
-      this.logger.showUser(`Failed to download state from pod ${podRef.name}` + e);
+      await k8.containers().readByRef(containerReference).execContainer(zipCommand);
+      await k8
+        .containers()
+        .readByRef(containerReference)
+        .copyFrom(`${HEDERA_HAPI_PATH}/${podReference.name}-state.zip`, targetDirectory);
+    } catch (error: Error | unknown) {
+      this.logger.error(`failed to download state from pod ${podReference.name}`, error);
+      this.logger.showUser(`Failed to download state from pod ${podReference.name}` + error);
     }
-    this.logger.debug(`getNodeState(${pod.podRef.name.name}): ...end`);
+    this.logger.debug(`getNodeState(${pod.podReference.name.name}): ...end`);
   }
 }

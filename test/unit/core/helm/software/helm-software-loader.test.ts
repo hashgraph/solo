@@ -2,9 +2,9 @@
 
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import {platform, arch} from 'os';
-import {existsSync} from 'fs';
-import {execSync} from 'child_process';
+import {platform, arch} from 'node:os';
+import {existsSync} from 'node:fs';
+import {execSync} from 'node:child_process';
 import {SemanticVersion} from '../../../../../src/integration/helm/base/api/version/semantic-version.js';
 import {HelmSoftwareLoader} from '../../../../../src/integration/helm/resource/helm-software-loader.js';
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ToObject} from '../../../types/index.js';
-import {type ClusterRef, type DeploymentName, type ICluster, type NamespaceNameAsString} from './types.js';
+import {type ClusterReference, type DeploymentName, type ICluster, type NamespaceNameAsString} from './types.js';
 import {SoloError} from '../../errors/solo-error.js';
 
 export class Cluster implements ICluster, ToObject<ICluster> {
@@ -42,16 +42,16 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     );
   }
 
-  public static toClustersMapObject(clustersMap: Record<ClusterRef, Cluster>) {
-    const entries = Object.entries(clustersMap).map(([ref, cluster]) => [ref, cluster.toObject()]);
+  public static toClustersMapObject(clustersMap: Record<ClusterReference, Cluster>) {
+    const entries = Object.entries(clustersMap).map(([reference, cluster]) => [reference, cluster.toObject()]);
     return Object.fromEntries(entries);
   }
 
-  public static fromClustersMapObject(obj: any): Record<ClusterRef, Cluster> {
-    const clusters: Record<ClusterRef, Cluster> = {};
+  public static fromClustersMapObject(object: any): Record<ClusterReference, Cluster> {
+    const clusters: Record<ClusterReference, Cluster> = {};
 
-    for (const [ref, cluster] of Object.entries(obj)) {
-      clusters[ref] = Cluster.fromObject(cluster as ICluster);
+    for (const [reference, cluster] of Object.entries(object)) {
+      clusters[reference] = Cluster.fromObject(cluster as ICluster);
     }
 
     return clusters;

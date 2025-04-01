@@ -9,7 +9,7 @@ import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type AnyObject} from '../types/aliases.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
-import {type ClusterRef} from './config/remote/types.js';
+import {type ClusterReference} from './config/remote/types.js';
 import {type LocalConfig} from './config/local/local-config.js';
 import {SoloError} from './errors/solo-error.js';
 import {SilentBreak} from './errors/silent-break.js';
@@ -101,7 +101,7 @@ export class Middlewares {
         configManager.reset();
       }
 
-      const clusterName = configManager.getFlag<ClusterRef>(flags.clusterRef) || currentClusterName;
+      const clusterName = configManager.getFlag<ClusterReference>(flags.clusterRef) || currentClusterName;
 
       // Set namespace if not provided
       if (contextNamespace?.name) {

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
+import fs from 'node:fs';
 import * as yaml from 'yaml';
 import {MissingArgumentError} from '../../errors/missing-argument-error.js';
 import {SoloError} from '../../errors/solo-error.js';
@@ -10,7 +10,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency-injection/container-helper.js';
 import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {LocalConfigDataWrapper} from './local-config-data-wrapper.js';
-import {type ClusterRefs, type EmailAddress, type Version} from '../remote/types.js';
+import {type ClusterReferences, type EmailAddress, type Version} from '../remote/types.js';
 import {type Deployments} from './local-config-data.js';
 
 @injectable()
@@ -77,7 +77,7 @@ export class LocalConfig {
    * @returns the cluster refs mapping from the local config data if it's loaded
    * @throws SoloError if the config is not loaded
    */
-  public get clusterRefs(): Readonly<ClusterRefs> {
+  public get clusterRefs(): Readonly<ClusterReferences> {
     if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
     return this.localConfigData.clusterRefs;
   }

@@ -58,12 +58,12 @@ export class EnvironmentStorageBackend implements StorageBackend {
    */
 
   public async list(): Promise<string[]> {
-    let env: object = process.env;
-    if (!env) {
-      env = {};
+    let environment: object = process.env;
+    if (!environment) {
+      environment = {};
     }
 
-    const keys: string[] = Object.keys(env);
+    const keys: string[] = Object.keys(environment);
     return keys
       .filter(value => Prefix.matcher(value, this.prefix, EnvironmentKeyFormatter.instance()))
       .map(value => Prefix.strip(value, this.prefix));
@@ -75,12 +75,12 @@ export class EnvironmentStorageBackend implements StorageBackend {
     }
 
     const normalizedKey: string = Prefix.add(key, this.prefix, EnvironmentKeyFormatter.instance());
-    let env: object = process.env;
-    if (!env) {
-      env = {};
+    let environment: object = process.env;
+    if (!environment) {
+      environment = {};
     }
 
-    const value = env[normalizedKey];
+    const value = environment[normalizedKey];
     if (!value) {
       throw new StorageBackendError(`key not found: ${key}`);
     }

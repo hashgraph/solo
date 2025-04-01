@@ -6,7 +6,7 @@ import * as constants from '../../core/constants.js';
 import {PrivateKey} from '@hashgraph/sdk';
 import {SoloError} from '../../core/errors/solo-error.js';
 import * as helpers from '../../core/helpers.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {checkNamespace} from '../../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../../core/resolvers.js';
 import {Flags as flags} from '../flags.js';
@@ -107,10 +107,10 @@ export class NodeCommandConfigs {
 
   public async prepareUpgradeConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodePrepareUpgradeContext,
+    context_: NodePrepareUpgradeContext,
     task: SoloListrTaskWrapper<NodePrepareUpgradeContext>,
   ): Promise<NodePrepareUpgradeConfigClass> {
-    ctx.config = this.configManager.getConfig(PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(PREPARE_UPGRADE_CONFIGS_NAME, argv.flags, [
       'nodeClient',
       'freezeAdminPrivateKey',
       'namespace',
@@ -118,27 +118,30 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodePrepareUpgradeConfigClass;
 
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-    await this.initializeSetup(ctx.config, this.k8Factory);
-    ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-      ctx.config.namespace,
+    await this.initializeSetup(context_.config, this.k8Factory);
+    context_.config.nodeClient = await this.accountManager.loadNodeClient(
+      context_.config.namespace,
       this.remoteConfigManager.getClusterRefs(),
-      ctx.config.deployment,
+      context_.config.deployment,
     );
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
-    ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(
+      FREEZE_ADMIN_ACCOUNT,
+      context_.config.namespace,
+    );
+    context_.config.freezeAdminPrivateKey = accountKeys.privateKey;
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async downloadGeneratedFilesConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeDownloadGeneratedFilesContext,
+    context_: NodeDownloadGeneratedFilesContext,
     task: SoloListrTaskWrapper<NodeDownloadGeneratedFilesContext>,
   ): Promise<NodeDownloadGeneratedFilesConfigClass> {
-    ctx.config = this.configManager.getConfig(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(DOWNLOAD_GENERATED_FILES_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'existingNodeAliases',
       'serviceMap',
@@ -147,20 +150,20 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeDownloadGeneratedFilesConfigClass;
 
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.existingNodeAliases = [];
-    await this.initializeSetup(ctx.config, this.k8Factory);
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.existingNodeAliases = [];
+    await this.initializeSetup(context_.config, this.k8Factory);
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async upgradeConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeUpgradeContext,
+    context_: NodeUpgradeContext,
     task: SoloListrTaskWrapper<NodeUpgradeContext>,
     shouldLoadNodeClient: boolean = true,
   ): Promise<NodeUpgradeConfigClass> {
-    ctx.config = this.configManager.getConfig(UPGRADE_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(UPGRADE_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'existingNodeAliases',
       'keysDir',
@@ -173,37 +176,40 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeUpgradeConfigClass;
 
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.curDate = new Date();
-    ctx.config.existingNodeAliases = [];
-    ctx.config.nodeAliases = helpers.parseNodeAliases(
-      ctx.config.nodeAliasesUnparsed,
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.curDate = new Date();
+    context_.config.existingNodeAliases = [];
+    context_.config.nodeAliases = helpers.parseNodeAliases(
+      context_.config.nodeAliasesUnparsed,
       this.remoteConfigManager.getConsensusNodes(),
       this.configManager,
     );
 
-    await this.initializeSetup(ctx.config, this.k8Factory);
+    await this.initializeSetup(context_.config, this.k8Factory);
 
     if (shouldLoadNodeClient) {
-      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-        ctx.config.namespace,
+      context_.config.nodeClient = await this.accountManager.loadNodeClient(
+        context_.config.namespace,
         this.remoteConfigManager.getClusterRefs(),
-        ctx.config.deployment,
+        context_.config.deployment,
       );
     }
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
-    ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
-    return ctx.config;
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(
+      FREEZE_ADMIN_ACCOUNT,
+      context_.config.namespace,
+    );
+    context_.config.freezeAdminPrivateKey = accountKeys.privateKey;
+    return context_.config;
   }
 
   public async updateConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeUpdateContext,
+    context_: NodeUpdateContext,
     task: SoloListrTaskWrapper<NodeUpdateContext>,
     shouldLoadNodeClient: boolean = true,
   ): Promise<NodeUpdateConfigClass> {
-    ctx.config = this.configManager.getConfig(UPDATE_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(UPDATE_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'existingNodeAliases',
       'freezeAdminPrivateKey',
@@ -219,41 +225,44 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeUpdateConfigClass;
 
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.curDate = new Date();
-    ctx.config.existingNodeAliases = [];
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.curDate = new Date();
+    context_.config.existingNodeAliases = [];
 
-    await this.initializeSetup(ctx.config, this.k8Factory);
+    await this.initializeSetup(context_.config, this.k8Factory);
 
     if (shouldLoadNodeClient) {
-      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-        ctx.config.namespace,
+      context_.config.nodeClient = await this.accountManager.loadNodeClient(
+        context_.config.namespace,
         this.remoteConfigManager.getClusterRefs(),
-        ctx.config.deployment,
+        context_.config.deployment,
       );
     }
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
-    ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(
+      FREEZE_ADMIN_ACCOUNT,
+      context_.config.namespace,
+    );
+    context_.config.freezeAdminPrivateKey = accountKeys.privateKey;
 
-    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(ctx.config.namespace);
+    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(context_.config.namespace);
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-    ctx.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+    context_.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
-    if (ctx.config.domainNames) {
-      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    if (context_.config.domainNames) {
+      context_.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(context_.config.domainNames);
     }
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async deleteConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeDeleteContext,
+    context_: NodeDeleteContext,
     task: SoloListrTaskWrapper<NodeDeleteContext>,
     shouldLoadNodeClient: boolean = true,
   ): Promise<NodeDeleteConfigClass> {
-    ctx.config = this.configManager.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(DELETE_CONFIGS_NAME, argv.flags, [
       'adminKey',
       'allNodeAliases',
       'existingNodeAliases',
@@ -270,41 +279,44 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeDeleteConfigClass;
 
-    ctx.config.curDate = new Date();
-    ctx.config.existingNodeAliases = [];
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.curDate = new Date();
+    context_.config.existingNodeAliases = [];
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-    await this.initializeSetup(ctx.config, this.k8Factory);
+    await this.initializeSetup(context_.config, this.k8Factory);
 
     if (shouldLoadNodeClient) {
-      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-        ctx.config.namespace,
+      context_.config.nodeClient = await this.accountManager.loadNodeClient(
+        context_.config.namespace,
         this.remoteConfigManager.getClusterRefs(),
-        ctx.config.deployment,
+        context_.config.deployment,
       );
     }
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
-    ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(
+      FREEZE_ADMIN_ACCOUNT,
+      context_.config.namespace,
+    );
+    context_.config.freezeAdminPrivateKey = accountKeys.privateKey;
 
-    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(ctx.config.namespace);
+    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(context_.config.namespace);
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-    ctx.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+    context_.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
-    if (ctx.config.domainNames) {
-      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    if (context_.config.domainNames) {
+      context_.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(context_.config.domainNames);
     }
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async addConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeAddContext,
+    context_: NodeAddContext,
     task: SoloListrTaskWrapper<NodeAddContext>,
     shouldLoadNodeClient: boolean = true,
   ): Promise<NodeAddConfigClass> {
-    ctx.config = this.configManager.getConfig(ADD_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(ADD_CONFIGS_NAME, argv.flags, [
       'allNodeAliases',
       'curDate',
       'existingNodeAliases',
@@ -322,55 +334,58 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeAddConfigClass;
 
-    ctx.adminKey = argv[flags.adminKey.name]
+    context_.adminKey = argv[flags.adminKey.name]
       ? PrivateKey.fromStringED25519(argv[flags.adminKey.name])
       : PrivateKey.fromStringED25519(constants.GENESIS_KEY);
 
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.curDate = new Date();
-    ctx.config.existingNodeAliases = [];
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.curDate = new Date();
+    context_.config.existingNodeAliases = [];
 
-    await this.initializeSetup(ctx.config, this.k8Factory);
+    await this.initializeSetup(context_.config, this.k8Factory);
 
     if (shouldLoadNodeClient) {
-      ctx.config.nodeClient = await this.accountManager.loadNodeClient(
-        ctx.config.namespace,
+      context_.config.nodeClient = await this.accountManager.loadNodeClient(
+        context_.config.namespace,
         this.remoteConfigManager.getClusterRefs(),
-        ctx.config.deployment,
+        context_.config.deployment,
       );
     }
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
-    ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(
+      FREEZE_ADMIN_ACCOUNT,
+      context_.config.namespace,
+    );
+    context_.config.freezeAdminPrivateKey = accountKeys.privateKey;
 
-    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(ctx.config.namespace);
+    const treasuryAccount = await this.accountManager.getTreasuryAccountKeys(context_.config.namespace);
     const treasuryAccountPrivateKey = treasuryAccount.privateKey;
-    ctx.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
+    context_.config.treasuryKey = PrivateKey.fromStringED25519(treasuryAccountPrivateKey);
 
-    ctx.config.serviceMap = await this.accountManager.getNodeServiceMap(
-      ctx.config.namespace,
+    context_.config.serviceMap = await this.accountManager.getNodeServiceMap(
+      context_.config.namespace,
       this.remoteConfigManager.getClusterRefs(),
-      ctx.config.deployment,
+      context_.config.deployment,
     );
 
-    ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
-    ctx.config.contexts = this.remoteConfigManager.getContexts();
+    context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    context_.config.contexts = this.remoteConfigManager.getContexts();
 
-    if (!ctx.config.clusterRef) ctx.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
+    if (!context_.config.clusterRef) context_.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
 
-    if (ctx.config.domainNames) {
-      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    if (context_.config.domainNames) {
+      context_.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(context_.config.domainNames);
     }
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async logsConfigBuilder(
     _argv: ArgvStruct,
-    ctx: NodeLogsContext,
+    context_: NodeLogsContext,
     task: SoloListrTaskWrapper<NodeLogsContext>,
   ): Promise<NodeLogsConfigClass> {
-    ctx.config = {
+    context_.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
       nodeAliases: helpers.parseNodeAliases(
         this.configManager.getFlag(flags.nodeAliasesUnparsed),
@@ -383,16 +398,16 @@ export class NodeCommandConfigs {
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeLogsConfigClass;
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async statesConfigBuilder(
     _argv: ArgvStruct,
-    ctx: NodeStatesContext,
+    context_: NodeStatesContext,
     task: SoloListrTaskWrapper<NodeStatesContext>,
   ): Promise<NodeStatesConfigClass> {
     const consensusNodes: ConsensusNode[] = this.remoteConfigManager.getConsensusNodes();
-    ctx.config = {
+    context_.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
       nodeAliases: helpers.parseNodeAliases(
         this.configManager.getFlag(flags.nodeAliasesUnparsed),
@@ -405,15 +420,15 @@ export class NodeCommandConfigs {
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeStatesConfigClass;
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async refreshConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeRefreshContext,
+    context_: NodeRefreshContext,
     task: SoloListrTaskWrapper<NodeRefreshContext>,
   ): Promise<NodeRefreshConfigClass> {
-    ctx.config = this.configManager.getConfig(REFRESH_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(REFRESH_CONFIGS_NAME, argv.flags, [
       'nodeAliases',
       'podRefs',
       'namespace',
@@ -421,24 +436,24 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeRefreshConfigClass;
 
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.nodeAliases = helpers.parseNodeAliases(
-      ctx.config.nodeAliasesUnparsed,
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.nodeAliases = helpers.parseNodeAliases(
+      context_.config.nodeAliasesUnparsed,
       this.remoteConfigManager.getConsensusNodes(),
       this.configManager,
     );
 
-    await this.initializeSetup(ctx.config, this.k8Factory);
+    await this.initializeSetup(context_.config, this.k8Factory);
 
-    if (ctx.config.domainNames) {
-      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    if (context_.config.domainNames) {
+      context_.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(context_.config.domainNames);
     }
 
-    return ctx.config;
+    return context_.config;
   }
 
-  public async keysConfigBuilder(argv: ArgvStruct, ctx: NodeKeysContext): Promise<NodeKeysConfigClass> {
-    ctx.config = this.configManager.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
+  public async keysConfigBuilder(argv: ArgvStruct, context_: NodeKeysContext): Promise<NodeKeysConfigClass> {
+    context_.config = this.configManager.getConfig(KEYS_CONFIGS_NAME, argv.flags, [
       'curDate',
       'keysDir',
       'nodeAliases',
@@ -446,28 +461,28 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeKeysConfigClass;
 
-    ctx.config.curDate = new Date();
-    ctx.config.nodeAliases = helpers.parseNodeAliases(
-      ctx.config.nodeAliasesUnparsed,
+    context_.config.curDate = new Date();
+    context_.config.nodeAliases = helpers.parseNodeAliases(
+      context_.config.nodeAliasesUnparsed,
       this.remoteConfigManager.getConsensusNodes(),
       this.configManager,
     );
 
-    ctx.config.keysDir = PathEx.join(this.configManager.getFlag(flags.cacheDir), 'keys');
+    context_.config.keysDir = PathEx.join(this.configManager.getFlag(flags.cacheDir), 'keys');
 
-    if (!fs.existsSync(ctx.config.keysDir)) {
-      fs.mkdirSync(ctx.config.keysDir);
+    if (!fs.existsSync(context_.config.keysDir)) {
+      fs.mkdirSync(context_.config.keysDir);
     }
-    return ctx.config;
+    return context_.config;
   }
 
   public async stopConfigBuilder(
     _argv: ArgvStruct,
-    ctx: NodeStopContext,
+    context_: NodeStopContext,
     task: SoloListrTaskWrapper<NodeStopContext>,
   ): Promise<NodeStopConfigClass> {
     const consensusNodes: ConsensusNode[] = this.remoteConfigManager.getConsensusNodes();
-    ctx.config = {
+    context_.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
       nodeAliases: helpers.parseNodeAliases(
         this.configManager.getFlag(flags.nodeAliasesUnparsed),
@@ -480,83 +495,86 @@ export class NodeCommandConfigs {
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeStopConfigClass;
 
-    await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
-    return ctx.config;
+    await checkNamespace(context_.config.consensusNodes, this.k8Factory, context_.config.namespace);
+    return context_.config;
   }
 
   public async freezeConfigBuilder(
     _argv: ArgvStruct,
-    ctx: NodeFreezeContext,
+    context_: NodeFreezeContext,
     task: SoloListrTaskWrapper<NodeFreezeContext>,
   ): Promise<NodeFreezeConfigClass> {
-    ctx.config = {
+    context_.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
       deployment: this.configManager.getFlag(flags.deployment),
       consensusNodes: this.remoteConfigManager.getConsensusNodes(),
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeFreezeConfigClass;
 
-    await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+    await checkNamespace(context_.config.consensusNodes, this.k8Factory, context_.config.namespace);
 
-    const accountKeys = await this.accountManager.getAccountKeysFromSecret(FREEZE_ADMIN_ACCOUNT, ctx.config.namespace);
-    ctx.config.freezeAdminPrivateKey = accountKeys.privateKey;
+    const accountKeys = await this.accountManager.getAccountKeysFromSecret(
+      FREEZE_ADMIN_ACCOUNT,
+      context_.config.namespace,
+    );
+    context_.config.freezeAdminPrivateKey = accountKeys.privateKey;
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async startConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeStartContext,
+    context_: NodeStartContext,
     task: SoloListrTaskWrapper<NodeStartContext>,
   ): Promise<NodeStartConfigClass> {
-    ctx.config = this.configManager.getConfig(START_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(START_CONFIGS_NAME, argv.flags, [
       'nodeAliases',
       'namespace',
       'consensusNodes',
       'contexts',
     ]) as NodeStartConfigClass;
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
-    for (const consensusNode of ctx.config.consensusNodes) {
+    for (const consensusNode of context_.config.consensusNodes) {
       const k8 = this.k8Factory.getK8(consensusNode.context);
-      if (!(await k8.namespaces().has(ctx.config.namespace))) {
-        throw new SoloError(`namespace ${ctx.config.namespace} does not exist`);
+      if (!(await k8.namespaces().has(context_.config.namespace))) {
+        throw new SoloError(`namespace ${context_.config.namespace} does not exist`);
       }
     }
 
-    ctx.config.nodeAliases = helpers.parseNodeAliases(
-      ctx.config.nodeAliasesUnparsed,
-      ctx.config.consensusNodes,
+    context_.config.nodeAliases = helpers.parseNodeAliases(
+      context_.config.nodeAliasesUnparsed,
+      context_.config.consensusNodes,
       this.configManager,
     );
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async restartConfigBuilder(
     _argv: ArgvStruct,
-    ctx: NodeRestartContext,
+    context_: NodeRestartContext,
     task: SoloListrTaskWrapper<NodeRestartContext>,
   ): Promise<NodeRestartConfigClass> {
-    ctx.config = {
+    context_.config = {
       namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
       deployment: this.configManager.getFlag(flags.deployment),
       consensusNodes: this.remoteConfigManager.getConsensusNodes(),
       contexts: this.remoteConfigManager.getContexts(),
     } as NodeRestartConfigClass;
 
-    await checkNamespace(ctx.config.consensusNodes, this.k8Factory, ctx.config.namespace);
+    await checkNamespace(context_.config.consensusNodes, this.k8Factory, context_.config.namespace);
 
-    return ctx.config;
+    return context_.config;
   }
 
   public async setupConfigBuilder(
     argv: ArgvStruct,
-    ctx: NodeSetupContext,
+    context_: NodeSetupContext,
     task: SoloListrTaskWrapper<NodeSetupContext>,
   ): Promise<NodeSetupConfigClass> {
-    ctx.config = this.configManager.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
+    context_.config = this.configManager.getConfig(SETUP_CONFIGS_NAME, argv.flags, [
       'nodeAliases',
       'podRefs',
       'namespace',
@@ -564,20 +582,20 @@ export class NodeCommandConfigs {
       'contexts',
     ]) as NodeSetupConfigClass;
 
-    ctx.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
-    ctx.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
-    ctx.config.nodeAliases = helpers.parseNodeAliases(
-      ctx.config.nodeAliasesUnparsed,
-      ctx.config.consensusNodes,
+    context_.config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
+    context_.config.nodeAliases = helpers.parseNodeAliases(
+      context_.config.nodeAliasesUnparsed,
+      context_.config.consensusNodes,
       this.configManager,
     );
 
-    await this.initializeSetup(ctx.config, this.k8Factory);
+    await this.initializeSetup(context_.config, this.k8Factory);
 
-    if (ctx.config.domainNames) {
-      ctx.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(ctx.config.domainNames);
+    if (context_.config.domainNames) {
+      context_.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(context_.config.domainNames);
     }
 
-    return ctx.config;
+    return context_.config;
   }
 }

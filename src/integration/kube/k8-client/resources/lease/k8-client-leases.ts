@@ -57,8 +57,8 @@ export class K8ClientLeases implements Leases {
     let result: {response: any; body: any};
     try {
       result = await this.coordinationApiClient.createNamespacedLease(namespace.name, lease);
-    } catch (e) {
-      throw new ResourceCreateError(ResourceType.LEASE, namespace, leaseName, e);
+    } catch (error) {
+      throw new ResourceCreateError(ResourceType.LEASE, namespace, leaseName, error);
     }
 
     this.handleKubernetesClientError(result.response, result.body, 'Failed to create namespaced lease');
@@ -70,8 +70,8 @@ export class K8ClientLeases implements Leases {
     let result: {response: any; body: any};
     try {
       result = await this.coordinationApiClient.deleteNamespacedLease(name, namespace.name);
-    } catch (e) {
-      throw new ResourceDeleteError(ResourceType.LEASE, namespace, name, e);
+    } catch (error) {
+      throw new ResourceDeleteError(ResourceType.LEASE, namespace, name, error);
     }
 
     this.handleKubernetesClientError(result.response, result.body, 'Failed to delete namespaced lease');
@@ -83,8 +83,8 @@ export class K8ClientLeases implements Leases {
     let result: {response: any; body: any};
     try {
       result = await this.coordinationApiClient.readNamespacedLease(leaseName, namespace.name);
-    } catch (e) {
-      throw new ResourceReadError(ResourceType.LEASE, namespace, leaseName, e);
+    } catch (error) {
+      throw new ResourceReadError(ResourceType.LEASE, namespace, leaseName, error);
     }
 
     if (result.response?.statusCode === StatusCodes.INTERNAL_SERVER_ERROR && timesCalled < 4) {
@@ -95,8 +95,8 @@ export class K8ClientLeases implements Leases {
       await sleep(Duration.ofSeconds(5));
       try {
         return await this.read(namespace, leaseName, timesCalled + 1);
-      } catch (e) {
-        throw new ResourceReadError(ResourceType.LEASE, namespace, leaseName, e);
+      } catch (error) {
+        throw new ResourceReadError(ResourceType.LEASE, namespace, leaseName, error);
       }
     }
 
@@ -112,8 +112,8 @@ export class K8ClientLeases implements Leases {
     let result: {response: any; body: any};
     try {
       result = await this.coordinationApiClient.replaceNamespacedLease(leaseName, namespace.name, v1Lease);
-    } catch (e) {
-      throw new ResourceReplaceError(ResourceType.LEASE, namespace, leaseName, e);
+    } catch (error) {
+      throw new ResourceReplaceError(ResourceType.LEASE, namespace, leaseName, error);
     }
 
     this.handleKubernetesClientError(result.response, result.body, 'Failed to renew namespaced lease');
@@ -134,8 +134,8 @@ export class K8ClientLeases implements Leases {
         v1Lease.metadata.namespace,
         v1Lease,
       );
-    } catch (e) {
-      throw new ResourceReplaceError(ResourceType.LEASE, lease.namespace, v1Lease.metadata.name, e);
+    } catch (error) {
+      throw new ResourceReplaceError(ResourceType.LEASE, lease.namespace, v1Lease.metadata.name, error);
     }
 
     this.handleKubernetesClientError(result.response, result.body, 'Failed to transfer namespaced lease');

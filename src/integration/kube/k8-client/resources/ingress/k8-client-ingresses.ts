@@ -5,7 +5,7 @@ import {type NamespaceName} from '../../../resources/namespace/namespace-name.js
 import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import {type V1IngressList, type NetworkingV1Api, type V1Ingress} from '@kubernetes/client-node';
 import {container} from 'tsyringe-neo';
-import {type IncomingMessage} from 'http';
+import {type IncomingMessage} from 'node:http';
 import {ResourceReadError, ResourceUpdateError} from '../../../errors/resource-operation-errors.js';
 import {ResourceType} from '../../../resources/resource-type.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';
@@ -24,8 +24,8 @@ export class K8ClientIngresses implements Ingresses {
     let result: {response: IncomingMessage; body: V1IngressList};
     try {
       result = await this.networkingApi.listIngressForAllNamespaces();
-    } catch (e) {
-      throw new ResourceReadError(ResourceType.INGRESS, undefined, '', e);
+    } catch (error) {
+      throw new ResourceReadError(ResourceType.INGRESS, undefined, '', error);
     }
 
     KubeApiResponse.check(result.response, ResourceOperation.LIST, ResourceType.INGRESS, undefined, '');
@@ -54,8 +54,8 @@ export class K8ClientIngresses implements Ingresses {
           }
         });
       })
-      .catch(err => {
-        throw new SoloError(`Error listing Ingresses: ${err}`);
+      .catch(error => {
+        throw new SoloError(`Error listing Ingresses: ${error}`);
       });
 
     for (const ingressName of ingresses) {
@@ -76,8 +76,8 @@ export class K8ClientIngresses implements Ingresses {
         );
 
         this.logger.info(`Patched Ingress ${ingressName} in namespace ${namespace}, patch: ${JSON.stringify(patch)}`);
-      } catch (e) {
-        throw new ResourceUpdateError(ResourceType.INGRESS, namespace, ingressName, e);
+      } catch (error) {
+        throw new ResourceUpdateError(ResourceType.INGRESS, namespace, ingressName, error);
       }
 
       KubeApiResponse.check(result.response, ResourceOperation.UPDATE, ResourceType.INGRESS, namespace, ingressName);
