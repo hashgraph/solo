@@ -213,7 +213,7 @@ export function isNumeric(string_: string) {
     return false;
   } // we only process strings!
   return (
-    !Number.isNaN(string_ as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+    !Number.isNaN(Number.parseInt(string_)) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !Number.isNaN(Number.parseFloat(string_))
   ); // ...and ensure strings of whitespace fail
 }
