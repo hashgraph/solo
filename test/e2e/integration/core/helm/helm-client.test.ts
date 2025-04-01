@@ -19,6 +19,7 @@ import {InjectTokens} from '../../../../../src/core/dependency-injection/inject-
 import {type K8Factory} from '../../../../../src/integration/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
 import {type K8} from '../../../../../src/integration/kube/k8.js';
+import {Duration} from '../../../../../src/core/time/duration.js';
 
 const exec = promisify(execCallback);
 
@@ -54,7 +55,7 @@ describe('HelmClient Tests', () => {
   });
 
   after(async function () {
-    this.timeout(60000); // 1 minute timeout for cleanup
+    this.timeout(Duration.ofMinutes(2).toMillis()); // 2 minutes timeout for cleanup
 
     try {
       console.log(`Deleting namespace ${NAMESPACE}...`);
