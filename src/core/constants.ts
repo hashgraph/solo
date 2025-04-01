@@ -156,7 +156,7 @@ export const LISTR_DEFAULT_RENDERER_OPTION = {
   timer: {
     condition: (duration: number) => boolean;
     format: (duration: number) => any;
-    field: string | ((args_0: number) => string);
+    field: string | ((arguments_0: number) => string);
     args?: [number];
   };
   logger: ListrLogger;

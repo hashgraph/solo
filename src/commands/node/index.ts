@@ -3,7 +3,7 @@
 import {IllegalArgumentError} from '../../core/errors/illegal-argument-error.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {YargsCommand} from '../../core/yargs-command.js';
-import {BaseCommand, type Opts} from './../base.js';
+import {BaseCommand, type Options} from './../base.js';
 import * as NodeFlags from './flags.js';
 import {type NodeCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
@@ -19,23 +19,23 @@ export class NodeCommand extends BaseCommand {
   public readonly handlers: NodeCommandHandlers;
   public _portForwards: ExtendedNetServer[];
 
-  public constructor(opts: Opts) {
-    super(opts);
+  public constructor(options: Options) {
+    super(options);
 
-    if (!opts || !opts.downloader)
-      throw new IllegalArgumentError('An instance of core/PackageDownloader is required', opts.downloader);
-    if (!opts || !opts.platformInstaller)
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', opts.platformInstaller);
-    if (!opts || !opts.keyManager)
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', opts.keyManager);
-    if (!opts || !opts.accountManager)
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', opts.accountManager);
-    if (!opts || !opts.profileManager)
-      throw new IllegalArgumentError('An instance of ProfileManager is required', opts.profileManager);
-    if (!opts || !opts.certificateManager)
-      throw new IllegalArgumentError('An instance of CertificateManager is required', opts.certificateManager);
+    if (!options || !options.downloader)
+      throw new IllegalArgumentError('An instance of core/PackageDownloader is required', options.downloader);
+    if (!options || !options.platformInstaller)
+      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', options.platformInstaller);
+    if (!options || !options.keyManager)
+      throw new IllegalArgumentError('An instance of core/KeyManager is required', options.keyManager);
+    if (!options || !options.accountManager)
+      throw new IllegalArgumentError('An instance of core/AccountManager is required', options.accountManager);
+    if (!options || !options.profileManager)
+      throw new IllegalArgumentError('An instance of ProfileManager is required', options.profileManager);
+    if (!options || !options.certificateManager)
+      throw new IllegalArgumentError('An instance of CertificateManager is required', options.certificateManager);
 
-    this.accountManager = opts.accountManager;
+    this.accountManager = options.accountManager;
 
     this.handlers = patchInject(null, InjectTokens.NodeCommandHandlers, this.constructor.name);
     this._portForwards = [];
@@ -46,14 +46,14 @@ export class NodeCommand extends BaseCommand {
   /**
    * stops and closes the port forwards
    * - calls the accountManager.close()
-   * - for all portForwards, calls k8Factory.default().pods().readByRef(null).stopPortForward(srv)
+   * - for all portForwards, calls k8Factory.default().pods().readByReference(null).stopPortForward(srv)
    */
   public async close(): Promise<void> {
     await this.accountManager.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        // pass null to readByRef because it isn't needed for stopPortForward()
-        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
+        // pass null to readByReference because it isn't needed for stopPortForward()
+        await this.k8Factory.default().pods().readByReference(null).stopPortForward(srv);
       }
     }
 

@@ -8,10 +8,10 @@ import {type CommandFlag} from '../types/flag-types.js';
 
 export class YargsCommand {
   constructor(
-    opts: {command: string; description: string; commandDef: BaseCommand | any; handler: string},
+    options: {command: string; description: string; commandDef: BaseCommand | any; handler: string},
     flags: {required: CommandFlag[]; optional: CommandFlag[]},
   ) {
-    const {command, description, commandDef, handler} = opts;
+    const {command, description, commandDef, handler} = options;
     const {required, optional} = flags;
 
     if (!command) throw new IllegalArgumentError("A string is required as the 'command' property", command);
@@ -46,9 +46,9 @@ export class YargsCommand {
               commandDef.logger.info(`==== Finished running '${commandNamespace} ${command}' ====`);
               if (!r) throw new SoloError(`${commandNamespace} ${command} failed, expected returned value to be true`);
             })
-            .catch((err: Error | any) => {
-              commandDef.logger.showUserError(err);
-              throw new SoloError(`${commandNamespace} ${command} failed: ${err.message}`, err);
+            .catch((error: Error | any) => {
+              commandDef.logger.showUserError(error);
+              throw new SoloError(`${commandNamespace} ${command} failed: ${error.message}`, error);
             });
         },
       };

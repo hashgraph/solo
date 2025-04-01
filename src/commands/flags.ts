@@ -15,7 +15,7 @@ import {
 } from '@inquirer/prompts';
 import validator from 'validator';
 import {type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
-import {type ClusterRef} from '../core/config/remote/types.js';
+import {type ClusterReference} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
@@ -67,8 +67,8 @@ export class Flags {
       }
 
       return input;
-    } catch (e) {
-      throw new SoloError(`input failed: ${flagName}: ${e.message}`, e);
+    } catch (error) {
+      throw new SoloError(`input failed: ${flagName}: ${error.message}`, error);
     }
   }
 
@@ -169,7 +169,7 @@ export class Flags {
       alias: 'c',
       type: 'string',
     },
-    prompt: async function promptClusterRef(
+    prompt: async function promptClusterReference(
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: string,
     ): Promise<string> {
@@ -259,28 +259,28 @@ export class Flags {
    * <p>--values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
    * @param input
    */
-  public static parseValuesFilesInput(input: string): Record<ClusterRef, Array<string>> {
-    const valuesFiles: Record<ClusterRef, Array<string>> = {};
+  public static parseValuesFilesInput(input: string): Record<ClusterReference, Array<string>> {
+    const valuesFiles: Record<ClusterReference, Array<string>> = {};
     if (input) {
       const inputItems = input.split(',');
       inputItems.forEach(v => {
         const parts = v.split('=');
 
-        let clusterRef: string;
+        let clusterReference: string;
         let valuesFile: string;
 
         if (parts.length !== 2) {
           valuesFile = PathEx.resolve(v);
-          clusterRef = Flags.KEY_COMMON;
+          clusterReference = Flags.KEY_COMMON;
         } else {
-          clusterRef = parts[0];
+          clusterReference = parts[0];
           valuesFile = PathEx.resolve(parts[1]);
         }
 
-        if (!valuesFiles[clusterRef]) {
-          valuesFiles[clusterRef] = [];
+        if (!valuesFiles[clusterReference]) {
+          valuesFiles[clusterReference] = [];
         }
-        valuesFiles[clusterRef].push(valuesFile);
+        valuesFiles[clusterReference].push(valuesFile);
       });
     }
 
@@ -382,8 +382,8 @@ export class Flags {
         }
 
         return input;
-      } catch (e) {
-        throw new SoloError(`input failed: ${Flags.profileName.name}`, e);
+      } catch (error) {
+        throw new SoloError(`input failed: ${Flags.profileName.name}`, error);
       }
     },
   };
@@ -596,7 +596,10 @@ export class Flags {
       defaultValue: constants.SOLO_CACHE_DIR,
       type: 'string',
     },
-    prompt: async function promptCacheDir(task: SoloListrTaskWrapper<AnyListrContext>, input: string): Promise<string> {
+    prompt: async function promptCacheDirectory(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
@@ -661,7 +664,10 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptChartDir(task: SoloListrTaskWrapper<AnyListrContext>, input: string): Promise<string> {
+    prompt: async function promptChartDirectory(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       if (input === 'false') return '';
       try {
         if (input && !fs.existsSync(input)) {
@@ -676,8 +682,8 @@ export class Flags {
         }
 
         return input;
-      } catch (e) {
-        throw new SoloError(`input failed: ${Flags.chartDirectory.name}`, e);
+      } catch (error) {
+        throw new SoloError(`input failed: ${Flags.chartDirectory.name}`, error);
       }
     },
   };
@@ -881,8 +887,8 @@ export class Flags {
         })) as string;
 
         return input;
-      } catch (e) {
-        throw new SoloError(`input failed: ${Flags.tlsClusterIssuerType.name}`, e);
+      } catch (error) {
+        throw new SoloError(`input failed: ${Flags.tlsClusterIssuerType.name}`, error);
       }
     },
   };
@@ -1489,7 +1495,7 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptOutputDir(
+    prompt: async function promptOutputDirectory(
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: boolean,
     ): Promise<boolean> {
@@ -1512,7 +1518,7 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptInputDir(
+    prompt: async function promptInputDirectory(
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: boolean,
     ): Promise<boolean> {

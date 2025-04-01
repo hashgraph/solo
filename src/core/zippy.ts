@@ -26,103 +26,104 @@ export class Zippy {
    * @param [verbose] - if true, log the progress
    * @returns path to the output zip file
    */
-  async zip(srcPath: string, destPath: string, verbose = false) {
-    if (!srcPath) throw new MissingArgumentError('srcPath is required');
-    if (!destPath) throw new MissingArgumentError('destPath is required');
-    if (!destPath.endsWith('.zip')) throw new MissingArgumentError('destPath must be a path to a zip file');
+  async zip(sourcePath: string, destinationPath: string, verbose = false) {
+    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
+    if (!destinationPath) throw new MissingArgumentError('destPath is required');
+    if (!destinationPath.endsWith('.zip')) throw new MissingArgumentError('destPath must be a path to a zip file');
 
     try {
       const zip = new AdmZip('', {});
 
-      const stat = fs.statSync(srcPath);
+      const stat = fs.statSync(sourcePath);
       if (stat.isDirectory()) {
-        zip.addLocalFolder(srcPath, '');
+        zip.addLocalFolder(sourcePath, '');
       } else {
-        zip.addFile(path.basename(srcPath), fs.readFileSync(srcPath), '', stat as any);
+        zip.addFile(path.basename(sourcePath), fs.readFileSync(sourcePath), '', stat as any);
       }
 
-      await zip.writeZipPromise(destPath, {overwrite: true});
+      await zip.writeZipPromise(destinationPath, {overwrite: true});
 
-      return destPath;
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to unzip ${srcPath}: ${e.message}`, e);
+      return destinationPath;
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to unzip ${sourcePath}: ${error.message}`, error);
     }
   }
 
-  unzip(srcPath: string, destPath: string, verbose = false) {
+  unzip(sourcePath: string, destinationPath: string, verbose = false) {
     const self = this;
 
-    if (!srcPath) throw new MissingArgumentError('srcPath is required');
-    if (!destPath) throw new MissingArgumentError('destPath is required');
+    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
+    if (!destinationPath) throw new MissingArgumentError('destPath is required');
 
-    if (!fs.existsSync(srcPath)) throw new IllegalArgumentError('srcPath does not exists', srcPath);
+    if (!fs.existsSync(sourcePath)) throw new IllegalArgumentError('srcPath does not exists', sourcePath);
 
     try {
-      const zip = new AdmZip(srcPath, {readEntries: true});
+      const zip = new AdmZip(sourcePath, {readEntries: true});
 
       zip.getEntries().forEach(zipEntry => {
         if (verbose) {
-          self.logger.debug(`Extracting file: ${zipEntry.entryName} -> ${destPath}/${zipEntry.entryName} ...`, {
+          self.logger.debug(`Extracting file: ${zipEntry.entryName} -> ${destinationPath}/${zipEntry.entryName} ...`, {
             src: zipEntry.entryName,
-            dst: `${destPath}/${zipEntry.entryName}`,
+            dst: `${destinationPath}/${zipEntry.entryName}`,
           });
         }
 
-        zip.extractEntryTo(zipEntry, destPath, true, true, true, zipEntry.entryName);
+        zip.extractEntryTo(zipEntry, destinationPath, true, true, true, zipEntry.entryName);
         if (verbose) {
           self.logger.showUser(
             chalk.green('OK'),
-            `Extracted: ${zipEntry.entryName} -> ${destPath}/${zipEntry.entryName}`,
+            `Extracted: ${zipEntry.entryName} -> ${destinationPath}/${zipEntry.entryName}`,
           );
         }
       });
 
-      return destPath;
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to unzip ${srcPath}: ${e.message}`, e);
+      return destinationPath;
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to unzip ${sourcePath}: ${error.message}`, error);
     }
   }
 
-  tar(srcPath: string, destPath: string) {
-    if (!srcPath) throw new MissingArgumentError('srcPath is required');
-    if (!destPath) throw new MissingArgumentError('destPath is required');
-    if (!destPath.endsWith('.tar.gz')) throw new MissingArgumentError('destPath must be a path to a tar.gz file');
+  tar(sourcePath: string, destinationPath: string) {
+    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
+    if (!destinationPath) throw new MissingArgumentError('destPath is required');
+    if (!destinationPath.endsWith('.tar.gz'))
+      throw new MissingArgumentError('destPath must be a path to a tar.gz file');
 
-    if (!fs.existsSync(srcPath)) throw new IllegalArgumentError('srcPath does not exists', srcPath);
+    if (!fs.existsSync(sourcePath)) throw new IllegalArgumentError('srcPath does not exists', sourcePath);
 
     try {
       tar.c(
         {
           gzip: true,
-          file: destPath,
+          file: destinationPath,
           sync: true,
         },
-        [srcPath],
+        [sourcePath],
       );
-      return destPath;
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to tar ${srcPath}: ${e.message}`, e);
+      return destinationPath;
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to tar ${sourcePath}: ${error.message}`, error);
     }
   }
 
-  untar(srcPath: string, destPath: string) {
-    if (!srcPath) throw new MissingArgumentError('srcPath is required');
-    if (!destPath) throw new MissingArgumentError('destPath is required');
+  untar(sourcePath: string, destinationPath: string) {
+    if (!sourcePath) throw new MissingArgumentError('srcPath is required');
+    if (!destinationPath) throw new MissingArgumentError('destPath is required');
 
-    if (!fs.existsSync(srcPath)) throw new IllegalArgumentError('srcPath does not exists', srcPath);
-    if (!fs.existsSync(destPath)) {
-      fs.mkdirSync(destPath);
+    if (!fs.existsSync(sourcePath)) throw new IllegalArgumentError('srcPath does not exists', sourcePath);
+    if (!fs.existsSync(destinationPath)) {
+      fs.mkdirSync(destinationPath);
     }
 
     try {
       tar.x({
-        C: destPath,
-        file: srcPath,
+        C: destinationPath,
+        file: sourcePath,
         sync: true,
       });
-      return destPath;
-    } catch (e: Error | any) {
-      throw new SoloError(`failed to untar ${srcPath}: ${e.message}`, e);
+      return destinationPath;
+    } catch (error: Error | any) {
+      throw new SoloError(`failed to untar ${sourcePath}: ${error.message}`, error);
     }
   }
 }

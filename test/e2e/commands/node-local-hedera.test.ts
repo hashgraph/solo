@@ -3,7 +3,7 @@
 import {describe} from 'mocha';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getTestCluster} from '../../test-util.js';
+import {endToEndTestSuite, getTestCluster} from '../../test-utility.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {SOLO_LOGS_DIR} from '../../../src/core/constants.js';
 import {expect} from 'chai';
@@ -36,7 +36,7 @@ argv.setArg(
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
-e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node for hedera app should have started successfully', () => {
     const {
       opts: {k8Factory, commandInvoker, remoteConfigManager},

@@ -430,10 +430,10 @@ describe('HelmClient Tests', () => {
   describe('Parameterized Chart Installation with Options Executes Successfully', function () {
     this.timeout(INSTALL_TIMEOUT * 1000);
 
-    getChartInstallOptionsTestParameters().forEach(params => {
-      it(params.name, async () => {
+    getChartInstallOptionsTestParameters().forEach(parameters => {
+      it(parameters.name, async () => {
         await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
-        await testChartInstallWithCleanup(params.options);
+        await testChartInstallWithCleanup(parameters.options);
       });
     });
   });

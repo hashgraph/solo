@@ -10,7 +10,7 @@ import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
 import {
-  type ClusterRef,
+  type ClusterReference,
   type Component,
   type ComponentName,
   type ComponentsDataStructure,
@@ -242,7 +242,7 @@ export class ComponentsDataWrapper
 
   public static initializeWithNodes(
     nodeAliases: NodeAliases,
-    clusterRef: ClusterRef,
+    clusterReference: ClusterReference,
     namespace: NamespaceNameAsString,
   ): ComponentsDataWrapper {
     const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
@@ -250,7 +250,7 @@ export class ComponentsDataWrapper
     nodeAliases.forEach(nodeAlias => {
       consensusNodeComponents[nodeAlias] = new ConsensusNodeComponent(
         nodeAlias,
-        clusterRef,
+        clusterReference,
         namespace,
         ConsensusNodeStates.NON_DEPLOYED,
         Templates.nodeIdFromNodeAlias(nodeAlias),

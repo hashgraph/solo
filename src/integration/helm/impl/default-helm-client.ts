@@ -124,7 +124,7 @@ export class DefaultHelmClient implements HelmClient {
    */
   private async executeAsync<T extends HelmRequest, R>(
     request: T,
-    responseClass: new (...args: any[]) => R,
+    responseClass: new (...arguments_: any[]) => R,
   ): Promise<R> {
     return this.executeInternal(undefined, request, responseClass, async b => {
       const response = await b.responseAs(responseClass);
@@ -142,7 +142,7 @@ export class DefaultHelmClient implements HelmClient {
    */
   private async executeAsList<T extends HelmRequest, R>(
     request: T,
-    responseClass: new (...args: any[]) => R,
+    responseClass: new (...arguments_: any[]) => R,
   ): Promise<R[]> {
     return this.executeInternal(undefined, request, responseClass, async b => {
       const response = await b.responseAsList(responseClass);
@@ -153,8 +153,8 @@ export class DefaultHelmClient implements HelmClient {
   private async executeInternal<T extends HelmRequest, R, V>(
     namespace: string | undefined,
     request: T,
-    responseClass: new (...args: any[]) => R,
-    responseFn: BiFunction<HelmExecution, typeof responseClass, Promise<V>>,
+    responseClass: new (...arguments_: any[]) => R,
+    responseFunction: BiFunction<HelmExecution, typeof responseClass, Promise<V>>,
   ): Promise<V> {
     if (namespace && !namespace.trim()) {
       throw new Error('namespace must not be blank');
@@ -167,6 +167,6 @@ export class DefaultHelmClient implements HelmClient {
       builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, namespace);
     }
     const execution = builder.build();
-    return responseFn(execution, responseClass);
+    return responseFunction(execution, responseClass);
   }
 }

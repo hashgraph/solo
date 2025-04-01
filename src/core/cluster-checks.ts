@@ -33,8 +33,8 @@ export class ClusterChecks {
       const pods: Pod[] = await this.k8Factory.default().pods().listForAllNamespaces(['app=cert-manager']);
 
       return pods.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find cert-manager:', e);
+    } catch (error) {
+      this.logger.error('Failed to find cert-manager:', error);
 
       return false;
     }
@@ -50,8 +50,8 @@ export class ClusterChecks {
       const pods: Pod[] = await this.k8Factory.default().pods().list(namespace, ['app=minio']);
 
       return pods.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find minio:', e);
+    } catch (error) {
+      this.logger.error('Failed to find minio:', error);
 
       return false;
     }
@@ -66,8 +66,8 @@ export class ClusterChecks {
       const ingressClassList: IngressClass[] = await this.k8Factory.default().ingressClasses().list();
 
       return ingressClassList.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find ingress controller:', e);
+    } catch (error) {
+      this.logger.error('Failed to find ingress controller:', error);
 
       return false;
     }
@@ -85,8 +85,8 @@ export class ClusterChecks {
         .listForAllNamespaces([constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 
       return configmaps.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find remote config:', e);
+    } catch (error) {
+      this.logger.error('Failed to find remote config:', error);
 
       return false;
     }
@@ -102,8 +102,8 @@ export class ClusterChecks {
       const pods: Pod[] = await this.k8Factory.default().pods().list(namespace, ['app.kubernetes.io/name=prometheus']);
 
       return pods.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find prometheus:', e);
+    } catch (error) {
+      this.logger.error('Failed to find prometheus:', error);
 
       return false;
     }
@@ -123,8 +123,8 @@ export class ClusterChecks {
         .list(namespace, [constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 
       return configmaps.length > 0;
-    } catch (e) {
-      this.logger.error('Failed to find remote config:', e);
+    } catch (error) {
+      this.logger.error('Failed to find remote config:', error);
 
       return false;
     }

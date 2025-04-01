@@ -190,12 +190,12 @@ export class HelmExecutionBuilder {
    */
   build(): HelmExecution {
     const command = this.buildCommand();
-    const env: Record<string, string> = {...process.env};
+    const environment: Record<string, string> = {...process.env};
     this._environmentVariables.forEach((value, key) => {
-      env[key] = value;
+      environment[key] = value;
     });
 
-    return new HelmExecution(command, this._workingDirectory, env);
+    return new HelmExecution(command, this._workingDirectory, environment);
   }
 
   /**

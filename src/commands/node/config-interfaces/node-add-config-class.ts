@@ -4,7 +4,7 @@ import {type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
 import {type PrivateKey} from '@hashgraph/sdk';
 import {type CheckedNodesConfigClass, type NodeCommonConfigWithNodeAlias} from './node-common-config-class.js';
 import {type Client} from '@hashgraph/sdk';
-import {type ClusterRef} from '../../../core/config/remote/types.js';
+import {type ClusterReference} from '../../../core/config/remote/types.js';
 
 export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, CheckedNodesConfigClass {
   app: string;
@@ -37,7 +37,7 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, Check
   grpcWebTlsKeyPath: string;
   haproxyIps: string;
   envoyIps: string;
-  clusterRef: ClusterRef;
+  clusterRef: ClusterReference;
   domainNames: string;
   domainNamesMapping: Record<NodeAlias, string>;
 }

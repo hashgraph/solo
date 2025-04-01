@@ -36,7 +36,7 @@ export class ContainerNameInvalidError extends SoloError {
   }
 }
 
-export class MissingPodRefError extends SoloError {
+export class MissingPodReferenceError extends SoloError {
   public static MISSING_POD_REF = 'Pod ref is required.';
 
   /**
@@ -46,7 +46,7 @@ export class MissingPodRefError extends SoloError {
    * @param meta - optional metadata to be reported.
    */
   public constructor(cause: Error | any = {}, meta: any = {}) {
-    super(MissingPodRefError.MISSING_POD_REF, cause, meta);
+    super(MissingPodReferenceError.MISSING_POD_REF, cause, meta);
   }
 }
 

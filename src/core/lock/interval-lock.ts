@@ -136,32 +136,32 @@ export class IntervalLock implements Lock {
     let lease: Lease;
     try {
       lease = await this.retrieveLease();
-    } catch (e) {
+    } catch (error) {
       throw new LockAcquisitionError(
         `failed to read during acquire, the lease named '${this.leaseName}' in the ` +
-          `'${this.namespace}' namespace, caused by: ${e.message}`,
-        e,
+          `'${this.namespace}' namespace, caused by: ${error.message}`,
+        error,
       );
     }
 
     if (!lease || this.heldBySameProcess(lease)) {
       try {
         return await this.createOrRenewLease(lease);
-      } catch (e) {
+      } catch (error) {
         throw new LockAcquisitionError(
           `failed to create or renew during acquire, the lease named '${this.leaseName}' in the ` +
             `'${this.namespace}' namespace`,
-          e,
+          error,
         );
       }
     } else if (IntervalLock.checkExpiration(lease)) {
       try {
         return await this.transferLease(lease);
-      } catch (e) {
+      } catch (error) {
         throw new LockAcquisitionError(
           `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
             `'${this.namespace}' namespace`,
-          e,
+          error,
         );
       }
     }
@@ -171,11 +171,11 @@ export class IntervalLock implements Lock {
     if (this.heldBySameMachineIdentity(lease) && !otherHolder.isProcessAlive()) {
       try {
         return await this.transferLease(lease);
-      } catch (e) {
+      } catch (error) {
         throw new LockAcquisitionError(
           `failed to transfer during acquire, the lease named '${this.leaseName}' in the ` +
             `'${this.namespace}' namespace, other holder: '${otherHolder.username}'`,
-          e,
+          error,
         );
       }
     }
@@ -198,7 +198,7 @@ export class IntervalLock implements Lock {
     try {
       await this.acquire();
       return true;
-    } catch (e: SoloError | any) {
+    } catch (error: SoloError | any) {
       return false;
     }
   }
@@ -213,21 +213,21 @@ export class IntervalLock implements Lock {
     let lease: Lease;
     try {
       lease = await this.retrieveLease();
-    } catch (e) {
+    } catch (error) {
       throw new LockAcquisitionError(
         `failed to read the lease named '${this.leaseName}' in the ` +
-          `'${this.namespace}' namespace, caused by: ${e.message}`,
-        e,
+          `'${this.namespace}' namespace, caused by: ${error.message}`,
+        error,
       );
     }
 
     if (!lease || this.heldBySameProcess(lease)) {
       try {
         return await this.createOrRenewLease(lease);
-      } catch (e) {
+      } catch (error) {
         throw new LockAcquisitionError(
           `failed to create or renew the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
-          e,
+          error,
         );
       }
     }
@@ -250,8 +250,8 @@ export class IntervalLock implements Lock {
     try {
       await this.renew();
       return true;
-    } catch (e) {
-      container.resolve<SoloLogger>(InjectTokens.SoloLogger).error(`tryRenew failed: ${e.message}`, e);
+    } catch (error) {
+      container.resolve<SoloLogger>(InjectTokens.SoloLogger).error(`tryRenew failed: ${error.message}`, error);
       return false;
     }
   }
@@ -266,11 +266,11 @@ export class IntervalLock implements Lock {
     let lease: Lease;
     try {
       lease = await this.retrieveLease();
-    } catch (e) {
+    } catch (error) {
       throw new LockAcquisitionError(
         `during release, failed to read the lease named '${this.leaseName}' in the ` +
-          `'${this.namespace}' namespace, caused by: ${e.message}`,
-        e,
+          `'${this.namespace}' namespace, caused by: ${error.message}`,
+        error,
       );
     }
 
@@ -346,19 +346,19 @@ export class IntervalLock implements Lock {
   private async retrieveLease(): Promise<Lease> {
     try {
       return await this.k8Factory.default().leases().read(this.namespace, this.leaseName);
-    } catch (e: any) {
-      if (!(e instanceof SoloError)) {
+    } catch (error: any) {
+      if (!(error instanceof SoloError)) {
         throw new LockAcquisitionError(
           `failed to read the lease named '${this.leaseName}' in the ` +
-            `'${this.namespace}' namespace, caused by: ${e.message}`,
-          e,
+            `'${this.namespace}' namespace, caused by: ${error.message}`,
+          error,
         );
       }
 
-      if (e.statusCode !== StatusCodes.NOT_FOUND) {
+      if (error.statusCode !== StatusCodes.NOT_FOUND) {
         throw new LockAcquisitionError(
-          'failed to read existing leases, unexpected server response of ' + `'${e.meta.statusCode}' received`,
-          e,
+          'failed to read existing leases, unexpected server response of ' + `'${error.meta.statusCode}' received`,
+          error,
         );
       }
     }
@@ -385,10 +385,10 @@ export class IntervalLock implements Lock {
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);
       }
-    } catch (e) {
+    } catch (error) {
       throw new LockAcquisitionError(
         `failed to create or renew the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
-        e,
+        error,
       );
     }
   }
@@ -405,10 +405,10 @@ export class IntervalLock implements Lock {
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);
       }
-    } catch (e) {
+    } catch (error) {
       throw new LockAcquisitionError(
         `failed to transfer the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
-        e,
+        error,
       );
     }
   }
@@ -419,10 +419,10 @@ export class IntervalLock implements Lock {
   private async deleteLease(): Promise<void> {
     try {
       await this.k8Factory.default().leases().delete(this.namespace, this.leaseName);
-    } catch (e) {
+    } catch (error) {
       throw new LockRelinquishmentError(
         `failed to delete the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,
-        e,
+        error,
       );
     }
   }

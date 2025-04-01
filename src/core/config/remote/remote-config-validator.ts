@@ -57,8 +57,8 @@ export class RemoteConfigValidator {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
-      } catch (e) {
-        RemoteConfigValidator.throwValidationError('Relay', component, e);
+      } catch (error) {
+        RemoteConfigValidator.throwValidationError('Relay', component, error);
       }
     });
   }
@@ -76,8 +76,8 @@ export class RemoteConfigValidator {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
-      } catch (e) {
-        RemoteConfigValidator.throwValidationError('HaProxy', component, e);
+      } catch (error) {
+        RemoteConfigValidator.throwValidationError('HaProxy', component, error);
       }
     });
   }
@@ -95,8 +95,8 @@ export class RemoteConfigValidator {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
-      } catch (e) {
-        RemoteConfigValidator.throwValidationError('Mirror node', component, e);
+      } catch (error) {
+        RemoteConfigValidator.throwValidationError('Mirror node', component, error);
       }
     });
   }
@@ -114,8 +114,8 @@ export class RemoteConfigValidator {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
-      } catch (e) {
-        RemoteConfigValidator.throwValidationError('Envoy proxy', component, e);
+      } catch (error) {
+        RemoteConfigValidator.throwValidationError('Envoy proxy', component, error);
       }
     });
   }
@@ -136,8 +136,8 @@ export class RemoteConfigValidator {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
-      } catch (e) {
-        RemoteConfigValidator.throwValidationError('Consensus node', component, e);
+      } catch (error) {
+        RemoteConfigValidator.throwValidationError('Consensus node', component, error);
       }
     });
   }
@@ -155,8 +155,8 @@ export class RemoteConfigValidator {
         const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
         if (!pods.length) throw new Error('Pod not found'); // to return the generic error message
-      } catch (e) {
-        RemoteConfigValidator.throwValidationError('Mirror node explorer', component, e);
+      } catch (error) {
+        RemoteConfigValidator.throwValidationError('Mirror node explorer', component, error);
       }
     });
   }
@@ -166,13 +166,13 @@ export class RemoteConfigValidator {
    *
    * @param type - name to display in error message
    * @param component - component which is not found in the cluster
-   * @param e - original error for the kube client
+   * @param error - original error for the kube client
    */
-  private static throwValidationError(type: string, component: BaseComponent, e: Error | unknown): never {
+  private static throwValidationError(type: string, component: BaseComponent, error: Error | unknown): never {
     throw new SoloError(
       `${type} in remote config with name ${component.name} ` +
         `was not found in namespace: ${component.namespace}, cluster: ${component.cluster}`,
-      e,
+      error,
       {component: component.toObject()},
     );
   }
