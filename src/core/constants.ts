@@ -135,6 +135,7 @@ export const POD_CONDITION_STATUS_TRUE = 'True';
 
 export const EXPLORER_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'hedera-explorer-values.yaml');
 export const MIRROR_NODE_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'mirror-node-values.yaml');
+export const BLOCK_NODES_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-nodes-values.yaml');
 export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod';
 
 /**

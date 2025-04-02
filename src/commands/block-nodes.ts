@@ -65,20 +65,29 @@ export class BlockNodesCommand extends BaseCommand {
     ],
   };
 
-  private async prepareValuesArgForBlockNodes(valuesFile: string): Promise<string> {
+  private async prepareValuesArgForBlockNodes(config: BlockNodesDeployConfigClass): Promise<string> {
     let valuesArgument: string = '';
 
-    // if (blockNodesRelease) valuesArgument += ` --set image.tag=${blockNodesRelease.replace(/^v/, '')}`;
+    valuesArgument += helpers.prepareValuesFiles(constants.BLOCK_NODES_VALUES_FILE);
 
-    if (valuesFile) {
-      valuesArgument += helpers.prepareValuesFiles(valuesFile);
+    if (config.valuesFile) {
+      valuesArgument += helpers.prepareValuesFiles(config.valuesFile);
+    }
+
+    if (config.domainName) {
+      valuesArgument += helpers.populateHelmArguments({
+        'ingress.enabled': true,
+        'ingress.hosts[0].host': config.domainName,
+        'ingress.hosts[0].paths[0].path': '/',
+        'ingress.hosts[0].paths[0].pathType': 'ImplementationSpecific',
+      });
     }
 
     return valuesArgument;
   }
 
   private prepareReleaseName(nodeAliases: NodeAliases = []): string {
-    let releaseName: string = 'block nodes'; // TODO
+    let releaseName: string = 'block-nodes'; // TODO
 
     for (const nodeAlias of nodeAliases) {
       releaseName += `-${nodeAlias}`;
@@ -97,7 +106,7 @@ export class BlockNodesCommand extends BaseCommand {
           task: async (context_, task): Promise<Listr<AnyListrContext>> => {
             this.configManager.update(argv);
 
-            flags.disablePrompts([flags.valuesFile, flags.chartDirectory, flags.clusterRef]);
+            flags.disablePrompts(BlockNodesCommand.DEPLOY_FLAGS_LIST.optional);
 
             const allFlags: CommandFlag[] = [
               ...BlockNodesCommand.DEPLOY_FLAGS_LIST.required,
@@ -152,7 +161,7 @@ export class BlockNodesCommand extends BaseCommand {
           task: async (context_): Promise<void> => {
             const config: BlockNodesDeployConfigClass = context_.config;
 
-            config.valuesArg = await this.prepareValuesArgForBlockNodes(config.valuesFile);
+            config.valuesArg = await this.prepareValuesArgForBlockNodes(config);
           },
         },
         {
@@ -228,10 +237,11 @@ export class BlockNodesCommand extends BaseCommand {
   }
 
   public getCommandDefinition(): CommandDefinition {
+    const self: this = this;
     return {
       command: BlockNodesCommand.COMMAND_NAME,
       desc: 'Manage block nodes in solo network',
-      builder: (yargs: AnyYargs) => {
+      builder: (yargs: AnyYargs): any => {
         return yargs
           .command({
             command: 'deploy',
@@ -241,11 +251,11 @@ export class BlockNodesCommand extends BaseCommand {
               flags.setOptionalCommandFlags(y, ...BlockNodesCommand.DEPLOY_FLAGS_LIST.optional);
             },
             handler: async (argv: ArgvStruct): Promise<void> => {
-              this.logger.info("==== Running 'relay deploy' ===", {argv});
-              this.logger.info(argv);
+              self.logger.info("==== Running 'relay deploy' ===", {argv});
+              self.logger.info(argv);
 
-              await this.deploy(argv).then((r): void => {
-                this.logger.info('==== Finished running `relay deploy`====');
+              await self.deploy(argv).then((r): void => {
+                self.logger.info('==== Finished running `relay deploy`====');
                 if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
               });
             },

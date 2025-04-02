@@ -16,7 +16,7 @@ import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {type SoloListrTask} from '../types/index.js';
+import {type CommandDefinition, type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
@@ -724,8 +724,8 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  public getCommandDefinition() {
-    const self = this;
+  public getCommandDefinition(): CommandDefinition {
+    const self: this = this;
     return {
       command: AccountCommand.COMMAND_NAME,
       desc: 'Manage Hedera accounts in solo network',

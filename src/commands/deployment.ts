@@ -8,7 +8,7 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterReference, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
-import {type SoloListrTask} from '../types/index.js';
+import {type CommandDefinition, type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
@@ -330,8 +330,8 @@ export class DeploymentCommand extends BaseCommand {
     return true;
   }
 
-  public getCommandDefinition() {
-    const self = this;
+  public getCommandDefinition(): CommandDefinition {
+    const self: this = this;
     return {
       command: DeploymentCommand.COMMAND_NAME,
       desc: 'Manage solo network deployment',

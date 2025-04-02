@@ -1605,6 +1605,29 @@ export class Flags {
     },
   };
 
+  public static readonly blockNodesVersion: CommandFlag = {
+    constName: 'blockNodesVersion',
+    name: 'block-nodes-version',
+    definition: {
+      describe: 'Block nodes chart version',
+      defaultValue: version.MIRROR_NODE_VERSION,
+      type: 'string',
+    },
+    prompt: async function promptMirrorNodeVersion(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
+      return await Flags.promptToggle(
+        task,
+        input,
+        Flags.mirrorNodeVersion.definition.defaultValue as boolean,
+        'Would you like to choose mirror node version? ',
+        null,
+        Flags.mirrorNodeVersion.name,
+      );
+    },
+  };
+
   public static readonly enableIngress: CommandFlag = {
     constName: 'enableIngress',
     name: 'enable-ingress',
