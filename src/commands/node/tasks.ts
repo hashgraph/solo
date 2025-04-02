@@ -459,7 +459,7 @@ export class NodeCommandTasks {
           .execContainer([
             'bash',
             '-c',
-            'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
+            String.raw`curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \#`,
           ]);
 
         if (!response) {
@@ -985,7 +985,7 @@ export class NodeCommandTasks {
     context_: CheckedNodesContext,
     task: SoloListrTaskWrapper<CheckedNodesContext>,
     nodeAliases: NodeAliases,
-    maxAttempts: number = undefined,
+    maxAttempts?: number,
   ) {
     context_.config.podRefs = {};
     const consensusNodes = context_.config.consensusNodes;
@@ -1539,12 +1539,7 @@ export class NodeCommandTasks {
           this.configManager.getFlag<DeploymentName>(flags.deployment),
           this.configManager.getFlag<boolean>(flags.forcePortForward),
         );
-        await this._addStake(
-          context_.config.namespace,
-          context_.newNode.accountId,
-          context_.config.nodeAlias,
-          undefined,
-        );
+        await this._addStake(context_.config.namespace, context_.newNode.accountId, context_.config.nodeAlias);
       },
     };
   }

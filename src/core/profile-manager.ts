@@ -210,14 +210,10 @@ export class ProfileManager {
     const accountMap: Map<NodeAlias, string> = getNodeAccountMap(consensusNodes.map(node => node.name));
 
     // set consensus pod level resources
-    for (let nodeIndex: number = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
-      this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot);
-      this._setValue(
-        `hedera.nodes.${nodeIndex}.nodeId`,
-        `${Templates.nodeIdFromNodeAlias(nodeAliases[nodeIndex])}`,
-        yamlRoot,
-      );
-      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot);
+    for (const [nodeIndex, nodeAlias] of nodeAliases.entries()) {
+      this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAlias, yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, `${Templates.nodeIdFromNodeAlias(nodeAlias)}`, yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAlias), yamlRoot);
     }
 
     const stagingDirectory = Templates.renderStagingDir(

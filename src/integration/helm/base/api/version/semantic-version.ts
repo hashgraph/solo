@@ -16,9 +16,9 @@ export class SemanticVersion {
    */
   private static readonly SEMVER_PATTERN = new RegExp(
     '^' +
-      '((\\d+)\\.(\\d+)\\.(\\d+))' + // version string
-      '(?:-([\\dA-Za-z]+(?:\\.[\\dA-Za-z]+)*))?' + // prerelease suffix (optional)
-      '(?:\\+([\\dA-Za-z\\-]+(?:\\.[\\dA-Za-z\\-]+)*))?' + // build suffix (optional)
+      String.raw`((\d+)\.(\d+)\.(\d+))` + // version string
+      String.raw`(?:-([\dA-Za-z]+(?:\.[\dA-Za-z]+)*))?` + // prerelease suffix (optional)
+      String.raw`(?:\+([\dA-Za-z\-]+(?:\.[\dA-Za-z\-]+)*))?` + // build suffix (optional)
       '$',
   );
 

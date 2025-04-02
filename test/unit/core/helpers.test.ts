@@ -13,7 +13,7 @@ describe('Helpers', () => {
     {input: 'node1', output: ['node1']},
     {input: 'node1,node3', output: ['node1', 'node3']},
   ]).it('should parse node aliases for input', ({input, output}: {input: string; output: string[]}) => {
-    expect(helpers.parseNodeAliases(input, undefined, undefined)).to.deep.equal(output);
+    expect(helpers.parseNodeAliases(input)).to.deep.equal(output);
   });
 
   each([
