@@ -51,7 +51,7 @@
   "author": "Swirlds Labs",
   "license": "Apache2.0",
   "dependencies": {
-    "@hashgraph/sdk": "^2.61.0",
+    "@hashgraph/sdk": "^2.62.0",
     "@inquirer/prompts": "^7.4.0",
     "@kubernetes/client-node": "^0.22.3",
     "@listr2/prompt-adapter-inquirer": "^2.0.18",
