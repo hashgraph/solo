@@ -74,7 +74,6 @@ tasks:
         {{ .mocha_bin }} 'test/e2e/**/*.ts' 
           --ignore 'test/unit/**/*.ts' 
           --ignore 'test/e2e/integration/**/*.ts' 
-          --ignore 'test/e2e/commands/mirror-node*.ts' 
           --ignore 'test/e2e/commands/node*.ts' 
           --ignore 'test/e2e/commands/separate-node*.ts' 
           --ignore 'test/e2e/commands/relay*.ts' 
@@ -84,13 +83,6 @@ tasks:
           --ignore 'test/e2e/commands/separate-node-update.test.ts' 
           --ignore 'test/e2e/commands/separate-node-upgrade.test.ts' 
         {{ .reporter_options_prefix }}-e2e-standard.xml --timeout 30000"
-
-  test-e2e-mirror-node:
-    cmds:
-      - "{{ .test_prefix }}=\"Mocha E2E Mirror Node Tests\"
-        {{ .reporter_prefix }}='coverage/e2e-mirror-node'
-        {{ .mocha_bin }} 'test/e2e/commands/mirror-node.test.ts'
-        {{ .reporter_options_prefix }}-e2e-mirror-node.xml"
 
   test-e2e-node-pem-stop:
     cmds:
