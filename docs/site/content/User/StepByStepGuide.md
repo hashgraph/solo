@@ -1,4 +1,26 @@
 ## Advanced User Guide
+
+## Table of Contents
+- [Setup Kubernetes cluster](#setup-kubernetes-cluster)
+  - [Remote cluster](#remote-cluster)
+  - [Local cluster](#local-cluster)
+- [Step by Step Instructions](#step-by-step-instructions)
+  - [Initialize solo directories](#initialize-solo-directories)
+  - [Generate pem formatted node keys](#generate-pem-formatted-node-keys)
+  - [Create a deployment in the specified clusters](#create-a-deployment-in-the-specified-clusters-generate-remoteconfig-and-localconfig-objects)
+  - [Setup cluster with shared components](#setup-cluster-with-shared-components)
+  - [Create a solo deployment](#create-a-solo-deployment)
+  - [Deploy helm chart with Hedera network components](#deploy-helm-chart-with-hedera-network-components)
+  - [Setup node with Hedera platform software](#setup-node-with-hedera-platform-software)
+  - [Deploy mirror node](#deploy-mirror-node)
+  - [Deploy explorer mode](#deploy-explorer-mode)
+  - [Deploy a JSON RPC relay](#deploy-a-json-rpc-relay)
+  - [Access Hedera Services](#access-hedera-services)
+  - [Destroy relay node](#destroy-relay-node)
+  - [Destroy mirror node](#destroy-mirror-node)
+  - [Destroy explorer node](#destroy-explorer-node)
+  - [Destroy network](#destroy-network)
+
 For those who would like to have more control or need some customized setups, here are some step by step instructions of how to setup and deploy a solo network.
 ### Setup Kubernetes cluster
 
@@ -51,7 +73,7 @@ You can now use your cluster with:
 
 kubectl cluster-info --context kind-solo-e2e
 
-Thanks for using kind! 😊
+Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -86,7 +108,7 @@ You may now view pods in your cluster using `k9s -A` as below:
 
 ### Step by Step Instructions
 
-* Initialize `solo` directories:
+#### Initialize `solo` directories:
 
 ```
 # reset .solo directory
@@ -124,10 +146,87 @@ If a full reset is needed, delete the directory or relevant sub-directories befo
 ✔ Copy templates in '/Users/jeffrey/.solo/cache'
 ```
 
-* Generate `pem` formatted node keys
+#### Create a deployment in the specified clusters, generate RemoteConfig and LocalConfig objects.
+* Associates a cluster reference to a k8s context
+```
+solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}"
+```
+
+* Example output
 
 ```
-solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+
+******************************* Solo *********************************************
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-e2e
+Kubernetes Cluster	: kind-solo-e2e
+Current Command		: cluster-ref connect --cluster-ref kind-solo-e2e --context kind-solo-e2e
+**********************************************************************************
+❯ Initialize
+✔ Initialize
+❯ Validating cluster ref: 
+✔ kind-solo-e2e
+❯ Test connection to cluster: 
+✔ Test connection to cluster: kind-solo-e2e
+❯ Associate a context with a cluster reference: 
+✔ Associate a context with a cluster reference: kind-solo-e2e
+```
+* Create a deployment
+```
+solo deployment create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
+```
+
+* Example output
+
+```
+
+******************************* Solo *********************************************
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-e2e
+Kubernetes Cluster	: kind-solo-e2e
+Current Command		: deployment create --namespace solo --deployment solo-deployment
+Kubernetes Namespace	: solo
+**********************************************************************************
+❯ Initialize
+✔ Initialize
+❯ Add deployment to local config
+✔ Adding deployment: solo-deployment with namespace: solo to local config
+```
+* Add a cluster to deployment
+```
+solo deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --num-consensus-nodes 3
+```
+
+* Example output
+
+```
+
+******************************* Solo *********************************************
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-e2e
+Kubernetes Cluster	: kind-solo-e2e
+Current Command		: deployment add-cluster --deployment solo-deployment --cluster-ref kind-solo-e2e --num-consensus-nodes 3
+**********************************************************************************
+❯ Initialize
+✔ Initialize
+❯ Verify args
+✔ Verify args
+❯ check network state
+✔ check network state
+❯ Test cluster connection
+✔ Test cluster connection: kind-solo-e2e, context: kind-solo-e2e
+❯ Verify prerequisites
+✔ Verify prerequisites
+❯ add cluster-ref in local config deployments
+✔ add cluster-ref: kind-solo-e2e for deployment: solo-deployment in local config
+❯ create remote config for deployment
+✔ create remote config for deployment: solo-deployment in cluster: kind-solo-e2e
+```
+
+#### Generate `pem` formatted node keys
+
+```
+solo node keys --gossip-keys --tls-keys -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output
@@ -159,8 +258,8 @@ Current Command		: node keys --gossip-keys --tls-keys --node-aliases node1,node2
 ❯ TLS key for node: node3
 ✔ Backup old files
 ✔ TLS key for node: node1
-✔ TLS key for node: node3
 ✔ TLS key for node: node2
+✔ TLS key for node: node3
 ✔ Generate gRPC TLS Keys
 ❯ Finalize
 ✔ Finalize
@@ -172,85 +271,7 @@ hedera-node1.key    hedera-node3.key    s-private-node2.pem s-public-node2.pem  
 hedera-node2.crt    hedera-node4.crt    s-private-node3.pem s-public-node3.pem
 hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 ```
-
-* Create a deployment in the specified clusters, generate RemoteConfig and LocalConfig objects.
-
-```
-solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}"
-```
-
-* Example output
-
-```
-
-******************************* Solo *********************************************
-Version			: 0.35.1
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: cluster-ref connect --cluster-ref kind-solo-e2e --context kind-solo-e2e
-**********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Validating cluster ref: 
-✔ kind-solo-e2e
-❯ Test connection to cluster: 
-✔ Test connection to cluster: kind-solo-e2e
-❯ Associate a context with a cluster reference: 
-✔ Associate a context with a cluster reference: kind-solo-e2e
-```
-
-```
-solo deployment create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
-```
-
-* Example output
-
-```
-
-******************************* Solo *********************************************
-Version			: 0.35.1
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: deployment create --namespace solo --deployment solo-deployment
-Kubernetes Namespace	: solo
-**********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Add deployment to local config
-✔ Adding deployment: solo-deployment with namespace: solo to local config
-```
-
-```
-solo deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --num-consensus-nodes 3
-```
-
-* Example output
-
-```
-
-******************************* Solo *********************************************
-Version			: 0.35.1
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: deployment add-cluster --deployment solo-deployment --cluster-ref kind-solo-e2e --num-consensus-nodes 3
-**********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Verify args
-✔ Verify args
-❯ check network state
-✔ check network state
-❯ Test cluster connection
-✔ Test cluster connection: kind-solo-e2e, context: kind-solo-e2e
-❯ Verify prerequisites
-✔ Verify prerequisites
-❯ add cluster-ref in local config deployments
-✔ add cluster-ref: kind-solo-e2e for deployment: solo-deployment in local config
-❯ create remote config for deployment
-✔ create remote config for deployment: solo-deployment in cluster: kind-solo-e2e
-```
-
-* Setup cluster with shared components
+#### Setup cluster with shared components
 
 ```
 solo cluster-ref setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
@@ -279,83 +300,8 @@ Version			: 0.48.0
 
 In a separate terminal, you may run `k9s` to view the pod status.
 
-* Create a solo deployment
-```
-solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}"
-```
 
-* Example output
-
-```
-
-******************************* Solo *********************************************
-Version			: 0.35.1
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: cluster-ref connect --cluster-ref kind-solo-e2e --context kind-solo-e2e
-**********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Validating cluster ref: 
-✔ kind-solo-e2e
-❯ Test connection to cluster: 
-✔ Test connection to cluster: kind-solo-e2e
-❯ Associate a context with a cluster reference: 
-✔ Associate a context with a cluster reference: kind-solo-e2e
-```
-
-```
-solo deployment create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
-```
-
-* Example output
-
-```
-
-******************************* Solo *********************************************
-Version			: 0.35.1
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: deployment create --namespace solo --deployment solo-deployment
-Kubernetes Namespace	: solo
-**********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Add deployment to local config
-✔ Adding deployment: solo-deployment with namespace: solo to local config
-```
-
-```
-solo deployment add-cluster --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --num-consensus-nodes 3
-```
-
-* Example output
-
-```
-
-******************************* Solo *********************************************
-Version			: 0.35.1
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: deployment add-cluster --deployment solo-deployment --cluster-ref kind-solo-e2e --num-consensus-nodes 3
-**********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Verify args
-✔ Verify args
-❯ check network state
-✔ check network state
-❯ Test cluster connection
-✔ Test cluster connection: kind-solo-e2e, context: kind-solo-e2e
-❯ Verify prerequisites
-✔ Verify prerequisites
-❯ add cluster-ref in local config deployments
-✔ add cluster-ref: kind-solo-e2e for deployment: solo-deployment in local config
-❯ create remote config for deployment
-✔ create remote config for deployment: solo-deployment in cluster: kind-solo-e2e
-```
-
-* Deploy helm chart with Hedera network components
+#### Deploy helm chart with Hedera network components
 
 It may take a while (5~15 minutes depending on your internet speed) to download various docker images and get the pods started.
 
@@ -398,12 +344,12 @@ Current Command		: network deploy --node-aliases node1,node2,node3 --deployment 
 ❯ Copy Gossip keys
 ❯ Copy Gossip keys
 ✔ Copy Gossip keys
-✔ Node: node3, cluster: kind-solo-e2e
-✔ Copy TLS keys
-✔ Copy Gossip keys
 ✔ Node: node1, cluster: kind-solo-e2e
 ✔ Copy Gossip keys
 ✔ Node: node2, cluster: kind-solo-e2e
+✔ Copy Gossip keys
+✔ Node: node3, cluster: kind-solo-e2e
+✔ Copy TLS keys
 ✔ Copy node keys to secrets
 ❯ Install chart 'solo-deployment'
 *********************** Installed solo-deployment chart ************************
@@ -429,12 +375,12 @@ Version			: 0.48.0
 ❯ Check Envoy Proxy for: node1, cluster: kind-solo-e2e
 ❯ Check Envoy Proxy for: node2, cluster: kind-solo-e2e
 ❯ Check Envoy Proxy for: node3, cluster: kind-solo-e2e
+✔ Check Envoy Proxy for: node1, cluster: kind-solo-e2e
+✔ Check Envoy Proxy for: node3, cluster: kind-solo-e2e
 ✔ Check HAProxy for: node1, cluster: kind-solo-e2e
+✔ Check Envoy Proxy for: node2, cluster: kind-solo-e2e
 ✔ Check HAProxy for: node3, cluster: kind-solo-e2e
 ✔ Check HAProxy for: node2, cluster: kind-solo-e2e
-✔ Check Envoy Proxy for: node1, cluster: kind-solo-e2e
-✔ Check Envoy Proxy for: node2, cluster: kind-solo-e2e
-✔ Check Envoy Proxy for: node3, cluster: kind-solo-e2e
 ✔ Check proxy pods are running
 ❯ Check auxiliary pods are ready
 ❯ Check MinIO
@@ -444,7 +390,7 @@ Version			: 0.48.0
 ✔ Add node and proxies to remote config
 ```
 
-* Setup node with Hedera platform software.
+#### Setup node with Hedera platform software.
   * It may take a while as it download the hedera platform code from <https://builds.hedera.com/>
 
 ```
@@ -477,17 +423,17 @@ Current Command		: node setup --node-aliases node1,node2,node3 --deployment solo
 ❯ Check network pod: node1
 ❯ Check network pod: node2
 ❯ Check network pod: node3
-✔ Check network pod: node1
 ✔ Check network pod: node3
+✔ Check network pod: node1
 ✔ Check network pod: node2
 ✔ Identify network pods
 ❯ Fetch platform software into network nodes
 ❯ Update node: node1 [ platformVersion = v0.59.5, context = kind-solo-e2e ]
 ❯ Update node: node2 [ platformVersion = v0.59.5, context = kind-solo-e2e ]
 ❯ Update node: node3 [ platformVersion = v0.59.5, context = kind-solo-e2e ]
+✔ Update node: node1 [ platformVersion = v0.59.5, context = kind-solo-e2e ]
 ✔ Update node: node2 [ platformVersion = v0.59.5, context = kind-solo-e2e ]
 ✔ Update node: node3 [ platformVersion = v0.59.5, context = kind-solo-e2e ]
-✔ Update node: node1 [ platformVersion = v0.59.5, context = kind-solo-e2e ]
 ✔ Fetch platform software into network nodes
 ❯ Setup network nodes
 ❯ Node: node1
@@ -503,9 +449,9 @@ Current Command		: node setup --node-aliases node1,node2,node3 --deployment solo
 ✔ Copy configuration files
 ❯ Set file permissions
 ✔ Set file permissions
-✔ Node: node3
-✔ Set file permissions
 ✔ Node: node1
+✔ Set file permissions
+✔ Node: node3
 ✔ Set file permissions
 ✔ Node: node2
 ✔ Setup network nodes
@@ -545,9 +491,9 @@ Current Command		: node start --node-aliases node1,node2,node3 --deployment solo
 ❯ Check network pod: node1
 ❯ Check network pod: node2
 ❯ Check network pod: node3
-✔ Check network pod: node1
-✔ Check network pod: node3
 ✔ Check network pod: node2
+✔ Check network pod: node3
+✔ Check network pod: node1
 ✔ Identify existing network nodes
 ❯ Upload state files network nodes
 ↓ Upload state files network nodes [SKIPPED: Upload state files network nodes]
@@ -555,9 +501,9 @@ Current Command		: node start --node-aliases node1,node2,node3 --deployment solo
 ❯ Start node: node1
 ❯ Start node: node2
 ❯ Start node: node3
+✔ Start node: node1
 ✔ Start node: node2
 ✔ Start node: node3
-✔ Start node: node1
 ✔ Starting nodes
 ❯ Enable port forwarding for JVM debugger
 ↓ Enable port forwarding for JVM debugger [SKIPPED: Enable port forwarding for JVM debugger]
@@ -565,9 +511,9 @@ Current Command		: node start --node-aliases node1,node2,node3 --deployment solo
 ❯ Check network pod: node1 
 ❯ Check network pod: node2 
 ❯ Check network pod: node3 
-✔ Check network pod: node3  - status ACTIVE, attempt: 17/300
 ✔ Check network pod: node1  - status ACTIVE, attempt: 17/300
 ✔ Check network pod: node2  - status ACTIVE, attempt: 17/300
+✔ Check network pod: node3  - status ACTIVE, attempt: 17/300
 ✔ Check all nodes are ACTIVE
 ❯ Check node proxies are ACTIVE
 ❯ Check proxy for node: node1
@@ -589,13 +535,60 @@ Current Command		: node start --node-aliases node1,node2,node3 --deployment solo
 ✔ Add node stakes
 ```
 
-* Deploy mirror node
+---
+
+
+#### Deploy mirror node
 
 ```
 solo mirror-node deploy --deployment "${SOLO_DEPLOYMENT}"
 ```
+* Example output
 
-* Deploy explorer mode
+```
+
+******************************* Solo *********************************************
+Version			: 0.35.1
+Kubernetes Context	: kind-solo-e2e
+Kubernetes Cluster	: kind-solo-e2e
+Current Command		: mirror-node deploy --deployment solo-deployment --cluster-ref kind-solo-e2e --quiet-mode
+**********************************************************************************
+❯ Initialize
+❯ Acquire lock
+✔ Acquire lock - lock acquired successfully, attempt: 1/10
+✔ Initialize
+❯ Enable mirror-node
+❯ Prepare address book
+✔ Prepare address book
+❯ Install mirror ingress controller
+↓ Install mirror ingress controller [SKIPPED: Install mirror ingress controller]
+❯ Deploy mirror-node
+**************************** Installed mirror chart ****************************
+Version			: v0.126.0
+********************************************************************************
+✔ Deploy mirror-node
+✔ Enable mirror-node
+❯ Check pods are ready
+❯ Check Postgres DB
+❯ Check REST API
+❯ Check GRPC
+❯ Check Monitor
+❯ Check Importer
+✔ Check Postgres DB
+✔ Check Monitor
+✔ Check GRPC
+✔ Check REST API
+✔ Check Importer
+✔ Check pods are ready
+❯ Seed DB data
+❯ Insert data in public.file_data
+✔ Insert data in public.file_data
+✔ Seed DB data
+❯ Add mirror node to remote config
+✔ Add mirror node to remote config
+```
+
+#### Deploy explorer mode
 
 ```
 explorer deploy --deployment "${SOLO_DEPLOYMENT}"
@@ -633,52 +626,7 @@ Version			: 24.12.1
 ✔ Add explorer to remote config
 ```
 
-* Example output
-
-```
-
-******************************* Solo *********************************************
-Version			: 0.35.1
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: mirror-node deploy --deployment solo-deployment --cluster-ref kind-solo-e2e --quiet-mode
-**********************************************************************************
-❯ Initialize
-❯ Acquire lock
-✔ Acquire lock - lock acquired successfully, attempt: 1/10
-✔ Initialize
-❯ Enable mirror-node
-❯ Prepare address book
-✔ Prepare address book
-❯ Install mirror ingress controller
-↓ Install mirror ingress controller [SKIPPED: Install mirror ingress controller]
-❯ Deploy mirror-node
-**************************** Installed mirror chart ****************************
-Version			: v0.126.0
-********************************************************************************
-✔ Deploy mirror-node
-✔ Enable mirror-node
-❯ Check pods are ready
-❯ Check Postgres DB
-❯ Check REST API
-❯ Check GRPC
-❯ Check Monitor
-❯ Check Importer
-✔ Check Postgres DB
-✔ Check GRPC
-✔ Check REST API
-✔ Check Importer
-✔ Check Monitor
-✔ Check pods are ready
-❯ Seed DB data
-❯ Insert data in public.file_data
-✔ Insert data in public.file_data
-✔ Seed DB data
-❯ Add mirror node to remote config
-✔ Add mirror node to remote config
-```
-
-* Deploy a JSON RPC relay
+#### Deploy a JSON RPC relay
 
 ```
 solo relay deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
@@ -715,7 +663,10 @@ Version			: v0.66.0
 ✔ Add relay component in remote config
 ```
 
-* Destroy relay 
+#### Access Hedera Services 
+Next: [Access Hedera Services](https://hashgraph.github.io/solo/User/AccessHederaServices/)
+
+#### Destroy relay node
 ```
 solo relay destroy --deployment "${SOLO_DEPLOYMENT}"
 ```
@@ -748,7 +699,7 @@ Current Command		: relay destroy --node-aliases node1,node2,node3 --deployment s
 ✔ Remove relay component from remote config
 ```
 
-* Destroy mirror node
+#### Destroy mirror node
 ```
 solo mirror-node destroy --deployment "${SOLO_DEPLOYMENT}"
 ```
@@ -774,7 +725,7 @@ Current Command		: mirror-node destroy --deployment solo-deployment --quiet-mode
 ❯ Remove mirror node from remote config
 ✔ Remove mirror node from remote config
 ```
-* Destroy explorer
+#### Destroy explorer node
 ```
 solo explorer destroy --deployment "${SOLO_DEPLOYMENT}"
 ```
@@ -802,7 +753,7 @@ Current Command		: explorer destroy --deployment solo-deployment --quiet-mode
 ✔ Remove explorer from remote config
 ```
 
-* Destroy network 
+#### Destroy network 
 ```
 solo network destroy --deployment "${SOLO_DEPLOYMENT}"
 ```
