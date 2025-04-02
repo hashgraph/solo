@@ -6,7 +6,7 @@ import {expect} from 'chai';
 
 import {NodeCommand} from '../../../src/commands/node/index.js';
 
-const getBaseCommandOpts = () => ({
+const getBaseCommandOptions = () => ({
   logger: sinon.stub(),
   helm: sinon.stub(),
   k8Factory: sinon.stub(),
@@ -19,28 +19,28 @@ const getBaseCommandOpts = () => ({
 
 describe('NodeCommand unit tests', () => {
   describe('constructor error handling', () => {
-    let opts: any;
+    let options: any;
 
     beforeEach(() => {
-      opts = getBaseCommandOpts();
+      options = getBaseCommandOptions();
     });
 
     it('should throw an error if platformInstaller is not provided', () => {
-      opts.downloader = sinon.stub();
-      expect(() => new NodeCommand(opts)).to.throw('An instance of core/PlatformInstaller is required');
+      options.downloader = sinon.stub();
+      expect(() => new NodeCommand(options)).to.throw('An instance of core/PlatformInstaller is required');
     });
 
     it('should throw an error if keyManager is not provided', () => {
-      opts.downloader = sinon.stub();
-      opts.platformInstaller = sinon.stub();
-      expect(() => new NodeCommand(opts)).to.throw('An instance of core/KeyManager is required');
+      options.downloader = sinon.stub();
+      options.platformInstaller = sinon.stub();
+      expect(() => new NodeCommand(options)).to.throw('An instance of core/KeyManager is required');
     });
 
     it('should throw an error if accountManager is not provided', () => {
-      opts.downloader = sinon.stub();
-      opts.platformInstaller = sinon.stub();
-      opts.keyManager = sinon.stub();
-      expect(() => new NodeCommand(opts)).to.throw('An instance of core/AccountManager is required');
+      options.downloader = sinon.stub();
+      options.platformInstaller = sinon.stub();
+      options.keyManager = sinon.stub();
+      expect(() => new NodeCommand(options)).to.throw('An instance of core/AccountManager is required');
     });
   });
 });

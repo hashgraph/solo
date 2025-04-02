@@ -15,53 +15,56 @@ export class FlatKeyMapper {
   public flatten(data: object): Map<string, string> {
     const fkm: Map<string, string> = new Map();
 
-    for (const [key, val] of Object.entries(data)) {
-      this.flattenKVPair(fkm, key, val);
+    for (const [key, value] of Object.entries(data)) {
+      this.flattenKVPair(fkm, key, value);
     }
 
     return fkm;
   }
 
-  private flattenKVPair(fkm: Map<string, string>, key: string, val: unknown) {
+  private flattenKVPair(fkm: Map<string, string>, key: string, value: unknown) {
     // If the value is null or undefined, we don't need to do anything since the key should not be added to the map.
-    if (val === null || val === undefined) {
+    if (value === null || value === undefined) {
       return;
     }
 
-    const valType = typeof val;
+    const valueType = typeof value;
 
-    switch (valType) {
+    switch (valueType) {
       case 'string':
       case 'number':
       case 'boolean':
-      case 'bigint':
-        fkm.set(this.formatter.normalize(key), val.toString());
+      case 'bigint': {
+        fkm.set(this.formatter.normalize(key), value.toString());
         break;
-      case 'object':
-        if (Array.isArray(val)) {
-          this.flattenArray(fkm, key, val);
+      }
+      case 'object': {
+        if (Array.isArray(value)) {
+          this.flattenArray(fkm, key, value);
         } else {
-          this.flattenObject(fkm, key, val as object);
+          this.flattenObject(fkm, key, value as object);
         }
         break;
-      default:
+      }
+      default: {
         throw new ObjectMappingError(
-          `Unsupported value type [ key = '${key}', value = '${val}', type = '${valType}' ]`,
+          `Unsupported value type [ key = '${key}', value = '${value}', type = '${valueType}' ]`,
         );
+      }
     }
   }
 
-  private flattenArray(fkm: Map<string, string>, key: string, val: unknown[]) {
-    for (let i = 0; i < val.length; i++) {
-      const arrayKey = this.formatter.join(key, i.toString());
-      this.flattenKVPair(fkm, arrayKey, val[i]);
+  private flattenArray(fkm: Map<string, string>, key: string, value: unknown[]) {
+    for (let index = 0; index < value.length; index++) {
+      const arrayKey = this.formatter.join(key, index.toString());
+      this.flattenKVPair(fkm, arrayKey, value[index]);
     }
   }
 
-  private flattenObject(fkm: Map<string, string>, key: string, val: object) {
-    for (const [subKey, subVal] of Object.entries(val)) {
+  private flattenObject(fkm: Map<string, string>, key: string, value: object) {
+    for (const [subKey, subValue] of Object.entries(value)) {
       const fullKey = this.formatter.join(key, subKey);
-      this.flattenKVPair(fkm, fullKey, subVal);
+      this.flattenKVPair(fkm, fullKey, subValue);
     }
   }
 }

@@ -62,8 +62,8 @@ export class HelpRenderer {
   private calculateMaxColumnLengths(table: Table): number[] {
     const columnMaxLengths: number[] = [0, 0, 0, 0];
     for (const row of table) {
-      for (let i = 0; i < row.length; i++) {
-        columnMaxLengths[i] = Math.max(columnMaxLengths[i], row[i].length);
+      for (let index = 0; index < row.length; index++) {
+        columnMaxLengths[index] = Math.max(columnMaxLengths[index], row[index].length);
       }
     }
 
@@ -91,10 +91,17 @@ export class HelpRenderer {
 
   private getDescriptionWrap(terminalWidth: number, columnMaxLengths: number[]): number {
     let wrap: number = terminalWidth - columnMaxLengths[0] - columnMaxLengths[1] - columnMaxLengths[3] - 6;
-    if (wrap < 30) wrap = 30; // set min and max values
-    if (wrap > 70) wrap = 70;
-    if (columnMaxLengths[2] < wrap) wrap = columnMaxLengths[2];
-    else columnMaxLengths[2] = wrap;
+    if (wrap < 30) {
+      wrap = 30;
+    } // set min and max values
+    if (wrap > 70) {
+      wrap = 70;
+    }
+    if (columnMaxLengths[2] < wrap) {
+      wrap = columnMaxLengths[2];
+    } else {
+      columnMaxLengths[2] = wrap;
+    }
     return wrap;
   }
 
@@ -102,8 +109,8 @@ export class HelpRenderer {
     const outputLines: string[] = [];
     for (const row of table) {
       const line: string[] = [];
-      for (let i: number = 0; i < row.length; i++) {
-        line.push(row[i].padEnd(columnMaxLengths[i]));
+      for (let index: number = 0; index < row.length; index++) {
+        line.push(row[index].padEnd(columnMaxLengths[index]));
       }
       outputLines.push(line.join('  '));
     }

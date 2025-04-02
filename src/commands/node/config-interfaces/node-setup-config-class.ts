@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NodeAlias} from '../../../types/aliases.js';
-import {type PodRef} from '../../../integration/kube/resources/pod/pod-ref.js';
+import {type PodReference} from '../../../integration/kube/resources/pod/pod-reference.js';
 import {type NodeCommonConfigWithNodeAliases} from './node-common-config-class.js';
 
 export interface NodeSetupConfigClass extends NodeCommonConfigWithNodeAliases {
@@ -12,7 +12,7 @@ export interface NodeSetupConfigClass extends NodeCommonConfigWithNodeAliases {
   devMode: boolean;
   localBuildPath: string;
   releaseTag: string;
-  podRefs: Record<NodeAlias, PodRef>;
+  podRefs: Record<NodeAlias, PodReference>;
   skipStop?: boolean;
   keysDir: string;
   stagingDir: string;

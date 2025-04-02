@@ -28,7 +28,7 @@ describe('core/templates', () => {
     },
   ];
   it('should render FQDN for a consensus node', () => {
-    consensusNodes.forEach(node => {
+    for (const node of consensusNodes) {
       const fqdn = Templates.renderConsensusNodeFullyQualifiedDomainName(
         node.name,
         node.nodeId,
@@ -38,6 +38,6 @@ describe('core/templates', () => {
         node.dnsConsensusNodePattern,
       );
       expect(fqdn).to.equal(node.fullyQualifiedDomainName);
-    });
+    }
   });
 });

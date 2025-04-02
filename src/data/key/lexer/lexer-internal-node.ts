@@ -103,7 +103,7 @@ export class LexerInternalNode extends LexerNode {
   }
 
   public toObject(): object {
-    const obj: object = this.isArray() ? [] : {};
+    const object: object = this.isArray() ? [] : {};
 
     for (const child of this.children) {
       if (this.isArray()) {
@@ -116,16 +116,16 @@ export class LexerInternalNode extends LexerNode {
           throw new ConfigKeyError('Array index must be a number');
         }
 
-        obj[index] = (child as LexerInternalNode).toObject();
+        object[index] = (child as LexerInternalNode).toObject();
       } else {
         if (child.isLeaf()) {
-          obj[child.name] = ReflectAssist.coerce((child as LexerLeafNode).value);
+          object[child.name] = ReflectAssist.coerce((child as LexerLeafNode).value);
         } else {
-          obj[child.name] = (child as LexerInternalNode).toObject();
+          object[child.name] = (child as LexerInternalNode).toObject();
         }
       }
     }
 
-    return obj;
+    return object;
   }
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import path from 'path';
-import fs from 'fs';
+import path from 'node:path';
+import fs from 'node:fs';
 import {SoloError} from '../../core/errors/solo-error.js';
 
 export class PathEx {
@@ -24,14 +24,14 @@ export class PathEx {
    * Securely joins paths while preventing path traversal attacks. Requires that the base directory is real and exists.
    * This method requires that the path to a directory or file is real and exists.
    *
-   * @param baseDir - The base directory to enforce
+   * @param baseDirectory - The base directory to enforce
    * @param paths - The paths to join
    * @throws Error if the resolved path is outside the base directory.
    * @returns The safely joined path.
    */
-  public static safeJoinWithBaseDirConfinement(baseDir: string, ...paths: string[]): string {
+  public static safeJoinWithBaseDirConfinement(baseDirectory: string, ...paths: string[]): string {
     // nosemgrep: javascript_pathtraversal_rule-non-literal-fs-filename
-    const resolvedBase: string = fs.realpathSync(baseDir); // Ensure baseDir is absolute
+    const resolvedBase: string = fs.realpathSync(baseDirectory); // Ensure baseDirectory is absolute
     // nosemgrep
     const resolvedPath: string = fs.realpathSync(path.resolve(resolvedBase, ...paths)); // Resolve the user path
 

@@ -3,7 +3,7 @@
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
 import {Flags as flags} from '../commands/flags.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
@@ -87,11 +87,11 @@ export class CertificateManager {
       if (!isSecretCreated) {
         throw new SoloError(`failed to create secret for TLS certificates for node '${nodeAlias}'`);
       }
-    } catch (e: Error | any) {
+    } catch (error: Error | any) {
       const errorMessage =
         'failed to copy tls certificate to secret ' +
-        `'${Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)}': ${e.message}`;
-      throw new SoloError(errorMessage, e);
+        `'${Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type)}': ${error.message}`;
+      throw new SoloError(errorMessage, error);
     }
   }
 
@@ -145,12 +145,14 @@ export class CertificateManager {
     }
 
     for (const {certType, title, certs, keys} of [grpcTlsParsedValues, grpcWebTlsParsedValue]) {
-      if (!certs.length) continue;
+      if (certs.length === 0) {
+        continue;
+      }
 
-      for (let i = 0; i < certs.length; i++) {
-        const nodeAlias = certs[i].nodeAlias;
-        const cert = certs[i].filePath;
-        const key = keys[i].filePath;
+      for (let index = 0; index < certs.length; index++) {
+        const nodeAlias = certs[index].nodeAlias;
+        const cert = certs[index].filePath;
+        const key = keys[index].filePath;
 
         subTasks.push({
           title: `${title} for node ${nodeAlias}`,
@@ -176,14 +178,14 @@ export class CertificateManager {
    * @throws SoloError - if the data doesn't follow the structure
    */
   private parseAndValidate(input: string, type: string): {nodeAlias: NodeAlias; filePath: string}[] {
-    return input.split(',').map((line, i) => {
+    return input.split(',').map((line, index) => {
       if (!line.includes('=')) {
-        throw new SoloError(`Failed to parse input ${input} of type ${type} on ${line}, index ${i}`);
+        throw new SoloError(`Failed to parse input ${input} of type ${type} on ${line}, index ${index}`);
       }
 
       const [nodeAlias, filePath] = line.split('=') as [NodeAlias, string];
       if (!nodeAlias?.length || !filePath?.length) {
-        throw new SoloError(`Failed to parse input ${input} of type ${type} on ${line}, index ${i}`);
+        throw new SoloError(`Failed to parse input ${input} of type ${type} on ${line}, index ${index}`);
       }
 
       let fileExists = false;
@@ -193,7 +195,7 @@ export class CertificateManager {
         fileExists = false;
       }
       if (!fileExists) {
-        throw new SoloError(`File doesn't exist on path ${input} input of type ${type} on ${line}, index ${i}`);
+        throw new SoloError(`File doesn't exist on path ${input} input of type ${type} on ${line}, index ${index}`);
       }
 
       return {nodeAlias, filePath};
@@ -202,7 +204,9 @@ export class CertificateManager {
 
   private getNamespace() {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
+    if (!ns) {
+      throw new MissingArgumentError('namespace is not set');
+    }
     return ns;
   }
 }

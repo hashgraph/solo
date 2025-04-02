@@ -29,7 +29,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     private readonly consensusNodes: ConsensusNode[],
     private readonly keyManager: KeyManager,
     private readonly accountManager: AccountManager,
-    private readonly keysDir: string,
+    private readonly keysDirectory: string,
     public networkNodeServiceMap: NodeServiceMapping,
     public adminPublicKeyMap: Map<NodeAlias, string>,
     public domainNamesMapping?: Record<NodeAlias, string>,
@@ -88,7 +88,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     consensusNodes: ConsensusNode[],
     keyManager: KeyManager,
     accountManager: AccountManager,
-    keysDir: string,
+    keysDirectory: string,
     networkNodeServiceMap: NodeServiceMapping,
     adminPublicKeys: string[],
     domainNamesMapping?: Record<NodeAlias, string>,
@@ -105,16 +105,16 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         );
       }
 
-      adminPublicKeys.forEach((key, i) => {
-        adminPublicKeyMap[consensusNodes[i].name] = key;
-      });
+      for (const [index, key] of adminPublicKeys.entries()) {
+        adminPublicKeyMap[consensusNodes[index].name] = key;
+      }
     }
 
     const instance = new GenesisNetworkDataConstructor(
       consensusNodes,
       keyManager,
       accountManager,
-      keysDir,
+      keysDirectory,
       networkNodeServiceMap,
       adminPublicKeyMap,
       domainNamesMapping,
@@ -133,7 +133,7 @@ export class GenesisNetworkDataConstructor implements ToJSON {
     await Promise.all(
       this.consensusNodes.map(async consensusNode => {
         const signingCertFile = Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias);
-        const signingCertFullPath = PathEx.joinWithRealPath(this.keysDir, signingCertFile);
+        const signingCertFullPath = PathEx.joinWithRealPath(this.keysDirectory, signingCertFile);
         const derCertificate = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
 
         //* Assign the DER formatted certificate
@@ -148,12 +148,12 @@ export class GenesisNetworkDataConstructor implements ToJSON {
 
   public toJSON(): JsonString {
     const nodeMetadata = [];
-    Object.keys(this.nodes).forEach(nodeAlias => {
+    for (const nodeAlias of Object.keys(this.nodes)) {
       nodeMetadata.push({
         node: this.nodes[nodeAlias].toObject(),
         rosterEntry: this.rosters[nodeAlias].toObject(),
       });
-    });
+    }
 
     return JSON.stringify({nodeMetadata: nodeMetadata});
   }

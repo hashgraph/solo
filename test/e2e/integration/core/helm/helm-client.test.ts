@@ -10,8 +10,8 @@ import {Repository} from '../../../../../src/integration/helm/model/repository.j
 import {DefaultHelmClientBuilder} from '../../../../../src/integration/helm/impl/default-helm-client-builder.js';
 import {type InstallChartOptions} from '../../../../../src/integration/helm/model/install/install-chart-options.js';
 import {UpgradeChartOptionsBuilder} from '../../../../../src/integration/helm/model/upgrade/upgrade-chart-options-builder.js';
-import {exec as execCallback} from 'child_process';
-import {promisify} from 'util';
+import {exec as execCallback} from 'node:child_process';
+import {promisify} from 'node:util';
 import {InstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/install-chart-options-builder.js';
 import {UnInstallChartOptionsBuilder} from '../../../../../src/integration/helm/model/install/un-install-chart-options-builder.js';
 import {TestChartOptionsBuilder} from '../../../../../src/integration/helm/model/test/test-chart-options-builder.js';
@@ -19,6 +19,7 @@ import {InjectTokens} from '../../../../../src/core/dependency-injection/inject-
 import {type K8Factory} from '../../../../../src/integration/kube/k8-factory.js';
 import {container} from 'tsyringe-neo';
 import {type K8} from '../../../../../src/integration/kube/k8.js';
+import {Duration} from '../../../../../src/core/time/duration.js';
 
 const exec = promisify(execCallback);
 
@@ -36,7 +37,7 @@ describe('HelmClient Tests', () => {
   let helmClient: HelmClient;
 
   before(async function () {
-    this.timeout(120000); // 2 minutes timeout for cluster creation
+    this.timeout(120_000); // 2 minutes timeout for cluster creation
 
     try {
       console.log(`Creating namespace ${NAMESPACE}...`);
@@ -54,7 +55,7 @@ describe('HelmClient Tests', () => {
   });
 
   after(async function () {
-    this.timeout(60000); // 1 minute timeout for cleanup
+    this.timeout(Duration.ofMinutes(2).toMillis()); // 2 minutes timeout for cleanup
 
     try {
       console.log(`Deleting namespace ${NAMESPACE}...`);
@@ -430,11 +431,11 @@ describe('HelmClient Tests', () => {
   describe('Parameterized Chart Installation with Options Executes Successfully', function () {
     this.timeout(INSTALL_TIMEOUT * 1000);
 
-    getChartInstallOptionsTestParameters().forEach(params => {
-      it(params.name, async () => {
+    for (const parameters of getChartInstallOptionsTestParameters()) {
+      it(parameters.name, async () => {
         await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
-        await testChartInstallWithCleanup(params.options);
+        await testChartInstallWithCleanup(parameters.options);
       });
-    });
+    }
   });
 });

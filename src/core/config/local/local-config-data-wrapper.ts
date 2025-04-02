@@ -5,13 +5,13 @@ import {type Deployments, type LocalConfigData} from './local-config-data.js';
 import {IsEmail, IsNotEmpty, IsObject, IsString, validateSync} from 'class-validator';
 import {ErrorMessages} from '../../error-messages.js';
 import {
-  type ClusterRef,
-  type ClusterRefs,
+  type ClusterReference,
+  type ClusterReferences,
   type DeploymentName,
   type EmailAddress,
   type Version,
 } from '../remote/types.js';
-import {IsClusterRefs, IsDeployments} from '../../validator-decorators.js';
+import {IsClusterReferences, IsDeployments} from '../../validator-decorators.js';
 import {SoloError} from '../../errors/solo-error.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 
@@ -30,9 +30,9 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
   @IsObject({message: ErrorMessages.LOCAL_CONFIG_INVALID_DEPLOYMENTS_FORMAT})
   private readonly _deployments: Deployments;
 
-  @IsClusterRefs({message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT})
+  @IsClusterReferences({message: ErrorMessages.LOCAL_CONFIG_CONTEXT_CLUSTER_MAPPING_FORMAT})
   @IsNotEmpty()
-  private readonly _clusterRefs: ClusterRefs = {};
+  private readonly _clusterRefs: ClusterReferences = {};
 
   public static readonly ALLOWED_KEYS: string[] = ['userEmailAddress', 'deployments', 'clusterRefs', 'soloVersion'];
 
@@ -40,12 +40,12 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
     userEmailAddress: EmailAddress,
     soloVersion: Version,
     deployments: Deployments,
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
   ) {
     this._userEmailAddress = userEmailAddress;
     this._soloVersion = soloVersion;
     this._deployments = deployments;
-    this._clusterRefs = clusterRefs;
+    this._clusterRefs = clusterReferences;
     this.validate();
   }
 
@@ -61,16 +61,16 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
     return structuredClone(this._deployments);
   }
 
-  public get clusterRefs(): ClusterRefs {
+  public get clusterRefs(): ClusterReferences {
     return structuredClone(this._clusterRefs);
   }
 
-  public addClusterRef(clusterRef: ClusterRef, context: string): void {
-    this._clusterRefs[clusterRef] = context;
+  public addClusterRef(clusterReference: ClusterReference, context: string): void {
+    this._clusterRefs[clusterReference] = context;
   }
 
-  public removeClusterRef(clusterRef: ClusterRef): void {
-    delete this._clusterRefs[clusterRef];
+  public removeClusterRef(clusterReference: ClusterReference): void {
+    delete this._clusterRefs[clusterReference];
   }
 
   public addDeployment(deployment: DeploymentName, namespace: NamespaceName): void {
@@ -81,8 +81,8 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
     delete this._deployments[deployment];
   }
 
-  public addClusterRefToDeployment(clusterRef: ClusterRef, deployment: DeploymentName): void {
-    this._deployments[deployment].clusters.push(clusterRef);
+  public addClusterRefToDeployment(clusterReference: ClusterReference, deployment: DeploymentName): void {
+    this._deployments[deployment].clusters.push(clusterReference);
   }
 
   public toObject(): LocalConfigData {
@@ -97,11 +97,11 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
   public validate(): void {
     const errors = validateSync(this, {});
 
-    if (errors.length) {
+    if (errors.length > 0) {
       // throw the first error:
-      const prop = Object.keys(errors[0]?.constraints);
-      if (prop[0]) {
-        throw new SoloError(errors[0].constraints[prop[0]]);
+      const property = Object.keys(errors[0]?.constraints);
+      if (property[0]) {
+        throw new SoloError(errors[0].constraints[property[0]]);
       } else {
         throw new SoloError(ErrorMessages.LOCAL_CONFIG_GENERIC);
       }
