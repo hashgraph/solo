@@ -17,7 +17,7 @@ import {
 } from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
+import {type CommandDefinition, type Optional} from '../types/index.js';
 import * as versions from '../../version.js';
 import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Lock} from '../core/lock/lock.js';
@@ -217,7 +217,6 @@ export class BlockNodesCommand extends BaseCommand {
             }
           },
         },
-        this.addBlockNodesComponent(),
       ],
       {
         concurrent: false,
@@ -261,24 +260,6 @@ export class BlockNodesCommand extends BaseCommand {
             },
           })
           .demandCommand(1, 'Select a relay command');
-      },
-    };
-  }
-
-  /** Adds the relay component to remote config. */
-  public addBlockNodesComponent(): SoloListrTask<BlockNodesDeployContext> {
-    return {
-      title: 'Add relay component in remote config',
-      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (context_): Promise<void> => {
-        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
-          const {
-            config: {namespace, nodeAliases},
-          } = context_;
-          const cluster = this.remoteConfigManager.currentCluster;
-
-          // remoteConfig.components.add(new BlockNodesComponent('relay', cluster, namespace.name, nodeAliases)); // TODO
-        });
       },
     };
   }
