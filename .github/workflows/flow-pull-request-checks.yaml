@@ -81,7 +81,6 @@ jobs:
           - { name: "Node Delete", test-script: "test-${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-delete-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-delete-coverage-report }}", cluster-name: "${{needs.env-vars.outputs.e2e-node-delete-test-subdir}}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Node PEM Kill", test-script: "test-${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Standard", test-script: "test-${{ needs.env-vars.outputs.e2e-standard-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-standard-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-standard-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-standard-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
-          - { name: "Mirror Node", test-script: "test-${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Relay", test-script: "test-${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-relay-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-relay-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-relay-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Node Update", test-script: "test-${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-update-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-node-update-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
           - { name: "Node Upgrade", test-script: "test-${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-subdirectory: "${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}", coverage-report-name: "${{ needs.env-vars.outputs.e2e-node-upgrade-coverage-report }}", cluster-name: "${{ needs.env-vars.outputs.e2e-node-upgrade-test-subdir }}-${{ github.run_id }}-${{ github.run_attempt }}" }
@@ -114,7 +113,6 @@ jobs:
       enable-e2e-coverage-report: true
       e2e-integration-test-subdir: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
       e2e-standard-test-subdir: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
-      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
       e2e-node-pem-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
       e2e-node-local-hedera-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}
@@ -131,7 +129,6 @@ jobs:
       e2e-relay-test-subdir: ${{ needs.env-vars.outputs.e2e-relay-test-subdir }}
       e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
-      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
       e2e-node-pem-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
       e2e-node-local-hedera-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}
@@ -164,7 +161,6 @@ jobs:
       e2e-integration-test-subdir: ${{ needs.env-vars.outputs.e2e-integration-test-subdir }}
       e2e-dual-cluster-full-test-subdir: ${{ needs.env-vars.outputs.e2e-dual-cluster-full-test-subdir }}
       e2e-standard-test-subdir: ${{ needs.env-vars.outputs.e2e-standard-test-subdir }}
-      e2e-mirror-node-test-subdir: ${{ needs.env-vars.outputs.e2e-mirror-node-test-subdir }}
       e2e-node-pem-stop-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-stop-test-subdir }}
       e2e-node-pem-kill-test-subdir: ${{ needs.env-vars.outputs.e2e-node-pem-kill-test-subdir }}
       e2e-node-local-hedera-test-subdir: ${{ needs.env-vars.outputs.e2e-node-local-hedera-test-subdir }}
@@ -182,7 +178,6 @@ jobs:
       e2e-integration-coverage-report: ${{ needs.env-vars.outputs.e2e-integration-coverage-report }}
       e2e-dual-cluster-full-coverage-report: ${{ needs.env-vars.outputs.e2e-dual-cluster-full-coverage-report }}
       e2e-standard-coverage-report: ${{ needs.env-vars.outputs.e2e-standard-coverage-report }}
-      e2e-mirror-node-coverage-report: ${{ needs.env-vars.outputs.e2e-mirror-node-coverage-report }}
       e2e-node-pem-stop-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-stop-coverage-report }}
       e2e-node-pem-kill-coverage-report: ${{ needs.env-vars.outputs.e2e-node-pem-kill-coverage-report }}
       e2e-node-local-hedera-coverage-report: ${{ needs.env-vars.outputs.e2e-node-local-hedera-coverage-report }}

@@ -70,11 +70,6 @@ on:
         type: string
         required: false
         default: "e2e-standard"
-      e2e-mirror-node-test-subdir:
-        description: "E2E Mirror Node Test Subdirectory:"
-        type: string
-        required: false
-        default: "e2e-mirror-node"
       e2e-node-pem-stop-test-subdir:
         description: "E2E Node PEM Stop Test Subdirectory:"
         type: string
@@ -160,11 +155,6 @@ on:
         type: string
         required: false
         default: "E2E Standard Tests Coverage Report"
-      e2e-mirror-node-coverage-report:
-        description: "E2E Mirror Node Coverage Report:"
-        type: string
-        required: false
-        default: "E2E Mirror Node Tests Coverage Report"
       e2e-node-pem-stop-coverage-report:
         description: "E2E Node PEM Stop Coverage Report:"
         type: string
@@ -312,13 +302,6 @@ jobs:
         with:
           name: ${{ inputs.e2e-standard-coverage-report }}
           path: 'coverage/${{ inputs.e2e-standard-test-subdir }}'
-
-      - name: Download E2E Mirror Node Coverage Report
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
-        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-        with:
-          name: ${{ inputs.e2e-mirror-node-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-mirror-node-test-subdir }}'
 
       - name: Download E2E Node PEM Stop Coverage Report
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
