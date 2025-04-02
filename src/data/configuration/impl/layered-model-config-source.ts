@@ -8,10 +8,11 @@ import {ConfigurationError} from '../api/configuration-error.js';
 import {IllegalArgumentError} from '../../../business/errors/illegal-argument-error.js';
 import {Forest} from '../../key/lexer/forest.js';
 import {type ObjectStorageBackend} from '../../backend/api/object-storage-backend.js';
+import {type ModelConfigSource} from '../spi/model-config-source.js';
 
 export abstract class LayeredModelConfigSource<T extends object>
   extends LayeredConfigSource
-  implements LayeredModelConfigSource<T>
+  implements ModelConfigSource<T>
 {
   private _modelData: T;
 
