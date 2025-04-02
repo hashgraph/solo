@@ -2170,12 +2170,48 @@ export class Flags {
     prompt: undefined,
   };
 
-  public static readonly googleCredential: CommandFlag = {
-    constName: 'googleCredential',
-    name: 'google-credential',
+  public static readonly backupWriteAccessKey: CommandFlag = {
+    constName: 'backupWriteAccessKey',
+    name: 'backup-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'path of google credential file in json format',
+      describe: 'backup storage access key for write access',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupWriteSecrets: CommandFlag = {
+    constName: 'backupWriteSecrets',
+    name: 'backup-write-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'backup storage secret key for write access',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupEndpoint: CommandFlag = {
+    constName: 'backupEndpoint',
+    name: 'backup-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'backup storage endpoint URL',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupRegion: CommandFlag = {
+    constName: 'backupRegion',
+    name: 'backup-region',
+    definition: {
+      defaultValue: 'us-central1',
+      describe: 'backup storage region',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2441,7 +2477,10 @@ export class Flags {
     Flags.storageBucket,
     Flags.storageBucketPrefix,
     Flags.backupBucket,
-    Flags.googleCredential,
+    Flags.backupWriteAccessKey,
+    Flags.backupWriteSecrets,
+    Flags.backupEndpoint,
+    Flags.backupRegion,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
