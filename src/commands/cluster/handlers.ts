@@ -126,8 +126,8 @@ export class ClusterCommandHandlers extends CommandHandler {
         'cluster setup',
         null,
       );
-    } catch (e) {
-      throw new SoloError('Error on cluster setup', e);
+    } catch (error) {
+      throw new SoloError('Error on cluster setup', error);
     }
 
     return true;
@@ -151,8 +151,8 @@ export class ClusterCommandHandlers extends CommandHandler {
         'cluster reset',
         null,
       );
-    } catch (e) {
-      throw new SoloError('Error on cluster reset', e);
+    } catch (error) {
+      throw new SoloError('Error on cluster reset', error);
     }
     return true;
   }

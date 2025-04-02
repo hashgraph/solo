@@ -5,7 +5,7 @@ import {StorageOperation} from '../api/storage-operation.js';
 import {type Stats, statSync, lstatSync, readdirSync, writeFileSync, unlinkSync} from 'node:fs';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
-import {readFileSync} from 'fs';
+import {readFileSync} from 'node:fs';
 import {PathEx} from '../../../business/utils/path-ex.js';
 
 /**
@@ -31,8 +31,8 @@ export class FileStorageBackend implements StorageBackend {
     let stats: Stats;
     try {
       stats = lstatSync(basePath);
-    } catch (e) {
-      throw new StorageBackendError('basePath must exist and be valid', e);
+    } catch (error) {
+      throw new StorageBackendError('basePath must exist and be valid', error);
     }
 
     if (!stats || !stats.isDirectory()) {
@@ -45,10 +45,12 @@ export class FileStorageBackend implements StorageBackend {
       case StorageOperation.List:
       case StorageOperation.ReadBytes:
       case StorageOperation.WriteBytes:
-      case StorageOperation.Delete:
+      case StorageOperation.Delete: {
         return true;
-      default:
+      }
+      default: {
         return false;
+      }
     }
   }
 
@@ -61,8 +63,8 @@ export class FileStorageBackend implements StorageBackend {
       }
 
       return entries.filter(item => statSync(PathEx.join(this.basePath, item))?.isFile());
-    } catch (e) {
-      throw new StorageBackendError('Error listing files in base path', e);
+    } catch (error) {
+      throw new StorageBackendError('Error listing files in base path', error);
     }
   }
 
@@ -74,8 +76,8 @@ export class FileStorageBackend implements StorageBackend {
     const filePath: string = PathEx.join(this.basePath, key);
     try {
       return readFileSync(filePath);
-    } catch (e) {
-      throw new StorageBackendError(`error reading file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error reading file: ${filePath}`, error);
     }
   }
 
@@ -91,8 +93,8 @@ export class FileStorageBackend implements StorageBackend {
     const filePath: string = PathEx.join(this.basePath, key);
     try {
       writeFileSync(filePath, data, {flag: 'w'});
-    } catch (e) {
-      throw new StorageBackendError(`error writing file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error writing file: ${filePath}`, error);
     }
   }
 
@@ -105,8 +107,8 @@ export class FileStorageBackend implements StorageBackend {
     let stats: Stats;
     try {
       stats = statSync(filePath);
-    } catch (e) {
-      throw new StorageBackendError(`file not found or is not readable: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`file not found or is not readable: ${filePath}`, error);
     }
 
     if (!stats) {
@@ -119,8 +121,8 @@ export class FileStorageBackend implements StorageBackend {
 
     try {
       unlinkSync(filePath);
-    } catch (e) {
-      throw new StorageBackendError(`error deleting file: ${filePath}`, e);
+    } catch (error) {
+      throw new StorageBackendError(`error deleting file: ${filePath}`, error);
     }
   }
 }

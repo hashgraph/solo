@@ -29,7 +29,7 @@ import {CustomProcessOutput} from './core/process-output.js';
 import {type SoloLogger} from './core/logging/solo-logger.js';
 import {Container} from './core/dependency-injection/container-init.js';
 import {InjectTokens} from './core/dependency-injection/inject-tokens.js';
-import {type Opts as Options} from './commands/base.js';
+import {type Options} from './commands/base.js';
 import {type Middlewares} from './core/middlewares.js';
 import {SoloError} from './core/errors/solo-error.js';
 import {UserBreak} from './core/errors/user-break.js';

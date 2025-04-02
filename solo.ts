@@ -15,7 +15,7 @@ await fnm
   .then(() => {
     context.logger.info('Solo CLI completed, via entrypoint');
   })
-  .catch(e => {
+  .catch(error => {
     const errorHandler: ErrorHandler = container.resolve(InjectTokens.ErrorHandler);
-    errorHandler.handle(e);
+    errorHandler.handle(error);
   });

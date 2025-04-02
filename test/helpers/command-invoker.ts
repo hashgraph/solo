@@ -17,16 +17,16 @@ export class CommandInvoker {
   private readonly configManager: ConfigManager;
   private readonly k8Factory: K8Factory;
 
-  public constructor(opts: {
+  public constructor(options: {
     configManager: ConfigManager;
     remoteConfigManager: RemoteConfigManager;
     k8Factory: K8Factory;
     logger: SoloLogger;
   }) {
     this.middlewares = container.resolve(InjectTokens.Middlewares);
-    this.configManager = opts.configManager;
-    this.k8Factory = opts.k8Factory;
-    this.remoteConfigManager = opts.remoteConfigManager;
+    this.configManager = options.configManager;
+    this.k8Factory = options.k8Factory;
+    this.remoteConfigManager = options.remoteConfigManager;
   }
 
   public async invoke({

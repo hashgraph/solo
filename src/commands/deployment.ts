@@ -2,12 +2,12 @@
 
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
-import {BaseCommand, type Opts} from './base.js';
+import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
+import {type ClusterReference, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -26,7 +26,7 @@ interface DeploymentAddClusterConfig {
   context: string;
   namespace: NamespaceName;
   deployment: DeploymentName;
-  clusterRef: ClusterRef;
+  clusterRef: ClusterReference;
 
   enableCertManager: boolean;
   numberOfConsensusNodes: number;
@@ -47,8 +47,8 @@ export interface DeploymentAddClusterContext {
 export class DeploymentCommand extends BaseCommand {
   readonly tasks: ClusterCommandTasks;
 
-  constructor(opts: Opts) {
-    super(opts);
+  constructor(options: Options) {
+    super(options);
 
     this.tasks = container.resolve(ClusterCommandTasks);
   }
@@ -103,28 +103,28 @@ export class DeploymentCommand extends BaseCommand {
       [
         {
           title: 'Initialize',
-          task: async (ctx, task) => {
+          task: async (context_, task) => {
             self.configManager.update(argv);
 
             await self.configManager.executePrompt(task, [flags.namespace, flags.deployment]);
 
-            ctx.config = {
+            context_.config = {
               quiet: self.configManager.getFlag<boolean>(flags.quiet),
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
             } as Config;
 
-            if (self.localConfig.deployments && self.localConfig.deployments[ctx.config.deployment]) {
-              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(ctx.config.deployment));
+            if (self.localConfig.deployments && self.localConfig.deployments[context_.config.deployment]) {
+              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(context_.config.deployment));
             }
 
-            self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
+            self.logger.debug('Prepared config', {config: context_.config, cachedConfig: self.configManager.config});
           },
         },
         {
           title: 'Add deployment to local config',
-          task: async (ctx, task) => {
-            const {namespace, deployment} = ctx.config;
+          task: async (context_, task) => {
+            const {namespace, deployment} = context_.config;
             task.title = `Adding deployment: ${deployment} with namespace: ${namespace.name} to local config`;
 
             if (this.localConfig.deployments[deployment]) {
@@ -145,8 +145,8 @@ export class DeploymentCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | unknown) {
-      throw new SoloError('Error creating deployment', e);
+    } catch (error: Error | unknown) {
+      throw new SoloError('Error creating deployment', error);
     }
 
     return true;
@@ -172,30 +172,30 @@ export class DeploymentCommand extends BaseCommand {
       [
         {
           title: 'Initialize',
-          task: async (ctx, task) => {
+          task: async (context_, task) => {
             self.configManager.update(argv);
 
             await self.configManager.executePrompt(task, [flags.deployment]);
 
-            ctx.config = {
+            context_.config = {
               quiet: self.configManager.getFlag<boolean>(flags.quiet),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
             } as Config;
 
-            if (!self.localConfig.deployments || !self.localConfig.deployments[ctx.config.deployment]) {
-              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(ctx.config.deployment));
+            if (!self.localConfig.deployments || !self.localConfig.deployments[context_.config.deployment]) {
+              throw new SoloError(ErrorMessages.DEPLOYMENT_NAME_ALREADY_EXISTS(context_.config.deployment));
             }
 
-            self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
+            self.logger.debug('Prepared config', {config: context_.config, cachedConfig: self.configManager.config});
           },
         },
         {
           title: 'Check for existing remote resources',
-          task: async (ctx, task) => {
-            const {deployment} = ctx.config;
-            const clusterRefs = self.localConfig.deployments[deployment].clusters;
-            for (const clusterRef of clusterRefs) {
-              const context = self.localConfig.clusterRefs[clusterRef];
+          task: async (context_, task) => {
+            const {deployment} = context_.config;
+            const clusterReferences = self.localConfig.deployments[deployment].clusters;
+            for (const clusterReference of clusterReferences) {
+              const context = self.localConfig.clusterRefs[clusterReference];
               const namespace = NamespaceName.of(self.localConfig.deployments[deployment].namespace);
               const remoteConfigExists = await self.remoteConfigManager.get(context);
               const namespaceExists = await self.k8Factory.getK8(context).namespaces().has(namespace);
@@ -203,16 +203,16 @@ export class DeploymentCommand extends BaseCommand {
                 .getK8(context)
                 .configMaps()
                 .list(namespace, ['app.kubernetes.io/managed-by=Helm']);
-              if (remoteConfigExists || namespaceExists || existingConfigMaps.length) {
-                throw new SoloError(`Deployment ${deployment} has remote resources in cluster: ${clusterRef}`);
+              if (remoteConfigExists || namespaceExists || existingConfigMaps.length > 0) {
+                throw new SoloError(`Deployment ${deployment} has remote resources in cluster: ${clusterReference}`);
               }
             }
           },
         },
         {
           title: 'Remove deployment from local config',
-          task: async ctx => {
-            const {deployment} = ctx.config;
+          task: async context_ => {
+            const {deployment} = context_.config;
 
             await this.localConfig.modify(async localConfigData => {
               localConfigData.removeDeployment(deployment);
@@ -228,8 +228,8 @@ export class DeploymentCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | unknown) {
-      throw new SoloError('Error deleting deployment', e);
+    } catch (error: Error | unknown) {
+      throw new SoloError('Error deleting deployment', error);
     }
 
     return true;
@@ -259,8 +259,8 @@ export class DeploymentCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | unknown) {
-      throw new SoloError('Error adding cluster to deployment', e);
+    } catch (error: Error | unknown) {
+      throw new SoloError('Error adding cluster to deployment', error);
     }
 
     return true;
@@ -270,7 +270,7 @@ export class DeploymentCommand extends BaseCommand {
     const self = this;
 
     interface Config {
-      clusterName: ClusterRef;
+      clusterName: ClusterReference;
     }
 
     interface Context {
@@ -281,21 +281,21 @@ export class DeploymentCommand extends BaseCommand {
       [
         {
           title: 'Initialize',
-          task: async (ctx, task) => {
+          task: async (context_, task) => {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
             await self.configManager.executePrompt(task, [flags.clusterRef]);
-            ctx.config = {
-              clusterName: self.configManager.getFlag<ClusterRef>(flags.clusterRef),
+            context_.config = {
+              clusterName: self.configManager.getFlag<ClusterReference>(flags.clusterRef),
             } as Config;
 
-            self.logger.debug('Prepared config', {config: ctx.config, cachedConfig: self.configManager.config});
+            self.logger.debug('Prepared config', {config: context_.config, cachedConfig: self.configManager.config});
           },
         },
         {
           title: 'Validate context',
-          task: async ctx => {
-            const clusterName = ctx.config.clusterName;
+          task: async context_ => {
+            const clusterName = context_.config.clusterName;
 
             const context = self.localConfig.clusterRefs[clusterName];
 
@@ -308,7 +308,9 @@ export class DeploymentCommand extends BaseCommand {
               const isFound: boolean = await container
                 .resolve<ClusterChecks>(InjectTokens.ClusterChecks)
                 .isRemoteConfigPresentInNamespace(namespace);
-              if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
+              if (isFound) {
+                namespacesWithRemoteConfigs.push(namespace.name);
+              }
             }
 
             self.logger.showList(`Deployments inside cluster: ${chalk.cyan(clusterName)}`, namespacesWithRemoteConfigs);
@@ -323,8 +325,8 @@ export class DeploymentCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | unknown) {
-      throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, e);
+    } catch (error: Error | unknown) {
+      throw new SoloError(`Error installing chart ${constants.SOLO_DEPLOYMENT_CHART}`, error);
     }
 
     return true;
@@ -353,10 +355,12 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
 
-                  if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error creating deployment, expected return value to be true');
+                  }
                 })
-                .catch(err => {
-                  throw new SoloError(`Error creating deployment: ${err.message}`, err);
+                .catch(error => {
+                  throw new SoloError(`Error creating deployment: ${error.message}`, error);
                 });
             },
           })
@@ -376,10 +380,12 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment delete`====');
 
-                  if (!r) throw new SoloError('Error deleting deployment, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error deleting deployment, expected return value to be true');
+                  }
                 })
-                .catch(err => {
-                  throw new SoloError(`Error deleting deployment: ${err.message}`, err);
+                .catch(error => {
+                  throw new SoloError(`Error deleting deployment: ${error.message}`, error);
                 });
             },
           })
@@ -399,10 +405,12 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment list`====');
 
-                  if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error listing deployments, expected return value to be true');
+                  }
                 })
-                .catch(err => {
-                  throw new SoloError(`Error listing deployments: ${err.message}`, err);
+                .catch(error => {
+                  throw new SoloError(`Error listing deployments: ${error.message}`, error);
                 });
             },
           })
@@ -421,11 +429,13 @@ export class DeploymentCommand extends BaseCommand {
                 .addCluster(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment add-cluster`====');
-                  if (!r) throw new SoloError('Error adding cluster deployment, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error adding cluster deployment, expected return value to be true');
+                  }
                 })
-                .catch(err => {
-                  self.logger.showUserError(err);
-                  throw new SoloError(`Error adding cluster deployment: ${err.message}`, err);
+                .catch(error => {
+                  self.logger.showUserError(error);
+                  throw new SoloError(`Error adding cluster deployment: ${error.message}`, error);
                 });
             },
           })
@@ -442,16 +452,16 @@ export class DeploymentCommand extends BaseCommand {
   public initializeClusterAddConfig(argv: ArgvStruct): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'Initialize',
-      task: async (ctx, task) => {
+      task: async (context_, task) => {
         this.configManager.update(argv);
 
         await this.configManager.executePrompt(task, [flags.deployment, flags.clusterRef]);
 
-        ctx.config = {
+        context_.config = {
           quiet: this.configManager.getFlag<boolean>(flags.quiet),
           namespace: await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task),
           deployment: this.configManager.getFlag<DeploymentName>(flags.deployment),
-          clusterRef: this.configManager.getFlag<ClusterRef>(flags.clusterRef),
+          clusterRef: this.configManager.getFlag<ClusterReference>(flags.clusterRef),
 
           enableCertManager: this.configManager.getFlag<boolean>(flags.enableCertManager),
           numberOfConsensusNodes: this.configManager.getFlag<number>(flags.numberOfConsensusNodes),
@@ -463,7 +473,7 @@ export class DeploymentCommand extends BaseCommand {
           context: '',
         };
 
-        this.logger.debug('Prepared config', {config: ctx.config, cachedConfig: this.configManager.config});
+        this.logger.debug('Prepared config', {config: context_.config, cachedConfig: this.configManager.config});
       },
     };
   }
@@ -477,14 +487,14 @@ export class DeploymentCommand extends BaseCommand {
   public verifyClusterAddArgs(): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'Verify args',
-      task: async ctx => {
-        const {clusterRef, deployment} = ctx.config;
+      task: async context_ => {
+        const {clusterRef, deployment} = context_.config;
 
         if (!this.localConfig.clusterRefs.hasOwnProperty(clusterRef)) {
           throw new SoloError(`Cluster ref ${clusterRef} not found in local config`);
         }
 
-        ctx.config.context = this.localConfig.clusterRefs[clusterRef];
+        context_.config.context = this.localConfig.clusterRefs[clusterRef];
 
         if (!this.localConfig.deployments.hasOwnProperty(deployment)) {
           throw new SoloError(`Deployment ${deployment} not found in local config`);
@@ -512,14 +522,14 @@ export class DeploymentCommand extends BaseCommand {
   public checkNetworkState(): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'check network state',
-      task: async (ctx, task) => {
-        const {deployment, numberOfConsensusNodes, quiet} = ctx.config;
+      task: async (context_, task) => {
+        const {deployment, numberOfConsensusNodes, quiet} = context_.config;
 
-        const existingClusterRefs = this.localConfig.deployments[deployment].clusters;
+        const existingClusterReferences = this.localConfig.deployments[deployment].clusters;
 
         // if there is no remote config don't validate deployment state
-        if (!existingClusterRefs.length) {
-          ctx.config.state = DeploymentStates.PRE_GENESIS;
+        if (existingClusterReferences.length === 0) {
+          context_.config.state = DeploymentStates.PRE_GENESIS;
 
           // if the user can't be prompted for '--num-consensus-nodes' fail
           if (!numberOfConsensusNodes && quiet) {
@@ -529,25 +539,25 @@ export class DeploymentCommand extends BaseCommand {
           // prompt the user for the '--num-consensus-nodes'
           else if (!numberOfConsensusNodes) {
             await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
-            ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
+            context_.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
           }
 
-          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(ctx.config.numberOfConsensusNodes, 0);
+          context_.config.nodeAliases = Templates.renderNodeAliasesFromCount(context_.config.numberOfConsensusNodes, 0);
 
           return;
         }
 
-        const existingClusterContext = this.localConfig.clusterRefs[existingClusterRefs[0]];
-        ctx.config.existingClusterContext = existingClusterContext;
+        const existingClusterContext = this.localConfig.clusterRefs[existingClusterReferences[0]];
+        context_.config.existingClusterContext = existingClusterContext;
 
         const remoteConfig = await this.remoteConfigManager.get(existingClusterContext);
 
         const state = remoteConfig.metadata.state;
-        ctx.config.state = state;
+        context_.config.state = state;
 
         const existingNodesCount = Object.keys(remoteConfig.components.consensusNodes).length;
 
-        ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
+        context_.config.nodeAliases = Templates.renderNodeAliasesFromCount(numberOfConsensusNodes, existingNodesCount);
 
         // If state is pre-genesis and user can't be prompted for the '--num-consensus-nodes' fail
         if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes && quiet) {
@@ -557,9 +567,9 @@ export class DeploymentCommand extends BaseCommand {
         // If state is pre-genesis prompt the user for the '--num-consensus-nodes'
         else if (state === DeploymentStates.PRE_GENESIS && !numberOfConsensusNodes) {
           await this.configManager.executePrompt(task, [flags.numberOfConsensusNodes]);
-          ctx.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
-          ctx.config.nodeAliases = Templates.renderNodeAliasesFromCount(
-            ctx.config.numberOfConsensusNodes,
+          context_.config.numberOfConsensusNodes = this.configManager.getFlag<number>(flags.numberOfConsensusNodes);
+          context_.config.nodeAliases = Templates.renderNodeAliasesFromCount(
+            context_.config.numberOfConsensusNodes,
             existingNodesCount,
           );
         }
@@ -580,8 +590,8 @@ export class DeploymentCommand extends BaseCommand {
   public testClusterConnection(): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'Test cluster connection',
-      task: async (ctx, task) => {
-        const {clusterRef, context} = ctx.config;
+      task: async (context_, task) => {
+        const {clusterRef, context} = context_.config;
 
         task.title += `: ${clusterRef}, context: ${context}`;
 
@@ -614,8 +624,8 @@ export class DeploymentCommand extends BaseCommand {
   public addClusterRefToDeployments(): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'add cluster-ref in local config deployments',
-      task: async (ctx, task) => {
-        const {clusterRef, deployment} = ctx.config;
+      task: async (context_, task) => {
+        const {clusterRef, deployment} = context_.config;
 
         task.title = `add cluster-ref: ${clusterRef} for deployment: ${deployment} in local config`;
 
@@ -633,7 +643,7 @@ export class DeploymentCommand extends BaseCommand {
   public createOrEditRemoteConfigForNewDeployment(argv: ArgvStruct): SoloListrTask<DeploymentAddClusterContext> {
     return {
       title: 'create remote config for deployment',
-      task: async (ctx, task) => {
+      task: async (context_, task) => {
         const {
           deployment,
           clusterRef,
@@ -644,7 +654,7 @@ export class DeploymentCommand extends BaseCommand {
           existingClusterContext,
           dnsBaseDomain,
           dnsConsensusNodePattern,
-        } = ctx.config;
+        } = context_.config;
 
         argv[flags.nodeAliasesUnparsed.name] = nodeAliases.join(',');
 

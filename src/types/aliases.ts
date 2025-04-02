@@ -13,21 +13,21 @@ export type CommandBuilder = (yargs: any) => any;
 
 export type TarCreateFilter = (path: string, entry: Stats | ReadEntry) => boolean;
 
-export type SkipCheck = (ctx: any) => Promise<boolean> | boolean;
+export type SkipCheck = (context_: any) => Promise<boolean> | boolean;
 
 export type TaskFunction = (
-  ctx: any,
+  context_: any,
   task: ListrTaskWrapper<any, any, any>,
 ) => Promise<Listr<any, any, any>> | Listr<any, any, any> | Promise<void> | void;
 
-export type ConfigBuilder = (argv, ctx, task, configMaps?, shouldLoadNodeClient?) => Promise<any>;
+export type ConfigBuilder = (argv, context_, task, configMaps?, shouldLoadNodeClient?) => Promise<any>;
 
 export type IP = string;
 
 export type JsonString = string;
 
 export type Path = string;
-export type DirPath = string;
+export type DirectoryPath = string;
 
 export type AnyObject = Record<any, any>;
 export type AnyYargs = any;

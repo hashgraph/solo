@@ -34,7 +34,9 @@ export async function promptTheUserForDeployment(
     return configManager.getFlag<DeploymentName>(flags.deployment);
   }
 
-  if (!task) {
+  if (task) {
+    await configManager.executePrompt(task, [flags.deployment]);
+  } else {
     const isQuiet = configManager.getFlag<boolean>(flags.quiet);
     const isForced = configManager.getFlag<boolean>(flags.force);
 
@@ -49,8 +51,6 @@ export async function promptTheUserForDeployment(
     });
 
     configManager.setFlag(flags.deployment, answer);
-  } else {
-    await configManager.executePrompt(task, [flags.deployment]);
   }
 
   const deploymentName = configManager.getFlag<DeploymentName>(flags.deployment);

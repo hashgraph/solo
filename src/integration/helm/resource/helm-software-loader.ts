@@ -29,11 +29,11 @@ export class HelmSoftwareLoader {
       }
 
       return helmPath;
-    } catch (e) {
-      if (e instanceof HelmConfigurationException) {
-        throw e;
+    } catch (error) {
+      if (error instanceof HelmConfigurationException) {
+        throw error;
       }
-      throw new HelmConfigurationException(`Failed to locate Helm executable: ${(e as Error).message}`);
+      throw new HelmConfigurationException(`Failed to locate Helm executable: ${(error as Error).message}`);
     }
   }
 }

@@ -2,7 +2,7 @@
 
 import {type HelmExecutionBuilder} from '../../execution/helm-execution-builder.js';
 import {type HelmRequest} from '../helm-request.js';
-import {existsSync} from 'fs';
+import {existsSync} from 'node:fs';
 
 /**
  * Authentication parameters for a Kubernetes cluster.

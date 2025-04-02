@@ -4,7 +4,7 @@ import {it} from 'mocha';
 import {expect} from 'chai';
 import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {Cluster} from '../../../../../src/core/config/remote/cluster.js';
-import {type ClusterRef} from '../../../../../src/core/config/remote/types.js';
+import {type ClusterReference} from '../../../../../src/core/config/remote/types.js';
 
 describe('Cluster', () => {
   it('should fail if name is not provided', () => {
@@ -38,7 +38,7 @@ describe('Cluster', () => {
   });
 
   it('should convert clusters map to an object', () => {
-    const map1: Record<ClusterRef, Cluster> = {
+    const map1: Record<ClusterReference, Cluster> = {
       cluster1: new Cluster('name1', 'namespace1', 'deployment1', 'cluster1.world', 'network1.svc'),
       cluster2: new Cluster('name2', 'namespace2', 'deployment2', 'cluster2.world', 'network2.svc'),
     };

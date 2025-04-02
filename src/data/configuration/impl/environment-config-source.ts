@@ -44,13 +44,13 @@ export class EnvironmentConfigSource extends LayeredConfigSource implements Conf
     this.data.clear();
     this.forest = null;
 
-    const vars: string[] = await this.backend.list();
-    for (const k of vars) {
+    const variables: string[] = await this.backend.list();
+    for (const k of variables) {
       try {
         const va: Buffer = await this.backend.readBytes(k);
         this.data.set(k, va.toString('utf-8'));
-      } catch (e) {
-        throw new ConfigurationError(`Failed to read environment variable: ${k}`, e);
+      } catch (error) {
+        throw new ConfigurationError(`Failed to read environment variable: ${k}`, error);
       }
     }
 

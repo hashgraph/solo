@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn} from 'child_process';
+import {spawn} from 'node:child_process';
 import chalk from 'chalk';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -27,51 +27,53 @@ export class ShellRunner {
       const output: string[] = [];
       child.stdout.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
             output.push(item);
           }
-        });
+        }
       });
 
-      const errOutput: string[] = [];
+      const errorOutput: string[] = [];
       child.stderr.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
-            errOutput.push(item.trim());
+            errorOutput.push(item.trim());
           }
-        });
+        }
       });
 
       child.on('exit', (code, signal) => {
         if (code) {
-          const err = new Error(`Command exit with error code ${code}: ${cmd}`);
+          const error = new Error(`Command exit with error code ${code}: ${cmd}`);
 
           // include the callStack to the parent run() instead of from inside this handler.
           // this is needed to ensure we capture the proper callstack for easier debugging.
-          err.stack = callStack;
+          error.stack = callStack;
 
           if (verbose) {
-            errOutput.forEach(m => self.logger.showUser(chalk.red(m)));
+            for (const m of errorOutput) {
+              self.logger.showUser(chalk.red(m));
+            }
           }
 
           self.logger.error(`Error executing: '${cmd}'`, {
             commandExitCode: code,
             commandExitSignal: signal,
             commandOutput: output,
-            errOutput,
-            error: {message: err.message, stack: err.stack},
+            errOutput: errorOutput,
+            error: {message: error.message, stack: error.stack},
           });
 
-          reject(err);
+          reject(error);
         }
 
         self.logger.debug(`Finished executing: '${cmd}'`, {
           commandExitCode: code,
           commandExitSignal: signal,
           commandOutput: output,
-          errOutput,
+          errOutput: errorOutput,
         });
         resolve(output);
       });

@@ -22,6 +22,6 @@ export class K8ClientClusters implements Clusters {
 
   public readCurrent(): string {
     const currentCluster = this.kubeConfig.getCurrentCluster();
-    return !currentCluster ? '' : currentCluster.name;
+    return currentCluster ? currentCluster.name : '';
   }
 }

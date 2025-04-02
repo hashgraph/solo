@@ -5,7 +5,7 @@ import {expect} from 'chai';
 import each from 'mocha-each';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
+import {endToEndTestSuite, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {RelayCommand} from '../../../src/commands/relay.js';
@@ -29,7 +29,7 @@ argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.relayReleaseTag, flags.relayReleaseTag.definition.defaultValue);
 
-e2eTestSuite(testName, argv, {}, bootstrapResp => {
+endToEndTestSuite(testName, argv, {}, bootstrapResp => {
   const {
     opts: {k8Factory, logger, commandInvoker},
   } = bootstrapResp;
@@ -58,8 +58,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           // @ts-expect-error to access private property
           callback: async argv => relayCmd.deploy(argv),
         });
-      } catch (e) {
-        logger.showUserError(e);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
       await sleep(Duration.ofMillis(500));
@@ -73,8 +73,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           // @ts-expect-error to access private modifier
           callback: async argv => relayCmd.destroy(argv),
         });
-      } catch (e) {
-        logger.showUserError(e);
+      } catch (error) {
+        logger.showUserError(error);
         expect.fail();
       }
     });

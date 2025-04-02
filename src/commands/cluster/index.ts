@@ -2,7 +2,7 @@
 
 import * as ContextFlags from './flags.js';
 import {YargsCommand} from '../../core/yargs-command.js';
-import {BaseCommand, type Opts} from './../base.js';
+import {BaseCommand, type Options} from './../base.js';
 import {type ClusterCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
@@ -14,8 +14,8 @@ import {type AnyYargs} from '../../types/aliases.js';
 export class ClusterCommand extends BaseCommand {
   public handlers: ClusterCommandHandlers;
 
-  constructor(opts: Opts) {
-    super(opts);
+  constructor(options: Options) {
+    super(options);
 
     this.handlers = patchInject(null, InjectTokens.ClusterCommandHandlers, this.constructor.name);
   }

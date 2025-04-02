@@ -14,7 +14,7 @@ import {type KeyManager} from '../../../../src/core/key-manager.js';
 import {type LockManager} from '../../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../../src/core/config/remote/remote-config-manager.js';
 import sinon from 'sinon';
-import {BASE_TEST_DIR} from '../../../test-util.js';
+import {BASE_TEST_DIR} from '../../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
@@ -77,12 +77,12 @@ describe('InitCommand', () => {
 
   describe('methods', () => {
     it('command definition should return a valid command def', () => {
-      const def = initCmd.getCommandDefinition();
+      const commandDefinition = initCmd.getCommandDefinition();
 
       // @ts-ignore
-      expect(def.name).not.to.be.null;
-      expect(def.desc).not.to.be.null;
-      expect(def.handler).not.to.be.null;
+      expect(commandDefinition.name).not.to.be.null;
+      expect(commandDefinition.desc).not.to.be.null;
+      expect(commandDefinition.handler).not.to.be.null;
     });
   });
 });

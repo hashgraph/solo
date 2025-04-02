@@ -87,10 +87,12 @@ export class LayeredConfig implements Config {
     switch (scalarType) {
       case 'boolean':
       case 'number':
-      case 'string':
+      case 'string': {
         break;
-      default:
+      }
+      default: {
         throw new IllegalArgumentError(`Unsupported scalar type: ${scalarType}`);
+      }
     }
 
     for (const source of this.sources) {

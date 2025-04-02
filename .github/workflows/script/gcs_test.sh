@@ -31,11 +31,6 @@ else
   storageType=${STORAGE_TYPE}
 fi
 
-if [ -z "${GCP_SERVICE_ACCOUNT_TOKEN}" ]; then
-  echo "GCP_SERVICE_ACCOUNT_TOKEN is not set. Exiting..."
-  exit 1
-fi
-
 if [ -z "${PREFIX}" ]; then
   echo "PREFIX is not set"
 else
@@ -47,6 +42,12 @@ else
         "--aws-write-secrets" "${GCS_SECRET_KEY}"
         "--aws-bucket" "${streamBucket}"
         "--aws-bucket-prefix" "${PREFIX}"
+
+        "--backupWriteSecrets" "${GCS_SECRET_KEY}"
+        "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
+        "--backupEndpoint" "storage.googleapis.com"
+        "--backupRegion" "us-central1"
+        "--backup-bucket" "${streamBackupBucket}"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
     STORAGE_OPTIONS=(
@@ -55,6 +56,12 @@ else
         "--gcs-write-secrets" "${GCS_SECRET_KEY}"
         "--gcs-bucket" "${streamBucket}"
         "--gcs-bucket-prefix" "${PREFIX}"
+
+        "--backupWriteSecrets" "${GCS_SECRET_KEY}"
+        "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
+        "--backupEndpoint" "storage.googleapis.com"
+        "--backupRegion" "us-central1"
+        "--backup-bucket" "${streamBackupBucket}"
     )
   fi
 
@@ -71,8 +78,6 @@ fi
 
 echo "STORAGE_OPTIONS: " "${STORAGE_OPTIONS[@]}"
 echo "MIRROR_STORAGE_OPTIONS: " "${MIRROR_STORAGE_OPTIONS[@]}"
-
-echo "${GCP_SERVICE_ACCOUNT_TOKEN}" > gcp_service_account.json
 
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
@@ -97,9 +102,7 @@ npm run solo-test -- node keys --gossip-keys --tls-keys -i node1 --deployment "$
 
 npm run solo-test -- network deploy --deployment "${SOLO_DEPLOYMENT}" -i node1 \
   --storage-type "${storageType}" \
-  "${STORAGE_OPTIONS[@]}" \
-  --backup-bucket "${streamBackupBucket}" \
-  --google-credential gcp_service_account.json
+  "${STORAGE_OPTIONS[@]}"
 
 npm run solo-test -- node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
 npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
@@ -120,16 +123,18 @@ node examples/create-topic.js
 
 npm run solo-test -- node stop -i node1 --deployment "${SOLO_DEPLOYMENT}"
 
-echo "Waiting for backup uploader to run"
-# manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
-kubectl exec network-node1-0 -c backup-uploader -n solo-e2e -- /backup.sh
+if [ "${storageType}" == "aws_only" ] || [ "${storageType}" == "gcs_only" ]; then
+  echo "Waiting for backup uploader to run"
+  # manually call script "backup.sh" from container backup-uploader since it only runs every 5 minutes
+  kubectl exec network-node1-0 -c backup-uploader -n solo-e2e -- /app/backup.sh
 
-echo "Retrieve logs and check if it include the error message"
-# example : {"level":"error","msg":"Updated modification time ......}
-kubectl logs network-node1-0 -c backup-uploader -n solo-e2e > backup-uploader.log
-if grep -q \""error\"" backup-uploader.log; then
-  echo "Backup uploader logs contain error message"
-  exit 1
+  echo "Retrieve logs and check if it include the error message"
+  # example : {"level":"error","msg":"Updated modification time ......}
+  kubectl logs network-node1-0 -c backup-uploader -n solo-e2e > backup-uploader.log
+  if grep -q \""error\"" backup-uploader.log; then
+    echo "Backup uploader logs contain error message"
+    exit 1
+  fi
 fi
 
 npm run solo-test -- network destroy --deployment "${SOLO_DEPLOYMENT}" --force -q

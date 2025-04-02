@@ -158,7 +158,7 @@ export class InstallChartOptions implements Options {
     waitFor: boolean,
     kubeContext: string | null,
     namespace: string | null,
-    extraArgs: string | null,
+    extraArguments: string | null,
   ) {
     this._atomic = atomic;
     this._createNamespace = createNamespace;
@@ -179,7 +179,7 @@ export class InstallChartOptions implements Options {
     this._waitFor = waitFor;
     this._kubeContext = kubeContext;
     this._namespace = namespace;
-    this._extraArgs = extraArgs;
+    this._extraArgs = extraArguments;
   }
 
   public get namespace(): string | null {

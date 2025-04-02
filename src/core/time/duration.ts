@@ -374,7 +374,7 @@ export class Duration {
    */
   public static ofSecondsAdjusted(seconds: number, nanoAdjustment: number): Duration {
     const secs: number = MathEx.addExact(seconds, MathEx.floorDiv(nanoAdjustment, Time.NANOS_PER_SECOND));
-    const nos: number = MathEx.floorMod(nanoAdjustment, Time.NANOS_PER_SECOND);
+    const nos: number = MathEx.floorModulo(nanoAdjustment, Time.NANOS_PER_SECOND);
     return Duration.create(secs, nos);
   }
 

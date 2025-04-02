@@ -45,7 +45,7 @@ jobs:
       max-parallel: 1
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 
@@ -77,5 +77,5 @@ jobs:
         run: |
           cd examples/external-database-test
           export CONSENSUS_NODE_VERSION=$(grep 'HEDERA_PLATFORM_VERSION' version.ts | sed -E "s/.*'([^']+)';/\1/")
-          SOLO_CLUSTER_NAME=solo-task-test-${{ matrix.type }}-${{ github.run_id }}-${{ github.run_attempt }} task install
-          task destroy
+          SOLO_CLUSTER_NAME=solo-task-test-${{ matrix.type }}-${{ github.run_id }}-${{ github.run_attempt }} task install:external-database
+          task destroy:external-database

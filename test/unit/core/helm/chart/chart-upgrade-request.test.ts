@@ -14,14 +14,14 @@ describe('ChartUpgradeRequest Tests', () => {
     expect(chartUpgradeRequest).to.not.be.null;
     expect(chartUpgradeRequest.releaseName).to.equal('apache');
 
-    const opts = UpgradeChartOptionsBuilder.builder()
+    const options = UpgradeChartOptionsBuilder.builder()
       .namespace('test-namespace')
       .kubeContext('test-context')
       .reuseValues(true)
       .build();
-    const nonDefaultOptRequest = new ChartUpgradeRequest('apache', chart, opts);
+    const nonDefaultOptRequest = new ChartUpgradeRequest('apache', chart, options);
 
-    expect(nonDefaultOptRequest.options).to.equal(opts);
+    expect(nonDefaultOptRequest.options).to.equal(options);
     expect(nonDefaultOptRequest.options).to.not.be.null;
     expect(nonDefaultOptRequest.options).not.equal(UpgradeChartOptionsBuilder.builder().build());
   });

@@ -18,7 +18,7 @@ import {LockManager} from '../lock/lock-manager.js';
 import {CertificateManager} from '../certificate-manager.js';
 import {LocalConfig} from '../config/local/local-config.js';
 import {RemoteConfigManager} from '../config/remote/remote-config-manager.js';
-import os from 'os';
+import os from 'node:os';
 import * as version from '../../../version.js';
 import {NetworkNodes} from '../network-nodes.js';
 import {ClusterChecks} from '../cluster-checks.js';
@@ -62,17 +62,17 @@ export class Container {
 
   /**
    * Initialize the container with the default dependencies
-   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
-   * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
+   * @param homeDirectory - the home directory to use, defaults to constants.SOLO_HOME_DIR
+   * @param cacheDirectory - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
-   * @param devMode - if true, show full stack traces in error messages
+   * @param developmentMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
   public init(
-    homeDir: string = constants.SOLO_HOME_DIR,
-    cacheDir: string = constants.SOLO_CACHE_DIR,
+    homeDirectory: string = constants.SOLO_HOME_DIR,
+    cacheDirectory: string = constants.SOLO_CACHE_DIR,
     logLevel: string = 'debug',
-    devMode: boolean = false,
+    developmentMode: boolean = false,
     testLogger?: SoloLogger,
   ) {
     if (Container.isInitialized) {
@@ -82,7 +82,7 @@ export class Container {
 
     // SoloLogger
     container.register(InjectTokens.LogLevel, {useValue: logLevel});
-    container.register(InjectTokens.DevMode, {useValue: devMode});
+    container.register(InjectTokens.DevelopmentMode, {useValue: developmentMode});
     if (testLogger) {
       container.registerInstance(InjectTokens.SoloLogger, testLogger);
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Using test logger');
@@ -135,7 +135,7 @@ export class Container {
     container.register(InjectTokens.KeyManager, {useClass: KeyManager}, {lifecycle: Lifecycle.Singleton});
 
     // ProfileManager
-    container.register(InjectTokens.CacheDir, {useValue: cacheDir});
+    container.register(InjectTokens.CacheDir, {useValue: cacheDirectory});
     container.register(InjectTokens.ProfileManager, {useClass: ProfileManager}, {lifecycle: Lifecycle.Singleton});
     // LeaseRenewalService
     container.register(
@@ -152,7 +152,7 @@ export class Container {
     );
 
     // LocalConfig
-    const localConfigPath = PathEx.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE);
+    const localConfigPath = PathEx.join(homeDirectory, constants.DEFAULT_LOCAL_CONFIG_FILE);
     container.register(InjectTokens.LocalConfigFilePath, {useValue: localConfigPath});
     container.register(InjectTokens.LocalConfig, {useClass: LocalConfig}, {lifecycle: Lifecycle.Singleton});
 
@@ -203,41 +203,47 @@ export class Container {
 
   /**
    * clears the container registries and re-initializes the container
-   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
-   * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
+   * @param homeDirectory - the home directory to use, defaults to constants.SOLO_HOME_DIR
+   * @param cacheDirectory - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
-   * @param devMode - if true, show full stack traces in error messages
+   * @param developmentMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
-  public reset(homeDir?: string, cacheDir?: string, logLevel?: string, devMode?: boolean, testLogger?: SoloLogger) {
+  public reset(
+    homeDirectory?: string,
+    cacheDirectory?: string,
+    logLevel?: string,
+    developmentMode?: boolean,
+    testLogger?: SoloLogger,
+  ) {
     if (Container.instance && Container.isInitialized) {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Resetting container');
       container.reset();
       Container.isInitialized = false;
     }
-    Container.getInstance().init(homeDir, cacheDir, logLevel, devMode, testLogger);
+    Container.getInstance().init(homeDirectory, cacheDirectory, logLevel, developmentMode, testLogger);
   }
 
   /**
    * clears the container instances, useful for testing when you are using container.registerInstance()
-   * @param homeDir - the home directory to use, defaults to constants.SOLO_HOME_DIR
-   * @param cacheDir - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
+   * @param homeDirectory - the home directory to use, defaults to constants.SOLO_HOME_DIR
+   * @param cacheDirectory - the cache directory to use, defaults to constants.SOLO_CACHE_DIR
    * @param logLevel - the log level to use, defaults to 'debug'
-   * @param devMode - if true, show full stack traces in error messages
+   * @param developmentMode - if true, show full stack traces in error messages
    * @param testLogger - a test logger to use, if provided
    */
   public clearInstances(
-    homeDir?: string,
-    cacheDir?: string,
+    homeDirectory?: string,
+    cacheDirectory?: string,
     logLevel?: string,
-    devMode?: boolean,
+    developmentMode?: boolean,
     testLogger?: SoloLogger,
   ) {
     if (Container.instance && Container.isInitialized) {
       container.clearInstances();
       Container.isInitialized = false;
     } else {
-      Container.getInstance().init(homeDir, cacheDir, logLevel, devMode, testLogger);
+      Container.getInstance().init(homeDirectory, cacheDirectory, logLevel, developmentMode, testLogger);
     }
   }
 

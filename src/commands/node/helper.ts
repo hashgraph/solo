@@ -13,20 +13,20 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  public static deleteSaveContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: string}) {
-    const exportedCtx = {} as {
+  public static deleteSaveContextParser(context_: {config: NodeDeleteConfigClass; upgradeZipHash: string}) {
+    const exportedContext = {} as {
       adminKey: string;
       existingNodeAliases: NodeAliases;
       upgradeZipHash: string;
       nodeAlias: NodeAlias;
     };
 
-    const config = ctx.config;
-    exportedCtx.adminKey = config.adminKey.toString();
-    exportedCtx.existingNodeAliases = config.existingNodeAliases;
-    exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
-    exportedCtx.nodeAlias = config.nodeAlias;
-    return exportedCtx;
+    const config = context_.config;
+    exportedContext.adminKey = config.adminKey.toString();
+    exportedContext.existingNodeAliases = config.existingNodeAliases;
+    exportedContext.upgradeZipHash = context_.upgradeZipHash;
+    exportedContext.nodeAlias = config.nodeAlias;
+    return exportedContext;
   }
 
   /**
@@ -36,12 +36,15 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  public static deleteLoadContextParser(ctx: {config: NodeDeleteConfigClass; upgradeZipHash: string}, ctxData: any) {
-    const config = ctx.config;
-    config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
-    config.existingNodeAliases = ctxData.existingNodeAliases;
-    config.allNodeAliases = ctxData.existingNodeAliases;
-    ctx.upgradeZipHash = ctxData.upgradeZipHash;
+  public static deleteLoadContextParser(
+    context_: {config: NodeDeleteConfigClass; upgradeZipHash: string},
+    contextData: any,
+  ) {
+    const config = context_.config;
+    config.adminKey = PrivateKey.fromStringED25519(contextData.adminKey);
+    config.existingNodeAliases = contextData.existingNodeAliases;
+    config.allNodeAliases = contextData.existingNodeAliases;
+    context_.upgradeZipHash = contextData.upgradeZipHash;
     config.podRefs = {};
   }
 
@@ -51,25 +54,25 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  public static updateSaveContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: string}) {
-    const exportedCtx: any = {};
+  public static updateSaveContextParser(context_: {config: NodeUpdateConfigClass; upgradeZipHash: string}) {
+    const exportedContext: any = {};
 
-    const config = /** @type {NodeUpdateConfigClass} **/ ctx.config;
-    exportedCtx.adminKey = config.adminKey.toString();
-    exportedCtx.newAdminKey = config.newAdminKey.toString();
-    exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
-    exportedCtx.treasuryKey = config.treasuryKey.toString();
-    exportedCtx.existingNodeAliases = config.existingNodeAliases;
-    exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
-    exportedCtx.nodeAlias = config.nodeAlias;
-    exportedCtx.newAccountNumber = config.newAccountNumber;
-    exportedCtx.tlsPublicKey = config.tlsPublicKey;
-    exportedCtx.tlsPrivateKey = config.tlsPrivateKey;
-    exportedCtx.gossipPublicKey = config.gossipPublicKey;
-    exportedCtx.gossipPrivateKey = config.gossipPrivateKey;
-    exportedCtx.allNodeAliases = config.allNodeAliases;
+    const config = /** @type {NodeUpdateConfigClass} **/ context_.config;
+    exportedContext.adminKey = config.adminKey.toString();
+    exportedContext.newAdminKey = config.newAdminKey.toString();
+    exportedContext.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
+    exportedContext.treasuryKey = config.treasuryKey.toString();
+    exportedContext.existingNodeAliases = config.existingNodeAliases;
+    exportedContext.upgradeZipHash = context_.upgradeZipHash;
+    exportedContext.nodeAlias = config.nodeAlias;
+    exportedContext.newAccountNumber = config.newAccountNumber;
+    exportedContext.tlsPublicKey = config.tlsPublicKey;
+    exportedContext.tlsPrivateKey = config.tlsPrivateKey;
+    exportedContext.gossipPublicKey = config.gossipPublicKey;
+    exportedContext.gossipPrivateKey = config.gossipPrivateKey;
+    exportedContext.allNodeAliases = config.allNodeAliases;
 
-    return exportedCtx;
+    return exportedContext;
   }
 
   /**
@@ -78,17 +81,17 @@ export class NodeHelper {
    * @param ctx - accumulator object
    * @returns file writable object
    */
-  public static upgradeSaveContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: string}) {
-    const exportedCtx: any = {};
+  public static upgradeSaveContextParser(context_: {config: NodeUpgradeConfigClass; upgradeZipHash: string}) {
+    const exportedContext: any = {};
 
-    const config = /** @type {NodeUpgradeConfigClass} **/ ctx.config;
-    exportedCtx.adminKey = config.adminKey.toString();
-    exportedCtx.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
-    exportedCtx.existingNodeAliases = config.existingNodeAliases;
-    exportedCtx.upgradeZipHash = ctx.upgradeZipHash;
-    exportedCtx.allNodeAliases = config.allNodeAliases;
+    const config = /** @type {NodeUpgradeConfigClass} **/ context_.config;
+    exportedContext.adminKey = config.adminKey.toString();
+    exportedContext.freezeAdminPrivateKey = config.freezeAdminPrivateKey.toString();
+    exportedContext.existingNodeAliases = config.existingNodeAliases;
+    exportedContext.upgradeZipHash = context_.upgradeZipHash;
+    exportedContext.allNodeAliases = config.allNodeAliases;
 
-    return exportedCtx;
+    return exportedContext;
   }
 
   /**
@@ -98,14 +101,17 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  public static upgradeLoadContextParser(ctx: {config: NodeUpgradeConfigClass; upgradeZipHash: string}, ctxData: any) {
-    const config = ctx.config;
+  public static upgradeLoadContextParser(
+    context_: {config: NodeUpgradeConfigClass; upgradeZipHash: string},
+    contextData: any,
+  ) {
+    const config = context_.config;
 
-    config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
-    config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
-    config.existingNodeAliases = ctxData.existingNodeAliases;
-    config.allNodeAliases = ctxData.allNodeAliases;
-    ctx.upgradeZipHash = ctxData.upgradeZipHash;
+    config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(contextData.freezeAdminPrivateKey);
+    config.adminKey = PrivateKey.fromStringED25519(contextData.adminKey);
+    config.existingNodeAliases = contextData.existingNodeAliases;
+    config.allNodeAliases = contextData.allNodeAliases;
+    context_.upgradeZipHash = contextData.upgradeZipHash;
     config.podRefs = {};
   }
 
@@ -116,25 +122,28 @@ export class NodeHelper {
    * @param ctxData - data in string format
    * @returns file writable object
    */
-  public static updateLoadContextParser(ctx: {config: NodeUpdateConfigClass; upgradeZipHash: string}, ctxData: any) {
-    const config = ctx.config;
+  public static updateLoadContextParser(
+    context_: {config: NodeUpdateConfigClass; upgradeZipHash: string},
+    contextData: any,
+  ) {
+    const config = context_.config;
 
-    if (ctxData.newAdminKey && ctxData.newAdminKey.length) {
-      config.newAdminKey = PrivateKey.fromStringED25519(ctxData.newAdminKey);
+    if (contextData.newAdminKey && contextData.newAdminKey.length > 0) {
+      config.newAdminKey = PrivateKey.fromStringED25519(contextData.newAdminKey);
     }
 
-    config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(ctxData.freezeAdminPrivateKey);
-    config.treasuryKey = PrivateKey.fromStringED25519(ctxData.treasuryKey);
-    config.adminKey = PrivateKey.fromStringED25519(ctxData.adminKey);
-    config.existingNodeAliases = ctxData.existingNodeAliases;
-    config.nodeAlias = ctxData.nodeAlias;
-    config.newAccountNumber = ctxData.newAccountNumber;
-    config.tlsPublicKey = ctxData.tlsPublicKey;
-    config.tlsPrivateKey = ctxData.tlsPrivateKey;
-    config.gossipPublicKey = ctxData.gossipPublicKey;
-    config.gossipPrivateKey = ctxData.gossipPrivateKey;
-    config.allNodeAliases = ctxData.allNodeAliases;
-    ctx.upgradeZipHash = ctxData.upgradeZipHash;
+    config.freezeAdminPrivateKey = PrivateKey.fromStringED25519(contextData.freezeAdminPrivateKey);
+    config.treasuryKey = PrivateKey.fromStringED25519(contextData.treasuryKey);
+    config.adminKey = PrivateKey.fromStringED25519(contextData.adminKey);
+    config.existingNodeAliases = contextData.existingNodeAliases;
+    config.nodeAlias = contextData.nodeAlias;
+    config.newAccountNumber = contextData.newAccountNumber;
+    config.tlsPublicKey = contextData.tlsPublicKey;
+    config.tlsPrivateKey = contextData.tlsPrivateKey;
+    config.gossipPublicKey = contextData.gossipPublicKey;
+    config.gossipPrivateKey = contextData.gossipPrivateKey;
+    config.allNodeAliases = contextData.allNodeAliases;
+    context_.upgradeZipHash = contextData.upgradeZipHash;
     config.podRefs = {};
   }
 }

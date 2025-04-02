@@ -4,7 +4,7 @@ import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
 import {BaseComponent} from './base-component.js';
 import {SoloError} from '../../../errors/solo-error.js';
 import {
-  type ClusterRef,
+  type ClusterReference,
   type ComponentName,
   type IConsensusNodeComponent,
   type NamespaceNameAsString,
@@ -30,7 +30,7 @@ export class ConsensusNodeComponent
    */
   public constructor(
     name: ComponentName,
-    cluster: ClusterRef,
+    cluster: ClusterReference,
     namespace: NamespaceNameAsString,
     public readonly state: ConsensusNodeStates,
     public readonly nodeId: number,

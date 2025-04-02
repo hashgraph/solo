@@ -14,9 +14,9 @@ describe('ChartTestRequest Tests', () => {
     expect(() => new ChartTestRequest('apache', TestChartOptionsBuilder.builder().build())).to.not.throw();
 
     // Test with custom options
-    const opts = TestChartOptionsBuilder.builder().timeout('9m0s').filter('filter').build();
+    const options = TestChartOptionsBuilder.builder().timeout('9m0s').filter('filter').build();
 
-    const nonDefaultOptRequest = new ChartTestRequest('apache', opts);
+    const nonDefaultOptRequest = new ChartTestRequest('apache', options);
 
     // Verify behavior through apply method
     const helmExecutionBuilderMock = {
@@ -25,7 +25,7 @@ describe('ChartTestRequest Tests', () => {
       argument: sinon.stub().returnsThis(),
     } as unknown as HelmExecutionBuilder;
 
-    expect(nonDefaultOptRequest.options).to.equal(opts);
+    expect(nonDefaultOptRequest.options).to.equal(options);
     expect(nonDefaultOptRequest.options).to.not.be.null;
     expect(nonDefaultOptRequest.options).not.equal(TestChartOptionsBuilder.builder().build());
   });

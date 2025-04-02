@@ -44,9 +44,9 @@ async function main() {
     console.log('checking balance...end');
     console.log(`Account ${treasuryAccountId} balance: ${balance?.hbars}`);
     console.log('...end');
-  } catch (e) {
+  } catch (error) {
     console.log('failure');
-    console.log(e.message, e.stacktrace);
+    console.log(error.message, error.stacktrace);
   }
 }
 

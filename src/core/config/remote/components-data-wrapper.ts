@@ -10,7 +10,7 @@ import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
 import {
-  type ClusterRef,
+  type ClusterReference,
   type Component,
   type ComponentName,
   type ComponentsDataStructure,
@@ -149,26 +149,33 @@ export class ComponentsDataWrapper
     callback: (components: Record<ComponentName, BaseComponent>) => void,
   ): void {
     switch (type) {
-      case ComponentType.Relay:
+      case ComponentType.Relay: {
         callback(this.relays);
         break;
-      case ComponentType.HaProxy:
+      }
+      case ComponentType.HaProxy: {
         callback(this.haProxies);
         break;
-      case ComponentType.MirrorNode:
+      }
+      case ComponentType.MirrorNode: {
         callback(this.mirrorNodes);
         break;
-      case ComponentType.EnvoyProxy:
+      }
+      case ComponentType.EnvoyProxy: {
         callback(this.envoyProxies);
         break;
-      case ComponentType.ConsensusNode:
+      }
+      case ComponentType.ConsensusNode: {
         callback(this.consensusNodes);
         break;
-      case ComponentType.MirrorNodeExplorer:
+      }
+      case ComponentType.MirrorNodeExplorer: {
         callback(this.mirrorNodeExplorers);
         break;
-      default:
+      }
+      default: {
         throw new SoloError(`Unknown component type ${type}, service name: ${serviceName}`);
+      }
     }
 
     this.validate();
@@ -187,50 +194,55 @@ export class ComponentsDataWrapper
     const consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {};
     const mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {};
 
-    Object.entries(components).forEach(
-      ([type, components]: [ComponentType, Record<ComponentName, Component>]): void => {
-        switch (type) {
-          case ComponentType.Relay:
-            Object.entries(components).forEach(([name, component]: [ComponentName, IRelayComponent]): void => {
-              relays[name] = RelayComponent.fromObject(component);
-            });
-            break;
-
-          case ComponentType.HaProxy:
-            Object.entries(components).forEach(([name, component]: [ComponentName, Component]): void => {
-              haProxies[name] = HaProxyComponent.fromObject(component);
-            });
-            break;
-
-          case ComponentType.MirrorNode:
-            Object.entries(components).forEach(([name, component]: [ComponentName, Component]): void => {
-              mirrorNodes[name] = MirrorNodeComponent.fromObject(component);
-            });
-            break;
-
-          case ComponentType.EnvoyProxy:
-            Object.entries(components).forEach(([name, component]: [ComponentName, Component]): void => {
-              envoyProxies[name] = EnvoyProxyComponent.fromObject(component);
-            });
-            break;
-
-          case ComponentType.ConsensusNode:
-            Object.entries(components).forEach(([name, component]: [ComponentName, IConsensusNodeComponent]): void => {
-              consensusNodes[name] = ConsensusNodeComponent.fromObject(component);
-            });
-            break;
-
-          case ComponentType.MirrorNodeExplorer:
-            Object.entries(components).forEach(([name, component]: [ComponentName, Component]): void => {
-              mirrorNodeExplorers[name] = MirrorNodeExplorerComponent.fromObject(component);
-            });
-            break;
-
-          default:
-            throw new SoloError(`Unknown component type ${type}`);
+    for (const [type, subComponents] of Object.entries(components)) {
+      switch (type) {
+        case ComponentType.Relay: {
+          for (const [name, component] of Object.entries(subComponents)) {
+            relays[name] = RelayComponent.fromObject(component as IRelayComponent);
+          }
+          break;
         }
-      },
-    );
+
+        case ComponentType.HaProxy: {
+          for (const [name, component] of Object.entries(subComponents)) {
+            haProxies[name] = HaProxyComponent.fromObject(component);
+          }
+          break;
+        }
+
+        case ComponentType.MirrorNode: {
+          for (const [name, component] of Object.entries(subComponents)) {
+            mirrorNodes[name] = MirrorNodeComponent.fromObject(component);
+          }
+          break;
+        }
+
+        case ComponentType.EnvoyProxy: {
+          for (const [name, component] of Object.entries(subComponents)) {
+            envoyProxies[name] = EnvoyProxyComponent.fromObject(component);
+          }
+          break;
+        }
+
+        case ComponentType.ConsensusNode: {
+          for (const [name, component] of Object.entries(subComponents)) {
+            consensusNodes[name] = ConsensusNodeComponent.fromObject(component as IConsensusNodeComponent);
+          }
+          break;
+        }
+
+        case ComponentType.MirrorNodeExplorer: {
+          for (const [name, component] of Object.entries(subComponents)) {
+            mirrorNodeExplorers[name] = MirrorNodeExplorerComponent.fromObject(component);
+          }
+          break;
+        }
+
+        default: {
+          throw new SoloError(`Unknown component type ${type}`);
+        }
+      }
+    }
 
     return new ComponentsDataWrapper(relays, haProxies, mirrorNodes, envoyProxies, consensusNodes, mirrorNodeExplorers);
   }
@@ -242,20 +254,20 @@ export class ComponentsDataWrapper
 
   public static initializeWithNodes(
     nodeAliases: NodeAliases,
-    clusterRef: ClusterRef,
+    clusterReference: ClusterReference,
     namespace: NamespaceNameAsString,
   ): ComponentsDataWrapper {
     const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
 
-    nodeAliases.forEach(nodeAlias => {
+    for (const nodeAlias of nodeAliases) {
       consensusNodeComponents[nodeAlias] = new ConsensusNodeComponent(
         nodeAlias,
-        clusterRef,
+        clusterReference,
         namespace,
         ConsensusNodeStates.NON_DEPLOYED,
         Templates.nodeIdFromNodeAlias(nodeAlias),
       );
-    });
+    }
 
     return new ComponentsDataWrapper(undefined, undefined, undefined, undefined, consensusNodeComponents, undefined);
   }
@@ -267,7 +279,7 @@ export class ComponentsDataWrapper
 
   public validate(): void {
     function testComponentsObject(components: Record<ComponentName, BaseComponent>, expectedInstance: any): void {
-      Object.entries(components).forEach(([name, component]: [ComponentName, BaseComponent]): void => {
+      for (const [name, component] of Object.entries(components)) {
         if (!name || typeof name !== 'string') {
           throw new SoloError(`Invalid component service name ${{[name]: component?.constructor?.name}}`);
         }
@@ -280,7 +292,7 @@ export class ComponentsDataWrapper
             {component},
           );
         }
-      });
+      }
     }
 
     testComponentsObject(this.relays, RelayComponent);
@@ -295,9 +307,9 @@ export class ComponentsDataWrapper
     function transform(components: Record<ComponentName, BaseComponent>): Record<ComponentName, Component> {
       const transformedComponents: Record<ComponentName, Component> = {};
 
-      Object.entries(components).forEach(([name, component]: [ComponentName, BaseComponent]): void => {
+      for (const [name, component] of Object.entries(components)) {
         transformedComponents[name] = component.toObject() as Component;
-      });
+      }
 
       return transformedComponents;
     }

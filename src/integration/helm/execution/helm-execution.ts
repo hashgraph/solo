@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn, type ChildProcessWithoutNullStreams} from 'child_process';
+import {spawn, type ChildProcessWithoutNullStreams} from 'node:child_process';
 import {HelmExecutionException} from '../helm-execution-exception.js';
 import {HelmParserException} from '../helm-parser-exception.js';
 import {type Duration} from '../../../core/time/duration.js';
@@ -52,25 +52,27 @@ export class HelmExecution {
       // const output: string[] = [];
       this.process.stdout.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
             this.output.push(item);
           }
-        });
+        }
       });
 
       this.process.stderr.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
             this.errOutput.push(item.trim());
           }
-        });
+        }
       });
 
       this.process.on('close', code => {
         this.exitCodeValue = code;
-        if (code !== 0) {
+        if (code === 0) {
+          resolve();
+        } else {
           reject(
             new HelmExecutionException(
               code || 1,
@@ -79,8 +81,6 @@ export class HelmExecution {
               this.standardError(),
             ),
           );
-        } else {
-          resolve();
         }
       });
     });
@@ -134,7 +134,7 @@ export class HelmExecution {
    * @param responseClass The class to parse the response into
    * @returns A promise that resolves with the parsed response
    */
-  async responseAs<T>(responseClass: new (...args: any[]) => T): Promise<T> {
+  async responseAs<T>(responseClass: new (...arguments_: any[]) => T): Promise<T> {
     return this.responseAsTimeout(responseClass, null);
   }
 
@@ -144,21 +144,21 @@ export class HelmExecution {
    * @param timeout The maximum time to wait, or null to wait indefinitely
    * @returns A promise that resolves with the parsed response or rejects on timeout
    */
-  async responseAsTimeout<T>(responseClass: new (...args: any[]) => T, timeout: Duration | null): Promise<T> {
-    if (timeout !== null) {
+  async responseAsTimeout<T>(responseClass: new (...arguments_: any[]) => T, timeout: Duration | null): Promise<T> {
+    if (timeout === null) {
+      await this.waitFor();
+    } else {
       const success = await this.waitForTimeout(timeout);
       if (!success) {
         throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
       }
-    } else {
-      await this.waitFor();
     }
 
     const exitCode = this.exitCode();
     if (exitCode !== 0) {
       const stdOut = this.standardOutput();
-      const stdErr = this.standardError();
-      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+      const stdError = this.standardError();
+      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdError);
     }
     if (responseClass === undefined) {
       return null;
@@ -180,7 +180,7 @@ export class HelmExecution {
    * @param responseClass The class to parse each item in the response into
    * @returns A promise that resolves with the parsed response list
    */
-  async responseAsList<T>(responseClass: new (...args: any[]) => T): Promise<T[]> {
+  async responseAsList<T>(responseClass: new (...arguments_: any[]) => T): Promise<T[]> {
     return this.responseAsListTimeout(responseClass, null);
   }
 
@@ -190,21 +190,24 @@ export class HelmExecution {
    * @param timeout The maximum time to wait, or null to wait indefinitely
    * @returns A promise that resolves with the parsed response list or rejects on timeout
    */
-  async responseAsListTimeout<T>(responseClass: new (...args: any[]) => T, timeout: Duration | null): Promise<T[]> {
-    if (timeout !== null) {
+  async responseAsListTimeout<T>(
+    responseClass: new (...arguments_: any[]) => T,
+    timeout: Duration | null,
+  ): Promise<T[]> {
+    if (timeout === null) {
+      await this.waitFor();
+    } else {
       const success = await this.waitForTimeout(timeout);
       if (!success) {
         throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
       }
-    } else {
-      await this.waitFor();
     }
 
     const exitCode = this.exitCode();
     if (exitCode !== 0) {
       const stdOut = this.standardOutput();
-      const stdErr = this.standardError();
-      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+      const stdError = this.standardError();
+      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdError);
     }
 
     const output = this.standardOutput();
@@ -229,20 +232,20 @@ export class HelmExecution {
    * @returns A promise that resolves when the command completes or rejects on timeout
    */
   async callTimeout(timeout: Duration | null): Promise<void> {
-    if (timeout !== null) {
+    if (timeout === null) {
+      await this.waitFor();
+    } else {
       const success = await this.waitForTimeout(timeout);
       if (!success) {
         throw new HelmParserException(HelmExecution.MSG_TIMEOUT_ERROR);
       }
-    } else {
-      await this.waitFor();
     }
 
     const exitCode = this.exitCode();
     if (exitCode !== 0) {
       const stdOut = await this.standardOutput();
-      const stdErr = await this.standardError();
-      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdErr);
+      const stdError = await this.standardError();
+      throw new HelmExecutionException(exitCode, `Process exited with code ${exitCode}`, stdOut, stdError);
     }
   }
 }

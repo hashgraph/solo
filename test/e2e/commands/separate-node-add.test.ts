@@ -7,11 +7,11 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  e2eTestSuite,
+  endToEndTestSuite,
   getNodeAliasesPrivateKeysHash,
-  getTmpDir,
+  getTemporaryDirectory,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../test-util.js';
+} from '../../test-utility.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type NetworkNodes} from '../../../src/core/network-nodes.js';
@@ -39,15 +39,15 @@ argv.setArg(flags.persistentVolumeClaims, true);
 
 const argvPrepare = argv.clone();
 
-const tempDir = 'contextDir';
-argvPrepare.setArg(flags.outputDir, tempDir);
-argvPrepare.setArg(flags.outputDir, tempDir);
+const temporaryDirectory = 'contextDir';
+argvPrepare.setArg(flags.outputDir, temporaryDirectory);
+argvPrepare.setArg(flags.outputDir, temporaryDirectory);
 
 const argvExecute = Argv.getDefaultArgv(namespace);
-argvExecute.setArg(flags.inputDir, tempDir);
-argvExecute.setArg(flags.inputDir, tempDir);
+argvExecute.setArg(flags.inputDir, temporaryDirectory);
+argvExecute.setArg(flags.inputDir, temporaryDirectory);
 
-e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
   const {
     opts: {k8Factory, commandInvoker, accountManager, remoteConfigManager, logger},
     cmd: {nodeCmd, accountCmd, networkCmd},
@@ -86,7 +86,11 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
         remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
-      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());
+      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+        existingServiceMap,
+        k8Factory,
+        getTemporaryDirectory(),
+      );
     }).timeout(defaultTimeout);
 
     it('should succeed with init command', async () => {
@@ -131,7 +135,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
         existingServiceMap,
         k8Factory,
-        getTmpDir(),
+        getTemporaryDirectory(),
       );
 
       for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {

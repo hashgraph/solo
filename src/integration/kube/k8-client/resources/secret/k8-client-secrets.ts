@@ -63,7 +63,7 @@ export class K8ClientSecrets implements Secrets {
     type: string;
     labels: Record<string, string>;
   }> {
-    const {response, body} = await this.kubeClient.readNamespacedSecret(name, namespace.name).catch(e => e);
+    const {response, body} = await this.kubeClient.readNamespacedSecret(name, namespace.name).catch(error => error);
     KubeApiResponse.check(response, ResourceOperation.READ, ResourceType.SECRET, namespace, name);
     return {
       name: body.metadata!.name as string,
@@ -116,11 +116,11 @@ export class K8ClientSecrets implements Secrets {
     try {
       const cm = await this.read(namespace, name);
       return !!cm;
-    } catch (e) {
-      if (e instanceof ResourceNotFoundError) {
+    } catch (error) {
+      if (error instanceof ResourceNotFoundError) {
         return false;
       } else {
-        throw e;
+        throw error;
       }
     }
   }
@@ -149,11 +149,11 @@ export class K8ClientSecrets implements Secrets {
         ? await this.kubeClient.replaceNamespacedSecret(name, namespace.name, v1Secret)
         : await this.kubeClient.createNamespacedSecret(namespace.name, v1Secret);
       return !KubeApiResponse.isFailingStatus(resp.response);
-    } catch (e) {
+    } catch (error) {
       if (replace) {
-        throw new ResourceReplaceError(ResourceType.SECRET, namespace, name, e);
+        throw new ResourceReplaceError(ResourceType.SECRET, namespace, name, error);
       } else {
-        throw new ResourceCreateError(ResourceType.SECRET, namespace, name, e);
+        throw new ResourceCreateError(ResourceType.SECRET, namespace, name, error);
       }
     }
   }

@@ -53,8 +53,8 @@ export class UpgradeChartOptionsBuilder {
    * @param args The additional arguments.
    * @returns This builder instance.
    */
-  public extraArgs(args: string): UpgradeChartOptionsBuilder {
-    this._extraArgs = args;
+  public extraArgs(arguments_: string): UpgradeChartOptionsBuilder {
+    this._extraArgs = arguments_;
     return this;
   }
 

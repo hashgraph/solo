@@ -5,7 +5,7 @@ import {type ResourceName} from './resource-name.js';
 import {MissingNamespaceError} from '../errors/missing-namespace-error.js';
 import {MissingResourceNameError} from '../errors/missing-resource-name-error.js';
 
-export abstract class ResourceRef<T extends ResourceName> {
+export abstract class ResourceReference<T extends ResourceName> {
   protected constructor(
     public readonly namespace: NamespaceName,
     public readonly name: T,
@@ -19,12 +19,12 @@ export abstract class ResourceRef<T extends ResourceName> {
   }
 
   /**
-   * Compares this instance with another PodRef.
-   * @param other The other PodRef instance.
+   * Compares this instance with another PodReference.
+   * @param other The other PodReference instance.
    * @returns true if both instances have the same namespace name and pod name.
    */
-  public equals(other: ResourceRef<T>): boolean {
-    return other instanceof ResourceRef && this.namespace.equals(other.namespace) && this.name.equals(other.name);
+  public equals(other: ResourceReference<T>): boolean {
+    return other instanceof ResourceReference && this.namespace.equals(other.namespace) && this.name.equals(other.name);
   }
 
   /**

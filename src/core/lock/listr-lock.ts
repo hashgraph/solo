@@ -73,13 +73,13 @@ export class ListrLock {
           `${title} - ${chalk.green('lock acquired successfully')}` +
           `, attempt: ${chalk.cyan((attempt + 1).toString())}/${chalk.cyan(maxAttempts.toString())}`;
         return;
-      } catch (e: LockAcquisitionError | any) {
+      } catch (error: LockAcquisitionError | any) {
         task.title =
           `${title} - ${chalk.gray(`lock exists, attempting again in ${lock.durationSeconds} seconds`)}` +
           `, attempt: ${chalk.cyan((attempt + 1).toString())}/${chalk.cyan(maxAttempts.toString())}`;
 
         if (attempt >= maxAttempts) {
-          innerError = e;
+          innerError = error;
         }
       }
     }

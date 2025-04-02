@@ -262,8 +262,8 @@ export class InstallChartOptionsBuilder {
    * @param args The additional arguments.
    * @returns This builder instance.
    */
-  public extraArgs(args: string): InstallChartOptionsBuilder {
-    this._extraArgs = args;
+  public extraArgs(arguments_: string): InstallChartOptionsBuilder {
+    this._extraArgs = arguments_;
     return this;
   }
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {
-  type ClusterRef,
-  type ClusterRefs,
+  type ClusterReference,
+  type ClusterReferences,
   type DeploymentName,
   type EmailAddress,
   type NamespaceNameAsString,
@@ -11,7 +11,7 @@ import {
 
 export interface DeploymentStructure {
   // A list of clusters on which the deployment is deployed
-  clusters: ClusterRef[];
+  clusters: ClusterReference[];
   namespace: NamespaceNameAsString;
 }
 
@@ -25,7 +25,7 @@ export interface LocalConfigData {
   deployments: Deployments;
 
   // Every cluster must have a kubectl context associated to it, which is used to establish a connection.
-  clusterRefs: ClusterRefs;
+  clusterRefs: ClusterReferences;
 
   // Solo CLI version
   soloVersion: Version;

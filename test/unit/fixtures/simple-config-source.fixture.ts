@@ -14,11 +14,11 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
     public readonly ordinal: number,
     public readonly prefix: string,
     public readonly backend: StorageBackend,
-    public props: Map<string, string> = new Map<string, string>(),
+    public _properties: Map<string, string> = new Map<string, string>(),
   ) {}
 
   public asBoolean(key: string): boolean | null {
-    const value: string = this.props.get(key);
+    const value: string = this._properties.get(key);
     if (value === null || value === undefined || typeof value !== 'string') {
       return null;
     }
@@ -26,7 +26,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
   }
 
   public asNumber(key: string): number | null {
-    const value: string = this.props.get(key);
+    const value: string = this._properties.get(key);
     if (value === null || value === undefined) {
       return null;
     }
@@ -34,7 +34,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
   }
 
   public asObject<T>(cls: ClassConstructor<T>, key?: string): T | null {
-    const value: string | undefined = this.props.get(key ?? '');
+    const value: string | undefined = this._properties.get(key ?? '');
     if (!value) {
       return null;
     }
@@ -55,7 +55,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
   }
 
   public asObjectArray<T>(cls: ClassConstructor<T>, key?: string): T[] {
-    const value: string | undefined = this.props.get(key ?? '');
+    const value: string | undefined = this._properties.get(key ?? '');
     if (!value) {
       return null;
     }
@@ -80,7 +80,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
   }
 
   public asString(key: string): string | null {
-    const value: string = this.props.get(key);
+    const value: string = this._properties.get(key);
     if (value === null || value === undefined || typeof value !== 'string') {
       return null;
     }
@@ -88,7 +88,7 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
   }
 
   public asStringArray(key: string): string[] | null {
-    const value: string = this.props.get(key);
+    const value: string = this._properties.get(key);
     if (value === null || value === undefined) {
       return null;
     }
@@ -107,14 +107,14 @@ export class SimpleConfigSourceFixture implements ConfigSource, Refreshable {
   public async load(): Promise<void> {}
 
   public properties(): Map<string, string> {
-    return this.props;
+    return this._properties;
   }
 
   public propertyNames(): Set<string> {
-    return new Set(this.props.keys());
+    return new Set(this._properties.keys());
   }
 
   public async refresh(): Promise<void> {
-    this.props = this.props2;
+    this._properties = this.props2;
   }
 }

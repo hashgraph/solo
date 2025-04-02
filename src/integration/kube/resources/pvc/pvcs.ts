@@ -2,7 +2,7 @@
 
 import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type Pvc} from './pvc.js';
-import {type PvcRef} from './pvc-ref.js';
+import {type PvcReference} from './pvc-reference.js';
 
 export interface Pvcs {
   /**
@@ -11,7 +11,7 @@ export interface Pvcs {
    * @returns true if the persistent volume claim was deleted
    * @throws {SoloError} if the persistent volume claim could not be deleted
    */
-  delete(pvcRef: PvcRef): Promise<boolean>;
+  delete(pvcReference: PvcReference): Promise<boolean>;
 
   /**
    * Get a list of persistent volume claim names for the given namespace
@@ -30,5 +30,5 @@ export interface Pvcs {
    * @returns the persistent volume claim
    * @throws {SoloError} if the persistent volume claim could not be created
    */
-  create(pvcRef: PvcRef, labels: Record<string, string>, accessModes: string[]): Promise<Pvc>;
+  create(pvcReference: PvcReference, labels: Record<string, string>, accessModes: string[]): Promise<Pvc>;
 }

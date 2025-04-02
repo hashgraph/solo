@@ -8,8 +8,8 @@ import {describe, it} from 'mocha';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
 import {IllegalArgumentError} from '../../../src/core/errors/illegal-argument-error.js';
-import os from 'os';
-import fs from 'fs';
+import os from 'node:os';
+import fs from 'node:fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
@@ -40,12 +40,12 @@ describe('Zippy', () => {
     });
 
     it('should succeed for valid inputs', async () => {
-      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
-      const zipFile = `${tmpDir}/test.zip`;
-      const unzippedFile = `${tmpDir}/unzipped`;
+      const temporaryDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
+      const zipFile = `${temporaryDirectory}/test.zip`;
+      const unzippedFile = `${temporaryDirectory}/unzipped`;
       await expect(zippy.zip('test/data/.empty', zipFile)).to.eventually.equal(zipFile);
       expect(zippy.unzip(zipFile, unzippedFile, true)).to.equal(unzippedFile);
-      fs.rmSync(tmpDir, {recursive: true, force: true});
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
     });
   });
 
@@ -71,11 +71,11 @@ describe('Zippy', () => {
     });
 
     it('should succeed for valid inputs', () => {
-      const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
-      const tarFile = `${tmpDir}/test.tar.gz`;
+      const temporaryDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'installer-'));
+      const tarFile = `${temporaryDirectory}/test.tar.gz`;
       expect(zippy.tar('test/data/.empty', tarFile)).to.equal(tarFile);
-      expect(zippy.untar(tarFile, tmpDir)).to.equal(tmpDir);
-      fs.rmSync(tmpDir, {recursive: true, force: true});
+      expect(zippy.untar(tarFile, temporaryDirectory)).to.equal(temporaryDirectory);
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
     });
   });
 });

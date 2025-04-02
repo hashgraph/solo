@@ -2,7 +2,7 @@
 
 import {expect} from 'chai';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
-import {testLocalConfigData} from '../../test-util.js';
+import {testLocalConfigData} from '../../test-utility.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
 import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-config-data-wrapper.js';
 
@@ -65,7 +65,7 @@ describe('LocalConfigDataWrapper', () => {
   });
 
   it('should not set invalid clusterRefs', async () => {
-    const invalidClusterRefs = {
+    const invalidClusterReferences = {
       'cluster-3': 'context-3',
       'invalid-cluster': 5,
     };
@@ -75,7 +75,7 @@ describe('LocalConfigDataWrapper', () => {
         config.userEmailAddress as EmailAddress,
         config.soloVersion,
         {},
-        invalidClusterRefs as never,
+        invalidClusterReferences as never,
       );
 
       expect.fail('expected an error to be thrown');

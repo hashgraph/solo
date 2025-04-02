@@ -17,29 +17,29 @@ import {KubeApiResponse} from '../../../kube-api-response.js';
 import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {ResourceType} from '../../../resources/resource-type.js';
 import {K8ClientPvc} from './k8-client-pvc.js';
-import {type IncomingMessage} from 'http';
-import {type PvcRef} from '../../../resources/pvc/pvc-ref.js';
+import {type IncomingMessage} from 'node:http';
+import {type PvcReference} from '../../../resources/pvc/pvc-reference.js';
 
 export class K8ClientPvcs implements Pvcs {
   constructor(private readonly kubeClient: CoreV1Api) {}
 
-  public async delete(pvcRef: PvcRef): Promise<boolean> {
+  public async delete(pvcReference: PvcReference): Promise<boolean> {
     let resp: {response: any; body?: V1PersistentVolumeClaim};
     try {
       resp = await this.kubeClient.deleteNamespacedPersistentVolumeClaim(
-        pvcRef.name.toString(),
-        pvcRef.namespace.toString(),
+        pvcReference.name.toString(),
+        pvcReference.namespace.toString(),
       );
-    } catch (e) {
-      throw new SoloError('Failed to delete pvc', e);
+    } catch (error) {
+      throw new SoloError('Failed to delete pvc', error);
     }
 
     KubeApiResponse.check(
       resp.response,
       ResourceOperation.DELETE,
       ResourceType.PERSISTENT_VOLUME_CLAIM,
-      pvcRef.namespace,
-      pvcRef.name.toString(),
+      pvcReference.namespace,
+      pvcReference.name.toString(),
     );
 
     return resp.response.statusCode === StatusCodes.OK;
@@ -64,8 +64,8 @@ export class K8ClientPvcs implements Pvcs {
         undefined,
         Duration.ofMinutes(5).toMillis(),
       );
-    } catch (e) {
-      throw new SoloError('Failed to list pvcs', e);
+    } catch (error) {
+      throw new SoloError('Failed to list pvcs', error);
     }
 
     KubeApiResponse.check(resp.response, ResourceOperation.LIST, ResourceType.PERSISTENT_VOLUME_CLAIM, namespace, '');
@@ -77,16 +77,16 @@ export class K8ClientPvcs implements Pvcs {
     return pvcs;
   }
 
-  public async create(pvcRef: PvcRef, labels: Record<string, string>, accessModes: string[]): Promise<Pvc> {
-    const v1ResReq: V1VolumeResourceRequirements = new V1VolumeResourceRequirements();
-    v1ResReq.requests = labels;
+  public async create(pvcReference: PvcReference, labels: Record<string, string>, accessModes: string[]): Promise<Pvc> {
+    const v1VolumeResourceRequirements: V1VolumeResourceRequirements = new V1VolumeResourceRequirements();
+    v1VolumeResourceRequirements.requests = labels;
 
     const v1Spec: V1PersistentVolumeClaimSpec = new V1PersistentVolumeClaimSpec();
     v1Spec.accessModes = accessModes;
-    v1Spec.resources = v1ResReq;
+    v1Spec.resources = v1VolumeResourceRequirements;
 
     const v1Metadata: V1ObjectMeta = new V1ObjectMeta();
-    v1Metadata.name = pvcRef.name.toString();
+    v1Metadata.name = pvcReference.name.toString();
 
     const v1Pvc: V1PersistentVolumeClaim = new V1PersistentVolumeClaim();
     v1Pvc.spec = v1Spec;
@@ -94,21 +94,21 @@ export class K8ClientPvcs implements Pvcs {
 
     let result: {response: any; body?: V1PersistentVolumeClaim};
     try {
-      result = await this.kubeClient.createNamespacedPersistentVolumeClaim(pvcRef.namespace.toString(), v1Pvc);
-    } catch (e) {
-      throw new SoloError('Failed to create pvc', e);
+      result = await this.kubeClient.createNamespacedPersistentVolumeClaim(pvcReference.namespace.toString(), v1Pvc);
+    } catch (error) {
+      throw new SoloError('Failed to create pvc', error);
     }
 
     KubeApiResponse.check(
       result.response,
       ResourceOperation.CREATE,
       ResourceType.PERSISTENT_VOLUME_CLAIM,
-      pvcRef.namespace,
-      pvcRef.name.toString(),
+      pvcReference.namespace,
+      pvcReference.name.toString(),
     );
 
     if (result?.body) {
-      return new K8ClientPvc(pvcRef);
+      return new K8ClientPvc(pvcReference);
     } else {
       throw new SoloError('Failed to create pvc');
     }

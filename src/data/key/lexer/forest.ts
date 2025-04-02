@@ -79,17 +79,17 @@ export class Forest {
   }
 
   public toObject(): object {
-    const obj: object = {};
+    const object: object = {};
 
     for (const [key, node] of this.lexer.tree.entries()) {
       if (node.isLeaf()) {
-        obj[key] = (node as LexerLeafNode).value;
+        object[key] = (node as LexerLeafNode).value;
       } else {
-        obj[key] = (node as LexerInternalNode).toObject();
+        object[key] = (node as LexerInternalNode).toObject();
       }
     }
 
-    return obj;
+    return object;
   }
 
   public toFlatMap(): Map<string, string> {

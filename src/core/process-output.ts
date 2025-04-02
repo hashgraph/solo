@@ -10,12 +10,9 @@ export class CustomProcessOutput extends ProcessOutput {
   }
 
   toStdout(chunk: string, eol = true) {
-    chunk
-      .toString()
-      .split('\n')
-      .forEach(line => {
-        this.logger.debug(line);
-      });
+    for (const line of chunk.toString().split('\n')) {
+      this.logger.debug(line);
+    }
     return super.toStdout(chunk, eol);
   }
 

@@ -33,13 +33,13 @@ export class LocalConfig {
     schemaVersion?: number,
     versions?: ApplicationVersions,
     deployments?: Deployment[],
-    clusterRefs?: Map<string, string>,
+    clusterReferences?: Map<string, string>,
     userIdentity?: UserIdentity,
   ) {
     this.schemaVersion = schemaVersion ?? 1;
     this.versions = versions ?? new ApplicationVersions();
     this.deployments = deployments ?? [];
-    this.clusterRefs = clusterRefs ?? new Map<string, string>();
+    this.clusterRefs = clusterReferences ?? new Map<string, string>();
     this.userIdentity = userIdentity ?? new UserIdentity();
   }
 }

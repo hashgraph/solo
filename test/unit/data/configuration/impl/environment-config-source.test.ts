@@ -8,7 +8,7 @@ import {container} from 'tsyringe-neo';
 
 describe('EnvironmentConfigSource', () => {
   it('test prefix is working correctly', async () => {
-    const env: NodeJS.ProcessEnv = process.env;
+    const environment: NodeJS.ProcessEnv = process.env;
     try {
       process.env.ENV_NBR42_TRUE = '42';
       const prefix: string = 'ENV';
@@ -20,7 +20,7 @@ describe('EnvironmentConfigSource', () => {
       await source.load();
       expect(source.properties().has('nbr42.true')).to.be.true;
     } finally {
-      process.env = env;
+      process.env = environment;
     }
   });
 });

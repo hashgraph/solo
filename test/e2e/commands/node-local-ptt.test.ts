@@ -3,7 +3,7 @@
 import {describe} from 'mocha';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getTestCluster} from '../../test-util.js';
+import {endToEndTestSuite, getTestCluster} from '../../test-utility.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../../../version-test.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
@@ -33,7 +33,7 @@ argv.setArg(flags.app, 'PlatformTestingTool.jar');
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.releaseTag, TEST_LOCAL_HEDERA_PLATFORM_VERSION);
 
-e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node for platform app should start successfully', () => {
     const {
       opts: {k8Factory},

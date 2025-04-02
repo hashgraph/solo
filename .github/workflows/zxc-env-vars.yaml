@@ -35,9 +35,6 @@ on:
       e2e-standard-test-subdir:
         description: "E2E Standard Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_standard_test_subdir }}
-      e2e-mirror-node-test-subdir:
-        description: "E2E Mirror Node Test Subdirectory"
-        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_test_subdir }}
       e2e-node-pem-stop-test-subdir:
         description: "E2E Node PEM Stop Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_test_subdir }}
@@ -89,9 +86,6 @@ on:
       e2e-standard-coverage-report:
         description: "E2E Standard Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_standard_coverage_report }}
-      e2e-mirror-node-coverage-report:
-        description: "E2E Mirror Node Tests Coverage Report"
-        value: ${{ jobs.env-vars.outputs.e2e_mirror_node_coverage_report }}
       e2e-node-pem-stop-coverage-report:
         description: "E2E Node PEM Stop Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_node_pem_stop_coverage_report }}
@@ -150,7 +144,6 @@ jobs:
       e2e_integration_test_subdir: e2e-integration
       e2e_dual_cluster_full_test_subdir: e2e-dual-cluster-full
       e2e_standard_test_subdir: e2e-standard
-      e2e_mirror_node_test_subdir: e2e-mirror-node
       e2e_node_pem_stop_test_subdir: e2e-node-pem-stop
       e2e_node_pem_kill_test_subdir: e2e-node-pem-kill
       e2e_node_local_hedera_test_subdir: e2e-node-local-hedera
@@ -185,7 +178,7 @@ jobs:
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 

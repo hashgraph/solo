@@ -49,13 +49,13 @@ export class K8ClientConfigMaps implements ConfigMaps {
     try {
       const resp = await this.kubeClient.deleteNamespacedConfigMap(name, namespace.name);
       return KubeApiResponse.isFailingStatus(resp.response);
-    } catch (e) {
-      throw new ResourceDeleteError(ResourceType.CONFIG_MAP, namespace, name, e);
+    } catch (error) {
+      throw new ResourceDeleteError(ResourceType.CONFIG_MAP, namespace, name, error);
     }
   }
 
   public async read(namespace: NamespaceName, name: string): Promise<ConfigMap> {
-    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, namespace.name).catch(e => e);
+    const {response, body} = await this.kubeClient.readNamespacedConfigMap(name, namespace.name).catch(error => error);
     KubeApiResponse.check(response, ResourceOperation.READ, ResourceType.CONFIG_MAP, namespace, name);
     return K8ClientConfigMap.fromV1ConfigMap(body);
   }
@@ -73,11 +73,11 @@ export class K8ClientConfigMaps implements ConfigMaps {
     try {
       const cm: ConfigMap = await this.read(namespace, name);
       return !!cm;
-    } catch (e) {
-      if (e instanceof ResourceNotFoundError) {
+    } catch (error) {
+      if (error instanceof ResourceNotFoundError) {
         return false;
       } else {
-        throw e;
+        throw error;
       }
     }
   }
@@ -104,11 +104,11 @@ export class K8ClientConfigMaps implements ConfigMaps {
         ? await this.kubeClient.replaceNamespacedConfigMap(name, namespace.name, configMap)
         : await this.kubeClient.createNamespacedConfigMap(namespace.name, configMap);
       return KubeApiResponse.isCreatedStatus(resp.response);
-    } catch (e) {
+    } catch (error) {
       if (replace) {
-        throw new ResourceReplaceError(ResourceType.CONFIG_MAP, namespace, name, e);
+        throw new ResourceReplaceError(ResourceType.CONFIG_MAP, namespace, name, error);
       } else {
-        throw new ResourceCreateError(ResourceType.CONFIG_MAP, namespace, name, e);
+        throw new ResourceCreateError(ResourceType.CONFIG_MAP, namespace, name, error);
       }
     }
   }
@@ -143,8 +143,8 @@ export class K8ClientConfigMaps implements ConfigMaps {
         undefined,
         labelsSelector,
       );
-    } catch (e) {
-      throw new SoloError('Failed to list config maps', e);
+    } catch (error) {
+      throw new SoloError('Failed to list config maps', error);
     }
 
     KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, namespace, '');
@@ -159,8 +159,8 @@ export class K8ClientConfigMaps implements ConfigMaps {
     let results: {response: any; body: any};
     try {
       results = await this.kubeClient.listConfigMapForAllNamespaces(undefined, undefined, undefined, labelsSelector);
-    } catch (e) {
-      throw new SoloError('Failed to list config maps for all namespaces', e);
+    } catch (error) {
+      throw new SoloError('Failed to list config maps for all namespaces', error);
     }
 
     KubeApiResponse.check(results.response, ResourceOperation.LIST, ResourceType.CONFIG_MAP, undefined, '');
@@ -196,18 +196,18 @@ export class K8ClientConfigMaps implements ConfigMaps {
         options, // Pass the options here
       );
       this.logger.info(`Patched ConfigMap ${name} in namespace ${namespace}`);
-    } catch (e) {
-      throw new ResourceUpdateError(ResourceType.CONFIG_MAP, namespace, name, e);
+    } catch (error) {
+      throw new ResourceUpdateError(ResourceType.CONFIG_MAP, namespace, name, error);
     }
 
     KubeApiResponse.check(result.response, ResourceOperation.UPDATE, ResourceType.CONFIG_MAP, namespace, name);
 
-    if (!result.body) {
+    if (result.body) {
+      return;
+    } else {
       throw new SoloError(
         `Failed to patch ConfigMap ${name} in namespace ${namespace}, no config map returned from patch`,
       );
-    } else {
-      return;
     }
   }
 }

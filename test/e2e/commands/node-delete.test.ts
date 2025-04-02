@@ -7,14 +7,14 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  e2eTestSuite,
+  endToEndTestSuite,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../test-util.js';
+} from '../../test-utility.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
+import {PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
 import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
@@ -35,7 +35,7 @@ argv.setArg(flags.persistentVolumeClaims, true);
 argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.namespace, namespace.name);
 
-e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
   describe('Node delete', async () => {
     const {
       opts: {k8Factory, commandInvoker, accountManager, remoteConfigManager, logger},
@@ -78,7 +78,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       const response = await k8Factory
         .default()
         .containers()
-        .readByRef(ContainerRef.of(PodRef.of(namespace, pods[0].podRef.name), ROOT_CONTAINER))
+        .readByRef(ContainerReference.of(PodReference.of(namespace, pods[0].podReference.name), ROOT_CONTAINER))
         .execContainer(['bash', '-c', `tail -n 1 ${HEDERA_HAPI_PATH}/output/swirlds.log`]);
       expect(response).to.contain('JVM is shutting down');
     }).timeout(Duration.ofMinutes(10).toMillis());

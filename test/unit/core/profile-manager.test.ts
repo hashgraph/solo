@@ -3,13 +3,13 @@
 import {expect} from 'chai';
 import {after, describe, it} from 'mocha';
 
-import fs from 'fs';
+import fs from 'node:fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {ProfileManager} from '../../../src/core/profile-manager.js';
-import {getTestCacheDir, getTmpDir} from '../../test-util.js';
+import {getTestCacheDirectory, getTemporaryDirectory} from '../../test-utility.js';
 import * as version from '../../../version.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
@@ -24,7 +24,7 @@ import sinon from 'sinon';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 
 describe('ProfileManager', () => {
-  let tmpDir: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDir: string;
+  let temporaryDirectory: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDirectory: string;
   const namespace = NamespaceName.of('test-namespace');
   const testProfileFile = PathEx.join('test', 'data', 'test-profiles.yaml');
   const kubeConfig = new KubeConfig();
@@ -62,29 +62,29 @@ describe('ProfileManager', () => {
     },
   ];
 
-  let stagingDir = '';
+  let stagingDirectory = '';
 
   before(() => {
     resetForTest(namespace.name);
-    tmpDir = getTmpDir();
+    temporaryDirectory = getTemporaryDirectory();
     configManager = container.resolve(InjectTokens.ConfigManager);
-    profileManager = new ProfileManager(undefined, undefined, tmpDir);
+    profileManager = new ProfileManager(undefined, undefined, temporaryDirectory);
     configManager.setFlag(flags.nodeAliasesUnparsed, 'node1,node2,node4');
-    configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
+    configManager.setFlag(flags.cacheDir, getTestCacheDirectory('ProfileManager'));
     configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
-    cacheDir = configManager.getFlag<string>(flags.cacheDir) as string;
+    cacheDirectory = configManager.getFlag<string>(flags.cacheDir) as string;
     configManager.setFlag(flags.apiPermissionProperties, flags.apiPermissionProperties.definition.defaultValue);
     configManager.setFlag(flags.applicationEnv, flags.applicationEnv.definition.defaultValue);
     configManager.setFlag(flags.applicationProperties, flags.applicationProperties.definition.defaultValue);
     configManager.setFlag(flags.bootstrapProperties, flags.bootstrapProperties.definition.defaultValue);
     configManager.setFlag(flags.log4j2Xml, flags.log4j2Xml.definition.defaultValue);
     configManager.setFlag(flags.settingTxt, flags.settingTxt.definition.defaultValue);
-    stagingDir = Templates.renderStagingDir(
+    stagingDirectory = Templates.renderStagingDir(
       configManager.getFlag(flags.cacheDir),
       configManager.getFlag(flags.releaseTag),
     );
-    if (!fs.existsSync(stagingDir)) {
-      fs.mkdirSync(stagingDir, {recursive: true});
+    if (!fs.existsSync(stagingDirectory)) {
+      fs.mkdirSync(stagingDirectory, {recursive: true});
     }
 
     // @ts-expect-error - TS2339: to mock
@@ -92,7 +92,7 @@ describe('ProfileManager', () => {
   });
 
   after(() => {
-    fs.rmSync(tmpDir, {recursive: true});
+    fs.rmSync(temporaryDirectory, {recursive: true});
   });
 
   it('should throw error for missing profile file', () => {
@@ -100,8 +100,8 @@ describe('ProfileManager', () => {
       configManager.setFlag(flags.profileFile, 'INVALID');
       profileManager.loadProfiles(true);
       throw new Error();
-    } catch (e) {
-      expect(e.message).to.include('profileFile does not exist');
+    } catch (error) {
+      expect(error.message).to.include('profileFile does not exist');
     }
   });
 
@@ -121,22 +121,24 @@ describe('ProfileManager', () => {
   const testCases = [{profileName: 'test', profileFile: testProfileFile}];
 
   describe('determine chart values for a profile', () => {
-    testCases.forEach(input => {
+    for (const input of testCases) {
       it(`should determine Solo chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile);
         configManager.setFlag(flags.namespace, 'test-namespace');
 
         const resources = ['templates', 'profiles'];
-        for (const dirName of resources) {
-          const srcDir = PathEx.joinWithRealPath(constants.RESOURCES_DIR, dirName);
-          if (!fs.existsSync(srcDir)) continue;
-
-          const destDir = PathEx.resolve(PathEx.join(cacheDir, dirName));
-          if (!fs.existsSync(destDir)) {
-            fs.mkdirSync(destDir, {recursive: true});
+        for (const directoryName of resources) {
+          const sourceDirectory = PathEx.joinWithRealPath(constants.RESOURCES_DIR, directoryName);
+          if (!fs.existsSync(sourceDirectory)) {
+            continue;
           }
 
-          fs.cpSync(srcDir, destDir, {recursive: true});
+          const destinationDirectory = PathEx.resolve(PathEx.join(cacheDirectory, directoryName));
+          if (!fs.existsSync(destinationDirectory)) {
+            fs.mkdirSync(destinationDirectory, {recursive: true});
+          }
+
+          fs.cpSync(sourceDirectory, destinationDirectory, {recursive: true});
         }
 
         profileManager.loadProfiles(true);
@@ -174,12 +176,12 @@ describe('ProfileManager', () => {
         configManager.setFlag(flags.namespace, 'test-namespace');
 
         // profileManager.loadProfiles(true)
-        const file = PathEx.join(tmpDir, 'application.env');
+        const file = PathEx.join(temporaryDirectory, 'application.env');
         const fileContents = '# row 1\n# row 2\n# row 3';
         fs.writeFileSync(file, fileContents);
         configManager.setFlag(flags.applicationEnv, file);
-        const destFile = PathEx.join(stagingDir, 'templates', 'application.env');
-        fs.cpSync(file, destFile, {force: true});
+        const destinationFile = PathEx.join(stagingDirectory, 'templates', 'application.env');
+        fs.cpSync(file, destinationFile, {force: true});
         const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart('test', consensusNodes, {});
         const cachedValuesFile = Object.values(cachedValuesFileMapping)[0];
         const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());
@@ -188,7 +190,7 @@ describe('ProfileManager', () => {
 
       it(`should determine mirror-node chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile);
-        configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
+        configManager.setFlag(flags.cacheDir, getTestCacheDirectory('ProfileManager'));
         configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
         profileManager.loadProfiles(true);
         const valuesFile = (await profileManager.prepareValuesForMirrorNodeChart(input.profileName)) as string;
@@ -209,7 +211,7 @@ describe('ProfileManager', () => {
 
       it(`should determine hedera-explorer chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile);
-        configManager.setFlag(flags.cacheDir, getTestCacheDir('ProfileManager'));
+        configManager.setFlag(flags.cacheDir, getTestCacheDirectory('ProfileManager'));
         configManager.setFlag(flags.releaseTag, version.HEDERA_PLATFORM_VERSION);
         profileManager.loadProfiles(true);
         const valuesFile = (await profileManager.prepareValuesHederaExplorerChart(input.profileName)) as string;
@@ -231,7 +233,7 @@ describe('ProfileManager', () => {
         expect(valuesYaml.resources.limits.cpu).not.to.be.null;
         expect(valuesYaml.resources.limits.memory).not.to.be.null;
       });
-    });
+    }
   });
 
   describe('prepareConfigText', () => {
@@ -240,18 +242,18 @@ describe('ProfileManager', () => {
       nodeAccountMap.set('node1', '0.0.3');
       nodeAccountMap.set('node2', '0.0.4');
       nodeAccountMap.set('node3', '0.0.5');
-      const destPath = PathEx.join(tmpDir, 'staging');
-      fs.mkdirSync(destPath, {recursive: true});
+      const destinationPath = PathEx.join(temporaryDirectory, 'staging');
+      fs.mkdirSync(destinationPath, {recursive: true});
       const renderedConfigFile = await profileManager.prepareConfigTxt(
         nodeAccountMap,
         consensusNodes,
-        destPath,
+        destinationPath,
         version.HEDERA_PLATFORM_VERSION,
         {},
       );
 
       // expect that the config.txt file was created and exists
-      const configFile = PathEx.join(destPath, 'config.txt');
+      const configFile = PathEx.join(destinationPath, 'config.txt');
       expect(renderedConfigFile).to.equal(configFile);
       expect(fs.existsSync(configFile)).to.be.ok;
 
@@ -273,27 +275,27 @@ describe('ProfileManager', () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       try {
         await profileManager.prepareConfigTxt(nodeAccountMap, consensusNodes, '', version.HEDERA_PLATFORM_VERSION, {});
-      } catch (e) {
-        expect(e).to.be.instanceOf(MissingArgumentError);
-        expect(e.message).to.include('nodeAccountMap the map of node IDs to account IDs is required');
+      } catch (error) {
+        expect(error).to.be.instanceOf(MissingArgumentError);
+        expect(error.message).to.include('nodeAccountMap the map of node IDs to account IDs is required');
       }
     });
 
     it('should fail when destPath does not exist', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
       nodeAccountMap.set('node1', '0.0.3');
-      const destPath = PathEx.join(tmpDir, 'missing-directory');
+      const destinationPath = PathEx.join(temporaryDirectory, 'missing-directory');
       try {
         await profileManager.prepareConfigTxt(
           nodeAccountMap,
           consensusNodes,
-          destPath,
+          destinationPath,
           version.HEDERA_PLATFORM_VERSION,
           {},
         );
-      } catch (e) {
-        expect(e.message).to.contain('config destPath does not exist');
-        expect(e.message).to.contain(destPath);
+      } catch (error) {
+        expect(error.message).to.contain('config destPath does not exist');
+        expect(error.message).to.contain(destinationPath);
       }
     });
   });

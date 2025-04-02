@@ -7,11 +7,11 @@ import {Flags as flags} from '../src/commands/flags.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  e2eTestSuite,
+  endToEndTestSuite,
   getNodeAliasesPrivateKeysHash,
-  getTmpDir,
+  getTemporaryDirectory,
   HEDERA_PLATFORM_VERSION_TAG,
-} from './test-util.js';
+} from './test-utility.js';
 import {type NodeAlias} from '../src/types/aliases.js';
 import {Duration} from '../src/core/time/duration.js';
 import {TEST_LOCAL_HEDERA_PLATFORM_VERSION} from '../version-test.js';
@@ -50,7 +50,7 @@ export function testNodeAdd(
   argv.setArg(flags.persistentVolumeClaims, true);
   argv.setArg(flags.localBuildPath, localBuildPath);
 
-  e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+  endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
     const {
       opts: {k8Factory, accountManager, remoteConfigManager, logger, commandInvoker},
       cmd: {nodeCmd, accountCmd, networkCmd},
@@ -91,7 +91,7 @@ export function testNodeAdd(
         existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
           existingServiceMap,
           k8Factory,
-          getTmpDir(),
+          getTemporaryDirectory(),
         );
       }).timeout(defaultTimeout);
 
@@ -123,7 +123,7 @@ export function testNodeAdd(
         const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
           existingServiceMap,
           k8Factory,
-          getTmpDir(),
+          getTemporaryDirectory(),
         );
 
         for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {

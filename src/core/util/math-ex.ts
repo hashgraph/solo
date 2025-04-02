@@ -96,7 +96,7 @@ export class MathEx {
    * @param y - The divisor
    * @returns The remainder of dividing the two values rounded towards positive infinity.
    */
-  public static floorMod(x: number, y: number): number {
+  public static floorModulo(x: number, y: number): number {
     const dy = Math.trunc(MathEx.floorDiv(x, y) * Math.trunc(y));
     return Math.trunc(x) - dy;
   }

@@ -26,12 +26,6 @@ describe('Helpers', () => {
     expect(clonedArray).not.to.equal(input); // ensure cloning creates a new array
   });
 
-  it('Should parse argv to args with datamask correctly', () => {
-    const argv = {[flags.googleCredential.name]: 'VALUE'};
-    const result = flags.stringifyArgv(argv);
-    expect(result).to.equal(`--${flags.googleCredential.name} ${flags.googleCredential.definition.dataMask}`);
-  });
-
   it('Should parse argv to args with boolean flag correctly', () => {
     const argv = {[flags.quiet.name]: true};
     const result = flags.stringifyArgv(argv);
