@@ -8,7 +8,13 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type AnyListrContext, type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
+import {
+  type AnyListrContext,
+  type AnyYargs,
+  type ArgvStruct,
+  type NodeAlias,
+  type NodeAliases,
+} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
@@ -28,6 +34,11 @@ interface BlockNodesDeployConfigClass {
   quiet: boolean;
   valuesFile: Optional<string>;
   namespace: NamespaceName;
+  nodeAliases: NodeAliases; // from remote config
+  releaseName: string;
+  context: string;
+  isChartInstalled: boolean;
+  valuesArg: string;
 }
 
 interface BlockNodesDeployContext {
@@ -84,17 +95,9 @@ export class BlockNodesCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (context_, task): Promise<Listr<AnyListrContext>> => {
-            // reset nodeAlias
-            this.configManager.setFlag(flags.nodeAliasesUnparsed, '');
-
             this.configManager.update(argv);
 
-            flags.disablePrompts([
-              flags.valuesFile,
-              flags.chartDirectory,
-              flags.clusterRef,
-
-            ]);
+            flags.disablePrompts([flags.valuesFile, flags.chartDirectory, flags.clusterRef]);
 
             const allFlags: CommandFlag[] = [
               ...BlockNodesCommand.DEPLOY_FLAGS_LIST.required,
@@ -104,26 +107,28 @@ export class BlockNodesCommand extends BaseCommand {
             await this.configManager.executePrompt(task, allFlags);
 
             // prompt if inputs are empty and set it in the context
-            context_.config = this.configManager.getConfig(BlockNodesCommand.DEPLOY_CONFIGS_NAME, allFlags, [
-              'nodeAliases',
-            ]) as BlockNodesDeployConfigClass;
+            context_.config = this.configManager.getConfig(
+              BlockNodesCommand.DEPLOY_CONFIGS_NAME,
+              allFlags,
+            ) as BlockNodesDeployConfigClass;
 
             context_.config.namespace = await resolveNamespaceFromDeployment(
               this.localConfig,
               this.configManager,
               task,
             );
-            context_.config.nodeAliases = helpers.parseNodeAliases(
-              context_.config.nodeAliasesUnparsed,
-              this.remoteConfigManager.getConsensusNodes(),
-              this.configManager,
-            );
+
+            context_.config.nodeAliases = this.remoteConfigManager
+              .getConsensusNodes()
+              .map((node): NodeAlias => node.name);
+
             context_.config.releaseName = this.prepareReleaseName(context_.config.nodeAliases);
 
-            if (context_.config.clusterRef) {
-              const context: string = this.remoteConfigManager.getClusterRefs()[context_.config.clusterRef];
-              if (context) context_.config.context = context;
+            if (!context_.config.clusterRef) {
+              context_.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
             }
+
+            context_.config.context = this.remoteConfigManager.getClusterRefs()[context_.config.clusterRef];
 
             this.logger.debug('Initialized config', {config: context_.config});
 

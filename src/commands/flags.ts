@@ -19,8 +19,6 @@ import {type ClusterReference} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
-import {BLOCK_NODE_CHART_URL} from '../core/constants.js';
-import {BLOCK_NODE_VERSION} from '../../version.js';
 
 export class Flags {
   public static KEY_COMMON: string = '_COMMON_';
