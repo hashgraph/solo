@@ -5,6 +5,8 @@ import {type Lock} from './lock.js';
 
 import {LockAcquisitionError} from './lock-acquisition-error.js';
 import {type SoloListrTaskWrapper} from '../../types/index.js';
+import {type AnyListrContext} from '../../types/aliases.js';
+import {type Listr} from 'listr2';
 
 /**
  * A utility class for managing lock acquisition tasks in Listr2 based workflows.
@@ -33,12 +35,12 @@ export class ListrLock {
    * @param task - the parent task to which the lock acquisition task will be added.
    * @returns a new Listr2 task for acquiring a lock with retry logic.
    */
-  public static newAcquireLockTask(lock: Lock, task: SoloListrTaskWrapper<any>) {
+  public static newAcquireLockTask(lock: Lock, task: SoloListrTaskWrapper<AnyListrContext>): Listr<AnyListrContext> {
     return task.newListr(
       [
         {
           title: ListrLock.ACQUIRE_LOCK_TASK_TITLE,
-          task: async (_, task) => {
+          task: async (_, task): Promise<void> => {
             await ListrLock.acquireWithRetry(lock, task);
           },
         },

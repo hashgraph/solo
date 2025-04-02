@@ -328,8 +328,6 @@ export class RelayCommand extends BaseCommand {
           task: async context_ => {
             const config = context_.config;
 
-            const kubeContext = self.k8Factory.getK8(config.context).contexts().readCurrent();
-
             await self.chartManager.install(
               config.namespace,
               config.releaseName,
@@ -337,7 +335,7 @@ export class RelayCommand extends BaseCommand {
               JSON_RPC_RELAY_CHART,
               '',
               config.valuesArg,
-              kubeContext,
+              config.context,
             );
 
             showVersionBanner(self.logger, config.releaseName, HEDERA_JSON_RPC_RELAY_VERSION);
