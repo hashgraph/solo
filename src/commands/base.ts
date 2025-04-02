@@ -51,7 +51,7 @@ export abstract class BaseCommand extends ShellRunner {
   public readonly localConfig: LocalConfig;
   protected readonly remoteConfigManager: RemoteConfigManager;
 
-  constructor(options: Options) {
+  public constructor(options: Options) {
     if (!options || !options.helm) throw new Error('An instance of core/Helm is required');
     if (!options || !options.k8Factory) throw new Error('An instance of core/K8Factory is required');
     if (!options || !options.chartManager) throw new Error('An instance of core/ChartManager is required');

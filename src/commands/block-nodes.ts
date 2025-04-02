@@ -1,44 +1,33 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {Listr, ListrTask} from 'listr2';
+import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
 import * as helpers from '../core/helpers.js';
 import * as constants from '../core/constants.js';
-import {type AccountManager} from '../core/account-manager.js';
-import {BaseCommand, type Options} from './base.js';
+import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {AnyListrContext, type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
+import {type AnyListrContext, type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
-import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
-import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
+import * as versions from '../../version.js';
 import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Lock} from '../core/lock/lock.js';
-import {K8} from '../integration/kube/k8.js';
+import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 
 interface BlockNodesDeployConfigClass {
-  chainId: string;
+  chartVersion: string;
   chartDirectory: string;
-  namespace: NamespaceName;
-  deployment: string;
-  nodeAliasesUnparsed: string;
-  operatorId: string;
-  operatorKey: string;
-  profileFile: string;
-  profileName: string;
-  replicaCount: number;
-  valuesFile: string;
-  isChartInstalled: boolean;
-  nodeAliases: NodeAliases;
-  releaseName: string;
-  valuesArg: string;
-  clusterRef: Optional<ClusterReference>;
+  clusterRef: ClusterReference;
+  deployment: DeploymentName;
+  devMode: boolean;
   domainName: Optional<string>;
-  context: Optional<string>;
+  enableIngress: boolean;
+  quiet: boolean;
+  valuesFile: Optional<string>;
+  namespace: NamespaceName;
 }
 
 interface BlockNodesDeployContext {
@@ -46,13 +35,6 @@ interface BlockNodesDeployContext {
 }
 
 export class BlockNodesCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
-
-  public constructor(options: Options) {
-    super(options);
-    this.accountManager = options.accountManager;
-  }
-
   public static readonly COMMAND_NAME: string = 'block-nodes';
 
   private static readonly DEPLOY_CONFIGS_NAME: string = 'deployConfigs';
@@ -60,19 +42,15 @@ export class BlockNodesCommand extends BaseCommand {
   private static readonly DEPLOY_FLAGS_LIST: CommandFlags = {
     required: [],
     optional: [
-      flags.chainId,
+      flags.blockNodesChartVersion,
       flags.chartDirectory,
       flags.clusterRef,
       flags.deployment,
-      flags.nodeAliasesUnparsed,
-      flags.operatorId,
-      flags.operatorKey,
-      flags.profileFile,
-      flags.profileName,
-      flags.quiet,
-      flags.replicaCount,
-      flags.valuesFile,
+      flags.devMode,
       flags.domainName,
+      flags.enableIngress,
+      flags.quiet,
+      flags.valuesFile,
     ],
   };
 
@@ -112,11 +90,10 @@ export class BlockNodesCommand extends BaseCommand {
             this.configManager.update(argv);
 
             flags.disablePrompts([
-              flags.operatorId,
-              flags.operatorKey,
+              flags.valuesFile,
+              flags.chartDirectory,
               flags.clusterRef,
-              flags.profileFile,
-              flags.profileName,
+
             ]);
 
             const allFlags: CommandFlag[] = [
@@ -170,32 +147,25 @@ export class BlockNodesCommand extends BaseCommand {
           task: async (context_): Promise<void> => {
             const config: BlockNodesDeployConfigClass = context_.config;
 
-            await this.accountManager.loadNodeClient(
-              context_.config.namespace,
-              this.remoteConfigManager.getClusterRefs(),
-              this.configManager.getFlag<DeploymentName>(flags.deployment),
-              this.configManager.getFlag<boolean>(flags.forcePortForward),
-            );
-
             config.valuesArg = await this.prepareValuesArgForBlockNodes(config.valuesFile);
           },
         },
         {
-          title: 'Deploy JSON RPC BlockNodes',
+          title: 'Deploy BlockNodes',
           task: async (context_): Promise<void> => {
             const config: BlockNodesDeployConfigClass = context_.config;
 
             await this.chartManager.install(
               config.namespace,
               config.releaseName,
-              JSON_RPC_RELAY_CHART,
-              JSON_RPC_RELAY_CHART,
+              constants.BLOCK_NODE_CHART,
+              constants.BLOCK_NODE_CHART,
               '',
               config.valuesArg,
               config.context,
             );
 
-            showVersionBanner(this.logger, config.releaseName, HEDERA_JSON_RPC_RELAY_VERSION);
+            showVersionBanner(this.logger, config.releaseName, versions.BLOCK_NODE_VERSION);
           },
         },
         {
@@ -247,7 +217,6 @@ export class BlockNodesCommand extends BaseCommand {
       throw new SoloError(`Error deploying block nodes: ${error.message}`, error);
     } finally {
       await lease.release();
-      await this.accountManager.close();
     }
 
     return true;

@@ -80,6 +80,11 @@ export const INGRESS_CONTROLLER_CHART_URL =
 export const INGRESS_CONTROLLER_RELEASE_NAME = 'haproxy-ingress';
 export const INGRESS_CONTROLLER_NAME = 'haproxy-ingress.github.io/controller';
 
+export const BLOCK_NODE_CHART_URL =
+  process.env.BLOCK_NODE_CHART_URL ?? 'https://hiero-ledger.github.io/hiero-block-node/charts';
+export const BLOCK_NODE_CHART = 'block-node-server';
+export const BLOCK_NODE_RELEASE_NAME = 'block-node';
+
 export const CERT_MANAGER_NAME_SPACE = 'cert-manager';
 export const SOLO_HEDERA_MIRROR_IMPORTER = [
   'app.kubernetes.io/component=importer',

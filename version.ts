@@ -17,6 +17,7 @@ export const MIRROR_NODE_VERSION = 'v0.126.0';
 export const HEDERA_EXPLORER_VERSION = '24.12.1';
 export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.66.0';
 export const INGRESS_CONTROLLER_VERSION = '0.14.5';
+export const BLOCK_NODE_VERSION = 'v0.14.5'; // TODO
 
 export function getSoloVersion(): Version {
   if (process.env.npm_package_version) {

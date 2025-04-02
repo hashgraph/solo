@@ -2,8 +2,8 @@
 
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
-import {type CommandFlag} from '../types/flag-types.js';
-import fs from 'fs';
+import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
+import fs from 'node:fs';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -19,9 +19,11 @@ import {type ClusterReference} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
+import {BLOCK_NODE_CHART_URL} from '../core/constants.js';
+import {BLOCK_NODE_VERSION} from '../../version.js';
 
 export class Flags {
-  public static KEY_COMMON = '_COMMON_';
+  public static KEY_COMMON: string = '_COMMON_';
 
   private static async prompt(
     type: 'toggle' | 'input' | 'number',
@@ -36,7 +38,7 @@ export class Flags {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
     try {
-      let needsPrompt = type === 'toggle' ? input === undefined || typeof input !== 'boolean' : !input;
+      let needsPrompt: boolean = type === 'toggle' ? input === undefined || typeof input !== 'boolean' : !input;
       needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt;
 
       if (needsPrompt) {
@@ -46,15 +48,17 @@ export class Flags {
           throw new SoloError('Cannot prompt for input in non-interactive mode');
         }
 
-        const promptOptions = {default: defaultValue, message: promptMessage};
+        const promptOptions: {default: any; message: string} = {default: defaultValue, message: promptMessage};
 
         switch (type) {
-          case 'input':
+          case 'input': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, promptOptions);
             break;
-          case 'toggle':
+          }
+          case 'toggle': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
             break;
+          }
           case 'number': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(numberPrompt, promptOptions);
             break;
@@ -114,9 +118,9 @@ export class Flags {
    *
    */
   public static setRequiredCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
-    commandFlags.forEach(flag => {
+    for (const flag of commandFlags) {
       y.option(flag.name, {...flag.definition, demandOption: true});
-    });
+    }
   }
 
   /**
@@ -126,14 +130,14 @@ export class Flags {
    *
    */
   public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
-    commandFlags.forEach(flag => {
-      let defaultValue = flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined;
+    for (const flag of commandFlags) {
+      let defaultValue = flag.definition.defaultValue === '' ? undefined : flag.definition.defaultValue;
       defaultValue = defaultValue && flag.definition.dataMask ? flag.definition.dataMask : defaultValue;
       y.option(flag.name, {
         ...flag.definition,
         default: defaultValue,
       });
-    });
+    }
   }
 
   public static readonly devMode: CommandFlag = {
@@ -263,25 +267,25 @@ export class Flags {
     const valuesFiles: Record<ClusterReference, Array<string>> = {};
     if (input) {
       const inputItems = input.split(',');
-      inputItems.forEach(v => {
+      for (const v of inputItems) {
         const parts = v.split('=');
 
         let clusterReference: string;
         let valuesFile: string;
 
-        if (parts.length !== 2) {
-          valuesFile = PathEx.resolve(v);
-          clusterReference = Flags.KEY_COMMON;
-        } else {
+        if (parts.length === 2) {
           clusterReference = parts[0];
           valuesFile = PathEx.resolve(parts[1]);
+        } else {
+          valuesFile = PathEx.resolve(v);
+          clusterReference = Flags.KEY_COMMON;
         }
 
         if (!valuesFiles[clusterReference]) {
           valuesFiles[clusterReference] = [];
         }
         valuesFiles[clusterReference].push(valuesFile);
-      });
+      }
     }
 
     return valuesFiles;
@@ -1020,6 +1024,17 @@ export class Flags {
         Flags.soloChartVersion.name,
       );
     },
+  };
+
+  public static readonly blockNodesChartVersion: CommandFlag = {
+    constName: 'chartVersion',
+    name: 'chart-version',
+    definition: {
+      describe: 'Block nodes chart version',
+      defaultValue: version.BLOCK_NODE_VERSION,
+      type: 'string',
+    },
+    prompt: undefined,
   };
 
   public static readonly applicationProperties: CommandFlag = {
@@ -2267,7 +2282,7 @@ export class Flags {
       type: 'number',
     },
     prompt: async function (task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
-      const promptForInput = (): Promise<number> =>
+      const promptForInput: () => Promise<number> = (): Promise<number> =>
         Flags.prompt(
           'number',
           task,
@@ -2455,20 +2470,23 @@ export class Flags {
     Flags.dnsConsensusNodePattern,
     Flags.domainName,
     Flags.domainNames,
+    Flags.blockNodesChartVersion,
   ];
 
   /** Resets the definition.disablePrompt for all flags */
-  private static resetDisabledPrompts() {
-    Flags.allFlags.forEach(f => {
-      if (f.definition.disablePrompt) {
-        delete f.definition.disablePrompt;
+  private static resetDisabledPrompts(): void {
+    for (const flag of Flags.allFlags) {
+      if (flag.definition.disablePrompt) {
+        delete flag.definition.disablePrompt;
       }
-    });
+    }
   }
 
-  public static readonly allFlagsMap = new Map(Flags.allFlags.map(f => [f.name, f]));
+  public static readonly allFlagsMap: Map<string, CommandFlag> = new Map(
+    Flags.allFlags.map((flag): [string, CommandFlag] => [flag.name, flag]),
+  );
 
-  public static readonly nodeConfigFileFlags = new Map(
+  public static readonly nodeConfigFileFlags: Map<string, CommandFlag> = new Map(
     [
       Flags.apiPermissionProperties,
       Flags.applicationEnv,
@@ -2476,12 +2494,14 @@ export class Flags {
       Flags.bootstrapProperties,
       Flags.log4j2Xml,
       Flags.settingTxt,
-    ].map(f => [f.name, f]),
+    ].map((flag): [string, CommandFlag] => [flag.name, flag]),
   );
 
-  public static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
+  public static readonly integerFlags: Map<string, CommandFlag> = new Map(
+    [Flags.replicaCount].map((flag): [string, CommandFlag] => [flag.name, flag]),
+  );
 
-  public static readonly DEFAULT_FLAGS = {
+  public static readonly DEFAULT_FLAGS: CommandFlags = {
     required: [],
     optional: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
   };
@@ -2503,12 +2523,12 @@ export class Flags {
       }
 
       // remove flags that use the default value
-      const flag = Flags.allFlags.find(flag => flag.name === name);
+      const flag: CommandFlag = Flags.allFlags.find((flag): boolean => flag.name === name);
       if (!flag || (flag.definition.defaultValue && flag.definition.defaultValue === value)) {
         continue;
       }
 
-      const flagName = flag.name;
+      const flagName: string = flag.name;
 
       // if the flag is boolean based, render it without value
       if (value === true) {
