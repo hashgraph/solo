@@ -19,6 +19,16 @@ name: Update README.md
 # This workflow calls script update_md.sh to update the docs/content/User/StepByStepGuide.md file
 on:
   workflow_dispatch:
+    inputs:
+      commit-changes:
+        description: "Commit updated README.md"
+        type: boolean
+        required: false
+        default: false
+      version:
+        description: "The version to set the app to during deploy/release"
+        type: string
+        required: false
   workflow_call:
     secrets:
       GH_ACCESS_TOKEN:
