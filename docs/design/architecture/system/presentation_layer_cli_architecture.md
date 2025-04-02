@@ -9,63 +9,63 @@ platform.
 
 <div id="table-of-contents"></div>
 
-- [Standards](#standards)
-- [Architecture](#architecture)
-- [Command Structure Overview](#command-structure-overview)
-    - [Final Vision](#final-vision)
-    - [Example Commands](#example-commands)
-- [Global Flags](#global-flags)
-- [Groups](#groups)
-    - [Group Changes (Rename, Remove, Replace)](#group-changes-rename-remove-replace)
-- [Resources by Group](#resources-by-group)
-    - [Block](#block)
-    - [Cluster Ref](#cluster-ref)
-    - [Consensus](#consensus)
-    - [Deployment](#deployment)
-    - [Explorer](#explorer)
-    - [Keys](#keys)
-    - [Ledger](#ledger)
-    - [Mirror](#mirror)
-    - [Relay](#relay)
-    - [Quick Start](#quick-start)
-- [Operations by Resource](#operations-by-resource)
-    - [Block](#block-1)
-        - [Node](#node)
-    - [Cluster Ref](#cluster-ref-1)
-        - [Config](#config)
-    - [Consensus](#consensus-1)
-        - [Network](#network)
-        - [Node](#node-1)
-        - [State](#state)
-        - [Diagnostic](#diagnostic)
-    - [Deployment](#deployment-1)
-        - [Cluster](#cluster)
-        - [Config](#config-1)
-        - [State](#state-1)
-    - [Explorer](#explorer-1)
-        - [Node](#node-2)
-    - [Keys](#keys-1)
-        - [Consensus](#consensus-1)
-    - [Ledger](#ledger-1)
-        - [System](#system)
-        - [Account](#account)
-        - [Crypto](#crypto)
-    - [Mirror](#mirror-1)
-        - [Node](#node-3)
-    - [Relay](#relay-1)
-        - [Node](#node-4)
-    - [Quick Start](#quick-start-1)
-        - [EVM](#evm)
-        - [Single](#single)
-        - [Multi](#multi)
-- [Flags by Operation](#flags-by-operation)
-    - [Block Node](#block-node)
-        - [List](#list)
-        - [Info](#info)
-        - [Logs](#logs)
-        - [Add](#add)
-        - [Upgrade](#upgrade)
-        - [Destroy](#destroy)
+* [Standards](#standards)
+* [Architecture](#architecture)
+* [Command Structure Overview](#command-structure-overview)
+  * [Final Vision](#final-vision)
+  * [Example Commands](#example-commands)
+* [Global Flags](#global-flags)
+* [Groups](#groups)
+  * [Group Changes (Rename, Remove, Replace)](#group-changes-rename-remove-replace)
+* [Resources by Group](#resources-by-group)
+  * [Block](#block)
+  * [Cluster Ref](#cluster-ref)
+  * [Consensus](#consensus)
+  * [Deployment](#deployment)
+  * [Explorer](#explorer)
+  * [Keys](#keys)
+  * [Ledger](#ledger)
+  * [Mirror](#mirror)
+  * [Relay](#relay)
+  * [Quick Start](#quick-start)
+* [Operations by Resource](#operations-by-resource)
+  * [Block](#block-1)
+    * [Node](#node)
+  * [Cluster Ref](#cluster-ref-1)
+    * [Config](#config)
+  * [Consensus](#consensus-1)
+    * [Network](#network)
+    * [Node](#node-1)
+    * [State](#state)
+    * [Diagnostic](#diagnostic)
+  * [Deployment](#deployment-1)
+    * [Cluster](#cluster)
+    * [Config](#config-1)
+    * [State](#state-1)
+  * [Explorer](#explorer-1)
+    * [Node](#node-2)
+  * [Keys](#keys-1)
+    * [Consensus](#consensus-1)
+  * [Ledger](#ledger-1)
+    * [System](#system)
+    * [Account](#account)
+    * [Crypto](#crypto)
+  * [Mirror](#mirror-1)
+    * [Node](#node-3)
+  * [Relay](#relay-1)
+    * [Node](#node-4)
+  * [Quick Start](#quick-start-1)
+    * [EVM](#evm)
+    * [Single](#single)
+    * [Multi](#multi)
+* [Flags by Operation](#flags-by-operation)
+  * [Block Node](#block-node)
+    * [List](#list)
+    * [Info](#info)
+    * [Logs](#logs)
+    * [Add](#add)
+    * [Upgrade](#upgrade)
+    * [Destroy](#destroy)
 
 ## Standards
 
@@ -75,10 +75,10 @@ as possible, providing clear and concise feedback to the user at all times.
 
 The CLI should be built using the following tools and libraries:
 
-- [Inquirer.js](https://www.npmjs.com/package/@inquirer/prompts) for interactive prompts
-- [Yargs](https://www.npmjs.com/package/yargs) for command line argument parsing
-- [Listr2](https://www.npmjs.com/package/listr2) for user-friendly task lists
-- [Chalk](https://www.npmjs.com/package/chalk) for colorized output
+* [Inquirer.js](https://www.npmjs.com/package/@inquirer/prompts) for interactive prompts
+* [Yargs](https://www.npmjs.com/package/yargs) for command line argument parsing
+* [Listr2](https://www.npmjs.com/package/listr2) for user-friendly task lists
+* [Chalk](https://www.npmjs.com/package/chalk) for colorized output
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -131,25 +131,25 @@ flags may be specified at any level of the command hierarchy.
 
 ### Final Vision
 
-| Group       | Resource            | Operation(s)                                                                                |
-|-------------|---------------------|---------------------------------------------------------------------------------------------|
-| block       | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| cluster-ref | config              | < list \| info \| connect \| disconnect >                                                   |
-| consensus   | network             | < info \| deploy \| freeze \| upgrade \| destroy >                                          |
-| consensus   | node                | < list \| info \| logs \| add \| update \| destroy \| start \| stop \| restart \| refresh > |
-| consensus   | state               | < list \| download \| upload >                                                              |
-| consensus   | diagnostic          | < logs \| configs \| all >                                                                  |
-| deployment  | config              | < list \| info \| create \| delete \| import >                                              |
-| deployment  | cluster             | < list \| info \| attach \| detach >                                                        |
-| deployment  | state               | < info \| destroy >                                                                         |
-| explorer    | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| keys        | consensus           | < generate >                                                                                |
-| ledger      | system              | < init \| accounts-rekey \| staking-setup >                                                 |
-| ledger      | account             | < list \| info \| create \| update \| delete \| import >                                    |
-| ledger      | crypto              | < transfer \| balance >                                                                     |
-| mirror      | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| relay       | node                | < list \| info \| logs \| add \| upgrade \| destroy >                                       |
-| quick-start | < single \| multi > | < info \| deploy \| destroy >                                                               |
+| Group       | Resource                | Operation(s)                                                                                                                    |
+|-------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| block       | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
+| cluster-ref | config                  | < list &#124; info &#124; connect &#124; disconnect >                                                                           |
+| consensus   | network                 | < info &#124; deploy &#124; freeze &#124; upgrade &#124; destroy >                                                              |
+| consensus   | node                    | < list &#124; info &#124; logs &#124; add &#124; update &#124; destroy &#124; start &#124; stop &#124; restart &#124; refresh > |
+| consensus   | state                   | < list &#124; download &#124; upload >                                                                                          |
+| consensus   | diagnostic              | < logs &#124; configs &#124; all >                                                                                              |
+| deployment  | config                  | < list &#124; info &#124; create &#124; delete &#124; import >                                                                  |
+| deployment  | cluster                 | < list &#124; info &#124; attach &#124; detach >                                                                                |
+| deployment  | state                   | < info &#124; destroy >                                                                                                         |
+| explorer    | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
+| keys        | consensus               | < generate >                                                                                                                    |
+| ledger      | system                  | < init &#124; accounts-rekey &#124; staking-setup >                                                                             |
+| ledger      | account                 | < list &#124; info &#124; create &#124; update &#124; delete &#124; import >                                                    |
+| ledger      | crypto                  | < transfer &#124; balance >                                                                                                     |
+| mirror      | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
+| relay       | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
+| quick-start | < single &#124; multi > | < info &#124; deploy &#124; destroy >                                                                                           |
 
 #### Example Commands
 
@@ -198,7 +198,7 @@ The CLI application is designed around the following high-level entities (aka co
 | Name              | Command Syntax <br/>(Current) | Command Syntax <br/>(Desired) | Description <br/>(Current)                | Description <br/>(Desired)                                                                                                                                                     |
 |-------------------|-------------------------------|-------------------------------|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Block Node**    |                               | `block`                       |                                           | Block Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                        |
-| **Cluster Ref**   | `cluster-ref`                 | `cluster-ref`                 | Manage solo testing cluster               | Manages the relationship between Kubernetes context names and Solo internal cluster references which are an alias for a kubernetes context.                                    |
+| **Cluster Ref**   | `cluster-ref`                 | `cluster-ref`                 | Manage solo testing cluster               | Manages the relationship between Kubernetes context names and Solo cluster references which are an alias for a kubernetes context.                                             |
 | **Consensus**     |                               | `consensus`                   |                                           | Consensus Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                    |
 | **Deployment**    | `deployment`                  | `deployment`                  | Manage solo network deployment            | Create, modify, and delete deployment configurations. Deployments are required for most of the other commands.                                                                 |
 | **Explorer Node** | `explorer`                    | `explorer`                    | Manage Explorer in solo network           | Explorer Node operations for creating, modifying, and destroying resources. These commands require the presence of an existing deployment.                                     |
@@ -244,9 +244,9 @@ associated with each group.
 
 ### Cluster Ref
 
-| Resource Name | Command Syntax | Description                                                                                       |
-|---------------|----------------|---------------------------------------------------------------------------------------------------|
-| **Config**    | `config`       | List, create, manage, and remove associations between Kubernetes contexts and Solo cluster names. |
+| Resource Name | Command Syntax | Description                                                                                            |
+|---------------|----------------|--------------------------------------------------------------------------------------------------------|
+| **Config**    | `config`       | List, create, manage, and remove associations between Kubernetes contexts and Solo cluster references. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -269,7 +269,7 @@ associated with each group.
 
 | Resource Name | Command Syntax | Description                                                                                                                                       |
 |---------------|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Cluster**   | `cluster`      | View and manage Kubernetes clusters used by a deployment.                                                                                         |
+| **Cluster**   | `cluster`      | View and manage Solo cluster references used by a deployment.                                                                                     |
 | **Config**    | `config`       | List, view, create, delete, and import deployments. These commands affect the local configuration only.                                           |
 | **State**     | `state`        | View the actual state of the deployment on the Kubernetes clusters or teardown/destroy all remote and local configuration for a given deployment. |
 
@@ -366,12 +366,12 @@ operations associated with each resource.
 
 #### Config
 
-| Operation Name | Command Syntax | Description                                                                                                                              |
-|----------------|----------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| **List**       | `list`         | Lists the configured Kubernetes context to internal Solo cluster mappings.                                                               |
-| **Info**       | `info`         | Displays the status information and attached deployments for a given Solo internal cluster mapping.                                      |
-| **Connect**    | `connect`      | Creates a new internal Solo cluster name to a Kubernetes context or maps a Kubernetes context to an existing internal Solo cluster name. |
-| **Disconnect** | `disconnect`   | Removes the Kubernetes context associated with an internal Solo cluster name.                                                            |
+| Operation Name | Command Syntax | Description                                                                                                                                   |
+|----------------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| **List**       | `list`         | Lists the configured Kubernetes context to Solo cluster reference mappings.                                                                   |
+| **Info**       | `info`         | Displays the status information and attached deployments for a given Solo cluster reference mapping.                                          |
+| **Connect**    | `connect`      | Creates a new internal Solo cluster name to a Kubernetes context or maps a Kubernetes context to an existing internal Solo cluster reference. |
+| **Disconnect** | `disconnect`   | Removes the Kubernetes context associated with an internal Solo cluster reference.                                                            |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -738,6 +738,105 @@ solo block node logs --deployment <name> --id <id> [--force]
 | `--deployment` | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command. |
 | `--id`         | integer | Yes      | Any integer value `>= 0`                      |               | The unique identifier of the block node instance to destroy.                                   |
 | `-f, --force`  | boolean | No       | `true` (present) or `false` (absent)          | `false`       | Force the deletion of all provisioned block node resources.                                    |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+### Cluster Ref
+
+#### Config
+
+##### List
+
+###### Syntax
+
+```bash
+solo cluster-ref config list [--deployment <name>]
+```
+
+###### Flags
+
+| Flag           | Type   | Required | Valid Values                                  | Default Value | Description                                                                                     |
+|----------------|--------|----------|-----------------------------------------------|---------------|-------------------------------------------------------------------------------------------------|
+| `--deployment` | string | No       | Any string matching the regex: `[a-z0-9\-_]+` |               | Filters the list of cluster references to those which are attached to the specified deployment. |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+##### Info
+
+###### Syntax
+
+```bash
+solo cluster-ref config info --cluster-ref <name>
+```
+
+###### Flags
+
+| Flag            | Type   | Required | Valid Values                                  | Default Value | Description                                                                                               |\
+|-----------------|--------|----------|-----------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------|
+| `--cluster-ref` | string | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing cluster reference which was created via the "cluster-ref config connect" command. |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+##### Connect
+
+###### Syntax
+
+```bash
+solo cluster-ref config connect --cluster-ref <name> --context <context>
+```
+
+###### Flags
+
+| Flag            | Type   | Required | Valid Values                                  | Default Value | Description                                                                             |
+|-----------------|--------|----------|-----------------------------------------------|---------------|-----------------------------------------------------------------------------------------|
+| `--cluster-ref` | string | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of a new or existing cluster reference to be linked or created.                |
+| `--context`     | string | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing Kubernetes context to be associated with the cluster reference. |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+##### Disconnect
+
+###### Syntax
+
+```bash
+solo cluster-ref config disconnect --cluster-ref <name>
+```
+
+###### Flags
+
+| Flag            | Type   | Required | Valid Values                                  | Default Value | Description                                                                                               |
+|-----------------|--------|----------|-----------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------|
+| `--cluster-ref` | string | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing cluster reference which was created via the "cluster-ref config connect" command. |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+### Consensus
+
+#### Network
+
+##### Info
+
+###### Syntax
+
+```bash
+solo consensus network info --deployment <name>
+```
+
+###### Flags
+
+| Flag           | Type   | Required | Valid Values                                  | Default Value | Description                                                                                    |
+|----------------|--------|----------|-----------------------------------------------|---------------|------------------------------------------------------------------------------------------------|
+| `--deployment` | string | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
