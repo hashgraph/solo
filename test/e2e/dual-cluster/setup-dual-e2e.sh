@@ -68,7 +68,7 @@ done
 # --chart-directory ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
-npm run build
+task build
 npm run solo -- init || exit 1 # cache args for subsequent commands
 
 for i in $(seq 1 "${SOLO_CLUSTER_DUALITY}"); do
