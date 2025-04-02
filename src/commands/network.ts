@@ -950,6 +950,7 @@ export class NetworkCommand extends BaseCommand {
             }
           },
         },
+        // TODO: Move the check for load balancer logic to a utility method or class
         {
           title: 'Check for load balancer',
           skip: context_ => context_.config.loadBalancerEnabled === false,
@@ -1005,6 +1006,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
+        // TODO: find a better solution to avoid the need to redeploy the chart
         {
           title: 'Redeploy chart with external IP address config',
           skip: context_ => context_.config.loadBalancerEnabled === false,
@@ -1031,6 +1033,7 @@ export class NetworkCommand extends BaseCommand {
                   );
                   showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
 
+                  // TODO: Remove this code now that we have made the config dynamic and can update it without redeploying
                   const context = config.clusterRefs[clusterReference];
                   const pods: Pod[] = await this.k8Factory
                     .getK8(context)
