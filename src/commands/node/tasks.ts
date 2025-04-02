@@ -171,7 +171,7 @@ export class NodeCommandTasks {
       const parts = line.split('=');
       if (parts.length === 2) {
         if (parts[0] === 'hedera.config.version') {
-          let version = parseInt(parts[1]);
+          let version = Number.parseInt(parts[1]);
           line = `hedera.config.version=${++version}`;
         }
         newLines.push(line);
@@ -476,7 +476,7 @@ export class NodeCommandTasks {
           throw new SoloError('missing status line'); // Guard
         }
 
-        const statusNumber = parseInt(statusLine.split(' ').pop());
+        const statusNumber = Number.parseInt(statusLine.split(' ').pop());
 
         if (statusNumber === status) {
           task.title = `${title} - status ${chalk.green(NodeStatusEnums[status])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;
@@ -1133,22 +1133,22 @@ export class NodeCommandTasks {
       task: (context_, task) => {
         const {podRefs, releaseTag, localBuildPath} = context_.config;
 
-        return localBuildPath !== ''
-          ? self._uploadPlatformSoftware(
-              context_.config[aliasesField],
-              podRefs,
-              task,
-              localBuildPath,
-              context_.config.consensusNodes,
-              releaseTag,
-            )
-          : self._fetchPlatformSoftware(
+        return localBuildPath === ''
+          ? self._fetchPlatformSoftware(
               context_.config[aliasesField],
               podRefs,
               releaseTag,
               task,
               this.platformInstaller,
               context_.config.consensusNodes,
+            )
+          : self._uploadPlatformSoftware(
+              context_.config[aliasesField],
+              podRefs,
+              task,
+              localBuildPath,
+              context_.config.consensusNodes,
+              releaseTag,
             );
       },
     };
@@ -1694,8 +1694,8 @@ export class NodeCommandTasks {
         }
 
         const lastNodeIdMatch = lastNodeAlias.match(/\d+$/);
-        if (lastNodeIdMatch.length) {
-          const incremented = parseInt(lastNodeIdMatch[0]) + 1;
+        if (lastNodeIdMatch.length > 0) {
+          const incremented = Number.parseInt(lastNodeIdMatch[0]) + 1;
           lastNodeAlias = lastNodeAlias.replace(/\d+$/, incremented.toString()) as NodeAlias;
         }
 
@@ -1757,7 +1757,9 @@ export class NodeCommandTasks {
       task: context_ => {
         const config = context_.config;
         let endpoints = [];
-        if (!config.gossipEndpoints) {
+        if (config.gossipEndpoints) {
+          endpoints = splitFlagInput(config.gossipEndpoints);
+        } else {
           if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
             throw new SoloError(`--gossip-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`);
           }
@@ -1766,8 +1768,6 @@ export class NodeCommandTasks {
             `${helpers.getInternalAddress(config.releaseTag, config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT}`,
             `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`,
           ];
-        } else {
-          endpoints = splitFlagInput(config.gossipEndpoints);
         }
 
         context_.gossipEndpoints = prepareEndpoints(
@@ -1801,7 +1801,9 @@ export class NodeCommandTasks {
         const config = context_.config;
         let endpoints = [];
 
-        if (!config.grpcEndpoints) {
+        if (config.grpcEndpoints) {
+          endpoints = splitFlagInput(config.grpcEndpoints);
+        } else {
           if (config.endpointType !== constants.ENDPOINT_TYPE_FQDN) {
             throw new SoloError(`--grpc-endpoints must be set if --endpoint-type is: ${constants.ENDPOINT_TYPE_IP}`);
           }
@@ -1809,8 +1811,6 @@ export class NodeCommandTasks {
           endpoints = [
             `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${constants.HEDERA_NODE_EXTERNAL_GOSSIP_PORT}`,
           ];
-        } else {
-          endpoints = splitFlagInput(config.grpcEndpoints);
         }
 
         context_.grpcServiceEndpoints = prepareEndpoints(

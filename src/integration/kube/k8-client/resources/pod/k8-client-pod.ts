@@ -70,10 +70,10 @@ export class K8ClientPod implements Pod {
       while (podExists) {
         const pod: Pod = await this.pods.read(this.podReference);
 
-        if (!pod?.deletionTimestamp) {
-          podExists = false;
-        } else {
+        if (pod?.deletionTimestamp) {
           await sleep(Duration.ofSeconds(1));
+        } else {
+          podExists = false;
         }
       }
     } catch (error) {

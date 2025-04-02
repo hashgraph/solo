@@ -99,10 +99,10 @@ export class Lexer {
     const segments: string[] = this.formatter.split(this.formatter.normalize(key));
 
     let rootNode: Node;
-    if (!this._roots.has(segments[0])) {
-      rootNode = this.rootNodeFor(segments);
-    } else {
+    if (this._roots.has(segments[0])) {
       rootNode = this._roots.get(segments[0]);
+    } else {
+      rootNode = this.rootNodeFor(segments);
     }
 
     this.processSegments(rootNode as LexerInternalNode, value, segments);
@@ -179,10 +179,10 @@ export class Lexer {
 
     const node: Node = this.nodeFor(key);
 
-    if (!node) {
-      this.addValue(key, value);
-    } else {
+    if (node) {
       this.replaceValue(node, value);
+    } else {
+      this.addValue(key, value);
     }
   }
 

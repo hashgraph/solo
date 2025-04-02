@@ -396,7 +396,7 @@ export class ProfileManager {
 
     for (const line of lines) {
       if (line.startsWith('hedera.config.version=')) {
-        const version = parseInt(line.split('=')[1]) + 1;
+        const version = Number.parseInt(line.split('=')[1]) + 1;
         lines[lines.indexOf(line)] = `hedera.config.version=${version}`;
         break;
       }

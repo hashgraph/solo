@@ -129,7 +129,7 @@ export class Flags {
    */
   public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
     for (const flag of commandFlags) {
-      let defaultValue = flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined;
+      let defaultValue = flag.definition.defaultValue === '' ? undefined : flag.definition.defaultValue;
       defaultValue = defaultValue && flag.definition.dataMask ? flag.definition.dataMask : defaultValue;
       y.option(flag.name, {
         ...flag.definition,
@@ -271,12 +271,12 @@ export class Flags {
         let clusterReference: string;
         let valuesFile: string;
 
-        if (parts.length !== 2) {
-          valuesFile = PathEx.resolve(v);
-          clusterReference = Flags.KEY_COMMON;
-        } else {
+        if (parts.length === 2) {
           clusterReference = parts[0];
           valuesFile = PathEx.resolve(parts[1]);
+        } else {
+          valuesFile = PathEx.resolve(v);
+          clusterReference = Flags.KEY_COMMON;
         }
 
         if (!valuesFiles[clusterReference]) {

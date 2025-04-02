@@ -30,14 +30,14 @@ export class K8ClientIngresses implements Ingresses {
 
     KubeApiResponse.check(result.response, ResourceOperation.LIST, ResourceType.INGRESS, undefined, '');
 
-    if (!result?.body?.items) {
-      return [];
-    } else {
+    if (result?.body?.items) {
       const ingressNames = [];
       for (const ingress of result.body.items) {
         ingressNames.push(ingress.metadata?.name ?? '');
       }
       return ingressNames;
+    } else {
+      return [];
     }
   }
 

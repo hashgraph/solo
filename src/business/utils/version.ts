@@ -41,7 +41,7 @@ export class Version<T extends SemVer | number> {
       return 0;
     }
 
-    return NaN;
+    return Number.NaN;
   }
 
   public toString(): string {

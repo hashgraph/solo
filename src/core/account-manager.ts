@@ -94,7 +94,7 @@ export class AccountManager {
           .secrets()
           .list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
 
-        if (secrets.length) {
+        if (secrets.length > 0) {
           const secret = secrets[0];
           return {
             accountId: secret.labels['solo.hedera.com/account-id'],

@@ -39,11 +39,11 @@ export class NodeOverridesModel {
   public toYAML(): string {
     const gossipData: {interfaceBindings?: string[]; endpointOverrides?: string[]} = {};
 
-    if (this.interfaceBindings.length) {
+    if (this.interfaceBindings.length > 0) {
       gossipData.interfaceBindings = this.interfaceBindings.map(d => JSON.stringify(d));
     }
 
-    if (this.endpointOverrides.length) {
+    if (this.endpointOverrides.length > 0) {
       gossipData.endpointOverrides = this.endpointOverrides.map(d => JSON.stringify(d));
     }
 

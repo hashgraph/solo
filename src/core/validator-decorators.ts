@@ -34,7 +34,11 @@ export const IsDeployments = (validationOptions?: ValidationOptions) => {
             if (!Array.isArray(value[key].clusters)) {
               return false;
             }
-            if (!value[key].namespace || typeof value[key].namespace !== 'string' || !value[key].namespace.length) {
+            if (
+              !value[key].namespace ||
+              typeof value[key].namespace !== 'string' ||
+              value[key].namespace.length === 0
+            ) {
               return false;
             }
             if (!value[key].clusters.every(value_ => typeof value_ === 'string')) {

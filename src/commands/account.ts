@@ -191,7 +191,7 @@ export class AccountCommand extends BaseCommand {
     }
 
     const hbarAmount = Number.parseFloat(amount.toString());
-    if (amount && isNaN(hbarAmount)) {
+    if (amount && Number.isNaN(hbarAmount)) {
       throw new SoloError(`The HBAR amount was invalid: ${amount}`);
     }
 
@@ -307,9 +307,9 @@ export class AccountCommand extends BaseCommand {
                       const accountStart = `${realm}.${shard}.${currentSet[0]}`;
                       const accountEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
                       const rangeString =
-                        accountStart !== accountEnd
-                          ? `${chalk.yellow(accountStart)} to ${chalk.yellow(accountEnd)}`
-                          : `${chalk.yellow(accountStart)}`;
+                        accountStart === accountEnd
+                          ? `${chalk.yellow(accountStart)}`
+                          : `${chalk.yellow(accountStart)} to ${chalk.yellow(accountEnd)}`;
 
                       subTasks.push({
                         title: `Updating accounts [${rangeString}]`,
