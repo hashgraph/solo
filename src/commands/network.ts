@@ -37,7 +37,7 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
-import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
+import {type ClusterReference, type ClusterReferences, DeploymentName} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
@@ -393,12 +393,14 @@ export class NetworkCommand extends BaseCommand {
 
     // prepare values files for each cluster
     const valuesArgumentMap: Record<ClusterReference, string> = {};
-    const profileName = this.configManager.getFlag(flags.profileName);
+    const profileName: string = this.configManager.getFlag(flags.profileName);
+    const deploymentName: DeploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
 
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
       profileName,
       config.consensusNodes,
       config.domainNamesMapping,
+      deploymentName,
     );
 
     const valuesFiles: Record<ClusterReference, string> = BaseCommand.prepareValuesFilesMapMulticluster(

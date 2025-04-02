@@ -2,7 +2,12 @@
 
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
+import {
+  DEFAULT_FREEZE_ID_NUMBER,
+  DEFAULT_OPERATOR_ID_NUMBER,
+  DEFAULT_START_ID_NUMBER,
+  IGNORED_NODE_ACCOUNT_ID,
+} from './constants.js';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -17,7 +22,7 @@ import {
   type Key,
   KeyList,
   Logger,
-  LogLevel,
+  LogLevel, Long,
   PrivateKey,
   Status,
   TransferTransaction,
@@ -31,7 +36,7 @@ import {type NetworkNodeServices} from './network-node-services.js';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
-import {type NodeAlias, type SdkNetworkEndpoint} from '../types/aliases.js';
+import {type NodeAlias, type NodeAliases, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {getExternalAddress, isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
@@ -42,7 +47,7 @@ import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
-import {type ClusterReferences, type DeploymentName} from './config/remote/types.js';
+import {type ClusterReferences, type DeploymentName, Realm, Shard} from './config/remote/types.js';
 import {type Service} from '../integration/kube/resources/service/service.js';
 import {SoloService} from './model/solo-service.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
@@ -50,6 +55,9 @@ import {PathEx} from '../business/utils/path-ex.js';
 import {type NodeServiceMapping} from '../types/mappings/node-service-mapping.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {NetworkNodeServicesBuilder} from './network-node-services-builder.js';
+import {LocalConfig} from './config/local/local-config.js';
+import {AccountCommand} from '../commands/account.js';
+import {resolveNamespaceFromDeployment} from './resolvers.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -68,9 +76,16 @@ export class AccountManager {
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
     @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
     @inject(InjectTokens.RemoteConfigManager) private readonly remoteConfigManager?: RemoteConfigManager,
+    @inject(InjectTokens.LocalConfig) private readonly localConfig?: LocalConfig,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = null;
@@ -122,10 +137,14 @@ export class AccountManager {
    * returns the Genesis private key, then will return an AccountInfo object with the
    * accountId, ed25519PrivateKey, publicKey
    * @param namespace - the namespace that the secret is in
+   * @param deploymentName
    */
-  public async getTreasuryAccountKeys(namespace: NamespaceName) {
+  public async getTreasuryAccountKeys(
+    namespace: NamespaceName,
+    deploymentName: DeploymentName,
+  ): Promise<AccountIdWithKeyPairObject> {
     // check to see if the treasure account is in the secrets
-    return await this.getAccountKeysFromSecret(constants.TREASURY_ACCOUNT_ID, namespace);
+    return await this.getAccountKeysFromSecret(this.getTreasuryAccountId(deploymentName).toString(), namespace);
   }
 
   /**
@@ -236,7 +255,7 @@ export class AccountManager {
         this._forcePortForward = forcePortForward;
       }
 
-      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace);
+      const treasuryAccountInfo = await this.getTreasuryAccountKeys(namespace, deployment);
       const networkNodeServicesMap = await this.getNodeServiceMap(namespace, clusterReferences, deployment);
 
       this._nodeClient = await this._getNodeClient(
@@ -629,6 +648,7 @@ export class AccountManager {
    * @param currentSet - the accounts to update
    * @param updateSecrets - whether to delete the secret prior to creating a new secret
    * @param resultTracker - an object to keep track of the results from the accounts that are being updated
+   * @param deploymentName - the deployment name
    * @returns the updated resultTracker object
    */
   public async updateSpecialAccountsKeys(
@@ -640,18 +660,16 @@ export class AccountManager {
       rejectedCount: number;
       fulfilledCount: number;
     },
+    deploymentName: DeploymentName,
   ) {
     const genesisKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY);
-    const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-    const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
-
     const accountUpdatePromiseArray = [];
 
     for (const accountNumber of currentSet) {
       accountUpdatePromiseArray.push(
         this.updateAccountKeys(
           namespace,
-          AccountId.fromString(`${realm}.${shard}.${accountNumber}`),
+          this.getAccountIdByNumber(deploymentName, accountNumber),
           genesisKey,
           updateSecrets,
         ),
@@ -1060,5 +1078,55 @@ export class AccountManager {
         }
       }
     }
+  }
+
+  public getAccountIdByNumber(deployment: DeploymentName, number: number | Long): AccountId {
+    const realm = this.localConfig.getRealm(deployment);
+    const shard = this.localConfig.getShard(deployment);
+    return AccountId.fromString(`${realm}.${shard}.${number}`);
+  }
+
+  public getOperatorAccountId(deployment: DeploymentName): AccountId {
+    return this.getAccountIdByNumber(
+      deployment,
+      Number.parseInt(process.env.SOLO_OPERATOR_ID || constants.DEFAULT_OPERATOR_ID_NUMBER.toString()),
+    );
+  }
+
+  public getFreezeAccountId(deployment: DeploymentName): AccountId {
+    return this.getAccountIdByNumber(
+      deployment,
+      Number.parseInt(process.env.FREEZE_ADMIN_ACCOUNT || constants.DEFAULT_FREEZE_ID_NUMBER.toString()),
+    );
+  }
+
+  public getTreasuryAccountId(deployment: DeploymentName): AccountId {
+    return this.getAccountIdByNumber(deployment, constants.DEFAULT_TREASURY_ID_NUMBER);
+  }
+
+  public getStartAccountId(deployment: DeploymentName): AccountId {
+    return this.getAccountIdByNumber(
+      deployment,
+      Number.parseInt(process.env.SOLO_NODE_ACCOUNT_ID_START || constants.DEFAULT_START_ID_NUMBER.toString()),
+    );
+  }
+
+  /**
+   * Create a map of node aliases to account IDs
+   * @param nodeAliases
+   * @param deploymentName
+   * @returns the map of node IDs to account IDs
+   */
+  public getNodeAccountMap(nodeAliases: NodeAliases, deploymentName: DeploymentName): Map<NodeAlias, string> {
+    const accountMap: Map<NodeAlias, string> = new Map<NodeAlias, string>();
+    const realm: Realm = this.localConfig.getRealm(deploymentName);
+    const shard: Shard = this.localConfig.getShard(deploymentName);
+    const firstAccountId: AccountId = this.getStartAccountId(deploymentName);
+
+    for (const nodeAlias of nodeAliases) {
+      const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId.num)}`;
+      accountMap.set(nodeAlias, nodeAccount);
+    }
+    return accountMap;
   }
 }

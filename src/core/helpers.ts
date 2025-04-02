@@ -218,24 +218,6 @@ export function isNumeric(string_: string) {
   ); // ...and ensure strings of whitespace fail
 }
 
-/**
- * Create a map of node aliases to account IDs
- * @param nodeAliases
- * @returns the map of node IDs to account IDs
- */
-export function getNodeAccountMap(nodeAliases: NodeAliases): Map<NodeAlias, string> {
-  const accountMap: Map<NodeAlias, string> = new Map<NodeAlias, string>();
-  const realm: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-  const shard: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
-  const firstAccountId: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
-
-  for (const nodeAlias of nodeAliases) {
-    const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId)}`;
-    accountMap.set(nodeAlias, nodeAccount);
-  }
-  return accountMap;
-}
-
 export function getEnvironmentValue(environmentVariableArray: string[], name: string) {
   const kvPair = environmentVariableArray.find(v => v.startsWith(`${name}=`));
   return kvPair ? kvPair.split('=')[1] : null;

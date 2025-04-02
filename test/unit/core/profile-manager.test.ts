@@ -26,6 +26,7 @@ import {PathEx} from '../../../src/business/utils/path-ex.js';
 describe('ProfileManager', () => {
   let temporaryDirectory: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDirectory: string;
   const namespace = NamespaceName.of('test-namespace');
+  const deploymentName = 'test-deployment';
   const testProfileFile = PathEx.join('test', 'data', 'test-profiles.yaml');
   const kubeConfig = new KubeConfig();
   kubeConfig.loadFromDefault();
@@ -142,7 +143,12 @@ describe('ProfileManager', () => {
         }
 
         profileManager.loadProfiles(true);
-        const valuesFileMapping = await profileManager.prepareValuesForSoloChart(input.profileName, consensusNodes, {});
+        const valuesFileMapping = await profileManager.prepareValuesForSoloChart(
+          input.profileName,
+          consensusNodes,
+          {},
+          deploymentName,
+        );
         const valuesFile = Object.values(valuesFileMapping)[0];
 
         expect(valuesFile).not.to.be.null;
@@ -182,7 +188,12 @@ describe('ProfileManager', () => {
         configManager.setFlag(flags.applicationEnv, file);
         const destinationFile = PathEx.join(stagingDirectory, 'templates', 'application.env');
         fs.cpSync(file, destinationFile, {force: true});
-        const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart('test', consensusNodes, {});
+        const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart(
+          'test',
+          consensusNodes,
+          {},
+          deploymentName,
+        );
         const cachedValuesFile = Object.values(cachedValuesFileMapping)[0];
         const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());
         expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents);

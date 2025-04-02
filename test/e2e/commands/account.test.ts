@@ -31,7 +31,7 @@ import * as helpers from '../../../src/core/helpers.js';
 import {Templates} from '../../../src/core/templates.js';
 import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type DeploymentName, Realm, Shard} from '../../../src/core/config/remote/types.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
@@ -105,8 +105,8 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
 
       describe('special accounts should have new keys', () => {
         const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-        const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-        const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
+        const realm: Realm = 5;
+        const shard: Shard = 6;
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());

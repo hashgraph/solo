@@ -7,12 +7,16 @@ import {
   type EmailAddress,
   type NamespaceNameAsString,
   type Version,
+  type Realm,
+  type Shard,
 } from '../remote/types.js';
 
 export interface DeploymentStructure {
   // A list of clusters on which the deployment is deployed
   clusters: ClusterReference[];
   namespace: NamespaceNameAsString;
+  realm: Realm;
+  shard: Shard;
 }
 
 export type Deployments = Record<DeploymentName, DeploymentStructure>;
