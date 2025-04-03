@@ -135,18 +135,14 @@ export class Flags {
       type: 'string',
     },
     prompt: async function promptClusterRef(task: ListrTaskWrapper<any, any, any>, input: any) {
-      if (input?.length) {
-        return await Flags.promptText(
-          task,
-          input,
-          Flags.clusterRef.definition.defaultValue,
-          'Enter cluster reference: ',
-          'cluster reference cannot be empty',
-          Flags.clusterRef.name,
-        );
-      } else {
-        return undefined;
-      }
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.clusterRef.definition.defaultValue,
+        'Enter cluster reference: ',
+        'cluster reference cannot be empty',
+        Flags.clusterRef.name,
+      );
     },
   };
 
@@ -1545,18 +1541,14 @@ export class Flags {
       type: 'string',
     },
     prompt: async function promptDeploymentClusters(task: ListrTaskWrapper<any, any, any>, input: any) {
-      if (input?.length) {
-        return await Flags.promptText(
-          task,
-          input,
-          Flags.deploymentClusters.definition.defaultValue,
-          'Enter the Solo deployment cluster names (comma separated): ',
-          null,
-          Flags.deploymentClusters.name,
-        );
-      } else {
-        return undefined;
-      }
+      return await Flags.promptText(
+        task,
+        input,
+        Flags.deploymentClusters.definition.defaultValue,
+        'Enter the Solo deployment cluster names (comma separated): ',
+        null,
+        Flags.deploymentClusters.name,
+      );
     },
   };
 
