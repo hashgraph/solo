@@ -20,7 +20,7 @@ export interface Pvcs {
    * @returns list of persistent volume claim names
    * @throws {SoloError} if the persistent volume claims could not be listed
    */
-  list(namespace: NamespaceName, labels: string[]): Promise<string[]>;
+  list(namespace: NamespaceName, labels?: string[]): Promise<string[]>;
 
   /**
    * Create a persistent volume claim

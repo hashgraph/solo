@@ -150,8 +150,8 @@ export class Lexer {
       return;
     }
 
-    for (let index = 0; index < values.length; index++) {
-      this.addOrReplaceArrayElement(normalizedKey, index, values[index]);
+    for (const [index, value] of values.entries()) {
+      this.addOrReplaceArrayElement(normalizedKey, index, value);
     }
   }
 

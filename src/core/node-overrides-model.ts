@@ -47,6 +47,6 @@ export class NodeOverridesModel {
       gossipData.endpointOverrides = this.endpointOverrides.map(d => JSON.stringify(d));
     }
 
-    return yaml.stringify({gossip: gossipData}).replaceAll(/'/g, '');
+    return yaml.stringify({gossip: gossipData}).replaceAll("'", '');
   }
 }

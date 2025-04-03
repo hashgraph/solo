@@ -416,7 +416,7 @@ export class K8ClientContainer implements Container {
       const items: TDirectoryData[] = [];
       const lines = output.split('\n');
       for (let line of lines) {
-        line = line.replace(/\s+/g, '|');
+        line = line.replaceAll(/\s+/g, '|');
         const parts = line.split('|');
         if (parts.length >= 9) {
           let name = parts.at(-1);

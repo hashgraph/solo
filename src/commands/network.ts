@@ -255,7 +255,7 @@ export class NetworkCommand extends BaseCommand {
       const isMinioSecretCreated = await this.k8Factory
         .getK8(context)
         .secrets()
-        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData);
 
       if (!isMinioSecretCreated) {
         throw new SoloError(`failed to create new minio secret using context: ${context}`);
@@ -297,7 +297,7 @@ export class NetworkCommand extends BaseCommand {
       const isCloudSecretCreated = await this.k8Factory
         .getK8(context)
         .secrets()
-        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData);
 
       if (!isCloudSecretCreated) {
         throw new SoloError(
@@ -329,7 +329,7 @@ export class NetworkCommand extends BaseCommand {
       const k8client = this.k8Factory.getK8(context);
       const isBackupSecretCreated = await k8client
         .secrets()
-        .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
+        .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData);
 
       if (!isBackupSecretCreated) {
         throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);

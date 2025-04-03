@@ -24,10 +24,8 @@ export class LexerInternalNode extends LexerNode {
 
     if (children) {
       for (const c of children) {
-        if (c instanceof LexerInternalNode) {
-          if (c.isRoot()) {
-            throw new ConfigKeyError('Internal nodes cannot have root nodes as children');
-          }
+        if (c instanceof LexerInternalNode && c.isRoot()) {
+          throw new ConfigKeyError('Internal nodes cannot have root nodes as children');
         }
 
         this._children.set(c.name, c);

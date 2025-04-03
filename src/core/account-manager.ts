@@ -523,7 +523,7 @@ export class AccountManager {
               .withEnvoyProxyLoadBalancerIp(
                 service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
               )
-              .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port);
+              .withEnvoyProxyGrpcWebPort(service.spec!.ports!.find(port => port.name === 'hedera-grpc-web').port);
             break;
           }
           // solo.hedera.com/type: haproxy-svc
@@ -535,10 +535,8 @@ export class AccountManager {
               .withHaProxyLoadBalancerIp(
                 service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
               )
-              .withHaProxyGrpcPort(
-                service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port,
-              )
-              .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port);
+              .withHaProxyGrpcPort(service.spec!.ports!.find(port => port.name === 'non-tls-grpc-client-port').port)
+              .withHaProxyGrpcsPort(service.spec!.ports!.find(port => port.name === 'tls-grpc-client-port').port);
             break;
           }
           // solo.hedera.com/type: network-node-svc
@@ -564,9 +562,9 @@ export class AccountManager {
               .withNodeServiceLoadBalancerIp(
                 service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
               )
-              .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
-              .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
-              .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
+              .withNodeServiceGossipPort(service.spec!.ports!.find(port => port.name === 'gossip').port)
+              .withNodeServiceGrpcPort(service.spec!.ports!.find(port => port.name === 'grpc-non-tls').port)
+              .withNodeServiceGrpcsPort(service.spec!.ports!.find(port => port.name === 'grpc-tls').port);
 
             if (nodeId) {
               serviceBuilder.withNodeId(nodeId);
@@ -576,7 +574,7 @@ export class AccountManager {
         }
         const consensusNode: ConsensusNode = this.remoteConfigManager
           .getConsensusNodes()
-          .filter(node => node.name === serviceBuilder.nodeAlias)[0];
+          .find(node => node.name === serviceBuilder.nodeAlias);
         serviceBuilder.withExternalAddress(
           await getExternalAddress(consensusNode, this.k8Factory.getK8(serviceBuilder.context), loadBalancerEnabled),
         );

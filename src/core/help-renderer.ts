@@ -62,8 +62,8 @@ export class HelpRenderer {
   private calculateMaxColumnLengths(table: Table): number[] {
     const columnMaxLengths: number[] = [0, 0, 0, 0];
     for (const row of table) {
-      for (let index = 0; index < row.length; index++) {
-        columnMaxLengths[index] = Math.max(columnMaxLengths[index], row[index].length);
+      for (const [index, element] of row.entries()) {
+        columnMaxLengths[index] = Math.max(columnMaxLengths[index], element.length);
       }
     }
 
@@ -109,8 +109,8 @@ export class HelpRenderer {
     const outputLines: string[] = [];
     for (const row of table) {
       const line: string[] = [];
-      for (let index: number = 0; index < row.length; index++) {
-        line.push(row[index].padEnd(columnMaxLengths[index]));
+      for (const [index, element] of row.entries()) {
+        line.push(element.padEnd(columnMaxLengths[index]));
       }
       outputLines.push(line.join('  '));
     }
