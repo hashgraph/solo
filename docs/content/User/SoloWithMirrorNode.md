@@ -24,7 +24,7 @@ kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 > /dev/n
 
 Then you can access the hedera explorer at `http://localhost:8080`
 
-Or you can use Task tool to deploy solo network with mirror node with a single command [link](TaskTool.md)
+Or you can use Task tool to deploy solo network with mirror node with a single command [link](../Developer/Development/TaskTool.md)
 
 Next, you can try to create a few accounts with solo and see the transactions in the explorer.
 

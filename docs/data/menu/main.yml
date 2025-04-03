@@ -2,8 +2,8 @@
 main:
   - name: Getting Started
     ref: "/User/README/index.md"
-  - name: Start solo network with single command
-    ref: "/User/TaskTool.md"
+  - name: Step-by-step guide
+    ref: "/User/StepByStepGuide.md"
   - name: Hedera Developer
     ref: "HederaDeveloper.md"
   - name: Platform Developer
@@ -20,12 +20,12 @@ main:
     ref: "/User/Env.md"
   - name: FAQ
     ref: "/User/FAQ.md"
-  - name: Step-by-step guide
-    ref: "/User/StepByStepGuide.md"
   - name: Solo CLI manual
     ref: "/User/SoloCLI.md"
   - name: Solo Development
     ref: "/Developer/DEV.md"
+  - name: Use 'Task' to Launch Solo
+    ref: "/Developer/Development/TaskTool.md"
   - name: Classes
     ref: "/solo/static/Classes/index.html"
     external: true

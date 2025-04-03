@@ -54,7 +54,7 @@ nvm use v20.18.0
 
 ## Documentation
 
-[Getting Started](https://hashgraph.github.io/solo/)
+[Getting Started](https://hashgraph.github.io/solo/User/StepByStepGuide)
 
 ## Support
 
