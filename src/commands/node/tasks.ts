@@ -201,11 +201,10 @@ export class NodeCommandTasks {
         const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, start + constants.UPGRADE_FILE_CHUNK_SIZE));
         let fileTransaction = null;
 
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
-        } else {
-          fileTransaction = new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
-        }
+        fileTransaction =
+          start === 0
+            ? new FileUpdateTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk)
+            : new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
         const resp = await fileTransaction.execute(nodeClient);
         const receipt = await resp.getReceipt(nodeClient);
         this.logger.debug(
@@ -278,11 +277,9 @@ export class NodeCommandTasks {
     for (const nodeAlias of nodeAliases) {
       const podReference = podReferences[nodeAlias];
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
-      if (buildPathMap.has(nodeAlias)) {
-        localDataLibraryBuildPath = buildPathMap.get(nodeAlias);
-      } else {
-        localDataLibraryBuildPath = defaultDataLibraryBuildPath;
-      }
+      localDataLibraryBuildPath = buildPathMap.has(nodeAlias)
+        ? buildPathMap.get(nodeAlias)
+        : defaultDataLibraryBuildPath;
 
       if (!fs.existsSync(localDataLibraryBuildPath)) {
         throw new SoloError(`local build path does not exist: ${localDataLibraryBuildPath}`);

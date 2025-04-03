@@ -75,7 +75,7 @@ export class IntervalLockRenewalService implements LockRenewalService {
    */
   public async cancelAll(): Promise<Map<number, boolean>> {
     const result = new Map<number, boolean>();
-    const keys = Array.from(this._scheduledLeases.keys());
+    const keys = [...this._scheduledLeases.keys()];
 
     for (const k of keys) {
       result.set(k, await this.cancel(k));

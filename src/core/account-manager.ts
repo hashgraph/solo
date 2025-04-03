@@ -748,19 +748,9 @@ export class AccountManager {
         const secretLabels = Templates.renderAccountKeySecretLabelObject(accountId);
         const secretType = SecretType.OPAQUE;
 
-        let createdOrUpdated: boolean;
-
-        if (updateSecrets) {
-          createdOrUpdated = await this.k8Factory
-            .getK8(context)
-            .secrets()
-            .replace(namespace, secretName, secretType, data, secretLabels);
-        } else {
-          createdOrUpdated = await this.k8Factory
-            .getK8(context)
-            .secrets()
-            .create(namespace, secretName, secretType, data, secretLabels);
-        }
+        const createdOrUpdated: boolean = await (updateSecrets
+          ? this.k8Factory.getK8(context).secrets().replace(namespace, secretName, secretType, data, secretLabels)
+          : this.k8Factory.getK8(context).secrets().create(namespace, secretName, secretType, data, secretLabels));
 
         if (!createdOrUpdated) {
           this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);

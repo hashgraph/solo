@@ -170,7 +170,7 @@ export class HelmExecution {
       const result = new responseClass();
       Object.assign(result, parsed);
       return result;
-    } catch (error) {
+    } catch {
       throw new HelmParserException(HelmExecution.MSG_DESERIALIZATION_ERROR.replace('%s', responseClass.name));
     }
   }
@@ -213,7 +213,7 @@ export class HelmExecution {
     const output = this.standardOutput();
     try {
       return JSON.parse(output) as T[];
-    } catch (error) {
+    } catch {
       throw new HelmParserException(HelmExecution.MSG_LIST_DESERIALIZATION_ERROR.replace('%s', responseClass.name));
     }
   }

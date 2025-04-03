@@ -77,7 +77,7 @@ export class LexerInternalNode extends LexerNode {
   }
 
   public get children(): Node[] {
-    return Array.from(this._children.values());
+    return [...this._children.values()];
   }
 
   public isRoot(): boolean {
@@ -116,11 +116,9 @@ export class LexerInternalNode extends LexerNode {
 
         object[index] = (child as LexerInternalNode).toObject();
       } else {
-        if (child.isLeaf()) {
-          object[child.name] = ReflectAssist.coerce((child as LexerLeafNode).value);
-        } else {
-          object[child.name] = (child as LexerInternalNode).toObject();
-        }
+        object[child.name] = child.isLeaf()
+          ? ReflectAssist.coerce((child as LexerLeafNode).value)
+          : (child as LexerInternalNode).toObject();
       }
     }
 

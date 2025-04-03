@@ -80,11 +80,9 @@ export class IntervalLock implements Lock {
     }
 
     // In most production cases, the environment variable should be preferred over the constructor argument.
-    if (durationSeconds) {
-      this._durationSeconds = durationSeconds;
-    } else {
-      this._durationSeconds = +process.env.SOLO_LEASE_DURATION || IntervalLock.DEFAULT_LEASE_DURATION;
-    }
+    this._durationSeconds = durationSeconds
+      ? durationSeconds
+      : +process.env.SOLO_LEASE_DURATION || IntervalLock.DEFAULT_LEASE_DURATION;
   }
 
   /**
@@ -206,7 +204,7 @@ export class IntervalLock implements Lock {
     try {
       await this.acquire();
       return true;
-    } catch (error: SoloError | any) {
+    } catch {
       return false;
     }
   }
@@ -381,14 +379,12 @@ export class IntervalLock implements Lock {
    */
   private async createOrRenewLease(lease: Lease): Promise<void> {
     try {
-      if (lease) {
-        await this.k8Factory.default().leases().renew(this.namespace, this.leaseName, lease);
-      } else {
-        await this.k8Factory
-          .default()
-          .leases()
-          .create(this.namespace, this.leaseName, this.lockHolder.toJson(), this.durationSeconds);
-      }
+      await (lease
+        ? this.k8Factory.default().leases().renew(this.namespace, this.leaseName, lease)
+        : this.k8Factory
+            .default()
+            .leases()
+            .create(this.namespace, this.leaseName, this.lockHolder.toJson(), this.durationSeconds));
 
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);

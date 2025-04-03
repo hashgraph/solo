@@ -23,7 +23,7 @@ export class HelpRenderer {
       return [input, ''];
     }
 
-    return [input.substring(0, splitIndex), input.substring(splitIndex + 1)];
+    return [input.slice(0, Math.max(0, splitIndex)), input.slice(Math.max(0, splitIndex + 1))];
   }
 
   private createFlagsTable(lines: string[]): Table {
