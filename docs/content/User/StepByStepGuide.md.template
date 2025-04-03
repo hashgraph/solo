@@ -1,5 +1,11 @@
 ## Advanced User Guide
 For those who would like to have more control or need some customized setups, here are some step by step instructions of how to setup and deploy a solo network.
+
+NOTE: for cleanup from previous runs, you may need to run the following command:
+```
+rm -Rf ~/.solo
+```
+
 ### Setup Kubernetes cluster
 
 #### Remote cluster
