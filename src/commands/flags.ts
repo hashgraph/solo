@@ -1500,16 +1500,12 @@ export class Flags {
       type: 'string',
     },
     prompt: async function promptContext(task: ListrTaskWrapper<any, any, any>, input: string[], cluster?: string) {
-      if (input?.length) {
-        return await task.prompt(ListrEnquirerPromptAdapter).run({
-          type: 'select',
-          name: 'context',
-          message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
-          choices: input,
-        });
-      } else {
-        return undefined;
-      }
+      return await task.prompt(ListrEnquirerPromptAdapter).run({
+        type: 'select',
+        name: 'context',
+        message: 'Select kubectl context' + (cluster ? ` to be associated with cluster: ${cluster}` : ''),
+        choices: input,
+      });
     },
   };
 
