@@ -77,6 +77,8 @@ export class BlockNodeCommand extends BaseCommand {
       valuesArgument += helpers.prepareValuesFiles(config.valuesFile);
     }
 
+    valuesArgument += helpers.populateHelmArguments({nameOverride: config.blockNodeName});
+
     if (config.domainName) {
       valuesArgument += helpers.populateHelmArguments({
         'ingress.enabled': true,
@@ -90,7 +92,7 @@ export class BlockNodeCommand extends BaseCommand {
     const arch: string = os.arch();
     if (arch === 'arm64' || arch === 'aarch64') {
       valuesArgument += helpers.populateHelmArguments({
-        JAVA_OPTS: '"-Xms8G -Xmx8G -XX:UseSVE=0"',
+        'blockNode.config.JAVA_OPTS': '"-Xms8G -Xmx8G -XX:UseSVE=0"',
       });
     }
 
