@@ -116,7 +116,8 @@ jobs:
 
   # Deployment job
   Deploy:
-    if: ${{ endsWith(github.ref, 'main') }}
+    # Temporarily disabled publish to GitHub Pages
+    if: ${{ endsWith(github.ref, 'nonExisting') }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
