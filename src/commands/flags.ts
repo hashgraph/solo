@@ -1028,7 +1028,7 @@ export class Flags {
     },
   };
 
-  public static readonly blockNodesChartVersion: CommandFlag = {
+  public static readonly blockNodeChartVersion: CommandFlag = {
     constName: 'chartVersion',
     name: 'chart-version',
     definition: {
@@ -1609,9 +1609,9 @@ export class Flags {
     },
   };
 
-  public static readonly blockNodesVersion: CommandFlag = {
-    constName: 'blockNodesVersion',
-    name: 'block-nodes-version',
+  public static readonly blockNodeVersion: CommandFlag = {
+    constName: 'blockNodeVersion',
+    name: 'block-node-version',
     definition: {
       describe: 'Block nodes chart version',
       defaultValue: version.MIRROR_NODE_VERSION,
@@ -2534,7 +2534,8 @@ export class Flags {
     Flags.dnsConsensusNodePattern,
     Flags.domainName,
     Flags.domainNames,
-    Flags.blockNodesChartVersion,
+    Flags.blockNodeChartVersion,
+    Flags.blockNodeVersion,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

@@ -25,7 +25,7 @@ import {type NamespaceName} from '../integration/kube/resources/namespace/namesp
 import os from 'node:os';
 import {BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 
-interface BlockNodesDeployConfigClass {
+interface BlockNodeDeployConfigClass {
   chartVersion: string;
   chartDirectory: string;
   clusterRef: ClusterReference;
@@ -44,19 +44,19 @@ interface BlockNodesDeployConfigClass {
   releaseName: string;
 }
 
-interface BlockNodesDeployContext {
-  config: BlockNodesDeployConfigClass;
+interface BlockNodeDeployContext {
+  config: BlockNodeDeployConfigClass;
 }
 
-export class BlockNodesCommand extends BaseCommand {
-  public static readonly COMMAND_NAME: string = 'block-nodes';
+export class BlockNodeCommand extends BaseCommand {
+  public static readonly COMMAND_NAME: string = 'block-node';
 
   private static readonly DEPLOY_CONFIGS_NAME: string = 'deployConfigs';
 
   private static readonly DEPLOY_FLAGS_LIST: CommandFlags = {
     required: [],
     optional: [
-      flags.blockNodesChartVersion,
+      flags.blockNodeChartVersion,
       flags.chartDirectory,
       flags.clusterRef,
       flags.deployment,
@@ -68,10 +68,10 @@ export class BlockNodesCommand extends BaseCommand {
     ],
   };
 
-  private async prepareValuesArgForBlockNodes(config: BlockNodesDeployConfigClass): Promise<string> {
+  private async prepareValuesArgForBlockNode(config: BlockNodeDeployConfigClass): Promise<string> {
     let valuesArgument: string = '';
 
-    valuesArgument += helpers.prepareValuesFiles(constants.BLOCK_NODES_VALUES_FILE);
+    valuesArgument += helpers.prepareValuesFiles(constants.BLOCK_NODE_VALUES_FILE);
 
     if (config.valuesFile) {
       valuesArgument += helpers.prepareValuesFiles(config.valuesFile);
@@ -90,7 +90,7 @@ export class BlockNodesCommand extends BaseCommand {
     const arch: string = os.arch();
     if (arch === 'arm64' || arch === 'aarch64') {
       valuesArgument += helpers.populateHelmArguments({
-        JAVA_OPTS: '-Xms8G -Xmx8G -XX:UseSVE=0',
+        JAVA_OPTS: '"-Xms8G -Xmx8G -XX:UseSVE=0"',
       });
     }
 
@@ -104,27 +104,26 @@ export class BlockNodesCommand extends BaseCommand {
   private async deploy(argv: ArgvStruct): Promise<boolean> {
     const lease: Lock = await this.leaseManager.create();
 
-    const tasks: Listr<BlockNodesDeployContext> = new Listr<BlockNodesDeployContext>(
+    const tasks: Listr<BlockNodeDeployContext> = new Listr<BlockNodeDeployContext>(
       [
         {
           title: 'Initialize',
           task: async (context_, task): Promise<Listr<AnyListrContext>> => {
             this.configManager.update(argv);
 
-            flags.disablePrompts(BlockNodesCommand.DEPLOY_FLAGS_LIST.optional);
+            flags.disablePrompts(BlockNodeCommand.DEPLOY_FLAGS_LIST.optional);
 
             const allFlags: CommandFlag[] = [
-              ...BlockNodesCommand.DEPLOY_FLAGS_LIST.required,
-              ...BlockNodesCommand.DEPLOY_FLAGS_LIST.optional,
+              ...BlockNodeCommand.DEPLOY_FLAGS_LIST.required,
+              ...BlockNodeCommand.DEPLOY_FLAGS_LIST.optional,
             ];
 
             await this.configManager.executePrompt(task, allFlags);
 
-            // prompt if inputs are empty and set it in the context
             context_.config = this.configManager.getConfig(
-              BlockNodesCommand.DEPLOY_CONFIGS_NAME,
+              BlockNodeCommand.DEPLOY_CONFIGS_NAME,
               allFlags,
-            ) as BlockNodesDeployConfigClass;
+            ) as BlockNodeDeployConfigClass;
 
             context_.config.namespace = await resolveNamespaceFromDeployment(
               this.localConfig,
@@ -150,7 +149,7 @@ export class BlockNodesCommand extends BaseCommand {
         {
           title: 'Prepare release name and block node name',
           task: async (context_): Promise<void> => {
-            const config: BlockNodesDeployConfigClass = context_.config;
+            const config: BlockNodeDeployConfigClass = context_.config;
 
             let newBlockNodeNumber: number = 1;
 
@@ -174,7 +173,7 @@ export class BlockNodesCommand extends BaseCommand {
         {
           title: 'Check chart is installed',
           task: async (context_): Promise<void> => {
-            const config: BlockNodesDeployConfigClass = context_.config;
+            const config: BlockNodeDeployConfigClass = context_.config;
 
             config.isChartInstalled = await this.chartManager.isChartInstalled(
               config.namespace,
@@ -186,15 +185,15 @@ export class BlockNodesCommand extends BaseCommand {
         {
           title: 'Prepare chart values',
           task: async (context_): Promise<void> => {
-            const config: BlockNodesDeployConfigClass = context_.config;
+            const config: BlockNodeDeployConfigClass = context_.config;
 
-            config.valuesArg = await this.prepareValuesArgForBlockNodes(config);
+            config.valuesArg = await this.prepareValuesArgForBlockNode(config);
           },
         },
         {
-          title: 'Deploy BlockNodes',
+          title: 'Deploy block node',
           task: async (context_): Promise<void> => {
-            const config: BlockNodesDeployConfigClass = context_.config;
+            const config: BlockNodeDeployConfigClass = context_.config;
 
             await this.chartManager.install(
               config.namespace,
@@ -210,9 +209,9 @@ export class BlockNodesCommand extends BaseCommand {
           },
         },
         {
-          title: 'Check block nodes are running',
+          title: 'Check block node is running',
           task: async (context_): Promise<void> => {
-            const config: BlockNodesDeployConfigClass = context_.config;
+            const config: BlockNodeDeployConfigClass = context_.config;
 
             await this.k8Factory
               .getK8(config.context)
@@ -220,15 +219,15 @@ export class BlockNodesCommand extends BaseCommand {
               .waitForRunningPhase(
                 config.namespace,
                 [`app.kubernetes.io/instance=${config.releaseName}`],
-                constants.BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS,
-                constants.BLOCK_NODES_PODS_RUNNING_DELAY,
+                constants.BLOCK_NODE_PODS_RUNNING_MAX_ATTEMPTS,
+                constants.BLOCK_NODE_PODS_RUNNING_DELAY,
               );
           },
         },
         {
-          title: 'Check block nodes is ready',
+          title: 'Check block node is ready',
           task: async (context_): Promise<void> => {
-            const config: BlockNodesDeployConfigClass = context_.config;
+            const config: BlockNodeDeployConfigClass = context_.config;
             try {
               await this.k8Factory
                 .getK8(config.context)
@@ -236,11 +235,11 @@ export class BlockNodesCommand extends BaseCommand {
                 .waitForReadyStatus(
                   config.namespace,
                   [`app.kubernetes.io/instance=${config.releaseName}`],
-                  constants.BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS,
-                  constants.BLOCK_NODES_PODS_RUNNING_DELAY,
+                  constants.BLOCK_NODE_PODS_RUNNING_MAX_ATTEMPTS,
+                  constants.BLOCK_NODE_PODS_RUNNING_DELAY,
                 );
             } catch (error) {
-              throw new SoloError(`BlockNodes ${config.releaseName} is not ready: ${error.message}`, error);
+              throw new SoloError(`Block node ${config.releaseName} is not ready: ${error.message}`, error);
             }
           },
         },
@@ -255,7 +254,7 @@ export class BlockNodesCommand extends BaseCommand {
     try {
       await tasks.run();
     } catch (error) {
-      throw new SoloError(`Error deploying block nodes: ${error.message}`, error);
+      throw new SoloError(`Error deploying block node: ${error.message}`, error);
     } finally {
       await lease.release();
     }
@@ -263,10 +262,10 @@ export class BlockNodesCommand extends BaseCommand {
     return true;
   }
 
-  /** Adds the relay component to remote config. */
-  public addBlockNodeComponent(): SoloListrTask<BlockNodesDeployContext> {
+  /** Adds the block node component to remote config. */
+  public addBlockNodeComponent(): SoloListrTask<BlockNodeDeployContext> {
     return {
-      title: 'Add relay component in remote config',
+      title: 'Add block node component in remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
@@ -281,30 +280,30 @@ export class BlockNodesCommand extends BaseCommand {
   public getCommandDefinition(): CommandDefinition {
     const self: this = this;
     return {
-      command: BlockNodesCommand.COMMAND_NAME,
+      command: BlockNodeCommand.COMMAND_NAME,
       desc: 'Manage block nodes in solo network',
       builder: (yargs: AnyYargs): any => {
         return yargs
           .command({
             command: 'deploy',
-            desc: 'Deploy block nodes',
+            desc: 'Deploy block node',
             builder: (y: AnyYargs): void => {
-              flags.setRequiredCommandFlags(y, ...BlockNodesCommand.DEPLOY_FLAGS_LIST.required);
-              flags.setOptionalCommandFlags(y, ...BlockNodesCommand.DEPLOY_FLAGS_LIST.optional);
+              flags.setRequiredCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.required);
+              flags.setOptionalCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.optional);
             },
             handler: async (argv: ArgvStruct): Promise<void> => {
-              self.logger.info("==== Running 'relay deploy' ===", {argv});
+              self.logger.info("==== Running 'block node deploy' ===", {argv});
               self.logger.info(argv);
 
               await self.deploy(argv).then((r): void => {
-                self.logger.info('==== Finished running `relay deploy`====');
+                self.logger.info('==== Finished running `block node deploy`====');
                 if (!r) {
-                  throw new SoloError('Error deploying relay, expected return value to be true');
+                  throw new SoloError('Error deploying block node, expected return value to be true');
                 }
               });
             },
           })
-          .demandCommand(1, 'Select a relay command');
+          .demandCommand(1, 'Select a block node command');
       },
     };
   }

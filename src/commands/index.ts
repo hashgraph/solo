@@ -9,7 +9,7 @@ import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
 import {DeploymentCommand} from './deployment.js';
 import {ExplorerCommand} from './explorer.js';
-import {BlockNodesCommand} from './block-nodes.js';
+import {BlockNodeCommand} from './block-node.js';
 import {type Options} from './base.js';
 import {type CommandDefinition} from '../types/index.js';
 
@@ -29,6 +29,6 @@ export function Initialize(options: Options): CommandDefinition[] {
     new MirrorNodeCommand(options).getCommandDefinition(),
     new ExplorerCommand(options).getCommandDefinition(),
     new DeploymentCommand(options).getCommandDefinition(),
-    new BlockNodesCommand(options).getCommandDefinition(),
+    new BlockNodeCommand(options).getCommandDefinition(),
   ];
 }
