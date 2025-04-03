@@ -40,6 +40,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
+      - task: "cluster:create"
       - task: "solo:init"
       - task: "solo:cluster:setup"
       - task: "solo:cluster-ref:connect"
@@ -526,10 +527,8 @@ tasks:
       - |
         if [[ "${EXPLORER_DEPLOYMENT}" != "" ]]; then
           # create deployment on different namespace
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- cluster-ref connect --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --context ${EXPLORER_CLUSTER_CONTEXT} --email ${SOLO_EMAIL}
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment create --deployment ${EXPLORER_CLUSTER_CONTEXT} --namespace ${EXPLORER_NAME_SPACE}  
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment add-cluster --deployment ${EXPLORER_CLUSTER_CONTEXT} --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --num-consensus-nodes ${SOLO_NETWORK_SIZE}
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- cluster-ref setup --cluster-ref ${EXPLORER_CLUSTER_CONTEXT}
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment create --deployment ${EXPLORER_DEPLOYMENT} --namespace ${EXPLORER_NAME_SPACE}  
+          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment add-cluster --deployment ${EXPLORER_DEPLOYMENT} --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --num-consensus-nodes ${SOLO_NETWORK_SIZE}
         
           npm run solo -- explorer deploy --deployment "${EXPLORER_DEPLOYMENT}" --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
           export EXPLORER_DEPLOYED_NAME_SPACE=${EXPLORER_NAME_SPACE}

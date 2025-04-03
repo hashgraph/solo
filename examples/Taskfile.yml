@@ -25,6 +25,6 @@ env:
   ENABLE_MIRROR_INGRESS: "--enable-ingress"
   EXPLORER_NAME_SPACE: "explorer-name-space"
   EXPLORER_DEPLOYMENT: "explorer-deployment"
-  EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
+  EXPLORER_CLUSTER_CONTEXT: kind-{{.SOLO_CLUSTER_NAME}}
 vars:
   use_port_forwards: "true"
