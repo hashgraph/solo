@@ -157,7 +157,7 @@ describe('ComponentsDataWrapper', () => {
       components: {relays},
       serviceName,
     } = createComponentsDataWrapper();
-    const notFoundServiceName = 'not_found';
+    const notFoundServiceName: string = 'not_found';
     const relay = relays[serviceName];
     relay.name = notFoundServiceName;
 
@@ -167,25 +167,26 @@ describe('ComponentsDataWrapper', () => {
     );
   });
 
-  it('should be able to remove component with the .remove()', () => {
+  it('should be able to disable component with the .disableComponent()', () => {
+    // TODO 666
     const {
       wrapper: {componentsDataWrapper},
       serviceName,
     } = createComponentsDataWrapper();
 
-    componentsDataWrapper.removeComponent(serviceName, ComponentTypes.Relay);
+    componentsDataWrapper.disableComponent(serviceName, ComponentTypes.Relay);
 
     expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName);
   });
 
-  it("should not be able to remove component with the .remove() if it doesn't exist ", () => {
+  it("should not be able to disable component with the .disableComponent() if it doesn't exist ", () => {
     const {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
     const notFoundServiceName = 'not_found';
 
-    expect(() => componentsDataWrapper.removeComponent(notFoundServiceName, ComponentTypes.Relay)).to.throw(
+    expect(() => componentsDataWrapper.disableComponent(notFoundServiceName, ComponentTypes.Relay)).to.throw(
       SoloError,
       `Component ${notFoundServiceName} of type ${ComponentTypes.Relay} not found while attempting to remove`,
     );

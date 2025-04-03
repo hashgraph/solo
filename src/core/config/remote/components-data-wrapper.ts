@@ -24,6 +24,7 @@ import {type NodeAliases} from '../../../types/aliases.js';
 import {type CloneTrait} from '../../../types/traits/clone-trait.js';
 import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
+import {ComponentStates} from './enumerations/component-states.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -93,7 +94,7 @@ export class ComponentsDataWrapper
   }
 
   /** Used to remove specific component from their respective group. */
-  public removeComponent(serviceName: ComponentName, type: ComponentTypes): void {
+  public disableComponent(serviceName: ComponentName, type: ComponentTypes): void {
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);
     }
@@ -102,14 +103,14 @@ export class ComponentsDataWrapper
       throw new SoloError(`Invalid component type ${type}`);
     }
 
-    const deleteComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+    const disableComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
       if (!components[serviceName]) {
         throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`);
       }
-      delete components[serviceName];
+      components[serviceName].state = ComponentStates.DELETED;
     };
 
-    this.applyCallbackToComponentGroup(type, serviceName, deleteComponentCallback);
+    this.applyCallbackToComponentGroup(type, serviceName, disableComponentCallback);
   }
 
   /* -------- Utilities -------- */
@@ -273,6 +274,7 @@ export class ComponentsDataWrapper
         nodeAlias,
         clusterReference,
         namespace,
+        ComponentStates.ACTIVE,
         ConsensusNodeStates.NON_DEPLOYED,
         Templates.nodeIdFromNodeAlias(nodeAlias),
       );

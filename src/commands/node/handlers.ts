@@ -11,7 +11,7 @@ import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
-import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {AnyListrContext, type ArgvStruct, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {type Listr} from 'listr2';
 import chalk from 'chalk';
@@ -29,6 +29,7 @@ import {type NodeUpdateContext} from './config-interfaces/node-update-context.js
 import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
 import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
+import {ComponentStates} from '../../core/config/remote/enumerations/component-states.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -900,15 +901,16 @@ export class NodeCommandHandlers extends CommandHandler {
   // TODO MOVE TO TASKS
 
   /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public removeNodeAndProxies(): SoloListrTask<any> {
+  public removeNodeAndProxies(): SoloListrTask<AnyListrContext> {
     return {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       title: 'Remove node and proxies from remote config',
       task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.removeComponent('Consensus node name', ComponentTypes.ConsensusNode);
-          remoteConfig.components.removeComponent('Envoy proxy name', ComponentTypes.EnvoyProxy);
-          remoteConfig.components.removeComponent('HaProxy name', ComponentTypes.HaProxy);
+        // TODO
+        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+          remoteConfig.components.disableComponent('Consensus node name', ComponentTypes.ConsensusNode);
+          remoteConfig.components.disableComponent('Envoy proxy name', ComponentTypes.EnvoyProxy);
+          remoteConfig.components.disableComponent('HaProxy name', ComponentTypes.HaProxy);
         });
       },
     };
@@ -917,15 +919,15 @@ export class NodeCommandHandlers extends CommandHandler {
   /**
    * Changes the state from all consensus nodes components in remote config.
    *
-   * @param state - to which to change the consensus node component
+   * @param nodeStates - to which to change the consensus node component
    */
-  public changeAllNodeStates(state: ConsensusNodeStates): SoloListrTask<any> {
+  public changeAllNodeStates(nodeStates: ConsensusNodeStates): SoloListrTask<any> {
     interface Context {
       config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
 
     return {
-      title: `Change node state to ${state} in remote config`,
+      title: `Change node state to ${nodeStates} in remote config`,
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
@@ -939,7 +941,8 @@ export class NodeCommandHandlers extends CommandHandler {
                 consensusNode.name,
                 consensusNode.cluster,
                 namespace.name,
-                state,
+                ComponentStates.ACTIVE,
+                nodeStates,
                 consensusNode.nodeId,
               ),
             );
@@ -1058,6 +1061,6 @@ export class NodeCommandHandlers extends CommandHandler {
     //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
     // }
 
-    return nodeComponent.state;
+    return nodeComponent.nodeState;
   }
 }

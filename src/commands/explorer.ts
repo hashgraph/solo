@@ -25,6 +25,7 @@ import {HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_NAME} from '../core/consta
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import * as helpers from '../core/helpers.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -489,7 +490,7 @@ export class ExplorerCommand extends BaseCommand {
             });
           },
         },
-        this.removeMirrorNodeExplorerComponents(),
+        this.disableMirrorNodeExplorerComponents(),
       ],
       {
         concurrent: false,
@@ -570,13 +571,13 @@ export class ExplorerCommand extends BaseCommand {
   }
 
   /** Removes the explorer components from remote config. */
-  private removeMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDestroyContext> {
+  private disableMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDestroyContext> {
     return {
       title: 'Remove explorer from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.removeComponent('mirrorNodeExplorer', ComponentTypes.MirrorNodeExplorer);
+        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+          remoteConfig.components.disableComponent('mirrorNodeExplorer', ComponentTypes.MirrorNodeExplorer);
         });
       },
     };
@@ -588,12 +589,14 @@ export class ExplorerCommand extends BaseCommand {
       title: 'Add explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
+        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
           const {
             config: {namespace},
           } = context_;
-          const cluster = this.remoteConfigManager.currentCluster;
-          remoteConfig.components.addNewComponent(new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name));
+          const cluster = this.remoteConfigManager.currentCluster; // TODO: <---
+          remoteConfig.components.addNewComponent(
+            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name, ComponentStates.ACTIVE),
+          );
         });
       },
     };

@@ -3,10 +3,11 @@
 import {BaseComponent} from './base-component.js';
 import {type Component, type NamespaceNameAsString} from '../types.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
+import {type ComponentStates} from '../enumerations/component-states.js';
 
 export class BlockNodeComponent extends BaseComponent {
-  public constructor(name: string, cluster: string, namespace: NamespaceNameAsString) {
-    super(ComponentTypes.BlockNode, name, cluster, namespace);
+  public constructor(name: string, cluster: string, namespace: NamespaceNameAsString, state: ComponentStates) {
+    super(ComponentTypes.BlockNode, name, cluster, namespace, state);
     this.validate();
   }
 
@@ -14,7 +15,7 @@ export class BlockNodeComponent extends BaseComponent {
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: Component): BlockNodeComponent {
-    const {name, cluster, namespace} = component;
-    return new BlockNodeComponent(name, cluster, namespace);
+    const {name, cluster, namespace, state} = component;
+    return new BlockNodeComponent(name, cluster, namespace, state);
   }
 }

@@ -6,21 +6,24 @@ import {type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
+import {type ComponentStates} from '../enumerations/component-states.js';
 
 export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
   /**
    * @param name - to distinguish components.
    * @param cluster - in which the component is deployed.
    * @param namespace - associated with the component.
+   * @param state - the state of the component
    * @param consensusNodeAliases - list node aliases
    */
   public constructor(
     name: string,
     cluster: string,
     namespace: NamespaceNameAsString,
+    state: ComponentStates,
     public readonly consensusNodeAliases: NodeAliases = [],
   ) {
-    super(ComponentTypes.Relay, name, cluster, namespace);
+    super(ComponentTypes.Relay, name, cluster, namespace, state);
     this.validate();
   }
 
@@ -28,8 +31,8 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: IRelayComponent): RelayComponent {
-    const {name, cluster, namespace, consensusNodeAliases} = component;
-    return new RelayComponent(name, cluster, namespace, consensusNodeAliases);
+    const {name, cluster, namespace, state, consensusNodeAliases} = component;
+    return new RelayComponent(name, cluster, namespace, state, consensusNodeAliases);
   }
 
   public validate(): void {

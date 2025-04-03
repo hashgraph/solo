@@ -11,6 +11,7 @@ import {
 import {type ToObject} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
+import {type ComponentStates} from '../enumerations/component-states.js';
 
 /**
  * Represents a consensus node component within the system.
@@ -27,16 +28,18 @@ export class ConsensusNodeComponent
    * @param nodeId - node id of the consensus node
    * @param cluster - associated to component
    * @param namespace - associated to component
-   * @param state - of the consensus node
+   * @param state - the component state
+   * @param nodeState - of the consensus node
    */
   public constructor(
     name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
-    public readonly state: ConsensusNodeStates,
+    state: ComponentStates,
+    public readonly nodeState: ConsensusNodeStates,
     public readonly nodeId: number,
   ) {
-    super(ComponentTypes.ConsensusNode, name, cluster, namespace);
+    super(ComponentTypes.ConsensusNode, name, cluster, namespace, state);
 
     this.validate();
   }
@@ -45,15 +48,15 @@ export class ConsensusNodeComponent
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: IConsensusNodeComponent): ConsensusNodeComponent {
-    const {name, cluster, namespace, state, nodeId} = component;
-    return new ConsensusNodeComponent(name, cluster, namespace, state, nodeId);
+    const {name, cluster, state, namespace, nodeState, nodeId} = component;
+    return new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, nodeId);
   }
 
   public validate(): void {
     super.validate();
 
-    if (!Object.values(ConsensusNodeStates).includes(this.state)) {
-      throw new SoloError(`Invalid consensus node state: ${this.state}`);
+    if (!Object.values(ConsensusNodeStates).includes(this.nodeState)) {
+      throw new SoloError(`Invalid consensus node state: ${this.nodeState}`);
     }
 
     if (typeof this.nodeId !== 'number') {
@@ -68,7 +71,7 @@ export class ConsensusNodeComponent
   public toObject(): IConsensusNodeComponent {
     return {
       ...super.toObject(),
-      state: this.state,
+      nodeState: this.nodeState,
       nodeId: this.nodeId,
     };
   }

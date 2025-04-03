@@ -21,6 +21,7 @@ import {type CommandDefinition, type Optional, type SoloListrTask} from '../type
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
@@ -468,7 +469,7 @@ export class RelayCommand extends BaseCommand {
           },
           skip: context_ => !context_.config.isChartInstalled,
         },
-        this.removeRelayComponent(),
+        this.disableRelayComponent(),
       ],
       {
         concurrent: false,
@@ -548,22 +549,24 @@ export class RelayCommand extends BaseCommand {
           const {
             config: {namespace, nodeAliases},
           } = context_;
-          const cluster = this.remoteConfigManager.currentCluster;
+          const cluster = this.remoteConfigManager.currentCluster; // TODO
 
-          remoteConfig.components.addNewComponent(new RelayComponent('relay', cluster, namespace.name, nodeAliases));
+          remoteConfig.components.addNewComponent(
+            new RelayComponent('relay', cluster, namespace.name, ComponentStates.ACTIVE, nodeAliases),
+          );
         });
       },
     };
   }
 
   /** Remove the relay component from remote config. */
-  public removeRelayComponent(): SoloListrTask<RelayDestroyContext> {
+  public disableRelayComponent(): SoloListrTask<RelayDestroyContext> {
     return {
       title: 'Remove relay component from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.removeComponent('relay', ComponentTypes.Relay);
+        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+          remoteConfig.components.disableComponent('relay', ComponentTypes.Relay);
         });
       },
     };

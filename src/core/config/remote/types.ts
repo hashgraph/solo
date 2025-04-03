@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NodeAliases} from '../../../types/aliases.js';
-import {ComponentTypes} from './enumerations/component-types.js';
-import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
-import {DeploymentStates} from './enumerations/deployment-states.js';
+import {type ComponentTypes} from './enumerations/component-types.js';
+import {type ConsensusNodeStates} from './enumerations/consensus-node-states.js';
+import {type DeploymentStates} from './enumerations/deployment-states.js';
+import {type ComponentStates} from './enumerations/component-states.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
@@ -26,6 +27,7 @@ export interface Component {
   name: ComponentName;
   cluster: ClusterReference;
   namespace: NamespaceNameAsString;
+  state: ComponentStates;
 }
 
 export interface IRelayComponent extends Component {
@@ -34,7 +36,7 @@ export interface IRelayComponent extends Component {
 
 export interface IConsensusNodeComponent extends Component {
   nodeId: number;
-  state: ConsensusNodeStates;
+  nodeState: ConsensusNodeStates;
 }
 
 export interface ICluster {

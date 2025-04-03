@@ -4,6 +4,7 @@ import {SoloError} from '../../../errors/solo-error.js';
 import {type ClusterReference, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
+import {ComponentStates} from '../enumerations/component-states.js';
 
 /**
  * Represents the base structure and common functionality for all components within the system.
@@ -15,12 +16,14 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
    * @param name - the name to distinguish components.
    * @param cluster - the cluster in which the component is deployed.
    * @param namespace - the namespace associated with the component.
+   * @param state - the state of the component
    */
   protected constructor(
     public readonly type: ComponentTypes,
     public readonly name: ComponentName,
     public readonly cluster: ClusterReference,
     public readonly namespace: NamespaceNameAsString,
+    public state: ComponentStates,
   ) {}
 
   /* -------- Utilities -------- */
@@ -54,6 +57,10 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
     if (!Object.values(ComponentTypes).includes(this.type)) {
       throw new SoloError(`Invalid component type: ${this.type}`);
     }
+
+    if (!Object.values(ComponentStates).includes(this.state)) {
+      throw new SoloError(`Invalid component state: ${this.state}`);
+    }
   }
 
   public toObject(): Component {
@@ -61,6 +68,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
       name: this.name,
       cluster: this.cluster,
       namespace: this.namespace,
+      state: this.state,
     };
   }
 }
