@@ -22,6 +22,7 @@ import {type ToObject, type Validate} from '../../../types/index.js';
 import {Templates} from '../../templates.js';
 import {type NodeAliases} from '../../../types/aliases.js';
 import {type CloneTrait} from '../../../types/traits/clone-trait.js';
+import {BlockNodeComponent} from './components/block-node-component.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -32,14 +33,6 @@ import {type CloneTrait} from '../../../types/traits/clone-trait.js';
 export class ComponentsDataWrapper
   implements Validate, ToObject<ComponentsDataStructure>, CloneTrait<ComponentsDataWrapper>
 {
-  /**
-   * @param relays - Relay record mapping service name to relay components
-   * @param haProxies - HA Proxies record mapping service name to ha proxies components
-   * @param mirrorNodes - Mirror Nodes record mapping service name to mirror nodes components
-   * @param envoyProxies - Envoy Proxies record mapping service name to envoy proxies components
-   * @param consensusNodes - Consensus Nodes record mapping service name to consensus nodes components
-   * @param mirrorNodeExplorers - Mirror Node Explorers record mapping service name to mirror node explorers components
-   */
   private constructor(
     public readonly relays: Record<ComponentName, RelayComponent> = {},
     public readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
@@ -47,6 +40,7 @@ export class ComponentsDataWrapper
     public readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
     public readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
     public readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
+    public readonly blockNodes: Record<ComponentName, BlockNodeComponent> = {},
   ) {
     this.validate();
   }
@@ -55,55 +49,49 @@ export class ComponentsDataWrapper
 
   /** Used to add new component to their respective group. */
   public add(component: BaseComponent): void {
-    const self = this;
-
-    const serviceName = component.name;
+    const serviceName: string = component.name;
 
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);
     }
 
     if (!(component instanceof BaseComponent)) {
-      throw new SoloError('Component must be instance of BaseComponent', null, BaseComponent);
+      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent);
     }
 
-    function addComponentCallback(components: Record<ComponentName, BaseComponent>): void {
-      if (self.exists(components, component)) {
-        throw new SoloError('Component exists', null, component.toObject());
+    const addComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+      if (this.exists(components, component)) {
+        throw new SoloError('Component exists', undefined, component.toObject());
       }
       components[serviceName] = component;
-    }
+    };
 
-    self.applyCallbackToComponentGroup(component.type, serviceName, addComponentCallback);
+    this.applyCallbackToComponentGroup(component.type, serviceName, addComponentCallback);
   }
 
   /** Used to edit an existing component from their respective group. */
   public edit(component: BaseComponent): void {
-    const self = this;
-
-    const serviceName = component.name;
+    const serviceName: string = component.name;
 
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);
     }
     if (!(component instanceof BaseComponent)) {
-      throw new SoloError('Component must be instance of BaseComponent', null, BaseComponent);
+      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent);
     }
 
-    function editComponentCallback(components: Record<ComponentName, BaseComponent>): void {
+    const editComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
       if (!components[serviceName]) {
-        throw new SoloError(`Component doesn't exist, name: ${serviceName}`, null, {component});
+        throw new SoloError(`Component doesn't exist, name: ${serviceName}`, undefined, {component});
       }
       components[serviceName] = component;
-    }
+    };
 
-    self.applyCallbackToComponentGroup(component.type, serviceName, editComponentCallback);
+    this.applyCallbackToComponentGroup(component.type, serviceName, editComponentCallback);
   }
 
   /** Used to remove specific component from their respective group. */
   public remove(serviceName: ComponentName, type: ComponentType): void {
-    const self = this;
-
     if (!serviceName || typeof serviceName !== 'string') {
       throw new SoloError(`Service name is required ${serviceName}`);
     }
@@ -118,7 +106,7 @@ export class ComponentsDataWrapper
       delete components[serviceName];
     }
 
-    self.applyCallbackToComponentGroup(type, serviceName, deleteComponentCallback);
+    this.applyCallbackToComponentGroup(type, serviceName, deleteComponentCallback);
   }
 
   /* -------- Utilities -------- */

@@ -22,6 +22,7 @@ import * as versions from '../../version.js';
 import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Lock} from '../core/lock/lock.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import os from 'node:os';
 
 interface BlockNodesDeployConfigClass {
   chartVersion: string;
@@ -79,6 +80,14 @@ export class BlockNodesCommand extends BaseCommand {
         'ingress.hosts[0].host': config.domainName,
         'ingress.hosts[0].paths[0].path': '/',
         'ingress.hosts[0].paths[0].pathType': 'ImplementationSpecific',
+      });
+    }
+
+    // Fix for M4 chips (ARM64)
+    const arch: string = os.arch();
+    if (arch === 'arm64' || arch === 'aarch64') {
+      valuesArgument += helpers.populateHelmArguments({
+        JAVA_OPTS: '-Xms8G -Xmx8G -XX:UseSVE=0',
       });
     }
 
@@ -159,13 +168,6 @@ export class BlockNodesCommand extends BaseCommand {
           title: 'Deploy BlockNodes',
           task: async (context_): Promise<void> => {
             const config: BlockNodesDeployConfigClass = context_.config;
-
-            // TODO CHECK OS if M4
-            // # Fix for M4 chips
-            // ARCH="$(uname -p)"
-            // if [[ "${ARCH}" == "arm64" || "${ARCH}" == "aarch64" ]]; then
-            //   JAVA_OPTS="${JAVA_OPTS} -XX:UseSVE=0"
-            // fi
 
             await this.chartManager.install(
               config.namespace,
@@ -256,7 +258,9 @@ export class BlockNodesCommand extends BaseCommand {
 
               await self.deploy(argv).then((r): void => {
                 self.logger.info('==== Finished running `relay deploy`====');
-                if (!r) throw new SoloError('Error deploying relay, expected return value to be true');
+                if (!r) {
+                  throw new SoloError('Error deploying relay, expected return value to be true');
+                }
               });
             },
           })
