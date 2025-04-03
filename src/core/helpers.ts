@@ -24,6 +24,7 @@ import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
 import {ShellRunner} from './shell-runner.js';
+import {type Realm, type Shard} from './config/remote/types.js';
 
 export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
@@ -540,4 +541,8 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
     logger.info('Not running on macOS ARM (Apple Silicon).');
     return ['unknown'];
   }
+}
+
+export function entityId(realm: Realm, shard: Shard, number: Long | number): string {
+  return `${realm}.${shard}.${number}`;
 }

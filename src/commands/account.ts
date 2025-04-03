@@ -20,6 +20,7 @@ import {Templates} from '../core/templates.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
 import {Deployment} from '../data/schema/model/local/deployment.js';
+import {entityId} from '../core/helpers.js';
 
 interface UpdateAccountConfig {
   accountId: string;
@@ -313,8 +314,8 @@ export class AccountCommand extends BaseCommand {
                     const shard: Shard = this.localConfig.getShard(context_.config.deployment);
 
                     for (const currentSet of context_.accountsBatchedSet) {
-                      const accountStart = `${realm}.${shard}.${currentSet[0]}`;
-                      const accountEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
+                      const accountStart = entityId(realm, shard, currentSet[0]);
+                      const accountEnd = entityId(realm, shard, currentSet.at(-1));
                       const rangeString =
                         accountStart === accountEnd
                           ? `${chalk.yellow(accountStart)}`

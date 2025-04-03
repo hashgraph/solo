@@ -33,6 +33,7 @@ import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DeploymentName, Realm, Shard} from '../../../src/core/config/remote/types.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import {entityId} from '../../../src/core/helpers.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -146,7 +147,7 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
             it(`account ${index} should not have genesis key`, async () => {
               expect(accountManager._nodeClient).not.to.be.null;
 
-              const accountId = `${realm}.${shard}.${index}`;
+              const accountId = entityId(realm, shard, index);
               testLogger.info(`Fetching account keys: accountId ${accountId}`);
               const keys = await accountManager.getAccountKeys(accountId);
               testLogger.info(`Fetched account keys: accountId ${accountId}`);
@@ -408,8 +409,8 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
         try {
           // Setup network configuration
           const networkConfig = {};
-          networkConfig['127.0.0.1:30212'] = AccountId.fromString('0.0.3');
-          networkConfig['127.0.0.1:30213'] = AccountId.fromString('0.0.4');
+          networkConfig['127.0.0.1:30212'] = AccountId.fromString('1.2.3');
+          networkConfig['127.0.0.1:30213'] = AccountId.fromString('1.2.4');
 
           // Instantiate SDK client
           const sdkClient = Client.fromConfig({network: networkConfig, scheduleNetworkUpdate: false});

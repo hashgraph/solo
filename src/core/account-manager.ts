@@ -38,7 +38,7 @@ import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type AccountIdWithKeyPairObject, type ExtendedNetServer} from '../types/index.js';
 import {type NodeAlias, type NodeAliases, type SdkNetworkEndpoint} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
-import {getExternalAddress, isNumeric, sleep} from './helpers.js';
+import {entityId, getExternalAddress, isNumeric, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
@@ -944,7 +944,7 @@ export class AccountManager {
       const realm = transactionReceipt.accountId!.realm;
       const shard = transactionReceipt.accountId!.shard;
       const accountInfoQueryResult = await this.accountInfoQuery(accountId);
-      accountInfo.accountAlias = `${realm}.${shard}.${accountInfoQueryResult.contractAccountId}`;
+      accountInfo.accountAlias = entityId(realm, shard, Long.fromString(accountInfoQueryResult.contractAccountId));
     }
 
     try {
@@ -1044,7 +1044,9 @@ export class AccountManager {
   ): Promise<string> {
     await this.loadNodeClient(namespace, clusterReferences, deployment, forcePortForward);
     const client = this._nodeClient;
-    const fileId = FileId.fromString(`0.0.${fileNumber}`);
+    const realm = this.localConfig.getRealm(deployment);
+    const shard = this.localConfig.getShard(deployment);
+    const fileId = FileId.fromString(entityId(realm, shard, fileNumber));
     const queryFees = new FileContentsQuery().setFileId(fileId);
     return Buffer.from(await queryFees.execute(client)).toString('hex');
   }
@@ -1083,7 +1085,7 @@ export class AccountManager {
   public getAccountIdByNumber(deployment: DeploymentName, number: number | Long): AccountId {
     const realm = this.localConfig.getRealm(deployment);
     const shard = this.localConfig.getShard(deployment);
-    return AccountId.fromString(`${realm}.${shard}.${number}`);
+    return AccountId.fromString(entityId(realm, shard, number));
   }
 
   public getOperatorAccountId(deployment: DeploymentName): AccountId {
@@ -1124,7 +1126,7 @@ export class AccountManager {
     const firstAccountId: AccountId = this.getStartAccountId(deploymentName);
 
     for (const nodeAlias of nodeAliases) {
-      const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId.num)}`;
+      const nodeAccount: string = entityId(realm, shard, Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId.num));
       accountMap.set(nodeAlias, nodeAccount);
     }
     return accountMap;

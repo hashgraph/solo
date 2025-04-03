@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
 import {dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -200,7 +199,7 @@ export const DEFAULT_NETWORK_NODE_NAME = 'node1';
 
 // file-id must be between 0.0.150 and 0.0.159
 // file must be uploaded using FileUpdateTransaction in maximum of 5Kb chunks
-export const UPGRADE_FILE_ID = FileId.fromString('0.0.150');
+export const UPGRADE_FILE_ID_NUM = 150;
 export const UPGRADE_FILE_CHUNK_SIZE = 1024 * 5; // 5Kb
 
 export const JVM_DEBUG_PORT = 5005;

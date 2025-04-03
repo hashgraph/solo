@@ -22,6 +22,7 @@ import {
   AccountUpdateTransaction,
   type Client,
   FileAppendTransaction,
+  FileId,
   FileUpdateTransaction,
   FreezeTransaction,
   FreezeType,
@@ -30,7 +31,9 @@ import {
   NodeDeleteTransaction,
   NodeUpdateTransaction,
   PrivateKey,
-  Timestamp, TransactionReceipt, TransactionResponse,
+  Timestamp,
+  TransactionReceipt,
+  TransactionResponse,
 } from '@hashgraph/sdk';
 import {SoloError} from '../../core/errors/solo-error.js';
 import {MissingArgumentError} from '../../core/errors/missing-argument-error.js';
@@ -39,7 +42,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import * as helpers from '../../core/helpers.js';
 import {
-  addDebugOptions,
+  addDebugOptions, entityId,
   prepareEndpoints,
   renameAndCopyFile,
   showVersionBanner,
@@ -149,6 +152,12 @@ export class NodeCommandTasks {
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
   }
 
+  private getFileUpgradeId(deploymentName: DeploymentName): FileId {
+    const realm = this.localConfig.getRealm(deploymentName);
+    const shard = this.localConfig.getShard(deploymentName);
+    return FileId.fromString(entityId(realm, shard, constants.UPGRADE_FILE_ID_NUM));
+  }
+
   private async _prepareUpgradeZip(stagingDirectory: string): Promise<string> {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
@@ -183,7 +192,7 @@ export class NodeCommandTasks {
     );
   }
 
-  private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: Client): Promise<string> {
+  private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: Client, deploymentName: DeploymentName): Promise<string> {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile);
     const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex');
@@ -200,14 +209,14 @@ export class NodeCommandTasks {
         let fileTransaction = null;
 
         if (start === 0) {
-          fileTransaction = new FileUpdateTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
+          fileTransaction = new FileUpdateTransaction().setFileId(this.getFileUpgradeId(deploymentName)).setContents(zipBytesChunk);
         } else {
-          fileTransaction = new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
+          fileTransaction = new FileAppendTransaction().setFileId(this.getFileUpgradeId(deploymentName)).setContents(zipBytesChunk);
         }
         const resp = await fileTransaction.execute(nodeClient);
         const receipt = await resp.getReceipt(nodeClient);
         this.logger.debug(
-          `updated file ${constants.UPGRADE_FILE_ID} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`,
+          `updated file ${this.getFileUpgradeId(deploymentName)} [chunkSize= ${zipBytesChunk.length}, txReceipt = ${receipt.toString()}]`,
         );
 
         start += constants.UPGRADE_FILE_CHUNK_SIZE;
@@ -676,14 +685,14 @@ export class NodeCommandTasks {
       title: 'Prepare upgrade zip file for node upgrade process',
       task: async context_ => {
         const config = context_.config;
-        const {upgradeZipFile} = context_.config;
+        const {upgradeZipFile, deployment} = context_.config;
         if (upgradeZipFile) {
           this.logger.debug(`Using upgrade zip file: ${context_.upgradeZipFile}`);
           context_.upgradeZipFile = upgradeZipFile;
         } else {
           context_.upgradeZipFile = await self._prepareUpgradeZip(config.stagingDir);
         }
-        context_.upgradeZipHash = await self._uploadUpgradeZip(context_.upgradeZipFile, config.nodeClient);
+        context_.upgradeZipHash = await self._uploadUpgradeZip(context_.upgradeZipFile, config.nodeClient, deployment);
       },
     };
   }
@@ -767,7 +776,7 @@ export class NodeCommandTasks {
 
           const prepareUpgradeTx: TransactionResponse = await new FreezeTransaction()
             .setFreezeType(FreezeType.PrepareUpgrade)
-            .setFileId(constants.UPGRADE_FILE_ID)
+            .setFileId(this.getFileUpgradeId(deployment))
             .setFileHash(upgradeZipHash)
             .freezeWith(nodeClient)
             .execute(nodeClient);
@@ -811,7 +820,7 @@ export class NodeCommandTasks {
           const freezeUpgradeTx = await new FreezeTransaction()
             .setFreezeType(FreezeType.FreezeUpgrade)
             .setStartTimestamp(Timestamp.fromDate(futureDate))
-            .setFileId(constants.UPGRADE_FILE_ID)
+            .setFileId(this.getFileUpgradeId(deployment))
             .setFileHash(upgradeZipHash)
             .freezeWith(nodeClient)
             .execute(nodeClient);
