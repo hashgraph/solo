@@ -85,7 +85,7 @@ export type SoloListrTaskWrapper<T> = ListrTaskWrapper<T, any, any>;
 export type SoloListr<T> = Listr<T, any, any>;
 
 export interface ServiceEndpoint {
-  ipAddressV4?: string;
+  ipAddressV4?: Uint8Array;
   port: number;
   domainName: string;
 }

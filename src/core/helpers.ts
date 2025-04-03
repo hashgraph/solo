@@ -545,6 +545,15 @@ export function isIPv4Address(input: string): boolean {
   return ipv4Regex.test(input);
 }
 
+/**
+ * Convert an IPv4 address to a 4 byte array removing the periods
+ * @param ip The IPv4 address to convert
+ * @returns A Uint8Array representing the IPv4 address
+ */
+export function ipv4ToByteArray(ip: string): Uint8Array {
+  return new Uint8Array(ip.split('.').map(Number));
+}
+
 /** Get the Apple Silicon chip type */
 export async function getAppleSiliconChipset(logger: SoloLogger) {
   const isMacOS = process.platform === 'darwin';
