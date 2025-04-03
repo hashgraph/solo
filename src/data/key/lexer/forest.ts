@@ -82,11 +82,7 @@ export class Forest {
     const object: object = {};
 
     for (const [key, node] of this.lexer.tree.entries()) {
-      if (node.isLeaf()) {
-        object[key] = (node as LexerLeafNode).value;
-      } else {
-        object[key] = (node as LexerInternalNode).toObject();
-      }
+      object[key] = node.isLeaf() ? (node as LexerLeafNode).value : (node as LexerInternalNode).toObject();
     }
 
     return object;

@@ -78,7 +78,7 @@ describe('File Storage Backend', () => {
     const temporaryFile: string = PathEx.join(temporaryDirectory, key);
     const backend: FileStorageBackend = new FileStorageBackend(temporaryDirectory);
     await backend.writeBytes(key, Buffer.from('test', 'utf-8'));
-    expect(fs.readFileSync(temporaryFile, 'utf-8')).to.equal('test');
+    expect(fs.readFileSync(temporaryFile, 'utf8')).to.equal('test');
   });
 
   it('test writeBytes with empty key', async () => {

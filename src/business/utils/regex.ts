@@ -8,6 +8,6 @@ export class Regex {
   }
 
   public static escape(string_: string): string {
-    return string_.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    return string_.replaceAll(/[-/\\^$*+?.()|[\]{}]/g, String.raw`\$&`);
   }
 }

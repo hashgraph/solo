@@ -26,7 +26,7 @@ describe('Helm Software Loader Test', () => {
     // Check if file is executable
     try {
       execSync(`test -x "${helmPath}"`, {stdio: 'ignore'});
-    } catch (error) {
+    } catch {
       expect.fail('Helm executable should be executable');
     }
 
@@ -38,13 +38,13 @@ describe('Helm Software Loader Test', () => {
     let helmVersion: string;
     try {
       helmVersion = execSync(`"${helmPath}" version --short`, {encoding: 'utf8'}).trim();
-    } catch (error) {
+    } catch {
       expect.fail('Failed to execute helm version command');
     }
 
     expect(helmVersion).to.not.be.empty;
     if (helmVersion.toLowerCase().startsWith('v')) {
-      helmVersion = helmVersion.substring(1);
+      helmVersion = helmVersion.slice(1);
     }
 
     const actualVersion = SemanticVersion.parse(helmVersion);

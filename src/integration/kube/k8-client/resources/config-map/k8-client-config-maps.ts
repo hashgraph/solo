@@ -105,11 +105,10 @@ export class K8ClientConfigMaps implements ConfigMaps {
         : await this.kubeClient.createNamespacedConfigMap(namespace.name, configMap);
       return KubeApiResponse.isCreatedStatus(resp.response);
     } catch (error) {
-      if (replace) {
-        throw new ResourceReplaceError(ResourceType.CONFIG_MAP, namespace, name, error);
-      } else {
-        throw new ResourceCreateError(ResourceType.CONFIG_MAP, namespace, name, error);
-      }
+      const error_ = replace
+        ? new ResourceReplaceError(ResourceType.CONFIG_MAP, namespace, name, error)
+        : new ResourceCreateError(ResourceType.CONFIG_MAP, namespace, name, error);
+      throw error_;
     }
   }
 

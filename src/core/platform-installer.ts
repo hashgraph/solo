@@ -277,7 +277,7 @@ export class PlatformInstaller {
         const secretCreated = await this.k8Factory
           .getK8(context)
           .secrets()
-          .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data, undefined);
+          .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data);
 
         if (!secretCreated) {
           throw new SoloError('failed to create secret for TLS keys');

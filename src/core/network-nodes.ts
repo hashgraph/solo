@@ -55,7 +55,7 @@ export class NetworkNodes {
       }
     }
 
-    const timeString = new Date().toISOString().replace(/:/g, '-').replace(/\./g, '-');
+    const timeString = new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-');
 
     const promises = [];
     for (const podData of podsData) {

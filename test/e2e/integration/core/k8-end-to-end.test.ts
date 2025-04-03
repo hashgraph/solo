@@ -257,7 +257,7 @@ describe('K8', () => {
     const pvcReference: PodReference = PodReference.of(testNamespace, PodName.of(`test-pvc-${uuid4()}`));
     try {
       await k8Factory.default().pvcs().create(pvcReference, {storage: '50Mi'}, ['ReadWriteOnce']);
-      const pvcs: string[] = await k8Factory.default().pvcs().list(testNamespace, undefined);
+      const pvcs: string[] = await k8Factory.default().pvcs().list(testNamespace);
       expect(pvcs).to.have.length.greaterThan(0);
     } catch (error) {
       console.error(error);
