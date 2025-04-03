@@ -26,7 +26,7 @@ import {PathEx} from '../../../src/business/utils/path-ex.js';
 describe('ProfileManager', () => {
   let temporaryDirectory: string, configManager: ConfigManager, profileManager: ProfileManager, cacheDirectory: string;
   const namespace = NamespaceName.of('test-namespace');
-  const deploymentName = 'test-deployment';
+  const deploymentName = 'deployment';
   const testProfileFile = PathEx.join('test', 'data', 'test-profiles.yaml');
   const kubeConfig = new KubeConfig();
   kubeConfig.loadFromDefault();

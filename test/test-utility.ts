@@ -516,14 +516,20 @@ export const testLocalConfigData = {
     deployment: {
       clusters: ['cluster-1'],
       namespace: 'solo-e2e',
+      realm: 1,
+      shard: 2,
     },
     'deployment-2': {
       clusters: ['cluster-2'],
       namespace: 'solo-2',
+      realm: 3,
+      shard: 4,
     },
     'deployment-3': {
       clusters: ['cluster-3'],
       namespace: 'solo-3',
+      realm: 5,
+      shard: 6,
     },
   },
   clusterRefs: {
