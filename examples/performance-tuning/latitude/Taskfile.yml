@@ -29,4 +29,7 @@ env:
   #EXPLORER_NAME_SPACE: "explorer-name-space"
   #EXPLORER_DEPLOYMENT: "explorer-deployment"
   #EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
-
+  MIRROR_RELEASE_NAME: "mirror_release"
+  SOLO_CLUSTER_NAME: "%SOLO_NAMESPACE%-cluster"
+  SOLO_CLUSTER_RELEASE_NAME: "cluster_name"
+  SOLO_CLUSTER_SETUP_NAMESPACE: "%SOLO_NAMESPACE%-setup"
