@@ -23,7 +23,7 @@ on:
   # Runs on pushes targeting the default branch
   push:
     branches:
-      - main
+      - release/0.35
     paths:
       - '**/*.mjs'
       - '**/*.js'
@@ -102,20 +102,20 @@ jobs:
       # Upload the built site to GitHub Pages
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        if: ${{ endsWith(github.ref, 'main') }}
+        if: ${{ endsWith(github.ref, 'release/0.35') }}
         with:
           path: ./docs/public
 
       # Upload the built site to artifacts for troubleshooting or verification
       - name: Upload Artifact
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-        if: ${{ !endsWith(github.ref, 'main') }}
+        if: ${{ !endsWith(github.ref, 'release/0.35') }}
         with:
           path: ./docs/public
 
   # Deployment job
   Deploy:
-    if: ${{ endsWith(github.ref, 'main') }}
+    if: ${{ endsWith(github.ref, 'release/0.35') }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
