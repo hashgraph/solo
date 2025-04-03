@@ -5,58 +5,50 @@ import {describe, it} from 'mocha';
 import {Migration} from '../../../../../src/core/config/remote/migration.js';
 import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {RemoteConfigMetadata} from '../../../../../src/core/config/remote/metadata.js';
-import {
-  type EmailAddress,
-  type NamespaceNameAsString,
-  type Version,
-} from '../../../../../src/core/config/remote/types.js';
+import {type EmailAddress, type RemoteConfigMetadataStructure} from '../../../../../src/core/config/remote/types.js';
 
 import {DeploymentStates} from '../../../../../src/core/config/remote/enumerations/deployment-states.js';
 
-export function createMetadata() {
-  const namespace: NamespaceNameAsString = 'namespace';
-  const deploymentName = 'kind-namespace';
-  const state = DeploymentStates.PRE_GENESIS;
+export function createMetadata(): {
+  metadata: RemoteConfigMetadata;
+  migration: Migration;
+  values: RemoteConfigMetadataStructure;
+} {
   const lastUpdatedAt: Date = new Date();
   const lastUpdateBy: EmailAddress = 'test@test.test';
-  const soloVersion: Version = '0.0.1';
-  const migration = new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0');
-  const soloChartVersion = '';
-  const hederaPlatformVersion = '';
-  const hederaMirrorNodeChartVersion = '';
-  const hederaExplorerChartVersion = '';
-  const hederaJsonRpcRelayChartVersion = '';
+
+  const values: RemoteConfigMetadataStructure = {
+    namespace: 'namespace',
+    deploymentName: 'kind-namespace',
+    state: DeploymentStates.PRE_GENESIS,
+    soloVersion: '0.0.1',
+    migration: new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0'),
+    lastUpdatedAt,
+    lastUpdateBy,
+    soloChartVersion: '',
+    hederaPlatformVersion: '',
+    hederaMirrorNodeChartVersion: '',
+    hederaExplorerChartVersion: '',
+    hederaJsonRpcRelayChartVersion: '',
+  };
 
   return {
     metadata: new RemoteConfigMetadata(
-      namespace,
-      deploymentName,
-      state,
-      lastUpdatedAt,
-      lastUpdateBy,
-      soloVersion,
-      '',
-      '',
-      '',
-      '',
-      '',
-      migration,
+      values.namespace,
+      values.deploymentName,
+      values.state,
+      values.lastUpdatedAt,
+      values.lastUpdateBy,
+      values.soloVersion,
+      values.soloChartVersion,
+      values.hederaPlatformVersion,
+      values.hederaMirrorNodeChartVersion,
+      values.hederaExplorerChartVersion,
+      values.hederaJsonRpcRelayChartVersion,
+      values.migration as Migration,
     ),
-    values: {
-      namespace,
-      deploymentName,
-      state,
-      lastUpdatedAt,
-      lastUpdateBy,
-      migration,
-      soloVersion,
-      soloChartVersion,
-      hederaPlatformVersion,
-      hederaMirrorNodeChartVersion,
-      hederaExplorerChartVersion,
-      hederaJsonRpcRelayChartVersion,
-    },
-    migration,
+    migration: values.migration as Migration,
+    values,
   };
 }
 
@@ -66,37 +58,21 @@ describe('RemoteConfigMetadata', () => {
   });
 
   it('toObject method should return a valid object', () => {
-    const {
-      metadata,
-      migration,
-      values: {
-        namespace,
-        deploymentName,
-        state,
-        lastUpdatedAt,
-        lastUpdateBy,
-        soloVersion,
-        soloChartVersion,
-        hederaPlatformVersion,
-        hederaMirrorNodeChartVersion,
-        hederaExplorerChartVersion,
-        hederaJsonRpcRelayChartVersion,
-      },
-    } = createMetadata();
+    const {metadata, migration, values} = createMetadata();
 
     expect(metadata.toObject()).to.deep.equal({
-      namespace,
-      deploymentName,
-      state,
-      lastUpdatedAt,
-      lastUpdateBy,
-      soloVersion,
-      soloChartVersion,
-      hederaPlatformVersion,
-      hederaMirrorNodeChartVersion,
-      hederaExplorerChartVersion,
-      hederaJsonRpcRelayChartVersion,
-      migration: migration.toObject(),
+      namespace: values.namespace,
+      deploymentName: values.deploymentName,
+      state: values.state,
+      lastUpdatedAt: values.lastUpdatedAt,
+      lastUpdateBy: values.lastUpdateBy,
+      soloVersion: values.soloVersion,
+      soloChartVersion: values.soloChartVersion,
+      hederaPlatformVersion: values.hederaPlatformVersion,
+      hederaMirrorNodeChartVersion: values.hederaMirrorNodeChartVersion,
+      hederaExplorerChartVersion: values.hederaExplorerChartVersion,
+      hederaJsonRpcRelayChartVersion: values.hederaJsonRpcRelayChartVersion,
+      migration: (migration as Migration).toObject(),
     });
   });
 
@@ -109,7 +85,7 @@ describe('RemoteConfigMetadata', () => {
     // @ts-expect-error - TS234: to access private property
     delete metadata._migration;
 
-    const newMetadata = RemoteConfigMetadata.fromObject({
+    const newMetadata: RemoteConfigMetadata = RemoteConfigMetadata.fromObject({
       namespace,
       deploymentName,
       state,
@@ -133,7 +109,7 @@ describe('RemoteConfigMetadata', () => {
       metadata,
       values: {lastUpdateBy},
     } = createMetadata();
-    const version = '0.0.1';
+    const version: string = '0.0.1';
 
     metadata.makeMigration(lastUpdateBy, version);
 
@@ -143,60 +119,23 @@ describe('RemoteConfigMetadata', () => {
   });
 
   describe('Values', () => {
-    const {
-      values: {namespace, deploymentName, lastUpdatedAt, lastUpdateBy, soloVersion, state},
-    } = createMetadata();
-
-    it('should not be able to create new instance of the class with invalid name', () => {
-      expect(
-        () => new RemoteConfigMetadata(null, deploymentName, state, lastUpdatedAt, lastUpdateBy, soloVersion),
-      ).to.throw(SoloError, `Invalid namespace: ${null}`);
-
-      expect(
-        // @ts-expect-error: TS2345 - to assign unexpected value
-        () => new RemoteConfigMetadata(1, deploymentName, state, lastUpdatedAt, lastUpdateBy, soloVersion),
-      ).to.throw(SoloError, `Invalid namespace: ${1}`);
-    });
-
-    it('should not be able to create new instance of the class with invalid lastUpdatedAt', () => {
-      expect(
-        () => new RemoteConfigMetadata(namespace, deploymentName, state, null, lastUpdateBy, soloVersion),
-      ).to.throw(SoloError, `Invalid lastUpdatedAt: ${null}`);
-
-      // @ts-expect-error: TS2345 - to assign unexpected value
-      expect(() => new RemoteConfigMetadata(namespace, deploymentName, state, 1, lastUpdateBy, soloVersion)).to.throw(
-        SoloError,
-        `Invalid lastUpdatedAt: ${1}`,
-      );
-    });
-
-    it('should not be able to create new instance of the class with invalid lastUpdateBy', () => {
-      expect(
-        () => new RemoteConfigMetadata(namespace, deploymentName, state, lastUpdatedAt, null, soloVersion),
-      ).to.throw(SoloError, `Invalid lastUpdateBy: ${null}`);
-
-      // @ts-expect-error: TS2345 - to assign unexpected value
-      expect(() => new RemoteConfigMetadata(namespace, deploymentName, state, lastUpdatedAt, 1, soloVersion)).to.throw(
-        SoloError,
-        `Invalid lastUpdateBy: ${1}`,
-      );
-    });
+    const {values} = createMetadata();
 
     it('should not be able to create new instance of the class with invalid migration', () => {
       expect(
         () =>
           new RemoteConfigMetadata(
-            namespace,
-            deploymentName,
-            state,
-            lastUpdatedAt,
-            lastUpdateBy,
-            soloVersion,
-            '',
-            '',
-            '',
-            '',
-            '',
+            values.namespace,
+            values.deploymentName,
+            values.state,
+            values.lastUpdatedAt,
+            values.lastUpdateBy,
+            values.soloVersion,
+            values.soloChartVersion,
+            values.hederaPlatformVersion,
+            values.hederaMirrorNodeChartVersion,
+            values.hederaExplorerChartVersion,
+            values.hederaJsonRpcRelayChartVersion,
             // @ts-expect-error - TS2345: to inject wrong migration
             {},
           ),

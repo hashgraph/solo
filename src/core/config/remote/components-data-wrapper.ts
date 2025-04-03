@@ -254,7 +254,15 @@ export class ComponentsDataWrapper
       }
     }
 
-    return new ComponentsDataWrapper(relays, haProxies, mirrorNodes, envoyProxies, consensusNodes, mirrorNodeExplorers);
+    return new ComponentsDataWrapper(
+      relays,
+      haProxies,
+      mirrorNodes,
+      envoyProxies,
+      consensusNodes,
+      mirrorNodeExplorers,
+      blockNodes,
+    );
   }
 
   /** Used to create an empty instance used to keep the constructor private */

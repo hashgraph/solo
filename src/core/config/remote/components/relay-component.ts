@@ -2,7 +2,7 @@
 
 import {SoloError} from '../../../errors/solo-error.js';
 import {BaseComponent} from './base-component.js';
-import {type IRelayComponent, type NamespaceNameAsString} from '../types.js';
+import {ClusterReference, type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
@@ -11,19 +11,19 @@ import {type ComponentStates} from '../enumerations/component-states.js';
 export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
   /**
    * @param name - to distinguish components.
-   * @param cluster - in which the component is deployed.
+   * @param clusterReference - in which the component is deployed.
    * @param namespace - associated with the component.
    * @param state - the state of the component
    * @param consensusNodeAliases - list node aliases
    */
   public constructor(
     name: string,
-    cluster: string,
+    clusterReference: ClusterReference,
     namespace: NamespaceNameAsString,
     state: ComponentStates,
     public readonly consensusNodeAliases: NodeAliases = [],
   ) {
-    super(ComponentTypes.Relay, name, cluster, namespace, state);
+    super(ComponentTypes.Relay, name, clusterReference, namespace, state);
     this.validate();
   }
 

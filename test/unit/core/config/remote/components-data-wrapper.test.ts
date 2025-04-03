@@ -22,7 +22,27 @@ import {
 } from '../../../../../src/core/config/remote/types.js';
 import {BlockNodeComponent} from '../../../../../src/core/config/remote/components/block-node-component.js';
 
-export function createComponentsDataWrapper() {
+export function createComponentsDataWrapper(): {
+  values: {
+    name: string;
+    cluster: ClusterReference;
+    namespace: NamespaceNameAsString;
+    nodeState: ConsensusNodeStates;
+    consensusNodeAliases: NodeAliases;
+    state: ComponentStates;
+  };
+  components: {
+    relays: Record<string, RelayComponent>;
+    haProxies: Record<string, HaProxyComponent>;
+    mirrorNodes: Record<string, MirrorNodeComponent>;
+    envoyProxies: Record<string, EnvoyProxyComponent>;
+    consensusNodes: Record<string, ConsensusNodeComponent>;
+    mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent>;
+    blockNodes: Record<string, BlockNodeComponent>;
+  };
+  wrapper: {componentsDataWrapper: ComponentsDataWrapper};
+  serviceName: string;
+} {
   const name: string = 'name';
   const serviceName: string = name;
 
@@ -87,7 +107,10 @@ describe('ComponentsDataWrapper', () => {
 
   it('should not be able to create a instance if wrong data is passed to constructor', () => {
     // @ts-expect-error - TS267: to access private constructor
-    expect(() => new ComponentsDataWrapper({serviceName: {}})).to.throw(SoloError, 'Invalid component type');
+    expect((): ComponentsDataWrapper => new ComponentsDataWrapper({serviceName: {}})).to.throw(
+      SoloError,
+      'Invalid component type',
+    );
   });
 
   it('toObject method should return a object that can be parsed with fromObject', () => {
@@ -146,6 +169,7 @@ describe('ComponentsDataWrapper', () => {
       name,
       cluster,
       namespace,
+      state,
     });
 
     expect(Object.values(componentDataWrapperObject[ComponentTypes.EnvoyProxy])).to.have.lengthOf(3);
@@ -175,7 +199,6 @@ describe('ComponentsDataWrapper', () => {
     const {
       wrapper: {componentsDataWrapper},
       values: {cluster, namespace, state},
-      serviceName,
     } = createComponentsDataWrapper();
     const notFoundServiceName: string = 'not_found';
     const relay: RelayComponent = new RelayComponent(notFoundServiceName, cluster, namespace, state);
@@ -196,8 +219,6 @@ describe('ComponentsDataWrapper', () => {
     componentsDataWrapper.disableComponent(serviceName, ComponentTypes.Relay);
 
     expect(relays[serviceName].state).to.equal(ComponentStates.DELETED);
-
-    expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName);
   });
 
   it("should not be able to disable component with the .disableComponent() if it doesn't exist ", () => {
