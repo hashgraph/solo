@@ -6,7 +6,7 @@ resources:
 blockNode:
   config:
     JAVA_TOOL_OPTIONS: "-Djava.util.logging.config.file=/app/logs/config/logging.properties"
-    JAVA_OPTS: "-Xms8G -Xmx8G"
+    JAVA_OPTS: "-Xms8G -Xmx8G -XX:UseSVE=0"
     MEDIATOR_RING_BUFFER_SIZE: "2048"
   persistence:
     archive:

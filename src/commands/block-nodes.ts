@@ -35,7 +35,6 @@ interface BlockNodesDeployConfigClass {
   valuesFile: Optional<string>;
   namespace: NamespaceName;
   nodeAliases: NodeAliases; // from remote config
-  releaseName: string;
   context: string;
   isChartInstalled: boolean;
   valuesArg: string;
@@ -86,14 +85,8 @@ export class BlockNodesCommand extends BaseCommand {
     return valuesArgument;
   }
 
-  private prepareReleaseName(nodeAliases: NodeAliases = []): string {
-    let releaseName: string = 'block-nodes'; // TODO
-
-    for (const nodeAlias of nodeAliases) {
-      releaseName += `-${nodeAlias}`;
-    }
-
-    return releaseName;
+  private getReleaseName(blockNodeId: string): string {
+    return constants.BLOCK_NODE_RELEASE_NAME + '-' + blockNodeId;
   }
 
   private async deploy(argv: ArgvStruct): Promise<boolean> {
@@ -131,8 +124,6 @@ export class BlockNodesCommand extends BaseCommand {
               .getConsensusNodes()
               .map((node): NodeAlias => node.name);
 
-            context_.config.releaseName = this.prepareReleaseName(context_.config.nodeAliases);
-
             if (!context_.config.clusterRef) {
               context_.config.clusterRef = this.k8Factory.default().clusters().readCurrent();
             }
@@ -151,7 +142,7 @@ export class BlockNodesCommand extends BaseCommand {
 
             config.isChartInstalled = await this.chartManager.isChartInstalled(
               config.namespace,
-              config.releaseName,
+              this.getReleaseName('33') /* TODO */,
               config.context,
             );
           },
@@ -169,17 +160,24 @@ export class BlockNodesCommand extends BaseCommand {
           task: async (context_): Promise<void> => {
             const config: BlockNodesDeployConfigClass = context_.config;
 
+            // TODO CHECK OS if M4
+            // # Fix for M4 chips
+            // ARCH="$(uname -p)"
+            // if [[ "${ARCH}" == "arm64" || "${ARCH}" == "aarch64" ]]; then
+            //   JAVA_OPTS="${JAVA_OPTS} -XX:UseSVE=0"
+            // fi
+
             await this.chartManager.install(
               config.namespace,
-              config.releaseName,
+              this.getReleaseName('33') /* TODO */,
               constants.BLOCK_NODE_CHART,
-              constants.BLOCK_NODE_CHART,
-              '',
+              constants.BLOCK_NODE_CHART_URL,
+              config.chartVersion,
               config.valuesArg,
               config.context,
             );
 
-            showVersionBanner(this.logger, config.releaseName, versions.BLOCK_NODE_VERSION);
+            showVersionBanner(this.logger, this.getReleaseName('33') /* TODO */, versions.BLOCK_NODE_VERSION);
           },
         },
         {
@@ -192,9 +190,9 @@ export class BlockNodesCommand extends BaseCommand {
               .pods()
               .waitForRunningPhase(
                 config.namespace,
-                ['app=hedera-json-rpc-block nodes', `app.kubernetes.io/instance=${config.releaseName}`], // TODO
-                constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
-                constants.RELAY_PODS_RUNNING_DELAY,
+                [`app.kubernetes.io/instance=${this.getReleaseName('33') /* TODO */}`],
+                constants.BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS,
+                constants.BLOCK_NODES_PODS_RUNNING_DELAY,
               );
           },
         },
@@ -208,12 +206,15 @@ export class BlockNodesCommand extends BaseCommand {
                 .pods()
                 .waitForReadyStatus(
                   config.namespace,
-                  ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
-                  constants.RELAY_PODS_READY_MAX_ATTEMPTS,
-                  constants.RELAY_PODS_READY_DELAY,
+                  [`app.kubernetes.io/instance=${this.getReleaseName('33') /* TODO */}`],
+                  constants.BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS,
+                  constants.BLOCK_NODES_PODS_RUNNING_DELAY,
                 );
             } catch (error) {
-              throw new SoloError(`BlockNodes ${config.releaseName} is not ready: ${error.message}`, error);
+              throw new SoloError(
+                `BlockNodes ${this.getReleaseName('33') /* TODO */} is not ready: ${error.message}`,
+                error,
+              );
             }
           },
         },
