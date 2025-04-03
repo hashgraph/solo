@@ -73,14 +73,7 @@ export class DeploymentCommand extends BaseCommand {
             self.configManager.update(argv);
             self.logger.debug('Updated config with argv', {config: self.configManager.config});
 
-            await self.configManager.executePrompt(task, [
-              flags.namespace,
-              flags.deployment,
-              flags.deploymentClusters,
-              flags.nodeAliasesUnparsed,
-              flags.context,
-              flags.userEmailAddress,
-            ]);
+            await self.configManager.executePrompt(task, [flags.namespace, flags.deployment, flags.deploymentClusters]);
             const deploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
 
             if (self.localConfig.deployments && self.localConfig.deployments[deploymentName]) {
