@@ -100,11 +100,10 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
     if (errors.length > 0) {
       // throw the first error:
       const property = Object.keys(errors[0]?.constraints);
-      if (property[0]) {
-        throw new SoloError(errors[0].constraints[property[0]]);
-      } else {
-        throw new SoloError(ErrorMessages.LOCAL_CONFIG_GENERIC);
-      }
+      const error = property[0]
+        ? new SoloError(errors[0].constraints[property[0]])
+        : new SoloError(ErrorMessages.LOCAL_CONFIG_GENERIC);
+      throw error;
     }
   }
 }

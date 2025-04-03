@@ -88,11 +88,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
           return null;
         }
 
-        if (node.isLeaf()) {
-          object = JSON.parse((node as LexerLeafNode).value);
-        } else {
-          object = (node as LexerInternalNode).toObject();
-        }
+        object = node.isLeaf() ? JSON.parse((node as LexerLeafNode).value) : (node as LexerInternalNode).toObject();
       } else {
         object = this.forest.toObject();
       }

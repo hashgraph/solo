@@ -559,8 +559,7 @@ export class ProfileManager {
 
     try {
       const configLines: string[] = [];
-      configLines.push(`swirld, ${chainId}`);
-      configLines.push(`app, ${appName}`);
+      configLines.push(`swirld, ${chainId}`, `app, ${appName}`);
 
       let nodeSeq = 0;
       for (const consensusNode of consensusNodes) {
@@ -570,18 +569,14 @@ export class ProfileManager {
           consensusNode.name as NodeAlias,
         );
 
-        let externalIP: string;
-
         const domainName: Optional<string> = domainNamesMapping?.[consensusNode.name];
-        if (domainName) {
-          externalIP = domainName;
-        } else {
-          externalIP = await helpers.getExternalAddress(
-            consensusNode,
-            this.k8Factory.getK8(consensusNode.context),
-            loadBalancerEnabled,
-          );
-        }
+        const externalIP: string = domainName
+          ? domainName
+          : await helpers.getExternalAddress(
+              consensusNode,
+              this.k8Factory.getK8(consensusNode.context),
+              loadBalancerEnabled,
+            );
 
         const account = nodeAccountMap.get(consensusNode.name as NodeAlias);
 

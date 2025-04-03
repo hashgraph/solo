@@ -432,8 +432,7 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
     // Ensure the file contains valid JSON data
     JSON.parse(fs.readFileSync(resolvedFilePath, 'utf8'));
     return resolvedFilePath;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error: unknown) {
+  } catch {
     // Fallback to the default values if an error occurs due to invalid JSON data or unable to read the file size
     if (defaultPath) {
       return resolveValidJsonFilePath(defaultPath, null);
