@@ -548,10 +548,10 @@ export function isIPv4Address(input: string): boolean {
 /**
  * Convert an IPv4 address to a 4 byte array removing the periods
  * @param ip The IPv4 address to convert
- * @returns A Uint8Array representing the IPv4 address
+ * @returns A Uint8Array represented as a number array representing the IPv4 address
  */
-export function ipv4ToByteArray(ip: string): Uint8Array {
-  return new Uint8Array(ip.split('.').map(Number));
+export function ipv4ToByteArray(ip: string): number[] {
+  return [...new Uint8Array(ip.split('.').map(Number))];
 }
 
 /** Get the Apple Silicon chip type */
