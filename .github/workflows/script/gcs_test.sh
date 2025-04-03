@@ -93,6 +93,7 @@ kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 
 if [ "${storageType}" == "minio_only" ]; then
   cd examples
+  SOLO_DEPLOYMENT=solo-deployment
   task default-with-mirror
   cd -
 else
@@ -126,7 +127,7 @@ else
   kubectl port-forward -n "${SOLO_NAMESPACE}" svc/"${explorer_svc}" 8080:80 > /dev/null 2>&1 &
 fi
 
-cd ..; create_test_account ; cd -
+cd ..; create_test_account ${SOLO_DEPLOYMENT}; cd -
 
 node examples/create-topic.js
 
