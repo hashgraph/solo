@@ -2,7 +2,7 @@
 
 Quick start:
 
-* [Start solo network with single command](TaskTool.md)
+* [Start solo network with single command](../Developer/Development/TaskTool.md)
 
 For Developers working on Hedera Application and platform development:
 
