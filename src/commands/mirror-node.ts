@@ -17,7 +17,6 @@ import * as helpers from '../core/helpers.js';
 import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 import * as fs from 'node:fs';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
@@ -36,6 +35,7 @@ import {type ClusterReference, type DeploymentName} from '../core/config/remote/
 import {showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -881,7 +881,7 @@ export class MirrorNodeCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.removeComponent('mirrorNode', ComponentType.MirrorNode);
+          remoteConfig.components.removeComponent('mirrorNode', ComponentTypes.MirrorNode);
         });
       },
     };

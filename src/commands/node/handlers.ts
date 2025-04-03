@@ -7,7 +7,6 @@ import * as constants from '../../core/constants.js';
 import {type LockManager} from '../../core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {SoloError} from '../../core/errors/solo-error.js';
-import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
@@ -28,6 +27,8 @@ import {type NodeDeleteContext} from './config-interfaces/node-delete-context.js
 import {type NodeAddContext} from './config-interfaces/node-add-context.js';
 import {type NodeUpdateContext} from './config-interfaces/node-update-context.js';
 import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
+import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
+import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -905,9 +906,9 @@ export class NodeCommandHandlers extends CommandHandler {
       title: 'Remove node and proxies from remote config',
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.removeComponent('Consensus node name', ComponentType.ConsensusNode);
-          remoteConfig.components.removeComponent('Envoy proxy name', ComponentType.EnvoyProxy);
-          remoteConfig.components.removeComponent('HaProxy name', ComponentType.HaProxy);
+          remoteConfig.components.removeComponent('Consensus node name', ComponentTypes.ConsensusNode);
+          remoteConfig.components.removeComponent('Envoy proxy name', ComponentTypes.EnvoyProxy);
+          remoteConfig.components.removeComponent('HaProxy name', ComponentTypes.HaProxy);
         });
       },
     };
@@ -1037,7 +1038,7 @@ export class NodeCommandHandlers extends CommandHandler {
   ): ConsensusNodeStates {
     let nodeComponent: ConsensusNodeComponent;
     try {
-      nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
+      nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentTypes.ConsensusNode, nodeAlias);
     } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }

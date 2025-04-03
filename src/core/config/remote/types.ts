@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type NodeAliases} from '../../../types/aliases.js';
-import {type ComponentType, type ConsensusNodeStates, type DeploymentStates} from './enumerations.js';
+import {ComponentTypes} from './enumerations/component-types.js';
+import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
+import {DeploymentStates} from './enumerations/deployment-states.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
@@ -43,7 +45,7 @@ export interface ICluster {
   dnsConsensusNodePattern: string;
 }
 
-export type ComponentsDataStructure = Record<ComponentType, Record<ComponentName, Component>>;
+export type ComponentsDataStructure = Record<ComponentTypes, Record<ComponentName, Component>>;
 
 export type RemoteConfigCommonFlagsStruct = {
   releaseTag?: string;

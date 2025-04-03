@@ -10,9 +10,10 @@ import {EnvoyProxyComponent} from '../../../../../src/core/config/remote/compone
 import {ConsensusNodeComponent} from '../../../../../src/core/config/remote/components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from '../../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
 import {RelayComponent} from '../../../../../src/core/config/remote/components/relay-component.js';
-import {ComponentType, ConsensusNodeStates} from '../../../../../src/core/config/remote/enumerations.js';
 import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {type NodeAliases} from '../../../../../src/types/aliases.js';
+import {ComponentTypes} from '../../../../../src/core/config/remote/enumerations/component-types.js';
+import {ConsensusNodeStates} from '../../../../../src/core/config/remote/enumerations/consensus-node-states.js';
 
 export function createComponentsDataWrapper() {
   const name = 'name';
@@ -83,7 +84,7 @@ describe('ComponentsDataWrapper', () => {
 
     expect(componentsDataWrapperObject).to.deep.equal(newComponentsDataWrapper.toObject());
 
-    for (const type of Object.values(ComponentType)) {
+    for (const type of Object.values(ComponentTypes)) {
       expect(componentsDataWrapperObject).to.have.ownProperty(type);
     }
 
@@ -119,15 +120,15 @@ describe('ComponentsDataWrapper', () => {
 
     const componentDataWrapperObject = componentsDataWrapper.toObject();
 
-    expect(componentDataWrapperObject[ComponentType.EnvoyProxy]).has.own.property(newServiceName);
+    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy]).has.own.property(newServiceName);
 
-    expect(componentDataWrapperObject[ComponentType.EnvoyProxy][newServiceName]).to.deep.equal({
+    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy][newServiceName]).to.deep.equal({
       name,
       cluster,
       namespace,
     });
 
-    expect(Object.values(componentDataWrapperObject[ComponentType.EnvoyProxy])).to.have.lengthOf(3);
+    expect(Object.values(componentDataWrapperObject[ComponentTypes.EnvoyProxy])).to.have.lengthOf(3);
   });
 
   it('should be able to edit component with the .edit()', () => {
@@ -147,7 +148,7 @@ describe('ComponentsDataWrapper', () => {
 
     componentsDataWrapper.editComponent(newReplayComponent);
 
-    expect(componentsDataWrapper.toObject()[ComponentType.Relay][relayComponent.name].cluster).to.equal(newCluster);
+    expect(componentsDataWrapper.toObject()[ComponentTypes.Relay][relayComponent.name].cluster).to.equal(newCluster);
   });
 
   it("should not be able to edit component with the .edit() if it doesn't exist ", () => {
@@ -172,7 +173,7 @@ describe('ComponentsDataWrapper', () => {
       serviceName,
     } = createComponentsDataWrapper();
 
-    componentsDataWrapper.removeComponent(serviceName, ComponentType.Relay);
+    componentsDataWrapper.removeComponent(serviceName, ComponentTypes.Relay);
 
     expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName);
   });
@@ -184,9 +185,9 @@ describe('ComponentsDataWrapper', () => {
 
     const notFoundServiceName = 'not_found';
 
-    expect(() => componentsDataWrapper.removeComponent(notFoundServiceName, ComponentType.Relay)).to.throw(
+    expect(() => componentsDataWrapper.removeComponent(notFoundServiceName, ComponentTypes.Relay)).to.throw(
       SoloError,
-      `Component ${notFoundServiceName} of type ${ComponentType.Relay} not found while attempting to remove`,
+      `Component ${notFoundServiceName} of type ${ComponentTypes.Relay} not found while attempting to remove`,
     );
   });
 });

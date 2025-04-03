@@ -11,9 +11,9 @@ import {EnvoyProxyComponent} from '../../../../../../src/core/config/remote/comp
 import {MirrorNodeComponent} from '../../../../../../src/core/config/remote/components/mirror-node-component.js';
 import {MirrorNodeExplorerComponent} from '../../../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
 import {SoloError} from '../../../../../../src/core/errors/solo-error.js';
-import {ConsensusNodeStates} from '../../../../../../src/core/config/remote/enumerations.js';
 import {type NodeAliases} from '../../../../../../src/types/aliases.js';
 import {Templates} from '../../../../../../src/core/templates.js';
+import {ConsensusNodeStates} from '../../../../../../src/core/config/remote/enumerations/consensus-node-states.js';
 
 function testBaseComponentData(classComponent: any) {
   const validNamespace = 'valid';

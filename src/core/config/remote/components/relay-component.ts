@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors/solo-error.js';
 import {BaseComponent} from './base-component.js';
 import {type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
+import {ComponentTypes} from '../enumerations/component-types.js';
 
 export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
   /**
@@ -20,7 +20,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
     namespace: NamespaceNameAsString,
     public readonly consensusNodeAliases: NodeAliases = [],
   ) {
-    super(ComponentType.Relay, name, cluster, namespace);
+    super(ComponentTypes.Relay, name, cluster, namespace);
     this.validate();
   }
 

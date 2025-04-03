@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors/solo-error.js';
 import {type ClusterReference, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
+import {ComponentTypes} from '../enumerations/component-types.js';
 
 /**
  * Represents the base structure and common functionality for all components within the system.
@@ -17,7 +17,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
    * @param namespace - the namespace associated with the component.
    */
   protected constructor(
-    public readonly type: ComponentType,
+    public readonly type: ComponentTypes,
     public readonly name: ComponentName,
     public readonly cluster: ClusterReference,
     public readonly namespace: NamespaceNameAsString,
@@ -51,7 +51,7 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
       );
     }
 
-    if (!Object.values(ComponentType).includes(this.type)) {
+    if (!Object.values(ComponentTypes).includes(this.type)) {
       throw new SoloError(`Invalid component type: ${this.type}`);
     }
   }

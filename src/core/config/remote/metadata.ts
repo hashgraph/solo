@@ -10,7 +10,8 @@ import {
   type Version,
 } from './types.js';
 import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
-import {DeploymentStates} from './enumerations.js';
+
+import {DeploymentStates} from './enumerations/deployment-states.js';
 
 /**
  * Represent the remote config metadata object and handles:

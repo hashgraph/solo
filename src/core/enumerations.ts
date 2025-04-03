@@ -14,7 +14,7 @@ export enum NodeStatusCodes {
   CATASTROPHIC_FAILURE = 11,
 }
 
-export const NodeStatusEnums = {
+export const NodeStatusEnums: Record<number, string> = {
   0: 'NO_VALUE',
   1: 'STARTING_UP',
   2: 'ACTIVE',

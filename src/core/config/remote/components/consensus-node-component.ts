@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
 import {BaseComponent} from './base-component.js';
 import {SoloError} from '../../../errors/solo-error.js';
 import {
@@ -10,6 +9,8 @@ import {
   type NamespaceNameAsString,
 } from '../types.js';
 import {type ToObject} from '../../../../types/index.js';
+import {ComponentTypes} from '../enumerations/component-types.js';
+import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
 
 /**
  * Represents a consensus node component within the system.
@@ -35,7 +36,7 @@ export class ConsensusNodeComponent
     public readonly state: ConsensusNodeStates,
     public readonly nodeId: number,
   ) {
-    super(ComponentType.ConsensusNode, name, cluster, namespace);
+    super(ComponentTypes.ConsensusNode, name, cluster, namespace);
 
     this.validate();
   }

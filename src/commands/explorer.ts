@@ -13,7 +13,6 @@ import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
 import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
 import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
@@ -25,6 +24,7 @@ import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import * as helpers from '../core/helpers.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -576,7 +576,7 @@ export class ExplorerCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.removeComponent('mirrorNodeExplorer', ComponentType.MirrorNodeExplorer);
+          remoteConfig.components.removeComponent('mirrorNodeExplorer', ComponentTypes.MirrorNodeExplorer);
         });
       },
     };

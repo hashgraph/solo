@@ -10,7 +10,8 @@ import {
   type NamespaceNameAsString,
   type Version,
 } from '../../../../../src/core/config/remote/types.js';
-import {DeploymentStates} from '../../../../../src/core/config/remote/enumerations.js';
+
+import {DeploymentStates} from '../../../../../src/core/config/remote/enumerations/deployment-states.js';
 
 export function createMetadata() {
   const namespace: NamespaceNameAsString = 'namespace';

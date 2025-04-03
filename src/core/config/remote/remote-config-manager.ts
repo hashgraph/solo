@@ -32,10 +32,10 @@ import {Cluster} from './cluster.js';
 import {ConsensusNode} from '../../model/consensus-node.js';
 import {Templates} from '../../templates.js';
 import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../resolvers.js';
-import {type DeploymentStates} from './enumerations.js';
 import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
 import {getSoloVersion} from '../../../../version.js';
 import {DeploymentStructure} from '../local/local-config-data.js';
+import {DeploymentStates} from './enumerations/deployment-states.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,

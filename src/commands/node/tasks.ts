@@ -91,7 +91,6 @@ import {type RemoteConfigManager} from '../../core/config/remote/remote-config-m
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {BaseCommand} from '../base.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
-import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy-proxy-component.js';
 import {HaProxyComponent} from '../../core/config/remote/components/ha-proxy-component.js';
 import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
@@ -117,6 +116,7 @@ import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-cla
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
 import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
+import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
 
 @injectable()
 export class NodeCommandTasks {

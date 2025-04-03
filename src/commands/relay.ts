@@ -14,13 +14,13 @@ import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {RelayComponent} from '../core/config/remote/components/relay-component.js';
-import {ComponentType} from '../core/config/remote/enumerations.js';
 import * as Base64 from 'js-base64';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
@@ -563,7 +563,7 @@ export class RelayCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.removeComponent('relay', ComponentType.Relay);
+          remoteConfig.components.removeComponent('relay', ComponentTypes.Relay);
         });
       },
     };

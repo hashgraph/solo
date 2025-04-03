@@ -28,7 +28,6 @@ import {type CertificateManager} from '../core/certificate-manager.js';
 import {type AnyYargs, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
-import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
@@ -45,6 +44,7 @@ import {type PodReference} from '../integration/kube/resources/pod/pod-reference
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;

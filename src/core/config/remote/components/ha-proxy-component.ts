@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ComponentType} from '../enumerations.js';
 import {BaseComponent} from './base-component.js';
 import {type Component, type NamespaceNameAsString} from '../types.js';
+import {ComponentTypes} from '../enumerations/component-types.js';
 
 export class HaProxyComponent extends BaseComponent {
   public constructor(name: string, cluster: string, namespace: NamespaceNameAsString) {
-    super(ComponentType.HaProxy, name, cluster, namespace);
+    super(ComponentTypes.HaProxy, name, cluster, namespace);
     this.validate();
   }
 

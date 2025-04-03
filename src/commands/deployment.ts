@@ -15,11 +15,12 @@ import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
-import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
 import {Templates} from '../core/templates.js';
 import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
+import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
+import {DeploymentStates} from '../core/config/remote/enumerations/deployment-states.js';
 
 interface DeploymentAddClusterConfig {
   quiet: boolean;

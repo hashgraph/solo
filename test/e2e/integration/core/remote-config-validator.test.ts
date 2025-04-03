@@ -8,7 +8,6 @@ import {type ConfigManager} from '../../../../src/core/config-manager.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote-config-validator.js';
-import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations.js';
 import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components-data-wrapper.js';
 import {SoloError} from '../../../../src/core/errors/solo-error.js';
 import {RelayComponent} from '../../../../src/core/config/remote/components/relay-component.js';
@@ -30,6 +29,7 @@ import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {getTestCacheDirectory} from '../../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
+import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations/consensus-node-states.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
