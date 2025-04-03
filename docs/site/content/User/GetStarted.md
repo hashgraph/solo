@@ -1,14 +1,15 @@
 ## Table of Contents
 
-Quick start:
-
-* [Start solo network with single command](../Developer/Development/TaskTool.md)
+For Users:
+* [Step-by-step guide](StepByStepGuide.md)
+* [Solo CLI manual](SoloCLI.md)
 
 For Developers working on Hedera Application and platform development:
 
 * [Hedera developer](HederaDeveloper.md)
 * [Platform developer](PlatformDeveloper.md)
 * [Attach JVM debugger and retrieve logs](DebugLog/HowToDebugHederaServicesAndPlatformSDK.md)
+* [Using 'Task' for Launching Solo](../Developer/Development/TaskTool.md)
 
 For Hedera JavaScript SDK users:
 
@@ -23,8 +24,3 @@ For Hedera extended users:
 FAQ:
 
 * [Frequently Asked Questions](FAQ.md)
-
-For curious mind:
-
-* [Step-by-step guide](StepByStepGuide.md)
-* [Solo CLI manual](SoloCLI.md)
