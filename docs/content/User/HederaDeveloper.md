@@ -1,5 +1,8 @@
 ### Use solo with local build hedera service code
 
+> **⚠️ Warning**
+> This document is out of date for the current release.  See [Step-by-step Guide](./StepByStepGuide.md) for the updated base commands to run that can be augmented with the extra flags and values provided in this guide. Hedera services and Platform SDK have moved to hiero-consensus-node repo <https://github.com/hiero-ledger/hiero-consensus-node>
+
 First, please clone hedera service repo `https://github.com/hashgraph/hedera-services/` and build the code
 with `./gradlew assemble`. If need to running multiple nodes with different versions or releases, please duplicate the repo or build directories in
 multiple directories, checkout to the respective version and build the code.

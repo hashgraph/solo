@@ -1,5 +1,8 @@
 ## Using Solo with mirror node
 
+> **⚠️ Warning**
+> This document is out of date for the current release.  See [Step-by-step Guide](./StepByStepGuide.md) for the updated base commands to run that can be augmented with the extra flags and values provided in this guide. Hedera services and Platform SDK have moved to hiero-consensus-node repo <https://github.com/hiero-ledger/hiero-consensus-node>
+
 User can deploy a solo network with mirror node by running the following command:
 
 ```bash

@@ -1,5 +1,8 @@
 # Solo command line user manual
 
+> **⚠️ Warning**
+> This document is out of date for the current release.  See [Step-by-step Guide](./StepByStepGuide.md) for the updated base commands to run that can be augmented with the extra flags and values provided in this guide. Hedera services and Platform SDK have moved to hiero-consensus-node repo <https://github.com/hiero-ledger/hiero-consensus-node>
+
 Solo has a series of commands to use, and some commands have subcommands.
 User can get help information by running with the following methods:
 
