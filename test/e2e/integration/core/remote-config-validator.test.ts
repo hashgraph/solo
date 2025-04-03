@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {it, describe} from 'mocha';
+import {describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import * as constants from '../../../../src/core/constants.js';
@@ -30,6 +30,7 @@ import {getTestCacheDirectory} from '../../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations/consensus-node-states.js';
+import {ComponentStates} from '../../../../src/core/config/remote/enumerations/component-states.js';
 
 describe('RemoteConfigValidator', () => {
   const namespace = NamespaceName.of('remote-config-validator');
@@ -55,7 +56,7 @@ describe('RemoteConfigValidator', () => {
   });
 
   const cluster = 'cluster';
-  const state = ConsensusNodeStates.STARTED;
+  const nodeState = ConsensusNodeStates.STARTED;
 
   const nodeAlias = 'node1' as NodeAlias;
   const haProxyName = Templates.renderHaProxyName(nodeAlias);
@@ -68,20 +69,28 @@ describe('RemoteConfigValidator', () => {
 
   // @ts-expect-error - TS2673: Constructor of class ComponentsDataWrapper is private
   const components = new ComponentsDataWrapper(
-    {[relayName]: new RelayComponent(relayName, cluster, namespace.name, consensusNodeAliases)},
-    {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name)},
-    {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name)},
-    {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace.name)},
+    {[relayName]: new RelayComponent(relayName, cluster, namespace.name, ComponentStates.ACTIVE, consensusNodeAliases)},
+    {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name, ComponentStates.ACTIVE)},
+    {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name, ComponentStates.ACTIVE)},
+    {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace.name, ComponentStates.ACTIVE)},
     {
       [nodeAlias]: new ConsensusNodeComponent(
         nodeAlias,
         cluster,
         namespace.name,
-        state,
+        ComponentStates.ACTIVE,
+        nodeState,
         Templates.nodeIdFromNodeAlias(nodeAlias),
       ),
     },
-    {[mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(mirrorNodeExplorerName, cluster, namespace.name)},
+    {
+      [mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(
+        mirrorNodeExplorerName,
+        cluster,
+        namespace.name,
+        ComponentStates.ACTIVE,
+      ),
+    },
   );
 
   async function createPod(name: string, labels: Record<string, string>) {

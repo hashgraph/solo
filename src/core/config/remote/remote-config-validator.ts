@@ -35,7 +35,7 @@ export class RemoteConfigValidator {
       label: (c: BaseComponent): string[] => [`app=network-${c.name}`],
       type: 'Consensus node',
       skipCondition(c: ConsensusNodeComponent): boolean {
-        return c.state === ConsensusNodeStates.REQUESTED || c.state === ConsensusNodeStates.NON_DEPLOYED;
+        return c.nodeState === ConsensusNodeStates.REQUESTED || c.nodeState === ConsensusNodeStates.NON_DEPLOYED;
       },
     },
   };

@@ -117,6 +117,7 @@ import {type NodeStartConfigClass} from './config-interfaces/node-start-config-c
 import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
+import {ComponentStates} from '../../core/config/remote/enumerations/component-states.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -2528,14 +2529,19 @@ export class NodeCommandTasks {
               nodeAlias,
               clusterReference,
               namespace,
+              ComponentStates.ACTIVE,
               ConsensusNodeStates.STARTED,
               Templates.nodeIdFromNodeAlias(nodeAlias),
             ),
           );
 
-          remoteConfig.components.addNewComponent(new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterReference, namespace));
+          remoteConfig.components.addNewComponent(
+            new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterReference, namespace, ComponentStates.ACTIVE),
+          );
 
-          remoteConfig.components.addNewComponent(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterReference, namespace));
+          remoteConfig.components.addNewComponent(
+            new HaProxyComponent(`haproxy-${nodeAlias}`, clusterReference, namespace, ComponentStates.ACTIVE),
+          );
         });
 
         context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();

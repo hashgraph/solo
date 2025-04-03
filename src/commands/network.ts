@@ -11,13 +11,14 @@ import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
+import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
-  resolveValidJsonFilePath,
-  sleep,
   parseNodeAliases,
+  resolveValidJsonFilePath,
   showVersionBanner,
+  sleep,
 } from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import fs from 'node:fs';
@@ -41,10 +42,10 @@ import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
-import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
+import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -1326,9 +1327,7 @@ export class NetworkCommand extends BaseCommand {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
-        const {
-          config: {namespace},
-        } = context_;
+        const {namespace} = context_.config;
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of context_.config.consensusNodes) {
@@ -1337,17 +1336,28 @@ export class NetworkCommand extends BaseCommand {
                 consensusNode.name,
                 consensusNode.cluster,
                 namespace.name,
+                ComponentStates.ACTIVE,
                 ConsensusNodeStates.REQUESTED,
                 consensusNode.nodeId,
               ),
             );
 
             remoteConfig.components.addNewComponent(
-              new EnvoyProxyComponent(`envoy-proxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
+              new EnvoyProxyComponent(
+                `envoy-proxy-${consensusNode.name}`,
+                consensusNode.cluster,
+                namespace.name,
+                ComponentStates.ACTIVE,
+              ),
             );
 
             remoteConfig.components.addNewComponent(
-              new HaProxyComponent(`haproxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
+              new HaProxyComponent(
+                `haproxy-${consensusNode.name}`,
+                consensusNode.cluster,
+                namespace.name,
+                ComponentStates.ACTIVE,
+              ),
             );
           }
         });

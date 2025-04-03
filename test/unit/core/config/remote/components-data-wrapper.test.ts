@@ -11,56 +11,72 @@ import {ConsensusNodeComponent} from '../../../../../src/core/config/remote/comp
 import {MirrorNodeExplorerComponent} from '../../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
 import {RelayComponent} from '../../../../../src/core/config/remote/components/relay-component.js';
 import {SoloError} from '../../../../../src/core/errors/solo-error.js';
-import {type NodeAliases} from '../../../../../src/types/aliases.js';
 import {ComponentTypes} from '../../../../../src/core/config/remote/enumerations/component-types.js';
 import {ConsensusNodeStates} from '../../../../../src/core/config/remote/enumerations/consensus-node-states.js';
+import {ComponentStates} from '../../../../../src/core/config/remote/enumerations/component-states.js';
+import {type NodeAliases} from '../../../../../src/types/aliases.js';
+import {
+  type ClusterReference,
+  type ComponentsDataStructure,
+  type NamespaceNameAsString,
+} from '../../../../../src/core/config/remote/types.js';
+import {BlockNodeComponent} from '../../../../../src/core/config/remote/components/block-node-component.js';
 
 export function createComponentsDataWrapper() {
-  const name = 'name';
-  const serviceName = name;
+  const name: string = 'name';
+  const serviceName: string = name;
 
-  const cluster = 'cluster';
-  const namespace = 'namespace';
-  const state = ConsensusNodeStates.STARTED;
-  const consensusNodeAliases = ['node1', 'node2'] as NodeAliases;
+  const cluster: ClusterReference = 'cluster';
+  const namespace: NamespaceNameAsString = 'namespace';
+  const nodeState: ConsensusNodeStates = ConsensusNodeStates.STARTED;
+  const consensusNodeAliases: NodeAliases = ['node1', 'node2'];
+  const state: ComponentStates = ComponentStates.ACTIVE;
 
-  const relays = {[serviceName]: new RelayComponent(name, cluster, namespace, consensusNodeAliases)};
-  const haProxies = {
-    [serviceName]: new HaProxyComponent(name, cluster, namespace),
-    ['serviceName2']: new HaProxyComponent('name2', 'cluster2', namespace),
+  const relays: Record<string, RelayComponent> = {
+    [serviceName]: new RelayComponent(name, cluster, namespace, state, consensusNodeAliases),
   };
-  const mirrorNodes = {[serviceName]: new MirrorNodeComponent(name, cluster, namespace)};
-  const envoyProxies = {
-    [serviceName]: new EnvoyProxyComponent(name, cluster, namespace),
-    ['serviceName2']: new EnvoyProxyComponent('name2', 'cluster2', namespace),
+
+  const haProxies: Record<string, HaProxyComponent> = {
+    [serviceName]: new HaProxyComponent(name, cluster, namespace, state),
+    ['serviceName2']: new HaProxyComponent('name2', 'cluster2', namespace, state),
   };
-  const consensusNodes = {
-    [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, 0),
-    ['serviceName2']: new ConsensusNodeComponent('node2', 'cluster2', namespace, state, 1),
+
+  const mirrorNodes: Record<string, MirrorNodeComponent> = {
+    [serviceName]: new MirrorNodeComponent(name, cluster, namespace, state),
   };
-  const mirrorNodeExplorers = {[serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace)};
+
+  const envoyProxies: Record<string, EnvoyProxyComponent> = {
+    [serviceName]: new EnvoyProxyComponent(name, cluster, namespace, state),
+    ['serviceName2']: new EnvoyProxyComponent('name2', 'cluster2', namespace, state),
+  };
+
+  const consensusNodes: Record<string, ConsensusNodeComponent> = {
+    [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, 0),
+    ['serviceName2']: new ConsensusNodeComponent('node2', 'cluster2', namespace, state, nodeState, 1),
+  };
+
+  const mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent> = {
+    [serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace, state),
+  };
+
+  const blockNodes: Record<string, BlockNodeComponent> = {
+    [serviceName]: new BlockNodeComponent(name, cluster, namespace, state),
+  };
 
   // @ts-expect-error - TS267: to access private constructor
-  const componentsDataWrapper = new ComponentsDataWrapper(
+  const componentsDataWrapper: ComponentsDataWrapper = new ComponentsDataWrapper(
     relays,
     haProxies,
     mirrorNodes,
     envoyProxies,
     consensusNodes,
     mirrorNodeExplorers,
+    blockNodes,
   );
-  /*
-    ? The class after calling the toObject() method
-    * RELAY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' consensusNodeAliases: ['node1', 'node2'] } },
-    * HAPROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-    * MIRROR_NODE: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-    * ENVOY_PROXY: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-    * CONSENSUS_NODE: { serviceName: { state: 'started', name: 'name', cluster: 'cluster', namespace: 'namespace'} },
-    * MIRROR_NODE_EXPLORER: { serviceName: { name: 'name', cluster: 'cluster', namespace: 'namespace' } },
-    */
+
   return {
-    values: {name, cluster, namespace, state, consensusNodeAliases},
-    components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays},
+    values: {name, cluster, namespace, nodeState, consensusNodeAliases, state},
+    components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays, blockNodes},
     wrapper: {componentsDataWrapper},
     serviceName,
   };
@@ -79,8 +95,11 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const newComponentsDataWrapper = ComponentsDataWrapper.fromObject(componentsDataWrapper.toObject());
-    const componentsDataWrapperObject = componentsDataWrapper.toObject();
+    const newComponentsDataWrapper: ComponentsDataWrapper = ComponentsDataWrapper.fromObject(
+      componentsDataWrapper.toObject(),
+    );
+
+    const componentsDataWrapperObject: ComponentsDataStructure = componentsDataWrapper.toObject();
 
     expect(componentsDataWrapperObject).to.deep.equal(newComponentsDataWrapper.toObject());
 
@@ -91,34 +110,35 @@ describe('ComponentsDataWrapper', () => {
     expect(componentsDataWrapper);
   });
 
-  it('should not be able to add new component with the .add() method if it already exist', () => {
+  it('should not be able to add new component with the .addNewComponent() method if it already exist', () => {
     const {
       wrapper: {componentsDataWrapper},
       components: {consensusNodes},
       serviceName,
     } = createComponentsDataWrapper();
 
-    const existingComponent = consensusNodes[serviceName];
+    const existingComponent: ConsensusNodeComponent = consensusNodes[serviceName];
 
     expect(() => componentsDataWrapper.addNewComponent(existingComponent)).to.throw(SoloError, 'Component exists');
   });
 
-  it('should be able to add new component with the .add() method', () => {
+  it('should be able to add new component with the .addNewComponent() method', () => {
     const {
       wrapper: {componentsDataWrapper},
+      values: {state},
     } = createComponentsDataWrapper();
 
-    const newServiceName = 'envoy';
+    const newServiceName: string = 'envoy';
     const {name, cluster, namespace} = {
       name: newServiceName,
       cluster: 'cluster',
       namespace: 'new-namespace',
     };
-    const newComponent = new EnvoyProxyComponent(name, cluster, namespace);
+    const newComponent: EnvoyProxyComponent = new EnvoyProxyComponent(name, cluster, namespace, state);
 
     componentsDataWrapper.addNewComponent(newComponent);
 
-    const componentDataWrapperObject = componentsDataWrapper.toObject();
+    const componentDataWrapperObject: ComponentsDataStructure = componentsDataWrapper.toObject();
 
     expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy]).has.own.property(newServiceName);
 
@@ -131,35 +151,34 @@ describe('ComponentsDataWrapper', () => {
     expect(Object.values(componentDataWrapperObject[ComponentTypes.EnvoyProxy])).to.have.lengthOf(3);
   });
 
-  it('should be able to edit component with the .edit()', () => {
+  it('should be able to edit component with the .editComponent()', () => {
     const {
       wrapper: {componentsDataWrapper},
       components: {relays},
-      values: {cluster, namespace},
+      values: {namespace, state},
       serviceName,
     } = createComponentsDataWrapper();
-    const relayComponent = relays[serviceName];
+    const relayComponent: RelayComponent = relays[serviceName];
 
     componentsDataWrapper.editComponent(relayComponent);
 
-    const newCluster = 'newCluster';
+    const newCluster: ClusterReference = 'newCluster';
 
-    const newReplayComponent = new RelayComponent(relayComponent.name, newCluster, namespace);
+    const newReplayComponent: RelayComponent = new RelayComponent(relayComponent.name, newCluster, namespace, state);
 
     componentsDataWrapper.editComponent(newReplayComponent);
 
     expect(componentsDataWrapper.toObject()[ComponentTypes.Relay][relayComponent.name].cluster).to.equal(newCluster);
   });
 
-  it("should not be able to edit component with the .edit() if it doesn't exist ", () => {
+  it("should not be able to edit component with the .editComponent() if it doesn't exist ", () => {
     const {
       wrapper: {componentsDataWrapper},
-      components: {relays},
+      values: {cluster, namespace, state},
       serviceName,
     } = createComponentsDataWrapper();
     const notFoundServiceName: string = 'not_found';
-    const relay = relays[serviceName];
-    relay.name = notFoundServiceName;
+    const relay: RelayComponent = new RelayComponent(notFoundServiceName, cluster, namespace, state);
 
     expect(() => componentsDataWrapper.editComponent(relay)).to.throw(
       SoloError,
@@ -168,13 +187,15 @@ describe('ComponentsDataWrapper', () => {
   });
 
   it('should be able to disable component with the .disableComponent()', () => {
-    // TODO 666
     const {
       wrapper: {componentsDataWrapper},
+      components: {relays},
       serviceName,
     } = createComponentsDataWrapper();
 
     componentsDataWrapper.disableComponent(serviceName, ComponentTypes.Relay);
+
+    expect(relays[serviceName].state).to.equal(ComponentStates.DELETED);
 
     expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName);
   });
@@ -184,7 +205,7 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const notFoundServiceName = 'not_found';
+    const notFoundServiceName: string = 'not_found';
 
     expect(() => componentsDataWrapper.disableComponent(notFoundServiceName, ComponentTypes.Relay)).to.throw(
       SoloError,

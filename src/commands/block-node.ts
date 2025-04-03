@@ -3,10 +3,10 @@
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
 import * as helpers from '../core/helpers.js';
+import {showVersionBanner} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
-import {showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {
   type AnyListrContext,
@@ -24,6 +24,7 @@ import {type Lock} from '../core/lock/lock.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import os from 'node:os';
 import {BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
+import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 
 interface BlockNodeDeployConfigClass {
   chartVersion: string;
@@ -273,7 +274,9 @@ export class BlockNodeCommand extends BaseCommand {
         await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
           const {namespace, clusterRef, blockNodeName} = context_.config;
 
-          remoteConfig.components.addNewComponent(new BlockNodeComponent(blockNodeName, clusterRef, namespace.name));
+          remoteConfig.components.addNewComponent(
+            new BlockNodeComponent(blockNodeName, clusterRef, namespace.name, ComponentStates.ACTIVE),
+          );
         });
       },
     };
