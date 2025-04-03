@@ -42,7 +42,8 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import * as helpers from '../../core/helpers.js';
 import {
-  addDebugOptions, entityId,
+  addDebugOptions,
+  entityId,
   prepareEndpoints,
   renameAndCopyFile,
   showVersionBanner,
@@ -117,7 +118,6 @@ import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-cla
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
 import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
-import {Deployment} from '../../data/schema/model/local/deployment.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -192,7 +192,11 @@ export class NodeCommandTasks {
     );
   }
 
-  private async _uploadUpgradeZip(upgradeZipFile: string, nodeClient: Client, deploymentName: DeploymentName): Promise<string> {
+  private async _uploadUpgradeZip(
+    upgradeZipFile: string,
+    nodeClient: Client,
+    deploymentName: DeploymentName,
+  ): Promise<string> {
     // get byte value of the zip file
     const zipBytes = fs.readFileSync(upgradeZipFile);
     const zipHash = crypto.createHash('sha384').update(zipBytes).digest('hex');
@@ -208,11 +212,10 @@ export class NodeCommandTasks {
         const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, start + constants.UPGRADE_FILE_CHUNK_SIZE));
         let fileTransaction = null;
 
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction().setFileId(this.getFileUpgradeId(deploymentName)).setContents(zipBytesChunk);
-        } else {
-          fileTransaction = new FileAppendTransaction().setFileId(this.getFileUpgradeId(deploymentName)).setContents(zipBytesChunk);
-        }
+        fileTransaction =
+          start === 0
+            ? new FileUpdateTransaction().setFileId(this.getFileUpgradeId(deploymentName)).setContents(zipBytesChunk)
+            : new FileAppendTransaction().setFileId(this.getFileUpgradeId(deploymentName)).setContents(zipBytesChunk);
         const resp = await fileTransaction.execute(nodeClient);
         const receipt = await resp.getReceipt(nodeClient);
         this.logger.debug(
@@ -285,11 +288,9 @@ export class NodeCommandTasks {
     for (const nodeAlias of nodeAliases) {
       const podReference = podReferences[nodeAlias];
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
-      if (buildPathMap.has(nodeAlias)) {
-        localDataLibraryBuildPath = buildPathMap.get(nodeAlias);
-      } else {
-        localDataLibraryBuildPath = defaultDataLibraryBuildPath;
-      }
+      localDataLibraryBuildPath = buildPathMap.has(nodeAlias)
+        ? buildPathMap.get(nodeAlias)
+        : defaultDataLibraryBuildPath;
 
       if (!fs.existsSync(localDataLibraryBuildPath)) {
         throw new SoloError(`local build path does not exist: ${localDataLibraryBuildPath}`);
@@ -466,7 +467,7 @@ export class NodeCommandTasks {
           .execContainer([
             'bash',
             '-c',
-            'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
+            String.raw`curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \#`,
           ]);
 
         if (!response) {
@@ -1001,7 +1002,7 @@ export class NodeCommandTasks {
     context_: CheckedNodesContext,
     task: SoloListrTaskWrapper<CheckedNodesContext>,
     nodeAliases: NodeAliases,
-    maxAttempts: number = undefined,
+    maxAttempts?: number,
   ) {
     context_.config.podRefs = {};
     const consensusNodes = context_.config.consensusNodes;
@@ -1558,12 +1559,7 @@ export class NodeCommandTasks {
           this.configManager.getFlag<DeploymentName>(flags.deployment),
           this.configManager.getFlag<boolean>(flags.forcePortForward),
         );
-        await this._addStake(
-          context_.config.namespace,
-          context_.newNode.accountId,
-          context_.config.nodeAlias,
-          undefined,
-        );
+        await this._addStake(context_.config.namespace, context_.newNode.accountId, context_.config.nodeAlias);
       },
     };
   }

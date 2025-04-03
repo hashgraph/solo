@@ -8,7 +8,9 @@ import {
   type ClusterReference,
   type ClusterReferences,
   type DeploymentName,
-  type EmailAddress, Realm, Shard,
+  type EmailAddress,
+  type Realm,
+  type Shard,
   type Version,
 } from '../remote/types.js';
 import {IsClusterReferences, IsDeployments} from '../../validator-decorators.js';

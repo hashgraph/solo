@@ -11,7 +11,8 @@ import {
   type ClusterReference,
   type DeploymentName,
   type NamespaceNameAsString,
-  Realm, Shard,
+  type Realm,
+  type Shard,
 } from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';

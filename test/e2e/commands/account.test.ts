@@ -31,7 +31,7 @@ import * as helpers from '../../../src/core/helpers.js';
 import {Templates} from '../../../src/core/templates.js';
 import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import {type DeploymentName, Realm, Shard} from '../../../src/core/config/remote/types.js';
+import {type DeploymentName, type Realm, type Shard} from '../../../src/core/config/remote/types.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {entityId} from '../../../src/core/helpers.js';
 

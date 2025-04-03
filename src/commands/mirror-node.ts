@@ -36,8 +36,7 @@ import {type ClusterReference, type DeploymentName} from '../core/config/remote/
 import {showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
-import {Deployments} from '../core/config/local/local-config-data.js';
-import {AccountId} from '@hashgraph/sdk';
+import {type AccountId} from '@hashgraph/sdk';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;

@@ -2,12 +2,7 @@
 
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
-import {
-  DEFAULT_FREEZE_ID_NUMBER,
-  DEFAULT_OPERATOR_ID_NUMBER,
-  DEFAULT_START_ID_NUMBER,
-  IGNORED_NODE_ACCOUNT_ID,
-} from './constants.js';
+import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
 import {
   AccountCreateTransaction,
   AccountId,
@@ -22,7 +17,8 @@ import {
   type Key,
   KeyList,
   Logger,
-  LogLevel, Long,
+  LogLevel,
+  Long,
   PrivateKey,
   Status,
   TransferTransaction,
@@ -56,8 +52,6 @@ import {type NodeServiceMapping} from '../types/mappings/node-service-mapping.js
 import {type ConsensusNode} from './model/consensus-node.js';
 import {NetworkNodeServicesBuilder} from './network-node-services-builder.js';
 import {LocalConfig} from './config/local/local-config.js';
-import {AccountCommand} from '../commands/account.js';
-import {resolveNamespaceFromDeployment} from './resolvers.js';
 
 const REASON_FAILED_TO_GET_KEYS = 'failed to get keys for accountId';
 const REASON_SKIPPED = 'skipped since it does not have a genesis key';
@@ -542,7 +536,7 @@ export class AccountManager {
               .withEnvoyProxyLoadBalancerIp(
                 service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
               )
-              .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port);
+              .withEnvoyProxyGrpcWebPort(service.spec!.ports!.find(port => port.name === 'hedera-grpc-web').port);
             break;
           }
           // solo.hedera.com/type: haproxy-svc
@@ -554,10 +548,8 @@ export class AccountManager {
               .withHaProxyLoadBalancerIp(
                 service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
               )
-              .withHaProxyGrpcPort(
-                service.spec!.ports!.filter(port => port.name === 'non-tls-grpc-client-port')[0].port,
-              )
-              .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port);
+              .withHaProxyGrpcPort(service.spec!.ports!.find(port => port.name === 'non-tls-grpc-client-port').port)
+              .withHaProxyGrpcsPort(service.spec!.ports!.find(port => port.name === 'tls-grpc-client-port').port);
             break;
           }
           // solo.hedera.com/type: network-node-svc
@@ -583,9 +575,9 @@ export class AccountManager {
               .withNodeServiceLoadBalancerIp(
                 service.status.loadBalancer.ingress ? service.status.loadBalancer.ingress[0].ip : undefined,
               )
-              .withNodeServiceGossipPort(service.spec!.ports!.filter(port => port.name === 'gossip')[0].port)
-              .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
-              .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
+              .withNodeServiceGossipPort(service.spec!.ports!.find(port => port.name === 'gossip').port)
+              .withNodeServiceGrpcPort(service.spec!.ports!.find(port => port.name === 'grpc-non-tls').port)
+              .withNodeServiceGrpcsPort(service.spec!.ports!.find(port => port.name === 'grpc-tls').port);
 
             if (nodeId) {
               serviceBuilder.withNodeId(nodeId);
@@ -595,7 +587,7 @@ export class AccountManager {
         }
         const consensusNode: ConsensusNode = this.remoteConfigManager
           .getConsensusNodes()
-          .filter(node => node.name === serviceBuilder.nodeAlias)[0];
+          .find(node => node.name === serviceBuilder.nodeAlias);
         serviceBuilder.withExternalAddress(
           await getExternalAddress(consensusNode, this.k8Factory.getK8(serviceBuilder.context), loadBalancerEnabled),
         );
@@ -768,19 +760,9 @@ export class AccountManager {
         const secretLabels = Templates.renderAccountKeySecretLabelObject(accountId);
         const secretType = SecretType.OPAQUE;
 
-        let createdOrUpdated: boolean;
-
-        if (updateSecrets) {
-          createdOrUpdated = await this.k8Factory
-            .getK8(context)
-            .secrets()
-            .replace(namespace, secretName, secretType, data, secretLabels);
-        } else {
-          createdOrUpdated = await this.k8Factory
-            .getK8(context)
-            .secrets()
-            .create(namespace, secretName, secretType, data, secretLabels);
-        }
+        const createdOrUpdated: boolean = await (updateSecrets
+          ? this.k8Factory.getK8(context).secrets().replace(namespace, secretName, secretType, data, secretLabels)
+          : this.k8Factory.getK8(context).secrets().create(namespace, secretName, secretType, data, secretLabels));
 
         if (!createdOrUpdated) {
           this.logger.error(`failed to create secret for accountId ${accountId.toString()}`);
@@ -1126,7 +1108,11 @@ export class AccountManager {
     const firstAccountId: AccountId = this.getStartAccountId(deploymentName);
 
     for (const nodeAlias of nodeAliases) {
-      const nodeAccount: string = entityId(realm, shard, Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId.num));
+      const nodeAccount: string = entityId(
+        realm,
+        shard,
+        Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId.num),
+      );
       accountMap.set(nodeAlias, nodeAccount);
     }
     return accountMap;

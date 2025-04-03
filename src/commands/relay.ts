@@ -21,7 +21,6 @@ import {type ClusterReference, type DeploymentName} from '../core/config/remote/
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
-import {Deployments} from '../core/config/local/local-config-data.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
