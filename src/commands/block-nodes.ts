@@ -17,12 +17,13 @@ import {
 } from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {type CommandDefinition, type Optional} from '../types/index.js';
+import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
 import * as versions from '../../version.js';
 import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Lock} from '../core/lock/lock.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import os from 'node:os';
+import {BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 
 interface BlockNodesDeployConfigClass {
   chartVersion: string;
@@ -39,6 +40,8 @@ interface BlockNodesDeployConfigClass {
   context: string;
   isChartInstalled: boolean;
   valuesArg: string;
+  blockNodeName: string;
+  releaseName: string;
 }
 
 interface BlockNodesDeployContext {
@@ -145,13 +148,37 @@ export class BlockNodesCommand extends BaseCommand {
           },
         },
         {
+          title: 'Prepare release name and block node name',
+          task: async (context_): Promise<void> => {
+            const config: BlockNodesDeployConfigClass = context_.config;
+
+            let newBlockNodeNumber: number = 1;
+
+            if (
+              this.remoteConfigManager.components.blockNodes &&
+              Object.values(this.remoteConfigManager.components.blockNodes).length > 0
+            ) {
+              for (const blockNodeComponent of Object.values(this.remoteConfigManager.components.blockNodes)) {
+                const blockNodeNumber: number = +blockNodeComponent.name.split('-').at(-1);
+                if (blockNodeNumber >= newBlockNodeNumber) {
+                  newBlockNodeNumber = blockNodeNumber + 1;
+                }
+              }
+            }
+
+            const releaseName: string = this.getReleaseName(newBlockNodeNumber.toString());
+            config.blockNodeName = releaseName;
+            config.releaseName = releaseName;
+          },
+        },
+        {
           title: 'Check chart is installed',
           task: async (context_): Promise<void> => {
             const config: BlockNodesDeployConfigClass = context_.config;
 
             config.isChartInstalled = await this.chartManager.isChartInstalled(
               config.namespace,
-              this.getReleaseName('33') /* TODO */,
+              config.releaseName,
               config.context,
             );
           },
@@ -171,7 +198,7 @@ export class BlockNodesCommand extends BaseCommand {
 
             await this.chartManager.install(
               config.namespace,
-              this.getReleaseName('33') /* TODO */,
+              config.releaseName,
               constants.BLOCK_NODE_CHART,
               constants.BLOCK_NODE_CHART_URL,
               config.chartVersion,
@@ -179,7 +206,7 @@ export class BlockNodesCommand extends BaseCommand {
               config.context,
             );
 
-            showVersionBanner(this.logger, this.getReleaseName('33') /* TODO */, versions.BLOCK_NODE_VERSION);
+            showVersionBanner(this.logger, config.releaseName, versions.BLOCK_NODE_VERSION);
           },
         },
         {
@@ -192,7 +219,7 @@ export class BlockNodesCommand extends BaseCommand {
               .pods()
               .waitForRunningPhase(
                 config.namespace,
-                [`app.kubernetes.io/instance=${this.getReleaseName('33') /* TODO */}`],
+                [`app.kubernetes.io/instance=${config.releaseName}`],
                 constants.BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS,
                 constants.BLOCK_NODES_PODS_RUNNING_DELAY,
               );
@@ -208,18 +235,16 @@ export class BlockNodesCommand extends BaseCommand {
                 .pods()
                 .waitForReadyStatus(
                   config.namespace,
-                  [`app.kubernetes.io/instance=${this.getReleaseName('33') /* TODO */}`],
+                  [`app.kubernetes.io/instance=${config.releaseName}`],
                   constants.BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS,
                   constants.BLOCK_NODES_PODS_RUNNING_DELAY,
                 );
             } catch (error) {
-              throw new SoloError(
-                `BlockNodes ${this.getReleaseName('33') /* TODO */} is not ready: ${error.message}`,
-                error,
-              );
+              throw new SoloError(`BlockNodes ${config.releaseName} is not ready: ${error.message}`, error);
             }
           },
         },
+        this.addBlockNodeComponent(),
       ],
       {
         concurrent: false,
@@ -236,6 +261,21 @@ export class BlockNodesCommand extends BaseCommand {
     }
 
     return true;
+  }
+
+  /** Adds the relay component to remote config. */
+  public addBlockNodeComponent(): SoloListrTask<BlockNodesDeployContext> {
+    return {
+      title: 'Add relay component in remote config',
+      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
+      task: async (context_): Promise<void> => {
+        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+          const {namespace, clusterRef, blockNodeName} = context_.config;
+
+          remoteConfig.components.addNewComponent(new BlockNodeComponent(blockNodeName, clusterRef, namespace.name));
+        });
+      },
+    };
   }
 
   public getCommandDefinition(): CommandDefinition {
