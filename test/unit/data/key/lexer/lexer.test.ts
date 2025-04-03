@@ -184,12 +184,12 @@ describe('Lexer', () => {
     expect(subObjectNode.children).to.have.lengthOf(4);
     expect(subArrayIndexNode.children).to.have.lengthOf(4);
 
-    const index4Node = subArrayIndexNode.children.filter(v => v.name === 'index4')[0] as LexerLeafNode;
+    const index4Node = subArrayIndexNode.children.find(v => v.name === 'index4') as LexerLeafNode;
     expect(index4Node).to.not.be.undefined.and.not.be.null;
     expect(index4Node.isLeaf()).to.be.true;
     expect(index4Node.value).to.be.equal('7');
 
-    const value4Node = subObjectNode.children.filter(v => v.name === 'value4')[0] as LexerLeafNode;
+    const value4Node = subObjectNode.children.find(v => v.name === 'value4') as LexerLeafNode;
     expect(value4Node).to.not.be.undefined.and.not.be.null;
     expect(value4Node.isLeaf()).to.be.true;
     expect(value4Node.value).to.be.equal('8');
@@ -207,12 +207,12 @@ describe('Lexer', () => {
     expect(subArrayNode.children).to.have.lengthOf(1);
     expect(subArrayIndexNode.children).to.have.lengthOf(3);
 
-    const index1Node = subArrayIndexNode.children.filter(v => v.name === 'index1')[0] as LexerLeafNode;
+    const index1Node = subArrayIndexNode.children.find(v => v.name === 'index1') as LexerLeafNode;
     expect(index1Node).to.not.be.undefined.and.not.be.null;
     expect(index1Node.isLeaf()).to.be.true;
     expect(index1Node.value).to.be.equal('9');
 
-    const value1Node = subObjectNode.children.filter(v => v.name === 'value1')[0] as LexerLeafNode;
+    const value1Node = subObjectNode.children.find(v => v.name === 'value1') as LexerLeafNode;
     expect(value1Node).to.not.be.undefined.and.not.be.null;
     expect(value1Node.isLeaf()).to.be.true;
     expect(value1Node.value).to.be.equal('10');

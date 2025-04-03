@@ -150,11 +150,10 @@ export class K8ClientSecrets implements Secrets {
         : await this.kubeClient.createNamespacedSecret(namespace.name, v1Secret);
       return !KubeApiResponse.isFailingStatus(resp.response);
     } catch (error) {
-      if (replace) {
-        throw new ResourceReplaceError(ResourceType.SECRET, namespace, name, error);
-      } else {
-        throw new ResourceCreateError(ResourceType.SECRET, namespace, name, error);
-      }
+      const error_ = replace
+        ? new ResourceReplaceError(ResourceType.SECRET, namespace, name, error)
+        : new ResourceCreateError(ResourceType.SECRET, namespace, name, error);
+      throw error_;
     }
   }
 

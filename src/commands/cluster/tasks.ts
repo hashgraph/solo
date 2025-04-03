@@ -188,13 +188,11 @@ export class ClusterCommandTasks {
           `Associated Context: ${context}\n` +
           'Deployments using this Cluster:';
 
-        if (deploymentsWithSelectedCluster.length > 0) {
-          task.output +=
-            '\n' +
-            deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n');
-        } else {
-          task.output += '\n  - None';
-        }
+        task.output +=
+          deploymentsWithSelectedCluster.length > 0
+            ? '\n' +
+              deploymentsWithSelectedCluster.map(dep => `  - ${dep.name} [Namespace: ${dep.namespace}]`).join('\n')
+            : '\n  - None';
 
         this.logger.showUser(task.output);
       },

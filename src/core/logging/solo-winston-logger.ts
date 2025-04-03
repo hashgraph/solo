@@ -105,7 +105,7 @@ export class SoloWinstonLogger implements SoloLogger {
         // Remove everything after the first "Caused by: " and add indentation
         const formattedStacktrace = s.stacktrace
           .replace(/Caused by:.*/s, '')
-          .replace(/\n\s*/g, '\n' + indent)
+          .replaceAll(/\n\s*/g, '\n' + indent)
           .trim();
         console.log(indent + chalk.gray(formattedStacktrace) + '\n');
         indent += '  ';

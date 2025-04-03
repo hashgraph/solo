@@ -201,11 +201,10 @@ export class NodeCommandTasks {
         const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, start + constants.UPGRADE_FILE_CHUNK_SIZE));
         let fileTransaction = null;
 
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
-        } else {
-          fileTransaction = new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
-        }
+        fileTransaction =
+          start === 0
+            ? new FileUpdateTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk)
+            : new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
         const resp = await fileTransaction.execute(nodeClient);
         const receipt = await resp.getReceipt(nodeClient);
         this.logger.debug(
@@ -278,11 +277,9 @@ export class NodeCommandTasks {
     for (const nodeAlias of nodeAliases) {
       const podReference = podReferences[nodeAlias];
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
-      if (buildPathMap.has(nodeAlias)) {
-        localDataLibraryBuildPath = buildPathMap.get(nodeAlias);
-      } else {
-        localDataLibraryBuildPath = defaultDataLibraryBuildPath;
-      }
+      localDataLibraryBuildPath = buildPathMap.has(nodeAlias)
+        ? buildPathMap.get(nodeAlias)
+        : defaultDataLibraryBuildPath;
 
       if (!fs.existsSync(localDataLibraryBuildPath)) {
         throw new SoloError(`local build path does not exist: ${localDataLibraryBuildPath}`);
@@ -459,7 +456,7 @@ export class NodeCommandTasks {
           .execContainer([
             'bash',
             '-c',
-            'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
+            String.raw`curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \#`,
           ]);
 
         if (!response) {
@@ -985,7 +982,7 @@ export class NodeCommandTasks {
     context_: CheckedNodesContext,
     task: SoloListrTaskWrapper<CheckedNodesContext>,
     nodeAliases: NodeAliases,
-    maxAttempts: number = undefined,
+    maxAttempts?: number,
   ) {
     context_.config.podRefs = {};
     const consensusNodes = context_.config.consensusNodes;
@@ -1539,12 +1536,7 @@ export class NodeCommandTasks {
           this.configManager.getFlag<DeploymentName>(flags.deployment),
           this.configManager.getFlag<boolean>(flags.forcePortForward),
         );
-        await this._addStake(
-          context_.config.namespace,
-          context_.newNode.accountId,
-          context_.config.nodeAlias,
-          undefined,
-        );
+        await this._addStake(context_.config.namespace, context_.newNode.accountId, context_.config.nodeAlias);
       },
     };
   }

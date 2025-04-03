@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type Optional} from '../../../../types/index.js';
 import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type SecretType} from './secret-type.js';
 
@@ -19,7 +18,7 @@ export interface Secrets {
     name: string,
     secretType: SecretType,
     data: Record<string, string>,
-    labels: Optional<Record<string, string>>,
+    labels?: Record<string, string>,
   ): Promise<boolean>;
 
   createOrReplace(
@@ -27,7 +26,7 @@ export interface Secrets {
     name: string,
     secretType: SecretType,
     data: Record<string, string>,
-    labels: Optional<Record<string, string>>,
+    labels?: Record<string, string>,
   ): Promise<boolean>;
 
   replace(
@@ -35,7 +34,7 @@ export interface Secrets {
     name: string,
     secretType: SecretType,
     data: Record<string, string>,
-    labels: Optional<Record<string, string>>,
+    labels?: Record<string, string>,
   ): Promise<boolean>;
 
   read(

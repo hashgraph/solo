@@ -210,14 +210,10 @@ export class ProfileManager {
     const accountMap: Map<NodeAlias, string> = getNodeAccountMap(consensusNodes.map(node => node.name));
 
     // set consensus pod level resources
-    for (let nodeIndex: number = 0; nodeIndex < nodeAliases.length; nodeIndex++) {
-      this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAliases[nodeIndex], yamlRoot);
-      this._setValue(
-        `hedera.nodes.${nodeIndex}.nodeId`,
-        `${Templates.nodeIdFromNodeAlias(nodeAliases[nodeIndex])}`,
-        yamlRoot,
-      );
-      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAliases[nodeIndex]), yamlRoot);
+    for (const [nodeIndex, nodeAlias] of nodeAliases.entries()) {
+      this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAlias, yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, `${Templates.nodeIdFromNodeAlias(nodeAlias)}`, yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAlias), yamlRoot);
     }
 
     const stagingDirectory = Templates.renderStagingDir(
@@ -563,8 +559,7 @@ export class ProfileManager {
 
     try {
       const configLines: string[] = [];
-      configLines.push(`swirld, ${chainId}`);
-      configLines.push(`app, ${appName}`);
+      configLines.push(`swirld, ${chainId}`, `app, ${appName}`);
 
       let nodeSeq = 0;
       for (const consensusNode of consensusNodes) {
@@ -574,18 +569,14 @@ export class ProfileManager {
           consensusNode.name as NodeAlias,
         );
 
-        let externalIP: string;
-
         const domainName: Optional<string> = domainNamesMapping?.[consensusNode.name];
-        if (domainName) {
-          externalIP = domainName;
-        } else {
-          externalIP = await helpers.getExternalAddress(
-            consensusNode,
-            this.k8Factory.getK8(consensusNode.context),
-            loadBalancerEnabled,
-          );
-        }
+        const externalIP: string = domainName
+          ? domainName
+          : await helpers.getExternalAddress(
+              consensusNode,
+              this.k8Factory.getK8(consensusNode.context),
+              loadBalancerEnabled,
+            );
 
         const account = nodeAccountMap.get(consensusNode.name as NodeAlias);
 
