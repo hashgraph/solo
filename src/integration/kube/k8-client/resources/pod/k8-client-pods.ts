@@ -125,7 +125,9 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     maxAttempts = 10,
     delay = 500,
   ): Promise<Pod[]> {
-    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
+    if (!conditionsMap || conditionsMap.size === 0) {
+      throw new MissingArgumentError('pod conditions are required');
+    }
 
     return await this.waitForRunningPhase(namespace, labels, maxAttempts, delay, pod => {
       if (pod.conditions?.length > 0) {
@@ -238,7 +240,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
       const response = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, labelSelector);
       KubeApiResponse.check(response.response, ResourceOperation.LIST, ResourceType.POD, undefined, '');
       if (response?.body?.items?.length > 0) {
-        response.body.items.forEach(item => {
+        for (const item of response.body.items) {
           pods.push(
             new K8ClientPod(
               PodReference.of(NamespaceName.of(item.metadata?.namespace), PodName.of(item.metadata?.name)),
@@ -247,7 +249,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
               this.kubeConfig,
             ),
           );
-        });
+        }
       }
     } catch (error) {
       throw new SoloError('Error listing pods for all namespaces', error);

@@ -41,7 +41,9 @@ export class Argv implements CloneTrait<Argv> {
     const rawArguments: ArgvStruct = structuredClone(this.args) as ArgvStruct;
 
     const _: string[] = [this.command];
-    if (this.subcommand) _.push(this.subcommand);
+    if (this.subcommand) {
+      _.push(this.subcommand);
+    }
     rawArguments._ = _;
 
     return rawArguments;

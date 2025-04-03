@@ -88,10 +88,12 @@ export class MirrorNodeCommand extends BaseCommand {
 
   public constructor(options: Options) {
     super(options);
-    if (!options || !options.accountManager)
+    if (!options || !options.accountManager) {
       throw new IllegalArgumentError('An instance of core/AccountManager is required', options.accountManager);
-    if (!options || !options.profileManager)
+    }
+    if (!options || !options.profileManager) {
       throw new MissingArgumentError('An instance of core/ProfileManager is required', options.downloader);
+    }
 
     this.accountManager = options.accountManager;
     this.profileManager = options.profileManager;
@@ -296,7 +298,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 .pods()
                 .list(namespace, ['solo.hedera.com/type=network-node']);
 
-              if (networkPods.length) {
+              if (networkPods.length > 0) {
                 const pod = networkPods[0];
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.accountId=${startAccumulatorId}`;
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.podIp}`;
@@ -350,11 +352,15 @@ export class MirrorNodeCommand extends BaseCommand {
                 !context_.config.externalDatabaseReadonlyPassword)
             ) {
               const missingFlags: CommandFlag[] = [];
-              if (!context_.config.externalDatabaseHost) missingFlags.push(flags.externalDatabaseHost);
-              if (!context_.config.externalDatabaseOwnerUsername)
+              if (!context_.config.externalDatabaseHost) {
+                missingFlags.push(flags.externalDatabaseHost);
+              }
+              if (!context_.config.externalDatabaseOwnerUsername) {
                 missingFlags.push(flags.externalDatabaseOwnerUsername);
-              if (!context_.config.externalDatabaseOwnerPassword)
+              }
+              if (!context_.config.externalDatabaseOwnerPassword) {
                 missingFlags.push(flags.externalDatabaseOwnerPassword);
+              }
 
               if (!context_.config.externalDatabaseReadonlyUsername) {
                 missingFlags.push(flags.externalDatabaseReadonlyUsername);
@@ -363,7 +369,7 @@ export class MirrorNodeCommand extends BaseCommand {
                 missingFlags.push(flags.externalDatabaseReadonlyPassword);
               }
 
-              if (missingFlags.length) {
+              if (missingFlags.length > 0) {
                 const errorMessage =
                   'There are missing values that need to be provided when' +
                   `${chalk.cyan(`--${flags.useExternalDatabase.name}`)} is provided: `;
@@ -524,7 +530,9 @@ export class MirrorNodeCommand extends BaseCommand {
                     ),
               };
 
-              if (skip) task.skip = skip;
+              if (skip) {
+                task.skip = skip;
+              }
 
               return task;
             });
@@ -823,7 +831,9 @@ export class MirrorNodeCommand extends BaseCommand {
                 .deploy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node deploy`====');
-                  if (!r) throw new SoloError('Error deploying mirror node, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error deploying mirror node, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error deploying mirror node: ${error.message}`, error);
@@ -850,7 +860,9 @@ export class MirrorNodeCommand extends BaseCommand {
                 .destroy(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `mirror-node destroy`====');
-                  if (!r) throw new SoloError('Error destroying mirror node, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error destroying mirror node, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error destroying mirror node: ${error.message}`, error);

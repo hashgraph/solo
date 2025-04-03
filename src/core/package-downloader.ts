@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import * as crypto from 'crypto';
-import * as fs from 'fs';
+import * as crypto from 'node:crypto';
+import * as fs from 'node:fs';
 import {pipeline as streamPipeline} from 'node:stream/promises';
 import got from 'got';
-import path from 'path';
+import path from 'node:path';
 import {DataValidationError} from './errors/data-validation-error.js';
 import {SoloError} from './errors/solo-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {ResourceNotFoundError} from './errors/resource-not-found-error.js';
-import * as https from 'https';
-import * as http from 'http';
+import * as https from 'node:https';
+import * as http from 'node:http';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {type SoloLogger} from './logging/solo-logger.js';
@@ -158,7 +158,9 @@ export class PackageDownloader {
    */
   async verifyChecksum(sourceFile: string, checksum: string, algo = 'sha256') {
     const computed = await this.computeFileHash(sourceFile, algo);
-    if (checksum !== computed) throw new DataValidationError('checksum', checksum, computed);
+    if (checksum !== computed) {
+      throw new DataValidationError('checksum', checksum, computed);
+    }
   }
 
   /**
@@ -176,9 +178,15 @@ export class PackageDownloader {
     algo = 'sha256',
     force = false,
   ) {
-    if (!packageURL) throw new Error('package URL is required');
-    if (!checksumURL) throw new Error('checksum URL is required');
-    if (!destinationDirectory) throw new Error('destination directory path is required');
+    if (!packageURL) {
+      throw new Error('package URL is required');
+    }
+    if (!checksumURL) {
+      throw new Error('checksum URL is required');
+    }
+    if (!destinationDirectory) {
+      throw new Error('destination directory path is required');
+    }
 
     this.logger.debug(`Downloading package: ${packageURL}, checksum: ${checksumURL}`);
     if (!fs.existsSync(destinationDirectory)) {
@@ -195,7 +203,9 @@ export class PackageDownloader {
 
       await this.fetchFile(checksumURL, checksumFile);
       const checksumData = fs.readFileSync(checksumFile).toString();
-      if (!checksumData) throw new SoloError(`unable to read checksum file: ${checksumFile}`);
+      if (!checksumData) {
+        throw new SoloError(`unable to read checksum file: ${checksumFile}`);
+      }
       const checksum = checksumData.split(' ')[0];
       await this.fetchFile(packageURL, packageFile);
       await this.verifyChecksum(packageFile, checksum, algo);
@@ -224,7 +234,9 @@ export class PackageDownloader {
    * @returns full path to the downloaded file
    */
   async fetchPlatform(tag: string, destinationDirectory: string, force = false) {
-    if (!tag) throw new MissingArgumentError('tag is required');
+    if (!tag) {
+      throw new MissingArgumentError('tag is required');
+    }
     if (!destinationDirectory) {
       throw new MissingArgumentError('destination directory path is required');
     }

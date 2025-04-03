@@ -2,7 +2,7 @@
 
 import * as winston from 'winston';
 import {v4 as uuidv4} from 'uuid';
-import * as util from 'util';
+import * as util from 'node:util';
 import chalk from 'chalk';
 import * as constants from '../constants.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -100,7 +100,7 @@ export class SoloWinstonLogger implements SoloLogger {
     if (this.developmentMode) {
       let prefix = '';
       let indent = '';
-      stack.forEach(s => {
+      for (const s of stack) {
         console.log(indent + prefix + chalk.yellow(s.message));
         // Remove everything after the first "Caused by: " and add indentation
         const formattedStacktrace = s.stacktrace
@@ -110,12 +110,12 @@ export class SoloWinstonLogger implements SoloLogger {
         console.log(indent + chalk.gray(formattedStacktrace) + '\n');
         indent += '  ';
         prefix = 'Caused by: ';
-      });
+      }
     } else {
       const lines: string[] = error.message.split('\n');
-      lines.forEach(line => {
+      for (const line of lines) {
         console.log(chalk.yellow(line));
-      });
+      }
     }
     console.log(chalk.red('***********************************************************************************'));
 
@@ -142,7 +142,9 @@ export class SoloWinstonLogger implements SoloLogger {
     this.showUser(chalk.green(`\n *** ${title} ***`));
     this.showUser(chalk.green('-------------------------------------------------------------------------------'));
     if (items.length > 0) {
-      items.forEach(name => this.showUser(chalk.cyan(` - ${name}`)));
+      for (const name of items) {
+        this.showUser(chalk.cyan(` - ${name}`));
+      }
     } else {
       this.showUser(chalk.blue('[ None ]'));
     }

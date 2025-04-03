@@ -2,8 +2,8 @@
 
 import {AccountId, FileId} from '@hashgraph/sdk';
 import {color, type ListrLogger, PRESET_TIMER} from 'listr2';
-import {dirname} from 'path';
-import {fileURLToPath} from 'url';
+import {dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {ContainerName} from '../integration/kube/resources/container/container-name.js';
 import {PathEx} from '../business/utils/path-ex.js';
@@ -121,7 +121,7 @@ export const SYSTEM_ACCOUNTS = [
 ]; // do account 0.0.2 last and outside the loop
 export const SHORTER_SYSTEM_ACCOUNTS = [[3, 60]];
 export const TREASURY_ACCOUNT = 2;
-export const LOCAL_NODE_START_PORT = +process.env.LOCAL_NODE_START_PORT || 30212;
+export const LOCAL_NODE_START_PORT = +process.env.LOCAL_NODE_START_PORT || 30_212;
 export const ACCOUNT_UPDATE_BATCH_SIZE = +process.env.ACCOUNT_UPDATE_BATCH_SIZE || 10;
 
 export const POD_PHASE_RUNNING = 'Running';
@@ -145,7 +145,7 @@ export const LISTR_DEFAULT_RENDERER_TIMER_OPTION = {
   ...PRESET_TIMER,
   condition: (duration: number) => duration > 100,
   format: (duration: number) => {
-    if (duration > 30000) {
+    if (duration > 30_000) {
       return color.red;
     }
 
@@ -190,8 +190,8 @@ export const STANDARD_DATAMASK = '***';
 
 // ------ Hedera SDK Related ------
 export const NODE_CLIENT_MAX_ATTEMPTS = +process.env.NODE_CLIENT_MAX_ATTEMPTS || 600;
-export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1_000;
-export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1_000;
+export const NODE_CLIENT_MIN_BACKOFF = +process.env.NODE_CLIENT_MIN_BACKOFF || 1000;
+export const NODE_CLIENT_MAX_BACKOFF = +process.env.NODE_CLIENT_MAX_BACKOFF || 1000;
 export const NODE_CLIENT_REQUEST_TIMEOUT = +process.env.NODE_CLIENT_REQUEST_TIMEOUT || 600_000;
 export const NODE_CLIENT_PING_INTERVAL = +process.env.NODE_CLIENT_PING_INTERVAL || 30_000;
 export const NODE_CLIENT_PING_MAX_RETRIES = +process.env.NODE_CLIENT_PING_MAX_RETRIES || 5;
@@ -212,18 +212,18 @@ export const JVM_DEBUG_PORT = 5005;
 export const PODS_RUNNING_MAX_ATTEMPTS = +process.env.PODS_RUNNING_MAX_ATTEMPTS || 60 * 15;
 export const PODS_RUNNING_DELAY = +process.env.PODS_RUNNING_DELAY || 1000;
 export const NETWORK_NODE_ACTIVE_MAX_ATTEMPTS = +process.env.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS || 300;
-export const NETWORK_NODE_ACTIVE_DELAY = +process.env.NETWORK_NODE_ACTIVE_DELAY || 1_000;
-export const NETWORK_NODE_ACTIVE_TIMEOUT = +process.env.NETWORK_NODE_ACTIVE_TIMEOUT || 1_000;
+export const NETWORK_NODE_ACTIVE_DELAY = +process.env.NETWORK_NODE_ACTIVE_DELAY || 1000;
+export const NETWORK_NODE_ACTIVE_TIMEOUT = +process.env.NETWORK_NODE_ACTIVE_TIMEOUT || 1000;
 export const NETWORK_PROXY_MAX_ATTEMPTS = +process.env.NETWORK_PROXY_MAX_ATTEMPTS || 300;
 export const NETWORK_PROXY_DELAY = +process.env.NETWORK_PROXY_DELAY || 2000;
 export const PODS_READY_MAX_ATTEMPTS = +process.env.PODS_READY_MAX_ATTEMPTS || 300;
-export const PODS_READY_DELAY = +process.env.PODS_READY_DELAY || 2_000;
+export const PODS_READY_DELAY = +process.env.PODS_READY_DELAY || 2000;
 export const RELAY_PODS_RUNNING_MAX_ATTEMPTS = +process.env.RELAY_PODS_RUNNING_MAX_ATTEMPTS || 900;
-export const RELAY_PODS_RUNNING_DELAY = +process.env.RELAY_PODS_RUNNING_DELAY || 1_000;
+export const RELAY_PODS_RUNNING_DELAY = +process.env.RELAY_PODS_RUNNING_DELAY || 1000;
 export const RELAY_PODS_READY_MAX_ATTEMPTS = +process.env.RELAY_PODS_READY_MAX_ATTEMPTS || 100;
-export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1_000;
+export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1000;
 export const BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS = +process.env.BLOCK_NODES_PODS_RUNNING_MAX_ATTEMPTS || 900;
-export const BLOCK_NODES_PODS_RUNNING_DELAY = +process.env.BLOCK_NODES_PODS_RUNNING_DELAY || 1_000;
+export const BLOCK_NODES_PODS_RUNNING_DELAY = +process.env.BLOCK_NODES_PODS_RUNNING_DELAY || 1000;
 
 export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const LOCAL_BUILD_COPY_RETRY = +process.env.LOCAL_BUILD_COPY_RETRY || 3;

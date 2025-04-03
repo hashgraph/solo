@@ -45,7 +45,7 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 
@@ -106,7 +106,7 @@ jobs:
       - update-readme
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 
@@ -139,6 +139,12 @@ jobs:
           git_commit_gpgsign: true
           git_tag_gpgsign: false
 
+      - name: Install Task
+        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        with:
+          version: 3.39.2
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Node
         uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
         with:
@@ -150,7 +156,7 @@ jobs:
           npm install
           echo "VERSION=${{ needs.prepare-release.outputs.version }}"
           [[ -n "${{ needs.prepare-release.outputs.version }}" ]] && npm version ${{ needs.prepare-release.outputs.version }} -f --no-git-tag-version
-          npm run build
+          task build
 
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df # v4.5.6

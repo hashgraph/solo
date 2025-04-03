@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {spawn} from 'child_process';
+import {spawn} from 'node:child_process';
 import chalk from 'chalk';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {inject, injectable} from 'tsyringe-neo';
@@ -27,21 +27,21 @@ export class ShellRunner {
       const output: string[] = [];
       child.stdout.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
             output.push(item);
           }
-        });
+        }
       });
 
       const errorOutput: string[] = [];
       child.stderr.on('data', d => {
         const items: string[] = d.toString().split(/\r?\n/);
-        items.forEach(item => {
+        for (const item of items) {
           if (item) {
             errorOutput.push(item.trim());
           }
-        });
+        }
       });
 
       child.on('exit', (code, signal) => {
@@ -53,7 +53,9 @@ export class ShellRunner {
           error.stack = callStack;
 
           if (verbose) {
-            errorOutput.forEach(m => self.logger.showUser(chalk.red(m)));
+            for (const m of errorOutput) {
+              self.logger.showUser(chalk.red(m));
+            }
           }
 
           self.logger.error(`Error executing: '${cmd}'`, {

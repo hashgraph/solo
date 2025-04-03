@@ -18,7 +18,7 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {expect} from 'chai';
-import fs from 'fs';
+import fs from 'node:fs';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
@@ -40,7 +40,7 @@ import {type SoloWinstonLogger} from '../../../src/core/logging/solo-winston-log
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ExtendedNetServer} from '../../../src/types/index.js';
-import http from 'http';
+import http from 'node:http';
 import {sleep} from '../../../src/core/helpers.js';
 import {type AccountManager} from '../../../src/core/account-manager.js';
 import {
@@ -84,8 +84,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
     }
     resetForTest(namespace.name, testCacheDirectory, testLogger, false);
     testLogger = container.resolve<SoloWinstonLogger>(InjectTokens.SoloLogger);
-    for (let index: number = 0; index < contexts.length; index++) {
-      const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[index]);
+    for (const item of contexts) {
+      const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(item);
       await k8Client.namespaces().delete(namespace);
     }
     testLogger.info(`${testName}: starting dual cluster full e2e test`);
@@ -107,8 +107,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
 
   it(`${testName}: solo cluster-ref connect`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo cluster-ref connect`);
-    for (let index: number = 0; index < testClusterArray.length; index++) {
-      await main(soloClusterReferenceConnectArgv(testClusterArray[index], contexts[index]));
+    for (const [index, element] of testClusterArray.entries()) {
+      await main(soloClusterReferenceConnectArgv(element, contexts[index]));
     }
     const localConfig: LocalConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
     const clusterReferences: ClusterReferences = localConfig.clusterRefs;
@@ -125,8 +125,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
 
   it(`${testName}: solo deployment add-cluster`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo deployment add-cluster`);
-    for (let index: number = 0; index < testClusterArray.length; index++) {
-      await main(soloDeploymentAddClusterArgv(deployment, testClusterArray[index], 1));
+    for (const element of testClusterArray) {
+      await main(soloDeploymentAddClusterArgv(deployment, element, 1));
     }
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
@@ -139,8 +139,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
 
   it(`${testName}: solo cluster-ref setup`, async (): Promise<void> => {
     testLogger.info(`${testName}: beginning solo cluster-ref setup`);
-    for (let index: number = 0; index < testClusterArray.length; index++) {
-      await main(soloClusterReferenceSetup(testClusterArray[index]));
+    for (const element of testClusterArray) {
+      await main(soloClusterReferenceSetup(element));
     }
     testLogger.info(`${testName}: finishing solo cluster-ref setup`);
   });
@@ -159,8 +159,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
   it(`${testName}: network deploy`, async (): Promise<void> => {
     await main(soloNetworkDeployArgv(deployment));
     const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-    for (let index: number = 0; index < contexts.length; index++) {
-      const k8: K8 = k8Factory.getK8(contexts[index]);
+    for (const [index, context_] of contexts.entries()) {
+      const k8: K8 = k8Factory.getK8(context_);
       expect(await k8.namespaces().has(namespace), `namespace ${namespace} should exist in ${context}`).to.be.true;
       const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       expect(pods).to.have.lengthOf(1);
@@ -173,8 +173,8 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
   it(`${testName}: node setup`, async (): Promise<void> => {
     await main(soloNodeSetupArgv(deployment));
     const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-    for (let index: number = 0; index < contexts.length; index++) {
-      const k8: K8 = k8Factory.getK8(contexts[index]);
+    for (const context_ of contexts) {
+      const k8: K8 = k8Factory.getK8(context_);
       const pods: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       expect(pods, 'expect this cluster to have one network node').to.have.lengthOf(1);
       const rootContainer: ContainerReference = ContainerReference.of(
@@ -202,9 +202,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
   // TODO node start still list --node-aliases
   it(`${testName}: node start`, async (): Promise<void> => {
     await main(soloNodeStartArgv(deployment));
-    for (let index: number = 0; index < contexts.length; index++) {
+    for (const context_ of contexts) {
       const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-      const k8: K8 = k8Factory.getK8(contexts[index]);
+      const k8: K8 = k8Factory.getK8(context_);
       const networkNodePod: Pod[] = await k8.pods().list(namespace, ['solo.hedera.com/type=network-node']);
       expect(networkNodePod).to.have.lengthOf(1);
       const haProxyPod: Pod[] = await k8
@@ -219,44 +219,25 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
           constants.NETWORK_PROXY_DELAY,
         );
       expect(haProxyPod).to.have.lengthOf(1);
-      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterReferences));
-      createdAccountIds.push(await verifyAccountCreateWasSuccessful(namespace, testClusterReferences));
+      createdAccountIds.push(
+        await verifyAccountCreateWasSuccessful(namespace, testClusterReferences),
+        await verifyAccountCreateWasSuccessful(namespace, testClusterReferences),
+      );
     }
+    // create one more account to make sure that the last one gets pushed to mirror node
+    await verifyAccountCreateWasSuccessful(namespace, testClusterReferences);
   }).timeout(Duration.ofMinutes(5).toMillis());
 
   it(`${testName}: mirror node deploy`, async (): Promise<void> => {
     await main(soloMirrorNodeDeployArgv(deployment, testClusterArray[1]));
-    await verifyMirrorNodeDeployWasSuccessful(contexts, namespace, testLogger);
+    await verifyMirrorNodeDeployWasSuccessful(contexts, namespace, testLogger, createdAccountIds);
     // TODO validate the new accounts are showing up with the mirror node rest url
   }).timeout(Duration.ofMinutes(10).toMillis());
 
-  // TODO explorer deploy
-  xit(`${testName}: explorer deploy`, async (): Promise<void> => {
+  it(`${testName}: explorer deploy`, async (): Promise<void> => {
     await main(soloExplorerDeployArgv(deployment, testClusterArray[1]));
-    const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-    const k8: K8 = k8Factory.getK8(contexts[1]);
-    const hederaExplorerPods: Pod[] = await k8
-      .pods()
-      .list(namespace, [
-        'app.kubernetes.io/instance=hedera-explorer',
-        'app.kubernetes.io/name=hedera-explorer-chart',
-        'app.kubernetes.io/component=hedera-explorer',
-      ]);
-    expect(hederaExplorerPods).to.have.lengthOf(1);
-    let portForwarder: ExtendedNetServer = null;
-    try {
-      portForwarder = await k8.pods().readByReference(hederaExplorerPods[0].podReference).portForward(8_080, 8_080);
-      await sleep(Duration.ofSeconds(2));
-      const guiUrl: string = 'http://127.0.0.1:8080/localnet/dashboard';
-      const packageDownloader: PackageDownloader = container.resolve<PackageDownloader>(InjectTokens.PackageDownloader);
-      expect(await packageDownloader.urlExists(guiUrl), 'the hedera explorer GUI URL should exist').to.be.true;
-      // TODO validate the new accounts are showing up with the hedera explorer url
-    } finally {
-      if (portForwarder) {
-        await k8.pods().readByReference(null).stopPortForward(portForwarder);
-      }
-    }
-  });
+    await verifyExplorerDeployWasSuccessful(contexts, namespace, createdAccountIds, testLogger);
+  }).timeout(Duration.ofMinutes(5).toMillis());
 
   // TODO json rpc relay deploy
   // TODO json rpc relay destroy
@@ -285,26 +266,30 @@ function soloInitArgv(): string[] {
 
 function soloClusterReferenceConnectArgv(clusterReference: ClusterReference, context: string): string[] {
   const argv: string[] = newArgv();
-  argv.push('cluster-ref');
-  argv.push('connect');
-  argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterReference);
-  argv.push(optionFromFlag(Flags.context));
-  argv.push(context);
-  argv.push(optionFromFlag(Flags.userEmailAddress));
-  argv.push('dual.full.cluster.test@host.com');
+  argv.push(
+    'cluster-ref',
+    'connect',
+    optionFromFlag(Flags.clusterRef),
+    clusterReference,
+    optionFromFlag(Flags.context),
+    context,
+    optionFromFlag(Flags.userEmailAddress),
+    'dual.full.cluster.test@host.com',
+  );
   argvPushGlobalFlags(argv);
   return argv;
 }
 
 function soloDeploymentCreateArgv(deployment: DeploymentName, namespace: NamespaceName): string[] {
   const argv: string[] = newArgv();
-  argv.push('deployment');
-  argv.push('create');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
-  argv.push(optionFromFlag(Flags.namespace));
-  argv.push(namespace.name);
+  argv.push(
+    'deployment',
+    'create',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(Flags.namespace),
+    namespace.name,
+  );
   argvPushGlobalFlags(argv);
   return argv;
 }
@@ -315,68 +300,65 @@ function soloDeploymentAddClusterArgv(
   numberOfNodes: number,
 ): string[] {
   const argv: string[] = newArgv();
-  argv.push('deployment');
-  argv.push('add-cluster');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
-  argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterReference);
-  argv.push(optionFromFlag(Flags.numberOfConsensusNodes));
-  argv.push(numberOfNodes.toString());
+  argv.push(
+    'deployment',
+    'add-cluster',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(Flags.clusterRef),
+    clusterReference,
+    optionFromFlag(Flags.numberOfConsensusNodes),
+    numberOfNodes.toString(),
+  );
   argvPushGlobalFlags(argv);
   return argv;
 }
 
 function soloClusterReferenceSetup(clusterReference: ClusterReference): string[] {
   const argv: string[] = newArgv();
-  argv.push('cluster-ref');
-  argv.push('setup');
-  argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterReference);
+  argv.push('cluster-ref', 'setup', optionFromFlag(Flags.clusterRef), clusterReference);
   argvPushGlobalFlags(argv, false, true);
   return argv;
 }
 
 function soloNodeKeysArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
-  argv.push('node');
-  argv.push('keys');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
-  argv.push(optionFromFlag(Flags.generateGossipKeys));
-  argv.push('true');
-  argv.push(optionFromFlag(Flags.generateTlsKeys));
+  argv.push(
+    'node',
+    'keys',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(Flags.generateGossipKeys),
+    'true',
+    optionFromFlag(Flags.generateTlsKeys),
+  );
   argvPushGlobalFlags(argv, true);
   return argv;
 }
 
 function soloNetworkDeployArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
-  argv.push('network');
-  argv.push('deploy');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
-  argv.push(optionFromFlag(Flags.loadBalancerEnabled)); // have to enable load balancer to resolve cross cluster in multi-cluster
+  argv.push(
+    'network',
+    'deploy',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(Flags.loadBalancerEnabled),
+  ); // have to enable load balancer to resolve cross cluster in multi-cluster
   argvPushGlobalFlags(argv, true, true);
   return argv;
 }
 
 function soloNodeSetupArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
-  argv.push('node');
-  argv.push('setup');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
+  argv.push('node', 'setup', optionFromFlag(Flags.deployment), deployment);
   argvPushGlobalFlags(argv, true);
   return argv;
 }
 
 function soloNodeStartArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
-  argv.push('node');
-  argv.push('start');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
+  argv.push('node', 'start', optionFromFlag(Flags.deployment), deployment);
   argvPushGlobalFlags(argv);
   return argv;
 }
@@ -390,7 +372,7 @@ async function verifyAccountCreateWasSuccessful(
     await accountManager.refreshNodeClient(namespace, clusterReferences);
     expect(accountManager._nodeClient).not.to.be.null;
     const privateKey: PrivateKey = PrivateKey.generate();
-    const amount: number = 100;
+    const amount: number = 777;
 
     const newAccount: TransactionResponse = await new AccountCreateTransaction()
       .setKeyWithoutAlias(privateKey)
@@ -421,13 +403,15 @@ async function verifyAccountCreateWasSuccessful(
 
 function soloMirrorNodeDeployArgv(deployment: DeploymentName, clusterReference: ClusterReference): string[] {
   const argv: string[] = newArgv();
-  argv.push('mirror-node');
-  argv.push('deploy');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
-  argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterReference);
-  argv.push(optionFromFlag(Flags.pinger));
+  argv.push(
+    'mirror-node',
+    'deploy',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(Flags.clusterRef),
+    clusterReference,
+    optionFromFlag(Flags.pinger),
+  );
   argvPushGlobalFlags(argv, true, true);
   return argv;
 }
@@ -436,6 +420,7 @@ async function verifyMirrorNodeDeployWasSuccessful(
   contexts: string[],
   namespace: NamespaceName,
   testLogger: SoloWinstonLogger,
+  createdAccountIds: string[],
 ): Promise<void> {
   const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
   const k8: K8 = k8Factory.getK8(contexts[1]);
@@ -447,9 +432,9 @@ async function verifyMirrorNodeDeployWasSuccessful(
       'app.kubernetes.io/component=rest',
     ]);
   expect(mirrorNodeRestPods).to.have.lengthOf(1);
-  let portForwarder: ExtendedNetServer = null;
+  let portForwarder: ExtendedNetServer;
   try {
-    portForwarder = await k8.pods().readByReference(mirrorNodeRestPods[0].podReference).portForward(5_551, 5_551);
+    portForwarder = await k8.pods().readByReference(mirrorNodeRestPods[0].podReference).portForward(5551, 5551);
     await sleep(Duration.ofSeconds(2));
     const queryUrl: string = 'http://localhost:5551/api/v1/network/nodes';
     let received: boolean = false;
@@ -467,7 +452,7 @@ async function verifyMirrorNodeDeployWasSuccessful(
               object.nodes?.length,
               "expect there to be two nodes in the mirror node's copy of the address book",
             ).to.equal(2);
-            // TODO need to enable this, but looks like mirror node currently is getting no service endpoints
+            // TODO need to enable this, but looks like mirror node currently is getting no service endpoints, hopefully they will be in v0.60+
             // expect(
             //   obj.nodes[0].service_endpoints?.length,
             //   'expect there to be at least one service endpoint',
@@ -482,9 +467,38 @@ async function verifyMirrorNodeDeployWasSuccessful(
       request.end(); // make the request
       await sleep(Duration.ofSeconds(2));
     }
-    await sleep(Duration.ofSeconds(1));
+    for (const accountId of createdAccountIds) {
+      const accountQueryUrl: string = `http://localhost:5551/api/v1/accounts/${accountId}`;
+      received = false;
+      // wait until the transaction reached consensus and retrievable from the mirror node API
+      while (!received) {
+        const request: http.ClientRequest = http.request(
+          accountQueryUrl,
+          {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
+          (response: http.IncomingMessage): void => {
+            response.setEncoding('utf8');
+            response.on('data', (chunk): void => {
+              // convert chunk to json object
+              const object: {account: string} = JSON.parse(chunk);
+              expect(
+                object.account,
+                'expect the created account to exist in the mirror nodes copy of the accounts',
+              ).to.equal(accountId);
+              received = true;
+            });
+          },
+        );
+        request.on('error', (error: Error): void => {
+          testLogger.debug(`problem with request: ${error.message}`, error);
+        });
+        request.end(); // make the request
+        await sleep(Duration.ofSeconds(2));
+      }
+      await sleep(Duration.ofSeconds(1));
+    }
   } finally {
     if (portForwarder) {
+      // eslint-disable-next-line unicorn/no-null
       await k8.pods().readByReference(null).stopPortForward(portForwarder);
     }
   }
@@ -492,23 +506,84 @@ async function verifyMirrorNodeDeployWasSuccessful(
 
 function soloExplorerDeployArgv(deployment: DeploymentName, clusterReference: ClusterReference): string[] {
   const argv: string[] = newArgv();
-  argv.push('explorer');
-  argv.push('deploy');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
-  argv.push(optionFromFlag(Flags.clusterRef));
-  argv.push(clusterReference);
+  argv.push(
+    'explorer',
+    'deploy',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(Flags.clusterRef),
+    clusterReference,
+  );
   argvPushGlobalFlags(argv, true, true);
   return argv;
 }
 
+async function verifyExplorerDeployWasSuccessful(
+  contexts: string[],
+  namespace: NamespaceName,
+  createdAccountIds: string[],
+  testLogger: SoloWinstonLogger,
+): Promise<void> {
+  const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+  const k8: K8 = k8Factory.getK8(contexts[1]);
+  const hederaExplorerPods: Pod[] = await k8
+    .pods()
+    .list(namespace, [
+      'app.kubernetes.io/instance=hedera-explorer',
+      'app.kubernetes.io/name=hedera-explorer-chart',
+      'app.kubernetes.io/component=hedera-explorer',
+    ]);
+  expect(hederaExplorerPods).to.have.lengthOf(1);
+  let portForwarder: ExtendedNetServer;
+  try {
+    portForwarder = await k8.pods().readByReference(hederaExplorerPods[0].podReference).portForward(8080, 8080);
+    await sleep(Duration.ofSeconds(2));
+    const queryUrl: string = 'http://127.0.0.1:8080/api/v1/accounts?limit=15&order=desc';
+    const packageDownloader: PackageDownloader = container.resolve<PackageDownloader>(InjectTokens.PackageDownloader);
+    expect(await packageDownloader.urlExists(queryUrl), 'the hedera explorer Accounts URL should exist').to.be.true;
+    let received: boolean = false;
+    // wait until the transaction reached consensus and retrievable from the mirror node API
+    while (!received) {
+      const request: http.ClientRequest = http.request(
+        queryUrl,
+        {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
+        (response: http.IncomingMessage): void => {
+          response.setEncoding('utf8');
+          response.on('data', (chunk): void => {
+            // convert chunk to json object
+            const object: {accounts: {account: string}[]} = JSON.parse(chunk);
+            expect(
+              object.accounts?.length,
+              "expect there to be more than one account in the hedera explorer's call to mirror node",
+            ).to.be.greaterThan(1);
+            for (const accountId of createdAccountIds) {
+              expect(
+                object.accounts.some((account: {account: string}): boolean => account.account === accountId),
+                `expect ${accountId} to be in the response`,
+              ).to.be.true;
+            }
+            received = true;
+          });
+        },
+      );
+      request.on('error', (error: Error): void => {
+        testLogger.debug(`problem with request: ${error.message}`, error);
+      });
+      request.end(); // make the request
+      await sleep(Duration.ofSeconds(2));
+    }
+  } finally {
+    if (portForwarder) {
+      // eslint-disable-next-line unicorn/no-null
+      await k8.pods().readByReference(null).stopPortForward(portForwarder);
+    }
+  }
+}
+
 function soloNetworkDestroyArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
-  argv.push('network');
-  argv.push('destroy');
-  argv.push(optionFromFlag(Flags.deployment));
-  argv.push(deployment);
-  argvPushGlobalFlags(argv);
+  argv.push('network', 'destroy', optionFromFlag(Flags.deployment), deployment);
+  argvPushGlobalFlags(argv, false, true);
   return argv;
 }
 
@@ -517,17 +592,14 @@ function argvPushGlobalFlags(
   shouldSetTestCacheDirectory: boolean = false,
   shouldSetChartDirectory: boolean = false,
 ): string[] {
-  argv.push(optionFromFlag(Flags.devMode));
-  argv.push(optionFromFlag(Flags.quiet));
+  argv.push(optionFromFlag(Flags.devMode), optionFromFlag(Flags.quiet));
 
   if (shouldSetChartDirectory && process.env.SOLO_CHARTS_DIR && process.env.SOLO_CHARTS_DIR !== '') {
-    argv.push(optionFromFlag(Flags.chartDirectory));
-    argv.push(process.env.SOLO_CHARTS_DIR);
+    argv.push(optionFromFlag(Flags.chartDirectory), process.env.SOLO_CHARTS_DIR);
   }
 
   if (shouldSetTestCacheDirectory) {
-    argv.push(optionFromFlag(Flags.cacheDir));
-    argv.push(getTestCacheDirectory(testName));
+    argv.push(optionFromFlag(Flags.cacheDir), getTestCacheDirectory(testName));
   }
 
   return argv;

@@ -82,9 +82,9 @@ export class SemanticVersion {
     }
 
     try {
-      const major = parseInt(matcher[2], 10);
-      const minor = parseInt(matcher[3], 10);
-      const patch = parseInt(matcher[4], 10);
+      const major = Number.parseInt(matcher[2], 10);
+      const minor = Number.parseInt(matcher[3], 10);
+      const patch = Number.parseInt(matcher[4], 10);
       const prerelease = SemanticVersion.nullToBlank(matcher[5]);
       const build = SemanticVersion.nullToBlank(matcher[6]);
 
@@ -157,8 +157,12 @@ export class SemanticVersion {
    * @returns true if the objects are equal, false otherwise
    */
   public equals(object: unknown): boolean {
-    if (this === object) return true;
-    if (!(object instanceof SemanticVersion)) return false;
+    if (this === object) {
+      return true;
+    }
+    if (!(object instanceof SemanticVersion)) {
+      return false;
+    }
     return (
       this._major === object._major &&
       this._minor === object._minor &&
@@ -205,7 +209,9 @@ export class SemanticVersion {
    * @returns comparison result
    */
   private compareStrings(a: string, b: string): number {
-    if (a === b) return 0;
+    if (a === b) {
+      return 0;
+    }
     return a < b ? -1 : 1;
   }
 }

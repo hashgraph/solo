@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
-import * as util from 'util';
+import fs from 'node:fs';
+import * as util from 'node:util';
 import {MissingArgumentError} from '../errors/missing-argument-error.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';
@@ -56,7 +56,9 @@ export class HelmDependencyManager extends ShellRunner {
     this.osArch = patchInject(osArch, InjectTokens.OsArch, this.constructor.name);
     this.helmVersion = patchInject(helmVersion, InjectTokens.HelmVersion, this.constructor.name);
 
-    if (!installationDirectory) throw new MissingArgumentError('installation directory is required');
+    if (!installationDirectory) {
+      throw new MissingArgumentError('installation directory is required');
+    }
 
     this.downloader = patchInject(downloader, InjectTokens.PackageDownloader, this.constructor.name);
     this.zippy = patchInject(zippy, InjectTokens.Zippy, this.constructor.name);

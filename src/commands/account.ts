@@ -51,8 +51,9 @@ export class AccountCommand extends BaseCommand {
   public constructor(options: Options, systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS) {
     super(options);
 
-    if (!options || !options.accountManager)
+    if (!options || !options.accountManager) {
       throw new IllegalArgumentError('An instance of core/AccountManager is required', options.accountManager);
+    }
 
     this.accountManager = options.accountManager;
     this.accountInfo = null;
@@ -190,7 +191,7 @@ export class AccountCommand extends BaseCommand {
     }
 
     const hbarAmount = Number.parseFloat(amount.toString());
-    if (amount && isNaN(hbarAmount)) {
+    if (amount && Number.isNaN(hbarAmount)) {
       throw new SoloError(`The HBAR amount was invalid: ${amount}`);
     }
 
@@ -306,9 +307,9 @@ export class AccountCommand extends BaseCommand {
                       const accountStart = `${realm}.${shard}.${currentSet[0]}`;
                       const accountEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
                       const rangeString =
-                        accountStart !== accountEnd
-                          ? `${chalk.yellow(accountStart)} to ${chalk.yellow(accountEnd)}`
-                          : `${chalk.yellow(accountStart)}`;
+                        accountStart === accountEnd
+                          ? `${chalk.yellow(accountStart)}`
+                          : `${chalk.yellow(accountStart)} to ${chalk.yellow(accountEnd)}`;
 
                       subTasks.push({
                         title: `Updating accounts [${rangeString}]`,
@@ -387,10 +388,11 @@ export class AccountCommand extends BaseCommand {
                     self.logger.showUser(
                       chalk.green(`Account keys updated SUCCESSFULLY: ${context_.resultTracker.fulfilledCount}`),
                     );
-                    if (context_.resultTracker.skippedCount > 0)
+                    if (context_.resultTracker.skippedCount > 0) {
                       self.logger.showUser(
                         chalk.cyan(`Account keys updates SKIPPED: ${context_.resultTracker.skippedCount}`),
                       );
+                    }
                     if (context_.resultTracker.rejectedCount > 0) {
                       self.logger.showUser(
                         chalk.yellowBright(`Account keys updates with ERROR: ${context_.resultTracker.rejectedCount}`),
@@ -746,7 +748,9 @@ export class AccountCommand extends BaseCommand {
                 .init(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account init' ===");
-                  if (!r) throw new SoloError('Error running init, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error running init, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error running init: ${error.message}`, error);
@@ -768,7 +772,9 @@ export class AccountCommand extends BaseCommand {
                 .create(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account create' ===");
-                  if (!r) throw new SoloError('Error running create, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error running create, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error running create: ${error.message}`, error);
@@ -790,7 +796,9 @@ export class AccountCommand extends BaseCommand {
                 .update(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account update' ===");
-                  if (!r) throw new SoloError('Error running update, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error running update, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error running update: ${error.message}`, error);
@@ -812,7 +820,9 @@ export class AccountCommand extends BaseCommand {
                 .get(argv)
                 .then(r => {
                   self.logger.info("==== Finished running 'account get' ===");
-                  if (!r) throw new SoloError('Error running get, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error running get, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error running get: ${error.message}`, error);

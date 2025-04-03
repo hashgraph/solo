@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 import {SoloError} from './errors/solo-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
@@ -9,7 +9,7 @@ import * as yaml from 'yaml';
 import dot from 'dot-object';
 import * as semver from 'semver';
 import {type SemVer} from 'semver';
-import {readFile, writeFile} from 'fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 
 import {Flags as flags} from '../commands/flags.js';
 import {Templates} from './templates.js';
@@ -72,14 +72,18 @@ export class ProfileManager {
    */
   loadProfiles(forceReload = false): Map<string, AnyObject> {
     const profileFile = this.configManager.getFlagFile(flags.profileFile);
-    if (!profileFile) throw new MissingArgumentError('profileFile is required');
+    if (!profileFile) {
+      throw new MissingArgumentError('profileFile is required');
+    }
 
     // return the cached value as quickly as possible
     if (this.profiles && this.profileFile === profileFile && !forceReload) {
       return this.profiles;
     }
 
-    if (!fs.existsSync(profileFile)) throw new IllegalArgumentError(`profileFile does not exist: ${profileFile}`);
+    if (!fs.existsSync(profileFile)) {
+      throw new IllegalArgumentError(`profileFile does not exist: ${profileFile}`);
+    }
 
     // load profile file
     this.profiles = new Map();
@@ -106,7 +110,9 @@ export class ProfileManager {
    * @throws {IllegalArgumentError} if profiles can't be loaded or the profile name is not found in the map.
    */
   getProfile(profileName: string): AnyObject {
-    if (!profileName) throw new MissingArgumentError('profileName is required');
+    if (!profileName) {
+      throw new MissingArgumentError('profileName is required');
+    }
     if (!this.profiles || this.profiles.size <= 0) {
       this.loadProfiles();
     }
@@ -168,7 +174,9 @@ export class ProfileManager {
    * @param yamlRoot - root of the YAML object to update
    */
   _setChartItems(itemPath: string, items: any, yamlRoot: AnyObject) {
-    if (!items) return;
+    if (!items) {
+      return;
+    }
 
     const dotItems = dot.dot(items);
 
@@ -195,7 +203,9 @@ export class ProfileManager {
     yamlRoot: AnyObject,
     domainNamesMapping: Record<NodeAlias, string>,
   ): Promise<AnyObject> {
-    if (!profile) throw new MissingArgumentError('profile is required');
+    if (!profile) {
+      throw new MissingArgumentError('profile is required');
+    }
 
     const accountMap: Map<NodeAlias, string> = getNodeAccountMap(consensusNodes.map(node => node.name));
 
@@ -290,28 +300,44 @@ export class ProfileManager {
   }
 
   private resourcesForHaProxyPod(profile: AnyObject, yamlRoot: AnyObject) {
-    if (!profile) throw new MissingArgumentError('profile is required');
-    if (!profile.haproxy) return; // use chart defaults
+    if (!profile) {
+      throw new MissingArgumentError('profile is required');
+    }
+    if (!profile.haproxy) {
+      return;
+    } // use chart defaults
 
     return this._setChartItems('defaults.haproxy', profile.haproxy, yamlRoot);
   }
 
   private resourcesForEnvoyProxyPod(profile: AnyObject, yamlRoot: AnyObject) {
-    if (!profile) throw new MissingArgumentError('profile is required');
-    if (!profile.envoyProxy) return; // use chart defaults
+    if (!profile) {
+      throw new MissingArgumentError('profile is required');
+    }
+    if (!profile.envoyProxy) {
+      return;
+    } // use chart defaults
     return this._setChartItems('defaults.envoyProxy', profile.envoyProxy, yamlRoot);
   }
 
   private resourcesForHederaExplorerPod(profile: AnyObject, yamlRoot: AnyObject) {
-    if (!profile) throw new MissingArgumentError('profile is required');
-    if (!profile.explorer) return;
+    if (!profile) {
+      throw new MissingArgumentError('profile is required');
+    }
+    if (!profile.explorer) {
+      return;
+    }
     return this._setChartItems('', profile.explorer, yamlRoot);
   }
 
   private resourcesForMinioTenantPod(profile: AnyObject, yamlRoot: AnyObject) {
-    if (!profile) throw new MissingArgumentError('profile is required');
+    if (!profile) {
+      throw new MissingArgumentError('profile is required');
+    }
     // @ts-ignore
-    if (!profile.minio || !profile.minio.tenant) return; // use chart defaults
+    if (!profile.minio || !profile.minio.tenant) {
+      return {};
+    } // use chart defaults
 
     for (const poolIndex in profile.minio.tenant.pools) {
       const pool = profile.minio.tenant.pools[poolIndex];
@@ -339,7 +365,9 @@ export class ProfileManager {
     consensusNodes: ConsensusNode[],
     domainNamesMapping: Record<NodeAlias, string>,
   ): Promise<Record<ClusterReference, string>> {
-    if (!profileName) throw new MissingArgumentError('profileName is required');
+    if (!profileName) {
+      throw new MissingArgumentError('profileName is required');
+    }
     const profile = this.getProfile(profileName);
 
     const filesMapping: Record<ClusterReference, string> = {};
@@ -368,7 +396,7 @@ export class ProfileManager {
 
     for (const line of lines) {
       if (line.startsWith('hedera.config.version=')) {
-        const version = parseInt(line.split('=')[1]) + 1;
+        const version = Number.parseInt(line.split('=')[1]) + 1;
         lines[lines.indexOf(line)] = `hedera.config.version=${version}`;
         break;
       }
@@ -393,9 +421,13 @@ export class ProfileManager {
    * @returns return the full path to the values file
    */
   public async prepareValuesForRpcRelayChart(profileName: string) {
-    if (!profileName) throw new MissingArgumentError('profileName is required');
+    if (!profileName) {
+      throw new MissingArgumentError('profileName is required');
+    }
     const profile = this.getProfile(profileName) as AnyObject;
-    if (!profile.rpcRelay) return ''; // use chart defaults
+    if (!profile.rpcRelay) {
+      return '';
+    } // use chart defaults
 
     // generate the YAML
     const yamlRoot = {};
@@ -406,7 +438,9 @@ export class ProfileManager {
   }
 
   public async prepareValuesHederaExplorerChart(profileName: string) {
-    if (!profileName) throw new MissingArgumentError('profileName is required');
+    if (!profileName) {
+      throw new MissingArgumentError('profileName is required');
+    }
     const profile = this.getProfile(profileName) as AnyObject;
     // generate the YAML
     const yamlRoot = {};
@@ -440,9 +474,13 @@ export class ProfileManager {
    * @returns the full path to the values file
    */
   public async prepareValuesForMirrorNodeChart(profileName: string) {
-    if (!profileName) throw new MissingArgumentError('profileName is required');
+    if (!profileName) {
+      throw new MissingArgumentError('profileName is required');
+    }
     const profile = this.getProfile(profileName) as AnyObject;
-    if (!profile.mirror) return ''; // use chart defaults
+    if (!profile.mirror) {
+      return '';
+    } // use chart defaults
 
     // generate the YAML
     const yamlRoot = {};
@@ -502,7 +540,9 @@ export class ProfileManager {
       throw new MissingArgumentError('nodeAccountMap the map of node IDs to account IDs is required');
     }
 
-    if (!releaseTag) releaseTag = versions.HEDERA_PLATFORM_VERSION;
+    if (!releaseTag) {
+      releaseTag = versions.HEDERA_PLATFORM_VERSION;
+    }
 
     if (!fs.existsSync(destinationPath)) {
       throw new IllegalArgumentError(`config destPath does not exist: ${destinationPath}`, destinationPath);

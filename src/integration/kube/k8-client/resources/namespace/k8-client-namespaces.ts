@@ -30,10 +30,10 @@ export class K8ClientNamespaces implements Namespaces {
         while (namespaceExists) {
           const response = await this.kubeClient.readNamespace(namespace.name);
 
-          if (!response?.body?.metadata?.deletionTimestamp) {
-            namespaceExists = false;
-          } else {
+          if (response?.body?.metadata?.deletionTimestamp) {
             await sleep(Duration.ofSeconds(1));
+          } else {
+            namespaceExists = false;
           }
         }
       } catch {
@@ -55,9 +55,9 @@ export class K8ClientNamespaces implements Namespaces {
     const resp = await this.kubeClient.listNamespace();
     if (resp.body && resp.body.items) {
       const namespaces: NamespaceName[] = [];
-      resp.body.items.forEach(item => {
+      for (const item of resp.body.items) {
         namespaces.push(NamespaceName.of(item.metadata!.name));
-      });
+      }
 
       return namespaces;
     }

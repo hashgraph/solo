@@ -22,7 +22,7 @@ import {
 } from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import * as constants from '../../../../../core/constants.js';
-import net from 'net';
+import net from 'node:net';
 import {InjectTokens} from '../../../../../core/dependency-injection/inject-tokens.js';
 import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
 import {ContainerName} from '../../../resources/container/container-name.js';
@@ -70,10 +70,10 @@ export class K8ClientPod implements Pod {
       while (podExists) {
         const pod: Pod = await this.pods.read(this.podReference);
 
-        if (!pod?.deletionTimestamp) {
-          podExists = false;
-        } else {
+        if (pod?.deletionTimestamp) {
           await sleep(Duration.ofSeconds(1));
+        } else {
+          podExists = false;
         }
       }
     } catch (error) {
@@ -212,7 +212,9 @@ export class K8ClientPod implements Pod {
   }
 
   public static fromV1Pod(v1Pod: V1Pod, pods: Pods, coreV1Api: CoreV1Api, kubeConfig: KubeConfig): Pod {
-    if (!v1Pod) return null;
+    if (!v1Pod) {
+      return null;
+    }
 
     return new K8ClientPod(
       PodReference.of(NamespaceName.of(v1Pod.metadata?.namespace), PodName.of(v1Pod.metadata?.name)),

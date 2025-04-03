@@ -3,7 +3,7 @@
 import {expect} from 'chai';
 import {FileStorageBackend} from '../../../../../src/data/backend/impl/file-storage-backend.js';
 import {getTemporaryDirectory} from '../../../../test-utility.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {StorageOperation} from '../../../../../src/data/backend/api/storage-operation.js';
 import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 

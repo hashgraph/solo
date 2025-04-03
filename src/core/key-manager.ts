@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as x509 from '@peculiar/x509';
-import crypto from 'crypto';
-import fs from 'fs';
-import path from 'path';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import {SoloError} from './errors/solo-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
@@ -69,7 +69,9 @@ export class KeyManager {
    * @param [keyUsages]
    */
   async convertPemToPrivateKey(pemString: string, algo: any, keyUsages: KeyUsage[] = ['sign']) {
-    if (!algo) throw new MissingArgumentError('algo is required');
+    if (!algo) {
+      throw new MissingArgumentError('algo is required');
+    }
 
     const items = x509.PemConverter.decode(pemString);
 
@@ -88,8 +90,12 @@ export class KeyManager {
    * @param keysDirectory - directory where keys and certs are stored
    */
   prepareNodeKeyFilePaths(nodeAlias: NodeAlias, keysDirectory: string): PrivateKeyAndCertificateObject {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
-    if (!keysDirectory) throw new MissingArgumentError('keysDirectory is required');
+    if (!nodeAlias) {
+      throw new MissingArgumentError('nodeAlias is required');
+    }
+    if (!keysDirectory) {
+      throw new MissingArgumentError('keysDirectory is required');
+    }
 
     const keyFile = PathEx.join(keysDirectory, Templates.renderGossipPemPrivateKeyFile(nodeAlias));
     const certFile = PathEx.join(keysDirectory, Templates.renderGossipPemPublicKeyFile(nodeAlias));
@@ -106,8 +112,12 @@ export class KeyManager {
    * @param keysDirectory - directory where keys and certs are stored
    */
   prepareTLSKeyFilePaths(nodeAlias: NodeAlias, keysDirectory: string): PrivateKeyAndCertificateObject {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
-    if (!keysDirectory) throw new MissingArgumentError('keysDirectory is required');
+    if (!nodeAlias) {
+      throw new MissingArgumentError('nodeAlias is required');
+    }
+    if (!keysDirectory) {
+      throw new MissingArgumentError('keysDirectory is required');
+    }
 
     const keyFile = PathEx.join(keysDirectory, `hedera-${nodeAlias}.key`);
     const certFile = PathEx.join(keysDirectory, `hedera-${nodeAlias}.crt`);
@@ -160,9 +170,9 @@ export class KeyManager {
 
     const keyPem = await this.convertPrivateKeyToPem(nodeKey.privateKey);
     const certPems: string[] = [];
-    nodeKey.certificateChain.forEach(cert => {
+    for (const cert of nodeKey.certificateChain) {
       certPems.push(cert.toString('pem'));
-    });
+    }
 
     const self = this;
     return new Promise((resolve, reject) => {
@@ -176,9 +186,9 @@ export class KeyManager {
           fs.rmSync(nodeKeyFiles.certificateFile);
         }
 
-        certPems.forEach(certPem => {
+        for (const certPem of certPems) {
           fs.writeFileSync(nodeKeyFiles.certificateFile, certPem + '\n', {flag: 'a'});
-        });
+        }
 
         self.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
           nodeKeyFiles,
@@ -237,10 +247,10 @@ export class KeyManager {
     const certPems = x509.PemConverter.decode(certBytes.toString());
 
     const certs: x509.X509Certificate[] = [];
-    certPems.forEach(certPem => {
+    for (const certPem of certPems) {
       const cert = new x509.X509Certificate(certPem);
       certs.push(cert);
-    });
+    }
 
     const certChain = await new x509.X509ChainBuilder({certificates: certs.slice(1)}).build(certs[0]);
 
@@ -334,8 +344,12 @@ export class KeyManager {
     nodeAlias: NodeAlias,
     distinguishedName: x509.Name = new x509.Name(`CN=${nodeAlias}`),
   ): Promise<NodeKeyObject> {
-    if (!nodeAlias) throw new MissingArgumentError('nodeAlias is required');
-    if (!distinguishedName) throw new MissingArgumentError('distinguishedName is required');
+    if (!nodeAlias) {
+      throw new MissingArgumentError('nodeAlias is required');
+    }
+    if (!distinguishedName) {
+      throw new MissingArgumentError('distinguishedName is required');
+    }
 
     try {
       const currentDate = new Date();

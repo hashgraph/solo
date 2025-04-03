@@ -9,7 +9,7 @@ import {type ChartManager} from '../core/chart-manager.js';
 import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
 import * as constants from '../core/constants.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
 import {type SoloLogger} from '../core/logging/solo-logger.js';
@@ -52,14 +52,27 @@ export abstract class BaseCommand extends ShellRunner {
   protected readonly remoteConfigManager: RemoteConfigManager;
 
   public constructor(options: Options) {
-    if (!options || !options.helm) throw new Error('An instance of core/Helm is required');
-    if (!options || !options.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!options || !options.chartManager) throw new Error('An instance of core/ChartManager is required');
-    if (!options || !options.configManager) throw new Error('An instance of core/ConfigManager is required');
-    if (!options || !options.depManager) throw new Error('An instance of core/DependencyManager is required');
-    if (!options || !options.localConfig) throw new Error('An instance of core/LocalConfig is required');
-    if (!options || !options.remoteConfigManager)
+    if (!options || !options.helm) {
+      throw new Error('An instance of core/Helm is required');
+    }
+    if (!options || !options.k8Factory) {
+      throw new Error('An instance of core/K8Factory is required');
+    }
+    if (!options || !options.chartManager) {
+      throw new Error('An instance of core/ChartManager is required');
+    }
+    if (!options || !options.configManager) {
+      throw new Error('An instance of core/ConfigManager is required');
+    }
+    if (!options || !options.depManager) {
+      throw new Error('An instance of core/DependencyManager is required');
+    }
+    if (!options || !options.localConfig) {
+      throw new Error('An instance of core/LocalConfig is required');
+    }
+    if (!options || !options.remoteConfigManager) {
       throw new Error('An instance of core/config/RemoteConfigManager is required');
+    }
     super();
 
     this.helm = options.helm;
@@ -92,7 +105,9 @@ export abstract class BaseCommand extends ShellRunner {
   ): Record<ClusterReference, string> {
     // initialize the map with an empty array for each cluster-ref
     const valuesFiles: Record<ClusterReference, string> = {[Flags.KEY_COMMON]: ''};
-    Object.keys(clusterReferences).forEach(clusterReference => (valuesFiles[clusterReference] = ''));
+    for (const clusterReference of Object.keys(clusterReferences)) {
+      valuesFiles[clusterReference] = '';
+    }
 
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
@@ -104,33 +119,35 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     if (profileValuesFile) {
-      Object.entries(profileValuesFile).forEach(([clusterReference, file]) => {
+      for (const [clusterReference, file] of Object.entries(profileValuesFile)) {
         const valuesArgument = ` --values ${file}`;
 
         if (clusterReference === Flags.KEY_COMMON) {
-          Object.keys(valuesFiles).forEach(clusterReference_ => (valuesFiles[clusterReference_] += valuesArgument));
+          for (const clusterReference_ of Object.keys(valuesFiles)) {
+            valuesFiles[clusterReference_] += valuesArgument;
+          }
         } else {
           valuesFiles[clusterReference] += valuesArgument;
         }
-      });
+      }
     }
 
     if (valuesFileInput) {
       const parsed = Flags.parseValuesFilesInput(valuesFileInput);
-      Object.entries(parsed).forEach(([clusterReference, files]) => {
+      for (const [clusterReference, files] of Object.entries(parsed)) {
         let vf = '';
-        files.forEach(file => {
+        for (const file of files) {
           vf += ` --values ${file}`;
-        });
+        }
 
         if (clusterReference === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([clusterReference_]) => {
+          for (const [clusterReference_] of Object.entries(valuesFiles)) {
             valuesFiles[clusterReference_] += vf;
-          });
+          }
         } else {
           valuesFiles[clusterReference] += vf;
         }
-      });
+      }
     }
 
     if (Object.keys(valuesFiles).length > 1) {
@@ -163,9 +180,9 @@ export abstract class BaseCommand extends ShellRunner {
     const valuesFiles: Record<ClusterReference, string> = {
       [Flags.KEY_COMMON]: '',
     };
-    Object.keys(clusterReferences).forEach(clusterReference => {
+    for (const clusterReference of Object.keys(clusterReferences)) {
       valuesFiles[clusterReference] = '';
-    });
+    }
 
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
@@ -178,38 +195,38 @@ export abstract class BaseCommand extends ShellRunner {
 
     if (profileValuesFile) {
       const parsed = Flags.parseValuesFilesInput(profileValuesFile);
-      Object.entries(parsed).forEach(([clusterReference, files]) => {
+      for (const [clusterReference, files] of Object.entries(parsed)) {
         let vf = '';
-        files.forEach(file => {
+        for (const file of files) {
           vf += ` --values ${file}`;
-        });
+        }
 
         if (clusterReference === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([cf]) => {
+          for (const [cf] of Object.entries(valuesFiles)) {
             valuesFiles[cf] += vf;
-          });
+          }
         } else {
           valuesFiles[clusterReference] += vf;
         }
-      });
+      }
     }
 
     if (valuesFileInput) {
       const parsed = Flags.parseValuesFilesInput(valuesFileInput);
-      Object.entries(parsed).forEach(([clusterReference, files]) => {
+      for (const [clusterReference, files] of Object.entries(parsed)) {
         let vf = '';
-        files.forEach(file => {
+        for (const file of files) {
           vf += ` --values ${file}`;
-        });
+        }
 
         if (clusterReference === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([clusterReference_]) => {
+          for (const [clusterReference_] of Object.entries(valuesFiles)) {
             valuesFiles[clusterReference_] += vf;
-          });
+          }
         } else {
           valuesFiles[clusterReference] += vf;
         }
-      });
+      }
     }
 
     if (Object.keys(valuesFiles).length > 1) {
@@ -238,12 +255,12 @@ export abstract class BaseCommand extends ShellRunner {
     const self = this;
 
     try {
-      directories.forEach(directoryPath => {
+      for (const directoryPath of directories) {
         if (!fs.existsSync(directoryPath)) {
           fs.mkdirSync(directoryPath, {recursive: true});
         }
         self.logger.debug(`OK: setup directory: ${directoryPath}`);
-      });
+      }
     } catch (error) {
       throw new SoloError(`failed to create directory: ${error.message}`, error);
     }

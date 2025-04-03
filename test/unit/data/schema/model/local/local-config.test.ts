@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {readFileSync} from 'fs';
+import {readFileSync} from 'node:fs';
 import {parse, stringify} from 'yaml';
 import {expect} from 'chai';
 import {instanceToPlain} from 'class-transformer';
 import {SemVer} from 'semver';
 import {beforeEach} from 'mocha';
-import os from 'os';
+import os from 'node:os';
 import {LocalConfig} from '../../../../../../src/data/schema/model/local/local-config.js';
 import {Deployment} from '../../../../../../src/data/schema/model/local/deployment.js';
 import {LocalConfigSchema} from '../../../../../../src/data/schema/migration/impl/local/local-config-schema.js';

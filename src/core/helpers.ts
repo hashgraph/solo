@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
-import util from 'util';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import util from 'node:util';
 import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
@@ -23,6 +23,7 @@ import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
+import {ShellRunner} from './shell-runner.js';
 
 export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
@@ -208,10 +209,12 @@ export function backupOldPemKeys(
 }
 
 export function isNumeric(string_: string) {
-  if (typeof string_ !== 'string') return false; // we only process strings!
+  if (typeof string_ !== 'string') {
+    return false;
+  } // we only process strings!
   return (
-    !isNaN(string_ as any) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
-    !isNaN(parseFloat(string_))
+    !Number.isNaN(Number.parseInt(string_)) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+    !Number.isNaN(Number.parseFloat(string_))
   ); // ...and ensure strings of whitespace fail
 }
 
@@ -226,10 +229,10 @@ export function getNodeAccountMap(nodeAliases: NodeAliases): Map<NodeAlias, stri
   const shard: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
   const firstAccountId: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
 
-  nodeAliases.forEach(nodeAlias => {
+  for (const nodeAlias of nodeAliases) {
     const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId)}`;
     accountMap.set(nodeAlias, nodeAccount);
-  });
+  }
   return accountMap;
 }
 
@@ -243,7 +246,7 @@ export function parseIpAddressToUint8Array(ipAddress: string) {
   const uint8Array = new Uint8Array(4);
 
   for (let index = 0; index < 4; index++) {
-    uint8Array[index] = parseInt(parts[index], 10);
+    uint8Array[index] = Number.parseInt(parts[index], 10);
   }
 
   return uint8Array;
@@ -444,10 +447,10 @@ export function prepareValuesFiles(valuesFile: string) {
   let valuesArgument = '';
   if (valuesFile) {
     const valuesFiles = valuesFile.split(',');
-    valuesFiles.forEach(vf => {
+    for (const vf of valuesFiles) {
       const vfp = PathEx.resolve(vf);
       valuesArgument += ` --values ${vfp}`;
-    });
+    }
   }
 
   return valuesArgument;
@@ -472,8 +475,12 @@ export function extractContextFromConsensusNodes(
   nodeAlias: NodeAlias,
   consensusNodes?: ConsensusNode[],
 ): Optional<string> {
-  if (!consensusNodes) return undefined;
-  if (!consensusNodes.length) return undefined;
+  if (!consensusNodes) {
+    return undefined;
+  }
+  if (consensusNodes.length === 0) {
+    return undefined;
+  }
   const consensusNode = consensusNodes.find(node => node.name === nodeAlias);
   return consensusNode ? consensusNode.context : undefined;
 }
@@ -537,4 +544,18 @@ export function isIPv4Address(input: string): boolean {
   const ipv4Regex =
     /^(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)$/;
   return ipv4Regex.test(input);
+}
+
+/** Get the Apple Silicon chip type */
+export async function getAppleSiliconChipset(logger: SoloLogger) {
+  const isMacOS = process.platform === 'darwin';
+  const isArm64 = process.arch === 'arm64';
+  if (isMacOS && isArm64) {
+    logger.info('Running on macOS with ARM architecture (likely Apple Silicon).');
+    const shellRunner = new ShellRunner();
+    return await shellRunner.run('sysctl -n machdep.cpu.brand_string');
+  } else {
+    logger.info('Not running on macOS ARM (Apple Silicon).');
+    return ['unknown'];
+  }
 }

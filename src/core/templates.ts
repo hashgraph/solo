@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as x509 from '@peculiar/x509';
-import os from 'os';
+import os from 'node:os';
 import {DataValidationError} from './errors/data-validation-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
@@ -71,21 +71,29 @@ export class Templates {
 
   public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix = ''): string {
     const parts = [prefix, nodeAlias];
-    if (suffix) parts.push(suffix);
+    if (suffix) {
+      parts.push(suffix);
+    }
     return parts.join('-');
   }
 
   public static extractNodeAliasFromPodName(podName: PodName): NodeAlias {
     const parts = podName.name.split('-');
-    if (parts.length !== 3) throw new DataValidationError(`pod name is malformed : ${podName.name}`, 3, parts.length);
+    if (parts.length !== 3) {
+      throw new DataValidationError(`pod name is malformed : ${podName.name}`, 3, parts.length);
+    }
     return parts[1].trim() as NodeAlias;
   }
 
   static prepareReleasePrefix(tag: string): string {
-    if (!tag) throw new MissingArgumentError('tag cannot be empty');
+    if (!tag) {
+      throw new MissingArgumentError('tag cannot be empty');
+    }
 
     const parsed = tag.split('.');
-    if (parsed.length < 3) throw new Error(`tag (${tag}) must include major, minor and patch fields (e.g. v0.40.4)`);
+    if (parsed.length < 3) {
+      throw new Error(`tag (${tag}) must include major, minor and patch fields (e.g. v0.40.4)`);
+    }
     return `${parsed[0]}.${parsed[1]}`;
   }
 
@@ -154,15 +162,17 @@ export class Templates {
     installationDirectory: string = PathEx.join(constants.SOLO_HOME_DIR, 'bin'),
   ) {
     switch (dep) {
-      case constants.HELM:
+      case constants.HELM: {
         if (osPlatform === constants.OS_WINDOWS) {
           return PathEx.join(installationDirectory, `${dep}.exe`);
         }
 
         return PathEx.join(installationDirectory, dep);
+      }
 
-      default:
+      default: {
         throw new SoloError(`unknown dep: ${dep}`);
+      }
     }
   }
 
@@ -181,9 +191,8 @@ export class Templates {
 
   public static nodeIdFromNodeAlias(nodeAlias: NodeAlias): NodeId {
     for (let index = nodeAlias.length - 1; index > 0; index--) {
-      // @ts-ignore
-      if (isNaN(nodeAlias[index])) {
-        return parseInt(nodeAlias.substring(index + 1, nodeAlias.length)) - 1;
+      if (Number.isNaN(Number.parseInt(nodeAlias[index]))) {
+        return Number.parseInt(nodeAlias.substring(index + 1, nodeAlias.length)) - 1;
       }
     }
 
@@ -209,12 +218,14 @@ export class Templates {
   static renderGrpcTlsCertificatesSecretName(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy Proxy
-      case GrpcProxyTlsEnums.GRPC:
+      case GrpcProxyTlsEnums.GRPC: {
         return `haproxy-proxy-secret-${nodeAlias}`;
+      }
 
       //? Envoy Proxy
-      case GrpcProxyTlsEnums.GRPC_WEB:
+      case GrpcProxyTlsEnums.GRPC_WEB: {
         return `envoy-proxy-secret-${nodeAlias}`;
+      }
     }
   }
 
@@ -229,12 +240,14 @@ export class Templates {
   static renderGrpcTlsCertificatesSecretLabelObject(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy Proxy
-      case GrpcProxyTlsEnums.GRPC:
+      case GrpcProxyTlsEnums.GRPC: {
         return {'haproxy-proxy-secret': nodeAlias};
+      }
 
       //? Envoy Proxy
-      case GrpcProxyTlsEnums.GRPC_WEB:
+      case GrpcProxyTlsEnums.GRPC_WEB: {
         return {'envoy-proxy-secret': nodeAlias};
+      }
     }
   }
 
@@ -253,10 +266,10 @@ export class Templates {
   public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {
     const mapping: Record<NodeAlias, IP> = {};
 
-    unparsed.split(',').forEach(data => {
+    for (const data of unparsed.split(',')) {
       const [nodeAlias, ip] = data.split('=') as [NodeAlias, IP];
       mapping[nodeAlias] = ip;
-    });
+    }
 
     return mapping;
   }
@@ -264,14 +277,18 @@ export class Templates {
   public static parseNodeAliasToDomainNameMapping(unparsed: string): Record<NodeAlias, string> {
     const mapping: Record<NodeAlias, string> = {};
 
-    unparsed.split(',').forEach(data => {
+    for (const data of unparsed.split(',')) {
       const [nodeAlias, domainName] = data.split('=') as [NodeAlias, string];
 
-      if (!nodeAlias || typeof nodeAlias !== 'string') throw new SoloError(`Can't parse node alias: ${data}`);
-      if (!domainName || typeof domainName !== 'string') throw new SoloError(`Can't parse domain name: ${data}`);
+      if (!nodeAlias || typeof nodeAlias !== 'string') {
+        throw new SoloError(`Can't parse node alias: ${data}`);
+      }
+      if (!domainName || typeof domainName !== 'string') {
+        throw new SoloError(`Can't parse domain name: ${data}`);
+      }
 
       mapping[nodeAlias] = domainName;
-    });
+    }
 
     return mapping;
   }
@@ -305,9 +322,9 @@ export class Templates {
       '{cluster}': cluster,
     };
 
-    Object.entries(searchReplace).forEach(([search, replace]) => {
+    for (const [search, replace] of Object.entries(searchReplace)) {
       dnsConsensusNodePattern = dnsConsensusNodePattern.replace(search, replace);
-    });
+    }
 
     return `${dnsConsensusNodePattern}.${dnsBaseDomain}`;
   }

@@ -203,7 +203,7 @@ export class DeploymentCommand extends BaseCommand {
                 .getK8(context)
                 .configMaps()
                 .list(namespace, ['app.kubernetes.io/managed-by=Helm']);
-              if (remoteConfigExists || namespaceExists || existingConfigMaps.length) {
+              if (remoteConfigExists || namespaceExists || existingConfigMaps.length > 0) {
                 throw new SoloError(`Deployment ${deployment} has remote resources in cluster: ${clusterReference}`);
               }
             }
@@ -308,7 +308,9 @@ export class DeploymentCommand extends BaseCommand {
               const isFound: boolean = await container
                 .resolve<ClusterChecks>(InjectTokens.ClusterChecks)
                 .isRemoteConfigPresentInNamespace(namespace);
-              if (isFound) namespacesWithRemoteConfigs.push(namespace.name);
+              if (isFound) {
+                namespacesWithRemoteConfigs.push(namespace.name);
+              }
             }
 
             self.logger.showList(`Deployments inside cluster: ${chalk.cyan(clusterName)}`, namespacesWithRemoteConfigs);
@@ -353,7 +355,9 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment create`====');
 
-                  if (!r) throw new SoloError('Error creating deployment, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error creating deployment, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error creating deployment: ${error.message}`, error);
@@ -376,7 +380,9 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment delete`====');
 
-                  if (!r) throw new SoloError('Error deleting deployment, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error deleting deployment, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error deleting deployment: ${error.message}`, error);
@@ -399,7 +405,9 @@ export class DeploymentCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `deployment list`====');
 
-                  if (!r) throw new SoloError('Error listing deployments, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error listing deployments, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error listing deployments: ${error.message}`, error);
@@ -421,7 +429,9 @@ export class DeploymentCommand extends BaseCommand {
                 .addCluster(argv)
                 .then(r => {
                   self.logger.info('==== Finished running `deployment add-cluster`====');
-                  if (!r) throw new SoloError('Error adding cluster deployment, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error adding cluster deployment, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   self.logger.showUserError(error);
@@ -518,7 +528,7 @@ export class DeploymentCommand extends BaseCommand {
         const existingClusterReferences = this.localConfig.deployments[deployment].clusters;
 
         // if there is no remote config don't validate deployment state
-        if (!existingClusterReferences.length) {
+        if (existingClusterReferences.length === 0) {
           context_.config.state = DeploymentStates.PRE_GENESIS;
 
           // if the user can't be prompted for '--num-consensus-nodes' fail

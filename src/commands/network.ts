@@ -88,7 +88,10 @@ export interface NetworkDeployConfigClass {
   awsBucket: string;
   awsBucketPrefix: string;
   backupBucket: string;
-  googleCredential: string;
+  backupWriteSecrets: string;
+  backupWriteAccessKey: string;
+  backupEndpoint: string;
+  backupRegion: string;
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRefs: ClusterReferences;
@@ -119,15 +122,21 @@ export class NetworkCommand extends BaseCommand {
   public constructor(options: Options) {
     super(options);
 
-    if (!options || !options.k8Factory) throw new Error('An instance of core/K8Factory is required');
-    if (!options || !options.keyManager)
+    if (!options || !options.k8Factory) {
+      throw new Error('An instance of core/K8Factory is required');
+    }
+    if (!options || !options.keyManager) {
       throw new IllegalArgumentError('An instance of core/KeyManager is required', options.keyManager);
-    if (!options || !options.platformInstaller)
+    }
+    if (!options || !options.platformInstaller) {
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', options.platformInstaller);
-    if (!options || !options.profileManager)
+    }
+    if (!options || !options.profileManager) {
       throw new MissingArgumentError('An instance of core/ProfileManager is required', options.downloader);
-    if (!options || !options.certificateManager)
+    }
+    if (!options || !options.certificateManager) {
       throw new MissingArgumentError('An instance of core/CertificateManager is required', options.certificateManager);
+    }
 
     this.certificateManager = options.certificateManager;
     this.keyManager = options.keyManager;
@@ -186,7 +195,10 @@ export class NetworkCommand extends BaseCommand {
       flags.awsBucket,
       flags.awsBucketPrefix,
       flags.backupBucket,
-      flags.googleCredential,
+      flags.backupWriteAccessKey,
+      flags.backupWriteSecrets,
+      flags.backupEndpoint,
+      flags.backupRegion,
       flags.domainNames,
     ],
   };
@@ -300,27 +312,30 @@ export class NetworkCommand extends BaseCommand {
   }
 
   async prepareBackupUploaderSecrets(config: NetworkDeployConfigClass) {
-    if (config.googleCredential) {
-      const backupData = {};
-      const namespace = config.namespace;
-      const googleCredential = fs.readFileSync(config.googleCredential, 'utf8');
-      backupData['saJson'] = Base64.encode(googleCredential);
+    const {backupWriteAccessKey, backupWriteSecrets, backupEndpoint, backupRegion} = config;
+    const backupData = {};
+    const namespace = config.namespace;
+    backupData['AWS_ACCESS_KEY_ID'] = Base64.encode(backupWriteAccessKey);
+    backupData['AWS_SECRET_ACCESS_KEY'] = Base64.encode(backupWriteSecrets);
+    backupData['RCLONE_CONFIG_BACKUPS_ENDPOINT'] = Base64.encode(backupEndpoint);
+    backupData['RCLONE_CONFIG_BACKUPS_REGION'] = Base64.encode(backupRegion);
+    backupData['RCLONE_CONFIG_BACKUPS_TYPE'] = Base64.encode('s3');
+    backupData['RCLONE_CONFIG_BACKUPS_PROVIDER'] = Base64.encode('GCS');
 
-      // create secret in each cluster
-      for (const context of config.contexts) {
-        this.logger.debug(`creating secret for backup uploader using context: ${context}`);
+    // create secret in each cluster
+    for (const context of config.contexts) {
+      this.logger.debug(`creating secret for backup uploader using context: ${context}`);
 
-        const k8client = this.k8Factory.getK8(context);
-        const isBackupSecretCreated = await k8client
-          .secrets()
-          .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
+      const k8client = this.k8Factory.getK8(context);
+      const isBackupSecretCreated = await k8client
+        .secrets()
+        .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
 
-        if (!isBackupSecretCreated) {
-          throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
-        }
-
-        this.logger.debug(`created secret for backup uploader using context: ${context}`);
+      if (!isBackupSecretCreated) {
+        throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
       }
+
+      this.logger.debug(`created secret for backup uploader using context: ${context}`);
     }
   }
 
@@ -333,7 +348,9 @@ export class NetworkCommand extends BaseCommand {
         await this.prepareStreamUploaderSecrets(config);
       }
 
-      await this.prepareBackupUploaderSecrets(config);
+      if (config.backupBucket) {
+        await this.prepareBackupUploaderSecrets(config);
+      }
     } catch (error: Error | any) {
       throw new SoloError('Failed to create Kubernetes storage secret', error);
     }
@@ -367,7 +384,6 @@ export class NetworkCommand extends BaseCommand {
     awsBucket: string;
     awsBucketPrefix: string;
     backupBucket: string;
-    googleCredential: string;
     loadBalancerEnabled: boolean;
     clusterRefs: ClusterReferences;
     consensusNodes: ConsensusNode[];
@@ -430,7 +446,6 @@ export class NetworkCommand extends BaseCommand {
     awsBucket: string;
     awsBucketPrefix: string;
     backupBucket: string;
-    googleCredential: string;
     loadBalancerEnabled: boolean;
     domainNamesMapping?: Record<NodeAlias, string>;
   }): Record<ClusterReference, string> {
@@ -441,18 +456,20 @@ export class NetworkCommand extends BaseCommand {
     // initialize the valueArgs
     for (const consensusNode of config.consensusNodes) {
       // add the cluster to the list of clusters
-      if (!clusterReferences[consensusNode.cluster]) clusterReferences.push(consensusNode.cluster);
+      if (!clusterReferences[consensusNode.cluster]) {
+        clusterReferences.push(consensusNode.cluster);
+      }
 
       // set the extraEnv settings on the nodes for running with a local build or tool
-      if (config.app !== constants.HEDERA_APP_NAME) {
+      if (config.app === constants.HEDERA_APP_NAME) {
+        // make sure each cluster has an empty string for the valuesArg
+        valuesArguments[consensusNode.cluster] = '';
+      } else {
         extraEnvironmentIndex = 1; // used to add the debug options when using a tool or local build of hedera
         let valuesArgument: string = valuesArguments[consensusNode.cluster] ?? '';
         valuesArgument += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].name=JAVA_MAIN_CLASS"`;
         valuesArgument += ` --set "hedera.nodes[${consensusNode.nodeId}].root.extraEnv[0].value=com.swirlds.platform.Browser"`;
         valuesArguments[consensusNode.cluster] = valuesArgument;
-      } else {
-        // make sure each cluster has an empty string for the valuesArg
-        valuesArguments[consensusNode.cluster] = '';
       }
     }
 
@@ -471,18 +488,18 @@ export class NetworkCommand extends BaseCommand {
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.GCS_ONLY
     ) {
-      clusterReferences.forEach(
-        clusterReference => (valuesArguments[clusterReference] += ' --set cloud.gcs.enabled=true'),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] += ' --set cloud.gcs.enabled=true';
+      }
     }
 
     if (
       config.storageType === constants.StorageType.AWS_AND_GCS ||
       config.storageType === constants.StorageType.AWS_ONLY
     ) {
-      clusterReferences.forEach(
-        clusterReference => (valuesArguments[clusterReference] += ' --set cloud.s3.enabled=true'),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] += ' --set cloud.s3.enabled=true';
+      }
     }
 
     if (
@@ -490,64 +507,58 @@ export class NetworkCommand extends BaseCommand {
       config.storageType === constants.StorageType.AWS_ONLY ||
       config.storageType === constants.StorageType.AWS_AND_GCS
     ) {
-      clusterReferences.forEach(
-        clusterReference => (valuesArguments[clusterReference] += ' --set cloud.minio.enabled=false'),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] += ' --set cloud.minio.enabled=false';
+      }
     }
 
     if (config.storageType !== constants.StorageType.MINIO_ONLY) {
-      clusterReferences.forEach(
-        clusterReference => (valuesArguments[clusterReference] += ' --set cloud.generateNewSecrets=false'),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] += ' --set cloud.generateNewSecrets=false';
+      }
     }
 
     if (config.gcsBucket) {
-      clusterReferences.forEach(
-        clusterReference =>
-          (valuesArguments[clusterReference] +=
-            ` --set cloud.buckets.streamBucket=${config.gcsBucket}` +
-            ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] +=
+          ` --set cloud.buckets.streamBucket=${config.gcsBucket}` +
+          ` --set minio-server.tenant.buckets[0].name=${config.gcsBucket}`;
+      }
     }
 
     if (config.gcsBucketPrefix) {
-      clusterReferences.forEach(
-        clusterReference =>
-          (valuesArguments[clusterReference] += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] += ` --set cloud.buckets.streamBucketPrefix=${config.gcsBucketPrefix}`;
+      }
     }
 
     if (config.awsBucket) {
-      clusterReferences.forEach(
-        clusterReference =>
-          (valuesArguments[clusterReference] +=
-            ` --set cloud.buckets.streamBucket=${config.awsBucket}` +
-            ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] +=
+          ` --set cloud.buckets.streamBucket=${config.awsBucket}` +
+          ` --set minio-server.tenant.buckets[0].name=${config.awsBucket}`;
+      }
     }
 
     if (config.awsBucketPrefix) {
-      clusterReferences.forEach(
-        clusterReference =>
-          (valuesArguments[clusterReference] += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] += ` --set cloud.buckets.streamBucketPrefix=${config.awsBucketPrefix}`;
+      }
     }
 
     if (config.backupBucket) {
-      clusterReferences.forEach(
-        clusterReference =>
-          (valuesArguments[clusterReference] +=
-            ' --set defaults.sidecars.backupUploader.enabled=true' +
-            ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] +=
+          ' --set defaults.sidecars.backupUploader.enabled=true' +
+          ` --set defaults.sidecars.backupUploader.config.backupBucket=${config.backupBucket}`;
+      }
     }
 
-    clusterReferences.forEach(
-      clusterReference =>
-        (valuesArguments[clusterReference] +=
-          ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"` +
-          ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`),
-    );
+    for (const clusterReference of clusterReferences) {
+      valuesArguments[clusterReference] +=
+        ` --set "telemetry.prometheus.svcMonitor.enabled=${config.enablePrometheusSvcMonitor}"` +
+        ` --set "defaults.volumeClaims.enabled=${config.persistentVolumeClaims}"`;
+    }
 
     // Iterate over each node and set static IPs for HAProxy
     this.addArgForEachRecord(
@@ -566,21 +577,19 @@ export class NetworkCommand extends BaseCommand {
     );
 
     if (config.resolvedThrottlesFile) {
-      clusterReferences.forEach(
-        clusterReference =>
-          (valuesArguments[clusterReference] +=
-            ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] +=
+          ` --set-file "hedera.configMaps.genesisThrottlesJson=${config.resolvedThrottlesFile}"`;
+      }
     }
 
     if (config.loadBalancerEnabled) {
-      clusterReferences.forEach(
-        clusterReference =>
-          (valuesArguments[clusterReference] +=
-            ' --set "defaults.haproxy.service.type=LoadBalancer"' +
-            ' --set "defaults.envoyProxy.service.type=LoadBalancer"' +
-            ' --set "defaults.consensus.service.type=LoadBalancer"'),
-      );
+      for (const clusterReference of clusterReferences) {
+        valuesArguments[clusterReference] +=
+          ' --set "defaults.haproxy.service.type=LoadBalancer"' +
+          ' --set "defaults.envoyProxy.service.type=LoadBalancer"' +
+          ' --set "defaults.consensus.service.type=LoadBalancer"';
+      }
     }
 
     return valuesArguments;
@@ -600,7 +609,7 @@ export class NetworkCommand extends BaseCommand {
     templateString: string,
   ): void {
     if (records) {
-      consensusNodes.forEach(consensusNode => {
+      for (const consensusNode of consensusNodes) {
         if (records[consensusNode.name]) {
           const newTemplateString = templateString.replace('{nodeId}', consensusNode.nodeId.toString());
           valuesArguments[consensusNode.cluster] += newTemplateString.replace(
@@ -608,7 +617,7 @@ export class NetworkCommand extends BaseCommand {
             records[consensusNode.name],
           );
         }
-      });
+      }
     }
   }
 
@@ -618,12 +627,12 @@ export class NetworkCommand extends BaseCommand {
     // check and create namespace in each cluster
     for (const context of config.contexts) {
       const k8client = this.k8Factory.getK8(context);
-      if (!(await k8client.namespaces().has(namespace))) {
+      if (await k8client.namespaces().has(namespace)) {
+        this.logger.debug(`namespace '${namespace}' found using context: ${context}`);
+      } else {
         this.logger.debug(`creating namespace '${namespace}' using context: ${context}`);
         await k8client.namespaces().create(namespace);
         this.logger.debug(`created namespace '${namespace}' using context: ${context}`);
-      } else {
-        this.logger.debug(`namespace '${namespace}' found using context: ${context}`);
       }
     }
   }
@@ -941,6 +950,7 @@ export class NetworkCommand extends BaseCommand {
             }
           },
         },
+        // TODO: Move the check for load balancer logic to a utility method or class
         {
           title: 'Check for load balancer',
           skip: context_ => context_.config.loadBalancerEnabled === false,
@@ -996,6 +1006,7 @@ export class NetworkCommand extends BaseCommand {
             });
           },
         },
+        // TODO: find a better solution to avoid the need to redeploy the chart
         {
           title: 'Redeploy chart with external IP address config',
           skip: context_ => context_.config.loadBalancerEnabled === false,
@@ -1022,6 +1033,7 @@ export class NetworkCommand extends BaseCommand {
                   );
                   showVersionBanner(self.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
 
+                  // TODO: Remove this code now that we have made the config dynamic and can update it without redeploying
                   const context = config.clusterRefs[clusterReference];
                   const pods: Pod[] = await this.k8Factory
                     .getK8(context)
@@ -1217,7 +1229,7 @@ export class NetworkCommand extends BaseCommand {
                   // remove all components data from the remote configuration
                   await self.remoteConfigManager.deleteComponents();
                 }
-              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1_000);
+              }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000);
 
               await self.destroyTask(context_, task);
 
@@ -1269,7 +1281,9 @@ export class NetworkCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `network deploy`====');
 
-                  if (!r) throw new SoloError('Error deploying network, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error deploying network, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error deploying network: ${error.message}`, error);
@@ -1292,7 +1306,9 @@ export class NetworkCommand extends BaseCommand {
                 .then(r => {
                   self.logger.info('==== Finished running `network destroy`====');
 
-                  if (!r) throw new SoloError('Error destroying network, expected return value to be true');
+                  if (!r) {
+                    throw new SoloError('Error destroying network, expected return value to be true');
+                  }
                 })
                 .catch(error => {
                   throw new SoloError(`Error destroying network: ${error.message}`, error);

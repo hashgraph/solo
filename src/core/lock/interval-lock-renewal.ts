@@ -57,7 +57,9 @@ export class IntervalLockRenewalService implements LockRenewalService {
    * @returns true if the lease renewal was previously scheduled; false otherwise.
    */
   public async cancel(scheduleId: number): Promise<boolean> {
-    if (!scheduleId) return false;
+    if (!scheduleId) {
+      return false;
+    }
 
     if (this._scheduledLeases.has(scheduleId)) {
       clearInterval(scheduleId);

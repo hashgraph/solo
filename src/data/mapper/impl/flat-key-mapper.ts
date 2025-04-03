@@ -34,20 +34,23 @@ export class FlatKeyMapper {
       case 'string':
       case 'number':
       case 'boolean':
-      case 'bigint':
+      case 'bigint': {
         fkm.set(this.formatter.normalize(key), value.toString());
         break;
-      case 'object':
+      }
+      case 'object': {
         if (Array.isArray(value)) {
           this.flattenArray(fkm, key, value);
         } else {
           this.flattenObject(fkm, key, value as object);
         }
         break;
-      default:
+      }
+      default: {
         throw new ObjectMappingError(
           `Unsupported value type [ key = '${key}', value = '${value}', type = '${valueType}' ]`,
         );
+      }
     }
   }
 

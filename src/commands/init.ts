@@ -92,7 +92,9 @@ export class InitCommand extends BaseCommand {
                 constants.RESOURCES_DIR,
                 directoryName,
               );
-              if (!fs.existsSync(sourceDirectory)) continue;
+              if (!fs.existsSync(sourceDirectory)) {
+                continue;
+              }
 
               const destinationDirectory = PathEx.join(cacheDirectory, directoryName);
               if (!fs.existsSync(destinationDirectory)) {
@@ -154,7 +156,9 @@ export class InitCommand extends BaseCommand {
         await self
           .init(argv)
           .then(r => {
-            if (!r) throw new SoloError('Error running init, expected return value to be true');
+            if (!r) {
+              throw new SoloError('Error running init, expected return value to be true');
+            }
           })
           .catch(error => {
             throw new SoloError('Error running init', error);

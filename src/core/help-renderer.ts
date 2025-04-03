@@ -91,10 +91,17 @@ export class HelpRenderer {
 
   private getDescriptionWrap(terminalWidth: number, columnMaxLengths: number[]): number {
     let wrap: number = terminalWidth - columnMaxLengths[0] - columnMaxLengths[1] - columnMaxLengths[3] - 6;
-    if (wrap < 30) wrap = 30; // set min and max values
-    if (wrap > 70) wrap = 70;
-    if (columnMaxLengths[2] < wrap) wrap = columnMaxLengths[2];
-    else columnMaxLengths[2] = wrap;
+    if (wrap < 30) {
+      wrap = 30;
+    } // set min and max values
+    if (wrap > 70) {
+      wrap = 70;
+    }
+    if (columnMaxLengths[2] < wrap) {
+      wrap = columnMaxLengths[2];
+    } else {
+      columnMaxLengths[2] = wrap;
+    }
     return wrap;
   }
 

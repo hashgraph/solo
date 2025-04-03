@@ -14,10 +14,12 @@ export class EnvironmentStorageBackend implements StorageBackend {
   public isSupported(op: StorageOperation): boolean {
     switch (op) {
       case StorageOperation.List:
-      case StorageOperation.ReadBytes:
+      case StorageOperation.ReadBytes: {
         return true;
-      default:
+      }
+      default: {
         return false;
+      }
     }
   }
 

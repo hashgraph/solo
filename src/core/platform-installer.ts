@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import {Listr} from 'listr2';
-import * as path from 'path';
+import * as path from 'node:path';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
@@ -17,7 +17,7 @@ import chalk from 'chalk';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type NodeAlias} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
-import {sleep} from './helpers.js';
+import {getAppleSiliconChipset, sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -43,12 +43,16 @@ export class PlatformInstaller {
 
   private _getNamespace(): NamespaceName {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
+    if (!ns) {
+      throw new MissingArgumentError('namespace is not set');
+    }
     return ns;
   }
 
   validatePlatformReleaseDir(releaseDirectory: string) {
-    if (!releaseDirectory) throw new MissingArgumentError('releaseDirectory is required');
+    if (!releaseDirectory) {
+      throw new MissingArgumentError('releaseDirectory is required');
+    }
     if (!fs.existsSync(releaseDirectory)) {
       throw new IllegalArgumentError('releaseDirectory does not exists', releaseDirectory);
     }
@@ -94,10 +98,16 @@ export class PlatformInstaller {
 
   /** Fetch and extract platform code into the container */
   async fetchPlatform(podReference: PodReference, tag: string, context?: string) {
-    if (!podReference) throw new MissingArgumentError('podReference is required');
-    if (!tag) throw new MissingArgumentError('tag is required');
+    if (!podReference) {
+      throw new MissingArgumentError('podReference is required');
+    }
+    if (!tag) {
+      throw new MissingArgumentError('tag is required');
+    }
 
     try {
+      const chipType = (await getAppleSiliconChipset(this.logger)).join('');
+      this.logger.info(`chipType: ${chipType}`);
       const scriptName = 'extract-platform.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       await this.copyFiles(podReference, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
@@ -111,7 +121,7 @@ export class PlatformInstaller {
       const k8Containers = this.k8Factory.getK8(context).containers();
 
       await k8Containers.readByRef(containerReference).execContainer(`chmod +x ${extractScript}`);
-      await k8Containers.readByRef(containerReference).execContainer([extractScript, tag]);
+      await k8Containers.readByRef(containerReference).execContainer([extractScript, tag, chipType]);
 
       return true;
     } catch (error) {
@@ -166,9 +176,15 @@ export class PlatformInstaller {
   }
 
   async copyGossipKeys(consensusNode: ConsensusNode, stagingDirectory: string, consensusNodes: ConsensusNode[]) {
-    if (!consensusNode) throw new MissingArgumentError('consensusNode is required');
-    if (!stagingDirectory) throw new MissingArgumentError('stagingDirectory is required');
-    if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
+    if (!consensusNode) {
+      throw new MissingArgumentError('consensusNode is required');
+    }
+    if (!stagingDirectory) {
+      throw new MissingArgumentError('stagingDirectory is required');
+    }
+    if (!consensusNodes || consensusNodes.length <= 0) {
+      throw new MissingArgumentError('consensusNodes cannot be empty');
+    }
 
     try {
       const sourceFiles = [];
@@ -183,7 +199,7 @@ export class PlatformInstaller {
       );
 
       // copy all public keys for all nodes
-      consensusNodes.forEach(consensusNode => {
+      for (const consensusNode of consensusNodes) {
         sourceFiles.push(
           PathEx.joinWithRealPath(
             stagingDirectory,
@@ -191,7 +207,7 @@ export class PlatformInstaller {
             Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias),
           ),
         );
-      });
+      }
 
       const data = {};
       for (const sourceFile of sourceFiles) {
@@ -222,8 +238,12 @@ export class PlatformInstaller {
   }
 
   async copyTLSKeys(consensusNodes: ConsensusNode[], stagingDirectory: string, contexts: string[]) {
-    if (!consensusNodes || consensusNodes.length <= 0) throw new MissingArgumentError('consensusNodes cannot be empty');
-    if (!stagingDirectory) throw new MissingArgumentError('stagingDirectory is required');
+    if (!consensusNodes || consensusNodes.length <= 0) {
+      throw new MissingArgumentError('consensusNodes cannot be empty');
+    }
+    if (!stagingDirectory) {
+      throw new MissingArgumentError('stagingDirectory is required');
+    }
 
     try {
       const data = {};
@@ -276,8 +296,12 @@ export class PlatformInstaller {
     container = constants.ROOT_CONTAINER,
     context?: string,
   ) {
-    if (!podReference) throw new MissingArgumentError('podReference is required');
-    if (!destinationPath) throw new MissingArgumentError('destPath is required');
+    if (!podReference) {
+      throw new MissingArgumentError('podReference is required');
+    }
+    if (!destinationPath) {
+      throw new MissingArgumentError('destPath is required');
+    }
     const containerReference = ContainerReference.of(podReference, container);
 
     const recursiveFlag = recursive ? '-R' : '';
@@ -296,7 +320,9 @@ export class PlatformInstaller {
 
   async setPlatformDirPermissions(podReference: PodReference, context?: string) {
     const self = this;
-    if (!podReference) throw new MissingArgumentError('podReference is required');
+    if (!podReference) {
+      throw new MissingArgumentError('podReference is required');
+    }
 
     try {
       const destinationPaths = [constants.HEDERA_HAPI_PATH, constants.HEDERA_HGCAPP_DIR];

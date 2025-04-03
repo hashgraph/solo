@@ -7,7 +7,7 @@ import {Listr} from 'listr2';
 import {SoloError} from './errors/solo-error.js';
 import {type Lock} from './lock/lock.js';
 import * as constants from './constants.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {type ConfigManager} from './config-manager.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type AccountManager} from './account-manager.js';
@@ -40,7 +40,9 @@ export class CommandHandler {
       throw new SoloError(`${errorString}: ${error.message}`, error);
     } finally {
       const promises = [];
-      if (lease) promises.push(lease.release());
+      if (lease) {
+        promises.push(lease.release());
+      }
       await this.accountManager.close();
       await Promise.all(promises);
     }
@@ -61,12 +63,12 @@ export class CommandHandler {
     const self = this;
 
     try {
-      directories.forEach(directoryPath => {
+      for (const directoryPath of directories) {
         if (!fs.existsSync(directoryPath)) {
           fs.mkdirSync(directoryPath, {recursive: true});
         }
         self.logger.debug(`OK: setup directory: ${directoryPath}`);
-      });
+      }
     } catch (error: Error | any) {
       throw new SoloError(`failed to create directory: ${error.message}`, error);
     }

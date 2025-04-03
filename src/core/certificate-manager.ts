@@ -3,7 +3,7 @@
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {SoloError} from './errors/solo-error.js';
 import {Flags as flags} from '../commands/flags.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {Templates} from './templates.js';
 import {GrpcProxyTlsEnums} from './enumerations.js';
 
@@ -145,7 +145,9 @@ export class CertificateManager {
     }
 
     for (const {certType, title, certs, keys} of [grpcTlsParsedValues, grpcWebTlsParsedValue]) {
-      if (!certs.length) continue;
+      if (certs.length === 0) {
+        continue;
+      }
 
       for (let index = 0; index < certs.length; index++) {
         const nodeAlias = certs[index].nodeAlias;
@@ -202,7 +204,9 @@ export class CertificateManager {
 
   private getNamespace() {
     const ns = this.configManager.getFlag<NamespaceName>(flags.namespace);
-    if (!ns) throw new MissingArgumentError('namespace is not set');
+    if (!ns) {
+      throw new MissingArgumentError('namespace is not set');
+    }
     return ns;
   }
 }

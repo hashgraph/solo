@@ -3,7 +3,7 @@
 import {expect} from 'chai';
 import {after, describe, it} from 'mocha';
 
-import fs from 'fs';
+import fs from 'node:fs';
 import * as yaml from 'yaml';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as constants from '../../../src/core/constants.js';
@@ -121,7 +121,7 @@ describe('ProfileManager', () => {
   const testCases = [{profileName: 'test', profileFile: testProfileFile}];
 
   describe('determine chart values for a profile', () => {
-    testCases.forEach(input => {
+    for (const input of testCases) {
       it(`should determine Solo chart values [profile = ${input.profileName}]`, async () => {
         configManager.setFlag(flags.profileFile, input.profileFile);
         configManager.setFlag(flags.namespace, 'test-namespace');
@@ -129,7 +129,9 @@ describe('ProfileManager', () => {
         const resources = ['templates', 'profiles'];
         for (const directoryName of resources) {
           const sourceDirectory = PathEx.joinWithRealPath(constants.RESOURCES_DIR, directoryName);
-          if (!fs.existsSync(sourceDirectory)) continue;
+          if (!fs.existsSync(sourceDirectory)) {
+            continue;
+          }
 
           const destinationDirectory = PathEx.resolve(PathEx.join(cacheDirectory, directoryName));
           if (!fs.existsSync(destinationDirectory)) {
@@ -231,7 +233,7 @@ describe('ProfileManager', () => {
         expect(valuesYaml.resources.limits.cpu).not.to.be.null;
         expect(valuesYaml.resources.limits.memory).not.to.be.null;
       });
-    });
+    }
   });
 
   describe('prepareConfigText', () => {

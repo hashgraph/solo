@@ -22,18 +22,24 @@ export class NodeCommand extends BaseCommand {
   public constructor(options: Options) {
     super(options);
 
-    if (!options || !options.downloader)
+    if (!options || !options.downloader) {
       throw new IllegalArgumentError('An instance of core/PackageDownloader is required', options.downloader);
-    if (!options || !options.platformInstaller)
+    }
+    if (!options || !options.platformInstaller) {
       throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', options.platformInstaller);
-    if (!options || !options.keyManager)
+    }
+    if (!options || !options.keyManager) {
       throw new IllegalArgumentError('An instance of core/KeyManager is required', options.keyManager);
-    if (!options || !options.accountManager)
+    }
+    if (!options || !options.accountManager) {
       throw new IllegalArgumentError('An instance of core/AccountManager is required', options.accountManager);
-    if (!options || !options.profileManager)
+    }
+    if (!options || !options.profileManager) {
       throw new IllegalArgumentError('An instance of ProfileManager is required', options.profileManager);
-    if (!options || !options.certificateManager)
+    }
+    if (!options || !options.certificateManager) {
       throw new IllegalArgumentError('An instance of CertificateManager is required', options.certificateManager);
+    }
 
     this.accountManager = options.accountManager;
 

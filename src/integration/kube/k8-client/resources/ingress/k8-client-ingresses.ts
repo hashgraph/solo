@@ -5,7 +5,7 @@ import {type NamespaceName} from '../../../resources/namespace/namespace-name.js
 import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
 import {type V1IngressList, type NetworkingV1Api, type V1Ingress} from '@kubernetes/client-node';
 import {container} from 'tsyringe-neo';
-import {type IncomingMessage} from 'http';
+import {type IncomingMessage} from 'node:http';
 import {ResourceReadError, ResourceUpdateError} from '../../../errors/resource-operation-errors.js';
 import {ResourceType} from '../../../resources/resource-type.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';
@@ -30,14 +30,14 @@ export class K8ClientIngresses implements Ingresses {
 
     KubeApiResponse.check(result.response, ResourceOperation.LIST, ResourceType.INGRESS, undefined, '');
 
-    if (!result?.body?.items) {
-      return [];
-    } else {
+    if (result?.body?.items) {
       const ingressNames = [];
-      result.body.items.forEach(ingress => {
+      for (const ingress of result.body.items) {
         ingressNames.push(ingress.metadata?.name ?? '');
-      });
+      }
       return ingressNames;
+    } else {
+      return [];
     }
   }
 
@@ -47,12 +47,12 @@ export class K8ClientIngresses implements Ingresses {
     await this.networkingApi
       .listIngressForAllNamespaces()
       .then(response => {
-        response.body.items.forEach(ingress => {
+        for (const ingress of response.body.items) {
           const currentIngressName = ingress.metadata.name;
           if (currentIngressName.includes(name)) {
             ingresses.push(currentIngressName);
           }
-        });
+        }
       })
       .catch(error => {
         throw new SoloError(`Error listing Ingresses: ${error}`);

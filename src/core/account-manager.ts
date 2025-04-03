@@ -94,7 +94,7 @@ export class AccountManager {
           .secrets()
           .list(namespace, [Templates.renderAccountKeySecretLabelSelector(accountId)]);
 
-        if (secrets.length) {
+        if (secrets.length > 0) {
           const secret = secrets[0];
           return {
             accountId: secret.labels['solo.hedera.com/account-id'],
@@ -103,7 +103,9 @@ export class AccountManager {
           };
         }
       } catch (error) {
-        if (!(error instanceof ResourceNotFoundError)) throw error;
+        if (!(error instanceof ResourceNotFoundError)) {
+          throw error;
+        }
       }
     }
 
@@ -300,18 +302,22 @@ export class AccountManager {
       await Promise.allSettled(configureNodeAccessPromiseArray).then(results => {
         for (const result of results) {
           switch (result.status) {
-            case REJECTED:
+            case REJECTED: {
               throw new SoloError(`failed to configure node access: ${result.reason}`);
-            case FULFILLED:
+            }
+            case FULFILLED: {
               nodes = {...nodes, ...result.value};
               break;
+            }
           }
         }
       });
       this.logger.debug(`configured node access for ${Object.keys(nodes).length} nodes`);
 
       let formattedNetworkConnection = '';
-      Object.keys(nodes).forEach(key => (formattedNetworkConnection += `${key}:${nodes[key]}, `));
+      for (const key of Object.keys(nodes)) {
+        formattedNetworkConnection += `${key}:${nodes[key]}, `;
+      }
       this.logger.info(`creating client from network configuration: [${formattedNetworkConnection}]`);
 
       // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work
@@ -510,7 +516,7 @@ export class AccountManager {
         const serviceType = service.metadata.labels['solo.hedera.com/type'];
         switch (serviceType) {
           // solo.hedera.com/type: envoy-proxy-svc
-          case 'envoy-proxy-svc':
+          case 'envoy-proxy-svc': {
             serviceBuilder
               .withEnvoyProxyName(service.metadata!.name as string)
               .withEnvoyProxyClusterIp(service.spec!.clusterIP as string)
@@ -519,8 +525,9 @@ export class AccountManager {
               )
               .withEnvoyProxyGrpcWebPort(service.spec!.ports!.filter(port => port.name === 'hedera-grpc-web')[0].port);
             break;
+          }
           // solo.hedera.com/type: haproxy-svc
-          case 'haproxy-svc':
+          case 'haproxy-svc': {
             serviceBuilder
               .withHaProxyAppSelector(service.spec!.selector!.app)
               .withHaProxyName(service.metadata!.name as string)
@@ -533,8 +540,9 @@ export class AccountManager {
               )
               .withHaProxyGrpcsPort(service.spec!.ports!.filter(port => port.name === 'tls-grpc-client-port')[0].port);
             break;
+          }
           // solo.hedera.com/type: network-node-svc
-          case 'network-node-svc':
+          case 'network-node-svc': {
             loadBalancerEnabled = service.spec!.type === 'LoadBalancer';
             if (
               service.metadata!.labels!['solo.hedera.com/node-id'] !== '' &&
@@ -560,8 +568,11 @@ export class AccountManager {
               .withNodeServiceGrpcPort(service.spec!.ports!.filter(port => port.name === 'grpc-non-tls')[0].port)
               .withNodeServiceGrpcsPort(service.spec!.ports!.filter(port => port.name === 'grpc-tls')[0].port);
 
-            if (nodeId) serviceBuilder.withNodeId(nodeId);
+            if (nodeId) {
+              serviceBuilder.withNodeId(nodeId);
+            }
             break;
+          }
         }
         const consensusNode: ConsensusNode = this.remoteConfigManager
           .getConsensusNodes()
@@ -651,7 +662,7 @@ export class AccountManager {
       for (const result of results) {
         // @ts-expect-error - TS2339: to avoid type mismatch
         switch (result.value.status) {
-          case REJECTED:
+          case REJECTED: {
             // @ts-expect-error - TS2339: to avoid type mismatch
             if (result.value.reason === REASON_SKIPPED) {
               resultTracker.skippedCount++;
@@ -661,9 +672,11 @@ export class AccountManager {
               resultTracker.rejectedCount++;
             }
             break;
-          case FULFILLED:
+          }
+          case FULFILLED: {
             resultTracker.fulfilledCount++;
             break;
+          }
         }
       }
     });
