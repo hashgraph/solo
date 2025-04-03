@@ -2523,7 +2523,7 @@ export class NodeCommandTasks {
         task.title += `: ${nodeAlias}`;
 
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.add(
+          remoteConfig.components.addNewComponent(
             new ConsensusNodeComponent(
               nodeAlias,
               clusterReference,
@@ -2533,9 +2533,9 @@ export class NodeCommandTasks {
             ),
           );
 
-          remoteConfig.components.add(new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterReference, namespace));
+          remoteConfig.components.addNewComponent(new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterReference, namespace));
 
-          remoteConfig.components.add(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterReference, namespace));
+          remoteConfig.components.addNewComponent(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterReference, namespace));
         });
 
         context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();

@@ -120,7 +120,7 @@ export class RemoteConfigMetadata
   }
 
   public toObject(): RemoteConfigMetadataStructure {
-    const data = {
+    const data: RemoteConfigMetadataStructure = {
       namespace: this.namespace,
       deploymentName: this.deploymentName,
       state: this.state,

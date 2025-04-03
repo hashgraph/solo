@@ -1332,7 +1332,7 @@ export class NetworkCommand extends BaseCommand {
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of context_.config.consensusNodes) {
-            remoteConfig.components.edit(
+            remoteConfig.components.editComponent(
               new ConsensusNodeComponent(
                 consensusNode.name,
                 consensusNode.cluster,
@@ -1342,11 +1342,11 @@ export class NetworkCommand extends BaseCommand {
               ),
             );
 
-            remoteConfig.components.add(
+            remoteConfig.components.addNewComponent(
               new EnvoyProxyComponent(`envoy-proxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
             );
 
-            remoteConfig.components.add(
+            remoteConfig.components.addNewComponent(
               new HaProxyComponent(`haproxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
             );
           }

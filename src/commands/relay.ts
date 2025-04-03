@@ -550,7 +550,7 @@ export class RelayCommand extends BaseCommand {
           } = context_;
           const cluster = this.remoteConfigManager.currentCluster;
 
-          remoteConfig.components.add(new RelayComponent('relay', cluster, namespace.name, nodeAliases));
+          remoteConfig.components.addNewComponent(new RelayComponent('relay', cluster, namespace.name, nodeAliases));
         });
       },
     };
@@ -563,7 +563,7 @@ export class RelayCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('relay', ComponentType.Relay);
+          remoteConfig.components.removeComponent('relay', ComponentType.Relay);
         });
       },
     };

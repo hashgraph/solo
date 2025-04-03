@@ -576,7 +576,7 @@ export class ExplorerCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNodeExplorer);
+          remoteConfig.components.removeComponent('mirrorNodeExplorer', ComponentType.MirrorNodeExplorer);
         });
       },
     };
@@ -593,7 +593,7 @@ export class ExplorerCommand extends BaseCommand {
             config: {namespace},
           } = context_;
           const cluster = this.remoteConfigManager.currentCluster;
-          remoteConfig.components.add(new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name));
+          remoteConfig.components.addNewComponent(new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name));
         });
       },
     };

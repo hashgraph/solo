@@ -881,7 +881,7 @@ export class MirrorNodeCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode);
+          remoteConfig.components.removeComponent('mirrorNode', ComponentType.MirrorNode);
         });
       },
     };
@@ -898,7 +898,7 @@ export class MirrorNodeCommand extends BaseCommand {
             config: {namespace, clusterRef},
           } = context_;
 
-          remoteConfig.components.add(new MirrorNodeComponent('mirrorNode', clusterRef, namespace.name));
+          remoteConfig.components.addNewComponent(new MirrorNodeComponent('mirrorNode', clusterRef, namespace.name));
         });
       },
     };

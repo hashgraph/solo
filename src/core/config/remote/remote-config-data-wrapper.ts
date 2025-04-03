@@ -16,7 +16,7 @@ import {type ConfigMap} from '../../../integration/kube/resources/config-map/con
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';
   private _metadata: RemoteConfigMetadata;
-  private _clusters: Record<ClusterReference, Cluster>;
+  private readonly _clusters: Record<ClusterReference, Cluster>;
   private _components: ComponentsDataWrapper;
   private _commandHistory: string[];
   private _lastExecutedCommand: string;
@@ -96,14 +96,14 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     this.validate();
   }
 
-  public get flags() {
+  public get flags(): CommonFlagsDataWrapper {
     return this._flags;
   }
 
   //! -------- Utilities -------- //
 
   public static fromConfigmap(configManager: ConfigManager, configMap: ConfigMap): RemoteConfigDataWrapper {
-    const data = yaml.parse(configMap.data['remote-config-data']);
+    const data: any = yaml.parse(configMap.data['remote-config-data']);
 
     return new RemoteConfigDataWrapper({
       metadata: RemoteConfigMetadata.fromObject(data.metadata),
@@ -128,7 +128,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       throw new SoloError(`Invalid remote config last executed command: ${this.lastExecutedCommand}`);
     }
 
-    if (!Array.isArray(this.commandHistory) || this.commandHistory.some(c => typeof c !== 'string')) {
+    if (!Array.isArray(this.commandHistory) || this.commandHistory.some((c): boolean => typeof c !== 'string')) {
       throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`);
     }
 

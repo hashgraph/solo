@@ -99,7 +99,7 @@ describe('ComponentsDataWrapper', () => {
 
     const existingComponent = consensusNodes[serviceName];
 
-    expect(() => componentsDataWrapper.add(existingComponent)).to.throw(SoloError, 'Component exists');
+    expect(() => componentsDataWrapper.addNewComponent(existingComponent)).to.throw(SoloError, 'Component exists');
   });
 
   it('should be able to add new component with the .add() method', () => {
@@ -115,7 +115,7 @@ describe('ComponentsDataWrapper', () => {
     };
     const newComponent = new EnvoyProxyComponent(name, cluster, namespace);
 
-    componentsDataWrapper.add(newComponent);
+    componentsDataWrapper.addNewComponent(newComponent);
 
     const componentDataWrapperObject = componentsDataWrapper.toObject();
 
@@ -139,13 +139,13 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
     const relayComponent = relays[serviceName];
 
-    componentsDataWrapper.edit(relayComponent);
+    componentsDataWrapper.editComponent(relayComponent);
 
     const newCluster = 'newCluster';
 
     const newReplayComponent = new RelayComponent(relayComponent.name, newCluster, namespace);
 
-    componentsDataWrapper.edit(newReplayComponent);
+    componentsDataWrapper.editComponent(newReplayComponent);
 
     expect(componentsDataWrapper.toObject()[ComponentType.Relay][relayComponent.name].cluster).to.equal(newCluster);
   });
@@ -160,7 +160,7 @@ describe('ComponentsDataWrapper', () => {
     const relay = relays[serviceName];
     relay.name = notFoundServiceName;
 
-    expect(() => componentsDataWrapper.edit(relay)).to.throw(
+    expect(() => componentsDataWrapper.editComponent(relay)).to.throw(
       SoloError,
       `Component doesn't exist, name: ${notFoundServiceName}`,
     );
@@ -172,7 +172,7 @@ describe('ComponentsDataWrapper', () => {
       serviceName,
     } = createComponentsDataWrapper();
 
-    componentsDataWrapper.remove(serviceName, ComponentType.Relay);
+    componentsDataWrapper.removeComponent(serviceName, ComponentType.Relay);
 
     expect(componentsDataWrapper.relays).not.to.have.own.property(serviceName);
   });
@@ -184,7 +184,7 @@ describe('ComponentsDataWrapper', () => {
 
     const notFoundServiceName = 'not_found';
 
-    expect(() => componentsDataWrapper.remove(notFoundServiceName, ComponentType.Relay)).to.throw(
+    expect(() => componentsDataWrapper.removeComponent(notFoundServiceName, ComponentType.Relay)).to.throw(
       SoloError,
       `Component ${notFoundServiceName} of type ${ComponentType.Relay} not found while attempting to remove`,
     );
