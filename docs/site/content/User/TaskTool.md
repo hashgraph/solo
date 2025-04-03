@@ -20,9 +20,11 @@ User can use one of the following three commands to quickly deploy a standalone 
 task
 
 # Option 2) deploy solo network with two nodes, and mirror node
+cd examples
 task default-with-mirror
 
 # Option 3) deploy solo network with two nodes, mirror node, and JSON RPC relay
+cd examples
 task default-with-relay
 ```
 
