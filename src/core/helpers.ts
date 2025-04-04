@@ -24,6 +24,7 @@ import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
 import {ShellRunner} from './shell-runner.js';
+import * as selfsigned from 'selfsigned';
 
 export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
@@ -566,4 +567,34 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
     logger.info('Not running on macOS ARM (Apple Silicon).');
     return ['unknown'];
   }
+}
+
+export function generateTLS(logger: SoloLogger, directory: string, name: string, hostname: string = 'localhost') {
+  // Define attributes for the certificate
+  const attrs = [{ name: name, value: hostname }];
+  // Generate the certificate and key
+  selfsigned.generate(attrs, { days: 365 }, (err, pems) => {
+    if (err) {
+      throw new SoloError(`Error generating TLS keys: ${err.message}`);
+    }
+
+    // Output the private key, certificate, and public key (optional)
+    logger.info('Private Key:\n', pems.private);
+    logger.info('Certificate:\n', pems.cert);
+
+    // Optionally, save to files
+    const fs = require('fs');
+    const certificatePath = PathEx.join(directory, `${name}.crt`);
+    const keyPath = PathEx.join(directory, `${name}.key`);
+    console.log(`certificatePath: ${certificatePath}`);
+    console.log(`keyPath: ${keyPath}`);
+    fs.writeFileSync(certificatePath, pems.cert);
+    fs.writeFileSync(keyPath, pems.private);
+    console.log(`pems.private: ${pems.private}`);
+    console.log(`pems.cert: ${pems.cert}`);
+    return {
+      certificatePath,
+      keyPath,
+    }
+  });
 }

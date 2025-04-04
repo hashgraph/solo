@@ -2,11 +2,11 @@
 
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
-
+import * as selfsigned from 'selfsigned';
 import {bootstrapTestVariables, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {sleep} from '../../../src/core/helpers.js';
+import {generateTLS, sleep} from '../../../src/core/helpers.js';
 import fs from 'node:fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -20,6 +20,9 @@ import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {DeploymentCommand} from '../../../src/commands/deployment.js';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import type {SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import os from 'node:os';
+import {SoloError} from '../../../src/core/errors/solo-error.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
@@ -41,10 +44,19 @@ describe('NetworkCommand', function networkCommand() {
   argv.setArg(flags.applicationEnv, applicationEnvironmentFilePath);
   argv.setArg(flags.loadBalancerEnabled, true);
 
+  const tmpDir = os.tmpdir();
   const {
     opts: {k8Factory, accountManager, configManager, chartManager, commandInvoker, logger},
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
+
+  generateTLS(logger, tmpDir, 'grpc');
+  generateTLS(logger, tmpDir, 'grpcWeb');
+
+  argv.setArg(flags.grpcTlsCertificatePath, 'node1=' + PathEx.join(tmpDir, 'grpc.crt'));
+  argv.setArg(flags.grpcTlsKeyPath, 'node1=' + PathEx.join(tmpDir, 'grpc.key'));
+  argv.setArg(flags.grpcWebTlsCertificatePath, 'node1=' + PathEx.join(tmpDir, 'grpcWeb.crt'));
+  argv.setArg(flags.grpcWebTlsKeyPath, 'node1=' + PathEx.join(tmpDir, 'grpcWeb.key'));
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
