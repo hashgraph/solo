@@ -66,10 +66,8 @@ export abstract class LayeredConfigSource implements ConfigSource {
     const value: unknown = ReflectAssist.coerce(stringValue);
     if (typeof value === 'number') {
       return value as number;
-    } else if (typeof value === 'object') {
-      if (value === null || value === undefined) {
-        return null;
-      }
+    } else if (typeof value === 'object' && (value === null || value === undefined)) {
+      return null;
     }
 
     throw new ConfigurationError('value is not a number');
@@ -90,11 +88,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
           return null;
         }
 
-        if (node.isLeaf()) {
-          object = JSON.parse((node as LexerLeafNode).value);
-        } else {
-          object = (node as LexerInternalNode).toObject();
-        }
+        object = node.isLeaf() ? JSON.parse((node as LexerLeafNode).value) : (node as LexerInternalNode).toObject();
       } else {
         object = this.forest.toObject();
       }

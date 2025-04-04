@@ -498,7 +498,6 @@ async function verifyMirrorNodeDeployWasSuccessful(
     }
   } finally {
     if (portForwarder) {
-      // eslint-disable-next-line unicorn/no-null
       await k8.pods().readByReference(null).stopPortForward(portForwarder);
     }
   }
@@ -574,7 +573,6 @@ async function verifyExplorerDeployWasSuccessful(
     }
   } finally {
     if (portForwarder) {
-      // eslint-disable-next-line unicorn/no-null
       await k8.pods().readByReference(null).stopPortForward(portForwarder);
     }
   }

@@ -94,8 +94,8 @@ export function sleep(duration: Duration) {
 
 export function parseNodeAliases(
   input: string,
-  consensusNodes: ConsensusNode[],
-  configManager: ConfigManager,
+  consensusNodes?: ConsensusNode[],
+  configManager?: ConfigManager,
 ): NodeAliases {
   let nodeAliases: NodeAlias[] = splitFlagInput(input, ',') as NodeAliases;
   if (nodeAliases.length === 0) {
@@ -432,8 +432,7 @@ export function resolveValidJsonFilePath(filePath: string, defaultPath?: string)
     // Ensure the file contains valid JSON data
     JSON.parse(fs.readFileSync(resolvedFilePath, 'utf8'));
     return resolvedFilePath;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  } catch (error: unknown) {
+  } catch {
     // Fallback to the default values if an error occurs due to invalid JSON data or unable to read the file size
     if (defaultPath) {
       return resolveValidJsonFilePath(defaultPath, null);
@@ -544,6 +543,15 @@ export function isIPv4Address(input: string): boolean {
   const ipv4Regex =
     /^(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|1?[0-9][0-9]?)$/;
   return ipv4Regex.test(input);
+}
+
+/**
+ * Convert an IPv4 address to a 4 byte array removing the periods
+ * @param ip The IPv4 address to convert
+ * @returns A Uint8Array represented as a number array representing the IPv4 address
+ */
+export function ipv4ToByteArray(ip: string): number[] {
+  return [...new Uint8Array(ip.split('.').map(Number))];
 }
 
 /** Get the Apple Silicon chip type */

@@ -20,7 +20,7 @@ export class SimpleObjectStorageBackend implements ObjectStorageBackend {
   }
 
   public list(): Promise<string[]> {
-    return Promise.resolve(Array.from(this.map.keys()));
+    return Promise.resolve([...this.map.keys()]);
   }
 
   public readBytes(key: string): Promise<Buffer> {

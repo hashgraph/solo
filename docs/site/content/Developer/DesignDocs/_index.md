@@ -1,4 +1,4 @@
 ---
-title: Collapse
+title: Design Documentation
 geekdocCollapseSection: true
 ---

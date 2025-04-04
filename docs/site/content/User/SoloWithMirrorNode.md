@@ -26,7 +26,7 @@ kubectl port-forward svc/haproxy-node1-svc -n "${SOLO_NAMESPACE}" 50211:50211 > 
 
 Then you can access the hedera explorer at `http://localhost:8080`
 
-Or you can use Task tool to deploy solo network with mirror node with a single command [link](TaskTool.md)
+Or you can use Task tool to deploy solo network with mirror node with a single command [link](../Developer/Development/TaskTool.md)
 
 Next, you can try to create a few accounts with solo and see the transactions in the explorer.
 

@@ -90,11 +90,7 @@ export class ConfigManager {
           }
           // if it is a namespace flag then convert it to NamespaceName
           else if (value && (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name)) {
-            if (value instanceof NamespaceName) {
-              this.config.flags[flag.name] = value;
-            } else {
-              this.config.flags[flag.name] = NamespaceName.of(value);
-            }
+            this.config.flags[flag.name] = value instanceof NamespaceName ? value : NamespaceName.of(value);
             break;
           }
           this.config.flags[flag.name] = `${value}`; // force convert to string
@@ -103,11 +99,9 @@ export class ConfigManager {
 
         case 'number': {
           try {
-            if (flags.integerFlags.has(flag.name)) {
-              this.config.flags[flag.name] = Number.parseInt(value);
-            } else {
-              this.config.flags[flag.name] = Number.parseFloat(value);
-            }
+            this.config.flags[flag.name] = flags.integerFlags.has(flag.name)
+              ? Number.parseInt(value)
+              : Number.parseFloat(value);
           } catch (error) {
             throw new SoloError(`invalid number value '${value}': ${error.message}`, error);
           }

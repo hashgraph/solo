@@ -54,7 +54,7 @@ export class K8ClientContainer implements Container {
     }
     // handle symbolic link
     if (entries[0].name.includes(' -> ')) {
-      const redirectSourcePath = `${path.dirname(sourcePath)}/${entries[0].name.substring(entries[0].name.indexOf(' -> ') + 4)}`;
+      const redirectSourcePath = `${path.dirname(sourcePath)}/${entries[0].name.slice(Math.max(0, entries[0].name.indexOf(' -> ') + 4))}`;
       entries = await self.listDir(redirectSourcePath);
       if (entries.length !== 1) {
         throw new SoloError(`${messagePrefix}invalid source path: ${redirectSourcePath}`);
@@ -416,7 +416,7 @@ export class K8ClientContainer implements Container {
       const items: TDirectoryData[] = [];
       const lines = output.split('\n');
       for (let line of lines) {
-        line = line.replace(/\s+/g, '|');
+        line = line.replaceAll(/\s+/g, '|');
         const parts = line.split('|');
         if (parts.length >= 9) {
           let name = parts.at(-1);
