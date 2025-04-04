@@ -11,7 +11,10 @@ import {
 import {type ToObject} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
-import {type ComponentStates} from '../enumerations/component-states.js';
+import {ComponentStates} from '../enumerations/component-states.js';
+import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
+import {type NodeAlias, type NodeId} from '../../../../types/aliases.js';
+import {Templates} from '../../../templates.js';
 
 /**
  * Represents a consensus node component within the system.
@@ -31,7 +34,7 @@ export class ConsensusNodeComponent
    * @param state - the component state
    * @param nodeState - of the consensus node
    */
-  public constructor(
+  private constructor(
     name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
@@ -46,13 +49,30 @@ export class ConsensusNodeComponent
 
   /* -------- Utilities -------- */
 
+  public static createNew(
+    nodeAlias: NodeAlias,
+    clusterReference: ClusterReference,
+    namespace: NamespaceName,
+    nodeState: ConsensusNodeStates.REQUESTED | ConsensusNodeStates.NON_DEPLOYED | ConsensusNodeStates.STARTED,
+  ): ConsensusNodeComponent {
+    const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
+    return new ConsensusNodeComponent(
+      nodeAlias,
+      clusterReference,
+      namespace.name,
+      ComponentStates.ACTIVE,
+      nodeState,
+      nodeId,
+    );
+  }
+
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: IConsensusNodeComponent): ConsensusNodeComponent {
     const {name, cluster, state, namespace, nodeState, nodeId} = component;
     return new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, nodeId);
   }
 
-  public validate(): void {
+  public override validate(): void {
     super.validate();
 
     if (!Object.values(ConsensusNodeStates).includes(this.nodeState)) {
@@ -68,7 +88,7 @@ export class ConsensusNodeComponent
     }
   }
 
-  public toObject(): IConsensusNodeComponent {
+  public override toObject(): IConsensusNodeComponent {
     return {
       ...super.toObject(),
       nodeState: this.nodeState,

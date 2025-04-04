@@ -2,11 +2,13 @@
 
 import {SoloError} from '../../../errors/solo-error.js';
 import {BaseComponent} from './base-component.js';
-import {type ClusterReference, type IRelayComponent, type NamespaceNameAsString} from '../types.js';
+import {ComponentTypes} from '../enumerations/component-types.js';
+import {ComponentStates} from '../enumerations/component-states.js';
+import {type ClusterReference, type ComponentName, type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
-import {ComponentTypes} from '../enumerations/component-types.js';
-import {type ComponentStates} from '../enumerations/component-states.js';
+import {type RemoteConfigManager} from '../remote-config-manager.js';
+import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 
 export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
   private static readonly BASE_NAME: string = 'relay';
@@ -18,8 +20,8 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
    * @param state - the state of the component
    * @param consensusNodeAliases - list node aliases
    */
-  public constructor(
-    name: string,
+  private constructor(
+    name: ComponentName,
     clusterReference: ClusterReference,
     namespace: NamespaceNameAsString,
     state: ComponentStates,
@@ -31,13 +33,26 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
 
   /* -------- Utilities -------- */
 
+  public static createNew(
+    remoteConfigManager: RemoteConfigManager,
+    clusterReference: ClusterReference,
+    namespace: NamespaceName,
+    nodeAliases: NodeAliases,
+  ): RelayComponent {
+    const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.Relay);
+
+    const name: ComponentName = RelayComponent.renderRelayName(index);
+
+    return new RelayComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE, nodeAliases);
+  }
+
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: IRelayComponent): RelayComponent {
     const {name, cluster, namespace, state, consensusNodeAliases} = component;
     return new RelayComponent(name, cluster, namespace, state, consensusNodeAliases);
   }
 
-  public validate(): void {
+  public override validate(): void {
     super.validate();
 
     for (const alias of this.consensusNodeAliases) {
@@ -47,14 +62,14 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
     }
   }
 
-  public toObject(): IRelayComponent {
+  public override toObject(): IRelayComponent {
     return {
       consensusNodeAliases: this.consensusNodeAliases,
       ...super.toObject(),
     };
   }
 
-  public static renderRelayName(index: number): string {
+  private static renderRelayName(index: number): string {
     return RelayComponent.renderComponentName(RelayComponent.BASE_NAME, index);
   }
 }

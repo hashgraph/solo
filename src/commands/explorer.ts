@@ -573,7 +573,7 @@ export class ExplorerCommand extends BaseCommand {
   }
 
   /** Removes the explorer components from remote config. */
-  private disableMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDestroyContext> {
+  private disableMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDestroyContext> { // TODO: IMPLEMENT
     return {
       title: 'Remove explorer from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -594,14 +594,8 @@ export class ExplorerCommand extends BaseCommand {
         await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
           const {namespace, clusterRef} = context_.config;
 
-          const index: number = this.remoteConfigManager.components.getNewComponentIndex(
-            ComponentTypes.MirrorNodeExplorer,
-          );
-
-          const componentName: ComponentName = MirrorNodeExplorerComponent.renderMirrorNodeExplorerName(index);
-
           remoteConfig.components.addNewComponent(
-            new MirrorNodeExplorerComponent(componentName, clusterRef, namespace.name, ComponentStates.ACTIVE),
+            MirrorNodeExplorerComponent.createNew(this.remoteConfigManager, clusterRef, namespace),
           );
         });
       },

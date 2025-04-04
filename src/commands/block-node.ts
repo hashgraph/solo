@@ -24,9 +24,7 @@ import {type Lock} from '../core/lock/lock.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import os from 'node:os';
 import {BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
-import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
-import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 
 interface BlockNodeDeployConfigClass {
   chartVersion: string;
@@ -43,7 +41,7 @@ interface BlockNodeDeployConfigClass {
   context: string;
   isChartInstalled: boolean;
   valuesArg: string;
-  newBlockNodeName: string;
+  newBlockNodeComponent: BlockNodeComponent;
   releaseName: string;
 }
 
@@ -80,7 +78,7 @@ export class BlockNodeCommand extends BaseCommand {
       valuesArgument += helpers.prepareValuesFiles(config.valuesFile);
     }
 
-    valuesArgument += helpers.populateHelmArguments({nameOverride: config.newBlockNodeName});
+    valuesArgument += helpers.populateHelmArguments({nameOverride: config.newBlockNodeComponent.name});
 
     if (config.domainName) {
       valuesArgument += helpers.populateHelmArguments({
@@ -160,7 +158,12 @@ export class BlockNodeCommand extends BaseCommand {
               ComponentTypes.BlockNode,
             );
 
-            config.newBlockNodeName = MirrorNodeComponent.renderMirrorNodeName(newBlockNodeIndex);
+            config.newBlockNodeComponent = BlockNodeComponent.createNew(
+              this.remoteConfigManager,
+              config.clusterRef,
+              config.namespace,
+            );
+
             config.releaseName = this.getReleaseName(newBlockNodeIndex);
           },
         },
@@ -263,11 +266,9 @@ export class BlockNodeCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
-          const {namespace, clusterRef, newBlockNodeName} = context_.config;
+          const config: BlockNodeDeployConfigClass = context_.config;
 
-          remoteConfig.components.addNewComponent(
-            new BlockNodeComponent(newBlockNodeName, clusterRef, namespace.name, ComponentStates.ACTIVE),
-          );
+          remoteConfig.components.addNewComponent(config.newBlockNodeComponent);
         });
       },
     };

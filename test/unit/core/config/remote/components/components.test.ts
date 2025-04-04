@@ -47,10 +47,12 @@ describe('BlockNodeComponent', () => testBaseComponentData(BlockNodeComponent));
 
 describe('RelayComponent', () => {
   it('should successfully create ', () => {
+    // @ts-expect-error - to access private constructor
     new RelayComponent('valid', 'valid', 'valid', ComponentStates.ACTIVE);
   });
 
   it('should be an instance of BaseComponent', () => {
+    // @ts-expect-error - to access private constructor
     const component: RelayComponent = new RelayComponent('valid', 'valid', 'valid', ComponentStates.ACTIVE);
     expect(component).to.be.instanceOf(BaseComponent);
   });
@@ -64,6 +66,7 @@ describe('RelayComponent', () => {
       consensusNodeAliases: ['node1'],
     };
 
+    // @ts-expect-error - to access private constructor
     const component: RelayComponent = new RelayComponent(
       values.name,
       values.cluster,
@@ -78,10 +81,12 @@ describe('RelayComponent', () => {
 
 describe('ConsensusNodeComponent', () => {
   it('should successfully create ', () => {
+    // @ts-expect-error - to access private constructor
     new ConsensusNodeComponent('valid', 'valid', 'valid', ComponentStates.ACTIVE, ConsensusNodeStates.STARTED, 0);
   });
 
   it('should be an instance of BaseComponent', () => {
+    // @ts-expect-error - to access private constructor
     const component: ConsensusNodeComponent = new ConsensusNodeComponent(
       'valid',
       'valid',
@@ -104,6 +109,7 @@ describe('ConsensusNodeComponent', () => {
       nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
     };
 
+    // @ts-expect-error - to access private constructor
     const component: ConsensusNodeComponent = new ConsensusNodeComponent(
       values.name,
       values.cluster,

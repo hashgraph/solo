@@ -11,6 +11,7 @@ import {type Pod} from '../../../integration/kube/resources/pod/pod.js';
 import {type Context} from './types.js';
 import {type ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
+import {ComponentStates} from './enumerations/component-states.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -66,6 +67,9 @@ export class RemoteConfigValidator {
     skipCondition?: (component: BaseComponent) => boolean,
   ): Promise<void>[] {
     return Object.values(components).map(async (component): Promise<void> => {
+      if (component.state === ComponentStates.DELETED) {
+        return;
+      }
       if (skipCondition?.(component)) {
         return;
       }

@@ -53,33 +53,43 @@ export function createComponentsDataWrapper(): {
   const state: ComponentStates = ComponentStates.ACTIVE;
 
   const relays: Record<string, RelayComponent> = {
+    // @ts-expect-error - to access private constructor
     [serviceName]: new RelayComponent(name, cluster, namespace, state, consensusNodeAliases),
   };
 
   const haProxies: Record<string, HaProxyComponent> = {
+    // @ts-expect-error - to access private constructor
     [serviceName]: new HaProxyComponent(name, cluster, namespace, state),
+    // @ts-expect-error - to access private constructor
     ['serviceName2']: new HaProxyComponent('name2', 'cluster2', namespace, state),
   };
 
   const mirrorNodes: Record<string, MirrorNodeComponent> = {
+    // @ts-expect-error - to access private constructor
     [serviceName]: new MirrorNodeComponent(name, cluster, namespace, state),
   };
 
   const envoyProxies: Record<string, EnvoyProxyComponent> = {
+    // @ts-expect-error - to access private constructor
     [serviceName]: new EnvoyProxyComponent(name, cluster, namespace, state),
+    // @ts-expect-error - to access private constructor
     ['serviceName2']: new EnvoyProxyComponent('name2', 'cluster2', namespace, state),
   };
 
   const consensusNodes: Record<string, ConsensusNodeComponent> = {
+    // @ts-expect-error - to access private constructor
     [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, 0),
+    // @ts-expect-error - to access private constructor
     ['serviceName2']: new ConsensusNodeComponent('node2', 'cluster2', namespace, state, nodeState, 1),
   };
 
   const mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent> = {
+    // @ts-expect-error - to access private constructor
     [serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace, state),
   };
 
   const blockNodes: Record<string, BlockNodeComponent> = {
+    // @ts-expect-error - to access private constructor
     [serviceName]: new BlockNodeComponent(name, cluster, namespace, state),
   };
 
@@ -157,6 +167,7 @@ describe('ComponentsDataWrapper', () => {
       cluster: 'cluster',
       namespace: 'new-namespace',
     };
+    // @ts-expect-error - to access private constructor
     const newComponent: EnvoyProxyComponent = new EnvoyProxyComponent(name, cluster, namespace, state);
 
     componentsDataWrapper.addNewComponent(newComponent);
@@ -188,6 +199,7 @@ describe('ComponentsDataWrapper', () => {
 
     const newCluster: ClusterReference = 'newCluster';
 
+    // @ts-expect-error - to access private constructor
     const newReplayComponent: RelayComponent = new RelayComponent(relayComponent.name, newCluster, namespace, state);
 
     componentsDataWrapper.editComponent(newReplayComponent);
@@ -201,6 +213,7 @@ describe('ComponentsDataWrapper', () => {
       values: {cluster, namespace, state},
     } = createComponentsDataWrapper();
     const notFoundServiceName: string = 'not_found';
+    // @ts-expect-error - to access private constructor
     const relay: RelayComponent = new RelayComponent(notFoundServiceName, cluster, namespace, state);
 
     expect(() => componentsDataWrapper.editComponent(relay)).to.throw(

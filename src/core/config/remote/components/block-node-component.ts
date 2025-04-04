@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {BaseComponent} from './base-component.js';
-import {type ClusterReference, type Component, type NamespaceNameAsString} from '../types.js';
+import {type ClusterReference, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
-import {type ComponentStates} from '../enumerations/component-states.js';
+import {ComponentStates} from '../enumerations/component-states.js';
+import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
+import {type RemoteConfigManager} from '../remote-config-manager.js';
 
 export class BlockNodeComponent extends BaseComponent {
   private static readonly BASE_NAME: string = 'block-node';
 
-  public constructor(
-    name: string,
+  private constructor(
+    name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
     state: ComponentStates,
@@ -20,13 +22,25 @@ export class BlockNodeComponent extends BaseComponent {
 
   /* -------- Utilities -------- */
 
+  public static createNew(
+    remoteConfigManager: RemoteConfigManager,
+    clusterReference: ClusterReference,
+    namespace: NamespaceName,
+  ): BlockNodeComponent {
+    const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.BlockNode);
+
+    const name: ComponentName = BlockNodeComponent.renderBlockNodeName(index);
+
+    return new BlockNodeComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
+  }
+
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: Component): BlockNodeComponent {
     const {name, cluster, namespace, state} = component;
     return new BlockNodeComponent(name, cluster, namespace, state);
   }
 
-  public static renderBlockNodeName(index: number): string {
+  private static renderBlockNodeName(index: number): string {
     return BlockNodeComponent.renderComponentName(BlockNodeComponent.BASE_NAME, index);
   }
 }

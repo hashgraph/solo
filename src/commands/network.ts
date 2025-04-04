@@ -1336,36 +1336,15 @@ export class NetworkCommand extends BaseCommand {
             const clusterReference: ClusterReference = consensusNode.cluster;
 
             remoteConfig.components.editComponent(
-              new ConsensusNodeComponent(
-                nodeAlias,
-                clusterReference,
-                namespace.name,
-                ComponentStates.ACTIVE,
-                ConsensusNodeStates.REQUESTED,
-                consensusNode.nodeId,
-              ),
+              ConsensusNodeComponent.createNew(nodeAlias, clusterReference, namespace, ConsensusNodeStates.REQUESTED),
             );
 
-            // eslint-disable-next-line unicorn/consistent-function-scoping
-            const createNewEnvoyProxyComponent: () => EnvoyProxyComponent = (): EnvoyProxyComponent => {
-              const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.EnvoyProxy);
-
-              const componentName: ComponentName = EnvoyProxyComponent.renderEnvoyProxyName(index, nodeAlias);
-
-              return new EnvoyProxyComponent(componentName, clusterReference, namespace.name, ComponentStates.ACTIVE);
-            };
-
-            // eslint-disable-next-line unicorn/consistent-function-scoping
-            const createNewHaProxyComponent: () => HaProxyComponent = (): HaProxyComponent => {
-              const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.HaProxy);
-
-              const componentName: ComponentName = HaProxyComponent.renderHaProxyName(index, nodeAlias);
-
-              return new HaProxyComponent(componentName, clusterReference, namespace.name, ComponentStates.ACTIVE);
-            };
-
-            remoteConfig.components.addNewComponent(createNewEnvoyProxyComponent());
-            remoteConfig.components.addNewComponent(createNewHaProxyComponent());
+            remoteConfig.components.addNewComponent(
+              EnvoyProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+            );
+            remoteConfig.components.addNewComponent(
+              HaProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+            );
           }
         });
       },

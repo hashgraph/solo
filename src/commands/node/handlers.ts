@@ -937,6 +937,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
           for (const consensusNode of context_.config.consensusNodes) {
             remoteConfig.components.editComponent(
+              // TODO: ADD NEW METHOD FOR EDITING NODE STATE
               new ConsensusNodeComponent(
                 consensusNode.name,
                 consensusNode.cluster,

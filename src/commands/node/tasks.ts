@@ -77,13 +77,7 @@ import {ContainerReference} from '../../integration/kube/resources/container/con
 import {NetworkNodes} from '../../core/network-nodes.js';
 import {container, inject, injectable} from 'tsyringe-neo';
 import {type Optional, type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
-import {
-  type ClusterReference,
-  type ComponentName,
-  type Context,
-  type DeploymentName,
-  type NamespaceNameAsString,
-} from '../../core/config/remote/types.js';
+import {type ClusterReference, type Context, type DeploymentName} from '../../core/config/remote/types.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {ConsensusNode} from '../../core/model/consensus-node.js';
 import {type K8} from '../../integration/kube/k8.js';
@@ -119,8 +113,7 @@ import {type NodeStartConfigClass} from './config-interfaces/node-start-config-c
 import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
-import {ComponentStates} from '../../core/config/remote/enumerations/component-states.js';
-import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
+import {Cluster} from '../../core/config/remote/cluster.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -2512,7 +2505,7 @@ export class NodeCommandTasks {
       title: 'Add new node to remote config',
       task: async (context_, task) => {
         const nodeAlias: NodeAlias = context_.config.nodeAlias;
-        const namespace: NamespaceNameAsString = context_.config.namespace.name;
+        const namespace: NamespaceName = context_.config.namespace;
         const clusterReference: ClusterReference = context_.config.clusterRef;
         const context: Context = this.localConfig.clusterRefs[clusterReference];
 
@@ -2520,47 +2513,27 @@ export class NodeCommandTasks {
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.addNewComponent(
-            new ConsensusNodeComponent(
-              nodeAlias,
-              clusterReference,
-              namespace,
-              ComponentStates.ACTIVE,
-              ConsensusNodeStates.STARTED,
-              Templates.nodeIdFromNodeAlias(nodeAlias),
-            ),
+            ConsensusNodeComponent.createNew(nodeAlias, clusterReference, namespace, ConsensusNodeStates.STARTED),
           );
-
-          const createNewEnvoyProxyComponent: () => EnvoyProxyComponent = (): EnvoyProxyComponent => {
-            const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.EnvoyProxy);
-
-            const componentName: ComponentName = EnvoyProxyComponent.renderEnvoyProxyName(index, nodeAlias);
-
-            return new EnvoyProxyComponent(componentName, clusterReference, namespace, ComponentStates.ACTIVE);
-          };
-
-          const createNewHaProxyComponent: () => HaProxyComponent = (): HaProxyComponent => {
-            const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.HaProxy);
-
-            const componentName: ComponentName = HaProxyComponent.renderHaProxyName(index, nodeAlias);
-
-            return new HaProxyComponent(componentName, clusterReference, namespace, ComponentStates.ACTIVE);
-          };
-
-          remoteConfig.components.addNewComponent(createNewEnvoyProxyComponent());
-          remoteConfig.components.addNewComponent(createNewHaProxyComponent());
+          remoteConfig.components.addNewComponent(
+            EnvoyProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+          );
+          remoteConfig.components.addNewComponent(
+            HaProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+          );
         });
 
         context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
         // if the consensusNodes does not contain the nodeAlias then add it
         if (!context_.config.consensusNodes.some((node: ConsensusNode) => node.name === nodeAlias)) {
-          const cluster = this.remoteConfigManager.clusters[clusterReference];
+          const cluster: Cluster = this.remoteConfigManager.clusters[clusterReference];
 
           context_.config.consensusNodes.push(
             new ConsensusNode(
               nodeAlias,
               Templates.nodeIdFromNodeAlias(nodeAlias),
-              namespace,
+              namespace.name,
               clusterReference,
               context,
               cluster.dnsBaseDomain,
@@ -2568,7 +2541,7 @@ export class NodeCommandTasks {
               Templates.renderConsensusNodeFullyQualifiedDomainName(
                 nodeAlias,
                 Templates.nodeIdFromNodeAlias(nodeAlias),
-                namespace,
+                namespace.name,
                 clusterReference,
                 cluster.dnsBaseDomain,
                 cluster.dnsConsensusNodePattern,

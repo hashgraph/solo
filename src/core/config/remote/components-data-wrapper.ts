@@ -16,15 +16,14 @@ import {
   type ComponentsDataStructure,
   type IConsensusNodeComponent,
   type IRelayComponent,
-  type NamespaceNameAsString,
 } from './types.js';
 import {type ToObject, type Validate} from '../../../types/index.js';
-import {Templates} from '../../templates.js';
 import {type NodeAliases} from '../../../types/aliases.js';
 import {type CloneTrait} from '../../../types/traits/clone-trait.js';
 import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
+import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -273,18 +272,16 @@ export class ComponentsDataWrapper
   public static initializeWithNodes(
     nodeAliases: NodeAliases,
     clusterReference: ClusterReference,
-    namespace: NamespaceNameAsString,
+    namespace: NamespaceName,
   ): ComponentsDataWrapper {
     const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
 
     for (const nodeAlias of nodeAliases) {
-      consensusNodeComponents[nodeAlias] = new ConsensusNodeComponent(
+      consensusNodeComponents[nodeAlias] = ConsensusNodeComponent.createNew(
         nodeAlias,
         clusterReference,
         namespace,
-        ComponentStates.ACTIVE,
         ConsensusNodeStates.NON_DEPLOYED,
-        Templates.nodeIdFromNodeAlias(nodeAlias),
       );
     }
 

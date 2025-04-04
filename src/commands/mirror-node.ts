@@ -876,12 +876,13 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node components from remote config. */
-  public disableMirrorNodeComponents(): SoloListrTask<MirrorNodeDestroyContext> { // TODO
+  public disableMirrorNodeComponents(): SoloListrTask<MirrorNodeDestroyContext> {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
+          // TODO: IMPLEMENT
           remoteConfig.components.disableComponent('mirrorNode', ComponentTypes.MirrorNode);
         });
       },
@@ -897,12 +898,8 @@ export class MirrorNodeCommand extends BaseCommand {
         await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
           const {namespace, clusterRef} = context_.config;
 
-          const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.MirrorNode);
-
-          const componentName: ComponentName = MirrorNodeComponent.renderMirrorNodeName(index);
-
           remoteConfig.components.addNewComponent(
-            new MirrorNodeComponent(componentName, clusterRef, namespace.name, ComponentStates.ACTIVE),
+            MirrorNodeComponent.createNew(this.remoteConfigManager, clusterRef, namespace),
           );
         });
       },

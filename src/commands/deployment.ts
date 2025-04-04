@@ -700,14 +700,7 @@ export class DeploymentCommand extends BaseCommand {
           //* add the new nodes to components
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.addNewComponent(
-              new ConsensusNodeComponent(
-                nodeAlias,
-                clusterRef,
-                namespace.name,
-                ComponentStates.ACTIVE,
-                ConsensusNodeStates.NON_DEPLOYED,
-                Templates.nodeIdFromNodeAlias(nodeAlias),
-              ),
+              ConsensusNodeComponent.createNew(nodeAlias, clusterRef, namespace, ConsensusNodeStates.NON_DEPLOYED),
             );
           }
         });

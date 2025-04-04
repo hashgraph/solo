@@ -59,8 +59,8 @@ describe('RemoteConfigValidator', () => {
   const nodeState = ConsensusNodeStates.STARTED;
 
   const nodeAlias = 'node1' as NodeAlias;
-  const haProxyName = Templates.renderHaProxyName(nodeAlias);
-  const envoyProxyName = Templates.renderEnvoyProxyName(nodeAlias);
+  const haProxyName = 'haproxy-' + nodeAlias;
+  const envoyProxyName = 'envoy-proxy-' + nodeAlias;
   const relayName = 'relay';
   const mirrorNodeName = 'mirror-node';
   const mirrorNodeExplorerName = 'mirror-node-explorer';
@@ -69,11 +69,16 @@ describe('RemoteConfigValidator', () => {
 
   // @ts-expect-error - TS2673: Constructor of class ComponentsDataWrapper is private
   const components: ComponentsDataWrapper = new ComponentsDataWrapper(
+    // @ts-expect-error - to access private constructor
     {[relayName]: new RelayComponent(relayName, cluster, namespace.name, ComponentStates.ACTIVE, consensusNodeAliases)},
+    // @ts-expect-error - to access private constructor
     {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name, ComponentStates.ACTIVE)},
+    // @ts-expect-error - to access private constructor
     {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name, ComponentStates.ACTIVE)},
+    // @ts-expect-error - to access private constructor
     {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace.name, ComponentStates.ACTIVE)},
     {
+      // @ts-expect-error - to access private constructor
       [nodeAlias]: new ConsensusNodeComponent(
         nodeAlias,
         cluster,
@@ -84,6 +89,7 @@ describe('RemoteConfigValidator', () => {
       ),
     },
     {
+      // @ts-expect-error - to access private constructor
       [mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(
         mirrorNodeExplorerName,
         cluster,

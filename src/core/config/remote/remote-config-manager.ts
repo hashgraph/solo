@@ -139,7 +139,7 @@ export class RemoteConfigManager {
       metadata: new RemoteConfigMetadata(namespace.name, deployment, state, lastUpdatedAt, email, soloVersion),
       commandHistory: [currentCommand],
       lastExecutedCommand: currentCommand,
-      components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterReference, namespace.name),
+      components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterReference, namespace),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 

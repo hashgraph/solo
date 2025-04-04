@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {BaseComponent} from './base-component.js';
-import {type ClusterReference, type Component, type NamespaceNameAsString} from '../types.js';
+import {type ClusterReference, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
-import {type ComponentStates} from '../enumerations/component-states.js';
+import {ComponentStates} from '../enumerations/component-states.js';
 import {type NodeAlias} from '../../../../types/aliases.js';
+import {type RemoteConfigManager} from '../remote-config-manager.js';
+import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 
 export class EnvoyProxyComponent extends BaseComponent {
   private static BASE_NAME: (nodeAlias: NodeAlias) => string = (nodeAlias): string => `envoy-proxy-${nodeAlias}}`;
 
-  public constructor(
-    name: string,
+  private constructor(
+    name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
     state: ComponentStates,
@@ -21,13 +23,26 @@ export class EnvoyProxyComponent extends BaseComponent {
 
   /* -------- Utilities -------- */
 
+  public static createNew(
+    remoteConfigManager: RemoteConfigManager,
+    clusterReference: ClusterReference,
+    namespace: NamespaceName,
+    nodeAlias: NodeAlias,
+  ): EnvoyProxyComponent {
+    const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.EnvoyProxy);
+
+    const name: ComponentName = EnvoyProxyComponent.renderEnvoyProxyName(index, nodeAlias);
+
+    return new EnvoyProxyComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
+  }
+
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: Component): EnvoyProxyComponent {
     const {name, cluster, namespace, state} = component;
     return new EnvoyProxyComponent(name, cluster, namespace, state);
   }
 
-  public static renderEnvoyProxyName(index: number, nodeAlias: NodeAlias): string {
+  private static renderEnvoyProxyName(index: number, nodeAlias: NodeAlias): string {
     return EnvoyProxyComponent.renderComponentName(EnvoyProxyComponent.BASE_NAME(nodeAlias), index);
   }
 }
