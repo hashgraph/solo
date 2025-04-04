@@ -2,7 +2,7 @@
 
 import {describe} from 'mocha';
 
-import {Flags} from '../../../src/commands/flags.js';
+import {Flags as flags, Flags} from '../../../src/commands/flags.js';
 import {getTestCacheDirectory, getTestCluster} from '../../test-utility.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
@@ -23,12 +23,7 @@ import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
-import {
-  DEFAULT_LOCAL_CONFIG_FILE,
-  HEDERA_HAPI_PATH,
-  HEDERA_USER_HOME_DIR,
-  ROOT_CONTAINER,
-} from '../../../src/core/constants.js';
+import {DEFAULT_LOCAL_CONFIG_FILE, HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type ConsensusNodeComponent} from '../../../src/core/config/remote/components/consensus-node-component.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
@@ -181,10 +176,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
         PodReference.of(namespace, pods[0].podReference.name),
         ROOT_CONTAINER,
       );
-      expect(
-        await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
-        'expect extract-platform.sh to be present on the pods',
-      ).to.be.true;
+      // expect(
+      //   await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
+      //   'expect extract-platform.sh to be present on the pods',
+      // ).to.be.true;
       expect(await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_HAPI_PATH}/data/apps/HederaNode.jar`)).to
         .be.true;
       expect(
@@ -351,7 +346,14 @@ function soloNetworkDeployArgv(deployment: DeploymentName): string[] {
 
 function soloNodeSetupArgv(deployment: DeploymentName): string[] {
   const argv: string[] = newArgv();
-  argv.push('node', 'setup', optionFromFlag(Flags.deployment), deployment);
+  argv.push(
+    'node',
+    'setup',
+    optionFromFlag(Flags.deployment),
+    deployment,
+    optionFromFlag(flags.localBuildPath),
+    '../hiero-consensus-node/hedera-node/data',
+  );
   argvPushGlobalFlags(argv, true);
   return argv;
 }
