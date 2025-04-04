@@ -926,7 +926,7 @@ export class AccountManager {
       const realm = transactionReceipt.accountId!.realm;
       const shard = transactionReceipt.accountId!.shard;
       const accountInfoQueryResult = await this.accountInfoQuery(accountId);
-      accountInfo.accountAlias = entityId(realm, shard, Long.fromString(accountInfoQueryResult.contractAccountId));
+      accountInfo.accountAlias = entityId(realm, shard, accountInfoQueryResult.contractAccountId);
     }
 
     try {

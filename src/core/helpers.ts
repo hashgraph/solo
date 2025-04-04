@@ -542,6 +542,6 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
   }
 }
 
-export function entityId(realm: Realm, shard: Shard, number: Long | number): string {
+export function entityId(realm: Realm, shard: Shard, number: Long | number | string): string {
   return `${realm}.${shard}.${number}`;
 }

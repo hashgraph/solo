@@ -49,6 +49,8 @@ argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.realm, 0);
+argv.setArg(flags.shard, 0);
 
 // enable load balancer for e2e tests
 // argv.setArg(flags.loadBalancerEnabled, true);
@@ -106,8 +108,8 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
 
       describe('special accounts should have new keys', () => {
         const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-        const realm: Realm = 5;
-        const shard: Shard = 6;
+        const realm: Realm = argv.getArg(flags.realm);
+        const shard: Shard = argv.getArg(flags.shard);
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
