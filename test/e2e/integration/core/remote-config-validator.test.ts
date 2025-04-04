@@ -65,10 +65,10 @@ describe('RemoteConfigValidator', () => {
   const mirrorNodeName = 'mirror-node';
   const mirrorNodeExplorerName = 'mirror-node-explorer';
 
-  const consensusNodeAliases = [nodeAlias] as NodeAliases;
+  const consensusNodeAliases: NodeAliases = [nodeAlias];
 
   // @ts-expect-error - TS2673: Constructor of class ComponentsDataWrapper is private
-  const components = new ComponentsDataWrapper(
+  const components: ComponentsDataWrapper = new ComponentsDataWrapper(
     {[relayName]: new RelayComponent(relayName, cluster, namespace.name, ComponentStates.ACTIVE, consensusNodeAliases)},
     {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name, ComponentStates.ACTIVE)},
     {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name, ComponentStates.ACTIVE)},

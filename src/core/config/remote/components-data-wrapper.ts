@@ -296,6 +296,26 @@ export class ComponentsDataWrapper
     return Object.values(components).some((component): boolean => BaseComponent.compare(component, newComponent));
   }
 
+  /**
+   * Checks all existing components of specified type and gives you a new unique index
+   */
+  public getNewComponentIndex(componentType: ComponentTypes): number {
+    let newComponentIndex: number = 1;
+
+    const callback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+      for (const componentName of Object.keys(components)) {
+        const componentIndex: number = BaseComponent.parseComponentName(componentName);
+        if (newComponentIndex <= componentIndex) {
+          newComponentIndex = componentIndex + 1;
+        }
+      }
+    };
+
+    this.applyCallbackToComponentGroup(componentType, '', callback);
+
+    return newComponentIndex;
+  }
+
   /** Validates that the component group mapping has only components from the expected instance */
   private validateComponentTypes(components: Record<ComponentName, BaseComponent>, expectedInstance: any): void {
     for (const [serviceName, component] of Object.entries(components)) {

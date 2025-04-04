@@ -25,10 +25,6 @@ export class Templates {
     return `network-${nodeAlias}-svc`;
   }
 
-  private static nodeAliasFromNetworkSvcName(svcName: string): NodeAlias {
-    return svcName.split('-').slice(1, -1).join('-') as NodeAlias;
-  }
-
   public static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}`;
   }
@@ -69,7 +65,7 @@ export class Templates {
     return `${nodeAlias}-admin`;
   }
 
-  public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix = ''): string {
+  public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix: string = ''): string {
     const parts = [prefix, nodeAlias];
     if (suffix) {
       parts.push(suffix);
@@ -184,11 +180,6 @@ export class Templates {
     return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace.name}.svc.cluster.local`;
   }
 
-  private static nodeAliasFromFullyQualifiedNetworkSvcName(svcName: string): NodeAlias {
-    const parts = svcName.split('.');
-    return this.nodeAliasFromNetworkSvcName(parts[0]);
-  }
-
   public static nodeIdFromNodeAlias(nodeAlias: NodeAlias): NodeId {
     for (let index = nodeAlias.length - 1; index > 0; index--) {
       if (Number.isNaN(Number.parseInt(nodeAlias[index]))) {
@@ -237,7 +228,10 @@ export class Templates {
    *
    * @returns the appropriate secret labels
    */
-  static renderGrpcTlsCertificatesSecretLabelObject(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
+  public static renderGrpcTlsCertificatesSecretLabelObject(
+    nodeAlias: NodeAlias,
+    type: GrpcProxyTlsEnums,
+  ): Record<string, string> {
     switch (type) {
       //? HAProxy Proxy
       case GrpcProxyTlsEnums.GRPC: {
@@ -251,23 +245,20 @@ export class Templates {
     }
   }
 
-  public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {
-    return `envoy-proxy-${nodeAlias}`;
-  }
-
-  public static renderHaProxyName(nodeAlias: NodeAlias): string {
-    return `haproxy-${nodeAlias}`;
-  }
-
-  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: NamespaceName): string {
-    return `${Templates.renderHaProxyName(nodeAlias)}-svc.${namespace}.svc.cluster.local`;
-  }
-
   public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {
     const mapping: Record<NodeAlias, IP> = {};
 
     for (const data of unparsed.split(',')) {
       const [nodeAlias, ip] = data.split('=') as [NodeAlias, IP];
+
+      if (!nodeAlias || typeof nodeAlias !== 'string') {
+        throw new SoloError(`Can't parse node alias: ${data}`);
+      }
+
+      if (!ip || typeof ip !== 'string') {
+        throw new SoloError(`Can't parse ip: ${data}`);
+      }
+
       mapping[nodeAlias] = ip;
     }
 
@@ -283,6 +274,7 @@ export class Templates {
       if (!nodeAlias || typeof nodeAlias !== 'string') {
         throw new SoloError(`Can't parse node alias: ${data}`);
       }
+
       if (!domainName || typeof domainName !== 'string') {
         throw new SoloError(`Can't parse domain name: ${data}`);
       }
@@ -307,15 +299,15 @@ export class Templates {
    * @param dnsBaseDomain - the base domain of the cluster
    * @param dnsConsensusNodePattern - the pattern to use for the consensus node
    */
-  static renderConsensusNodeFullyQualifiedDomainName(
+  public static renderConsensusNodeFullyQualifiedDomainName(
     nodeAlias: string,
     nodeId: number,
     namespace: NamespaceNameAsString,
     cluster: ClusterReference,
     dnsBaseDomain: string,
     dnsConsensusNodePattern: string,
-  ) {
-    const searchReplace = {
+  ): string {
+    const searchReplace: Record<string, string> = {
       '{nodeAlias}': nodeAlias,
       '{nodeId}': nodeId.toString(),
       '{namespace}': namespace,

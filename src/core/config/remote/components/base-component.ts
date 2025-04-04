@@ -10,7 +10,7 @@ import {ComponentStates} from '../enumerations/component-states.js';
  * Represents the base structure and common functionality for all components within the system.
  * This class provides validation, comparison, and serialization functionality for components.
  */
-export abstract class BaseComponent implements Component, Validate, ToObject<Component> {
+export class BaseComponent implements Component, Validate, ToObject<Component> {
   /**
    * @param type - type for identifying.
    * @param name - the name to distinguish components.
@@ -70,5 +70,34 @@ export abstract class BaseComponent implements Component, Validate, ToObject<Com
       namespace: this.namespace,
       state: this.state,
     };
+  }
+
+  /**
+   * Used for rendering component name with additional data.
+   *
+   * @param baseName - unique name for the component ( ex. mirror-node )
+   * @param index - total number of components from this kind
+   * @returns a unique name to be used for creating components
+   */
+  protected static renderComponentName(baseName: string, index: number): string {
+    return `${baseName}-${index}`;
+  }
+
+  /**
+   * Extracts the index from a component name by splitting on '-' and taking the last segment.
+   *
+   * @param name - full component name (e.g., "mirror-node-node1-42")
+   * @returns the numeric index (e.g., 42)
+   */
+  public static parseComponentName(name: string): number {
+    const parts: string[] = name.split('-');
+    const lastPart: string = parts.at(-1);
+    const componentIndex: number = Number.parseInt(lastPart, 10);
+
+    if (Number.isNaN(componentIndex)) {
+      throw new SoloError(`Invalid component index in component name: ${name}`);
+    }
+
+    return componentIndex;
   }
 }

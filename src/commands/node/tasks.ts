@@ -78,7 +78,7 @@ import {NetworkNodes} from '../../core/network-nodes.js';
 import {container, inject, injectable} from 'tsyringe-neo';
 import {type Optional, type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {
-  type ClusterReference,
+  type ClusterReference, ComponentName,
   type DeploymentName,
   type NamespaceNameAsString,
 } from '../../core/config/remote/types.js';
@@ -118,6 +118,8 @@ import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-i
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
 import {ComponentStates} from '../../core/config/remote/enumerations/component-states.js';
+import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
+import {RelayComponent} from '../../core/config/remote/components/relay-component.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -2535,12 +2537,25 @@ export class NodeCommandTasks {
             ),
           );
 
+          const newEnvoyProxyIndex: number = this.remoteConfigManager.components.getNewComponentIndex(
+            ComponentTypes.HaProxy,
+          );
+
+          const newEnvoyProxyName: ComponentName = HaProxyComponent.renderHaProxyName(newEnvoyProxyIndex, nodeAlias);
+
+
           remoteConfig.components.addNewComponent(
             new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterReference, namespace, ComponentStates.ACTIVE),
           );
 
+          const newHaProxyIndex: number = this.remoteConfigManager.components.getNewComponentIndex(
+            ComponentTypes.HaProxy,
+          );
+
+          const newHaProxyName: ComponentName = HaProxyComponent.renderHaProxyName(newHaProxyIndex, nodeAlias);
+
           remoteConfig.components.addNewComponent(
-            new HaProxyComponent(`haproxy-${nodeAlias}`, clusterReference, namespace, ComponentStates.ACTIVE),
+            new HaProxyComponent(newHaProxyName, clusterReference, namespace, ComponentStates.ACTIVE),
           );
         });
 

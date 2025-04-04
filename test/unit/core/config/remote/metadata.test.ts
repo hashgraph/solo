@@ -6,14 +6,15 @@ import {Migration} from '../../../../../src/core/config/remote/migration.js';
 import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {RemoteConfigMetadata} from '../../../../../src/core/config/remote/metadata.js';
 import {type EmailAddress, type RemoteConfigMetadataStructure} from '../../../../../src/core/config/remote/types.js';
-
 import {DeploymentStates} from '../../../../../src/core/config/remote/enumerations/deployment-states.js';
 
-export function createMetadata(): {
+interface MetadataTestStructure {
   metadata: RemoteConfigMetadata;
   migration: Migration;
   values: RemoteConfigMetadataStructure;
-} {
+}
+
+export function createMetadata(): MetadataTestStructure {
   const lastUpdatedAt: Date = new Date();
   const lastUpdateBy: EmailAddress = 'test@test.test';
 
@@ -25,11 +26,11 @@ export function createMetadata(): {
     migration: new Migration(lastUpdatedAt, lastUpdateBy, '0.0.0'),
     lastUpdatedAt,
     lastUpdateBy,
-    soloChartVersion: '',
-    hederaPlatformVersion: '',
-    hederaMirrorNodeChartVersion: '',
-    hederaExplorerChartVersion: '',
-    hederaJsonRpcRelayChartVersion: '',
+    soloChartVersion: '1.0.0',
+    hederaPlatformVersion: '1.0.0',
+    hederaMirrorNodeChartVersion: '1.0.0',
+    hederaExplorerChartVersion: '1.0.0',
+    hederaJsonRpcRelayChartVersion: '1.0.0',
   };
 
   return {
@@ -77,26 +78,23 @@ describe('RemoteConfigMetadata', () => {
   });
 
   it('should successfully create instance using fromObject', () => {
-    const {
-      metadata,
-      values: {namespace, deploymentName, lastUpdatedAt, lastUpdateBy, soloVersion, state},
-    } = createMetadata();
+    const {metadata, values} = createMetadata();
 
     // @ts-expect-error - TS234: to access private property
     delete metadata._migration;
 
     const newMetadata: RemoteConfigMetadata = RemoteConfigMetadata.fromObject({
-      namespace,
-      deploymentName,
-      state,
-      lastUpdatedAt,
-      lastUpdateBy,
-      soloVersion,
-      soloChartVersion: '',
-      hederaPlatformVersion: '',
-      hederaMirrorNodeChartVersion: '',
-      hederaExplorerChartVersion: '',
-      hederaJsonRpcRelayChartVersion: '',
+      namespace: values.namespace,
+      deploymentName: values.deploymentName,
+      state: values.state,
+      lastUpdatedAt: values.lastUpdatedAt,
+      lastUpdateBy: values.lastUpdateBy,
+      soloVersion: values.soloVersion,
+      soloChartVersion: values.soloChartVersion,
+      hederaPlatformVersion: values.hederaPlatformVersion,
+      hederaMirrorNodeChartVersion: values.hederaMirrorNodeChartVersion,
+      hederaExplorerChartVersion: values.hederaExplorerChartVersion,
+      hederaJsonRpcRelayChartVersion: values.hederaJsonRpcRelayChartVersion,
     });
 
     expect(newMetadata.toObject()).to.deep.equal(metadata.toObject());

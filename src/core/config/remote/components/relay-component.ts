@@ -2,13 +2,15 @@
 
 import {SoloError} from '../../../errors/solo-error.js';
 import {BaseComponent} from './base-component.js';
-import {ClusterReference, type IRelayComponent, type NamespaceNameAsString} from '../types.js';
+import {type ClusterReference, type IRelayComponent, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {type ComponentStates} from '../enumerations/component-states.js';
 
 export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
+  private static readonly BASE_NAME: string = 'relay';
+
   /**
    * @param name - to distinguish components.
    * @param clusterReference - in which the component is deployed.
@@ -50,5 +52,9 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
       consensusNodeAliases: this.consensusNodeAliases,
       ...super.toObject(),
     };
+  }
+
+  public static renderRelayName(index: number): string {
+    return RelayComponent.renderComponentName(RelayComponent.BASE_NAME, index);
   }
 }

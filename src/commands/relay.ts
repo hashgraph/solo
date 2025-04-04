@@ -4,22 +4,22 @@ import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
 import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import * as helpers from '../core/helpers.js';
+import {getNodeAccountMap, showVersionBanner} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
+import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {RelayComponent} from '../core/config/remote/components/relay-component.js';
 import * as Base64 from 'js-base64';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
+import {type ClusterReference, ComponentName, type DeploymentName} from '../core/config/remote/types.js';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
-import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 
@@ -546,13 +546,16 @@ export class RelayCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace, nodeAliases},
-          } = context_;
-          const cluster = this.remoteConfigManager.currentCluster; // TODO
+          const {namespace, nodeAliases, clusterRef} = context_.config;
+
+          const newComponentIndex: number = this.remoteConfigManager.components.getNewComponentIndex(
+            ComponentTypes.Relay,
+          );
+
+          const componentName: ComponentName = RelayComponent.renderRelayName(newComponentIndex);
 
           remoteConfig.components.addNewComponent(
-            new RelayComponent('relay', cluster, namespace.name, ComponentStates.ACTIVE, nodeAliases),
+            new RelayComponent(componentName, clusterRef, namespace.name, ComponentStates.ACTIVE, nodeAliases),
           );
         });
       },
