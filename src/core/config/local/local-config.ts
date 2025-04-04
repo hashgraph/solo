@@ -10,7 +10,14 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency-injection/container-helper.js';
 import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {LocalConfigDataWrapper} from './local-config-data-wrapper.js';
-import {type ClusterReferences, type EmailAddress, type Version} from '../remote/types.js';
+import {
+  type ClusterReferences,
+  DeploymentName,
+  type EmailAddress,
+  Realm,
+  Shard,
+  type Version,
+} from '../remote/types.js';
 import {type Deployments} from './local-config-data.js';
 
 @injectable()
@@ -90,6 +97,30 @@ export class LocalConfig {
       throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
     }
     return this.localConfigData.clusterRefs;
+  }
+
+  /**
+   * @returns the realm for the specified deployment
+   * @param deployment
+   * @throws SoloError if the deployment does not exist in the local config
+   */
+  public getRealm(deployment: DeploymentName): Realm {
+    if (!this.deployments[deployment]) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_DEPLOYMENT_DOES_NOT_EXIST);
+    }
+    return this.deployments[deployment].realm;
+  }
+
+  /**
+   * @returns the shard for the specified deployment
+   * @param deployment
+   * @throws SoloError if the deployment does not exist in the local config
+   */
+  public getShard(deployment: DeploymentName): Shard {
+    if (!this.deployments[deployment]) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_DEPLOYMENT_DOES_NOT_EXIST);
+    }
+    return this.deployments[deployment].shard;
   }
 
   /**

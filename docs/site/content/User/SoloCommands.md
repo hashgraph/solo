@@ -1,127 +1,129 @@
 # Solo Command Reference
+
 ## Table of Contents
 
-- [Root Help Output](#root-help-output)
+* [Root Help Output](#root-help-output)
 
-- [init](#init)
+* [init](#init)
 
-- [account](#account)
+* [account](#account)
 
-  - [account init](#account-init)
+  * [account init](#account-init)
 
-  - [account create](#account-create)
+  * [account create](#account-create)
 
-  - [account update](#account-update)
+  * [account update](#account-update)
 
-  - [account get](#account-get)
+  * [account get](#account-get)
 
-- [cluster-ref](#cluster-ref)
+* [cluster-ref](#cluster-ref)
 
-  - [cluster-ref connect](#cluster-ref-connect)
+  * [cluster-ref connect](#cluster-ref-connect)
 
-  - [cluster-ref disconnect](#cluster-ref-disconnect)
+  * [cluster-ref disconnect](#cluster-ref-disconnect)
 
-  - [cluster-ref list](#cluster-ref-list)
+  * [cluster-ref list](#cluster-ref-list)
 
-  - [cluster-ref info](#cluster-ref-info)
+  * [cluster-ref info](#cluster-ref-info)
 
-  - [cluster-ref setup](#cluster-ref-setup)
+  * [cluster-ref setup](#cluster-ref-setup)
 
-  - [cluster-ref reset](#cluster-ref-reset)
+  * [cluster-ref reset](#cluster-ref-reset)
 
-- [network](#network)
+* [network](#network)
 
-  - [network deploy](#network-deploy)
+  * [network deploy](#network-deploy)
 
-  - [network destroy](#network-destroy)
+  * [network destroy](#network-destroy)
 
-- [node](#node)
+* [node](#node)
 
-  - [node setup](#node-setup)
+  * [node setup](#node-setup)
 
-  - [node start](#node-start)
+  * [node start](#node-start)
 
-  - [node stop](#node-stop)
+  * [node stop](#node-stop)
 
-  - [node freeze](#node-freeze)
+  * [node freeze](#node-freeze)
 
-  - [node restart](#node-restart)
+  * [node restart](#node-restart)
 
-  - [node keys](#node-keys)
+  * [node keys](#node-keys)
 
-  - [node refresh](#node-refresh)
+  * [node refresh](#node-refresh)
 
-  - [node logs](#node-logs)
+  * [node logs](#node-logs)
 
-  - [node states](#node-states)
+  * [node states](#node-states)
 
-  - [node add](#node-add)
+  * [node add](#node-add)
 
-  - [node add-prepare](#node-add-prepare)
+  * [node add-prepare](#node-add-prepare)
 
-  - [node add-submit-transactions](#node-add-submit-transactions)
+  * [node add-submit-transactions](#node-add-submit-transactions)
 
-  - [node add-execute](#node-add-execute)
+  * [node add-execute](#node-add-execute)
 
-  - [node update](#node-update)
+  * [node update](#node-update)
 
-  - [node update-prepare](#node-update-prepare)
+  * [node update-prepare](#node-update-prepare)
 
-  - [node update-submit-transactions](#node-update-submit-transactions)
+  * [node update-submit-transactions](#node-update-submit-transactions)
 
-  - [node update-execute](#node-update-execute)
+  * [node update-execute](#node-update-execute)
 
-  - [node delete](#node-delete)
+  * [node delete](#node-delete)
 
-  - [node delete-prepare](#node-delete-prepare)
+  * [node delete-prepare](#node-delete-prepare)
 
-  - [node delete-submit-transactions](#node-delete-submit-transactions)
+  * [node delete-submit-transactions](#node-delete-submit-transactions)
 
-  - [node delete-execute](#node-delete-execute)
+  * [node delete-execute](#node-delete-execute)
 
-  - [node prepare-upgrade](#node-prepare-upgrade)
+  * [node prepare-upgrade](#node-prepare-upgrade)
 
-  - [node freeze-upgrade](#node-freeze-upgrade)
+  * [node freeze-upgrade](#node-freeze-upgrade)
 
-  - [node upgrade](#node-upgrade)
+  * [node upgrade](#node-upgrade)
 
-  - [node upgrade-prepare](#node-upgrade-prepare)
+  * [node upgrade-prepare](#node-upgrade-prepare)
 
-  - [node upgrade-submit-transactions](#node-upgrade-submit-transactions)
+  * [node upgrade-submit-transactions](#node-upgrade-submit-transactions)
 
-  - [node upgrade-execute](#node-upgrade-execute)
+  * [node upgrade-execute](#node-upgrade-execute)
 
-  - [node download-generated-files](#node-download-generated-files)
+  * [node download-generated-files](#node-download-generated-files)
 
-- [relay](#relay)
+* [relay](#relay)
 
-  - [relay deploy](#relay-deploy)
+  * [relay deploy](#relay-deploy)
 
-  - [relay destroy](#relay-destroy)
+  * [relay destroy](#relay-destroy)
 
-- [mirror-node](#mirror-node)
+* [mirror-node](#mirror-node)
 
-  - [mirror-node deploy](#mirror-node-deploy)
+  * [mirror-node deploy](#mirror-node-deploy)
 
-  - [mirror-node destroy](#mirror-node-destroy)
+  * [mirror-node destroy](#mirror-node-destroy)
 
-- [explorer](#explorer)
+* [explorer](#explorer)
 
-  - [explorer deploy](#explorer-deploy)
+  * [explorer deploy](#explorer-deploy)
 
-  - [explorer destroy](#explorer-destroy)
+  * [explorer destroy](#explorer-destroy)
 
-- [deployment](#deployment)
+* [deployment](#deployment)
 
-  - [deployment create](#deployment-create)
+  * [deployment create](#deployment-create)
 
-  - [deployment delete](#deployment-delete)
+  * [deployment delete](#deployment-delete)
 
-  - [deployment list](#deployment-list)
+  * [deployment list](#deployment-list)
 
-  - [deployment add-cluster](#deployment-add-cluster)
+  * [deployment add-cluster](#deployment-add-cluster)
 
 ## Root Help Output
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -152,6 +154,7 @@ Options:
 ```
 
 ## init
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -174,6 +177,7 @@ Options:
 ```
 
 ## account
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -201,6 +205,7 @@ Options:
 ```
 
 ### account init
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -233,6 +238,7 @@ Options:
 ```
 
 ### account create
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -275,6 +281,7 @@ Options:
 ```
 
 ### account update
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -313,6 +320,7 @@ Options:
 ```
 
 ### account get
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -346,6 +354,7 @@ Options:
 ```
 
 ## cluster-ref
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -374,6 +383,7 @@ Options:
 ```
 
 ### cluster-ref connect
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -408,6 +418,7 @@ Options:
 ```
 
 ### cluster-ref disconnect
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -438,6 +449,7 @@ Options:
 ```
 
 ### cluster-ref list
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -459,6 +471,7 @@ Options:
 ```
 
 ### cluster-ref info
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -489,6 +502,7 @@ Options:
 ```
 
 ### cluster-ref setup
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -524,6 +538,7 @@ Options:
 ```
 
 ### cluster-ref reset
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -556,6 +571,7 @@ Options:
 ```
 
 ## network
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -580,6 +596,7 @@ Options:
 ```
 
 ### network deploy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -702,6 +719,7 @@ Options:
 ```
 
 ### network destroy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -740,6 +758,7 @@ Options:
 ```
 
 ## node
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -790,6 +809,7 @@ Options:
 ```
 
 ### node setup
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -834,6 +854,7 @@ Options:
 ```
 
 ### node start
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -872,6 +893,7 @@ Options:
 ```
 
 ### node stop
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -899,6 +921,7 @@ Options:
 ```
 
 ### node freeze
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -924,6 +947,7 @@ Options:
 ```
 
 ### node restart
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -949,6 +973,7 @@ Options:
 ```
 
 ### node keys
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -981,6 +1006,7 @@ Options:
 ```
 
 ### node refresh
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1019,6 +1045,7 @@ Options:
 ```
 
 ### node logs
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1046,6 +1073,7 @@ Options:
 ```
 
 ### node states
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1073,6 +1101,7 @@ Options:
 ```
 
 ### node add
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1161,6 +1190,7 @@ Options:
 ```
 
 ### node add-prepare
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1242,6 +1272,7 @@ Options:
 ```
 
 ### node add-submit-transactions
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1322,6 +1353,7 @@ Options:
 ```
 
 ### node add-execute
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1412,6 +1444,7 @@ Options:
 ```
 
 ### node update
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1477,6 +1510,7 @@ Options:
 ```
 
 ### node update-prepare
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1545,6 +1579,7 @@ Options:
 ```
 
 ### node update-submit-transactions
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1598,6 +1633,7 @@ Options:
 ```
 
 ### node update-execute
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1651,6 +1687,7 @@ Options:
 ```
 
 ### node delete
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1697,6 +1734,7 @@ Options:
 ```
 
 ### node delete-prepare
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1746,6 +1784,7 @@ Options:
 ```
 
 ### node delete-submit-transactions
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1795,6 +1834,7 @@ Options:
 ```
 
 ### node delete-execute
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1844,6 +1884,7 @@ Options:
 ```
 
 ### node prepare-upgrade
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1872,6 +1913,7 @@ Options:
 ```
 
 ### node freeze-upgrade
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1900,6 +1942,7 @@ Options:
 ```
 
 ### node upgrade
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1941,6 +1984,7 @@ Options:
 ```
 
 ### node upgrade-prepare
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -1985,6 +2029,7 @@ Options:
 ```
 
 ### node upgrade-submit-transactions
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2027,6 +2072,7 @@ Options:
 ```
 
 ### node upgrade-execute
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2069,6 +2115,7 @@ Options:
 ```
 
 ### node download-generated-files
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2097,6 +2144,7 @@ Options:
 ```
 
 ## relay
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2121,6 +2169,7 @@ Options:
 ```
 
 ### relay deploy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2170,6 +2219,7 @@ Options:
 ```
 
 ### relay destroy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2206,6 +2256,7 @@ Options:
 ```
 
 ## mirror-node
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2230,6 +2281,7 @@ Options:
 ```
 
 ### mirror-node deploy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2322,6 +2374,7 @@ Options:
 ```
 
 ### mirror-node destroy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2358,6 +2411,7 @@ Options:
 ```
 
 ## explorer
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2382,6 +2436,7 @@ Options:
 ```
 
 ### explorer deploy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2453,6 +2508,7 @@ Options:
 ```
 
 ### explorer destroy
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2489,6 +2545,7 @@ Options:
 ```
 
 ## deployment
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2515,6 +2572,7 @@ Options:
 ```
 
 ### deployment create
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2540,6 +2598,7 @@ Options:
 ```
 
 ### deployment delete
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2564,6 +2623,7 @@ Options:
 ```
 
 ### deployment list
+
 ```
 
 > @hashgraph/solo@0.35.1 solo
@@ -2593,6 +2653,7 @@ Options:
 ```
 
 ### deployment add-cluster
+
 ```
 
 > @hashgraph/solo@0.35.1 solo

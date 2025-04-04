@@ -10,6 +10,7 @@ import {InjectTokens} from '../../../../../core/dependency-injection/inject-toke
 import {type ObjectMapper} from '../../../../mapper/api/object-mapper.js';
 import {SchemaBase} from '../../api/schema-base.js';
 import {LocalConfigV1Migration} from './local-config-v1-migration.js';
+import {LocalConfigV2Migration} from './local-config-v2-migration.js';
 
 @injectable()
 export class LocalConfigSchema extends SchemaBase<LocalConfig> implements Schema<LocalConfig> {
@@ -30,6 +31,6 @@ export class LocalConfigSchema extends SchemaBase<LocalConfig> implements Schema
   }
 
   public get migrations(): SchemaMigration[] {
-    return [new LocalConfigV1Migration()];
+    return [new LocalConfigV1Migration(), new LocalConfigV2Migration()];
   }
 }
