@@ -6,10 +6,14 @@ deployments:
       - e2e-cluster-1
       - e2e-cluster-2
     namespace: dual-cluster-full
+    realm: 1
+    shard: 2
   deployment:
     clusters:
       - cluster-1
     namespace: solo-e2e
+    realm: 3
+    shard: 4
 clusterRefs:
   cluster-1: context-1
   cluster-2: context-2

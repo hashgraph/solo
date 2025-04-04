@@ -9,7 +9,7 @@ import {InvalidSchemaVersionError} from '../../api/invalid-schema-version-error.
 // Adds `realm` and `shard` to every deployment
 export class LocalConfigV2Migration implements SchemaMigration {
   public get range(): VersionRange<number> {
-    return VersionRange.fromIntegerVersion(0);
+    return VersionRange.fromIntegerVersion(1);
   }
 
   public get version(): Version<number> {
@@ -32,8 +32,8 @@ export class LocalConfigV2Migration implements SchemaMigration {
     const mdeps: object[] = [];
     for (const k in clone.deployments) {
       const d = clone.deployments[k];
-      d.realm = 0;
-      d.shard = 0;
+      d.realm = d.realm ? d.realm : 0;
+      d.shard = d.shard ? d.shard : 0;
       mdeps.push(d);
     }
     clone.deployments = mdeps;
