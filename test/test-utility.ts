@@ -35,7 +35,7 @@ import {type ConfigManager} from '../src/core/config-manager.js';
 import {type ChartManager} from '../src/core/chart-manager.js';
 import {type PackageDownloader} from '../src/core/package-downloader.js';
 import {type KeyManager} from '../src/core/key-manager.js';
-import {HEDERA_PLATFORM_VERSION} from '../version.js';
+
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from './test-container.js';
@@ -55,8 +55,6 @@ import {CommandInvoker} from './helpers/command-invoker.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
 import {type HelmClient} from '../src/integration/helm/helm-client.js';
 import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
-
-export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
 
 export const BASE_TEST_DIR = PathEx.join('test', 'data', 'tmp');
 
@@ -537,3 +535,5 @@ export const testLocalConfigData = {
     'cluster-2': 'context-2',
   },
 };
+
+export {HEDERA_PLATFORM_VERSION as HEDERA_PLATFORM_VERSION_TAG} from '../version.js';

@@ -140,7 +140,7 @@ describe('HelmClient Tests', () => {
           HAPROXY_RELEASE_NAME,
           UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
         );
-      } catch (error) {
+      } catch {
         // Suppress uninstall errors
       }
 
@@ -179,7 +179,7 @@ describe('HelmClient Tests', () => {
           HAPROXY_RELEASE_NAME,
           UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
         );
-      } catch (error) {
+      } catch {
         // Suppress uninstall errors
       }
     }
@@ -208,7 +208,7 @@ describe('HelmClient Tests', () => {
           HAPROXY_RELEASE_NAME,
           UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
         );
-      } catch (error) {
+      } catch {
         // Suppress uninstall errors
       }
     }
@@ -228,7 +228,7 @@ describe('HelmClient Tests', () => {
           HAPROXY_RELEASE_NAME,
           UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
         );
-      } catch (error) {
+      } catch {
         // Suppress uninstall errors
       }
     }
@@ -241,7 +241,7 @@ describe('HelmClient Tests', () => {
           HAPROXY_RELEASE_NAME,
           UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
         );
-      } catch (error) {
+      } catch {
         // Suppress uninstall errors
       }
 
@@ -279,7 +279,7 @@ describe('HelmClient Tests', () => {
           HAPROXY_RELEASE_NAME,
           UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
         );
-      } catch (error) {
+      } catch {
         // Suppress uninstall errors
       }
     }
@@ -307,7 +307,7 @@ describe('HelmClient Tests', () => {
           HAPROXY_RELEASE_NAME,
           UnInstallChartOptionsBuilder.builder().namespace(NAMESPACE).build(),
         );
-      } catch (error) {
+      } catch {
         // Suppress uninstall errors
       }
     }

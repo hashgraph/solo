@@ -204,19 +204,15 @@ export class HelmExecutionBuilder {
    */
   private buildCommand(): string[] {
     const command: string[] = [];
-    command.push(this.helmExecutable);
-    command.push(...this._subcommands);
-    command.push(...this._flags);
+    command.push(this.helmExecutable, ...this._subcommands, ...this._flags);
 
     for (const [key, value] of this._arguments.entries()) {
-      command.push(`--${key}`);
-      command.push(value);
+      command.push(`--${key}`, value);
     }
 
     for (const entry of this._optionsWithMultipleValues) {
       for (const value of entry.value) {
-        command.push(`--${entry.key}`);
-        command.push(value);
+        command.push(`--${entry.key}`, value);
       }
     }
 

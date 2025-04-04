@@ -33,7 +33,7 @@ export function testNodeAdd(
   testDescription = 'Node add should success',
   timeout: number = defaultTimeout,
 ): void {
-  const suffix = localBuildPath.substring(0, 5);
+  const suffix = localBuildPath.slice(0, 5);
   const namespace = NamespaceName.of(`node-add${suffix}`);
   const argv = Argv.getDefaultArgv(namespace);
   argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');

@@ -1,0 +1,190 @@
+version: 3
+vars:
+  cross_env: npx cross-env
+  mocha_bin: npx mocha
+  c8_bin: npx c8
+
+  test_prefix: "{{ .cross_env }} MOCHA_SUITE_NAME"
+  reporter_prefix: "{{ .c8_bin }} --report-dir"
+  reporter_options_prefix: --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit
+
+tasks:
+  test-setup:
+    cmds:
+      - SOLO_CLUSTER_DUALITY=1 sh {{.TASKFILE_DIR}}/test/e2e/dual-cluster/setup-dual-e2e.sh
+
+  dual-cluster-setup:
+    cmds:
+      - sh {{.TASKFILE_DIR}}/test/e2e/dual-cluster/setup-dual-e2e.sh
+
+  test:
+    cmds:
+      - "{{ .test_prefix }}=\"Unit Tests\" 
+        {{ .reporter_prefix }}='coverage/unit' 
+        {{ .mocha_bin }} 'test/unit/**/*.ts' 
+          --exclude 'test/unit/core/helm/**/*.ts' 
+        {{ .reporter_options_prefix }}.xml"
+
+  test-mathex:
+    cmds:
+      - "{{ .test_prefix }}=\"MathEx Unit Tests\"
+        {{ .reporter_prefix }}='coverage/unit-mathex'
+        {{ .mocha_bin }} 'test/unit/**/math-ex*.ts'
+        {{ .reporter_options_prefix }}.xml"
+
+  test-data:
+    cmds:
+      - "{{ .test_prefix }}=\"Data Layer Unit Tests\"
+        {{ .reporter_prefix }}='coverage/unit-data'
+        {{ .mocha_bin }} 'test/unit/data/**'
+        {{ .reporter_options_prefix }}.xml"
+
+  test-e2e-all:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E All Tests\" 
+        {{ .reporter_prefix }}='coverage/e2e-all' 
+        {{ .mocha_bin }} 'test/e2e/**/*.ts'
+        {{ .reporter_options_prefix }}-e2e-all.xml"
+
+  test-e2e-integration:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Integration Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-integration'
+        {{ .mocha_bin }} 'test/e2e/integration/**/*.ts'
+        {{ .reporter_options_prefix }}-e2e-integration.xml"
+
+  test-e2e-leases:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Lease Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-leases'
+        {{ .mocha_bin }} 'test/e2e/integration/core/lease*.test.ts'
+        {{ .reporter_options_prefix }}-e2e-integration.xml"
+
+  test-helm:
+    cmds:
+      - "{{ .test_prefix }}=\"Helm Unit Tests\"
+        {{ .reporter_prefix }}='coverage/unit-helm'
+        {{ .mocha_bin }} 'test/unit/core/helm/**/*.ts'
+        {{ .reporter_options_prefix }}.xml"
+
+  test-e2e-standard:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Standard Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-standard' 
+        {{ .mocha_bin }} 'test/e2e/**/*.ts' 
+          --ignore 'test/unit/**/*.ts' 
+          --ignore 'test/e2e/integration/**/*.ts' 
+          --ignore 'test/e2e/commands/node*.ts' 
+          --ignore 'test/e2e/commands/separate-node*.ts' 
+          --ignore 'test/e2e/commands/relay*.ts' 
+          --ignore 'test/e2e/commands/dual-*.ts'
+          --ignore 'test/e2e/commands/separate-node-add.test.ts' 
+          --ignore 'test/e2e/commands/separate-node-delete.test.ts' 
+          --ignore 'test/e2e/commands/separate-node-update.test.ts' 
+          --ignore 'test/e2e/commands/separate-node-upgrade.test.ts' 
+        {{ .reporter_options_prefix }}-e2e-standard.xml --timeout 30000"
+
+  test-e2e-node-pem-stop:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node PEM Stop Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-pem-stop'
+        {{ .mocha_bin }} 'test/e2e/commands/node-pem-stop.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-pem-stop.xml"
+
+  test-e2e-node-pem-kill:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node PEM Kill Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-pem-kill'
+        {{ .mocha_bin }} 'test/e2e/commands/node-pem-kill.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-pem-kill.xml"
+
+  test-e2e-node-local-hedera:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Local Hedera Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-local-hedera'
+        {{ .mocha_bin }} 'test/e2e/commands/node-local-hedera.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-local-hedera.xml"
+
+  test-e2e-node-local-ptt:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Local PTT Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-local-ptt'
+        {{ .mocha_bin }} 'test/e2e/commands/node-local-ptt.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-local-ptt.xml"
+
+  test-e2e-node-add:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Add Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-add'
+        {{ .mocha_bin }} 'test/e2e/commands/node-add.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-add.xml"
+
+  test-e2e-node-add-local:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Add Local Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-add-local'
+        {{ .mocha_bin }} 'test/e2e/commands/node-add-local.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-add-local.xml"
+
+  test-e2e-node-add-separate:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Add - Separate commands Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-add-separate'
+        {{ .mocha_bin }} 'test/e2e/commands/separate-node-add.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-add-separate.xml"
+
+  test-e2e-node-update:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Update Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-update'
+        {{ .mocha_bin }} 'test/e2e/commands/node-update.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-update.xml"
+
+  test-e2e-node-update-separate:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Update - Separate commands Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-update-separate'
+        {{ .mocha_bin }} 'test/e2e/commands/separate-node-update.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-update-separate.xml"
+
+  test-e2e-node-delete:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Delete Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-delete'
+        {{ .mocha_bin }} 'test/e2e/commands/node-delete.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-delete.xml"
+
+  test-e2e-node-delete-separate:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Delete - Separate commands Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-delete-separate'
+        {{ .mocha_bin }} 'test/e2e/commands/separate-node-delete.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-delete-separate.xml"
+
+  test-e2e-node-upgrade:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Upgrade Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-upgrade'
+        {{ .mocha_bin }} 'test/e2e/commands/node-upgrade.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-upgrade.xml"
+
+  test-e2e-node-upgrade-separate:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Node Upgrade - Separate commands Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-node-upgrade-separate'
+        {{ .mocha_bin }} 'test/e2e/commands/separate-node-upgrade.test.ts'
+        {{ .reporter_options_prefix }}-e2e-node-upgrade-separate.xml"
+
+  test-e2e-relay:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Relay Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-relay'
+        {{ .mocha_bin }} 'test/e2e/commands/relay.test.ts'
+        {{ .reporter_options_prefix }}-e2e-relay.xml"
+
+  test-e2e-dual-cluster-full:
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Dual Cluster Full Test\"
+        {{ .reporter_prefix }}='coverage/e2e-dual-cluster-full'
+        {{ .mocha_bin }} 'test/e2e/commands/dual-cluster-full.test.ts' 
+        {{ .reporter_options_prefix }}-e2e-dual-cluster-full.xml"

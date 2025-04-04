@@ -55,9 +55,9 @@ export class FlatKeyMapper {
   }
 
   private flattenArray(fkm: Map<string, string>, key: string, value: unknown[]) {
-    for (let index = 0; index < value.length; index++) {
+    for (const [index, element] of value.entries()) {
       const arrayKey = this.formatter.join(key, index.toString());
-      this.flattenKVPair(fkm, arrayKey, value[index]);
+      this.flattenKVPair(fkm, arrayKey, element);
     }
   }
 

@@ -58,10 +58,8 @@ export class MathEx {
     const ax = Math.abs(x);
     const ay = Math.abs(y);
 
-    if ((ax | ay) >>> 31 !== 0) {
-      if ((y !== 0 && r / y !== x) || !Number.isSafeInteger(r)) {
-        throw new ArithmeticError('Multiplication overflows a long integer');
-      }
+    if ((ax | ay) >>> 31 !== 0 && ((y !== 0 && r / y !== x) || !Number.isSafeInteger(r))) {
+      throw new ArithmeticError('Multiplication overflows a long integer');
     }
     return r;
   }

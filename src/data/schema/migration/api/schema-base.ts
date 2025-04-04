@@ -45,8 +45,8 @@ export abstract class SchemaBase<T> implements Schema<T> {
 
     let currentVersion: Version<number> = this.nextVersionJump(new Version(0));
 
-    for (let index = 0; index < versionJumps.length; index++) {
-      const v: Version<number> = new Version(versionJumps[index]);
+    for (const versionJump of versionJumps) {
+      const v: Version<number> = new Version(versionJump);
       if (!v.equals(currentVersion)) {
         throw new SchemaValidationError(
           `Invalid migration version sequence detected; expected version '${v.value}' but got '${currentVersion.value}'`,

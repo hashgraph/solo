@@ -43,7 +43,7 @@ export class Lexer {
       this.renderTrees();
     }
 
-    return Array.from(this._roots.values());
+    return [...this._roots.values()];
   }
 
   public get tree(): Map<string, Node> {
@@ -98,12 +98,7 @@ export class Lexer {
 
     const segments: string[] = this.formatter.split(this.formatter.normalize(key));
 
-    let rootNode: Node;
-    if (this._roots.has(segments[0])) {
-      rootNode = this._roots.get(segments[0]);
-    } else {
-      rootNode = this.rootNodeFor(segments);
-    }
+    const rootNode: Node = this._roots.has(segments[0]) ? this._roots.get(segments[0]) : this.rootNodeFor(segments);
 
     this.processSegments(rootNode as LexerInternalNode, value, segments);
     this.tokens.set(key, value);
@@ -150,8 +145,8 @@ export class Lexer {
       return;
     }
 
-    for (let index = 0; index < values.length; index++) {
-      this.addOrReplaceArrayElement(normalizedKey, index, values[index]);
+    for (const [index, value] of values.entries()) {
+      this.addOrReplaceArrayElement(normalizedKey, index, value);
     }
   }
 
@@ -210,7 +205,7 @@ export class Lexer {
       return;
     }
 
-    const keys: string[] = Array.from(this.tokens.keys());
+    const keys: string[] = [...this.tokens.keys()];
 
     // Sort the keys so that we can process them in order.
     keys.sort();
@@ -305,11 +300,10 @@ export class Lexer {
     }
 
     // Case where the array segment points at a value. Eg: LeafNode
-    if (index >= segments.length - 1) {
-      node = new LexerLeafNode(root, segment, value, this.formatter);
-    } else {
-      node = new LexerInternalNode(root, segment, [], false, true, this.formatter);
-    }
+    node =
+      index >= segments.length - 1
+        ? new LexerLeafNode(root, segment, value, this.formatter)
+        : new LexerInternalNode(root, segment, [], false, true, this.formatter);
 
     root.add(node);
     return node;

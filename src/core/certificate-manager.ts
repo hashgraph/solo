@@ -149,9 +149,9 @@ export class CertificateManager {
         continue;
       }
 
-      for (let index = 0; index < certs.length; index++) {
-        const nodeAlias = certs[index].nodeAlias;
-        const cert = certs[index].filePath;
+      for (const [index, cert_] of certs.entries()) {
+        const nodeAlias = cert_.nodeAlias;
+        const cert = cert_.filePath;
         const key = keys[index].filePath;
 
         subTasks.push({

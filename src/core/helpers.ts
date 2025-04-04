@@ -95,8 +95,8 @@ export function sleep(duration: Duration) {
 
 export function parseNodeAliases(
   input: string,
-  consensusNodes: ConsensusNode[],
-  configManager: ConfigManager,
+  consensusNodes?: ConsensusNode[],
+  configManager?: ConfigManager,
 ): NodeAliases {
   let nodeAliases: NodeAlias[] = splitFlagInput(input, ',') as NodeAliases;
   if (nodeAliases.length === 0) {
