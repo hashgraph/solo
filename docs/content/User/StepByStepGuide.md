@@ -38,25 +38,19 @@ kind create cluster -n "${SOLO_CLUSTER_NAME}"
 Example output
 
 ```
-Creating cluster "solo-e2e" ...
- • Ensuring node image (kindest/node:v1.32.2) 🖼  ...
- ✓ Ensuring node image (kindest/node:v1.32.2) 🖼
- • Preparing nodes 📦   ...
+Creating cluster "solo-update-readme-14261772714-1" ...
+ ✓ Ensuring node image (kindest/node:v1.32.0) 🖼
  ✓ Preparing nodes 📦 
- • Writing configuration 📜  ...
  ✓ Writing configuration 📜
- • Starting control-plane 🕹️  ...
  ✓ Starting control-plane 🕹️
- • Installing CNI 🔌  ...
  ✓ Installing CNI 🔌
- • Installing StorageClass 💾  ...
  ✓ Installing StorageClass 💾
-Set kubectl context to "kind-solo-e2e"
+Set kubectl context to "kind-solo-update-readme-14261772714-1"
 You can now use your cluster with:
 
-kubectl cluster-info --context kind-solo-e2e
+kubectl cluster-info --context kind-solo-update-readme-14261772714-1
 
-Not sure what to do next? 😅  Check out https://kind.sigs.k8s.io/docs/user/quick-start/
+Thanks for using kind! 😊
 ```
 
 You may now view pods in your cluster using `k9s -A` as below:
@@ -106,25 +100,20 @@ solo init
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: init
 **********************************************************************************
-❯ Setup home directory and cache
-✔ Setup home directory and cache
-❯ Check dependencies
-❯ Check dependency: helm [OS: darwin, Release: 23.6.0, Arch: arm64]
-✔ Check dependency: helm [OS: darwin, Release: 23.6.0, Arch: arm64]
-✔ Check dependencies
-❯ Setup chart manager
-✔ Setup chart manager
-❯ Copy templates in '/Users/user/.solo/cache'
+✔ Setup home directory and cache
+✔ Check dependency: helm [OS: linux, Release: 5.15.0-131-generic, Arch: x64]
+✔ Check dependencies
+✔ Setup chart manager
 
 ***************************************************************************************
-Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /Users/user/.solo
+Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /home/runner/.solo
 If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
 ***************************************************************************************
-✔ Copy templates in '/Users/user/.solo/cache'
+✔ Copy templates in '/home/runner/.solo/cache'
 ```
 
 * Generate `pem` formatted node keys
@@ -139,34 +128,22 @@ solo node keys --gossip-keys --tls-keys -i node1,node2,node3
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: node keys --gossip-keys --tls-keys --node-aliases node1,node2,node3
 **********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Generate gossip keys
-❯ Backup old files
-✔ Backup old files
-❯ Gossip key for node: node1
-✔ Gossip key for node: node1
-❯ Gossip key for node: node2
-✔ Gossip key for node: node2
-❯ Gossip key for node: node3
-✔ Gossip key for node: node3
-✔ Generate gossip keys
-❯ Generate gRPC TLS Keys
-❯ Backup old files
-❯ TLS key for node: node1
-❯ TLS key for node: node2
-❯ TLS key for node: node3
-✔ Backup old files
-✔ TLS key for node: node3
-✔ TLS key for node: node1
-✔ TLS key for node: node2
-✔ Generate gRPC TLS Keys
-❯ Finalize
-✔ Finalize
+✔ Initialize
+✔ Backup old files
+✔ Gossip key for node: node1
+✔ Gossip key for node: node2
+✔ Gossip key for node: node3
+✔ Generate gossip keys
+✔ Backup old files
+✔ TLS key for node: node1
+✔ TLS key for node: node2
+✔ TLS key for node: node3
+✔ Generate gRPC TLS Keys
+✔ Finalize
 ```
 PEM key files are generated in `~/.solo/keys` directory.
 ```
@@ -188,33 +165,22 @@ solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: deployment create --node-aliases node1,node2,node3 --namespace solo --context kind-solo-e2e --email john@doe.com --deployment-clusters kind-solo-e2e --deployment solo-deployment
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
+Current Command		: deployment create --node-aliases node1,node2,node3 --namespace solo --context kind-solo-update-readme-14261772714-1 --email john@doe.com --deployment-clusters kind-solo-update-readme-14261772714-1 --deployment solo-deployment
 Kubernetes Namespace	: solo
 **********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Setup home directory
-✔ Setup home directory
-❯ Prompt local configuration
-✔ Prompt local configuration
-❯ Add new deployment to local config
-✔ Add new deployment to local config
-❯ Resolve context for remote cluster
-✔ Resolve context for remote cluster
-❯ Validate context
-✔ Validate context- validated context kind-solo-e2e
-❯ Update local configuration
-✔ Update local configuration
-❯ Validate cluster connections
-❯ Testing connection to cluster: kind-solo-e2e
-✔ Testing connection to cluster: kind-solo-e2e
-✔ Validate cluster connections
-❯ Create remoteConfig in clusters
-❯ Create remote config in cluster: kind-solo-e2e
-✔ Create remote config in cluster: kind-solo-e2e
-✔ Create remoteConfig in clusters
+✔ Initialize
+✔ Setup home directory
+✔ Prompt local configuration
+✔ Add new deployment to local config
+✔ Resolve context for remote cluster
+✔ Validate context- validated context kind-solo-update-readme-14261772714-1
+✔ Update local configuration
+✔ Testing connection to cluster: kind-solo-update-readme-14261772714-1
+✔ Validate cluster connections
+✔ Create remote config in cluster: kind-solo-update-readme-14261772714-1
+✔ Create remoteConfig in clusters
 ```
 
 * Setup cluster with shared components
@@ -229,16 +195,13 @@ solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: cluster setup --cluster-setup-namespace solo-cluster
 **********************************************************************************
-❯ Initialize
-✔ Initialize
-❯ Prepare chart values
-✔ Prepare chart values
-❯ Install 'solo-cluster-setup' chart
-✔ Install 'solo-cluster-setup' chart
+✔ Initialize
+✔ Prepare chart values
+✔ Install 'solo-cluster-setup' chart
 ```
 
 In a separate terminal, you may run `k9s` to view the pod status.
@@ -259,74 +222,39 @@ solo network deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: network deploy --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
-❯ Initialize
-❯ Acquire lease
-✔ Acquire lease - lease acquired successfully, attempt: 1/10
-✔ Initialize
-❯ Copy gRPC TLS Certificates
-↓ Copy gRPC TLS Certificates [SKIPPED: Copy gRPC TLS Certificates]
-❯ Check if cluster setup chart is installed
-✔ Check if cluster setup chart is installed
-❯ Prepare staging directory
-❯ Copy Gossip keys to staging
-✔ Copy Gossip keys to staging
-❯ Copy gRPC TLS keys to staging
-✔ Copy gRPC TLS keys to staging
-✔ Prepare staging directory
-❯ Copy node keys to secrets
-❯ Copy TLS keys
-❯ Node: node1, cluster: kind-solo-e2e
-❯ Node: node2, cluster: kind-solo-e2e
-❯ Node: node3, cluster: kind-solo-e2e
-❯ Copy Gossip keys
-❯ Copy Gossip keys
-❯ Copy Gossip keys
-✔ Copy TLS keys
-✔ Copy Gossip keys
-✔ Node: node1, cluster: kind-solo-e2e
-✔ Copy Gossip keys
-✔ Node: node2, cluster: kind-solo-e2e
-✔ Copy Gossip keys
-✔ Node: node3, cluster: kind-solo-e2e
-✔ Copy node keys to secrets
-❯ Install chart 'solo-deployment'
-✔ Install chart 'solo-deployment'
-❯ Check for load balancer
-↓ Check for load balancer [SKIPPED: Check for load balancer]
-❯ Redeploy chart with external IP address config
-↓ Redeploy chart with external IP address config [SKIPPED: Redeploy chart with external IP address config]
-❯ Check node pods are running
-❯ Check Node: node1, Cluster: kind-solo-e2e
-✔ Check Node: node1, Cluster: kind-solo-e2e
-❯ Check Node: node2, Cluster: kind-solo-e2e
-✔ Check Node: node2, Cluster: kind-solo-e2e
-❯ Check Node: node3, Cluster: kind-solo-e2e
-✔ Check Node: node3, Cluster: kind-solo-e2e
-✔ Check node pods are running
-❯ Check proxy pods are running
-❯ Check HAProxy for: node1, cluster: kind-solo-e2e
-❯ Check HAProxy for: node2, cluster: kind-solo-e2e
-❯ Check HAProxy for: node3, cluster: kind-solo-e2e
-❯ Check Envoy Proxy for: node1, cluster: kind-solo-e2e
-❯ Check Envoy Proxy for: node2, cluster: kind-solo-e2e
-❯ Check Envoy Proxy for: node3, cluster: kind-solo-e2e
-✔ Check Envoy Proxy for: node3, cluster: kind-solo-e2e
-✔ Check HAProxy for: node2, cluster: kind-solo-e2e
-✔ Check HAProxy for: node1, cluster: kind-solo-e2e
-✔ Check HAProxy for: node3, cluster: kind-solo-e2e
-✔ Check Envoy Proxy for: node2, cluster: kind-solo-e2e
-✔ Check Envoy Proxy for: node1, cluster: kind-solo-e2e
-✔ Check proxy pods are running
-❯ Check auxiliary pods are ready
-❯ Check MinIO
-✔ Check MinIO
-✔ Check auxiliary pods are ready
-❯ Add node and proxies to remote config
-✔ Add node and proxies to remote config
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Check if cluster setup chart is installed
+✔ Copy Gossip keys to staging
+✔ Copy gRPC TLS keys to staging
+✔ Prepare staging directory
+✔ Copy Gossip keys
+✔ Node: node2, cluster: kind-solo-update-readme-14261772714-1
+✔ Copy Gossip keys
+✔ Node: node3, cluster: kind-solo-update-readme-14261772714-1
+✔ Copy TLS keys
+✔ Copy Gossip keys
+✔ Node: node1, cluster: kind-solo-update-readme-14261772714-1
+✔ Copy node keys to secrets
+✔ Install chart 'solo-deployment'
+✔ Check Node: node1, Cluster: kind-solo-update-readme-14261772714-1
+✔ Check Node: node2, Cluster: kind-solo-update-readme-14261772714-1
+✔ Check Node: node3, Cluster: kind-solo-update-readme-14261772714-1
+✔ Check node pods are running
+✔ Check HAProxy for: node3, cluster: kind-solo-update-readme-14261772714-1
+✔ Check HAProxy for: node1, cluster: kind-solo-update-readme-14261772714-1
+✔ Check Envoy Proxy for: node1, cluster: kind-solo-update-readme-14261772714-1
+✔ Check HAProxy for: node2, cluster: kind-solo-update-readme-14261772714-1
+✔ Check Envoy Proxy for: node2, cluster: kind-solo-update-readme-14261772714-1
+✔ Check Envoy Proxy for: node3, cluster: kind-solo-update-readme-14261772714-1
+✔ Check proxy pods are running
+✔ Check MinIO
+✔ Check auxiliary pods are ready
+✔ Add node and proxies to remote config
 ```
 
 * Setup node with Hedera platform software.
@@ -342,60 +270,35 @@ solo node setup -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: node setup --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
-❯ Initialize
-❯ Acquire lease
-✔ Acquire lease - lease acquired successfully, attempt: 1/10
-✔ Initialize
-❯ Validate nodes states
-❯ Validating state for node node1
-✔ Validating state for node node1 - valid state: requested
-❯ Validating state for node node2
-✔ Validating state for node node2 - valid state: requested
-❯ Validating state for node node3
-✔ Validating state for node node3 - valid state: requested
-✔ Validate nodes states
-❯ Identify network pods
-❯ Check network pod: node1
-❯ Check network pod: node2
-❯ Check network pod: node3
-✔ Check network pod: node1
-✔ Check network pod: node2
-✔ Check network pod: node3
-✔ Identify network pods
-❯ Fetch platform software into network nodes
-❯ Update node: node1 [ platformVersion = v0.58.10, context = kind-solo-e2e ]
-❯ Update node: node2 [ platformVersion = v0.58.10, context = kind-solo-e2e ]
-❯ Update node: node3 [ platformVersion = v0.58.10, context = kind-solo-e2e ]
-✔ Update node: node1 [ platformVersion = v0.58.10, context = kind-solo-e2e ]
-✔ Update node: node2 [ platformVersion = v0.58.10, context = kind-solo-e2e ]
-✔ Update node: node3 [ platformVersion = v0.58.10, context = kind-solo-e2e ]
-✔ Fetch platform software into network nodes
-❯ Setup network nodes
-❯ Node: node1
-❯ Node: node2
-❯ Node: node3
-❯ Copy configuration files
-❯ Copy configuration files
-❯ Copy configuration files
-✔ Copy configuration files
-❯ Set file permissions
-✔ Copy configuration files
-❯ Set file permissions
-✔ Copy configuration files
-❯ Set file permissions
-✔ Set file permissions
-✔ Node: node3
-✔ Set file permissions
-✔ Node: node1
-✔ Set file permissions
-✔ Node: node2
-✔ Setup network nodes
-❯ Change node state to setup in remote config
-✔ Change node state to setup in remote config
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Validating state for node node1 - valid state: requested
+✔ Validating state for node node2 - valid state: requested
+✔ Validating state for node node3 - valid state: requested
+✔ Validate nodes states
+✔ Check network pod: node1
+✔ Check network pod: node3
+✔ Check network pod: node2
+✔ Identify network pods
+✔ Update node: node1 [ platformVersion = v0.58.10, context = kind-solo-update-readme-14261772714-1 ]
+✔ Update node: node2 [ platformVersion = v0.58.10, context = kind-solo-update-readme-14261772714-1 ]
+✔ Update node: node3 [ platformVersion = v0.58.10, context = kind-solo-update-readme-14261772714-1 ]
+✔ Fetch platform software into network nodes
+✔ Copy configuration files
+✔ Copy configuration files
+✔ Copy configuration files
+✔ Set file permissions
+✔ Node: node2
+✔ Set file permissions
+✔ Node: node3
+✔ Set file permissions
+✔ Node: node1
+✔ Setup network nodes
+✔ Change node state to setup in remote config
 ```
 
 * Start the nodes
@@ -410,68 +313,37 @@ solo node start -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: node start --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
-❯ Initialize
-❯ Acquire lease
-✔ Acquire lease - lease acquired successfully, attempt: 1/10
-✔ Initialize
-❯ Validate nodes states
-❯ Validating state for node node1
-✔ Validating state for node node1 - valid state: setup
-❯ Validating state for node node2
-✔ Validating state for node node2 - valid state: setup
-❯ Validating state for node node3
-✔ Validating state for node node3 - valid state: setup
-✔ Validate nodes states
-❯ Identify existing network nodes
-❯ Check network pod: node1
-❯ Check network pod: node2
-❯ Check network pod: node3
-✔ Check network pod: node1
-✔ Check network pod: node2
-✔ Check network pod: node3
-✔ Identify existing network nodes
-❯ Upload state files network nodes
-↓ Upload state files network nodes [SKIPPED: Upload state files network nodes]
-❯ Starting nodes
-❯ Start node: node1
-❯ Start node: node2
-❯ Start node: node3
-✔ Start node: node1
-✔ Start node: node3
-✔ Start node: node2
-✔ Starting nodes
-❯ Enable port forwarding for JVM debugger
-↓ Enable port forwarding for JVM debugger [SKIPPED: Enable port forwarding for JVM debugger]
-❯ Check all nodes are ACTIVE
-❯ Check network pod: node1 
-❯ Check network pod: node2 
-❯ Check network pod: node3 
-✔ Check network pod: node2  - status ACTIVE, attempt: 18/300
-✔ Check network pod: node3  - status ACTIVE, attempt: 18/300
-✔ Check network pod: node1  - status ACTIVE, attempt: 18/300
-✔ Check all nodes are ACTIVE
-❯ Check node proxies are ACTIVE
-❯ Check proxy for node: node1
-✔ Check proxy for node: node1
-❯ Check proxy for node: node2
-✔ Check proxy for node: node2
-❯ Check proxy for node: node3
-✔ Check proxy for node: node3
-✔ Check node proxies are ACTIVE
-❯ Change node state to started in remote config
-✔ Change node state to started in remote config
-❯ Add node stakes
-❯ Adding stake for node: node1
-✔ Adding stake for node: node1
-❯ Adding stake for node: node2
-✔ Adding stake for node: node2
-❯ Adding stake for node: node3
-✔ Adding stake for node: node3
-✔ Add node stakes
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Validating state for node node1 - valid state: setup
+✔ Validating state for node node2 - valid state: setup
+✔ Validating state for node node3 - valid state: setup
+✔ Validate nodes states
+✔ Check network pod: node1
+✔ Check network pod: node3
+✔ Check network pod: node2
+✔ Identify existing network nodes
+✔ Start node: node2
+✔ Start node: node1
+✔ Start node: node3
+✔ Starting nodes
+✔ Check network pod: node1  - status ACTIVE, attempt: 18/300
+✔ Check network pod: node3  - status ACTIVE, attempt: 18/300
+✔ Check network pod: node2  - status ACTIVE, attempt: 18/300
+✔ Check all nodes are ACTIVE
+✔ Check proxy for node: node1
+✔ Check proxy for node: node2
+✔ Check proxy for node: node3
+✔ Check node proxies are ACTIVE
+✔ Change node state to started in remote config
+✔ Adding stake for node: node1
+✔ Adding stake for node: node2
+✔ Adding stake for node: node3
+✔ Add node stakes
 ```
 
 * Deploy mirror node
@@ -486,38 +358,24 @@ solo mirror-node deploy --deployment "${SOLO_DEPLOYMENT}"
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: mirror-node deploy --deployment solo-deployment
 **********************************************************************************
-❯ Initialize
-❯ Acquire lease
-✔ Acquire lease - lease acquired successfully, attempt: 1/10
-✔ Initialize
-❯ Enable mirror-node
-❯ Prepare address book
-✔ Prepare address book
-❯ Deploy mirror-node
-✔ Deploy mirror-node
-✔ Enable mirror-node
-❯ Check pods are ready
-❯ Check Postgres DB
-❯ Check REST API
-❯ Check GRPC
-❯ Check Monitor
-❯ Check Importer
-✔ Check Postgres DB
-✔ Check GRPC
-✔ Check Monitor
-✔ Check Importer
-✔ Check REST API
-✔ Check pods are ready
-❯ Seed DB data
-❯ Insert data in public.file_data
-✔ Insert data in public.file_data
-✔ Seed DB data
-❯ Add mirror node to remote config
-✔ Add mirror node to remote config
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Prepare address book
+✔ Deploy mirror-node
+✔ Enable mirror-node
+✔ Check Postgres DB
+✔ Check GRPC
+✔ Check REST API
+✔ Check Importer
+✔ Check Monitor
+✔ Check pods are ready
+✔ Insert data in public.file_data
+✔ Seed DB data
+✔ Add mirror node to remote config
 ```
 
 * Deploy Hedera Explorer
@@ -532,26 +390,16 @@ solo explorer deploy --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
-Current Command		: explorer deploy --deployment solo-deployment --cluster-ref kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
+Current Command		: explorer deploy --deployment solo-deployment --cluster-ref kind-solo-update-readme-14261772714-1
 **********************************************************************************
-❯ Initialize
-❯ Acquire lease
-✔ Acquire lease - lease acquired successfully, attempt: 1/10
-✔ Initialize
-❯ Load remote config
-✔ Load remote config
-❯ Upgrade solo-setup chart
-↓ Upgrade solo-setup chart [SKIPPED: Upgrade solo-setup chart]
-❯ Install explorer
-✔ Install explorer
-❯ Check explorer pod is ready
-✔ Check explorer pod is ready
-❯ Check haproxy ingress controller pod is ready
-↓ Check haproxy ingress controller pod is ready [SKIPPED: Check haproxy ingress controller pod is ready]
-❯ Add explorer to remote config
-✔ Add explorer to remote config
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Load remote config
+✔ Install explorer
+✔ Check explorer pod is ready
+✔ Add explorer to remote config
 ```
 
 * Deploy a JSON RPC relay
@@ -566,22 +414,16 @@ solo relay deploy -i node1,node2,node3 --deployment "${SOLO_DEPLOYMENT}"
 
 ******************************* Solo *********************************************
 Version			: 0.35.2
-Kubernetes Context	: kind-solo-e2e
-Kubernetes Cluster	: kind-solo-e2e
+Kubernetes Context	: kind-solo-update-readme-14261772714-1
+Kubernetes Cluster	: kind-solo-update-readme-14261772714-1
 Current Command		: relay deploy --node-aliases node1,node2,node3 --deployment solo-deployment
 **********************************************************************************
-❯ Initialize
-❯ Acquire lease
-✔ Acquire lease - lease acquired successfully, attempt: 1/10
-✔ Initialize
-❯ Prepare chart values
-✔ Prepare chart values
-❯ Deploy JSON RPC Relay
-✔ Deploy JSON RPC Relay
-❯ Check relay is ready
-✔ Check relay is ready
-❯ Add relay component in remote config
-✔ Add relay component in remote config
+✔ Acquire lease - lease acquired successfully, attempt: 1/10
+✔ Initialize
+✔ Prepare chart values
+✔ Deploy JSON RPC Relay
+✔ Check relay is ready
+✔ Add relay component in remote config
 ```
 
 You may view the list of pods using `k9s` as below:
