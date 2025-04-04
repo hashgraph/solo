@@ -78,7 +78,9 @@ import {NetworkNodes} from '../../core/network-nodes.js';
 import {container, inject, injectable} from 'tsyringe-neo';
 import {type Optional, type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {
-  type ClusterReference, ComponentName,
+  type ClusterReference,
+  type ComponentName,
+  type Context,
   type DeploymentName,
   type NamespaceNameAsString,
 } from '../../core/config/remote/types.js';
@@ -119,7 +121,6 @@ import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
 import {ComponentStates} from '../../core/config/remote/enumerations/component-states.js';
 import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
-import {RelayComponent} from '../../core/config/remote/components/relay-component.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -204,11 +205,10 @@ export class NodeCommandTasks {
         const zipBytesChunk = new Uint8Array(zipBytes.subarray(start, start + constants.UPGRADE_FILE_CHUNK_SIZE));
         let fileTransaction = null;
 
-        if (start === 0) {
-          fileTransaction = new FileUpdateTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
-        } else {
-          fileTransaction = new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
-        }
+        fileTransaction =
+          start === 0
+            ? new FileUpdateTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk)
+            : new FileAppendTransaction().setFileId(constants.UPGRADE_FILE_ID).setContents(zipBytesChunk);
         const resp = await fileTransaction.execute(nodeClient);
         const receipt = await resp.getReceipt(nodeClient);
         this.logger.debug(
@@ -281,11 +281,9 @@ export class NodeCommandTasks {
     for (const nodeAlias of nodeAliases) {
       const podReference = podReferences[nodeAlias];
       const context = helpers.extractContextFromConsensusNodes(nodeAlias, consensusNodes);
-      if (buildPathMap.has(nodeAlias)) {
-        localDataLibraryBuildPath = buildPathMap.get(nodeAlias);
-      } else {
-        localDataLibraryBuildPath = defaultDataLibraryBuildPath;
-      }
+      localDataLibraryBuildPath = buildPathMap.has(nodeAlias)
+        ? buildPathMap.get(nodeAlias)
+        : defaultDataLibraryBuildPath;
 
       if (!fs.existsSync(localDataLibraryBuildPath)) {
         throw new SoloError(`local build path does not exist: ${localDataLibraryBuildPath}`);
@@ -462,7 +460,7 @@ export class NodeCommandTasks {
           .execContainer([
             'bash',
             '-c',
-            'curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \\#',
+            String.raw`curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \#`,
           ]);
 
         if (!response) {
@@ -988,7 +986,7 @@ export class NodeCommandTasks {
     context_: CheckedNodesContext,
     task: SoloListrTaskWrapper<CheckedNodesContext>,
     nodeAliases: NodeAliases,
-    maxAttempts: number = undefined,
+    maxAttempts?: number,
   ) {
     context_.config.podRefs = {};
     const consensusNodes = context_.config.consensusNodes;
@@ -1542,12 +1540,7 @@ export class NodeCommandTasks {
           this.configManager.getFlag<DeploymentName>(flags.deployment),
           this.configManager.getFlag<boolean>(flags.forcePortForward),
         );
-        await this._addStake(
-          context_.config.namespace,
-          context_.newNode.accountId,
-          context_.config.nodeAlias,
-          undefined,
-        );
+        await this._addStake(context_.config.namespace, context_.newNode.accountId, context_.config.nodeAlias);
       },
     };
   }
@@ -2518,10 +2511,10 @@ export class NodeCommandTasks {
     return {
       title: 'Add new node to remote config',
       task: async (context_, task) => {
-        const nodeAlias = context_.config.nodeAlias;
+        const nodeAlias: NodeAlias = context_.config.nodeAlias;
         const namespace: NamespaceNameAsString = context_.config.namespace.name;
-        const clusterReference = context_.config.clusterRef;
-        const context = this.localConfig.clusterRefs[clusterReference];
+        const clusterReference: ClusterReference = context_.config.clusterRef;
+        const context: Context = this.localConfig.clusterRefs[clusterReference];
 
         task.title += `: ${nodeAlias}`;
 
@@ -2537,26 +2530,24 @@ export class NodeCommandTasks {
             ),
           );
 
-          const newEnvoyProxyIndex: number = this.remoteConfigManager.components.getNewComponentIndex(
-            ComponentTypes.HaProxy,
-          );
+          const createNewEnvoyProxyComponent: () => EnvoyProxyComponent = (): EnvoyProxyComponent => {
+            const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.EnvoyProxy);
 
-          const newEnvoyProxyName: ComponentName = HaProxyComponent.renderHaProxyName(newEnvoyProxyIndex, nodeAlias);
+            const componentName: ComponentName = EnvoyProxyComponent.renderEnvoyProxyName(index, nodeAlias);
 
+            return new EnvoyProxyComponent(componentName, clusterReference, namespace, ComponentStates.ACTIVE);
+          };
 
-          remoteConfig.components.addNewComponent(
-            new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterReference, namespace, ComponentStates.ACTIVE),
-          );
+          const createNewHaProxyComponent: () => HaProxyComponent = (): HaProxyComponent => {
+            const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.HaProxy);
 
-          const newHaProxyIndex: number = this.remoteConfigManager.components.getNewComponentIndex(
-            ComponentTypes.HaProxy,
-          );
+            const componentName: ComponentName = HaProxyComponent.renderHaProxyName(index, nodeAlias);
 
-          const newHaProxyName: ComponentName = HaProxyComponent.renderHaProxyName(newHaProxyIndex, nodeAlias);
+            return new HaProxyComponent(componentName, clusterReference, namespace, ComponentStates.ACTIVE);
+          };
 
-          remoteConfig.components.addNewComponent(
-            new HaProxyComponent(newHaProxyName, clusterReference, namespace, ComponentStates.ACTIVE),
-          );
+          remoteConfig.components.addNewComponent(createNewEnvoyProxyComponent());
+          remoteConfig.components.addNewComponent(createNewHaProxyComponent());
         });
 
         context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();

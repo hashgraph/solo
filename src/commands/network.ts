@@ -37,7 +37,7 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
-import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
+import {type ClusterReference, type ClusterReferences, type ComponentName} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
@@ -46,6 +46,7 @@ import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
 import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -256,7 +257,7 @@ export class NetworkCommand extends BaseCommand {
       const isMinioSecretCreated = await this.k8Factory
         .getK8(context)
         .secrets()
-        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData, undefined);
+        .createOrReplace(namespace, constants.MINIO_SECRET_NAME, SecretType.OPAQUE, minioData);
 
       if (!isMinioSecretCreated) {
         throw new SoloError(`failed to create new minio secret using context: ${context}`);
@@ -298,7 +299,7 @@ export class NetworkCommand extends BaseCommand {
       const isCloudSecretCreated = await this.k8Factory
         .getK8(context)
         .secrets()
-        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData, undefined);
+        .createOrReplace(namespace, constants.UPLOADER_SECRET_NAME, SecretType.OPAQUE, cloudData);
 
       if (!isCloudSecretCreated) {
         throw new SoloError(
@@ -330,7 +331,7 @@ export class NetworkCommand extends BaseCommand {
       const k8client = this.k8Factory.getK8(context);
       const isBackupSecretCreated = await k8client
         .secrets()
-        .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData, undefined);
+        .createOrReplace(namespace, constants.BACKUP_SECRET_NAME, SecretType.OPAQUE, backupData);
 
       if (!isBackupSecretCreated) {
         throw new SoloError(`failed to create secret for backup uploader using context: ${context}`);
@@ -1329,12 +1330,15 @@ export class NetworkCommand extends BaseCommand {
       task: async (context_): Promise<void> => {
         const {namespace} = context_.config;
 
-        await this.remoteConfigManager.modify(async remoteConfig => {
+        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
           for (const consensusNode of context_.config.consensusNodes) {
+            const nodeAlias: NodeAlias = consensusNode.name;
+            const clusterReference: ClusterReference = consensusNode.cluster;
+
             remoteConfig.components.editComponent(
               new ConsensusNodeComponent(
-                consensusNode.name,
-                consensusNode.cluster,
+                nodeAlias,
+                clusterReference,
                 namespace.name,
                 ComponentStates.ACTIVE,
                 ConsensusNodeStates.REQUESTED,
@@ -1342,23 +1346,26 @@ export class NetworkCommand extends BaseCommand {
               ),
             );
 
-            remoteConfig.components.addNewComponent(
-              new EnvoyProxyComponent(
-                `envoy-proxy-${consensusNode.name}`,
-                consensusNode.cluster,
-                namespace.name,
-                ComponentStates.ACTIVE,
-              ),
-            );
+            // eslint-disable-next-line unicorn/consistent-function-scoping
+            const createNewEnvoyProxyComponent: () => EnvoyProxyComponent = (): EnvoyProxyComponent => {
+              const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.EnvoyProxy);
 
-            remoteConfig.components.addNewComponent(
-              new HaProxyComponent(
-                `haproxy-${consensusNode.name}`,
-                consensusNode.cluster,
-                namespace.name,
-                ComponentStates.ACTIVE,
-              ),
-            );
+              const componentName: ComponentName = EnvoyProxyComponent.renderEnvoyProxyName(index, nodeAlias);
+
+              return new EnvoyProxyComponent(componentName, clusterReference, namespace.name, ComponentStates.ACTIVE);
+            };
+
+            // eslint-disable-next-line unicorn/consistent-function-scoping
+            const createNewHaProxyComponent: () => HaProxyComponent = (): HaProxyComponent => {
+              const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.HaProxy);
+
+              const componentName: ComponentName = HaProxyComponent.renderHaProxyName(index, nodeAlias);
+
+              return new HaProxyComponent(componentName, clusterReference, namespace.name, ComponentStates.ACTIVE);
+            };
+
+            remoteConfig.components.addNewComponent(createNewEnvoyProxyComponent());
+            remoteConfig.components.addNewComponent(createNewHaProxyComponent());
           }
         });
       },

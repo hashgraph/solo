@@ -548,14 +548,12 @@ export class RelayCommand extends BaseCommand {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {namespace, nodeAliases, clusterRef} = context_.config;
 
-          const newComponentIndex: number = this.remoteConfigManager.components.getNewComponentIndex(
-            ComponentTypes.Relay,
-          );
+          const newRelayIndex: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.Relay);
 
-          const componentName: ComponentName = RelayComponent.renderRelayName(newComponentIndex);
+          const newRelayName: ComponentName = RelayComponent.renderRelayName(newRelayIndex);
 
           remoteConfig.components.addNewComponent(
-            new RelayComponent(componentName, clusterRef, namespace.name, ComponentStates.ACTIVE, nodeAliases),
+            new RelayComponent(newRelayName, clusterRef, namespace.name, ComponentStates.ACTIVE, nodeAliases),
           );
         });
       },
