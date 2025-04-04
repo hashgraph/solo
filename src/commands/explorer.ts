@@ -26,10 +26,12 @@ import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import * as helpers from '../core/helpers.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
+import {type ClusterReference, type ComponentName} from '../core/config/remote/types.js';
+import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
-  clusterRef: string;
+  clusterRef: ClusterReference;
   clusterContext: string;
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
@@ -590,12 +592,16 @@ export class ExplorerCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
-          const {
-            config: {namespace},
-          } = context_;
-          const cluster = this.remoteConfigManager.currentCluster; // TODO: <---
+          const {namespace, clusterRef} = context_.config;
+
+          const index: number = this.remoteConfigManager.components.getNewComponentIndex(
+            ComponentTypes.MirrorNodeExplorer,
+          );
+
+          const componentName: ComponentName = MirrorNodeExplorerComponent.renderMirrorNodeExplorerName(index);
+
           remoteConfig.components.addNewComponent(
-            new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name, ComponentStates.ACTIVE),
+            new MirrorNodeExplorerComponent(componentName, clusterRef, namespace.name, ComponentStates.ACTIVE),
           );
         });
       },

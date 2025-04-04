@@ -32,7 +32,7 @@ import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
-import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
+import {type ClusterReference, type ComponentName, type DeploymentName} from '../core/config/remote/types.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
@@ -894,13 +894,15 @@ export class MirrorNodeCommand extends BaseCommand {
       title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace, clusterRef},
-          } = context_;
+        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+          const {namespace, clusterRef} = context_.config;
+
+          const index: number = this.remoteConfigManager.components.getNewComponentIndex(ComponentTypes.MirrorNode);
+
+          const componentName: ComponentName = MirrorNodeComponent.renderMirrorNodeName(index);
 
           remoteConfig.components.addNewComponent(
-            new MirrorNodeComponent('mirrorNode', clusterRef, namespace.name, ComponentStates.ACTIVE),
+            new MirrorNodeComponent(componentName, clusterRef, namespace.name, ComponentStates.ACTIVE),
           );
         });
       },

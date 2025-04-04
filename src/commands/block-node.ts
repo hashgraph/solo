@@ -25,6 +25,8 @@ import {type NamespaceName} from '../integration/kube/resources/namespace/namesp
 import os from 'node:os';
 import {BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 
 interface BlockNodeDeployConfigClass {
   chartVersion: string;
@@ -41,7 +43,7 @@ interface BlockNodeDeployConfigClass {
   context: string;
   isChartInstalled: boolean;
   valuesArg: string;
-  blockNodeName: string;
+  newBlockNodeName: string;
   releaseName: string;
 }
 
@@ -78,7 +80,7 @@ export class BlockNodeCommand extends BaseCommand {
       valuesArgument += helpers.prepareValuesFiles(config.valuesFile);
     }
 
-    valuesArgument += helpers.populateHelmArguments({nameOverride: config.blockNodeName});
+    valuesArgument += helpers.populateHelmArguments({nameOverride: config.newBlockNodeName});
 
     if (config.domainName) {
       valuesArgument += helpers.populateHelmArguments({
@@ -100,8 +102,8 @@ export class BlockNodeCommand extends BaseCommand {
     return valuesArgument;
   }
 
-  private getReleaseName(blockNodeId: string): string {
-    return constants.BLOCK_NODE_RELEASE_NAME + '-' + blockNodeId;
+  private getReleaseName(blockNodeIndex: number): string {
+    return constants.BLOCK_NODE_RELEASE_NAME + '-' + blockNodeIndex;
   }
 
   private async deploy(argv: ArgvStruct): Promise<boolean> {
@@ -154,23 +156,12 @@ export class BlockNodeCommand extends BaseCommand {
           task: async (context_): Promise<void> => {
             const config: BlockNodeDeployConfigClass = context_.config;
 
-            let newBlockNodeNumber: number = 1;
+            const newBlockNodeIndex: number = this.remoteConfigManager.components.getNewComponentIndex(
+              ComponentTypes.BlockNode,
+            );
 
-            if (
-              this.remoteConfigManager.components.blockNodes &&
-              Object.values(this.remoteConfigManager.components.blockNodes).length > 0
-            ) {
-              for (const blockNodeComponent of Object.values(this.remoteConfigManager.components.blockNodes)) {
-                const blockNodeNumber: number = +blockNodeComponent.name.split('-').at(-1);
-                if (blockNodeNumber >= newBlockNodeNumber) {
-                  newBlockNodeNumber = blockNodeNumber + 1;
-                }
-              }
-            }
-
-            const releaseName: string = this.getReleaseName(newBlockNodeNumber.toString());
-            config.blockNodeName = releaseName;
-            config.releaseName = releaseName;
+            config.newBlockNodeName = MirrorNodeComponent.renderMirrorNodeName(newBlockNodeIndex);
+            config.releaseName = this.getReleaseName(newBlockNodeIndex);
           },
         },
         {
@@ -272,10 +263,10 @@ export class BlockNodeCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
-          const {namespace, clusterRef, blockNodeName} = context_.config;
+          const {namespace, clusterRef, newBlockNodeName} = context_.config;
 
           remoteConfig.components.addNewComponent(
-            new BlockNodeComponent(blockNodeName, clusterRef, namespace.name, ComponentStates.ACTIVE),
+            new BlockNodeComponent(newBlockNodeName, clusterRef, namespace.name, ComponentStates.ACTIVE),
           );
         });
       },
