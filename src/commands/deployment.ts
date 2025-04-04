@@ -120,8 +120,8 @@ export class DeploymentCommand extends BaseCommand {
               quiet: self.configManager.getFlag<boolean>(flags.quiet),
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
-              realm: self.configManager.getFlag<Realm>(flags.realm),
-              shard: self.configManager.getFlag<Shard>(flags.shard),
+              realm: self.configManager.getFlag<Realm>(flags.realm) || flags.realm.definition.defaultValue,
+              shard: self.configManager.getFlag<Shard>(flags.shard) || flags.shard.definition.defaultValue,
             } as Config;
 
             if (self.localConfig.deployments && self.localConfig.deployments[context_.config.deployment]) {
