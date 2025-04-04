@@ -1,5 +1,8 @@
 # Using Solo with Hedera JavaScript SDK
 
+> **⚠️ Warning**
+> This document is out of date for the current release.  See [Step-by-step Guide](./StepByStepGuide.md) for the updated base commands to run that can be augmented with the extra flags and values provided in this guide. Hedera services and Platform SDK have moved to hiero-consensus-node repo <https://github.com/hiero-ledger/hiero-consensus-node>
+
 First, please follow solo repository README to install solo and Docker Desktop.
 You also need to install the Taskfile tool following the instructions [here](https://taskfile.dev/installation/).
 

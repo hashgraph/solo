@@ -1,5 +1,8 @@
 ## How to debug Hedera Services and Platform SDK
 
+> **⚠️ Warning**
+> This document is out of date for the current release.  See [Step-by-step Guide](../StepByStepGuide.md) for the updated base commands to run that can be augmented with the extra flags and values provided in this guide. Hedera services and Platform SDK have moved to hiero-consensus-node repo <https://github.com/hiero-ledger/hiero-consensus-node>
+
 ### 1. Using k9s to access running network nodes logs
 
 Running the command `k9s -A` in terminal, and select one of the network nodes:

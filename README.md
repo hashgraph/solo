@@ -7,9 +7,6 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/83a423a3a1c942459127b3aec62ab0b5)](https://app.codacy.com/gh/hashgraph/solo/dashboard?utm_source=gh\&utm_medium=referral\&utm_content=\&utm_campaign=Badge_grade)
 [![codecov](https://codecov.io/gh/hashgraph/solo/graph/badge.svg?token=hBkQdB1XO5)](https://codecov.io/gh/hashgraph/solo)
 
-> \[!WARNING]
-> SPECIAL NOTICE: Introducing v0.32.0 comes with BREAKING CHANGES.  We have removed caching of the flags in the solo config file.  All commands will need required flags or user will need to answer the prompts.  See more details in our release notes: [release/tag/v0.32.0](https://github.com/hashgraph/solo/releases/tag/v0.32.0)
-
 An opinionated CLI tool to deploy and manage standalone test networks.
 
 ## Requirements
@@ -57,7 +54,7 @@ nvm use v20.18.0
 
 ## Documentation
 
-[Getting Started](https://hashgraph.github.io/solo/)
+[Getting Started](https://hashgraph.github.io/solo/User/StepByStepGuide)
 
 ## Support
 

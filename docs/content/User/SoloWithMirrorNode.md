@@ -1,5 +1,8 @@
 ## Using Solo with mirror node
 
+> **⚠️ Warning**
+> This document is out of date for the current release.  See [Step-by-step Guide](./StepByStepGuide.md) for the updated base commands to run that can be augmented with the extra flags and values provided in this guide. Hedera services and Platform SDK have moved to hiero-consensus-node repo <https://github.com/hiero-ledger/hiero-consensus-node>
+
 User can deploy a solo network with mirror node by running the following command:
 
 ```bash
@@ -24,7 +27,7 @@ kubectl port-forward svc/hedera-explorer -n "${SOLO_NAMESPACE}" 8080:80 > /dev/n
 
 Then you can access the hedera explorer at `http://localhost:8080`
 
-Or you can use Task tool to deploy solo network with mirror node with a single command [link](TaskTool.md)
+Or you can use Task tool to deploy solo network with mirror node with a single command [link](../Developer/Development/TaskTool.md)
 
 Next, you can try to create a few accounts with solo and see the transactions in the explorer.
 

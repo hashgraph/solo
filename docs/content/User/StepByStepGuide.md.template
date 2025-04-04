@@ -1,5 +1,12 @@
 ## Advanced User Guide
 For those who would like to have more control or need some customized setups, here are some step by step instructions of how to setup and deploy a solo network.
+
+NOTE: for cleanup from previous runs, you may need to run the following command:
+```
+rm -Rf ~/.solo
+kind delete cluster -n "${SOLO_CLUSTER_NAME}"
+```
+
 ### Setup Kubernetes cluster
 
 #### Remote cluster
@@ -103,7 +110,7 @@ hedera-node2.key    hedera-node4.key    s-private-node4.pem s-public-node4.pem
 * Create a deployment in the specified clusters, generate RemoteConfig and LocalConfig objects.
 
 ```
-solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --deployment "${SOLO_DEPLOYMENT}"
+solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
 ```
 
 * Example output
@@ -177,6 +184,18 @@ solo mirror-node deploy --deployment "${SOLO_DEPLOYMENT}"
 
 ```
 $SOLO_MIRROR_NODE_DEPLOY_OUTPUT
+```
+
+* Deploy Hedera Explorer
+
+```
+solo explorer deploy --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME}
+```
+
+* Example output
+
+```
+$SOLO_EXPLORER_DEPLOY_OUTPUT
 ```
 
 * Deploy a JSON RPC relay
