@@ -1,25 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export interface SoloLogger {
-  setDevMode(devMode: boolean): void;
+  setDevMode(developmentMode: boolean): void;
 
   nextTraceId(): void;
 
   prepMeta(meta?: object | any): object | any;
 
-  showUser(msg: any, ...args: any): void;
+  showUser(message: any, ...arguments_: any): void;
 
-  showUserError(err: Error | any): void;
+  showUserError(error: Error | any): void;
 
-  error(msg: any, ...args: any): void;
+  error(message: any, ...arguments_: any): void;
 
-  warn(msg: any, ...args: any): void;
+  warn(message: any, ...arguments_: any): void;
 
-  info(msg: any, ...args: any): void;
+  info(message: any, ...arguments_: any): void;
 
-  debug(msg: any, ...args: any): void;
+  debug(message: any, ...arguments_: any): void;
 
   showList(title: string, items: string[]): void;
 
-  showJSON(title: string, obj: object): void;
+  showJSON(title: string, object: object): void;
 }

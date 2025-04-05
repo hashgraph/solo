@@ -12,7 +12,7 @@ import {
 } from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import {NamespaceName} from '../../../resources/namespace/namespace-name.js';
-import {PodRef} from '../../../resources/pod/pod-ref.js';
+import {PodReference} from '../../../resources/pod/pod-reference.js';
 import {type Pod} from '../../../resources/pod/pod.js';
 import {K8ClientPod} from './k8-client-pod.js';
 import {Duration} from '../../../../../core/time/duration.js';
@@ -40,13 +40,13 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     this.logger = container.resolve(InjectTokens.SoloLogger);
   }
 
-  public readByRef(podRef: PodRef): Pod {
-    return new K8ClientPod(podRef, this, this.kubeClient, this.kubeConfig);
+  public readByReference(podReference: PodReference): Pod {
+    return new K8ClientPod(podReference, this, this.kubeClient, this.kubeConfig);
   }
 
-  public async read(podRef: PodRef): Promise<Pod> {
-    const ns: NamespaceName = podRef.namespace;
-    const fieldSelector: string = `metadata.name=${podRef.name}`;
+  public async read(podReference: PodReference): Promise<Pod> {
+    const ns: NamespaceName = podReference.namespace;
+    const fieldSelector: string = `metadata.name=${podReference.name}`;
 
     const resp = await this.kubeClient.listNamespacedPod(
       ns.name,
@@ -63,7 +63,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     );
 
     return K8ClientPod.fromV1Pod(
-      this.filterItem(resp.body.items, {name: podRef.name.toString()}),
+      this.filterItem(resp.body.items, {name: podReference.name.toString()}),
       this,
       this.kubeClient,
       this.kubeConfig,
@@ -105,8 +105,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
     try {
       return await this.waitForPodConditions(namespace, podReadyCondition, labels, maxAttempts, delay);
-    } catch (e: Error | unknown) {
-      throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, e);
+    } catch (error: Error | unknown) {
+      throw new SoloError(`Pod not ready [maxAttempts = ${maxAttempts}]`, error);
     }
   }
 
@@ -125,7 +125,9 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     maxAttempts = 10,
     delay = 500,
   ): Promise<Pod[]> {
-    if (!conditionsMap || conditionsMap.size === 0) throw new MissingArgumentError('pod conditions are required');
+    if (!conditionsMap || conditionsMap.size === 0) {
+      throw new MissingArgumentError('pod conditions are required');
+    }
 
     return await this.waitForRunningPhase(namespace, labels, maxAttempts, delay, pod => {
       if (pod.conditions?.length > 0) {
@@ -135,7 +137,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
             const condStatus = entry[1];
             if (cond.type === condType && cond.status === condStatus) {
               this.logger.info(
-                `Pod condition met for ${pod.podRef.name.name} [type: ${cond.type} status: ${cond.status}]`,
+                `Pod condition met for ${pod.podReference.name.name} [type: ${cond.type} status: ${cond.status}]`,
               );
               return true;
             }
@@ -211,8 +213,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
               );
             }
           }
-        } catch (e) {
-          this.logger.info('Error occurred while waiting for pods, retrying', e);
+        } catch (error) {
+          this.logger.info('Error occurred while waiting for pods, retrying', error);
         }
 
         if (++attempts < maxAttempts) {
@@ -238,26 +240,26 @@ export class K8ClientPods extends K8ClientBase implements Pods {
       const response = await this.kubeClient.listPodForAllNamespaces(undefined, undefined, undefined, labelSelector);
       KubeApiResponse.check(response.response, ResourceOperation.LIST, ResourceType.POD, undefined, '');
       if (response?.body?.items?.length > 0) {
-        response.body.items.forEach(item => {
+        for (const item of response.body.items) {
           pods.push(
             new K8ClientPod(
-              PodRef.of(NamespaceName.of(item.metadata?.namespace), PodName.of(item.metadata?.name)),
+              PodReference.of(NamespaceName.of(item.metadata?.namespace), PodName.of(item.metadata?.name)),
               this,
               this.kubeClient,
               this.kubeConfig,
             ),
           );
-        });
+        }
       }
-    } catch (e) {
-      throw new SoloError('Error listing pods for all namespaces', e);
+    } catch (error) {
+      throw new SoloError('Error listing pods for all namespaces', error);
     }
 
     return pods;
   }
 
   public async create(
-    podRef: PodRef,
+    podReference: PodReference,
     labels: Record<string, string>,
     containerName: ContainerName,
     containerImage: string,
@@ -265,8 +267,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     startupProbeCommand: string[],
   ): Promise<Pod> {
     const v1Metadata: V1ObjectMeta = new V1ObjectMeta();
-    v1Metadata.name = podRef.name.toString();
-    v1Metadata.namespace = podRef.namespace.toString();
+    v1Metadata.name = podReference.name.toString();
+    v1Metadata.namespace = podReference.namespace.toString();
     v1Metadata.labels = labels;
 
     const v1ExecAction: V1ExecAction = new V1ExecAction();
@@ -290,23 +292,23 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
     let result: {response: any; body: any};
     try {
-      result = await this.kubeClient.createNamespacedPod(podRef.namespace.toString(), v1Pod);
-    } catch (e) {
-      if (e instanceof SoloError) {
-        throw e;
+      result = await this.kubeClient.createNamespacedPod(podReference.namespace.toString(), v1Pod);
+    } catch (error) {
+      if (error instanceof SoloError) {
+        throw error;
       }
-      throw new SoloError('Error creating pod with call to createNamespacedPod()', e);
+      throw new SoloError('Error creating pod with call to createNamespacedPod()', error);
     }
 
     KubeApiResponse.check(
       result.response,
       ResourceOperation.CREATE,
       ResourceType.POD,
-      podRef.namespace,
-      podRef.name.toString(),
+      podReference.namespace,
+      podReference.name.toString(),
     );
     if (result?.body) {
-      return new K8ClientPod(podRef, this, this.kubeClient, this.kubeConfig);
+      return new K8ClientPod(podReference, this, this.kubeClient, this.kubeConfig);
     } else {
       throw new SoloError('Error creating pod', result);
     }

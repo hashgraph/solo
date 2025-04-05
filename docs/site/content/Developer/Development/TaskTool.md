@@ -1,6 +1,6 @@
 ## Use the Task tool to launch Solo
 
-For users who want to quickly deploy a standalone solo network without needing to know what is under the hood,
+For developers who want to quickly deploy a standalone solo network without needing to know what is under the hood,
 they can use the Task tool to launch the network with a single command.
 
 NOTE: this requires cloning the GitHub repository: <https://github.com/hashgraph/solo>
@@ -13,16 +13,18 @@ Then, install the task tool `task` with this [link](https://taskfile.dev/install
 
 ### Start solo network
 
-User can use one of the following three commands to quickly deploy a standalone solo network.
+Developer can use one of the following three commands to quickly deploy a standalone solo network.
 
 ```bash
 # Option 1) deploy solo network with two nodes `task` is the same as `task default`
 task
 
 # Option 2) deploy solo network with two nodes, and mirror node
+cd examples
 task default-with-mirror
 
 # Option 3) deploy solo network with two nodes, mirror node, and JSON RPC relay
+cd examples
 task default-with-relay
 ```
 

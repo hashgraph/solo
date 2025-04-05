@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Flags as flags} from '../../src/commands/flags.js';
-import {getTestCacheDir, getTestCluster} from '../test-util.js';
+import {getTestCacheDirectory, getTestCluster} from '../test-utility.js';
 import {K8Client} from '../../src/integration/kube/k8-client/k8-client.js';
 import {type NamespaceName} from '../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type CommandFlag} from '../../src/types/flag-types.js';
@@ -34,17 +34,19 @@ export class Argv implements CloneTrait<Argv> {
 
   public build(): ArgvStruct {
     if (this.getArg<string>(flags.nodeAliasesUnparsed)?.split(',')?.length) {
-      const nodeAliases = helpers.parseNodeAliases(this.getArg(flags.nodeAliasesUnparsed), undefined, undefined);
+      const nodeAliases = helpers.parseNodeAliases(this.getArg(flags.nodeAliasesUnparsed));
       this.setArg(flags.numberOfConsensusNodes, nodeAliases.length);
     }
 
-    const rawArgs: ArgvStruct = structuredClone(this.args) as ArgvStruct;
+    const rawArguments: ArgvStruct = structuredClone(this.args) as ArgvStruct;
 
     const _: string[] = [this.command];
-    if (this.subcommand) _.push(this.subcommand);
-    rawArgs._ = _;
+    if (this.subcommand) {
+      _.push(this.subcommand);
+    }
+    rawArguments._ = _;
 
-    return rawArgs;
+    return rawArguments;
   }
 
   public clone() {
@@ -70,9 +72,9 @@ export class Argv implements CloneTrait<Argv> {
     const currentDeployment =
       argv.getArg<string>(flags.deployment) ||
       `${namespace?.name || argv.getArg<NamespaceName>(flags.namespace)}-deployment`;
-    const cacheDir = getTestCacheDir();
-    argv.cacheDir = cacheDir;
-    argv.setArg(flags.cacheDir, cacheDir);
+    const cacheDirectory = getTestCacheDirectory();
+    argv.cacheDir = cacheDirectory;
+    argv.setArg(flags.cacheDir, cacheDirectory);
     argv.deployment = currentDeployment;
     argv.setArg(flags.deployment, currentDeployment);
     argv.setArg(flags.clusterRef, getTestCluster());

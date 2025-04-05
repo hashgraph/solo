@@ -18,7 +18,7 @@ import {
 } from '@hashgraph/sdk';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {e2eTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster} from '../../test-util.js';
+import {endToEndTestSuite, HEDERA_PLATFORM_VERSION_TAG, getTestLogger, getTestCluster} from '../../test-utility.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -52,7 +52,7 @@ argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 // enable load balancer for e2e tests
 // argv.setArg(flags.loadBalancerEnabled, true);
 
-e2eTestSuite(testName, argv, {}, bootstrapResp => {
+endToEndTestSuite(testName, argv, {}, bootstrapResp => {
   describe('AccountCommand', async () => {
     let accountCmd: AccountCommand;
     let testLogger: SoloLogger;
@@ -142,11 +142,11 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
         });
 
         for (const [start, end] of testSystemAccounts) {
-          for (let i = start; i <= end; i++) {
-            it(`account ${i} should not have genesis key`, async () => {
+          for (let index = start; index <= end; index++) {
+            it(`account ${index} should not have genesis key`, async () => {
               expect(accountManager._nodeClient).not.to.be.null;
 
-              const accountId = `${realm}.${shard}.${i}`;
+              const accountId = `${realm}.${shard}.${index}`;
               testLogger.info(`Fetching account keys: accountId ${accountId}`);
               const keys = await accountManager.getAccountKeys(accountId);
               testLogger.info(`Fetched account keys: accountId ${accountId}`);
@@ -184,8 +184,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.privateKey).not.to.be.null;
           expect(accountInfo.publicKey).not.to.be.null;
           expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount));
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
           expect.fail();
         }
       }).timeout(Duration.ofSeconds(40).toMillis());
@@ -210,8 +210,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.privateKey.toString()).to.equal(constants.GENESIS_KEY);
           expect(accountInfo.publicKey).not.to.be.null;
           expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount));
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
           expect.fail();
         }
       }).timeout(defaultTimeout);
@@ -235,8 +235,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).not.to.be.null;
           expect(accountInfo.balance).to.equal(200);
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
           expect.fail();
         }
       }).timeout(defaultTimeout);
@@ -260,9 +260,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).not.to.be.null;
-          expect(accountInfo.balance).to.equal(1_110);
-        } catch (e) {
-          testLogger.showUserError(e);
+          expect(accountInfo.balance).to.equal(1110);
+        } catch (error) {
+          testLogger.showUserError(error);
           expect.fail();
         }
       }).timeout(defaultTimeout);
@@ -285,8 +285,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).to.be.ok;
           expect(accountInfo.balance).to.equal(200);
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
           expect.fail();
         }
       }).timeout(defaultTimeout);
@@ -308,9 +308,9 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
           expect(accountInfo.privateKey).to.be.undefined;
           expect(accountInfo.publicKey).to.be.ok;
-          expect(accountInfo.balance).to.equal(1_110);
-        } catch (e) {
-          testLogger.showUserError(e);
+          expect(accountInfo.balance).to.equal(1110);
+        } catch (error) {
+          testLogger.showUserError(error);
           expect.fail();
         }
       }).timeout(defaultTimeout);
@@ -350,8 +350,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           );
           const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
           expect(accountAliasInfo).not.to.be.null;
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
           expect.fail();
         }
       }).timeout(defaultTimeout);
@@ -399,8 +399,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           testLogger.info(`Account created: ${JSON.stringify(accountInfo)}`);
           expect(accountInfo.accountId).not.to.be.null;
           expect(accountInfo.balance).to.equal(amount);
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
@@ -428,8 +428,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
           const submitReceipt = await submitResponse.getReceipt(sdkClient);
 
           expect(submitReceipt.status).to.deep.equal(Status.Success);
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
         }
       }).timeout(Duration.ofMinutes(2).toMillis());
 
@@ -449,8 +449,8 @@ e2eTestSuite(testName, argv, {}, bootstrapResp => {
             subcommand: 'restart',
             callback: async argv => nodeCmd.handlers.restart(argv),
           });
-        } catch (e) {
-          testLogger.showUserError(e);
+        } catch (error) {
+          testLogger.showUserError(error);
         }
       }).timeout(Duration.ofMinutes(4).toMillis());
     });

@@ -140,7 +140,7 @@ fi
 echo "Change to parent directory"
 
 cd ../
-create_test_account
+create_test_account solo-e2e
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions

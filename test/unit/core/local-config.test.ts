@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
+import fs from 'node:fs';
 import {stringify} from 'yaml';
 import {expect} from 'chai';
 import {LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/missing-argument-error.js';
-import {getTestCacheDir, testLocalConfigData} from '../../test-util.js';
+import {getTestCacheDirectory, testLocalConfigData} from '../../test-utility.js';
 import {ErrorMessages} from '../../../src/core/error-messages.js';
 
 describe('LocalConfig', () => {
   let localConfig: LocalConfig;
-  const filePath = `${getTestCacheDir('LocalConfig')}/localConfig.yaml`;
+  const filePath = `${getTestCacheDirectory('LocalConfig')}/localConfig.yaml`;
   const config = testLocalConfigData;
 
   const expectFailedValidation = (expectedMessage: string) => {

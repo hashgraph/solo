@@ -3,7 +3,7 @@
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
 import {type CommandFlag} from '../types/flag-types.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
@@ -15,7 +15,7 @@ import {
 } from '@inquirer/prompts';
 import validator from 'validator';
 import {type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
-import {type ClusterRef} from '../core/config/remote/types.js';
+import {type ClusterReference} from '../core/config/remote/types.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
@@ -49,12 +49,14 @@ export class Flags {
         const promptOptions = {default: defaultValue, message: promptMessage};
 
         switch (type) {
-          case 'input':
+          case 'input': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, promptOptions);
             break;
-          case 'toggle':
+          }
+          case 'toggle': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
             break;
+          }
           case 'number': {
             input = await task.prompt(ListrInquirerPromptAdapter).run(numberPrompt, promptOptions);
             break;
@@ -67,8 +69,8 @@ export class Flags {
       }
 
       return input;
-    } catch (e) {
-      throw new SoloError(`input failed: ${flagName}: ${e.message}`, e);
+    } catch (error) {
+      throw new SoloError(`input failed: ${flagName}: ${error.message}`, error);
     }
   }
 
@@ -114,9 +116,9 @@ export class Flags {
    *
    */
   public static setRequiredCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
-    commandFlags.forEach(flag => {
+    for (const flag of commandFlags) {
       y.option(flag.name, {...flag.definition, demandOption: true});
-    });
+    }
   }
 
   /**
@@ -126,14 +128,14 @@ export class Flags {
    *
    */
   public static setOptionalCommandFlags(y: AnyYargs, ...commandFlags: CommandFlag[]) {
-    commandFlags.forEach(flag => {
-      let defaultValue = flag.definition.defaultValue !== '' ? flag.definition.defaultValue : undefined;
+    for (const flag of commandFlags) {
+      let defaultValue = flag.definition.defaultValue === '' ? undefined : flag.definition.defaultValue;
       defaultValue = defaultValue && flag.definition.dataMask ? flag.definition.dataMask : defaultValue;
       y.option(flag.name, {
         ...flag.definition,
         default: defaultValue,
       });
-    });
+    }
   }
 
   public static readonly devMode: CommandFlag = {
@@ -169,7 +171,7 @@ export class Flags {
       alias: 'c',
       type: 'string',
     },
-    prompt: async function promptClusterRef(
+    prompt: async function promptClusterReference(
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: string,
     ): Promise<string> {
@@ -259,29 +261,29 @@ export class Flags {
    * <p>--values-file aws-cluster=aws/solo-values.yaml,aws-cluster=aws/solo-values2.yaml,gcp-cluster=gcp/solo-values.yaml,gcp-cluster=gcp/solo-values2.yaml
    * @param input
    */
-  public static parseValuesFilesInput(input: string): Record<ClusterRef, Array<string>> {
-    const valuesFiles: Record<ClusterRef, Array<string>> = {};
+  public static parseValuesFilesInput(input: string): Record<ClusterReference, Array<string>> {
+    const valuesFiles: Record<ClusterReference, Array<string>> = {};
     if (input) {
       const inputItems = input.split(',');
-      inputItems.forEach(v => {
+      for (const v of inputItems) {
         const parts = v.split('=');
 
-        let clusterRef: string;
+        let clusterReference: string;
         let valuesFile: string;
 
-        if (parts.length !== 2) {
-          valuesFile = PathEx.resolve(v);
-          clusterRef = Flags.KEY_COMMON;
-        } else {
-          clusterRef = parts[0];
+        if (parts.length === 2) {
+          clusterReference = parts[0];
           valuesFile = PathEx.resolve(parts[1]);
+        } else {
+          valuesFile = PathEx.resolve(v);
+          clusterReference = Flags.KEY_COMMON;
         }
 
-        if (!valuesFiles[clusterRef]) {
-          valuesFiles[clusterRef] = [];
+        if (!valuesFiles[clusterReference]) {
+          valuesFiles[clusterReference] = [];
         }
-        valuesFiles[clusterRef].push(valuesFile);
-      });
+        valuesFiles[clusterReference].push(valuesFile);
+      }
     }
 
     return valuesFiles;
@@ -382,8 +384,8 @@ export class Flags {
         }
 
         return input;
-      } catch (e) {
-        throw new SoloError(`input failed: ${Flags.profileName.name}`, e);
+      } catch (error) {
+        throw new SoloError(`input failed: ${Flags.profileName.name}`, error);
       }
     },
   };
@@ -596,7 +598,10 @@ export class Flags {
       defaultValue: constants.SOLO_CACHE_DIR,
       type: 'string',
     },
-    prompt: async function promptCacheDir(task: SoloListrTaskWrapper<AnyListrContext>, input: string): Promise<string> {
+    prompt: async function promptCacheDirectory(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
       return await Flags.promptText(
         task,
         input,
@@ -661,8 +666,13 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptChartDir(task: SoloListrTaskWrapper<AnyListrContext>, input: string): Promise<string> {
-      if (input === 'false') return '';
+    prompt: async function promptChartDirectory(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
+      if (input === 'false') {
+        return '';
+      }
       try {
         if (input && !fs.existsSync(input)) {
           input = await task.prompt(ListrInquirerPromptAdapter).run(inputPrompt, {
@@ -676,8 +686,8 @@ export class Flags {
         }
 
         return input;
-      } catch (e) {
-        throw new SoloError(`input failed: ${Flags.chartDirectory.name}`, e);
+      } catch (error) {
+        throw new SoloError(`input failed: ${Flags.chartDirectory.name}`, error);
       }
     },
   };
@@ -871,7 +881,9 @@ export class Flags {
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: string,
     ): Promise<string | void> {
-      if (input) return;
+      if (input) {
+        return;
+      }
       try {
         input = (await task.prompt(ListrInquirerPromptAdapter).run(selectPrompt, {
           default: Flags.tlsClusterIssuerType.definition.defaultValue as string,
@@ -881,8 +893,8 @@ export class Flags {
         })) as string;
 
         return input;
-      } catch (e) {
-        throw new SoloError(`input failed: ${Flags.tlsClusterIssuerType.name}`, e);
+      } catch (error) {
+        throw new SoloError(`input failed: ${Flags.tlsClusterIssuerType.name}`, error);
       }
     },
   };
@@ -1489,7 +1501,7 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptOutputDir(
+    prompt: async function promptOutputDirectory(
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: boolean,
     ): Promise<boolean> {
@@ -1512,7 +1524,7 @@ export class Flags {
       defaultValue: '',
       type: 'string',
     },
-    prompt: async function promptInputDir(
+    prompt: async function promptInputDirectory(
       task: SoloListrTaskWrapper<AnyListrContext>,
       input: boolean,
     ): Promise<boolean> {
@@ -2158,12 +2170,48 @@ export class Flags {
     prompt: undefined,
   };
 
-  public static readonly googleCredential: CommandFlag = {
-    constName: 'googleCredential',
-    name: 'google-credential',
+  public static readonly backupWriteAccessKey: CommandFlag = {
+    constName: 'backupWriteAccessKey',
+    name: 'backup-write-access-key',
     definition: {
       defaultValue: '',
-      describe: 'path of google credential file in json format',
+      describe: 'backup storage access key for write access',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupWriteSecrets: CommandFlag = {
+    constName: 'backupWriteSecrets',
+    name: 'backup-write-secrets',
+    definition: {
+      defaultValue: '',
+      describe: 'backup storage secret key for write access',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupEndpoint: CommandFlag = {
+    constName: 'backupEndpoint',
+    name: 'backup-endpoint',
+    definition: {
+      defaultValue: '',
+      describe: 'backup storage endpoint URL',
+      type: 'string',
+      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupRegion: CommandFlag = {
+    constName: 'backupRegion',
+    name: 'backup-region',
+    definition: {
+      defaultValue: 'us-central1',
+      describe: 'backup storage region',
       type: 'string',
       dataMask: constants.STANDARD_DATAMASK,
     },
@@ -2429,7 +2477,10 @@ export class Flags {
     Flags.storageBucket,
     Flags.storageBucketPrefix,
     Flags.backupBucket,
-    Flags.googleCredential,
+    Flags.backupWriteAccessKey,
+    Flags.backupWriteSecrets,
+    Flags.backupEndpoint,
+    Flags.backupRegion,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
@@ -2453,11 +2504,11 @@ export class Flags {
 
   /** Resets the definition.disablePrompt for all flags */
   private static resetDisabledPrompts() {
-    Flags.allFlags.forEach(f => {
+    for (const f of Flags.allFlags) {
       if (f.definition.disablePrompt) {
         delete f.definition.disablePrompt;
       }
-    });
+    }
   }
 
   public static readonly allFlagsMap = new Map(Flags.allFlags.map(f => [f.name, f]));

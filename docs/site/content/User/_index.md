@@ -1,4 +1,4 @@
 ---
-title: Collapse
+title: Usage
 geekdocCollapseSection: true
 ---

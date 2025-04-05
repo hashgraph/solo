@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
-import * as util from 'util';
+import fs from 'node:fs';
+import * as util from 'node:util';
 import {MissingArgumentError} from '../errors/missing-argument-error.js';
 import * as helpers from '../helpers.js';
 import * as constants from '../constants.js';
@@ -41,33 +41,41 @@ export class HelmDependencyManager extends ShellRunner {
   constructor(
     @inject(InjectTokens.PackageDownloader) private readonly downloader?: PackageDownloader,
     @inject(InjectTokens.Zippy) private readonly zippy?: Zippy,
-    @inject(InjectTokens.HelmInstallationDir) private readonly installationDir?: string,
+    @inject(InjectTokens.HelmInstallationDir) private readonly installationDirectory?: string,
     @inject(InjectTokens.OsPlatform) osPlatform?: NodeJS.Platform,
     @inject(InjectTokens.OsArch) osArch?: string,
     @inject(InjectTokens.HelmVersion) private readonly helmVersion?: string,
   ) {
     super();
-    this.installationDir = patchInject(installationDir, InjectTokens.HelmInstallationDir, this.constructor.name);
+    this.installationDirectory = patchInject(
+      installationDirectory,
+      InjectTokens.HelmInstallationDir,
+      this.constructor.name,
+    );
     this.osPlatform = patchInject(osPlatform, InjectTokens.OsPlatform, this.constructor.name);
     this.osArch = patchInject(osArch, InjectTokens.OsArch, this.constructor.name);
     this.helmVersion = patchInject(helmVersion, InjectTokens.HelmVersion, this.constructor.name);
 
-    if (!installationDir) throw new MissingArgumentError('installation directory is required');
+    if (!installationDirectory) {
+      throw new MissingArgumentError('installation directory is required');
+    }
 
     this.downloader = patchInject(downloader, InjectTokens.PackageDownloader, this.constructor.name);
     this.zippy = patchInject(zippy, InjectTokens.Zippy, this.constructor.name);
-    this.installationDir = installationDir;
+    this.installationDirectory = installationDirectory;
     // Node.js uses 'win32' for windows in package.json os field, but helm uses 'windows'
-    if (osPlatform === OS_WIN32) {
-      this.osPlatform = OS_WINDOWS;
-    } else {
-      this.osPlatform = osPlatform;
-    }
+    this.osPlatform = osPlatform === OS_WIN32 ? OS_WINDOWS : osPlatform;
     this.osArch = ['x64', 'x86-64'].includes(osArch) ? 'amd64' : osArch;
-    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir);
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDirectory);
 
-    const fileExt = HELM_ARTIFACT_EXT.get(this.osPlatform);
-    this.artifactName = util.format(HELM_ARTIFACT_TEMPLATE, this.helmVersion, this.osPlatform, this.osArch, fileExt);
+    const fileExtension = HELM_ARTIFACT_EXT.get(this.osPlatform);
+    this.artifactName = util.format(
+      HELM_ARTIFACT_TEMPLATE,
+      this.helmVersion,
+      this.osPlatform,
+      this.osArch,
+      fileExtension,
+    );
     this.helmURL = `${HELM_RELEASE_BASE_URL}/${this.artifactName}`;
     this.checksumURL = `${HELM_RELEASE_BASE_URL}/${this.artifactName}.sha256sum`;
   }
@@ -89,30 +97,30 @@ export class HelmDependencyManager extends ShellRunner {
     }
   }
 
-  async install(tmpDir: string = helpers.getTmpDir()) {
-    const extractedDir = PathEx.join(tmpDir, 'extracted-helm');
-    let helmSrc = PathEx.join(extractedDir, `${this.osPlatform}-${this.osArch}`, constants.HELM);
+  async install(temporaryDirectory: string = helpers.getTemporaryDirectory()) {
+    const extractedDirectory = PathEx.join(temporaryDirectory, 'extracted-helm');
+    let helmSource = PathEx.join(extractedDirectory, `${this.osPlatform}-${this.osArch}`, constants.HELM);
 
-    const packageFile = await this.downloader.fetchPackage(this.helmURL, this.checksumURL, tmpDir);
+    const packageFile = await this.downloader.fetchPackage(this.helmURL, this.checksumURL, temporaryDirectory);
     if (this.osPlatform === constants.OS_WINDOWS) {
-      this.zippy.unzip(packageFile, extractedDir);
+      this.zippy.unzip(packageFile, extractedDirectory);
       // append .exe for windows
-      helmSrc = PathEx.join(extractedDir, `${this.osPlatform}-${this.osArch}`, `${constants.HELM}.exe`);
+      helmSource = PathEx.join(extractedDirectory, `${this.osPlatform}-${this.osArch}`, `${constants.HELM}.exe`);
     } else {
-      this.zippy.untar(packageFile, extractedDir);
+      this.zippy.untar(packageFile, extractedDirectory);
     }
 
-    if (!fs.existsSync(this.installationDir)) {
-      fs.mkdirSync(this.installationDir);
+    if (!fs.existsSync(this.installationDirectory)) {
+      fs.mkdirSync(this.installationDirectory);
     }
 
     // install new helm
     this.uninstall();
-    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDir);
-    fs.cpSync(helmSrc, this.helmPath);
+    this.helmPath = Templates.installationPath(constants.HELM, this.osPlatform, this.installationDirectory);
+    fs.cpSync(helmSource, this.helmPath);
 
-    if (fs.existsSync(extractedDir)) {
-      fs.rmSync(extractedDir, {recursive: true});
+    if (fs.existsSync(extractedDirectory)) {
+      fs.rmSync(extractedDirectory, {recursive: true});
     }
 
     return this.isInstalled();

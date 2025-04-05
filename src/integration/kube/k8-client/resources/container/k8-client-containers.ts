@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type Containers} from '../../../resources/container/containers.js';
-import {type ContainerRef} from '../../../resources/container/container-ref.js';
+import {type ContainerReference} from '../../../resources/container/container-reference.js';
 import {type Container} from '../../../resources/container/container.js';
 import {K8ClientContainer} from './k8-client-container.js';
 import {type KubeConfig} from '@kubernetes/client-node';
@@ -13,7 +13,7 @@ export class K8ClientContainers implements Containers {
     private readonly pods: Pods,
   ) {}
 
-  public readByRef(containerRef: ContainerRef): Container {
-    return new K8ClientContainer(this.kubeConfig, containerRef, this.pods);
+  public readByRef(containerReference: ContainerReference): Container {
+    return new K8ClientContainer(this.kubeConfig, containerReference, this.pods);
   }
 }

@@ -83,9 +83,9 @@ describe('ComponentsDataWrapper', () => {
 
     expect(componentsDataWrapperObject).to.deep.equal(newComponentsDataWrapper.toObject());
 
-    Object.values(ComponentType).forEach(type => {
+    for (const type of Object.values(ComponentType)) {
       expect(componentsDataWrapperObject).to.have.ownProperty(type);
-    });
+    }
 
     expect(componentsDataWrapper);
   });

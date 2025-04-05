@@ -13,7 +13,7 @@ describe('Helpers', () => {
     {input: 'node1', output: ['node1']},
     {input: 'node1,node3', output: ['node1', 'node3']},
   ]).it('should parse node aliases for input', ({input, output}: {input: string; output: string[]}) => {
-    expect(helpers.parseNodeAliases(input, undefined, undefined)).to.deep.equal(output);
+    expect(helpers.parseNodeAliases(input)).to.deep.equal(output);
   });
 
   each([
@@ -26,12 +26,6 @@ describe('Helpers', () => {
     expect(clonedArray).not.to.equal(input); // ensure cloning creates a new array
   });
 
-  it('Should parse argv to args with datamask correctly', () => {
-    const argv = {[flags.googleCredential.name]: 'VALUE'};
-    const result = flags.stringifyArgv(argv);
-    expect(result).to.equal(`--${flags.googleCredential.name} ${flags.googleCredential.definition.dataMask}`);
-  });
-
   it('Should parse argv to args with boolean flag correctly', () => {
     const argv = {[flags.quiet.name]: true};
     const result = flags.stringifyArgv(argv);
@@ -42,5 +36,11 @@ describe('Helpers', () => {
     const argv = {[flags.namespace.name]: 'VALUE'};
     const result = flags.stringifyArgv(argv);
     expect(result).to.equal(`--${flags.namespace.name} VALUE`);
+  });
+
+  it('Should ipv4ToByteArray convert IPv4 address to byte array', () => {
+    const ipV4Address: string = '192.168.0.1';
+    const byteArray: number[] = helpers.ipv4ToByteArray(ipV4Address);
+    expect(JSON.stringify(byteArray)).to.equal('[192,168,0,1]');
   });
 });

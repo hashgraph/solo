@@ -116,19 +116,8 @@ importer:
             # for s3 configuration of mirror node look at uploader-mirror-secrets.yaml
           parser:
             record:
-              entity:
-                notify:
-                  enabled: true
-                redis:
-                  enabled: false
               sidecar:
                 enabled: true
-    management:
-      endpoint:
-        health:
-          group:
-            readiness:
-              exclude: redis
 grpc:
   tolerations:
     - key: "solo.hashgraph.io/role"
@@ -147,18 +136,6 @@ grpc:
       operator: "Equal"
       value: "network"
       effect: "NoSchedule"
-  config:
-    hedera:
-      mirror:
-        grpc:
-          listener:
-            type: NOTIFY
-    management:
-      endpoint:
-        health:
-          group:
-            readiness:
-              exclude: redis
 postgresql:
   postgresql:
     tolerations:

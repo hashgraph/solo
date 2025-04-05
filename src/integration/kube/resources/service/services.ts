@@ -2,7 +2,7 @@
 
 import {type NamespaceName} from '../namespace/namespace-name.js';
 import {type Service} from './service.js';
-import {type ServiceRef} from './service-ref.js';
+import {type ServiceReference} from './service-reference.js';
 
 export interface Services {
   /**
@@ -29,7 +29,7 @@ export interface Services {
    * @throws {SoloError} if the service could not be created
    */
   create(
-    serviceRef: ServiceRef,
+    serviceReference: ServiceReference,
     labels: Record<string, string>,
     servicePort: number,
     podTargetPort: number,

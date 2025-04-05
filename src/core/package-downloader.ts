@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import * as crypto from 'crypto';
-import * as fs from 'fs';
+import * as crypto from 'node:crypto';
+import * as fs from 'node:fs';
 import {pipeline as streamPipeline} from 'node:stream/promises';
 import got from 'got';
-import path from 'path';
+import path from 'node:path';
 import {DataValidationError} from './errors/data-validation-error.js';
 import {SoloError} from './errors/solo-error.js';
 import {IllegalArgumentError} from './errors/illegal-argument-error.js';
 import {MissingArgumentError} from './errors/missing-argument-error.js';
 import {ResourceNotFoundError} from './errors/resource-not-found-error.js';
-import * as https from 'https';
-import * as http from 'http';
+import * as https from 'node:https';
+import * as http from 'node:http';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
 import {type SoloLogger} from './logging/solo-logger.js';
@@ -44,11 +44,11 @@ export class PackageDownloader {
         self.logger.debug(`Checking URL: ${url}`);
         // attempt to send a HEAD request to check URL exists
 
-        const req = url.startsWith('http://')
+        const request = url.startsWith('http://')
           ? http.request(url, {method: 'HEAD', timeout: 100, headers: {Connection: 'close'}})
           : https.request(url, {method: 'HEAD', timeout: 100, headers: {Connection: 'close'}});
 
-        req.on('response', r => {
+        request.on('response', r => {
           const statusCode = r.statusCode;
           self.logger.debug({
             response: {
@@ -58,7 +58,7 @@ export class PackageDownloader {
               headers: r.headers,
             },
           });
-          req.destroy();
+          request.destroy();
           if ([StatusCodes.OK, StatusCodes.MOVED_TEMPORARILY].includes(statusCode)) {
             resolve(true);
           }
@@ -66,15 +66,15 @@ export class PackageDownloader {
           resolve(false);
         });
 
-        req.on('error', err => {
-          self.logger.error(err);
+        request.on('error', error => {
+          self.logger.error(error);
           resolve(false);
-          req.destroy();
+          request.destroy();
         });
 
-        req.end(); // make the request
-      } catch (e: Error | any) {
-        self.logger.error(e);
+        request.end(); // make the request
+      } catch (error: Error | any) {
+        self.logger.error(error);
         resolve(false);
       }
     });
@@ -86,13 +86,13 @@ export class PackageDownloader {
    * @param url - source file URL
    * @param destPath - destination path for the downloaded file
    */
-  async fetchFile(url: string, destPath: string) {
+  async fetchFile(url: string, destinationPath: string) {
     if (!url) {
       throw new IllegalArgumentError('package URL is required', url);
     }
 
-    if (!destPath) {
-      throw new IllegalArgumentError('destination path is required', destPath);
+    if (!destinationPath) {
+      throw new IllegalArgumentError('destination path is required', destinationPath);
     }
 
     if (!this.isValidURL(url)) {
@@ -104,11 +104,11 @@ export class PackageDownloader {
     }
 
     try {
-      await streamPipeline(got.stream(url, {followRedirect: true}), fs.createWriteStream(destPath));
+      await streamPipeline(got.stream(url, {followRedirect: true}), fs.createWriteStream(destinationPath));
 
-      return destPath;
-    } catch (e: Error | any) {
-      throw new SoloError(`Error fetching file ${url}: ${e.message}`, e);
+      return destinationPath;
+    } catch (error: Error | any) {
+      throw new SoloError(`Error fetching file ${url}: ${error.message}`, error);
     }
   }
 
@@ -136,11 +136,11 @@ export class PackageDownloader {
           resolve(d);
         });
 
-        s.on('error', e => {
-          reject(e);
+        s.on('error', error => {
+          reject(error);
         });
-      } catch (e: Error | any) {
-        reject(new SoloError('failed to compute checksum', e, {filePath, algo}));
+      } catch (error: Error | any) {
+        reject(new SoloError('failed to compute checksum', error, {filePath, algo}));
       }
     });
   }
@@ -158,29 +158,43 @@ export class PackageDownloader {
    */
   async verifyChecksum(sourceFile: string, checksum: string, algo = 'sha256') {
     const computed = await this.computeFileHash(sourceFile, algo);
-    if (checksum !== computed) throw new DataValidationError('checksum', checksum, computed);
+    if (checksum !== computed) {
+      throw new DataValidationError('checksum', checksum, computed);
+    }
   }
 
   /**
    * Fetch a remote package
    * @param packageURL
    * @param checksumURL - package checksum URL
-   * @param destDir - a directory where the files should be downloaded to
+   * @param destinationDirectory - a directory where the files should be downloaded to
    * @param [algo] - checksum algo
-   * @param [force] - force download even if the file exists in the destDir
+   * @param [force] - force download even if the file exists in the destinationDirectory
    */
-  async fetchPackage(packageURL: string, checksumURL: string, destDir: string, algo = 'sha256', force = false) {
-    if (!packageURL) throw new Error('package URL is required');
-    if (!checksumURL) throw new Error('checksum URL is required');
-    if (!destDir) throw new Error('destination directory path is required');
-
-    this.logger.debug(`Downloading package: ${packageURL}, checksum: ${checksumURL}`);
-    if (!fs.existsSync(destDir)) {
-      fs.mkdirSync(destDir, {recursive: true});
+  async fetchPackage(
+    packageURL: string,
+    checksumURL: string,
+    destinationDirectory: string,
+    algo = 'sha256',
+    force = false,
+  ) {
+    if (!packageURL) {
+      throw new Error('package URL is required');
+    }
+    if (!checksumURL) {
+      throw new Error('checksum URL is required');
+    }
+    if (!destinationDirectory) {
+      throw new Error('destination directory path is required');
     }
 
-    const packageFile = `${destDir}/${path.basename(packageURL)}`;
-    const checksumFile = `${destDir}/${path.basename(checksumURL)}`;
+    this.logger.debug(`Downloading package: ${packageURL}, checksum: ${checksumURL}`);
+    if (!fs.existsSync(destinationDirectory)) {
+      fs.mkdirSync(destinationDirectory, {recursive: true});
+    }
+
+    const packageFile = `${destinationDirectory}/${path.basename(packageURL)}`;
+    const checksumFile = `${destinationDirectory}/${path.basename(checksumURL)}`;
 
     try {
       if (fs.existsSync(packageFile) && !force) {
@@ -189,12 +203,14 @@ export class PackageDownloader {
 
       await this.fetchFile(checksumURL, checksumFile);
       const checksumData = fs.readFileSync(checksumFile).toString();
-      if (!checksumData) throw new SoloError(`unable to read checksum file: ${checksumFile}`);
+      if (!checksumData) {
+        throw new SoloError(`unable to read checksum file: ${checksumFile}`);
+      }
       const checksum = checksumData.split(' ')[0];
       await this.fetchFile(packageURL, packageFile);
       await this.verifyChecksum(packageFile, checksum, algo);
       return packageFile;
-    } catch (e: Error | any) {
+    } catch (error: Error | any) {
       if (fs.existsSync(checksumFile)) {
         fs.rmSync(checksumFile);
       }
@@ -203,7 +219,7 @@ export class PackageDownloader {
         fs.rmSync(packageFile);
       }
 
-      throw new SoloError(e.message, e);
+      throw new SoloError(error.message, error);
     }
   }
 
@@ -213,21 +229,23 @@ export class PackageDownloader {
    * It fetches the build.zip file containing the release from a URL like: https://builds.hedera.com/node/software/v0.40/build-v0.40.4.zip
    *
    * @param tag - full semantic version e.g. v0.40.4
-   * @param destDir - directory where the artifact needs to be saved
+   * @param destinationDirectory - directory where the artifact needs to be saved
    * @param [force] - whether to download even if the file exists
    * @returns full path to the downloaded file
    */
-  async fetchPlatform(tag: string, destDir: string, force = false) {
-    if (!tag) throw new MissingArgumentError('tag is required');
-    if (!destDir) {
+  async fetchPlatform(tag: string, destinationDirectory: string, force = false) {
+    if (!tag) {
+      throw new MissingArgumentError('tag is required');
+    }
+    if (!destinationDirectory) {
       throw new MissingArgumentError('destination directory path is required');
     }
 
-    const releaseDir = Templates.prepareReleasePrefix(tag);
-    const downloadDir = `${destDir}/${releaseDir}`;
-    const packageURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.zip`;
-    const checksumURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDir}/build-${tag}.sha384`;
+    const releaseDirectory = Templates.prepareReleasePrefix(tag);
+    const downloadDirectory = `${destinationDirectory}/${releaseDirectory}`;
+    const packageURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDirectory}/build-${tag}.zip`;
+    const checksumURL = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDirectory}/build-${tag}.sha384`;
 
-    return await this.fetchPackage(packageURL, checksumURL, downloadDir, 'sha384', force);
+    return await this.fetchPackage(packageURL, checksumURL, downloadDirectory, 'sha384', force);
   }
 }

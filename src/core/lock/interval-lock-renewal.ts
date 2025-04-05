@@ -57,7 +57,9 @@ export class IntervalLockRenewalService implements LockRenewalService {
    * @returns true if the lease renewal was previously scheduled; false otherwise.
    */
   public async cancel(scheduleId: number): Promise<boolean> {
-    if (!scheduleId) return false;
+    if (!scheduleId) {
+      return false;
+    }
 
     if (this._scheduledLeases.has(scheduleId)) {
       clearInterval(scheduleId);
@@ -73,7 +75,7 @@ export class IntervalLockRenewalService implements LockRenewalService {
    */
   public async cancelAll(): Promise<Map<number, boolean>> {
     const result = new Map<number, boolean>();
-    const keys = Array.from(this._scheduledLeases.keys());
+    const keys = [...this._scheduledLeases.keys()];
 
     for (const k of keys) {
       result.set(k, await this.cancel(k));

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type * as x509 from '@peculiar/x509';
-import type net from 'net';
+import type net from 'node:net';
 import type * as WebSocket from 'ws';
-import type crypto from 'crypto';
+import type crypto from 'node:crypto';
 import {type ListrTask, type ListrTaskWrapper} from 'listr2';
 import {type PublicKey} from '@hashgraph/sdk';
 import {type JsonString} from './aliases.js';
@@ -85,7 +85,7 @@ export type SoloListrTaskWrapper<T> = ListrTaskWrapper<T, any, any>;
 export type SoloListr<T> = Listr<T, any, any>;
 
 export interface ServiceEndpoint {
-  ipAddressV4?: string;
+  ipAddressV4?: number[];
   port: number;
   domainName: string;
 }

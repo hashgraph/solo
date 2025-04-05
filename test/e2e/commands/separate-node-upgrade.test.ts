@@ -4,14 +4,14 @@ import {after, describe, it} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {e2eTestSuite, getTmpDir, HEDERA_PLATFORM_VERSION_TAG} from '../../test-util.js';
+import {endToEndTestSuite, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {HEDERA_HAPI_PATH, ROOT_CONTAINER} from '../../../src/core/constants.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import {Zippy} from '../../../src/core/zippy.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {type PodRef} from '../../../src/integration/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../../../src/integration/kube/resources/container/container-ref.js';
+import {type PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
 import {type NetworkNodes} from '../../../src/core/network-nodes.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
@@ -33,7 +33,7 @@ const zipFile = 'upgrade.zip';
 
 const TEST_VERSION_STRING = '0.100.0';
 
-e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
   const {
     opts: {k8Factory, logger, commandInvoker},
     cmd: {nodeCmd, accountCmd},
@@ -58,21 +58,21 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('should succeed with separate upgrade command', async () => {
       // create file version.txt at tmp directory
-      const tmpDir = getTmpDir();
-      fs.writeFileSync(`${tmpDir}/version.txt`, TEST_VERSION_STRING);
+      const temporaryDirectory = getTemporaryDirectory();
+      fs.writeFileSync(`${temporaryDirectory}/version.txt`, TEST_VERSION_STRING);
 
       // create upgrade.zip file from tmp directory using zippy.ts
       const zipper = new Zippy(logger);
-      await zipper.zip(tmpDir, zipFile);
+      await zipper.zip(temporaryDirectory, zipFile);
 
-      const tempDir = 'contextDir';
+      const temporaryDirectory2 = 'contextDir';
 
       const argvPrepare = argv.clone();
       argvPrepare.setArg(flags.upgradeZipFile, zipFile);
-      argvPrepare.setArg(flags.outputDir, tempDir);
+      argvPrepare.setArg(flags.outputDir, temporaryDirectory2);
 
       const argvExecute = Argv.getDefaultArgv(namespace);
-      argvExecute.setArg(flags.inputDir, tempDir);
+      argvExecute.setArg(flags.inputDir, temporaryDirectory2);
 
       await commandInvoker.invoke({
         argv: argvPrepare,
@@ -98,18 +98,18 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('network nodes version file was upgraded', async () => {
       // copy the version.txt file from the pod data/upgrade/current directory
-      const tmpDir: string = getTmpDir();
+      const temporaryDirectory: string = getTemporaryDirectory();
       const pods: Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
-      const podRef: PodRef = pods[0].podRef;
-      const containerRef: ContainerRef = ContainerRef.of(podRef, ROOT_CONTAINER);
+      const podReference: PodReference = pods[0].podReference;
+      const containerReference: ContainerReference = ContainerReference.of(podReference, ROOT_CONTAINER);
       await k8Factory
         .default()
         .containers()
-        .readByRef(containerRef)
-        .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, tmpDir);
+        .readByRef(containerReference)
+        .copyFrom(`${HEDERA_HAPI_PATH}/data/upgrade/current/version.txt`, temporaryDirectory);
 
       // compare the version.txt
-      const version: string = fs.readFileSync(`${tmpDir}/version.txt`, 'utf8');
+      const version: string = fs.readFileSync(`${temporaryDirectory}/version.txt`, 'utf8');
       expect(version).to.equal(TEST_VERSION_STRING);
     }).timeout(Duration.ofMinutes(5).toMillis());
   });

@@ -58,7 +58,10 @@ main:
       ref: "/Developer/DesignDocs/SecurityAndPermissions.md"
     - name: Testing and Quality Assurance
       ref: "/Developer/DesignDocs/TestingAndQualityAssurance.md"
-  - name: Start solo network with single command
-    ref: "/User/TaskTool.md"
+  - name: Development
+    ref: "/Developer/Development/_index.md"
+    sub:
+    - name: Using 'Task' for Launching Solo
+      ref: "/Developer/Development/TaskTool.md"
   - name: FAQ
     ref: "/User/FAQ.md"

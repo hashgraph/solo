@@ -70,58 +70,61 @@ export class ConfigManager {
 
   /** Update the config using the argv */
   public update(argv: ArgvStruct): void {
-    if (!argv || Object.keys(argv).length === 0) return;
+    if (!argv || Object.keys(argv).length === 0) {
+      return;
+    }
 
     for (const flag of flags.allFlags) {
-      if (argv[flag.name] === undefined) continue;
+      if (argv[flag.name] === undefined) {
+        continue;
+      }
 
-      let val = argv[flag.name];
+      let value = argv[flag.name];
       switch (flag.definition.type) {
-        case 'string':
-          if (val && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
+        case 'string': {
+          if (value && (flag.name === flags.chartDirectory.name || flag.name === flags.cacheDir.name)) {
             this.logger.debug(
-              `Resolving directory path for '${flag.name}': ${val}, to: ${PathEx.resolve(val)}, note: ~/ is not supported`,
+              `Resolving directory path for '${flag.name}': ${value}, to: ${PathEx.resolve(value)}, note: ~/ is not supported`,
             );
-            val = PathEx.resolve(val);
+            value = PathEx.resolve(value);
           }
           // if it is a namespace flag then convert it to NamespaceName
-          else if (val && (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name)) {
-            if (val instanceof NamespaceName) {
-              this.config.flags[flag.name] = val;
-            } else {
-              this.config.flags[flag.name] = NamespaceName.of(val);
-            }
+          else if (value && (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name)) {
+            this.config.flags[flag.name] = value instanceof NamespaceName ? value : NamespaceName.of(value);
             break;
           }
-          this.config.flags[flag.name] = `${val}`; // force convert to string
+          this.config.flags[flag.name] = `${value}`; // force convert to string
           break;
+        }
 
-        case 'number':
+        case 'number': {
           try {
-            if (flags.integerFlags.has(flag.name)) {
-              this.config.flags[flag.name] = Number.parseInt(val);
-            } else {
-              this.config.flags[flag.name] = Number.parseFloat(val);
-            }
-          } catch (e) {
-            throw new SoloError(`invalid number value '${val}': ${e.message}`, e);
+            this.config.flags[flag.name] = flags.integerFlags.has(flag.name)
+              ? Number.parseInt(value)
+              : Number.parseFloat(value);
+          } catch (error) {
+            throw new SoloError(`invalid number value '${value}': ${error.message}`, error);
           }
           break;
+        }
 
-        case 'boolean':
-          this.config.flags[flag.name] = val === true || val === 'true'; // use comparison to enforce boolean value
+        case 'boolean': {
+          this.config.flags[flag.name] = value === true || value === 'true'; // use comparison to enforce boolean value
           break;
+        }
 
-        case 'StorageType':
+        case 'StorageType': {
           // @ts-expect-error: TS2475: const enums can only be used in property or index access expressions
-          if (!Object.values(constants.StorageType).includes(`${val}`)) {
-            throw new SoloError(`Invalid storage type value '${val}'`);
+          if (Object.values(constants.StorageType).includes(`${value}`)) {
+            this.config.flags[flag.name] = value;
           } else {
-            this.config.flags[flag.name] = val;
+            throw new SoloError(`Invalid storage type value '${value}'`);
           }
           break;
-        default:
+        }
+        default: {
           throw new SoloError(`Unsupported field type for flag '${flag.name}': ${flag.definition.type}`);
+        }
       }
     }
 
@@ -142,7 +145,9 @@ export class ConfigManager {
       })
       .join(', ');
 
-    if (flagMessage) this.logger.debug(`Updated config with flags: ${flagMessage}`);
+    if (flagMessage) {
+      this.logger.debug(`Updated config with flags: ${flagMessage}`);
+    }
   }
 
   /** Check if a flag value is set */
@@ -155,12 +160,14 @@ export class ConfigManager {
    * @returns value of the flag or undefined if flag value is not available
    */
   public getFlag<T = string>(flag: CommandFlag): T {
-    return this.config.flags[flag.name] !== undefined ? this.config.flags[flag.name] : undefined;
+    return this.config.flags[flag.name] === undefined ? undefined : this.config.flags[flag.name];
   }
 
   /** Set value for the flag */
   public setFlag<T>(flag: CommandFlag, value: T): void {
-    if (!flag || !flag.name) throw new MissingArgumentError('flag must have a name');
+    if (!flag || !flag.name) {
+      throw new MissingArgumentError('flag must have a name');
+    }
     // if it is a namespace then convert it to NamespaceName
     if (flag.name === flags.namespace.name || flag.name === flags.clusterSetupNamespace.name) {
       if (value instanceof NamespaceName) {
@@ -213,31 +220,35 @@ export class ConfigManager {
         this.usedConfigs = new Map();
 
         // add the flags as properties to this class
-        flags?.forEach(flag => {
-          // @ts-ignore
-          this[`_${flag.constName}`] = self.getFlag(flag);
-          Object.defineProperty(this, flag.constName, {
-            get() {
-              this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
-              return this[`_${flag.constName}`];
-            },
-          });
-        });
+        if (flags) {
+          for (const flag of flags) {
+            // @ts-ignore
+            this[`_${flag.constName}`] = self.getFlag(flag);
+            Object.defineProperty(this, flag.constName, {
+              get() {
+                this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
+                return this[`_${flag.constName}`];
+              },
+            });
+          }
+        }
 
         // add the extra properties as properties to this class
-        extraProperties?.forEach(name => {
-          // @ts-ignore
-          this[`_${name}`] = '';
-          Object.defineProperty(this, name, {
-            get() {
-              this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
-              return this[`_${name}`];
-            },
-            set(value) {
-              this[`_${name}`] = value;
-            },
-          });
-        });
+        if (extraProperties) {
+          for (const name of extraProperties) {
+            // @ts-ignore
+            this[`_${name}`] = '';
+            Object.defineProperty(this, name, {
+              get() {
+                this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
+                return this[`_${name}`];
+              },
+              set(value) {
+                this[`_${name}`] = value;
+              },
+            });
+          }
+        }
       }
 
       /** Get the list of unused configurations that were not accessed */
@@ -245,18 +256,22 @@ export class ConfigManager {
         const unusedConfigs: string[] = [];
 
         // add the flag constName to the unusedConfigs array if it was not accessed
-        flags?.forEach(flag => {
-          if (!this.usedConfigs.has(flag.constName)) {
-            unusedConfigs.push(flag.constName);
+        if (flags) {
+          for (const flag of flags) {
+            if (!this.usedConfigs.has(flag.constName)) {
+              unusedConfigs.push(flag.constName);
+            }
           }
-        });
+        }
 
         // add the extra properties to the unusedConfigs array if it was not accessed
-        extraProperties?.forEach(item => {
-          if (!this.usedConfigs.has(item)) {
-            unusedConfigs.push(item);
+        if (extraProperties) {
+          for (const item of extraProperties) {
+            if (!this.usedConfigs.has(item)) {
+              unusedConfigs.push(item);
+            }
           }
-        });
+        }
         return unusedConfigs;
       }
     };
@@ -280,9 +295,9 @@ export class ConfigManager {
 
   public getFlagFile(flag: CommandFlag): string {
     if (this.getFlag(flag) === flag.definition.defaultValue) {
-      const cacheDir: string =
+      const cacheDirectory: string =
         this.getFlag<string>(flags.cacheDir) || (flags.cacheDir.definition.defaultValue as string);
-      return PathEx.join(cacheDir, this.getFlag(flag));
+      return PathEx.join(cacheDirectory, this.getFlag(flag));
     }
     return this.getFlag(flag);
   }

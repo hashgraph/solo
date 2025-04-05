@@ -16,7 +16,7 @@ export class Version {
     let safeVersion = this.version.trim();
 
     if (safeVersion.startsWith('v')) {
-      safeVersion = safeVersion.substring(1);
+      safeVersion = safeVersion.slice(1);
     }
 
     return SemanticVersion.parse(safeVersion);
