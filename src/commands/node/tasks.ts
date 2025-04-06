@@ -405,6 +405,9 @@ export class NodeCommandTasks {
           undefined,
           context,
         );
+        console.log(`Current time: ${new Date().toISOString()}`);
+        await sleep(Duration.ofSeconds(15));
+        console.log(`Current time: ${new Date().toISOString()}`);
       };
 
       return {title, task: subTask};

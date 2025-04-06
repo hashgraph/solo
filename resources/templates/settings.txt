@@ -1,2 +1,3 @@
 state.mainClassNameOverride,                   com.hedera.services.ServicesMain
 state.saveStatePeriod, 60
+transaction.transactionMaxBytes, 614400
