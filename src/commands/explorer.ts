@@ -578,7 +578,7 @@ export class ExplorerCommand extends BaseCommand {
       title: 'Remove explorer from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.disableComponent('mirrorNodeExplorer', ComponentTypes.MirrorNodeExplorer);
         });
       },
@@ -591,7 +591,7 @@ export class ExplorerCommand extends BaseCommand {
       title: 'Add explorer to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
-        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           const {namespace, clusterRef} = context_.config;
 
           remoteConfig.components.addNewComponent(

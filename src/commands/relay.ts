@@ -562,7 +562,7 @@ export class RelayCommand extends BaseCommand {
       title: 'Remove relay component from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.disableComponent('relay', ComponentTypes.Relay);
         });
       },

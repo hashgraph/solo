@@ -61,7 +61,7 @@ export class ComponentsDataWrapper
       throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent);
     }
 
-    const addComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+    const addComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
       if (this.checkComponentExists(components, component)) {
         throw new SoloError('Component exists', undefined, component.toObject());
       }
@@ -83,7 +83,7 @@ export class ComponentsDataWrapper
       throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent);
     }
 
-    const editComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+    const editComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
       if (!components[serviceName]) {
         throw new SoloError(`Component doesn't exist, name: ${serviceName}`, undefined, {component});
       }
@@ -103,7 +103,7 @@ export class ComponentsDataWrapper
       throw new SoloError(`Invalid component type ${type}`);
     }
 
-    const disableComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+    const disableComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
       if (!components[serviceName]) {
         throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`);
       }
@@ -118,7 +118,7 @@ export class ComponentsDataWrapper
   public getComponent<T extends BaseComponent>(type: ComponentTypes, serviceName: ComponentName): T {
     let component: T;
 
-    const getComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+    const getComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
       if (!components[serviceName]) {
         throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to read`);
       }
@@ -300,7 +300,7 @@ export class ComponentsDataWrapper
   public getNewComponentIndex(componentType: ComponentTypes): number {
     let newComponentIndex: number = 1;
 
-    const callback: (components: Record<ComponentName, BaseComponent>) => void = (components): void => {
+    const callback: (components: Record<ComponentName, BaseComponent>) => void = components => {
       for (const componentName of Object.keys(components)) {
         const componentIndex: number = BaseComponent.parseComponentName(componentName);
         if (newComponentIndex <= componentIndex) {

@@ -895,7 +895,7 @@ export class MirrorNodeCommand extends BaseCommand {
       title: 'Add mirror node to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
-        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           const {namespace, clusterRef} = context_.config;
 
           remoteConfig.components.addNewComponent(

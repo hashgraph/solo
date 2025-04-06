@@ -328,7 +328,7 @@ export class RemoteConfigManager {
 
   /** Empties the component data inside the remote config */
   public async deleteComponents(): Promise<void> {
-    await this.modify(async (remoteConfig): Promise<void> => {
+    await this.modify(async remoteConfig => {
       remoteConfig.components = ComponentsDataWrapper.initializeEmpty();
     });
   }

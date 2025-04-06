@@ -1330,7 +1330,7 @@ export class NetworkCommand extends BaseCommand {
       task: async (context_): Promise<void> => {
         const {namespace} = context_.config;
 
-        await this.remoteConfigManager.modify(async (remoteConfig): Promise<void> => {
+        await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of context_.config.consensusNodes) {
             const nodeAlias: NodeAlias = consensusNode.name;
             const clusterReference: ClusterReference = consensusNode.cluster;
