@@ -2,7 +2,6 @@
 
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
-import * as selfsigned from 'selfsigned';
 import {bootstrapTestVariables, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
@@ -20,9 +19,7 @@ import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {DeploymentCommand} from '../../../src/commands/deployment.js';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
-import type {SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import os from 'node:os';
-import {SoloError} from '../../../src/core/errors/solo-error.js';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
