@@ -15,7 +15,7 @@ import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
-import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
+import {generateTLS, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -25,8 +25,13 @@ import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import * as helpers from '../core/helpers.js';
+import {PathEx} from '../business/utils/path-ex.js';
+import fs from 'node:fs';
+import {Templates} from '../core/templates.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 
 interface ExplorerDeployConfigClass {
+  cacheDir: string;
   chartDirectory: string;
   clusterRef: string;
   clusterContext: string;
@@ -141,6 +146,41 @@ export class ExplorerCommand extends BaseCommand {
         'ingress.enabled': true,
         'ingress.hosts[0].host': config.domainName,
       });
+
+      // create a secret "ca-secret-hiero-explorer" with the CA certificate
+      // use function generateTLS to generate TLS certficate and key
+      // and create the secret
+      const caSecretName = 'ca-secret-hiero-explorer';
+      const generateDir = PathEx.join(config.cacheDir);
+      const {certificatePath, keyPath} = generateTLS(this.logger, generateDir, config.domainName);
+
+      // sleep two seconds
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const certData = fs.readFileSync(certificatePath).toString();
+      const keyData = fs.readFileSync(keyPath).toString();
+
+      const data: Record<string, string> = {
+        'tls.crt': Buffer.from(certData).toString('base64'),
+        'tls.key': Buffer.from(keyData).toString('base64'),
+      }
+      try {
+        const namespace = this.configManager.getFlag<NamespaceName>(flags.namespace);
+        const isSecretCreated = await this.k8Factory
+        .default()
+        .secrets()
+        .createOrReplace(namespace, caSecretName, SecretType.OPAQUE, data);
+        if (!isSecretCreated) {
+          throw new SoloError(`failed to create secret for explorer TLS certificates`);
+        }
+        if (config.enableIngress) {
+          valuesArgument += ` --set ingress.tls[0].hosts[0]=${config.domainName}`;
+        }
+      } catch (error: Error | any) {
+        const errorMessage =
+          'failed to create secret for explorer TLS certificates, please check if the secret already exists';
+        throw new SoloError(errorMessage, error);
+      }
     }
 
     return valuesArgument;
@@ -235,28 +275,6 @@ export class ExplorerCommand extends BaseCommand {
           },
         },
         ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
-
-        {
-          title: 'Install explorer',
-          task: async context_ => {
-            const config = context_.config;
-
-            let exploreValuesArgument = prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
-            exploreValuesArgument += await self.prepareHederaExplorerValuesArg(config);
-
-            await self.chartManager.install(
-              config.namespace,
-              constants.HEDERA_EXPLORER_RELEASE_NAME,
-              '',
-              HEDERA_EXPLORER_CHART_URL,
-              config.hederaExplorerVersion,
-              exploreValuesArgument,
-              context_.config.clusterContext,
-            );
-            showVersionBanner(self.logger, constants.HEDERA_EXPLORER_RELEASE_NAME, config.hederaExplorerVersion);
-          },
-        },
-
         {
           title: 'Install cert manager',
           task: async context_ => {
@@ -322,6 +340,26 @@ export class ExplorerCommand extends BaseCommand {
         },
 
         {
+          title: 'Install explorer',
+          task: async context_ => {
+            const config = context_.config;
+
+            let exploreValuesArgument = prepareValuesFiles(constants.EXPLORER_VALUES_FILE);
+            exploreValuesArgument += await self.prepareHederaExplorerValuesArg(config);
+
+            await self.chartManager.install(
+              config.namespace,
+              constants.HEDERA_EXPLORER_RELEASE_NAME,
+              '',
+              HEDERA_EXPLORER_CHART_URL,
+              config.hederaExplorerVersion,
+              exploreValuesArgument,
+              context_.config.clusterContext,
+            );
+            showVersionBanner(self.logger, constants.HEDERA_EXPLORER_RELEASE_NAME, config.hederaExplorerVersion);
+          },
+        },
+        {
           title: 'Install explorer ingress controller',
           task: async context_ => {
             const config = context_.config;
@@ -352,7 +390,7 @@ export class ExplorerCommand extends BaseCommand {
               .update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
                 metadata: {
                   annotations: {
-                    'haproxy-ingress.github.io/backend-protocol': 'h1',
+                    'haproxy-ingress.github.io/backend-protocol': 'h2-ssl',
                   },
                 },
               });

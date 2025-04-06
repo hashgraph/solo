@@ -569,9 +569,14 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
   }
 }
 
-export function generateTLS(logger: SoloLogger, directory: string, name: string, hostname: string = 'localhost') {
+export function generateTLS(logger: SoloLogger, directory: string, name: string = 'localhost') {
   // Define attributes for the certificate
-  const attributes = [{name: name, value: hostname}];
+  const attributes: { name: string; value: string }[] = [
+    { name: 'commonName', value: name }, // Correct domain name
+  ];
+  const certificatePath = PathEx.join(directory, `${name}.crt`);
+  const keyPath = PathEx.join(directory, `${name}.key`);
+
   // Generate the certificate and key
   selfsigned.generate(attributes, {days: 365}, (error, pems) => {
     if (error) {
@@ -583,18 +588,15 @@ export function generateTLS(logger: SoloLogger, directory: string, name: string,
     logger.info('Certificate:\n', pems.cert);
 
     // Optionally, save to files
-    const fs = require('node:fs');
-    const certificatePath = PathEx.join(directory, `${name}.crt`);
-    const keyPath = PathEx.join(directory, `${name}.key`);
     console.log(`certificatePath: ${certificatePath}`);
     console.log(`keyPath: ${keyPath}`);
     fs.writeFileSync(certificatePath, pems.cert);
     fs.writeFileSync(keyPath, pems.private);
     console.log(`pems.private: ${pems.private}`);
     console.log(`pems.cert: ${pems.cert}`);
-    return {
-      certificatePath,
-      keyPath,
-    };
   });
+  return {
+    certificatePath,
+    keyPath,
+  };
 }

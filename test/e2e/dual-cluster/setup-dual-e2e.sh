@@ -65,7 +65,7 @@ done
 
 # **********************************************************************************************************************
 # Init and deploy a network for e2e tests in (test/e2e/core)
-# --chart-directory ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
+# --chart-dir ${SOLO_CHARTS_DIR} is optional, if you want to use a local chart, it will be ignored if not set
 # **********************************************************************************************************************
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 task build
