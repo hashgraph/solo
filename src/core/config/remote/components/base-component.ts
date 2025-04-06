@@ -5,6 +5,7 @@ import {type ClusterReference, type Component, type ComponentName, type Namespac
 import {type ToObject, type Validate} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ComponentStates} from '../enumerations/component-states.js';
+import {isValidEnum} from '../../../util/validation-helpers.js';
 
 /**
  * Represents the base structure and common functionality for all components within the system.
@@ -54,11 +55,11 @@ export class BaseComponent implements Component, Validate, ToObject<Component> {
       );
     }
 
-    if (!Object.values(ComponentTypes).includes(this.type)) {
+    if (!isValidEnum(this.type, ComponentTypes)) {
       throw new SoloError(`Invalid component type: ${this.type}`);
     }
 
-    if (!Object.values(ComponentStates).includes(this.state)) {
+    if (!isValidEnum(this.state, ComponentStates)) {
       throw new SoloError(`Invalid component state: ${this.state}`);
     }
   }

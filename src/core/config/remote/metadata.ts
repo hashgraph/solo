@@ -12,6 +12,7 @@ import {
 import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
 
 import {DeploymentStates} from './enumerations/deployment-states.js';
+import {isValidEnum} from '../../util/validation-helpers.js';
 
 /**
  * Represent the remote config metadata object and handles:
@@ -111,7 +112,7 @@ export class RemoteConfigMetadata
       throw new SoloError(`Invalid soloVersion: ${this.soloVersion}`);
     }
 
-    if (!Object.values(DeploymentStates).includes(this.state)) {
+    if (!isValidEnum(this.state, DeploymentStates)) {
       throw new SoloError(`Invalid cluster state: ${this.state}`);
     }
 

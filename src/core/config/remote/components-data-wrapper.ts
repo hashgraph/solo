@@ -24,6 +24,7 @@ import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
+import {isValidEnum} from '../../util/validation-helpers.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -98,7 +99,7 @@ export class ComponentsDataWrapper
       throw new SoloError(`Service name is required ${serviceName}`);
     }
 
-    if (!Object.values(ComponentTypes).includes(type)) {
+    if (!isValidEnum(type, ComponentTypes)) {
       throw new SoloError(`Invalid component type ${type}`);
     }
 

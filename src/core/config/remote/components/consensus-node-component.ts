@@ -15,6 +15,7 @@ import {ComponentStates} from '../enumerations/component-states.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type NodeAlias, type NodeId} from '../../../../types/aliases.js';
 import {Templates} from '../../../templates.js';
+import {isValidEnum} from '../../../util/validation-helpers.js';
 
 /**
  * Represents a consensus node component within the system.
@@ -75,7 +76,7 @@ export class ConsensusNodeComponent
   public override validate(): void {
     super.validate();
 
-    if (!Object.values(ConsensusNodeStates).includes(this.nodeState)) {
+    if (!isValidEnum(this.nodeState, ConsensusNodeStates)) {
       throw new SoloError(`Invalid consensus node state: ${this.nodeState}`);
     }
 
