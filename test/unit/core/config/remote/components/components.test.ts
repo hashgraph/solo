@@ -20,6 +20,7 @@ import {NamespaceName} from '../../../../../../src/integration/kube/resources/na
 import {type BaseComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/base-component-structure.js';
 import {type RelayComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/relay-component-structure.js';
 import {type ConsensusNodeComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/consensus-node-component-structure.js';
+import {ComponentFactory} from '../../../../../../src/core/config/remote/components/component-factory.js';
 
 const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
 
@@ -58,11 +59,11 @@ describe('BlockNodeComponent', () => testBaseComponentData(BlockNodeComponent));
 
 describe('RelayComponent', () => {
   it('should successfully create ', () => {
-    RelayComponent.createNew(remoteConfigManagerMock, clusterReference, namespace, []);
+    ComponentFactory.createNewRelayComponent(remoteConfigManagerMock, clusterReference, namespace, []);
   });
 
   it('should be an instance of BaseComponent', () => {
-    const component: RelayComponent = RelayComponent.createNew(
+    const component: RelayComponent = ComponentFactory.createNewRelayComponent(
       remoteConfigManagerMock,
       clusterReference,
       namespace,
@@ -85,7 +86,7 @@ describe('RelayComponent', () => {
       consensusNodeAliases: ['node1'],
     };
 
-    const component: RelayComponent = RelayComponent.createNew(
+    const component: RelayComponent = ComponentFactory.createNewRelayComponent(
       remoteConfigManagerMock,
       values.cluster,
       namespace,
@@ -101,11 +102,11 @@ describe('ConsensusNodeComponent', () => {
   const nodeState: ConsensusNodeStates = ConsensusNodeStates.STARTED;
 
   it('should successfully create ', () => {
-    ConsensusNodeComponent.createNew(nodeAlias, 'valid', namespace, nodeState);
+    ComponentFactory.createNewConsensusNodeComponent(nodeAlias, 'valid', namespace, nodeState);
   });
 
   it('should be an instance of BaseComponent', () => {
-    const component: ConsensusNodeComponent = ConsensusNodeComponent.createNew(
+    const component: ConsensusNodeComponent = ComponentFactory.createNewConsensusNodeComponent(
       nodeAlias,
       clusterReference,
       namespace,
@@ -126,7 +127,7 @@ describe('ConsensusNodeComponent', () => {
       nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
     };
 
-    const component: ConsensusNodeComponent = ConsensusNodeComponent.createNew(
+    const component: ConsensusNodeComponent = ComponentFactory.createNewConsensusNodeComponent(
       values.name as NodeAlias,
       values.cluster,
       namespace,

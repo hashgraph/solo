@@ -25,6 +25,7 @@ import {type NamespaceName} from '../integration/kube/resources/namespace/namesp
 import os from 'node:os';
 import {BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 interface BlockNodeDeployConfigClass {
   chartVersion: string;
@@ -158,7 +159,7 @@ export class BlockNodeCommand extends BaseCommand {
               ComponentTypes.BlockNode,
             );
 
-            config.newBlockNodeComponent = BlockNodeComponent.createNew(
+            config.newBlockNodeComponent = ComponentFactory.createNewBlockNodeComponent(
               this.remoteConfigManager,
               config.clusterRef,
               config.namespace,

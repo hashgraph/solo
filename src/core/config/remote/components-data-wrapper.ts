@@ -22,6 +22,7 @@ import {type ConsensusNodeComponentStructure} from './components/interfaces/cons
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 import {type ComponentsDataStruct} from './interfaces/components-data-struct.js';
 import {ComponentNameTemplates} from './components/component-name-templates.js';
+import {ComponentFactory} from './components/component-factory.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -280,7 +281,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
 
     for (const nodeAlias of nodeAliases) {
-      consensusNodeComponents[nodeAlias] = ConsensusNodeComponent.createNew(
+      consensusNodeComponents[nodeAlias] = ComponentFactory.createNewConsensusNodeComponent(
         nodeAlias,
         clusterReference,
         namespace,

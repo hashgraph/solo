@@ -21,6 +21,7 @@ import {type ClusterReference, type DeploymentName} from '../core/config/remote/
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
@@ -548,7 +549,7 @@ export class RelayCommand extends BaseCommand {
           const {namespace, nodeAliases, clusterRef} = context_.config;
 
           remoteConfig.components.addNewComponent(
-            RelayComponent.createNew(this.remoteConfigManager, clusterRef, namespace, nodeAliases),
+            ComponentFactory.createNewRelayComponent(this.remoteConfigManager, clusterRef, namespace, nodeAliases),
           );
         });
       },

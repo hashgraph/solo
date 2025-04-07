@@ -44,6 +44,7 @@ import {type PodReference} from '../integration/kube/resources/pod/pod-reference
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -1335,10 +1336,10 @@ export class NetworkCommand extends BaseCommand {
             remoteConfig.components.changeNodeState(nodeAlias, ConsensusNodeStates.REQUESTED);
 
             remoteConfig.components.addNewComponent(
-              EnvoyProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+              ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
             );
             remoteConfig.components.addNewComponent(
-              HaProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+              ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
             );
           }
         });

@@ -114,6 +114,7 @@ import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-i
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
 import {Cluster} from '../../core/config/remote/cluster.js';
+import {ComponentFactory} from '../../core/config/remote/components/component-factory.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -2513,13 +2514,13 @@ export class NodeCommandTasks {
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.addNewComponent(
-            ConsensusNodeComponent.createNew(nodeAlias, clusterReference, namespace, ConsensusNodeStates.STARTED),
+            ComponentFactory.createNewConsensusNodeComponent(nodeAlias, clusterReference, namespace, ConsensusNodeStates.STARTED),
           );
           remoteConfig.components.addNewComponent(
-            EnvoyProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+            ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
           );
           remoteConfig.components.addNewComponent(
-            HaProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+            ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
           );
         });
 

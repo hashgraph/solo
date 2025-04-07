@@ -26,6 +26,7 @@ import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {type ClusterReference, type Context} from '../core/config/remote/types.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
@@ -606,7 +607,7 @@ export class ExplorerCommand extends BaseCommand {
           const {namespace, clusterRef} = context_.config;
 
           remoteConfig.components.addNewComponent(
-            MirrorNodeExplorerComponent.createNew(this.remoteConfigManager, clusterRef, namespace),
+            ComponentFactory.createNewExplorerComponent(this.remoteConfigManager, clusterRef, namespace),
           );
         });
       },

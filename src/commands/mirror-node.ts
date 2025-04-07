@@ -36,6 +36,7 @@ import {type ClusterReference, type DeploymentName} from '../core/config/remote/
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -907,7 +908,7 @@ export class MirrorNodeCommand extends BaseCommand {
           const {namespace, clusterRef} = context_.config;
 
           remoteConfig.components.addNewComponent(
-            MirrorNodeComponent.createNew(this.remoteConfigManager, clusterRef, namespace),
+            ComponentFactory.createNewMirrorNodeComponent(this.remoteConfigManager, clusterRef, namespace),
           );
         });
       },
