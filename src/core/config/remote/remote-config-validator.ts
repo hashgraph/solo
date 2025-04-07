@@ -2,6 +2,8 @@
 
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/solo-error.js';
+import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
+import {ComponentStates} from './enumerations/component-states.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {type ComponentsDataWrapper} from './components-data-wrapper.js';
 import {type BaseComponent} from './components/base-component.js';
@@ -10,34 +12,83 @@ import {type LocalConfig} from '../local/local-config.js';
 import {type Pod} from '../../../integration/kube/resources/pod/pod.js';
 import {type Context} from './types.js';
 import {type ConsensusNodeComponent} from './components/consensus-node-component.js';
-import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
-import {ComponentStates} from './enumerations/component-states.js';
 
 /**
  * Static class is used to validate that components in the remote config
  * are present in the kubernetes cluster, and throw errors if there is mismatch.
  */
 export class RemoteConfigValidator {
+  private static getRelayLabels(): string[] {
+    return [constants.SOLO_RELAY_LABEL];
+  }
+
+  private static getHaProxyLabels(component: BaseComponent): string[] {
+    return [`app=${component.name}`];
+  }
+
+  private static getMirrorNodeLabels(): string[] {
+    return constants.SOLO_HEDERA_MIRROR_IMPORTER;
+  }
+
+  private static getEnvoyProxyLabels(component: BaseComponent): string[] {
+    return [`app=${component.name}`];
+  }
+
+  private static getMirrorNodeExplorerLabels(): string[] {
+    return [constants.SOLO_HEDERA_EXPLORER_LABEL];
+  }
+
+  private static getBlockNodeLabels(component: BaseComponent): string[] {
+    return [`app.kubernetes.io/instance=${component.name}`];
+  }
+
+  private static getConsensusNodeLabels(component: BaseComponent): string[] {
+    return [`app=network-${component.name}`];
+  }
+
+  private static consensusNodeSkipConditionCallback(nodeComponent: ConsensusNodeComponent): boolean {
+    return (
+      nodeComponent.nodeState === ConsensusNodeStates.REQUESTED ||
+      nodeComponent.nodeState === ConsensusNodeStates.NON_DEPLOYED
+    );
+  }
+
   private static componentValidations: Record<
     string,
     {
-      label: string[] | ((c: BaseComponent) => string[]);
+      getLabelsCallback: (component: BaseComponent) => string[];
       type: string;
-      skipCondition?: (c: BaseComponent) => boolean;
+      skipCondition?: (component: BaseComponent) => boolean;
     }
   > = {
-    relays: {label: [constants.SOLO_RELAY_LABEL], type: 'Relay'},
-    haProxies: {label: (c: BaseComponent): string[] => [`app=${c.name}`], type: 'HaProxy'},
-    mirrorNodes: {label: constants.SOLO_HEDERA_MIRROR_IMPORTER, type: 'Block nodes'},
-    envoyProxies: {label: (c: BaseComponent): string[] => [`app=${c.name}`], type: 'Envoy proxy'},
-    mirrorNodeExplorers: {label: [constants.SOLO_HEDERA_EXPLORER_LABEL], type: 'Mirror node explorer'},
-    blockNodes: {label: (c: BaseComponent): string[] => [`app.kubernetes.io/instance=${c.name}`], type: 'Block nodes'},
+    relays: {
+      type: 'Relay',
+      getLabelsCallback: RemoteConfigValidator.getRelayLabels,
+    },
+    haProxies: {
+      type: 'HaProxy',
+      getLabelsCallback: RemoteConfigValidator.getHaProxyLabels,
+    },
+    mirrorNodes: {
+      type: 'Block nodes',
+      getLabelsCallback: RemoteConfigValidator.getMirrorNodeLabels,
+    },
+    envoyProxies: {
+      type: 'Envoy proxy',
+      getLabelsCallback: RemoteConfigValidator.getEnvoyProxyLabels,
+    },
+    mirrorNodeExplorers: {
+      type: 'Mirror node explorer',
+      getLabelsCallback: RemoteConfigValidator.getMirrorNodeExplorerLabels,
+    },
+    blockNodes: {
+      type: 'Block nodes',
+      getLabelsCallback: RemoteConfigValidator.getBlockNodeLabels,
+    },
     consensusNodes: {
-      label: (c: BaseComponent): string[] => [`app=network-${c.name}`],
       type: 'Consensus node',
-      skipCondition(c: ConsensusNodeComponent): boolean {
-        return c.nodeState === ConsensusNodeStates.REQUESTED || c.nodeState === ConsensusNodeStates.NON_DEPLOYED;
-      },
+      getLabelsCallback: RemoteConfigValidator.getConsensusNodeLabels,
+      skipCondition: RemoteConfigValidator.consensusNodeSkipConditionCallback,
     },
   };
 
@@ -48,13 +99,21 @@ export class RemoteConfigValidator {
     localConfig: LocalConfig,
     skipConsensusNodes: boolean,
   ): Promise<void> {
-    const validations: Promise<void>[] = Object.entries(this.componentValidations)
-      .filter(([key]): boolean => key !== 'consensusNodes' || !skipConsensusNodes)
-      .flatMap(([key, {label, type, skipCondition}]): Promise<void>[] =>
-        this.validateComponentList(namespace, components[key], k8Factory, localConfig, label, type, skipCondition),
+    const validationPromises: Promise<void>[] = Object.entries(RemoteConfigValidator.componentValidations)
+      .filter(([key]) => key !== 'consensusNodes' || !skipConsensusNodes)
+      .flatMap(([key, {getLabelsCallback, type, skipCondition}]): Promise<void>[] =>
+        RemoteConfigValidator.validateComponentList(
+          namespace,
+          components[key],
+          k8Factory,
+          localConfig,
+          getLabelsCallback,
+          type,
+          skipCondition,
+        ),
       );
 
-    await Promise.all(validations);
+    await Promise.all(validationPromises);
   }
 
   private static validateComponentList(
@@ -62,7 +121,7 @@ export class RemoteConfigValidator {
     components: Record<string, BaseComponent>,
     k8Factory: K8Factory,
     localConfig: LocalConfig,
-    label: string[] | ((c: BaseComponent) => string[]),
+    getLabelsCallback: (component: BaseComponent) => string[],
     type: string,
     skipCondition?: (component: BaseComponent) => boolean,
   ): Promise<void>[] {
@@ -75,9 +134,9 @@ export class RemoteConfigValidator {
       }
 
       const context: Context = localConfig.clusterRefs[component.cluster];
-      const labels: string[] = typeof label === 'function' ? label(component) : label;
+      const labels: string[] = getLabelsCallback(component);
 
-      await this.validateComponent(namespace, component, k8Factory, context, labels, type);
+      await RemoteConfigValidator.validateComponent(namespace, component, k8Factory, context, labels, type);
     });
   }
 
@@ -96,7 +155,7 @@ export class RemoteConfigValidator {
         throw new Error('Pod not found'); // to return the generic error message
       }
     } catch (error) {
-      RemoteConfigValidator.throwValidationError(errorType, component, error);
+      throw RemoteConfigValidator.buildValidationError(errorType, component, error);
     }
   }
 
@@ -107,8 +166,8 @@ export class RemoteConfigValidator {
    * @param component - component which is not found in the cluster
    * @param error - original error for the kube client
    */
-  private static throwValidationError(type: string, component: BaseComponent, error: Error | unknown): never {
-    throw new SoloError(
+  private static buildValidationError(type: string, component: BaseComponent, error: Error | unknown): SoloError {
+    return new SoloError(
       `${type} in remote config with name ${component.name} ` +
         `was not found in namespace: ${component.namespace}, cluster: ${component.cluster}`,
       error,
