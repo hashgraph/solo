@@ -32,11 +32,10 @@ import chalk from 'chalk';
 import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
-import {type ClusterReference, type ComponentName, type DeploymentName} from '../core/config/remote/types.js';
+import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
-import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -880,10 +879,19 @@ export class MirrorNodeCommand extends BaseCommand {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (): Promise<void> => {
+      task: async (context_): Promise<void> => {
+        const clusterReference: ClusterReference = context_.config.clusterRef;
+
         await this.remoteConfigManager.modify(async remoteConfig => {
-          // TODO: IMPLEMENT
-          remoteConfig.components.disableComponent('mirrorNode', ComponentTypes.MirrorNode);
+          const mirrorNodeComponents: MirrorNodeComponent[] =
+            remoteConfig.components.getComponentsByClusterReference<MirrorNodeComponent>(
+              ComponentTypes.MirrorNode,
+              clusterReference,
+            );
+
+          for (const mirrorNodeComponent of mirrorNodeComponents) {
+            remoteConfig.components.disableComponent(mirrorNodeComponent.name, ComponentTypes.MirrorNode);
+          }
         });
       },
     };

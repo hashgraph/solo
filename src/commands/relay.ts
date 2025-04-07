@@ -17,11 +17,10 @@ import {ListrLock} from '../core/lock/listr-lock.js';
 import {RelayComponent} from '../core/config/remote/components/relay-component.js';
 import * as Base64 from 'js-base64';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {type ClusterReference, ComponentName, type DeploymentName} from '../core/config/remote/types.js';
+import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
-import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
@@ -561,9 +560,19 @@ export class RelayCommand extends BaseCommand {
     return {
       title: 'Remove relay component from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (): Promise<void> => {
+      task: async (context_): Promise<void> => {
+        const clusterReference: ClusterReference = context_.config.clusterRef;
+
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.disableComponent('relay', ComponentTypes.Relay);
+          const relayComponents: RelayComponent[] =
+            remoteConfig.components.getComponentsByClusterReference<RelayComponent>(
+              ComponentTypes.Relay,
+              clusterReference,
+            );
+
+          for (const relayComponent of relayComponents) {
+            remoteConfig.components.disableComponent(relayComponent.name, ComponentTypes.Relay);
+          }
         });
       },
     };

@@ -29,7 +29,6 @@ import {type NodeUpdateContext} from './config-interfaces/node-update-context.js
 import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
 import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
 import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
-import {ComponentStates} from '../../core/config/remote/enumerations/component-states.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -896,24 +895,6 @@ export class NodeCommandHandlers extends CommandHandler {
     );
 
     return true;
-  }
-
-  // TODO MOVE TO TASKS
-
-  /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public removeNodeAndProxies(): SoloListrTask<AnyListrContext> {
-    return {
-      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      title: 'Remove node and proxies from remote config',
-      task: async (): Promise<void> => {
-        // TODO
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.disableComponent('Consensus node name', ComponentTypes.ConsensusNode);
-          remoteConfig.components.disableComponent('Envoy proxy name', ComponentTypes.EnvoyProxy);
-          remoteConfig.components.disableComponent('HaProxy name', ComponentTypes.HaProxy);
-        });
-      },
-    };
   }
 
   /**

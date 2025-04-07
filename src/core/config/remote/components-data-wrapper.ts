@@ -68,7 +68,7 @@ export class ComponentsDataWrapper
       components[componentName] = component;
     };
 
-    this.applyCallbackToComponentGroup(component.type, componentName, addComponentCallback);
+    this.applyCallbackToComponentGroup(component.type, addComponentCallback, componentName);
   }
 
   public changeNodeState(componentName: ComponentName, nodeState: ConsensusNodeStates): void {
@@ -100,7 +100,7 @@ export class ComponentsDataWrapper
       components[componentName].state = ComponentStates.DELETED;
     };
 
-    this.applyCallbackToComponentGroup(type, componentName, disableComponentCallback);
+    this.applyCallbackToComponentGroup(type, disableComponentCallback, componentName);
   }
 
   /* -------- Utilities -------- */
@@ -115,9 +115,26 @@ export class ComponentsDataWrapper
       component = components[componentName] as T;
     };
 
-    this.applyCallbackToComponentGroup(type, componentName, getComponentCallback);
+    this.applyCallbackToComponentGroup(type, getComponentCallback, componentName);
 
     return component;
+  }
+
+  public getComponentsByClusterReference<T extends BaseComponent>(
+    type: ComponentTypes,
+    clusterReference: ClusterReference,
+  ): T[] {
+    let components: T[];
+
+    const getComponentsByClusterReferenceCallback: (
+      components: Record<ComponentName, BaseComponent>,
+    ) => void = components => {
+      Object.values(components).filter(component => component.cluster === clusterReference);
+    };
+
+    this.applyCallbackToComponentGroup(type, getComponentsByClusterReferenceCallback);
+
+    return components;
   }
 
   /**
@@ -126,8 +143,8 @@ export class ComponentsDataWrapper
    */
   private applyCallbackToComponentGroup(
     componentType: ComponentTypes,
-    componentName: ComponentName,
     callback: (components: Record<ComponentName, BaseComponent>) => void,
+    componentName?: ComponentName,
   ): void {
     switch (componentType) {
       case ComponentTypes.Relay: {
@@ -290,7 +307,9 @@ export class ComponentsDataWrapper
   public getNewComponentIndex(componentType: ComponentTypes): number {
     let newComponentIndex: number = 1;
 
-    const callback: (components: Record<ComponentName, BaseComponent>) => void = components => {
+    const calculateNewComponentIndexCallback: (
+      components: Record<ComponentName, BaseComponent>,
+    ) => void = components => {
       for (const componentName of Object.keys(components)) {
         const componentIndex: number = BaseComponent.parseComponentName(componentName);
         if (newComponentIndex <= componentIndex) {
@@ -299,7 +318,7 @@ export class ComponentsDataWrapper
       }
     };
 
-    this.applyCallbackToComponentGroup(componentType, '', callback);
+    this.applyCallbackToComponentGroup(componentType, calculateNewComponentIndexCallback);
 
     return newComponentIndex;
   }
