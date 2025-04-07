@@ -6,7 +6,7 @@ import type * as WebSocket from 'ws';
 import type crypto from 'node:crypto';
 import {type ListrTask, type ListrTaskWrapper} from 'listr2';
 import {type PublicKey} from '@hashgraph/sdk';
-import {type AnyYargs, ArgvStruct, type JsonString} from './aliases.js';
+import {type AnyYargs, type ArgvStruct, type JsonString} from './aliases.js';
 import {type Listr} from 'listr2';
 
 // NOTE: DO NOT add any Solo imports in this file to avoid circular dependencies

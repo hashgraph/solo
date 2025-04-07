@@ -21,7 +21,7 @@ import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 
 export class Flags {
-  public static KEY_COMMON: string = '_COMMON_';
+  public static KEY_COMMON = '_COMMON_';
 
   private static async prompt(
     type: 'toggle' | 'input' | 'number',
@@ -36,7 +36,7 @@ export class Flags {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Promise<any> {
     try {
-      let needsPrompt: boolean = type === 'toggle' ? input === undefined || typeof input !== 'boolean' : !input;
+      let needsPrompt = type === 'toggle' ? input === undefined || typeof input !== 'boolean' : !input;
       needsPrompt = type === 'number' ? typeof input !== 'number' : needsPrompt;
 
       if (needsPrompt) {
@@ -46,7 +46,7 @@ export class Flags {
           throw new SoloError('Cannot prompt for input in non-interactive mode');
         }
 
-        const promptOptions: {default: any; message: string} = {default: defaultValue, message: promptMessage};
+        const promptOptions = {default: defaultValue, message: promptMessage};
 
         switch (type) {
           case 'input': {
@@ -2343,7 +2343,7 @@ export class Flags {
       type: 'number',
     },
     prompt: async function (task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
-      const promptForInput: () => Promise<number> = (): Promise<number> =>
+      const promptForInput = (): Promise<number> =>
         Flags.prompt(
           'number',
           task,
@@ -2539,19 +2539,17 @@ export class Flags {
   ];
 
   /** Resets the definition.disablePrompt for all flags */
-  private static resetDisabledPrompts(): void {
-    for (const flag of Flags.allFlags) {
-      if (flag.definition.disablePrompt) {
-        delete flag.definition.disablePrompt;
+  private static resetDisabledPrompts() {
+    for (const f of Flags.allFlags) {
+      if (f.definition.disablePrompt) {
+        delete f.definition.disablePrompt;
       }
     }
   }
 
-  public static readonly allFlagsMap: Map<string, CommandFlag> = new Map(
-    Flags.allFlags.map((flag): [string, CommandFlag] => [flag.name, flag]),
-  );
+  public static readonly allFlagsMap = new Map(Flags.allFlags.map(f => [f.name, f]));
 
-  public static readonly nodeConfigFileFlags: Map<string, CommandFlag> = new Map(
+  public static readonly nodeConfigFileFlags = new Map(
     [
       Flags.apiPermissionProperties,
       Flags.applicationEnv,
@@ -2559,12 +2557,10 @@ export class Flags {
       Flags.bootstrapProperties,
       Flags.log4j2Xml,
       Flags.settingTxt,
-    ].map((flag): [string, CommandFlag] => [flag.name, flag]),
+    ].map(f => [f.name, f]),
   );
 
-  public static readonly integerFlags: Map<string, CommandFlag> = new Map(
-    [Flags.replicaCount].map((flag): [string, CommandFlag] => [flag.name, flag]),
-  );
+  public static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
 
   public static readonly DEFAULT_FLAGS: CommandFlags = {
     required: [],
@@ -2588,12 +2584,12 @@ export class Flags {
       }
 
       // remove flags that use the default value
-      const flag: CommandFlag = Flags.allFlags.find((flag): boolean => flag.name === name);
+      const flag = Flags.allFlags.find(flag => flag.name === name);
       if (!flag || (flag.definition.defaultValue && flag.definition.defaultValue === value)) {
         continue;
       }
 
-      const flagName: string = flag.name;
+      const flagName = flag.name;
 
       // if the flag is boolean based, render it without value
       if (value === true) {

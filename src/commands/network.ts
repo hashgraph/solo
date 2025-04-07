@@ -28,7 +28,6 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
 import {type AnyYargs, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
 import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
@@ -37,7 +36,7 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
-import {type ClusterReference, type ClusterReferences, type ComponentName} from '../core/config/remote/types.js';
+import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
@@ -45,8 +44,6 @@ import {type PodReference} from '../integration/kube/resources/pod/pod-reference
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
-import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
-import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;

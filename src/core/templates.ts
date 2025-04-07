@@ -65,7 +65,7 @@ export class Templates {
     return `${nodeAlias}-admin`;
   }
 
-  public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix: string = ''): string {
+  public static renderNodeFriendlyName(prefix: string, nodeAlias: NodeAlias, suffix = ''): string {
     const parts = [prefix, nodeAlias];
     if (suffix) {
       parts.push(suffix);
@@ -228,10 +228,7 @@ export class Templates {
    *
    * @returns the appropriate secret labels
    */
-  public static renderGrpcTlsCertificatesSecretLabelObject(
-    nodeAlias: NodeAlias,
-    type: GrpcProxyTlsEnums,
-  ): Record<string, string> {
+  static renderGrpcTlsCertificatesSecretLabelObject(nodeAlias: NodeAlias, type: GrpcProxyTlsEnums) {
     switch (type) {
       //? HAProxy Proxy
       case GrpcProxyTlsEnums.GRPC: {
@@ -254,7 +251,6 @@ export class Templates {
       if (!nodeAlias || typeof nodeAlias !== 'string') {
         throw new SoloError(`Can't parse node alias: ${data}`);
       }
-
       if (!ip || typeof ip !== 'string') {
         throw new SoloError(`Can't parse ip: ${data}`);
       }
@@ -274,7 +270,6 @@ export class Templates {
       if (!nodeAlias || typeof nodeAlias !== 'string') {
         throw new SoloError(`Can't parse node alias: ${data}`);
       }
-
       if (!domainName || typeof domainName !== 'string') {
         throw new SoloError(`Can't parse domain name: ${data}`);
       }
@@ -299,15 +294,15 @@ export class Templates {
    * @param dnsBaseDomain - the base domain of the cluster
    * @param dnsConsensusNodePattern - the pattern to use for the consensus node
    */
-  public static renderConsensusNodeFullyQualifiedDomainName(
+  static renderConsensusNodeFullyQualifiedDomainName(
     nodeAlias: string,
     nodeId: number,
     namespace: NamespaceNameAsString,
     cluster: ClusterReference,
     dnsBaseDomain: string,
     dnsConsensusNodePattern: string,
-  ): string {
-    const searchReplace: Record<string, string> = {
+  ) {
+    const searchReplace = {
       '{nodeAlias}': nodeAlias,
       '{nodeId}': nodeId.toString(),
       '{namespace}': namespace,

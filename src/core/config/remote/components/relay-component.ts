@@ -55,9 +55,9 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
   public override validate(): void {
     super.validate();
 
-    for (const alias of this.consensusNodeAliases) {
-      if (!alias || typeof alias !== 'string') {
-        throw new SoloError(`Invalid consensus node alias: ${alias}, aliases ${this.consensusNodeAliases}`);
+    for (const nodeAlias of this.consensusNodeAliases) {
+      if (!nodeAlias || typeof nodeAlias !== 'string') {
+        throw new SoloError(`Invalid consensus node alias: ${nodeAlias}, aliases ${this.consensusNodeAliases}`);
       }
     }
   }

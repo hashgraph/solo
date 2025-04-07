@@ -51,7 +51,7 @@ export abstract class BaseCommand extends ShellRunner {
   public readonly localConfig: LocalConfig;
   protected readonly remoteConfigManager: RemoteConfigManager;
 
-  public constructor(options: Options) {
+  constructor(options: Options) {
     if (!options || !options.helm) {
       throw new Error('An instance of core/Helm is required');
     }

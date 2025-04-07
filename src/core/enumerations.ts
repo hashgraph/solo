@@ -14,7 +14,7 @@ export enum NodeStatusCodes {
   CATASTROPHIC_FAILURE = 11,
 }
 
-export const NodeStatusEnums: Record<number, string> = {
+export const NodeStatusEnums = {
   0: 'NO_VALUE',
   1: 'STARTING_UP',
   2: 'ACTIVE',
@@ -26,7 +26,7 @@ export const NodeStatusEnums: Record<number, string> = {
   9: 'CHECKING',
   10: 'RECONNECT_COMPLETE',
   11: 'CATASTROPHIC_FAILURE',
-};
+} as const;
 
 /**
  * - GRPC - Represents HAProxy Proxy

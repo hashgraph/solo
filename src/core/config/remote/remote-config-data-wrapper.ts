@@ -96,7 +96,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     this.validate();
   }
 
-  public get flags(): CommonFlagsDataWrapper {
+  public get flags() {
     return this._flags;
   }
 
@@ -128,7 +128,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
       throw new SoloError(`Invalid remote config last executed command: ${this.lastExecutedCommand}`);
     }
 
-    if (!Array.isArray(this.commandHistory) || this.commandHistory.some((c): boolean => typeof c !== 'string')) {
+    if (!Array.isArray(this.commandHistory) || this.commandHistory.some(c => typeof c !== 'string')) {
       throw new SoloError(`Invalid remote config command history: ${this.commandHistory}`);
     }
 

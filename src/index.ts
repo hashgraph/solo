@@ -45,7 +45,7 @@ export async function main(argv: string[], context?: {logger: SoloLogger}) {
     throw new SoloError('Error initializing container');
   }
 
-  const logger: SoloLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+  const logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
 
   if (context) {
     // save the logger so that solo.ts can use it to properly flush the logs and exit
