@@ -29,7 +29,7 @@ import {type NodeServiceMapping} from '../../../src/types/mappings/node-service-
 const defaultTimeout = Duration.ofMinutes(2).toMillis();
 const namespace = NamespaceName.of('node-update');
 const updateNodeId = 'node2';
-const newAccountId = '1.2.7';
+const newAccountId = '0.0.7';
 const argv = Argv.getDefaultArgv(namespace);
 
 argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2,node3');
