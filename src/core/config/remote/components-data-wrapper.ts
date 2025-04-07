@@ -9,24 +9,17 @@ import {MirrorNodeComponent} from './components/mirror-node-component.js';
 import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
-import {
-  type ClusterReference,
-  type ComponentName,
-  type ComponentsDataStructure,
-
-
-} from './types.js';
-import {type ToObject, type Validate} from '../../../types/index.js';
+import {type ClusterReference, type ComponentName, type ComponentsDataStructure} from './types.js';
 import {type NodeAliases} from '../../../types/aliases.js';
-import {type CloneTrait} from '../../../types/traits/clone-trait.js';
 import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
-import {BaseComponentStructure} from './components/interface/base-component-structure.js';
-import {RelayComponentStructure} from './components/interface/relay-component-structure.js';
-import {ConsensusNodeComponentStructure} from './components/interface/consensus-node-component-structure.js';
+import {type BaseComponentStructure} from './components/interface/base-component-structure.js';
+import {type RelayComponentStructure} from './components/interface/relay-component-structure.js';
+import {type ConsensusNodeComponentStructure} from './components/interface/consensus-node-component-structure.js';
+import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -34,9 +27,7 @@ import {ConsensusNodeComponentStructure} from './components/interface/consensus-
  * - Validation.
  * - Conversion FROM and TO plain object.
  */
-export class ComponentsDataWrapper
-  implements Validate, ToObject<ComponentsDataStructure>, CloneTrait<ComponentsDataWrapper>
-{
+export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   private constructor(
     public readonly relays: Record<ComponentName, RelayComponent> = {},
     public readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
@@ -236,7 +227,9 @@ export class ComponentsDataWrapper
 
         case ComponentTypes.ConsensusNode: {
           for (const [componentName, component] of Object.entries(subComponents)) {
-            consensusNodes[componentName] = ConsensusNodeComponent.fromObject(component as ConsensusNodeComponentStructure);
+            consensusNodes[componentName] = ConsensusNodeComponent.fromObject(
+              component as ConsensusNodeComponentStructure,
+            );
           }
           break;
         }

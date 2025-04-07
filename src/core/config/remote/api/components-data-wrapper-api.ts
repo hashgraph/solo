@@ -10,7 +10,7 @@ import {type ComponentTypes} from '../enumerations/component-types.js';
 export interface ComponentsDataWrapperApi
   extends Validate,
     ToObject<ComponentsDataStructure>,
-    CloneTrait<ComponentsDataWrapper> {
+    CloneTrait<ComponentsDataWrapperApi> {
   /** Used to add new component to their respective group. */
   addNewComponent(component: BaseComponent): void;
 

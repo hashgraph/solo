@@ -2,11 +2,7 @@
 
 import {BaseComponent} from './base-component.js';
 import {SoloError} from '../../../errors/solo-error.js';
-import {
-  type ClusterReference,
-  type ComponentName,
-  type NamespaceNameAsString,
-} from '../types.js';
+import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
@@ -15,7 +11,7 @@ import {type NamespaceName} from '../../../../integration/kube/resources/namespa
 import {type NodeAlias, type NodeId} from '../../../../types/aliases.js';
 import {Templates} from '../../../templates.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
-import {ConsensusNodeComponentStructure} from './interface/consensus-node-component-structure.js';
+import {type ConsensusNodeComponentStructure} from './interface/consensus-node-component-structure.js';
 
 /**
  * Represents a consensus node component within the system.
