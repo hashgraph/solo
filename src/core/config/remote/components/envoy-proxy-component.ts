@@ -9,7 +9,7 @@ import {type RemoteConfigManager} from '../remote-config-manager.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 
 export class EnvoyProxyComponent extends BaseComponent {
-  private static BASE_NAME: (nodeAlias: NodeAlias) => string = (nodeAlias): string => `envoy-proxy-${nodeAlias}}`;
+  private static BASE_NAME: (nodeAlias: NodeAlias) => string = (nodeAlias): string => `envoy-proxy-${nodeAlias}`;
 
   private constructor(
     name: ComponentName,

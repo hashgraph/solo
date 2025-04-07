@@ -9,7 +9,7 @@ import {type RemoteConfigManager} from '../remote-config-manager.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 
 export class HaProxyComponent extends BaseComponent {
-  private static BASE_NAME: (nodeAlias: NodeAlias) => string = (nodeAlias): string => `haproxy-${nodeAlias}}`;
+  private static BASE_NAME: (nodeAlias: NodeAlias) => string = (nodeAlias): string => `haproxy-${nodeAlias}`;
 
   private constructor(
     name: ComponentName,
