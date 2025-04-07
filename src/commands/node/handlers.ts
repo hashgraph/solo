@@ -919,34 +919,20 @@ export class NodeCommandHandlers extends CommandHandler {
   /**
    * Changes the state from all consensus nodes components in remote config.
    *
-   * @param nodeStates - to which to change the consensus node component
+   * @param nodeState - to which to change the consensus node component
    */
-  public changeAllNodeStates(nodeStates: ConsensusNodeStates): SoloListrTask<any> {
+  public changeAllNodeStates(nodeState: ConsensusNodeStates): SoloListrTask<any> {
     interface Context {
       config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
 
     return {
-      title: `Change node state to ${nodeStates} in remote config`,
+      title: `Change node state to ${nodeState} in remote config`,
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace},
-          } = context_;
-
           for (const consensusNode of context_.config.consensusNodes) {
-            remoteConfig.components.editComponent(
-              // TODO: ADD NEW METHOD FOR EDITING NODE STATE
-              new ConsensusNodeComponent(
-                consensusNode.name,
-                consensusNode.cluster,
-                namespace.name,
-                ComponentStates.ACTIVE,
-                nodeStates,
-                consensusNode.nodeId,
-              ),
-            );
+            remoteConfig.components.changeNodeState(consensusNode.name, nodeState);
           }
         });
       },

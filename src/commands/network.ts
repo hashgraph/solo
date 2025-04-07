@@ -1335,9 +1335,7 @@ export class NetworkCommand extends BaseCommand {
             const nodeAlias: NodeAlias = consensusNode.name;
             const clusterReference: ClusterReference = consensusNode.cluster;
 
-            remoteConfig.components.editComponent(
-              ConsensusNodeComponent.createNew(nodeAlias, clusterReference, namespace, ConsensusNodeStates.REQUESTED),
-            );
+            remoteConfig.components.changeNodeState(nodeAlias, ConsensusNodeStates.REQUESTED);
 
             remoteConfig.components.addNewComponent(
               EnvoyProxyComponent.createNew(this.remoteConfigManager, clusterReference, namespace, nodeAlias),

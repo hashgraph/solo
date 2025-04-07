@@ -71,26 +71,16 @@ export class ComponentsDataWrapper
     this.applyCallbackToComponentGroup(component.type, serviceName, addComponentCallback);
   }
 
-  /** Used to edit an existing component from their respective group. */
-  public editComponent(component: BaseComponent): void {
-    const serviceName: string = component.name;
-
-    if (!serviceName || typeof serviceName !== 'string') {
-      throw new SoloError(`Service name is required ${serviceName}`);
+  public changeNodeState(serviceName: ComponentName, nodeState: ConsensusNodeStates): void {
+    if (!this.consensusNodes[serviceName]) {
+      throw new SoloError(`Consensus node ${serviceName} doesn't exist`);
     }
 
-    if (!(component instanceof BaseComponent)) {
-      throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent);
+    if (!isValidEnum(nodeState, ConsensusNodeStates)) {
+      throw new SoloError(`Invalid node state ${nodeState}`);
     }
 
-    const editComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
-      if (!components[serviceName]) {
-        throw new SoloError(`Component doesn't exist, name: ${serviceName}`, undefined, {component});
-      }
-      components[serviceName] = component;
-    };
-
-    this.applyCallbackToComponentGroup(component.type, serviceName, editComponentCallback);
+    this.consensusNodes[serviceName].changeNodeState(nodeState);
   }
 
   /** Used to remove specific component from their respective group. */

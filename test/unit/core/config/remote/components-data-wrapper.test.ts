@@ -60,8 +60,6 @@ export function createComponentsDataWrapper(): {
   const haProxies: Record<string, HaProxyComponent> = {
     // @ts-expect-error - to access private constructor
     [serviceName]: new HaProxyComponent(name, cluster, namespace, state),
-    // @ts-expect-error - to access private constructor
-    ['serviceName2']: new HaProxyComponent('name2', 'cluster2', namespace, state),
   };
 
   const mirrorNodes: Record<string, MirrorNodeComponent> = {
@@ -72,15 +70,11 @@ export function createComponentsDataWrapper(): {
   const envoyProxies: Record<string, EnvoyProxyComponent> = {
     // @ts-expect-error - to access private constructor
     [serviceName]: new EnvoyProxyComponent(name, cluster, namespace, state),
-    // @ts-expect-error - to access private constructor
-    ['serviceName2']: new EnvoyProxyComponent('name2', 'cluster2', namespace, state),
   };
 
   const consensusNodes: Record<string, ConsensusNodeComponent> = {
     // @ts-expect-error - to access private constructor
     [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, 0),
-    // @ts-expect-error - to access private constructor
-    ['serviceName2']: new ConsensusNodeComponent('node2', 'cluster2', namespace, state, nodeState, 1),
   };
 
   const mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent> = {
@@ -183,42 +177,31 @@ describe('ComponentsDataWrapper', () => {
       state,
     });
 
-    expect(Object.values(componentDataWrapperObject[ComponentTypes.EnvoyProxy])).to.have.lengthOf(3);
+    expect(Object.values(componentDataWrapperObject[ComponentTypes.EnvoyProxy])).to.have.lengthOf(2);
   });
 
-  it('should be able to edit component with the .editComponent()', () => {
+  it('should be able to change node state with the .changeNodeState(()', () => {
     const {
       wrapper: {componentsDataWrapper},
-      components: {relays},
-      values: {namespace, state},
       serviceName,
     } = createComponentsDataWrapper();
-    const relayComponent: RelayComponent = relays[serviceName];
 
-    componentsDataWrapper.editComponent(relayComponent);
+    const newNodeState: ConsensusNodeStates = ConsensusNodeStates.STOPPED;
 
-    const newCluster: ClusterReference = 'newCluster';
+    componentsDataWrapper.changeNodeState(serviceName, newNodeState);
 
-    // @ts-expect-error - to access private constructor
-    const newReplayComponent: RelayComponent = new RelayComponent(relayComponent.name, newCluster, namespace, state);
-
-    componentsDataWrapper.editComponent(newReplayComponent);
-
-    expect(componentsDataWrapper.toObject()[ComponentTypes.Relay][relayComponent.name].cluster).to.equal(newCluster);
+    expect(componentsDataWrapper.consensusNodes[serviceName].nodeState).to.equal(newNodeState);
   });
 
   it("should not be able to edit component with the .editComponent() if it doesn't exist ", () => {
     const {
       wrapper: {componentsDataWrapper},
-      values: {cluster, namespace, state},
     } = createComponentsDataWrapper();
     const notFoundServiceName: string = 'not_found';
-    // @ts-expect-error - to access private constructor
-    const relay: RelayComponent = new RelayComponent(notFoundServiceName, cluster, namespace, state);
 
-    expect(() => componentsDataWrapper.editComponent(relay)).to.throw(
+    expect(() => componentsDataWrapper.changeNodeState(notFoundServiceName, ConsensusNodeStates.NON_DEPLOYED)).to.throw(
       SoloError,
-      `Component doesn't exist, name: ${notFoundServiceName}`,
+      `Consensus node ${notFoundServiceName} doesn't exist`,
     );
   });
 

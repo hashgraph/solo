@@ -27,6 +27,8 @@ export class ConsensusNodeComponent
   extends BaseComponent
   implements IConsensusNodeComponent, ToObject<IConsensusNodeComponent>
 {
+  private _nodeState: ConsensusNodeStates;
+
   /**
    * @param name - the name to distinguish components.
    * @param nodeId - node id of the consensus node
@@ -40,11 +42,20 @@ export class ConsensusNodeComponent
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
     state: ComponentStates,
-    public readonly nodeState: ConsensusNodeStates,
+    nodeState: ConsensusNodeStates,
     public readonly nodeId: number,
   ) {
     super(ComponentTypes.ConsensusNode, name, cluster, namespace, state);
+    this._nodeState = nodeState;
+    this.validate();
+  }
 
+  public get nodeState(): ConsensusNodeStates {
+    return this._nodeState;
+  }
+
+  public changeNodeState(nodeState: ConsensusNodeStates): void {
+    this._nodeState = nodeState;
     this.validate();
   }
 
