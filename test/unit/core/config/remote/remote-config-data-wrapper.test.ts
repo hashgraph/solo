@@ -13,10 +13,10 @@ import {type RemoteConfigDataStructure} from '../../../../../src/core/config/rem
 import {type RemoteConfigData} from '../../../../../src/core/config/remote/remote-config-data.js';
 
 const configManagerMock: any = {
-  update: (..._arguments: any): true => true,
-  getFlag: (..._arguments: any): true => true,
-  hasFlag: (..._arguments: any): true => true,
-  setFlag: (..._arguments: any): true => true,
+  update: (...arguments_: any) => true,
+  getFlag: (...arguments_: any) => true,
+  hasFlag: (...arguments_: any) => true,
+  setFlag: (...arguments_: any) => true,
 };
 
 async function createRemoteConfigDataWrapper(): Promise<{

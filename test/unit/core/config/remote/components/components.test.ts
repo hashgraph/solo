@@ -16,19 +16,33 @@ import {ConsensusNodeStates} from '../../../../../../src/core/config/remote/enum
 import {ComponentStates} from '../../../../../../src/core/config/remote/enumerations/component-states.js';
 import {BlockNodeComponent} from '../../../../../../src/core/config/remote/components/block-node-component.js';
 import {
+  type ClusterReference,
   type Component,
+  type ComponentName,
   type IConsensusNodeComponent,
   type IRelayComponent,
 } from '../../../../../../src/core/config/remote/types.js';
+import {NamespaceName} from '../../../../../../src/integration/kube/resources/namespace/namespace-name.js';
+
+const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
+
+const componentName: ComponentName = 'componentName';
+const clusterReference: ClusterReference = 'cluster-reference';
+const namespace: NamespaceName = NamespaceName.of('valid');
 
 function testBaseComponentData(classComponent: any): void {
   it('should be an instance of BaseComponent', () => {
-    const component: any = new classComponent('service-name', 'cluster-reference', 'namespace', ComponentStates.ACTIVE);
+    const component: any = new classComponent(componentName, clusterReference, namespace.name, ComponentStates.ACTIVE);
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
   it('calling toObject() should return a valid data', () => {
-    const data: Component = {name: 'name', cluster: 'cluster', namespace: 'namespace', state: ComponentStates.ACTIVE};
+    const data: Component = {
+      name: componentName,
+      cluster: clusterReference,
+      namespace: namespace.name,
+      state: ComponentStates.ACTIVE,
+    };
 
     const component: any = new classComponent(data.name, data.cluster, data.namespace, data.state);
     expect(component.toObject()).to.deep.equal(data);
@@ -47,31 +61,37 @@ describe('BlockNodeComponent', () => testBaseComponentData(BlockNodeComponent));
 
 describe('RelayComponent', () => {
   it('should successfully create ', () => {
-    // @ts-expect-error - to access private constructor
-    new RelayComponent('valid', 'valid', 'valid', ComponentStates.ACTIVE);
+    RelayComponent.createNew(remoteConfigManagerMock, clusterReference, namespace, []);
   });
 
   it('should be an instance of BaseComponent', () => {
-    // @ts-expect-error - to access private constructor
-    const component: RelayComponent = new RelayComponent('valid', 'valid', 'valid', ComponentStates.ACTIVE);
+    const component: RelayComponent = RelayComponent.createNew(
+      remoteConfigManagerMock,
+      clusterReference,
+      namespace,
+      [],
+    );
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
   it('calling toObject() should return a valid data', () => {
+    // @ts-expect-error: to access private property
+    const name: ComponentName = RelayComponent.renderRelayName(
+      remoteConfigManagerMock.components.getNewComponentIndex(),
+    );
+
     const values: IRelayComponent = {
-      name: 'name',
-      cluster: 'cluster',
-      namespace: 'namespace',
+      name,
+      cluster: clusterReference,
+      namespace: namespace.name,
       state: ComponentStates.ACTIVE,
       consensusNodeAliases: ['node1'],
     };
 
-    // @ts-expect-error - to access private constructor
-    const component: RelayComponent = new RelayComponent(
-      values.name,
+    const component: RelayComponent = RelayComponent.createNew(
+      remoteConfigManagerMock,
       values.cluster,
-      values.namespace,
-      values.state,
+      namespace,
       values.consensusNodeAliases,
     );
 
@@ -80,21 +100,21 @@ describe('RelayComponent', () => {
 });
 
 describe('ConsensusNodeComponent', () => {
+  const nodeAlias: NodeAlias = 'node1';
+  const nodeState: ConsensusNodeStates = ConsensusNodeStates.STARTED;
+
   it('should successfully create ', () => {
-    // @ts-expect-error - to access private constructor
-    new ConsensusNodeComponent('valid', 'valid', 'valid', ComponentStates.ACTIVE, ConsensusNodeStates.STARTED, 0);
+    ConsensusNodeComponent.createNew(nodeAlias, 'valid', namespace, nodeState);
   });
 
   it('should be an instance of BaseComponent', () => {
-    // @ts-expect-error - to access private constructor
-    const component: ConsensusNodeComponent = new ConsensusNodeComponent(
-      'valid',
-      'valid',
-      'valid',
-      ComponentStates.ACTIVE,
-      ConsensusNodeStates.STARTED,
-      0,
+    const component: ConsensusNodeComponent = ConsensusNodeComponent.createNew(
+      nodeAlias,
+      clusterReference,
+      namespace,
+      nodeState,
     );
+
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
@@ -102,22 +122,20 @@ describe('ConsensusNodeComponent', () => {
     const nodeAlias: NodeAlias = 'node1';
     const values: IConsensusNodeComponent = {
       name: nodeAlias,
-      cluster: 'cluster',
-      namespace: 'namespace',
+      cluster: clusterReference,
+      namespace: namespace.name,
       state: ComponentStates.ACTIVE,
-      nodeState: ConsensusNodeStates.STARTED,
+      nodeState,
       nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
     };
 
-    // @ts-expect-error - to access private constructor
-    const component: ConsensusNodeComponent = new ConsensusNodeComponent(
-      values.name,
+    const component: ConsensusNodeComponent = ConsensusNodeComponent.createNew(
+      values.name as NodeAlias,
       values.cluster,
-      values.namespace,
-      values.state,
-      values.nodeState,
-      values.nodeId,
+      namespace,
+      values.nodeState as ConsensusNodeStates.STARTED,
     );
+
     expect(component.toObject()).to.deep.equal(values);
   });
 });
