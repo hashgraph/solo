@@ -80,7 +80,7 @@ export class BaseComponent implements Component, Validate, ToObject<Component> {
    * @param index - total number of components from this kind
    * @returns a unique name to be used for creating components
    */
-  protected static renderComponentName(baseName: string, index: number): string {
+  protected static renderComponentName(baseName: string, index: number): ComponentName {
     return `${baseName}-${index}`;
   }
 
@@ -90,7 +90,7 @@ export class BaseComponent implements Component, Validate, ToObject<Component> {
    * @param name - full component name (e.g., "mirror-node-node1-42")
    * @returns the numeric index (e.g., 42)
    */
-  public static parseComponentName(name: string): number {
+  public static parseComponentName(name: ComponentName): number {
     const parts: string[] = name.split('-');
     const lastPart: string = parts.at(-1);
     const componentIndex: number = Number.parseInt(lastPart, 10);

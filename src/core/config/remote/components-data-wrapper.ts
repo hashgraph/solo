@@ -124,17 +124,15 @@ export class ComponentsDataWrapper
     type: ComponentTypes,
     clusterReference: ClusterReference,
   ): T[] {
-    let components: T[];
+    let filteredComponents: T[] = [];
 
-    const getComponentsByClusterReferenceCallback: (
-      components: Record<ComponentName, BaseComponent>,
-    ) => void = components => {
-      Object.values(components).filter(component => component.cluster === clusterReference);
+    const getComponentsByClusterReferenceCallback: (components: Record<ComponentName, T>) => void = components => {
+      filteredComponents = Object.values(components).filter(component => component.cluster === clusterReference);
     };
 
     this.applyCallbackToComponentGroup(type, getComponentsByClusterReferenceCallback);
 
-    return components;
+    return filteredComponents;
   }
 
   /**

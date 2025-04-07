@@ -16,7 +16,7 @@ import {ConsensusNodeStates} from '../../../../../src/core/config/remote/enumera
 import {ComponentStates} from '../../../../../src/core/config/remote/enumerations/component-states.js';
 import {type NodeAliases} from '../../../../../src/types/aliases.js';
 import {
-  type ClusterReference,
+  type ClusterReference, ComponentName,
   type ComponentsDataStructure,
   type NamespaceNameAsString,
 } from '../../../../../src/core/config/remote/types.js';
@@ -227,5 +227,51 @@ describe('ComponentsDataWrapper', () => {
       SoloError,
       `Component ${notFoundComponentName} of type ${ComponentTypes.Relay} not found while attempting to remove`,
     );
+  });
+
+  it('should be able to get components with .getComponent()', () => {
+    const {
+      wrapper: {componentsDataWrapper},
+      componentName,
+      components: {blockNodes},
+    } = createComponentsDataWrapper();
+
+    const blockNodeComponent: BlockNodeComponent = componentsDataWrapper.getComponent<BlockNodeComponent>(
+      ComponentTypes.BlockNode,
+      componentName,
+    );
+
+    expect(blockNodes[componentName].toObject()).to.deep.equal(blockNodeComponent.toObject());
+  });
+
+  it("should fail if trying to get component that doesn't exist with .getComponent()", () => {
+    const {
+      wrapper: {componentsDataWrapper},
+    } = createComponentsDataWrapper();
+
+    const notFoundComponentName: ComponentName = 'not_found';
+    const type: ComponentTypes = ComponentTypes.BlockNode;
+
+    expect(() => componentsDataWrapper.getComponent<BlockNodeComponent>(type, notFoundComponentName)).to.throw(
+      `Component ${notFoundComponentName} of type ${type} not found while attempting to read`,
+    );
+  });
+
+  it('should be able to get components with .applyCallbackToComponentGroup()', () => {
+    const {
+      wrapper: {componentsDataWrapper},
+      components: {blockNodes},
+      values: {cluster},
+    } = createComponentsDataWrapper();
+
+    const blockNodeComponents: BlockNodeComponent[] =
+      componentsDataWrapper.getComponentsByClusterReference<BlockNodeComponent>(ComponentTypes.BlockNode, cluster);
+
+    for (const blockNodeComponent of blockNodeComponents) {
+      expect(blockNodeComponent.toObject()).to.deep.equal(blockNodes[blockNodeComponent.name].toObject());
+      expect(blockNodeComponent.cluster).to.equal(cluster);
+    }
+
+    expect(Object.keys(blockNodes).length).to.equal(blockNodeComponents.length);
   });
 });
