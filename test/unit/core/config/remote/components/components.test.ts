@@ -17,9 +17,9 @@ import {ComponentStates} from '../../../../../../src/core/config/remote/enumerat
 import {BlockNodeComponent} from '../../../../../../src/core/config/remote/components/block-node-component.js';
 import {type ClusterReference, type ComponentName} from '../../../../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {type BaseComponentStructure} from '../../../../../../src/core/config/remote/components/interface/base-component-structure.js';
-import {type RelayComponentStructure} from '../../../../../../src/core/config/remote/components/interface/relay-component-structure.js';
-import {type ConsensusNodeComponentStructure} from '../../../../../../src/core/config/remote/components/interface/consensus-node-component-structure.js';
+import {type BaseComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/base-component-structure.js';
+import {type RelayComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/relay-component-structure.js';
+import {type ConsensusNodeComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/consensus-node-component-structure.js';
 
 const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
 

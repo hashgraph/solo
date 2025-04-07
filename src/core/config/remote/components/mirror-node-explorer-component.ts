@@ -6,7 +6,7 @@ import {ComponentStates} from '../enumerations/component-states.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
-import {type BaseComponentStructure} from './interface/base-component-structure.js';
+import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
 
 export class MirrorNodeExplorerComponent extends BaseComponent {
   private static readonly BASE_NAME: string = 'mirror-node-explorer';

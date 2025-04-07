@@ -9,7 +9,7 @@ import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
-import {type RelayComponentStructure} from './interface/relay-component-structure.js';
+import {type RelayComponentStructure} from './interfaces/relay-component-structure.js';
 
 export class RelayComponent
   extends BaseComponent

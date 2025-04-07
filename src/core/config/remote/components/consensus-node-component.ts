@@ -11,7 +11,7 @@ import {type NamespaceName} from '../../../../integration/kube/resources/namespa
 import {type NodeAlias, type NodeId} from '../../../../types/aliases.js';
 import {Templates} from '../../../templates.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
-import {type ConsensusNodeComponentStructure} from './interface/consensus-node-component-structure.js';
+import {type ConsensusNodeComponentStructure} from './interfaces/consensus-node-component-structure.js';
 
 /**
  * Represents a consensus node component within the system.

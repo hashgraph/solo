@@ -16,9 +16,9 @@ import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
-import {type BaseComponentStructure} from './components/interface/base-component-structure.js';
-import {type RelayComponentStructure} from './components/interface/relay-component-structure.js';
-import {type ConsensusNodeComponentStructure} from './components/interface/consensus-node-component-structure.js';
+import {type BaseComponentStructure} from './components/interfaces/base-component-structure.js';
+import {type RelayComponentStructure} from './components/interfaces/relay-component-structure.js';
+import {type ConsensusNodeComponentStructure} from './components/interfaces/consensus-node-component-structure.js';
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 
 /**

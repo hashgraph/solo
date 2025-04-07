@@ -2,7 +2,7 @@
 
 import {type ComponentTypes} from './enumerations/component-types.js';
 import {type DeploymentStates} from './enumerations/deployment-states.js';
-import {type BaseComponentStructure} from './components/interface/base-component-structure.js';
+import {type BaseComponentStructure} from './components/interfaces/base-component-structure.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;

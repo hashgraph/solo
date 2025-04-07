@@ -6,7 +6,7 @@ import {type ToObject, type Validate} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ComponentStates} from '../enumerations/component-states.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
-import {type BaseComponentStructure} from './interface/base-component-structure.js';
+import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
 
 /**
  * Represents the base structure and common functionality for all components within the system.
