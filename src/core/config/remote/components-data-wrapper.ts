@@ -9,7 +9,7 @@ import {MirrorNodeComponent} from './components/mirror-node-component.js';
 import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
-import {type ClusterReference, type ComponentName, type ComponentsDataStructure} from './types.js';
+import {type ClusterReference, type ComponentName} from './types.js';
 import {type NodeAliases} from '../../../types/aliases.js';
 import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
@@ -20,6 +20,7 @@ import {type BaseComponentStructure} from './components/interfaces/base-componen
 import {type RelayComponentStructure} from './components/interfaces/relay-component-structure.js';
 import {type ConsensusNodeComponentStructure} from './components/interfaces/consensus-node-component-structure.js';
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
+import {type ComponentsDataStructure} from './interfaces/components-data-structure.js';
 
 /**
  * Represent the components in the remote config and handles:

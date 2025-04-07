@@ -5,8 +5,9 @@ import {describe, it} from 'mocha';
 import {Migration} from '../../../../../src/core/config/remote/migration.js';
 import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {RemoteConfigMetadata} from '../../../../../src/core/config/remote/metadata.js';
-import {type EmailAddress, type RemoteConfigMetadataStructure} from '../../../../../src/core/config/remote/types.js';
+import {type EmailAddress} from '../../../../../src/core/config/remote/types.js';
 import {DeploymentStates} from '../../../../../src/core/config/remote/enumerations/deployment-states.js';
+import {type RemoteConfigMetadataStructure} from '../../../../../src/core/config/remote/interfaces/remote-config-metadata-structure.js';
 
 interface MetadataTestStructure {
   metadata: RemoteConfigMetadata;

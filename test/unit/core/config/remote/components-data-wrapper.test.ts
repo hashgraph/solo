@@ -18,10 +18,10 @@ import {type NodeAliases} from '../../../../../src/types/aliases.js';
 import {
   type ClusterReference,
   type ComponentName,
-  type ComponentsDataStructure,
   type NamespaceNameAsString,
 } from '../../../../../src/core/config/remote/types.js';
 import {BlockNodeComponent} from '../../../../../src/core/config/remote/components/block-node-component.js';
+import {type ComponentsDataStructure} from '../../../../../src/core/config/remote/interfaces/components-data-structure.js';
 
 export function createComponentsDataWrapper(): {
   values: {

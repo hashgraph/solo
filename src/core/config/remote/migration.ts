@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {SoloError} from '../../errors/solo-error.js';
-import {type EmailAddress, type IMigration, type Version} from './types.js';
+import {type EmailAddress, type Version} from './types.js';
+import {type MigrationStructure} from './interfaces/migration-structure.js';
 
-export class Migration implements IMigration {
+export class Migration implements MigrationStructure {
   private readonly _migratedAt: Date;
   private readonly _migratedBy: EmailAddress;
   private readonly _fromVersion: Version;
@@ -43,7 +44,7 @@ export class Migration implements IMigration {
     }
   }
 
-  public toObject(): IMigration {
+  public toObject(): MigrationStructure {
     return {
       migratedAt: this.migratedAt,
       migratedBy: this.migratedBy,

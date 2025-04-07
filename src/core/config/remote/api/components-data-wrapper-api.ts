@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ToObject, type Validate} from '../../../../types/index.js';
-import {type ClusterReference, type ComponentName, type ComponentsDataStructure} from '../types.js';
+import {type ClusterReference, type ComponentName} from '../types.js';
 import {type CloneTrait} from '../../../../types/traits/clone-trait.js';
 import {type BaseComponent} from '../components/base-component.js';
 import {type ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
 import {type ComponentTypes} from '../enumerations/component-types.js';
+import {type ComponentsDataStructure} from '../interfaces/components-data-structure.js';
 
 export interface ComponentsDataWrapperApi
   extends Validate,

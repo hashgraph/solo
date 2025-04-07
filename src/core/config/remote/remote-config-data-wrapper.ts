@@ -6,12 +6,13 @@ import {RemoteConfigMetadata} from './metadata.js';
 import {ComponentsDataWrapper} from './components-data-wrapper.js';
 import * as constants from '../../constants.js';
 import {CommonFlagsDataWrapper} from './common-flags-data-wrapper.js';
-import {type ClusterReference, type RemoteConfigDataStructure, type Version} from './types.js';
+import {type ClusterReference, type Version} from './types.js';
 import {type ToObject, type Validate} from '../../../types/index.js';
 import {type ConfigManager} from '../../config-manager.js';
 import {type RemoteConfigData} from './remote-config-data.js';
 import {Cluster} from './cluster.js';
 import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
+import {type RemoteConfigDataStructure} from './interfaces/remote-config-data-structure.js';
 
 export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
   private readonly _version: Version = '1.0.0';

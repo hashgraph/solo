@@ -2,17 +2,12 @@
 
 import {Migration} from './migration.js';
 import {SoloError} from '../../errors/solo-error.js';
-import {
-  type DeploymentName,
-  type EmailAddress,
-  type NamespaceNameAsString,
-  type RemoteConfigMetadataStructure,
-  type Version,
-} from './types.js';
+import {type DeploymentName, type EmailAddress, type NamespaceNameAsString, type Version} from './types.js';
 import {type Optional, type ToObject, type Validate} from '../../../types/index.js';
 
 import {DeploymentStates} from './enumerations/deployment-states.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
+import {type RemoteConfigMetadataStructure} from './interfaces/remote-config-metadata-structure.js';
 
 /**
  * Represent the remote config metadata object and handles:
