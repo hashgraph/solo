@@ -55,6 +55,8 @@ describe('RemoteConfigValidator', () => {
     await k8Factory.default().namespaces().delete(namespace);
   });
 
+  // TODO TODO TODO: FIX TESTS
+
   const cluster = 'cluster';
   const nodeState = ConsensusNodeStates.STARTED;
 

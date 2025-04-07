@@ -3,7 +3,7 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import {RelayComponent} from '../../../../../../src/core/config/remote/components/relay-component.js';
+import {type RelayComponent} from '../../../../../../src/core/config/remote/components/relay-component.js';
 import {BaseComponent} from '../../../../../../src/core/config/remote/components/base-component.js';
 import {type ConsensusNodeComponent} from '../../../../../../src/core/config/remote/components/consensus-node-component.js';
 import {HaProxyComponent} from '../../../../../../src/core/config/remote/components/ha-proxy-component.js';
@@ -21,6 +21,7 @@ import {type BaseComponentStructure} from '../../../../../../src/core/config/rem
 import {type RelayComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/relay-component-structure.js';
 import {type ConsensusNodeComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/consensus-node-component-structure.js';
 import {ComponentFactory} from '../../../../../../src/core/config/remote/components/component-factory.js';
+import {ComponentNameTemplates} from '../../../../../../src/core/config/remote/components/component-name-templates.js';
 
 const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
 
@@ -73,8 +74,7 @@ describe('RelayComponent', () => {
   });
 
   it('calling toObject() should return a valid data', () => {
-    // @ts-expect-error: to access private property
-    const name: ComponentName = RelayComponent.renderRelayName(
+    const name: ComponentName = ComponentNameTemplates.renderRelayName(
       remoteConfigManagerMock.components.getNewComponentIndex(),
     );
 
