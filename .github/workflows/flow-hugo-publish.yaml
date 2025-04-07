@@ -58,9 +58,9 @@ defaults:
 
 jobs:
   # Build job
-  Build:
+  build:
+    name: Build
     runs-on: solo-linux-medium
-
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
@@ -114,13 +114,15 @@ jobs:
           path: ./docs/public
 
   # Deployment job
-  Deploy:
-    if: ${{ endsWith(github.ref, 'release/0.35') }}
+  deploy:
+    name: Deploy
+    runs-on: solo-linux-medium
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: solo-linux-medium
-    needs: Build
+    needs:
+      - build
+    if: ${{ endsWith(github.ref, 'release/0.35') }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
