@@ -17,12 +17,18 @@ import {ComponentStates} from '../../../../../../src/core/config/remote/enumerat
 import {BlockNodeComponent} from '../../../../../../src/core/config/remote/components/block-node-component.js';
 import {
   type ClusterReference,
-  type Component,
   type ComponentName,
-  type IConsensusNodeComponent,
-  type IRelayComponent,
+
+
 } from '../../../../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../../../../src/integration/kube/resources/namespace/namespace-name.js';
+import {BaseComponentStructure} from '../../../../../../src/core/config/remote/components/interface/base-component-structure.js';
+import {
+  RelayComponentStructure
+} from '../../../../../../src/core/config/remote/components/interface/relay-component-structure.js';
+import {
+  ConsensusNodeComponentStructure
+} from '../../../../../../src/core/config/remote/components/interface/consensus-node-component-structure.js';
 
 const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
 
@@ -37,7 +43,7 @@ function testBaseComponentData(classComponent: any): void {
   });
 
   it('calling toObject() should return a valid data', () => {
-    const data: Component = {
+    const data: BaseComponentStructure = {
       name: componentName,
       cluster: clusterReference,
       namespace: namespace.name,
@@ -80,7 +86,7 @@ describe('RelayComponent', () => {
       remoteConfigManagerMock.components.getNewComponentIndex(),
     );
 
-    const values: IRelayComponent = {
+    const values: RelayComponentStructure = {
       name,
       cluster: clusterReference,
       namespace: namespace.name,
@@ -120,7 +126,7 @@ describe('ConsensusNodeComponent', () => {
 
   it('calling toObject() should return a valid data', () => {
     const nodeAlias: NodeAlias = 'node1';
-    const values: IConsensusNodeComponent = {
+    const values: ConsensusNodeComponentStructure = {
       name: nodeAlias,
       cluster: clusterReference,
       namespace: namespace.name,

@@ -5,7 +5,6 @@ import {SoloError} from '../../../errors/solo-error.js';
 import {
   type ClusterReference,
   type ComponentName,
-  type IConsensusNodeComponent,
   type NamespaceNameAsString,
 } from '../types.js';
 import {type ToObject} from '../../../../types/index.js';
@@ -16,6 +15,7 @@ import {type NamespaceName} from '../../../../integration/kube/resources/namespa
 import {type NodeAlias, type NodeId} from '../../../../types/aliases.js';
 import {Templates} from '../../../templates.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
+import {ConsensusNodeComponentStructure} from './interface/consensus-node-component-structure.js';
 
 /**
  * Represents a consensus node component within the system.
@@ -25,7 +25,7 @@ import {isValidEnum} from '../../../util/validation-helpers.js';
  */
 export class ConsensusNodeComponent
   extends BaseComponent
-  implements IConsensusNodeComponent, ToObject<IConsensusNodeComponent>
+  implements ConsensusNodeComponentStructure, ToObject<ConsensusNodeComponentStructure>
 {
   private _nodeState: ConsensusNodeStates;
 
@@ -79,7 +79,7 @@ export class ConsensusNodeComponent
   }
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: IConsensusNodeComponent): ConsensusNodeComponent {
+  public static fromObject(component: ConsensusNodeComponentStructure): ConsensusNodeComponent {
     const {name, cluster, state, namespace, nodeState, nodeId} = component;
     return new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, nodeId);
   }
@@ -100,7 +100,7 @@ export class ConsensusNodeComponent
     }
   }
 
-  public override toObject(): IConsensusNodeComponent {
+  public override toObject(): ConsensusNodeComponentStructure {
     return {
       ...super.toObject(),
       nodeState: this.nodeState,

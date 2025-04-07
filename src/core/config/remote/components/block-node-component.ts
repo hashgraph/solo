@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {BaseComponent} from './base-component.js';
-import {type ClusterReference, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
+import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ComponentStates} from '../enumerations/component-states.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
-import {type RemoteConfigManager} from '../remote-config-manager.js';
+import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
+import {BaseComponentStructure} from './interface/base-component-structure.js';
 
 export class BlockNodeComponent extends BaseComponent {
   private static readonly BASE_NAME: string = 'block-node';
@@ -23,7 +24,7 @@ export class BlockNodeComponent extends BaseComponent {
   /* -------- Utilities -------- */
 
   public static createNew(
-    remoteConfigManager: RemoteConfigManager,
+    remoteConfigManager: RemoteConfigManagerApi,
     clusterReference: ClusterReference,
     namespace: NamespaceName,
   ): BlockNodeComponent {
@@ -35,7 +36,7 @@ export class BlockNodeComponent extends BaseComponent {
   }
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: Component): BlockNodeComponent {
+  public static fromObject(component: BaseComponentStructure): BlockNodeComponent {
     const {name, cluster, namespace, state} = component;
     return new BlockNodeComponent(name, cluster, namespace, state);
   }

@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {type NodeAliases} from '../../../types/aliases.js';
 import {type ComponentTypes} from './enumerations/component-types.js';
-import {type ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {type DeploymentStates} from './enumerations/deployment-states.js';
-import {type ComponentStates} from './enumerations/component-states.js';
+import {type BaseComponentStructure} from './components/interface/base-component-structure.js';
 
 export type EmailAddress = `${string}@${string}.${string}`;
 export type Version = string;
@@ -23,22 +21,6 @@ export interface IMigration {
   fromVersion: Version;
 }
 
-export interface Component {
-  name: ComponentName;
-  cluster: ClusterReference;
-  namespace: NamespaceNameAsString;
-  state: ComponentStates;
-}
-
-export interface IRelayComponent extends Component {
-  consensusNodeAliases: NodeAliases;
-}
-
-export interface IConsensusNodeComponent extends Component {
-  nodeId: number;
-  nodeState: ConsensusNodeStates;
-}
-
 export interface ICluster {
   name: string;
   namespace: string;
@@ -47,7 +29,7 @@ export interface ICluster {
   dnsConsensusNodePattern: string;
 }
 
-export type ComponentsDataStructure = Record<ComponentTypes, Record<ComponentName, Component>>;
+export type ComponentsDataStructure = Record<ComponentTypes, Record<ComponentName, BaseComponentStructure>>;
 
 export type RemoteConfigCommonFlagsStruct = {
   releaseTag?: string;

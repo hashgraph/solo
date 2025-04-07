@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {SoloError} from '../../../errors/solo-error.js';
-import {type ClusterReference, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
+import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ComponentStates} from '../enumerations/component-states.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
+import {BaseComponentStructure} from './interface/base-component-structure.js';
 
 /**
  * Represents the base structure and common functionality for all components within the system.
  * This class provides validation, comparison, and serialization functionality for components.
  */
-export class BaseComponent implements Component, Validate, ToObject<Component> {
+export class BaseComponent implements BaseComponentStructure, Validate, ToObject<BaseComponentStructure> {
   /**
    * @param type - type for identifying.
    * @param name - the name to distinguish components.
@@ -64,7 +65,7 @@ export class BaseComponent implements Component, Validate, ToObject<Component> {
     }
   }
 
-  public toObject(): Component {
+  public toObject(): BaseComponentStructure {
     return {
       name: this.name,
       cluster: this.cluster,

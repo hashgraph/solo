@@ -3,9 +3,10 @@
 import {BaseComponent} from './base-component.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ComponentStates} from '../enumerations/component-states.js';
-import {type ClusterReference, type Component, type ComponentName, type NamespaceNameAsString} from '../types.js';
-import {type RemoteConfigManager} from '../remote-config-manager.js';
+import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
+import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
+import {BaseComponentStructure} from './interface/base-component-structure.js';
 
 export class MirrorNodeExplorerComponent extends BaseComponent {
   private static readonly BASE_NAME: string = 'mirror-node-explorer';
@@ -23,7 +24,7 @@ export class MirrorNodeExplorerComponent extends BaseComponent {
   /* -------- Utilities -------- */
 
   public static createNew(
-    remoteConfigManager: RemoteConfigManager,
+    remoteConfigManager: RemoteConfigManagerApi,
     clusterReference: ClusterReference,
     namespace: NamespaceName,
   ): MirrorNodeExplorerComponent {
@@ -35,7 +36,7 @@ export class MirrorNodeExplorerComponent extends BaseComponent {
   }
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: Component): MirrorNodeExplorerComponent {
+  public static fromObject(component: BaseComponentStructure): MirrorNodeExplorerComponent {
     const {name, cluster, namespace, state} = component;
     return new MirrorNodeExplorerComponent(name, cluster, namespace, state);
   }

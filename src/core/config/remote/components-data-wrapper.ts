@@ -11,11 +11,10 @@ import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
 import {
   type ClusterReference,
-  type Component,
   type ComponentName,
   type ComponentsDataStructure,
-  type IConsensusNodeComponent,
-  type IRelayComponent,
+
+
 } from './types.js';
 import {type ToObject, type Validate} from '../../../types/index.js';
 import {type NodeAliases} from '../../../types/aliases.js';
@@ -25,6 +24,9 @@ import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
+import {BaseComponentStructure} from './components/interface/base-component-structure.js';
+import {RelayComponentStructure} from './components/interface/relay-component-structure.js';
+import {ConsensusNodeComponentStructure} from './components/interface/consensus-node-component-structure.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -206,7 +208,7 @@ export class ComponentsDataWrapper
       switch (componentType) {
         case ComponentTypes.Relay: {
           for (const [componentName, component] of Object.entries(subComponents)) {
-            relays[componentName] = RelayComponent.fromObject(component as IRelayComponent);
+            relays[componentName] = RelayComponent.fromObject(component as RelayComponentStructure);
           }
           break;
         }
@@ -234,7 +236,7 @@ export class ComponentsDataWrapper
 
         case ComponentTypes.ConsensusNode: {
           for (const [componentName, component] of Object.entries(subComponents)) {
-            consensusNodes[componentName] = ConsensusNodeComponent.fromObject(component as IConsensusNodeComponent);
+            consensusNodes[componentName] = ConsensusNodeComponent.fromObject(component as ConsensusNodeComponentStructure);
           }
           break;
         }
@@ -351,11 +353,11 @@ export class ComponentsDataWrapper
 
   private transformComponentGroupToObject(
     components: Record<ComponentName, BaseComponent>,
-  ): Record<ComponentName, Component> {
-    const transformedComponents: Record<ComponentName, Component> = {};
+  ): Record<ComponentName, BaseComponentStructure> {
+    const transformedComponents: Record<ComponentName, BaseComponentStructure> = {};
 
     for (const [componentName, component] of Object.entries(components)) {
-      transformedComponents[componentName] = component.toObject() as Component;
+      transformedComponents[componentName] = component.toObject() as BaseComponentStructure;
     }
 
     return transformedComponents;

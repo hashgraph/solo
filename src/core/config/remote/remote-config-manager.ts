@@ -35,13 +35,14 @@ import {promptTheUserForDeployment, resolveNamespaceFromDeployment} from '../../
 import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
 import {getSoloVersion} from '../../../../version.js';
 import {DeploymentStates} from './enumerations/deployment-states.js';
+import {type RemoteConfigManagerApi} from './api/remote-config-manager-api.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
  * and saving the configuration data to and from a Kubernetes cluster.
  */
 @injectable()
-export class RemoteConfigManager {
+export class RemoteConfigManager implements RemoteConfigManagerApi {
   /** Stores the loaded remote configuration data. */
   private remoteConfig: Optional<RemoteConfigDataWrapper>;
 
@@ -69,27 +70,16 @@ export class RemoteConfigManager {
     return this.k8Factory.default().clusters().readCurrent();
   }
 
-  /** @returns the components data wrapper cloned */
   public get components(): ComponentsDataWrapper {
     return this.remoteConfig.components.clone();
   }
 
-  /**
-   * @returns the remote configuration data's clusters cloned
-   */
   public get clusters(): Record<ClusterReference, Cluster> {
     return structuredClone(this.remoteConfig.clusters);
   }
 
   /* ---------- Readers and Modifiers ---------- */
 
-  /**
-   * Modifies the loaded remote configuration data using a provided callback function.
-   * The callback operates on the configuration data, which is then saved to the cluster.
-   *
-   * @param callback - an async function that modifies the remote configuration data.
-   * @throws if the configuration is not loaded before modification, will throw a SoloError {@link SoloError}
-   */
   public async modify(callback: (remoteConfig: RemoteConfigDataWrapper) => Promise<void>): Promise<void> {
     if (!this.remoteConfig) {
       throw new SoloError('Attempting to modify remote config without loading it first');
@@ -102,11 +92,6 @@ export class RemoteConfigManager {
     await this.save();
   }
 
-  /**
-   * Creates a new remote configuration in the Kubernetes cluster.
-   * Gathers data from the local configuration and constructs a new ConfigMap
-   * entry in the cluster with initial command history and metadata.
-   */
   public async create(
     argv: ArgvStruct,
     state: DeploymentStates,
@@ -176,10 +161,6 @@ export class RemoteConfigManager {
     }
   }
 
-  /**
-   * Loads the remote configuration, performs a validation and returns it
-   * @returns RemoteConfigDataWrapper
-   */
   public async get(context?: Context): Promise<RemoteConfigDataWrapper> {
     const namespace = this.configManager.getFlag<NamespaceName>(flags.namespace) ?? (await this.getNamespace());
 
@@ -201,7 +182,6 @@ export class RemoteConfigManager {
     return this.remoteConfig;
   }
 
-  /** Unload the remote config from the remote config manager. */
   public unload(): void {
     this.remoteConfig = undefined;
   }
@@ -225,14 +205,6 @@ export class RemoteConfigManager {
 
   /* ---------- Listr Task Builders ---------- */
 
-  /**
-   * Performs the loading of the remote configuration.
-   * Checks if the configuration is already loaded, otherwise loads and adds the command to history.
-   *
-   * @param argv - arguments containing command input for historical reference.
-   * @param validate - whether to validate the remote configuration.
-   * @param [skipConsensusNodesValidation] - whether or not to validate the consensusNodes
-   */
   public async loadAndValidate(
     argv: {_: string[]} & AnyObject,
     validate: boolean = true,
@@ -324,7 +296,6 @@ export class RemoteConfigManager {
 
   /* ---------- Utilities ---------- */
 
-  /** Empties the component data inside the remote config */
   public async deleteComponents(): Promise<void> {
     await this.modify(async remoteConfig => {
       remoteConfig.components = ComponentsDataWrapper.initializeEmpty();
@@ -335,14 +306,6 @@ export class RemoteConfigManager {
     return !!this.remoteConfig;
   }
 
-  /**
-   * Retrieves the ConfigMap containing the remote configuration from the Kubernetes cluster.
-   *
-   * @param namespace - The namespace to search for the ConfigMap.
-   * @param context - The context to use for the Kubernetes client.
-   * @returns the remote configuration data.
-   * @throws if the ConfigMap could not be read and the error is not a 404 status, will throw a SoloError {@link SoloError}
-   */
   public async getConfigMap(namespace?: NamespaceName, context?: Context): Promise<ConfigMap> {
     if (!namespace) {
       namespace = await this.getNamespace();
@@ -370,9 +333,6 @@ export class RemoteConfigManager {
     }
   }
 
-  /**
-   * Creates a new ConfigMap entry in the Kubernetes cluster with the remote configuration data.
-   */
   public async createConfigMap(context?: Context): Promise<void> {
     const namespace = await this.getNamespace();
     const name = constants.SOLO_REMOTE_CONFIGMAP_NAME;
@@ -470,10 +430,6 @@ export class RemoteConfigManager {
 
   //* Common Commands
 
-  /**
-   * Get the consensus nodes from the remoteConfigManager and use the localConfig to get the context
-   * @returns an array of ConsensusNode objects
-   */
   public getConsensusNodes(): ConsensusNode[] {
     if (!this.isLoaded()) {
       throw new SoloError('Remote configuration is not loaded, and was expected to be loaded');
@@ -512,18 +468,10 @@ export class RemoteConfigManager {
     return consensusNodes;
   }
 
-  /**
-   * Gets a list of distinct contexts from the consensus nodes.
-   * @returns an array of context strings.
-   */
   public getContexts(): Context[] {
     return [...new Set(this.getConsensusNodes().map((node): Context => node.context))];
   }
 
-  /**
-   * Gets a list of distinct cluster references from the consensus nodes.
-   * @returns an object of cluster references.
-   */
   public getClusterRefs(): ClusterReferences {
     const nodes = this.getConsensusNodes();
     const accumulator: ClusterReferences = {};
