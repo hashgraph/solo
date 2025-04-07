@@ -16,7 +16,8 @@ import {ConsensusNodeStates} from '../../../../../src/core/config/remote/enumera
 import {ComponentStates} from '../../../../../src/core/config/remote/enumerations/component-states.js';
 import {type NodeAliases} from '../../../../../src/types/aliases.js';
 import {
-  type ClusterReference, ComponentName,
+  type ClusterReference,
+  type ComponentName,
   type ComponentsDataStructure,
   type NamespaceNameAsString,
 } from '../../../../../src/core/config/remote/types.js';

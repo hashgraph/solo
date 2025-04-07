@@ -9,11 +9,11 @@ import {EnvoyProxyComponent} from '../../../../../../src/core/config/remote/comp
 import {HaProxyComponent} from '../../../../../../src/core/config/remote/components/ha-proxy-component.js';
 import {MirrorNodeExplorerComponent} from '../../../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
 import {RelayComponent} from '../../../../../../src/core/config/remote/components/relay-component.js';
-import {NodeAlias, type NodeAliases} from '../../../../../../src/types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../../../../../src/types/aliases.js';
 import {Templates} from '../../../../../../src/core/templates.js';
 
 describe('', () => {
-  const maxTestIndex = 10;
+  const maxTestIndex: number = 10;
   const nodeAliases: NodeAliases = Templates.renderNodeAliasesFromCount(maxTestIndex, 0);
 
   it('should create a valid component name for MirrorNodeComponent', () => {
