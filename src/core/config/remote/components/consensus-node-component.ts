@@ -8,7 +8,7 @@ import {isValidEnum} from '../../../util/validation-helpers.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject} from '../../../../types/index.js';
 import {type ComponentStates} from '../enumerations/component-states.js';
-import {type ConsensusNodeComponentStructure} from './interfaces/consensus-node-component-structure.js';
+import {type ConsensusNodeComponentStruct} from './interfaces/consensus-node-component-struct.js';
 
 /**
  * Represents a consensus node component within the system.
@@ -18,7 +18,7 @@ import {type ConsensusNodeComponentStructure} from './interfaces/consensus-node-
  */
 export class ConsensusNodeComponent
   extends BaseComponent
-  implements ConsensusNodeComponentStructure, ToObject<ConsensusNodeComponentStructure>
+  implements ConsensusNodeComponentStruct, ToObject<ConsensusNodeComponentStruct>
 {
   private _nodeState: ConsensusNodeStates;
 
@@ -55,7 +55,7 @@ export class ConsensusNodeComponent
   /* -------- Utilities -------- */
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: ConsensusNodeComponentStructure): ConsensusNodeComponent {
+  public static fromObject(component: ConsensusNodeComponentStruct): ConsensusNodeComponent {
     const {name, cluster, state, namespace, nodeState, nodeId} = component;
     return new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, nodeId);
   }
@@ -76,7 +76,7 @@ export class ConsensusNodeComponent
     }
   }
 
-  public override toObject(): ConsensusNodeComponentStructure {
+  public override toObject(): ConsensusNodeComponentStruct {
     return {
       ...super.toObject(),
       nodeState: this.nodeState,

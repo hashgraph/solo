@@ -14,9 +14,9 @@ import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
-import {type BaseComponentStructure} from './components/interfaces/base-component-structure.js';
-import {type RelayComponentStructure} from './components/interfaces/relay-component-structure.js';
-import {type ConsensusNodeComponentStructure} from './components/interfaces/consensus-node-component-structure.js';
+import {type BaseComponentStruct} from './components/interfaces/base-component-struct.js';
+import {type RelayComponentStruct} from './components/interfaces/relay-component-struct.js';
+import {type ConsensusNodeComponentStruct} from './components/interfaces/consensus-node-component-struct.js';
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 import {type ComponentsDataStruct} from './interfaces/components-data-struct.js';
 import {ComponentNameTemplates} from './components/component-name-templates.js';
@@ -199,7 +199,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
       switch (componentType) {
         case ComponentTypes.Relay: {
           for (const [componentName, component] of Object.entries(subComponents)) {
-            relays[componentName] = RelayComponent.fromObject(component as RelayComponentStructure);
+            relays[componentName] = RelayComponent.fromObject(component as RelayComponentStruct);
           }
           break;
         }
@@ -228,7 +228,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
         case ComponentTypes.ConsensusNode: {
           for (const [componentName, component] of Object.entries(subComponents)) {
             consensusNodes[componentName] = ConsensusNodeComponent.fromObject(
-              component as ConsensusNodeComponentStructure,
+              component as ConsensusNodeComponentStruct,
             );
           }
           break;
@@ -333,11 +333,11 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
 
   private transformComponentGroupToObject(
     components: Record<ComponentName, BaseComponent>,
-  ): Record<ComponentName, BaseComponentStructure> {
-    const transformedComponents: Record<ComponentName, BaseComponentStructure> = {};
+  ): Record<ComponentName, BaseComponentStruct> {
+    const transformedComponents: Record<ComponentName, BaseComponentStruct> = {};
 
     for (const [componentName, component] of Object.entries(components)) {
-      transformedComponents[componentName] = component.toObject() as BaseComponentStructure;
+      transformedComponents[componentName] = component.toObject() as BaseComponentStruct;
     }
 
     return transformedComponents;

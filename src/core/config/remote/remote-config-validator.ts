@@ -53,7 +53,7 @@ export class RemoteConfigValidator {
     );
   }
 
-  private static componentValidations: Record<
+  private static componentValidationsMapping: Record<
     string,
     {
       getLabelsCallback: (component: BaseComponent) => string[];
@@ -99,7 +99,7 @@ export class RemoteConfigValidator {
     localConfig: LocalConfig,
     skipConsensusNodes: boolean,
   ): Promise<void> {
-    const validationPromises: Promise<void>[] = Object.entries(RemoteConfigValidator.componentValidations)
+    const validationPromises: Promise<void>[] = Object.entries(RemoteConfigValidator.componentValidationsMapping)
       .filter(([key]) => key !== 'consensusNodes' || !skipConsensusNodes)
       .flatMap(([key, {getLabelsCallback, type, skipCondition}]): Promise<void>[] =>
         RemoteConfigValidator.validateComponentGroup(

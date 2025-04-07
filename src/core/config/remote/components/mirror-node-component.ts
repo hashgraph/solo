@@ -4,7 +4,7 @@ import {BaseComponent} from './base-component.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {type ComponentStates} from '../enumerations/component-states.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
-import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
+import {type BaseComponentStruct} from './interfaces/base-component-struct.js';
 
 export class MirrorNodeComponent extends BaseComponent {
   public constructor(
@@ -20,7 +20,7 @@ export class MirrorNodeComponent extends BaseComponent {
   /* -------- Utilities -------- */
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: BaseComponentStructure): MirrorNodeComponent {
+  public static fromObject(component: BaseComponentStruct): MirrorNodeComponent {
     const {name, cluster, namespace, state} = component;
     return new MirrorNodeComponent(name, cluster, namespace, state);
   }

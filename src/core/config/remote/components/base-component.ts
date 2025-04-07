@@ -6,13 +6,13 @@ import {type ToObject, type Validate} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ComponentStates} from '../enumerations/component-states.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
-import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
+import {type BaseComponentStruct} from './interfaces/base-component-struct.js';
 
 /**
  * Represents the base structure and common functionality for all components within the system.
  * This class provides validation, comparison, and serialization functionality for components.
  */
-export class BaseComponent implements BaseComponentStructure, Validate, ToObject<BaseComponentStructure> {
+export class BaseComponent implements BaseComponentStruct, Validate, ToObject<BaseComponentStruct> {
   /**
    * @param type - type for identifying.
    * @param name - the name to distinguish components.
@@ -65,7 +65,7 @@ export class BaseComponent implements BaseComponentStructure, Validate, ToObject
     }
   }
 
-  public toObject(): BaseComponentStructure {
+  public toObject(): BaseComponentStruct {
     return {
       name: this.name,
       cluster: this.cluster,

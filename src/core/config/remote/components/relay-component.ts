@@ -7,12 +7,9 @@ import {type ComponentStates} from '../enumerations/component-states.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
-import {type RelayComponentStructure} from './interfaces/relay-component-structure.js';
+import {type RelayComponentStruct} from './interfaces/relay-component-struct.js';
 
-export class RelayComponent
-  extends BaseComponent
-  implements RelayComponentStructure, ToObject<RelayComponentStructure>
-{
+export class RelayComponent extends BaseComponent implements RelayComponentStruct, ToObject<RelayComponentStruct> {
   /**
    * @param name - to distinguish components.
    * @param clusterReference - in which the component is deployed.
@@ -34,7 +31,7 @@ export class RelayComponent
   /* -------- Utilities -------- */
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: RelayComponentStructure): RelayComponent {
+  public static fromObject(component: RelayComponentStruct): RelayComponent {
     const {name, cluster, namespace, state, consensusNodeAliases} = component;
     return new RelayComponent(name, cluster, namespace, state, consensusNodeAliases);
   }
@@ -49,7 +46,7 @@ export class RelayComponent
     }
   }
 
-  public override toObject(): RelayComponentStructure {
+  public override toObject(): RelayComponentStruct {
     return {
       consensusNodeAliases: this.consensusNodeAliases,
       ...super.toObject(),

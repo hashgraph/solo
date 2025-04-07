@@ -17,9 +17,9 @@ import {ComponentStates} from '../../../../../../src/core/config/remote/enumerat
 import {BlockNodeComponent} from '../../../../../../src/core/config/remote/components/block-node-component.js';
 import {type ClusterReference, type ComponentName} from '../../../../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {type BaseComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/base-component-structure.js';
-import {type RelayComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/relay-component-structure.js';
-import {type ConsensusNodeComponentStructure} from '../../../../../../src/core/config/remote/components/interfaces/consensus-node-component-structure.js';
+import {type BaseComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/base-component-struct.js';
+import {type RelayComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/relay-component-struct.js';
+import {type ConsensusNodeComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/consensus-node-component-struct.js';
 import {ComponentFactory} from '../../../../../../src/core/config/remote/components/component-factory.js';
 import {ComponentNameTemplates} from '../../../../../../src/core/config/remote/components/component-name-templates.js';
 
@@ -36,7 +36,7 @@ function testBaseComponentData(classComponent: any): void {
   });
 
   it('calling toObject() should return a valid data', () => {
-    const data: BaseComponentStructure = {
+    const data: BaseComponentStruct = {
       name: componentName,
       cluster: clusterReference,
       namespace: namespace.name,
@@ -78,7 +78,7 @@ describe('RelayComponent', () => {
       remoteConfigManagerMock.components.getNewComponentIndex(),
     );
 
-    const values: RelayComponentStructure = {
+    const values: RelayComponentStruct = {
       name,
       cluster: clusterReference,
       namespace: namespace.name,
@@ -118,7 +118,7 @@ describe('ConsensusNodeComponent', () => {
 
   it('calling toObject() should return a valid data', () => {
     const nodeAlias: NodeAlias = 'node1';
-    const values: ConsensusNodeComponentStructure = {
+    const values: ConsensusNodeComponentStruct = {
       name: nodeAlias,
       cluster: clusterReference,
       namespace: namespace.name,

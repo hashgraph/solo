@@ -3,7 +3,7 @@
 import {type ComponentStates} from '../../enumerations/component-states.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../../types.js';
 
-export interface BaseComponentStructure {
+export interface BaseComponentStruct {
   name: ComponentName;
   cluster: ClusterReference;
   namespace: NamespaceNameAsString;
