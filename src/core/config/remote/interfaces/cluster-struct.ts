@@ -2,7 +2,7 @@
 
 import {type DeploymentName} from '../types.js';
 
-export interface ClusterStructure {
+export interface ClusterStruct {
   name: string;
   namespace: string;
   deployment: DeploymentName;

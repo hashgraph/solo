@@ -3,9 +3,9 @@
 import {type ToObject} from '../../../types/index.js';
 import {type ClusterReference, type DeploymentName, type NamespaceNameAsString} from './types.js';
 import {SoloError} from '../../errors/solo-error.js';
-import {type ClusterStructure} from './interfaces/cluster-structure.js';
+import {type ClusterStruct} from './interfaces/cluster-struct.js';
 
-export class Cluster implements ClusterStructure, ToObject<ClusterStructure> {
+export class Cluster implements ClusterStruct, ToObject<ClusterStruct> {
   public constructor(
     public readonly name: string,
     public readonly namespace: NamespaceNameAsString,
@@ -38,7 +38,7 @@ export class Cluster implements ClusterStructure, ToObject<ClusterStructure> {
     }
   }
 
-  public toObject(): ClusterStructure {
+  public toObject(): ClusterStruct {
     return {
       name: this.name,
       namespace: this.namespace,
@@ -48,7 +48,7 @@ export class Cluster implements ClusterStructure, ToObject<ClusterStructure> {
     };
   }
 
-  public static fromObject(cluster: ClusterStructure) {
+  public static fromObject(cluster: ClusterStruct) {
     return new Cluster(
       cluster.name,
       cluster.namespace,
@@ -67,7 +67,7 @@ export class Cluster implements ClusterStructure, ToObject<ClusterStructure> {
     const clusters: Record<ClusterReference, Cluster> = {};
 
     for (const [reference, cluster] of Object.entries(object)) {
-      clusters[reference] = Cluster.fromObject(cluster as ClusterStructure);
+      clusters[reference] = Cluster.fromObject(cluster as ClusterStruct);
     }
 
     return clusters;

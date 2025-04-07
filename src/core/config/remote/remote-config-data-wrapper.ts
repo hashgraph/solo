@@ -12,9 +12,9 @@ import {type ConfigManager} from '../../config-manager.js';
 import {type RemoteConfigData} from './remote-config-data.js';
 import {Cluster} from './cluster.js';
 import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
-import {type RemoteConfigDataStructure} from './interfaces/remote-config-data-structure.js';
+import {type RemoteConfigDataStruct} from './interfaces/remote-config-data-struct.js';
 
-export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
+export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStruct> {
   private readonly _version: Version = '1.0.0';
   private _metadata: RemoteConfigMetadata;
   private readonly _clusters: Record<ClusterReference, Cluster>;
@@ -154,7 +154,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     }
   }
 
-  public toObject(): RemoteConfigDataStructure {
+  public toObject(): RemoteConfigDataStruct {
     return {
       metadata: this.metadata.toObject(),
       version: this.version,

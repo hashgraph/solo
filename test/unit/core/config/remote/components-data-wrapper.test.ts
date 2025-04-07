@@ -21,7 +21,7 @@ import {
   type NamespaceNameAsString,
 } from '../../../../../src/core/config/remote/types.js';
 import {BlockNodeComponent} from '../../../../../src/core/config/remote/components/block-node-component.js';
-import {type ComponentsDataStructure} from '../../../../../src/core/config/remote/interfaces/components-data-structure.js';
+import {type ComponentsDataStruct} from '../../../../../src/core/config/remote/interfaces/components-data-struct.js';
 
 export function createComponentsDataWrapper(): {
   values: {
@@ -127,7 +127,7 @@ describe('ComponentsDataWrapper', () => {
       componentsDataWrapper.toObject(),
     );
 
-    const componentsDataWrapperObject: ComponentsDataStructure = componentsDataWrapper.toObject();
+    const componentsDataWrapperObject: ComponentsDataStruct = componentsDataWrapper.toObject();
 
     expect(componentsDataWrapperObject).to.deep.equal(newComponentsDataWrapper.toObject());
 
@@ -167,7 +167,7 @@ describe('ComponentsDataWrapper', () => {
 
     componentsDataWrapper.addNewComponent(newComponent);
 
-    const componentDataWrapperObject: ComponentsDataStructure = componentsDataWrapper.toObject();
+    const componentDataWrapperObject: ComponentsDataStruct = componentsDataWrapper.toObject();
 
     expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy]).has.own.property(newComponentName);
 

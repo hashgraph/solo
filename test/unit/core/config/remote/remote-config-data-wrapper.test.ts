@@ -10,7 +10,7 @@ import {createComponentsDataWrapper} from './components-data-wrapper.test.js';
 import * as constants from '../../../../../src/core/constants.js';
 import {CommonFlagsDataWrapper} from '../../../../../src/core/config/remote/common-flags-data-wrapper.js';
 import {type RemoteConfigData} from '../../../../../src/core/config/remote/remote-config-data.js';
-import {type RemoteConfigDataStructure} from '../../../../../src/core/config/remote/interfaces/remote-config-data-structure.js';
+import {type RemoteConfigDataStruct} from '../../../../../src/core/config/remote/interfaces/remote-config-data-struct.js';
 
 const configManagerMock: any = {
   update: (...arguments_: any) => true,
@@ -65,7 +65,7 @@ describe('RemoteConfigDataWrapper', async () => {
 
   it('should successfully be able to parse yaml and create instance with fromConfigmap()', async () => {
     const {dataWrapper} = await createRemoteConfigDataWrapper();
-    const dataWrapperObject: RemoteConfigDataStructure = dataWrapper.toObject();
+    const dataWrapperObject: RemoteConfigDataStruct = dataWrapper.toObject();
 
     const yamlData: string = yaml.stringify({
       metadata: dataWrapperObject.metadata,

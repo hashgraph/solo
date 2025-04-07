@@ -4,10 +4,10 @@ import {expect} from 'chai';
 import {describe, it} from 'mocha';
 import {Migration} from '../../../../../src/core/config/remote/migration.js';
 
-import {type MigrationStructure} from '../../../../../src/core/config/remote/interfaces/migration-structure.js';
+import {type MigrationStruct} from '../../../../../src/core/config/remote/interfaces/migration-struct.js';
 
 describe('Migration', () => {
-  const values: MigrationStructure = {migratedAt: new Date(), migratedBy: 'test@test.test', fromVersion: '1.0.0'};
+  const values: MigrationStruct = {migratedAt: new Date(), migratedBy: 'test@test.test', fromVersion: '1.0.0'};
   let migration: Migration;
 
   beforeEach(() => {

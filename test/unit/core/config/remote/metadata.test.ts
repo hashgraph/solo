@@ -7,19 +7,19 @@ import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {RemoteConfigMetadata} from '../../../../../src/core/config/remote/metadata.js';
 import {type EmailAddress} from '../../../../../src/core/config/remote/types.js';
 import {DeploymentStates} from '../../../../../src/core/config/remote/enumerations/deployment-states.js';
-import {type RemoteConfigMetadataStructure} from '../../../../../src/core/config/remote/interfaces/remote-config-metadata-structure.js';
+import {type RemoteConfigMetadataStruct} from '../../../../../src/core/config/remote/interfaces/remote-config-metadata-struct.js';
 
 interface MetadataTestStructure {
   metadata: RemoteConfigMetadata;
   migration: Migration;
-  values: RemoteConfigMetadataStructure;
+  values: RemoteConfigMetadataStruct;
 }
 
 export function createMetadata(): MetadataTestStructure {
   const lastUpdatedAt: Date = new Date();
   const lastUpdateBy: EmailAddress = 'test@test.test';
 
-  const values: RemoteConfigMetadataStructure = {
+  const values: RemoteConfigMetadataStruct = {
     namespace: 'namespace',
     deploymentName: 'kind-namespace',
     state: DeploymentStates.PRE_GENESIS,

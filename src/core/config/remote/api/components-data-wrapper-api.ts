@@ -6,11 +6,11 @@ import {type CloneTrait} from '../../../../types/traits/clone-trait.js';
 import {type BaseComponent} from '../components/base-component.js';
 import {type ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
 import {type ComponentTypes} from '../enumerations/component-types.js';
-import {type ComponentsDataStructure} from '../interfaces/components-data-structure.js';
+import {type ComponentsDataStruct} from '../interfaces/components-data-struct.js';
 
 export interface ComponentsDataWrapperApi
   extends Validate,
-    ToObject<ComponentsDataStructure>,
+    ToObject<ComponentsDataStruct>,
     CloneTrait<ComponentsDataWrapperApi> {
   /** Used to add new component to their respective group. */
   addNewComponent(component: BaseComponent): void;

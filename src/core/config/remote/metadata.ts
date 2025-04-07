@@ -7,7 +7,7 @@ import {type Optional, type ToObject, type Validate} from '../../../types/index.
 
 import {DeploymentStates} from './enumerations/deployment-states.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
-import {type RemoteConfigMetadataStructure} from './interfaces/remote-config-metadata-structure.js';
+import {type RemoteConfigMetadataStruct} from './interfaces/remote-config-metadata-struct.js';
 
 /**
  * Represent the remote config metadata object and handles:
@@ -17,7 +17,7 @@ import {type RemoteConfigMetadataStructure} from './interfaces/remote-config-met
  * - Converting from and to plain object
  */
 export class RemoteConfigMetadata
-  implements RemoteConfigMetadataStructure, Validate, ToObject<RemoteConfigMetadataStructure>
+  implements RemoteConfigMetadataStruct, Validate, ToObject<RemoteConfigMetadataStruct>
 {
   private _migration?: Migration;
 
@@ -56,7 +56,7 @@ export class RemoteConfigMetadata
   /* -------- Utilities -------- */
 
   /** Handles conversion from a plain object to instance */
-  public static fromObject(metadata: RemoteConfigMetadataStructure): RemoteConfigMetadata {
+  public static fromObject(metadata: RemoteConfigMetadataStruct): RemoteConfigMetadata {
     let migration: Optional<Migration> = undefined;
 
     if (metadata.migration) {
@@ -116,8 +116,8 @@ export class RemoteConfigMetadata
     }
   }
 
-  public toObject(): RemoteConfigMetadataStructure {
-    const data: RemoteConfigMetadataStructure = {
+  public toObject(): RemoteConfigMetadataStruct {
+    const data: RemoteConfigMetadataStruct = {
       namespace: this.namespace,
       deploymentName: this.deploymentName,
       state: this.state,
@@ -129,7 +129,7 @@ export class RemoteConfigMetadata
       hederaExplorerChartVersion: this.hederaExplorerChartVersion,
       hederaJsonRpcRelayChartVersion: this.hederaJsonRpcRelayChartVersion,
       soloVersion: this.soloVersion,
-    } as RemoteConfigMetadataStructure;
+    } as RemoteConfigMetadataStruct;
 
     if (this.migration) {
       data.migration = this.migration.toObject();

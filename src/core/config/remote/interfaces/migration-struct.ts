@@ -2,7 +2,7 @@
 
 import {type EmailAddress, type Version} from '../types.js';
 
-export interface MigrationStructure {
+export interface MigrationStruct {
   migratedAt: Date;
   migratedBy: EmailAddress;
   fromVersion: Version;

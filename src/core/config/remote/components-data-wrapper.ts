@@ -20,7 +20,7 @@ import {type BaseComponentStructure} from './components/interfaces/base-componen
 import {type RelayComponentStructure} from './components/interfaces/relay-component-structure.js';
 import {type ConsensusNodeComponentStructure} from './components/interfaces/consensus-node-component-structure.js';
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
-import {type ComponentsDataStructure} from './interfaces/components-data-structure.js';
+import {type ComponentsDataStruct} from './interfaces/components-data-struct.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -187,7 +187,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
    *
    * @param components - component groups distinguished by their type.
    */
-  public static fromObject(components: ComponentsDataStructure): ComponentsDataWrapper {
+  public static fromObject(components: ComponentsDataStruct): ComponentsDataWrapper {
     const relays: Record<ComponentName, RelayComponent> = {};
     const haProxies: Record<ComponentName, HaProxyComponent> = {};
     const mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {};
@@ -357,7 +357,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     return transformedComponents;
   }
 
-  public toObject(): ComponentsDataStructure {
+  public toObject(): ComponentsDataStruct {
     return {
       [ComponentTypes.Relay]: this.transformComponentGroupToObject(this.relays),
       [ComponentTypes.HaProxy]: this.transformComponentGroupToObject(this.haProxies),
@@ -370,7 +370,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   }
 
   public clone(): ComponentsDataWrapper {
-    const data: ComponentsDataStructure = this.toObject();
+    const data: ComponentsDataStruct = this.toObject();
 
     return ComponentsDataWrapper.fromObject(data);
   }
