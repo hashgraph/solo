@@ -41,10 +41,10 @@ export function createComponentsDataWrapper(): {
     blockNodes: Record<string, BlockNodeComponent>;
   };
   wrapper: {componentsDataWrapper: ComponentsDataWrapper};
-  serviceName: string;
+  componentName: string;
 } {
   const name: string = 'name';
-  const serviceName: string = name;
+  const componentName: string = name;
 
   const cluster: ClusterReference = 'cluster';
   const namespace: NamespaceNameAsString = 'namespace';
@@ -54,37 +54,37 @@ export function createComponentsDataWrapper(): {
 
   const relays: Record<string, RelayComponent> = {
     // @ts-expect-error - to access private constructor
-    [serviceName]: new RelayComponent(name, cluster, namespace, state, consensusNodeAliases),
+    [componentName]: new RelayComponent(name, cluster, namespace, state, consensusNodeAliases),
   };
 
   const haProxies: Record<string, HaProxyComponent> = {
     // @ts-expect-error - to access private constructor
-    [serviceName]: new HaProxyComponent(name, cluster, namespace, state),
+    [componentName]: new HaProxyComponent(name, cluster, namespace, state),
   };
 
   const mirrorNodes: Record<string, MirrorNodeComponent> = {
     // @ts-expect-error - to access private constructor
-    [serviceName]: new MirrorNodeComponent(name, cluster, namespace, state),
+    [componentName]: new MirrorNodeComponent(name, cluster, namespace, state),
   };
 
   const envoyProxies: Record<string, EnvoyProxyComponent> = {
     // @ts-expect-error - to access private constructor
-    [serviceName]: new EnvoyProxyComponent(name, cluster, namespace, state),
+    [componentName]: new EnvoyProxyComponent(name, cluster, namespace, state),
   };
 
   const consensusNodes: Record<string, ConsensusNodeComponent> = {
     // @ts-expect-error - to access private constructor
-    [serviceName]: new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, 0),
+    [componentName]: new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, 0),
   };
 
   const mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent> = {
     // @ts-expect-error - to access private constructor
-    [serviceName]: new MirrorNodeExplorerComponent(name, cluster, namespace, state),
+    [componentName]: new MirrorNodeExplorerComponent(name, cluster, namespace, state),
   };
 
   const blockNodes: Record<string, BlockNodeComponent> = {
     // @ts-expect-error - to access private constructor
-    [serviceName]: new BlockNodeComponent(name, cluster, namespace, state),
+    [componentName]: new BlockNodeComponent(name, cluster, namespace, state),
   };
 
   // @ts-expect-error - TS267: to access private constructor
@@ -102,7 +102,7 @@ export function createComponentsDataWrapper(): {
     values: {name, cluster, namespace, nodeState, consensusNodeAliases, state},
     components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays, blockNodes},
     wrapper: {componentsDataWrapper},
-    serviceName,
+    componentName,
   };
 }
 
@@ -111,7 +111,7 @@ describe('ComponentsDataWrapper', () => {
 
   it('should not be able to create a instance if wrong data is passed to constructor', () => {
     // @ts-expect-error - TS267: to access private constructor
-    expect((): ComponentsDataWrapper => new ComponentsDataWrapper({serviceName: {}})).to.throw(
+    expect((): ComponentsDataWrapper => new ComponentsDataWrapper({componentName: {}})).to.throw(
       SoloError,
       'Invalid component type',
     );
@@ -141,10 +141,10 @@ describe('ComponentsDataWrapper', () => {
     const {
       wrapper: {componentsDataWrapper},
       components: {consensusNodes},
-      serviceName,
+      componentName,
     } = createComponentsDataWrapper();
 
-    const existingComponent: ConsensusNodeComponent = consensusNodes[serviceName];
+    const existingComponent: ConsensusNodeComponent = consensusNodes[componentName];
 
     expect(() => componentsDataWrapper.addNewComponent(existingComponent)).to.throw(SoloError, 'Component exists');
   });
@@ -155,9 +155,9 @@ describe('ComponentsDataWrapper', () => {
       values: {state},
     } = createComponentsDataWrapper();
 
-    const newServiceName: string = 'envoy';
+    const newComponentName: string = 'envoy';
     const {name, cluster, namespace} = {
-      name: newServiceName,
+      name: newComponentName,
       cluster: 'cluster',
       namespace: 'new-namespace',
     };
@@ -168,9 +168,9 @@ describe('ComponentsDataWrapper', () => {
 
     const componentDataWrapperObject: ComponentsDataStructure = componentsDataWrapper.toObject();
 
-    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy]).has.own.property(newServiceName);
+    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy]).has.own.property(newComponentName);
 
-    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy][newServiceName]).to.deep.equal({
+    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy][newComponentName]).to.deep.equal({
       name,
       cluster,
       namespace,
@@ -183,38 +183,37 @@ describe('ComponentsDataWrapper', () => {
   it('should be able to change node state with the .changeNodeState(()', () => {
     const {
       wrapper: {componentsDataWrapper},
-      serviceName,
+      componentName,
     } = createComponentsDataWrapper();
 
     const newNodeState: ConsensusNodeStates = ConsensusNodeStates.STOPPED;
 
-    componentsDataWrapper.changeNodeState(serviceName, newNodeState);
+    componentsDataWrapper.changeNodeState(componentName, newNodeState);
 
-    expect(componentsDataWrapper.consensusNodes[serviceName].nodeState).to.equal(newNodeState);
+    expect(componentsDataWrapper.consensusNodes[componentName].nodeState).to.equal(newNodeState);
   });
 
   it("should not be able to edit component with the .editComponent() if it doesn't exist ", () => {
     const {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
-    const notFoundServiceName: string = 'not_found';
+    const notFoundComponentName: string = 'not_found';
 
-    expect(() => componentsDataWrapper.changeNodeState(notFoundServiceName, ConsensusNodeStates.NON_DEPLOYED)).to.throw(
-      SoloError,
-      `Consensus node ${notFoundServiceName} doesn't exist`,
-    );
+    expect(() =>
+      componentsDataWrapper.changeNodeState(notFoundComponentName, ConsensusNodeStates.NON_DEPLOYED),
+    ).to.throw(SoloError, `Consensus node ${notFoundComponentName} doesn't exist`);
   });
 
   it('should be able to disable component with the .disableComponent()', () => {
     const {
       wrapper: {componentsDataWrapper},
       components: {relays},
-      serviceName,
+      componentName,
     } = createComponentsDataWrapper();
 
-    componentsDataWrapper.disableComponent(serviceName, ComponentTypes.Relay);
+    componentsDataWrapper.disableComponent(componentName, ComponentTypes.Relay);
 
-    expect(relays[serviceName].state).to.equal(ComponentStates.DELETED);
+    expect(relays[componentName].state).to.equal(ComponentStates.DELETED);
   });
 
   it("should not be able to disable component with the .disableComponent() if it doesn't exist ", () => {
@@ -222,11 +221,11 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const notFoundServiceName: string = 'not_found';
+    const notFoundComponentName: string = 'not_found';
 
-    expect(() => componentsDataWrapper.disableComponent(notFoundServiceName, ComponentTypes.Relay)).to.throw(
+    expect(() => componentsDataWrapper.disableComponent(notFoundComponentName, ComponentTypes.Relay)).to.throw(
       SoloError,
-      `Component ${notFoundServiceName} of type ${ComponentTypes.Relay} not found while attempting to remove`,
+      `Component ${notFoundComponentName} of type ${ComponentTypes.Relay} not found while attempting to remove`,
     );
   });
 });

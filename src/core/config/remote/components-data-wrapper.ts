@@ -51,10 +51,10 @@ export class ComponentsDataWrapper
 
   /** Used to add new component to their respective group. */
   public addNewComponent(component: BaseComponent): void {
-    const serviceName: string = component.name;
+    const componentName: string = component.name;
 
-    if (!serviceName || typeof serviceName !== 'string') {
-      throw new SoloError(`Service name is required ${serviceName}`);
+    if (!componentName || typeof componentName !== 'string') {
+      throw new SoloError(`Component name is required ${componentName}`);
     }
 
     if (!(component instanceof BaseComponent)) {
@@ -65,28 +65,28 @@ export class ComponentsDataWrapper
       if (this.checkComponentExists(components, component)) {
         throw new SoloError('Component exists', undefined, component.toObject());
       }
-      components[serviceName] = component;
+      components[componentName] = component;
     };
 
-    this.applyCallbackToComponentGroup(component.type, serviceName, addComponentCallback);
+    this.applyCallbackToComponentGroup(component.type, componentName, addComponentCallback);
   }
 
-  public changeNodeState(serviceName: ComponentName, nodeState: ConsensusNodeStates): void {
-    if (!this.consensusNodes[serviceName]) {
-      throw new SoloError(`Consensus node ${serviceName} doesn't exist`);
+  public changeNodeState(componentName: ComponentName, nodeState: ConsensusNodeStates): void {
+    if (!this.consensusNodes[componentName]) {
+      throw new SoloError(`Consensus node ${componentName} doesn't exist`);
     }
 
     if (!isValidEnum(nodeState, ConsensusNodeStates)) {
       throw new SoloError(`Invalid node state ${nodeState}`);
     }
 
-    this.consensusNodes[serviceName].changeNodeState(nodeState);
+    this.consensusNodes[componentName].changeNodeState(nodeState);
   }
 
   /** Used to remove specific component from their respective group. */
-  public disableComponent(serviceName: ComponentName, type: ComponentTypes): void {
-    if (!serviceName || typeof serviceName !== 'string') {
-      throw new SoloError(`Service name is required ${serviceName}`);
+  public disableComponent(componentName: ComponentName, type: ComponentTypes): void {
+    if (!componentName || typeof componentName !== 'string') {
+      throw new SoloError(`Component name is required ${componentName}`);
     }
 
     if (!isValidEnum(type, ComponentTypes)) {
@@ -94,28 +94,28 @@ export class ComponentsDataWrapper
     }
 
     const disableComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
-      if (!components[serviceName]) {
-        throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to remove`);
+      if (!components[componentName]) {
+        throw new SoloError(`Component ${componentName} of type ${type} not found while attempting to remove`);
       }
-      components[serviceName].state = ComponentStates.DELETED;
+      components[componentName].state = ComponentStates.DELETED;
     };
 
-    this.applyCallbackToComponentGroup(type, serviceName, disableComponentCallback);
+    this.applyCallbackToComponentGroup(type, componentName, disableComponentCallback);
   }
 
   /* -------- Utilities -------- */
 
-  public getComponent<T extends BaseComponent>(type: ComponentTypes, serviceName: ComponentName): T {
+  public getComponent<T extends BaseComponent>(type: ComponentTypes, componentName: ComponentName): T {
     let component: T;
 
     const getComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
-      if (!components[serviceName]) {
-        throw new SoloError(`Component ${serviceName} of type ${type} not found while attempting to read`);
+      if (!components[componentName]) {
+        throw new SoloError(`Component ${componentName} of type ${type} not found while attempting to read`);
       }
-      component = components[serviceName] as T;
+      component = components[componentName] as T;
     };
 
-    this.applyCallbackToComponentGroup(type, serviceName, getComponentCallback);
+    this.applyCallbackToComponentGroup(type, componentName, getComponentCallback);
 
     return component;
   }
@@ -126,7 +126,7 @@ export class ComponentsDataWrapper
    */
   private applyCallbackToComponentGroup(
     componentType: ComponentTypes,
-    serviceName: ComponentName,
+    componentName: ComponentName,
     callback: (components: Record<ComponentName, BaseComponent>) => void,
   ): void {
     switch (componentType) {
@@ -166,7 +166,7 @@ export class ComponentsDataWrapper
       }
 
       default: {
-        throw new SoloError(`Unknown component type ${componentType}, service name: ${serviceName}`);
+        throw new SoloError(`Unknown component type ${componentType}, component name: ${componentName}`);
       }
     }
 
@@ -190,50 +190,50 @@ export class ComponentsDataWrapper
     for (const [componentType, subComponents] of Object.entries(components)) {
       switch (componentType) {
         case ComponentTypes.Relay: {
-          for (const [serviceName, component] of Object.entries(subComponents)) {
-            relays[serviceName] = RelayComponent.fromObject(component as IRelayComponent);
+          for (const [componentName, component] of Object.entries(subComponents)) {
+            relays[componentName] = RelayComponent.fromObject(component as IRelayComponent);
           }
           break;
         }
 
         case ComponentTypes.HaProxy: {
-          for (const [serviceName, component] of Object.entries(subComponents)) {
-            haProxies[serviceName] = HaProxyComponent.fromObject(component);
+          for (const [componentName, component] of Object.entries(subComponents)) {
+            haProxies[componentName] = HaProxyComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.MirrorNode: {
-          for (const [serviceName, component] of Object.entries(subComponents)) {
-            mirrorNodes[serviceName] = MirrorNodeComponent.fromObject(component);
+          for (const [componentName, component] of Object.entries(subComponents)) {
+            mirrorNodes[componentName] = MirrorNodeComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.EnvoyProxy: {
-          for (const [serviceName, component] of Object.entries(subComponents)) {
-            envoyProxies[serviceName] = EnvoyProxyComponent.fromObject(component);
+          for (const [componentName, component] of Object.entries(subComponents)) {
+            envoyProxies[componentName] = EnvoyProxyComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.ConsensusNode: {
-          for (const [serviceName, component] of Object.entries(subComponents)) {
-            consensusNodes[serviceName] = ConsensusNodeComponent.fromObject(component as IConsensusNodeComponent);
+          for (const [componentName, component] of Object.entries(subComponents)) {
+            consensusNodes[componentName] = ConsensusNodeComponent.fromObject(component as IConsensusNodeComponent);
           }
           break;
         }
 
         case ComponentTypes.MirrorNodeExplorer: {
-          for (const [serviceName, component] of Object.entries(subComponents)) {
-            mirrorNodeExplorers[serviceName] = MirrorNodeExplorerComponent.fromObject(component);
+          for (const [componentName, component] of Object.entries(subComponents)) {
+            mirrorNodeExplorers[componentName] = MirrorNodeExplorerComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.BlockNode: {
-          for (const [serviceName, component] of Object.entries(subComponents)) {
-            blockNodes[serviceName] = BlockNodeComponent.fromObject(component);
+          for (const [componentName, component] of Object.entries(subComponents)) {
+            blockNodes[componentName] = BlockNodeComponent.fromObject(component);
           }
           break;
         }
@@ -306,14 +306,14 @@ export class ComponentsDataWrapper
 
   /** Validates that the component group mapping has only components from the expected instance */
   private validateComponentTypes(components: Record<ComponentName, BaseComponent>, expectedInstance: any): void {
-    for (const [serviceName, component] of Object.entries(components)) {
-      if (!serviceName || typeof serviceName !== 'string') {
-        throw new SoloError(`Invalid component service name ${{[serviceName]: component?.constructor?.name}}`);
+    for (const [componentName, component] of Object.entries(components)) {
+      if (!componentName || typeof componentName !== 'string') {
+        throw new SoloError(`Invalid component name ${{[componentName]: component?.constructor?.name}}`);
       }
 
       if (!(component instanceof expectedInstance)) {
         throw new SoloError(
-          `Invalid component type, service name: ${serviceName}, ` +
+          `Invalid component type, component name: ${componentName}, ` +
             `expected ${expectedInstance?.name}, actual: ${component?.constructor?.name}`,
           undefined,
           {component},
@@ -337,8 +337,8 @@ export class ComponentsDataWrapper
   ): Record<ComponentName, Component> {
     const transformedComponents: Record<ComponentName, Component> = {};
 
-    for (const [serviceName, component] of Object.entries(components)) {
-      transformedComponents[serviceName] = component.toObject() as Component;
+    for (const [componentName, component] of Object.entries(components)) {
+      transformedComponents[componentName] = component.toObject() as Component;
     }
 
     return transformedComponents;
