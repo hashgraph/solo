@@ -3,11 +3,12 @@
 import {it} from 'mocha';
 import {expect} from 'chai';
 import {Cluster} from '../../../../../src/core/config/remote/cluster.js';
-import {type ClusterReference, type ICluster} from '../../../../../src/core/config/remote/types.js';
+import {type ClusterReference} from '../../../../../src/core/config/remote/types.js';
+import {type ClusterStructure} from '../../../../../src/core/config/remote/interfaces/cluster-structure.js';
 
 describe('Cluster', () => {
   it('should convert to an object', () => {
-    const clusterData: ICluster = {
+    const clusterData: ClusterStructure = {
       name: 'name',
       namespace: 'namespace',
       deployment: 'deployment',
@@ -23,7 +24,7 @@ describe('Cluster', () => {
       clusterData.dnsConsensusNodePattern,
     );
 
-    const clusterObject: ICluster = cluster.toObject();
+    const clusterObject: ClusterStructure = cluster.toObject();
     expect(clusterObject.name).to.equal(clusterData.name);
     expect(clusterObject.namespace).to.equal(clusterData.namespace);
     expect(clusterObject.deployment).to.equal(clusterData.deployment);
@@ -32,7 +33,7 @@ describe('Cluster', () => {
   });
 
   it('should convert clusters map to an object', () => {
-    const clusterData1: ICluster = {
+    const clusterData1: ClusterStructure = {
       name: 'name1',
       namespace: 'namespace1',
       deployment: 'deployment1',
@@ -40,7 +41,7 @@ describe('Cluster', () => {
       dnsConsensusNodePattern: 'network1.svc',
     };
 
-    const clusterData2: ICluster = {
+    const clusterData2: ClusterStructure = {
       name: 'name2',
       namespace: 'namespace2',
       deployment: 'deployment2',
