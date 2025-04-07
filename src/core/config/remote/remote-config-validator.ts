@@ -4,14 +4,14 @@ import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/solo-error.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
-import {type K8Factory} from '../../../integration/kube/k8-factory.js';
+import {type ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {type ComponentsDataWrapper} from './components-data-wrapper.js';
 import {type BaseComponent} from './components/base-component.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {type LocalConfig} from '../local/local-config.js';
 import {type Pod} from '../../../integration/kube/resources/pod/pod.js';
 import {type Context} from './types.js';
-import {type ConsensusNodeComponent} from './components/consensus-node-component.js';
+import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -102,7 +102,7 @@ export class RemoteConfigValidator {
     const validationPromises: Promise<void>[] = Object.entries(RemoteConfigValidator.componentValidations)
       .filter(([key]) => key !== 'consensusNodes' || !skipConsensusNodes)
       .flatMap(([key, {getLabelsCallback, type, skipCondition}]): Promise<void>[] =>
-        RemoteConfigValidator.validateComponentList(
+        RemoteConfigValidator.validateComponentGroup(
           namespace,
           components[key],
           k8Factory,
@@ -116,7 +116,7 @@ export class RemoteConfigValidator {
     await Promise.all(validationPromises);
   }
 
-  private static validateComponentList(
+  private static validateComponentGroup(
     namespace: NamespaceName,
     components: Record<string, BaseComponent>,
     k8Factory: K8Factory,
@@ -136,27 +136,16 @@ export class RemoteConfigValidator {
       const context: Context = localConfig.clusterRefs[component.cluster];
       const labels: string[] = getLabelsCallback(component);
 
-      await RemoteConfigValidator.validateComponent(namespace, component, k8Factory, context, labels, type);
-    });
-  }
+      try {
+        const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
 
-  private static async validateComponent(
-    namespace: NamespaceName,
-    component: BaseComponent,
-    k8Factory: K8Factory,
-    context: Context,
-    labels: string[],
-    errorType: string,
-  ): Promise<void> {
-    try {
-      const pods: Pod[] = await k8Factory.getK8(context).pods().list(namespace, labels);
-
-      if (pods.length === 0) {
-        throw new Error('Pod not found'); // to return the generic error message
+        if (pods.length === 0) {
+          throw new Error('Pod not found'); // to return the generic error message
+        }
+      } catch (error) {
+        throw RemoteConfigValidator.buildValidationError(type, component, error);
       }
-    } catch (error) {
-      throw RemoteConfigValidator.buildValidationError(errorType, component, error);
-    }
+    });
   }
 
   /**
