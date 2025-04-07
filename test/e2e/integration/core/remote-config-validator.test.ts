@@ -69,16 +69,11 @@ describe('RemoteConfigValidator', () => {
 
   // @ts-expect-error - TS2673: Constructor of class ComponentsDataWrapper is private
   const components: ComponentsDataWrapper = new ComponentsDataWrapper(
-    // @ts-expect-error - to access private constructor
     {[relayName]: new RelayComponent(relayName, cluster, namespace.name, ComponentStates.ACTIVE, consensusNodeAliases)},
-    // @ts-expect-error - to access private constructor
     {[haProxyName]: new HaProxyComponent(haProxyName, cluster, namespace.name, ComponentStates.ACTIVE)},
-    // @ts-expect-error - to access private constructor
     {[mirrorNodeName]: new MirrorNodeComponent(mirrorNodeName, cluster, namespace.name, ComponentStates.ACTIVE)},
-    // @ts-expect-error - to access private constructor
     {[envoyProxyName]: new EnvoyProxyComponent(envoyProxyName, cluster, namespace.name, ComponentStates.ACTIVE)},
     {
-      // @ts-expect-error - to access private constructor
       [nodeAlias]: new ConsensusNodeComponent(
         nodeAlias,
         cluster,
@@ -89,7 +84,6 @@ describe('RemoteConfigValidator', () => {
       ),
     },
     {
-      // @ts-expect-error - to access private constructor
       [mirrorNodeExplorerName]: new MirrorNodeExplorerComponent(
         mirrorNodeExplorerName,
         cluster,

@@ -12,6 +12,7 @@ import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {
   type ClusterReference,
   type ClusterReferences,
+  type ComponentName,
   type Context,
   type DeploymentName,
   type NamespaceNameAsString,
@@ -36,6 +37,8 @@ import {type ConfigMap} from '../../../integration/kube/resources/config-map/con
 import {getSoloVersion} from '../../../../version.js';
 import {DeploymentStates} from './enumerations/deployment-states.js';
 import {type RemoteConfigManagerApi} from './api/remote-config-manager-api.js';
+import {ComponentFactory} from './components/component-factory.js';
+import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 
 /**
  * Uses Kubernetes ConfigMaps to manage the remote configuration data by creating, loading, modifying,
@@ -118,12 +121,15 @@ export class RemoteConfigManager implements RemoteConfigManagerApi {
     const soloVersion = getSoloVersion();
     const currentCommand = argv._.join(' ');
 
+    const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> =
+      ComponentFactory.createConsensusNodeComponentsFromNodeAliases(nodeAliases, clusterReference, namespace);
+
     this.remoteConfig = new RemoteConfigDataWrapper({
       clusters,
       metadata: new RemoteConfigMetadata(namespace.name, deployment, state, lastUpdatedAt, email, soloVersion),
       commandHistory: [currentCommand],
       lastExecutedCommand: currentCommand,
-      components: ComponentsDataWrapper.initializeWithNodes(nodeAliases, clusterReference, namespace),
+      components: ComponentsDataWrapper.initializeWithNodes(consensusNodeComponents),
       flags: await CommonFlagsDataWrapper.initialize(this.configManager, argv),
     });
 

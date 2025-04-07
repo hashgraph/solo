@@ -10,11 +10,9 @@ import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
 import {type ClusterReference, type ComponentName} from './types.js';
-import {type NodeAliases} from '../../../types/aliases.js';
 import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {ComponentStates} from './enumerations/component-states.js';
-import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
 import {type BaseComponentStructure} from './components/interfaces/base-component-structure.js';
 import {type RelayComponentStructure} from './components/interfaces/relay-component-structure.js';
@@ -22,7 +20,6 @@ import {type ConsensusNodeComponentStructure} from './components/interfaces/cons
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 import {type ComponentsDataStruct} from './interfaces/components-data-struct.js';
 import {ComponentNameTemplates} from './components/component-name-templates.js';
-import {ComponentFactory} from './components/component-factory.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -274,21 +271,8 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   }
 
   public static initializeWithNodes(
-    nodeAliases: NodeAliases,
-    clusterReference: ClusterReference,
-    namespace: NamespaceName,
+    consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent>,
   ): ComponentsDataWrapper {
-    const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
-
-    for (const nodeAlias of nodeAliases) {
-      consensusNodeComponents[nodeAlias] = ComponentFactory.createNewConsensusNodeComponent(
-        nodeAlias,
-        clusterReference,
-        namespace,
-        ConsensusNodeStates.NON_DEPLOYED,
-      );
-    }
-
     return new ComponentsDataWrapper(undefined, undefined, undefined, undefined, consensusNodeComponents);
   }
 

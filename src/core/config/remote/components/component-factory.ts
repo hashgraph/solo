@@ -11,11 +11,11 @@ import {EnvoyProxyComponent} from './envoy-proxy-component.js';
 import {Templates} from '../../../templates.js';
 import {ConsensusNodeComponent} from './consensus-node-component.js';
 import {BlockNodeComponent} from './block-node-component.js';
+import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type ClusterReference, type ComponentName} from '../types.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type NodeAlias, type NodeAliases, type NodeId} from '../../../../types/aliases.js';
-import {type ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
 
 export class ComponentFactory {
   public static createNewRelayComponent(
@@ -108,5 +108,24 @@ export class ComponentFactory {
     const name: ComponentName = ComponentNameTemplates.renderBlockNodeName(index);
 
     return new BlockNodeComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
+  }
+
+  public static createConsensusNodeComponentsFromNodeAliases(
+    nodeAliases: NodeAliases,
+    clusterReference: ClusterReference,
+    namespace: NamespaceName,
+  ): Record<ComponentName, ConsensusNodeComponent> {
+    const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> = {};
+
+    for (const nodeAlias of nodeAliases) {
+      consensusNodeComponents[nodeAlias] = ComponentFactory.createNewConsensusNodeComponent(
+        nodeAlias,
+        clusterReference,
+        namespace,
+        ConsensusNodeStates.NON_DEPLOYED,
+      );
+    }
+
+    return consensusNodeComponents;
   }
 }
