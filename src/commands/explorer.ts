@@ -14,7 +14,7 @@ import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
 import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
+import {type MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
 import * as helpers from '../core/helpers.js';
 import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';

@@ -14,7 +14,7 @@ import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {RelayComponent} from '../core/config/remote/components/relay-component.js';
+import {type RelayComponent} from '../core/config/remote/components/relay-component.js';
 import * as Base64 from 'js-base64';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';

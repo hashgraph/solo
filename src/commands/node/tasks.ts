@@ -86,9 +86,6 @@ import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {BaseCommand} from '../base.js';
-import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
-import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy-proxy-component.js';
-import {HaProxyComponent} from '../../core/config/remote/components/ha-proxy-component.js';
 import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell-runner.js';
 import {PathEx} from '../../business/utils/path-ex.js';
@@ -2514,13 +2511,28 @@ export class NodeCommandTasks {
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.addNewComponent(
-            ComponentFactory.createNewConsensusNodeComponent(nodeAlias, clusterReference, namespace, ConsensusNodeStates.STARTED),
+            ComponentFactory.createNewConsensusNodeComponent(
+              nodeAlias,
+              clusterReference,
+              namespace,
+              ConsensusNodeStates.STARTED,
+            ),
           );
           remoteConfig.components.addNewComponent(
-            ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+            ComponentFactory.createNewEnvoyProxyComponent(
+              this.remoteConfigManager,
+              clusterReference,
+              namespace,
+              nodeAlias,
+            ),
           );
           remoteConfig.components.addNewComponent(
-            ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+            ComponentFactory.createNewHaProxyComponent(
+              this.remoteConfigManager,
+              clusterReference,
+              namespace,
+              nodeAlias,
+            ),
           );
         });
 

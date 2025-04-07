@@ -5,7 +5,7 @@ import {describe, it} from 'mocha';
 
 import {RelayComponent} from '../../../../../../src/core/config/remote/components/relay-component.js';
 import {BaseComponent} from '../../../../../../src/core/config/remote/components/base-component.js';
-import {ConsensusNodeComponent} from '../../../../../../src/core/config/remote/components/consensus-node-component.js';
+import {type ConsensusNodeComponent} from '../../../../../../src/core/config/remote/components/consensus-node-component.js';
 import {HaProxyComponent} from '../../../../../../src/core/config/remote/components/ha-proxy-component.js';
 import {EnvoyProxyComponent} from '../../../../../../src/core/config/remote/components/envoy-proxy-component.js';
 import {MirrorNodeComponent} from '../../../../../../src/core/config/remote/components/mirror-node-component.js';

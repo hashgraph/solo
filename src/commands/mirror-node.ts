@@ -19,7 +19,7 @@ import {showVersionBanner} from '../core/helpers.js';
 import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
+import {type MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 import * as fs from 'node:fs';
 import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';

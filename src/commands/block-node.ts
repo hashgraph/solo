@@ -23,7 +23,7 @@ import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Lock} from '../core/lock/lock.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import os from 'node:os';
-import {BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
+import {type BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 

@@ -16,7 +16,6 @@ import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {Templates} from '../core/templates.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
@@ -700,7 +699,12 @@ export class DeploymentCommand extends BaseCommand {
           //* add the new nodes to components
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.addNewComponent(
-              ComponentFactory.createNewConsensusNodeComponent(nodeAlias, clusterRef, namespace, ConsensusNodeStates.NON_DEPLOYED),
+              ComponentFactory.createNewConsensusNodeComponent(
+                nodeAlias,
+                clusterRef,
+                namespace,
+                ConsensusNodeStates.NON_DEPLOYED,
+              ),
             );
           }
         });

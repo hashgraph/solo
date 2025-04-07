@@ -28,8 +28,6 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
 import {type AnyYargs, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
-import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
 import {type CommandDefinition, type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -1336,10 +1334,20 @@ export class NetworkCommand extends BaseCommand {
             remoteConfig.components.changeNodeState(nodeAlias, ConsensusNodeStates.REQUESTED);
 
             remoteConfig.components.addNewComponent(
-              ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+              ComponentFactory.createNewEnvoyProxyComponent(
+                this.remoteConfigManager,
+                clusterReference,
+                namespace,
+                nodeAlias,
+              ),
             );
             remoteConfig.components.addNewComponent(
-              ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace, nodeAlias),
+              ComponentFactory.createNewHaProxyComponent(
+                this.remoteConfigManager,
+                clusterReference,
+                namespace,
+                nodeAlias,
+              ),
             );
           }
         });
