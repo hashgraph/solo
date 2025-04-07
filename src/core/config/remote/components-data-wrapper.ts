@@ -21,6 +21,7 @@ import {type RelayComponentStructure} from './components/interfaces/relay-compon
 import {type ConsensusNodeComponentStructure} from './components/interfaces/consensus-node-component-structure.js';
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 import {type ComponentsDataStruct} from './interfaces/components-data-struct.js';
+import {ComponentNameTemplates} from './components/component-name-templates.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -305,7 +306,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
       components: Record<ComponentName, BaseComponent>,
     ) => void = components => {
       for (const componentName of Object.keys(components)) {
-        const componentIndex: number = BaseComponent.parseComponentName(componentName);
+        const componentIndex: number = ComponentNameTemplates.parseComponentName(componentName);
         if (newComponentIndex <= componentIndex) {
           newComponentIndex = componentIndex + 1;
         }

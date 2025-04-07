@@ -7,10 +7,9 @@ import {ComponentStates} from '../enumerations/component-states.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
+import {ComponentNameTemplates} from './component-name-templates.js';
 
 export class BlockNodeComponent extends BaseComponent {
-  private static readonly BASE_NAME: string = 'block-node';
-
   private constructor(
     name: ComponentName,
     cluster: ClusterReference,
@@ -30,7 +29,7 @@ export class BlockNodeComponent extends BaseComponent {
   ): BlockNodeComponent {
     const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.BlockNode);
 
-    const name: ComponentName = BlockNodeComponent.renderBlockNodeName(index);
+    const name: ComponentName = ComponentNameTemplates.renderBlockNodeName(index);
 
     return new BlockNodeComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
   }
@@ -39,9 +38,5 @@ export class BlockNodeComponent extends BaseComponent {
   public static fromObject(component: BaseComponentStructure): BlockNodeComponent {
     const {name, cluster, namespace, state} = component;
     return new BlockNodeComponent(name, cluster, namespace, state);
-  }
-
-  private static renderBlockNodeName(index: number): string {
-    return BlockNodeComponent.renderComponentName(BlockNodeComponent.BASE_NAME, index);
   }
 }

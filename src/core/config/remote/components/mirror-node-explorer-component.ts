@@ -7,10 +7,9 @@ import {type ClusterReference, type ComponentName, type NamespaceNameAsString} f
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
+import {ComponentNameTemplates} from './component-name-templates.js';
 
 export class MirrorNodeExplorerComponent extends BaseComponent {
-  private static readonly BASE_NAME: string = 'mirror-node-explorer';
-
   private constructor(
     name: ComponentName,
     cluster: ClusterReference,
@@ -30,7 +29,7 @@ export class MirrorNodeExplorerComponent extends BaseComponent {
   ): MirrorNodeExplorerComponent {
     const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.MirrorNodeExplorer);
 
-    const name: ComponentName = MirrorNodeExplorerComponent.renderMirrorNodeExplorerName(index);
+    const name: ComponentName = ComponentNameTemplates.renderMirrorNodeExplorerName(index);
 
     return new MirrorNodeExplorerComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
   }
@@ -39,9 +38,5 @@ export class MirrorNodeExplorerComponent extends BaseComponent {
   public static fromObject(component: BaseComponentStructure): MirrorNodeExplorerComponent {
     const {name, cluster, namespace, state} = component;
     return new MirrorNodeExplorerComponent(name, cluster, namespace, state);
-  }
-
-  private static renderMirrorNodeExplorerName(index: number): string {
-    return MirrorNodeExplorerComponent.renderComponentName(MirrorNodeExplorerComponent.BASE_NAME, index);
   }
 }

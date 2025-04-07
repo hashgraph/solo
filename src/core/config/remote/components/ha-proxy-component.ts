@@ -8,10 +8,9 @@ import {type NodeAlias} from '../../../../types/aliases.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
+import {ComponentNameTemplates} from './component-name-templates.js';
 
 export class HaProxyComponent extends BaseComponent {
-  private static BASE_NAME: (nodeAlias: NodeAlias) => string = (nodeAlias): string => `haproxy-${nodeAlias}`;
-
   private constructor(
     name: ComponentName,
     cluster: ClusterReference,
@@ -32,7 +31,7 @@ export class HaProxyComponent extends BaseComponent {
   ): HaProxyComponent {
     const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.HaProxy);
 
-    const name: ComponentName = HaProxyComponent.renderHaProxyName(index, nodeAlias);
+    const name: ComponentName = ComponentNameTemplates.renderHaProxyName(index, nodeAlias);
 
     return new HaProxyComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
   }
@@ -41,9 +40,5 @@ export class HaProxyComponent extends BaseComponent {
   public static fromObject(component: BaseComponentStructure): HaProxyComponent {
     const {name, cluster, namespace, state} = component;
     return new HaProxyComponent(name, cluster, namespace, state);
-  }
-
-  private static renderHaProxyName(index: number, nodeAlias: NodeAlias): string {
-    return HaProxyComponent.renderComponentName(HaProxyComponent.BASE_NAME(nodeAlias), index);
   }
 }

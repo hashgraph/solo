@@ -10,13 +10,12 @@ import {type ToObject} from '../../../../types/index.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type RelayComponentStructure} from './interfaces/relay-component-structure.js';
+import {ComponentNameTemplates} from './component-name-templates.js';
 
 export class RelayComponent
   extends BaseComponent
   implements RelayComponentStructure, ToObject<RelayComponentStructure>
 {
-  private static readonly BASE_NAME: string = 'relay';
-
   /**
    * @param name - to distinguish components.
    * @param clusterReference - in which the component is deployed.
@@ -45,7 +44,7 @@ export class RelayComponent
   ): RelayComponent {
     const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.Relay);
 
-    const name: ComponentName = RelayComponent.renderRelayName(index);
+    const name: ComponentName = ComponentNameTemplates.renderRelayName(index);
 
     return new RelayComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE, nodeAliases);
   }
@@ -71,9 +70,5 @@ export class RelayComponent
       consensusNodeAliases: this.consensusNodeAliases,
       ...super.toObject(),
     };
-  }
-
-  private static renderRelayName(index: number): string {
-    return RelayComponent.renderComponentName(RelayComponent.BASE_NAME, index);
   }
 }

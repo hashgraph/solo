@@ -7,10 +7,9 @@ import {type ClusterReference, type ComponentName, type NamespaceNameAsString} f
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
+import {ComponentNameTemplates} from './component-name-templates.js';
 
 export class MirrorNodeComponent extends BaseComponent {
-  private static readonly BASE_NAME: string = 'mirror-node';
-
   private constructor(
     name: ComponentName,
     cluster: ClusterReference,
@@ -30,7 +29,7 @@ export class MirrorNodeComponent extends BaseComponent {
   ): MirrorNodeComponent {
     const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.MirrorNode);
 
-    const name: ComponentName = MirrorNodeComponent.renderMirrorNodeName(index);
+    const name: ComponentName = ComponentNameTemplates.renderMirrorNodeName(index);
 
     return new MirrorNodeComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
   }
@@ -39,9 +38,5 @@ export class MirrorNodeComponent extends BaseComponent {
   public static fromObject(component: BaseComponentStructure): MirrorNodeComponent {
     const {name, cluster, namespace, state} = component;
     return new MirrorNodeComponent(name, cluster, namespace, state);
-  }
-
-  private static renderMirrorNodeName(index: number): string {
-    return MirrorNodeComponent.renderComponentName(MirrorNodeComponent.BASE_NAME, index);
   }
 }
