@@ -2,16 +2,12 @@
 
 import {BaseComponent} from './base-component.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
-import {ComponentStates} from '../enumerations/component-states.js';
-import {ComponentNameTemplates} from './component-name-templates.js';
+import {type ComponentStates} from '../enumerations/component-states.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
-import {type NodeAlias} from '../../../../types/aliases.js';
-import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
-import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
 
 export class EnvoyProxyComponent extends BaseComponent {
-  private constructor(
+  public constructor(
     name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
@@ -22,19 +18,6 @@ export class EnvoyProxyComponent extends BaseComponent {
   }
 
   /* -------- Utilities -------- */
-
-  public static createNew(
-    remoteConfigManager: RemoteConfigManagerApi,
-    clusterReference: ClusterReference,
-    namespace: NamespaceName,
-    nodeAlias: NodeAlias,
-  ): EnvoyProxyComponent {
-    const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.EnvoyProxy);
-
-    const name: ComponentName = ComponentNameTemplates.renderEnvoyProxyName(index, nodeAlias);
-
-    return new EnvoyProxyComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
-  }
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: BaseComponentStructure): EnvoyProxyComponent {

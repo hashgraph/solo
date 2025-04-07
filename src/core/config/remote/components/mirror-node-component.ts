@@ -2,15 +2,12 @@
 
 import {BaseComponent} from './base-component.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
-import {ComponentStates} from '../enumerations/component-states.js';
+import {type ComponentStates} from '../enumerations/component-states.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
-import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
-import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type BaseComponentStructure} from './interfaces/base-component-structure.js';
-import {ComponentNameTemplates} from './component-name-templates.js';
 
 export class MirrorNodeComponent extends BaseComponent {
-  private constructor(
+  public constructor(
     name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
@@ -21,18 +18,6 @@ export class MirrorNodeComponent extends BaseComponent {
   }
 
   /* -------- Utilities -------- */
-
-  public static createNew(
-    remoteConfigManager: RemoteConfigManagerApi,
-    clusterReference: ClusterReference,
-    namespace: NamespaceName,
-  ): MirrorNodeComponent {
-    const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.MirrorNode);
-
-    const name: ComponentName = ComponentNameTemplates.renderMirrorNodeName(index);
-
-    return new MirrorNodeComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
-  }
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: BaseComponentStructure): MirrorNodeComponent {

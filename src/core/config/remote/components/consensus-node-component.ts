@@ -2,15 +2,12 @@
 
 import {BaseComponent} from './base-component.js';
 import {SoloError} from '../../../errors/solo-error.js';
-import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
-import {type ToObject} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
-import {ComponentStates} from '../enumerations/component-states.js';
-import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
-import {type NodeAlias, type NodeId} from '../../../../types/aliases.js';
-import {Templates} from '../../../templates.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
+import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
+import {type ToObject} from '../../../../types/index.js';
+import {type ComponentStates} from '../enumerations/component-states.js';
 import {type ConsensusNodeComponentStructure} from './interfaces/consensus-node-component-structure.js';
 
 /**
@@ -33,7 +30,7 @@ export class ConsensusNodeComponent
    * @param state - the component state
    * @param nodeState - of the consensus node
    */
-  private constructor(
+  public constructor(
     name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
@@ -56,23 +53,6 @@ export class ConsensusNodeComponent
   }
 
   /* -------- Utilities -------- */
-
-  public static createNew(
-    nodeAlias: NodeAlias,
-    clusterReference: ClusterReference,
-    namespace: NamespaceName,
-    nodeState: ConsensusNodeStates.REQUESTED | ConsensusNodeStates.NON_DEPLOYED | ConsensusNodeStates.STARTED,
-  ): ConsensusNodeComponent {
-    const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
-    return new ConsensusNodeComponent(
-      nodeAlias,
-      clusterReference,
-      namespace.name,
-      ComponentStates.ACTIVE,
-      nodeState,
-      nodeId,
-    );
-  }
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: ConsensusNodeComponentStructure): ConsensusNodeComponent {
