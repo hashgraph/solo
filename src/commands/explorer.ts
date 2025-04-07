@@ -12,7 +12,7 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
-import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
+import {AnyListrContext, type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {type MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
 import * as helpers from '../core/helpers.js';
@@ -237,7 +237,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLock.newAcquireLockTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
+        this.loadRemoteConfigTask(argv),
         {
           title: 'Install cert manager',
           task: async context_ => {
@@ -463,7 +463,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLock.newAcquireLockTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
+        this.loadRemoteConfigTask(argv),
         {
           title: 'Destroy explorer',
           task: async context_ => {
@@ -570,6 +570,15 @@ export class ExplorerCommand extends BaseCommand {
             },
           })
           .demandCommand(1, 'Select a explorer command');
+      },
+    };
+  }
+
+  private loadRemoteConfigTask(argv: ArgvStruct): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Load remote config',
+      task: async (): Promise<void> => {
+        await this.remoteConfigManager.loadAndValidate(argv);
       },
     };
   }
