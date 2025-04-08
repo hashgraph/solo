@@ -63,7 +63,7 @@ export class DeploymentCommand extends BaseCommand {
 
   private static CREATE_FLAGS_LIST = {
     required: [],
-    optional: [flags.quiet, flags.namespace, flags.deployment],
+    optional: [flags.quiet, flags.namespace, flags.deployment, flags.realm, flags.shard],
   };
 
   private static DELETE_FLAGS_LIST = {
