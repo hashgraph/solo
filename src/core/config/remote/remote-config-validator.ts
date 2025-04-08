@@ -23,7 +23,8 @@ export class RemoteConfigValidator {
   }
 
   private static getHaProxyLabels(component: BaseComponent): string[] {
-    return [`app=${component.name}`];
+    const name: string = component.name.split('-').slice(0, -1).join('-');
+    return [`app=${name}`];
   }
 
   private static getMirrorNodeLabels(): string[] {
@@ -31,7 +32,8 @@ export class RemoteConfigValidator {
   }
 
   private static getEnvoyProxyLabels(component: BaseComponent): string[] {
-    return [`app=${component.name}`];
+    const name: string = component.name.split('-').slice(0, -1).join('-');
+    return [`app=${name}`];
   }
 
   private static getMirrorNodeExplorerLabels(): string[] {
