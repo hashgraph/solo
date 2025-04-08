@@ -185,7 +185,7 @@ tasks:
 
   test-e2e-block-node:
     cmds:
-      - "{{ .test_prefix }}=\"Mocha E2E Relay Tests\"
+      - "{{ .test_prefix }}=\"Mocha E2E Block Nodes Tests\"
         {{ .reporter_prefix }}='coverage/e2e-block-node'
         {{ .mocha_bin }} 'test/e2e/commands/block-node.test.ts'
         {{ .reporter_options_prefix }}-e2e-block-node.xml"
