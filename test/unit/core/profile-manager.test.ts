@@ -146,11 +146,13 @@ describe('ProfileManager', () => {
         }
 
         profileManager.loadProfiles(true);
+        const applicationPropertiesFile: string = PathEx.join(stagingDirectory, 'templates', 'application.properties');
         const valuesFileMapping = await profileManager.prepareValuesForSoloChart(
           input.profileName,
           consensusNodes,
           {},
           deploymentName,
+          applicationPropertiesFile,
         );
         const valuesFile = Object.values(valuesFileMapping)[0];
 
@@ -189,13 +191,15 @@ describe('ProfileManager', () => {
         const fileContents = '# row 1\n# row 2\n# row 3';
         fs.writeFileSync(file, fileContents);
         configManager.setFlag(flags.applicationEnv, file);
-        const destinationFile = PathEx.join(stagingDirectory, 'templates', 'application.env');
+        const destinationFile: string = PathEx.join(stagingDirectory, 'templates', 'application.env');
+        const applicationPropertiesFile: string = PathEx.join(stagingDirectory, 'templates', 'application.properties');
         fs.cpSync(file, destinationFile, {force: true});
         const cachedValuesFileMapping = await profileManager.prepareValuesForSoloChart(
           'test',
           consensusNodes,
           {},
           deploymentName,
+          applicationPropertiesFile,
         );
         const cachedValuesFile = Object.values(cachedValuesFileMapping)[0];
         const valuesYaml: any = yaml.parse(fs.readFileSync(cachedValuesFile).toString());

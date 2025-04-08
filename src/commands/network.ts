@@ -388,6 +388,7 @@ export class NetworkCommand extends BaseCommand {
     clusterRefs: ClusterReferences;
     consensusNodes: ConsensusNode[];
     domainNamesMapping?: Record<NodeAlias, string>;
+    cacheDir: string;
   }): Promise<Record<ClusterReference, string>> {
     const valuesArguments: Record<ClusterReference, string> = this.prepareValuesArg(config);
 
@@ -395,12 +396,18 @@ export class NetworkCommand extends BaseCommand {
     const valuesArgumentMap: Record<ClusterReference, string> = {};
     const profileName: string = this.configManager.getFlag(flags.profileName);
     const deploymentName: DeploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const applicationPropertiesPath: string = PathEx.joinWithRealPath(
+      config.cacheDir,
+      'templates',
+      'application.properties',
+    );
 
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
       profileName,
       config.consensusNodes,
       config.domainNamesMapping,
       deploymentName,
+      applicationPropertiesPath,
     );
 
     const valuesFiles: Record<ClusterReference, string> = BaseCommand.prepareValuesFilesMapMulticluster(

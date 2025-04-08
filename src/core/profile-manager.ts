@@ -27,9 +27,10 @@ import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type RemoteConfigManager} from './config/remote/remote-config-manager.js';
-import {type ClusterReference, DeploymentName} from './config/remote/types.js';
+import {type ClusterReference, DeploymentName, Realm, Shard} from './config/remote/types.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {AccountManager} from './account-manager.js';
+import {type LocalConfig} from './config/local/local-config.js';
 
 @injectable()
 export class ProfileManager {
@@ -39,6 +40,7 @@ export class ProfileManager {
   private readonly k8Factory: K8Factory;
   private readonly remoteConfigManager: RemoteConfigManager;
   private readonly accountManager: AccountManager;
+  private readonly localConfig: LocalConfig;
 
   private profiles: Map<string, AnyObject>;
   private profileFile: Optional<string>;
@@ -50,6 +52,7 @@ export class ProfileManager {
     @inject(InjectTokens.K8Factory) k8Factory?: K8Factory,
     @inject(InjectTokens.RemoteConfigManager) remoteConfigManager?: RemoteConfigManager,
     @inject(InjectTokens.AccountManager) accountManager?: AccountManager,
+    @inject(InjectTokens.LocalConfig) localConfig?: LocalConfig,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
@@ -61,6 +64,7 @@ export class ProfileManager {
       this.constructor.name,
     );
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
 
     this.profiles = new Map();
   }
@@ -206,6 +210,7 @@ export class ProfileManager {
     yamlRoot: AnyObject,
     domainNamesMapping: Record<NodeAlias, string>,
     deploymentName: DeploymentName,
+    applicationPropertiesPath: string,
   ): Promise<AnyObject> {
     if (!profile) {
       throw new MissingArgumentError('profile is required');
@@ -241,6 +246,13 @@ export class ProfileManager {
       this.configManager.getFlag(flags.app),
       this.configManager.getFlag(flags.chainId),
       this.configManager.getFlag(flags.loadBalancerEnabled),
+    );
+
+    // Update application.properties with shard and realm
+    await this.updateApplicationPropertiesWithRealmAndShard(
+      applicationPropertiesPath,
+      this.localConfig.getRealm(deploymentName),
+      this.localConfig.getShard(deploymentName),
     );
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
@@ -362,6 +374,7 @@ export class ProfileManager {
    * @param consensusNodes - the list of consensus nodes
    * @param domainNamesMapping
    * @param deploymentName
+   * @param applicationPropertiesPath
    * @returns mapping of cluster-ref to the full path to the values file
    */
   public async prepareValuesForSoloChart(
@@ -369,6 +382,7 @@ export class ProfileManager {
     consensusNodes: ConsensusNode[],
     domainNamesMapping: Record<NodeAlias, string>,
     deploymentName: DeploymentName,
+    applicationPropertiesPath: string,
   ): Promise<Record<ClusterReference, string>> {
     if (!profileName) {
       throw new MissingArgumentError('profileName is required');
@@ -391,6 +405,7 @@ export class ProfileManager {
         yamlRoot,
         domainNamesMapping,
         deploymentName,
+        applicationPropertiesPath,
       );
       this.resourcesForHaProxyPod(profile, yamlRoot);
       this.resourcesForEnvoyProxyPod(profile, yamlRoot);
@@ -415,6 +430,37 @@ export class ProfileManager {
     }
 
     await writeFile(applicationPropertiesPath, lines.join('\n'));
+  }
+
+  private async updateApplicationPropertiesWithRealmAndShard(
+    applicationPropertiesPath: string,
+    realm: Realm,
+    shard: Shard,
+  ) {
+    const lines = (await readFile(applicationPropertiesPath, 'utf-8')).split('\n');
+
+    let realmUpdated: boolean = false;
+    let shardUpdated: boolean = false;
+    for (const line of lines) {
+      if (line.startsWith('hedera.realm=')) {
+        lines[lines.indexOf(line)] = `hedera.realm=${realm}`;
+        realmUpdated = true;
+        continue;
+      }
+      if (line.startsWith('hedera.shard=')) {
+        lines[lines.indexOf(line)] = `hedera.shard=${shard}`;
+        shardUpdated = true;
+      }
+    }
+
+    if (!realmUpdated) {
+      lines.push(`hedera.realm=${realm}`);
+    }
+    if (!shardUpdated) {
+      lines.push(`hedera.shard=${shard}`);
+    }
+
+    await writeFile(applicationPropertiesPath, lines.join('\n') + '\n');
   }
 
   public async prepareValuesForNodeTransaction(configTxtPath: string, applicationPropertiesPath: string) {
