@@ -155,6 +155,7 @@ echo "Sleep a while to wait background transactions to finish"
 sleep 30
 
 echo "Run mirror node acceptance test"
+helm upgrade mirror mirror/hedera-mirror  -n solo-e2e --set test.enabled=true --set test.config.hedera.mirror.test.acceptance.network=OTHER --set test.config.hedera.mirror.test.acceptance.operatorId="${OPERATOR_ID}" --set test.config.hedera.mirror.test.acceptance.operatorKey="${OPERATOR_KEY}"
 helm test mirror -n solo-e2e --timeout 10m
 check_monitor_log
 check_importer_log
