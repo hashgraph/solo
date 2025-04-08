@@ -178,7 +178,7 @@ tasks:
 
   test-e2e-relay:
     cmds:
-      - "{{ .test_prefix }}=\"Mocha E2E Block Node Tests\"
+      - "{{ .test_prefix }}=\"Mocha E2E Relay Tests\"
         {{ .reporter_prefix }}='coverage/e2e-relay'
         {{ .mocha_bin }} 'test/e2e/commands/relay.test.ts'
         {{ .reporter_options_prefix }}-e2e-relay.xml"
