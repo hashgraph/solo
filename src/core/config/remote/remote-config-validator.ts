@@ -57,36 +57,36 @@ export class RemoteConfigValidator {
     string,
     {
       getLabelsCallback: (component: BaseComponent) => string[];
-      type: string;
+      displayName: string;
       skipCondition?: (component: BaseComponent) => boolean;
     }
   > = {
     relays: {
-      type: 'Relay',
+      displayName: 'Relay',
       getLabelsCallback: RemoteConfigValidator.getRelayLabels,
     },
     haProxies: {
-      type: 'HaProxy',
+      displayName: 'HaProxy',
       getLabelsCallback: RemoteConfigValidator.getHaProxyLabels,
     },
     mirrorNodes: {
-      type: 'Block nodes',
+      displayName: 'Mirror node',
       getLabelsCallback: RemoteConfigValidator.getMirrorNodeLabels,
     },
     envoyProxies: {
-      type: 'Envoy proxy',
+      displayName: 'Envoy proxy',
       getLabelsCallback: RemoteConfigValidator.getEnvoyProxyLabels,
     },
     mirrorNodeExplorers: {
-      type: 'Mirror node explorer',
+      displayName: 'Mirror node explorer',
       getLabelsCallback: RemoteConfigValidator.getMirrorNodeExplorerLabels,
     },
     blockNodes: {
-      type: 'Block nodes',
+      displayName: 'Block node',
       getLabelsCallback: RemoteConfigValidator.getBlockNodeLabels,
     },
     consensusNodes: {
-      type: 'Consensus node',
+      displayName: 'Consensus node',
       getLabelsCallback: RemoteConfigValidator.getConsensusNodeLabels,
       skipCondition: RemoteConfigValidator.consensusNodeSkipConditionCallback,
     },
@@ -101,14 +101,14 @@ export class RemoteConfigValidator {
   ): Promise<void> {
     const validationPromises: Promise<void>[] = Object.entries(RemoteConfigValidator.componentValidationsMapping)
       .filter(([key]) => key !== 'consensusNodes' || !skipConsensusNodes)
-      .flatMap(([key, {getLabelsCallback, type, skipCondition}]): Promise<void>[] =>
+      .flatMap(([key, {getLabelsCallback, displayName, skipCondition}]): Promise<void>[] =>
         RemoteConfigValidator.validateComponentGroup(
           namespace,
           components[key],
           k8Factory,
           localConfig,
           getLabelsCallback,
-          type,
+          displayName,
           skipCondition,
         ),
       );
@@ -122,7 +122,7 @@ export class RemoteConfigValidator {
     k8Factory: K8Factory,
     localConfig: LocalConfig,
     getLabelsCallback: (component: BaseComponent) => string[],
-    type: string,
+    displayName: string,
     skipCondition?: (component: BaseComponent) => boolean,
   ): Promise<void>[] {
     return Object.values(components).map(async (component): Promise<void> => {
@@ -143,7 +143,7 @@ export class RemoteConfigValidator {
           throw new Error('Pod not found'); // to return the generic error message
         }
       } catch (error) {
-        throw RemoteConfigValidator.buildValidationError(type, component, error);
+        throw RemoteConfigValidator.buildValidationError(displayName, component, error);
       }
     });
   }
@@ -151,16 +151,27 @@ export class RemoteConfigValidator {
   /**
    * Generic handler that throws errors.
    *
-   * @param type - name to display in error message
+   * @param displayName - name to display in error message
    * @param component - component which is not found in the cluster
    * @param error - original error for the kube client
    */
-  private static buildValidationError(type: string, component: BaseComponent, error: Error | unknown): SoloError {
+  private static buildValidationError(
+    displayName: string,
+    component: BaseComponent,
+    error: Error | unknown,
+  ): SoloError {
     return new SoloError(
-      `${type} in remote config with name ${component.name} ` +
-        `was not found in namespace: ${component.namespace}, cluster: ${component.cluster}`,
+      RemoteConfigValidator.buildValidationErrorMessage(displayName, component),
       error,
-      {component: component.toObject()},
+      component.toObject(),
+    );
+  }
+
+  public static buildValidationErrorMessage(displayName: string, component: BaseComponent): string {
+    return (
+      `${displayName} in remote config with name ${component.name} was not found in ` +
+      `namespace: ${component.namespace}, ` +
+      `cluster: ${component.cluster}`
     );
   }
 }
