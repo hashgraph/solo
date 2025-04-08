@@ -12,7 +12,7 @@ import {type ConsensusNodeComponent} from '../../../../src/core/config/remote/co
 import {type MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
 import {type EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy-proxy-component.js';
 
-import {type NodeAlias, NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
@@ -25,10 +25,10 @@ import {getTestCacheDirectory} from '../../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations/consensus-node-states.js';
-import {type ClusterReference, ComponentName} from '../../../../src/core/config/remote/types.js';
+import {type ClusterReference, type ComponentName} from '../../../../src/core/config/remote/types.js';
 import {ComponentFactory} from '../../../../src/core/config/remote/components/component-factory.js';
 import {type BlockNodeComponent} from '../../../../src/core/config/remote/components/block-node-component.js';
-import {BaseComponent} from '../../../../src/core/config/remote/components/base-component.js';
+import {type BaseComponent} from '../../../../src/core/config/remote/components/base-component.js';
 import {ComponentTypes} from '../../../../src/core/config/remote/enumerations/component-types.js';
 
 interface ComponentsRecord {
