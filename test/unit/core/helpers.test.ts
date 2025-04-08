@@ -37,4 +37,10 @@ describe('Helpers', () => {
     const result = flags.stringifyArgv(argv);
     expect(result).to.equal(`--${flags.namespace.name} VALUE`);
   });
+
+  it('Should ipv4ToByteArray convert IPv4 address to byte array', () => {
+    const ipV4Address: string = '192.168.0.1';
+    const byteArray: number[] = helpers.ipv4ToByteArray(ipV4Address);
+    expect(JSON.stringify(byteArray)).to.equal('[192,168,0,1]');
+  });
 });
