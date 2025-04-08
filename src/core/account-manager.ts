@@ -1013,7 +1013,11 @@ export class AccountManager {
       client.setOperator(operatorId, operatorKey);
     }
 
-    const query = new FileContentsQuery().setFileId(FileId.ADDRESS_BOOK);
+    const realm: Realm = this.localConfig.getRealm(deployment);
+    const shard: Shard = this.localConfig.getShard(deployment);
+    const query: FileContentsQuery = new FileContentsQuery().setFileId(
+      new FileId(shard, realm, FileId.ADDRESS_BOOK.num),
+    );
     return Buffer.from(await query.execute(client)).toString('base64');
   }
 
