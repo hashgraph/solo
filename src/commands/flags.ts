@@ -2277,6 +2277,17 @@ export class Flags {
     prompt: undefined,
   };
 
+  public static readonly storageBucketRegion: CommandFlag = {
+    constName: 'storageBucketRegion',
+    name: 'storage-bucket-region',
+    definition: {
+      defaultValue: '',
+      describe: 'region of storage bucket mirror node importer',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   public static readonly loadBalancerEnabled: CommandFlag = {
     constName: 'loadBalancerEnabled',
     name: 'load-balancer',
@@ -2476,6 +2487,7 @@ export class Flags {
     Flags.storageEndpoint,
     Flags.storageBucket,
     Flags.storageBucketPrefix,
+    Flags.storageBucketRegion,
     Flags.backupBucket,
     Flags.backupWriteAccessKey,
     Flags.backupWriteSecrets,
