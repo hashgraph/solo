@@ -54,7 +54,7 @@ interface BlockNodeDeployContext {
 }
 
 export class BlockNodeCommand extends BaseCommand {
-  public static readonly COMMAND_NAME: string = 'block-node';
+  public static readonly COMMAND_NAME: string = 'block';
 
   private static readonly DEPLOY_CONFIGS_NAME: string = 'deployConfigs';
 
@@ -374,32 +374,39 @@ export class BlockNodeCommand extends BaseCommand {
     const self: this = this;
     return {
       command: BlockNodeCommand.COMMAND_NAME,
-      desc: 'Manage block nodes in solo network',
+      desc: 'Manage block related components in solo network',
       builder: (yargs: AnyYargs): any => {
         return yargs
           .command({
-            command: 'deploy',
-            desc: 'Deploy block node',
-            builder: (y: AnyYargs): void => {
-              flags.setRequiredCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.required);
-              flags.setOptionalCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.optional);
-            },
-            handler: async (argv: ArgvStruct): Promise<void> => {
-              self.logger.info("==== Running 'block node deploy' ===", {argv});
-              self.logger.info(argv);
+            command: 'node',
+            desc: 'Manage block nodes in solo network',
+            builder: (yargs: AnyYargs): void => {
+              return yargs
+                .command({
+                  command: 'add',
+                  desc: 'Add block node',
+                  builder: (y: AnyYargs): void => {
+                    flags.setRequiredCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.required);
+                    flags.setOptionalCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.optional);
+                  },
+                  handler: async (argv: ArgvStruct): Promise<void> => {
+                    self.logger.info("==== Running 'block node deploy' ===", {argv});
+                    self.logger.info(argv);
 
-              await self.deploy(argv).then((r): void => {
-                self.logger.info('==== Finished running `block node deploy`====');
-                if (!r) {
-                  throw new SoloError('Error deploying block node, expected return value to be true');
-                }
-              });
+                    await self.deploy(argv).then((r): void => {
+                      self.logger.info('==== Finished running `block node deploy`====');
+                      if (!r) {
+                        throw new SoloError('Error deploying block node, expected return value to be true');
+                      }
+                    });
+                  },
+                })
+                .demandCommand(1, 'Select a block node command');
             },
           })
-          .demandCommand(1, 'Select a block node command');
+          .demandCommand(1, 'Select a block command');
       },
     };
   }
-
   public async close(): Promise<void> {} // no-op
 }

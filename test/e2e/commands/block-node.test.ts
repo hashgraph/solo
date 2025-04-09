@@ -50,7 +50,7 @@ endToEndTestSuite(testName, argv, {startNodes: false}, bootstrapResp => {
         await commandInvoker.invoke({
           argv: argv,
           command: BlockNodeCommand.COMMAND_NAME,
-          subcommand: 'deploy',
+          subcommand: 'node deploy',
           // @ts-expect-error to access private property
           callback: async argv => blockNodeCommand.deploy(argv),
         });
