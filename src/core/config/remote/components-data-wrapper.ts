@@ -285,7 +285,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
    * Checks all existing components of specified type and gives you a new unique index
    */
   public getNewComponentIndex(componentType: ComponentTypes): number {
-    let newComponentIndex: number = 1;
+    let newComponentIndex: number = 0;
 
     const calculateNewComponentIndexCallback: (
       components: Record<ComponentName, BaseComponent>,
