@@ -9,7 +9,7 @@ else
   storageType=${STORAGE_TYPE}
 fi
 
-if [ "${storageType}" != "minio_only" ]; then
+if [ "${storageType}" == "gcs_only" ]; then
   if [ -z "${GCS_ACCESS_KEY}" ]; then
     echo "GCS_ACCESS_KEY is not set. Exiting..."
     exit 1
@@ -17,6 +17,18 @@ if [ "${storageType}" != "minio_only" ]; then
 
   if [ -z "${GCS_SECRET_KEY}" ]; then
     echo "GCS_SECRET_KEY is not set. Exiting..."
+    exit 1
+  fi
+fi
+
+if [ "${storageType}" == "aws_only" ]; then
+  if [ -z "${AWS_ACCESS_KEY}" ]; then
+    echo "AWS_ACCESS_KEY is not set. Exiting..."
+    exit 1
+  fi
+
+  if [ -z "${AWS_SECRET_KEY}" ]; then
+    echo "AWS_SECRET_KEY is not set. Exiting..."
     exit 1
   fi
 fi
@@ -39,16 +51,16 @@ else
   echo "Using PREFIX: ${PREFIX}"
   if [ "${storageType}" == "aws_only" ]; then
     STORAGE_OPTIONS=(
-        "--aws-endpoint" "https://storage.googleapis.com"
-        "--aws-write-access-key" "${GCS_ACCESS_KEY}"
-        "--aws-write-secrets" "${GCS_SECRET_KEY}"
+        "--aws-write-access-key" "${AWS_ACCESS_KEY}"
+        "--aws-write-secrets" "${AWS_SECRET_KEY}"
+        "--aws-endpoint" "https://s3.us-east-2.amazonaws.com"
         "--aws-bucket" "${streamBucket}"
         "--aws-bucket-prefix" "${PREFIX}"
 
-        "--backupWriteSecrets" "${GCS_SECRET_KEY}"
-        "--backupWriteAccessKey" "${GCS_ACCESS_KEY}"
-        "--backupEndpoint" "storage.googleapis.com"
-        "--backupRegion" "us-central1"
+        "--backupWriteSecrets" "${AWS_SECRET_KEY}"
+        "--backupWriteAccessKey" "${AWS_ACCESS_KEY}"
+        "--backupEndpoint" "s3.us-east-2.amazonaws.com"
+        "--backupRegion" "us-east-2"
         "--backup-bucket" "${streamBackupBucket}"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
@@ -67,13 +79,23 @@ else
     )
   fi
 
-  if [ "${storageType}" == "aws_only" ] || [ "${storageType}" == "gcs_only" ]; then
+  if [ "${storageType}" == "gcs_only" ]; then
     MIRROR_STORAGE_OPTIONS=(
         "--storage-endpoint" "https://storage.googleapis.com"
         "--storage-read-access-key" "${GCS_ACCESS_KEY}"
         "--storage-read-secrets" "${GCS_SECRET_KEY}"
         "--storage-bucket" "${streamBucket}"
         "--storage-bucket-prefix" "${PREFIX}"
+    )
+  fi
+  if [ "${storageType}" == "aws_only" ]; then
+    MIRROR_STORAGE_OPTIONS=(
+        "--storage-endpoint" "https://s3.us-east-2.amazonaws.com"
+        "--storage-read-access-key" "${AWS_ACCESS_KEY}"
+        "--storage-read-secrets" "${AWS_SECRET_KEY}"
+        "--storage-bucket" "${streamBucket}"
+        "--storage-bucket-prefix" "${PREFIX}"
+        "--storage-bucket-region" "us-east-2"
     )
   fi
 fi
@@ -117,7 +139,9 @@ else
   npm run solo-test -- node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
   npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} \
     --storage-type "${storageType}" \
-    "${MIRROR_STORAGE_OPTIONS[@]}" \
+    "${MIRROR_STORAGE_OPTIONS[@]}"
+
+  kubectl port-forward -n "${SOLO_NAMESPACE}" svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &
 
   npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME}
 

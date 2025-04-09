@@ -7,7 +7,7 @@ import {
   TopicMessageSubmitTransaction,
   AccountCreateTransaction,
   PrivateKey,
-  Hbar,
+  Hbar, TopicMessageQuery, Client,
 } from '@hashgraph/sdk';
 
 import dotenv from 'dotenv';
@@ -22,6 +22,8 @@ async function main() {
 
   console.log(`Hedera network = ${process.env.HEDERA_NETWORK}`);
   const provider = new LocalProvider();
+  const mirrorNetwork = '127.0.0.1:5600';
+  provider._client.setMirrorNetwork(mirrorNetwork);
 
   const wallet = new Wallet(process.env.OPERATOR_ID, process.env.OPERATOR_KEY, provider);
 
@@ -40,6 +42,34 @@ async function main() {
     const createReceipt = await createResponse.getReceiptWithSigner(wallet);
 
     console.log(`topic id = ${createReceipt.topicId.toString()}`);
+
+    console.log('Wait 5 seconds to create subscribe to new topic');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Create a subscription to the topic
+    const mirrorClient = (
+      await Client.forMirrorNetwork(mirrorNetwork)
+    ).setOperator(process.env.OPERATOR_ID, process.env.OPERATOR_KEY);
+
+    let expectedContents = "";
+    let finished = false;
+    new TopicMessageQuery()
+    .setTopicId(createReceipt.topicId)
+    .setMaxAttempts(400)
+    .setLimit(1)
+    // eslint-disable-next-line no-unused-vars
+    .subscribe(mirrorClient, (topic, error) => {
+      if (error) {
+        console.error(`Error      : ${error}`);
+        finished = true;
+        return;
+      }
+    }, (topic)=>{
+      finished = true;
+      expectedContents = Buffer.from(topic.contents).toString(
+        "utf-8",
+      );
+      console.log(`Subscription received message: ${topic.contents}`);
+    });
 
     // send one message
     let topicMessageSubmitTransaction = await new TopicMessageSubmitTransaction({
@@ -101,11 +131,21 @@ async function main() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       retry++;
     }
+
+    // wait a few seconds to receive subscription message
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    if (!finished) {
+      console.error("Not received subscription message");
+      process.exit(1);
+    } else if (expectedContents !== TEST_MESSAGE) {
+      console.error('Message received from subscription but not match: ' + expectedContents);
+      process.exit(1);
+    }
+
     if (receivedMessage === TEST_MESSAGE) {
       console.log('Message received successfully');
     } else {
       console.error('Message received but not match: ' + receivedMessage);
-      // eslint-disable-next-line n/no-process-exit
       process.exit(1);
     }
   } catch (error) {
@@ -113,6 +153,7 @@ async function main() {
     throw error;
   }
   provider.close();
+  process.exit(0);
 }
 
 void main();
