@@ -926,7 +926,7 @@ export class AccountManager {
       const realm = transactionReceipt.accountId!.realm;
       const shard = transactionReceipt.accountId!.shard;
       const accountInfoQueryResult = await this.accountInfoQuery(accountId);
-      accountInfo.accountAlias = entityId(realm, shard, accountInfoQueryResult.contractAccountId);
+      accountInfo.accountAlias = entityId(shard, realm, accountInfoQueryResult.contractAccountId);
     }
 
     try {
@@ -1032,7 +1032,7 @@ export class AccountManager {
     const client = this._nodeClient;
     const realm = this.localConfig.getRealm(deployment);
     const shard = this.localConfig.getShard(deployment);
-    const fileId = FileId.fromString(entityId(realm, shard, fileNumber));
+    const fileId = FileId.fromString(entityId(shard, realm, fileNumber));
     const queryFees = new FileContentsQuery().setFileId(fileId);
     return Buffer.from(await queryFees.execute(client)).toString('hex');
   }
@@ -1071,7 +1071,7 @@ export class AccountManager {
   public getAccountIdByNumber(deployment: DeploymentName, number: number | Long): AccountId {
     const realm = this.localConfig.getRealm(deployment);
     const shard = this.localConfig.getShard(deployment);
-    return AccountId.fromString(entityId(realm, shard, number));
+    return AccountId.fromString(entityId(shard, realm, number));
   }
 
   public getOperatorAccountId(deployment: DeploymentName): AccountId {
@@ -1113,8 +1113,8 @@ export class AccountManager {
 
     for (const nodeAlias of nodeAliases) {
       const nodeAccount: string = entityId(
-        realm,
         shard,
+        realm,
         Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId.num),
       );
       accountMap.set(nodeAlias, nodeAccount);

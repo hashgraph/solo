@@ -313,8 +313,8 @@ export class AccountCommand extends BaseCommand {
                     const shard: Shard = this.localConfig.getShard(context_.config.deployment);
 
                     for (const currentSet of context_.accountsBatchedSet) {
-                      const accountStart = entityId(realm, shard, currentSet[0]);
-                      const accountEnd = entityId(realm, shard, currentSet.at(-1));
+                      const accountStart = entityId(shard, realm, currentSet[0]);
+                      const accountEnd = entityId(shard, realm, currentSet.at(-1));
                       const rangeString =
                         accountStart === accountEnd
                           ? `${chalk.yellow(accountStart)}`

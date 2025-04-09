@@ -155,7 +155,7 @@ export class NodeCommandTasks {
   private getFileUpgradeId(deploymentName: DeploymentName): FileId {
     const realm = this.localConfig.getRealm(deploymentName);
     const shard = this.localConfig.getShard(deploymentName);
-    return FileId.fromString(entityId(realm, shard, constants.UPGRADE_FILE_ID_NUM));
+    return FileId.fromString(entityId(shard, realm, constants.UPGRADE_FILE_ID_NUM));
   }
 
   private async _prepareUpgradeZip(stagingDirectory: string): Promise<string> {

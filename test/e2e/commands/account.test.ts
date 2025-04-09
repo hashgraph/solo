@@ -149,7 +149,7 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
             it(`account ${index} should not have genesis key`, async () => {
               expect(accountManager._nodeClient).not.to.be.null;
 
-              const accountId = entityId(realm, shard, index);
+              const accountId = entityId(shard, realm, index);
               testLogger.info(`Fetching account keys: accountId ${accountId}`);
               const keys = await accountManager.getAccountKeys(accountId);
               testLogger.info(`Fetched account keys: accountId ${accountId}`);

@@ -257,9 +257,9 @@ describe('ProfileManager', () => {
   describe('prepareConfigText', () => {
     it('should write and return the path to the config.txt file', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
-      nodeAccountMap.set('node1', entityId(realm, shard, 3));
-      nodeAccountMap.set('node2', entityId(realm, shard, 4));
-      nodeAccountMap.set('node3', entityId(realm, shard, 5));
+      nodeAccountMap.set('node1', entityId(shard, realm, 3));
+      nodeAccountMap.set('node2', entityId(shard, realm, 4));
+      nodeAccountMap.set('node3', entityId(shard, realm, 5));
       const destinationPath = PathEx.join(temporaryDirectory, 'staging');
       fs.mkdirSync(destinationPath, {recursive: true});
       const renderedConfigFile = await profileManager.prepareConfigTxt(
@@ -280,9 +280,9 @@ describe('ProfileManager', () => {
       // expect that the config.txt file contains the namespace
       expect(configText).to.include(namespace);
       // expect that the config.txt file contains the node account IDs
-      expect(configText).to.include(entityId(realm, shard, 3));
-      expect(configText).to.include(entityId(realm, shard, 4));
-      expect(configText).to.include(entityId(realm, shard, 5));
+      expect(configText).to.include(entityId(shard, realm, 3));
+      expect(configText).to.include(entityId(shard, realm, 4));
+      expect(configText).to.include(entityId(shard, realm, 5));
       // expect the config.txt file to contain the node IDs
       expect(configText).to.include('node1');
       expect(configText).to.include('node2');
@@ -301,7 +301,7 @@ describe('ProfileManager', () => {
 
     it('should fail when destPath does not exist', async () => {
       const nodeAccountMap = new Map<NodeAlias, string>();
-      nodeAccountMap.set('node1', entityId(realm, shard, 3));
+      nodeAccountMap.set('node1', entityId(shard, realm, 3));
       const destinationPath = PathEx.join(temporaryDirectory, 'missing-directory');
       try {
         await profileManager.prepareConfigTxt(
