@@ -253,7 +253,7 @@ export class BlockNodeCommand extends BaseCommand {
           },
         },
         this.checkBlockNodeReadiness(),
-        // this.addBlockNodeComponent(),
+        this.addBlockNodeComponent(),
       ],
       {
         concurrent: false,
