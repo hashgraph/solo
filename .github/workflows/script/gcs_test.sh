@@ -62,6 +62,7 @@ else
         "--backupEndpoint" "s3.us-east-2.amazonaws.com"
         "--backupRegion" "us-east-2"
         "--backup-bucket" "${streamBackupBucket}"
+        "--backup-provider" "AWS"
     )
   elif [ "${storageType}" == "gcs_only" ]; then
     STORAGE_OPTIONS=(
@@ -166,9 +167,15 @@ if [ "${storageType}" == "aws_only" ] || [ "${storageType}" == "gcs_only" ]; the
   # example : {"level":"error","msg":"Updated modification time ......}
   kubectl logs network-node1-0 -c backup-uploader -n solo-e2e > backup-uploader.log
   if grep -q \""error\"" backup-uploader.log; then
+    echo "-----------------------------------------"
     echo "Backup uploader logs contain error message"
+    echo "-----------------------------------------"
     exit 1
   fi
 fi
 
 npm run solo-test -- network destroy --deployment "${SOLO_DEPLOYMENT}" --force -q
+
+echo "-----------------------------------------"
+echo "Solo test finished successfully"
+echo "-----------------------------------------"

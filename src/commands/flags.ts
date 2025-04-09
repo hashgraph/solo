@@ -2213,7 +2213,17 @@ export class Flags {
       defaultValue: 'us-central1',
       describe: 'backup storage region',
       type: 'string',
-      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupProvider: CommandFlag = {
+    constName: 'backupProvider',
+    name: 'backup-provider',
+    definition: {
+      defaultValue: 'GCS',
+      describe: 'backup storage service provider, GCS or AWS',
+      type: 'string',
     },
     prompt: undefined,
   };
@@ -2493,6 +2503,7 @@ export class Flags {
     Flags.backupWriteSecrets,
     Flags.backupEndpoint,
     Flags.backupRegion,
+    Flags.backupProvider,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
