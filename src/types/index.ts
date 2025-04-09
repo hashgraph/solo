@@ -125,6 +125,6 @@ export interface GossipEndpoint {
 export interface CommandDefinition {
   command: string;
   desc: string;
-  builder: (yargs: AnyYargs) => any;
+  builder?: (yargs: AnyYargs) => any;
   handler?: (argv: ArgvStruct) => Promise<void>;
 }

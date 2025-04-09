@@ -29,6 +29,7 @@ import {ContainerReference} from '../integration/kube/resources/container/contai
 import {Duration} from '../core/time/duration.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import chalk from 'chalk';
+import {CommandBuilder, CommandGroup, Subcommand} from '../core/command-path-builders/command-builder.js';
 
 interface BlockNodeDeployConfigClass {
   chartVersion: string;
@@ -116,7 +117,7 @@ export class BlockNodeCommand extends BaseCommand {
     return constants.BLOCK_NODE_RELEASE_NAME + '-' + blockNodeIndex;
   }
 
-  private async deploy(argv: ArgvStruct): Promise<boolean> {
+  private async add(argv: ArgvStruct): Promise<boolean> {
     const lease: Lock = await this.leaseManager.create();
 
     const tasks: Listr<BlockNodeDeployContext> = new Listr<BlockNodeDeployContext>(
@@ -371,42 +372,21 @@ export class BlockNodeCommand extends BaseCommand {
   }
 
   public getCommandDefinition(): CommandDefinition {
-    const self: this = this;
-    return {
-      command: BlockNodeCommand.COMMAND_NAME,
-      desc: 'Manage block related components in solo network',
-      builder: (yargs: AnyYargs): any => {
-        return yargs
-          .command({
-            command: 'node',
-            desc: 'Manage block nodes in solo network',
-            builder: (yargs: AnyYargs): void => {
-              return yargs
-                .command({
-                  command: 'add',
-                  desc: 'Add block node',
-                  builder: (y: AnyYargs): void => {
-                    flags.setRequiredCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.required);
-                    flags.setOptionalCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.optional);
-                  },
-                  handler: async (argv: ArgvStruct): Promise<void> => {
-                    self.logger.info("==== Running 'block node deploy' ===", {argv});
-                    self.logger.info(argv);
-
-                    await self.deploy(argv).then((r): void => {
-                      self.logger.info('==== Finished running `block node deploy`====');
-                      if (!r) {
-                        throw new SoloError('Error deploying block node, expected return value to be true');
-                      }
-                    });
-                  },
-                })
-                .demandCommand(1, 'Select a block node command');
-            },
-          })
-          .demandCommand(1, 'Select a block command');
-      },
-    };
+    return new CommandBuilder(
+      BlockNodeCommand.COMMAND_NAME,
+      'Manage block related components in solo network',
+      this.logger,
+    )
+      .addCommandGroup(
+        new CommandGroup('node', 'Manage block nodes in solo network').addSubcommand(
+          new Subcommand('add', 'Add block node', this, this.add, (y: AnyYargs): void => {
+            flags.setRequiredCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.required);
+            flags.setOptionalCommandFlags(y, ...BlockNodeCommand.DEPLOY_FLAGS_LIST.optional);
+          }),
+        ),
+      )
+      .build();
   }
+
   public async close(): Promise<void> {} // no-op
 }
