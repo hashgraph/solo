@@ -3,7 +3,7 @@
 import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
 import * as helpers from '../core/helpers.js';
-import {showVersionBanner} from '../core/helpers.js';
+import {showVersionBanner, sleep} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
@@ -17,15 +17,18 @@ import {
 } from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
+import {type CommandDefinition, type Optional, type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import * as versions from '../../version.js';
 import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Lock} from '../core/lock/lock.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import os from 'node:os';
 import {type BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
+import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
+import {Duration} from '../core/time/duration.js';
+import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
+import chalk from 'chalk';
 
 interface BlockNodeDeployConfigClass {
   chartVersion: string;
@@ -91,8 +94,16 @@ export class BlockNodeCommand extends BaseCommand {
     }
 
     // Fix for M4 chips (ARM64)
-    const arch: string = os.arch();
-    if (arch === 'arm64' || arch === 'aarch64') {
+
+    const chipType: string[] = await helpers.getAppleSiliconChipset(this.logger);
+    let isAppleM4SeriesChip: boolean = false;
+    for (const chip of chipType) {
+      if (chip.includes('M4')) {
+        isAppleM4SeriesChip = true;
+      }
+    }
+
+    if (isAppleM4SeriesChip) {
       valuesArgument += helpers.populateHelmArguments({
         'blockNode.config.JAVA_OPTS': '"-Xms8G -Xmx8G -XX:UseSVE=0"',
       });
@@ -207,7 +218,7 @@ export class BlockNodeCommand extends BaseCommand {
           },
         },
         {
-          title: 'Check block node is running',
+          title: 'Check block node pod is running',
           task: async (context_): Promise<void> => {
             const config: BlockNodeDeployConfigClass = context_.config;
 
@@ -223,7 +234,7 @@ export class BlockNodeCommand extends BaseCommand {
           },
         },
         {
-          title: 'Check block node is ready',
+          title: 'Check block node pod is ready',
           task: async (context_): Promise<void> => {
             const config: BlockNodeDeployConfigClass = context_.config;
             try {
@@ -241,7 +252,8 @@ export class BlockNodeCommand extends BaseCommand {
             }
           },
         },
-        this.addBlockNodeComponent(),
+        this.checkBlockNodeReadiness(),
+        // this.addBlockNodeComponent(),
       ],
       {
         concurrent: false,
@@ -261,7 +273,7 @@ export class BlockNodeCommand extends BaseCommand {
   }
 
   /** Adds the block node component to remote config. */
-  public addBlockNodeComponent(): SoloListrTask<BlockNodeDeployContext> {
+  private addBlockNodeComponent(): SoloListrTask<BlockNodeDeployContext> {
     return {
       title: 'Add block node component in remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
@@ -271,6 +283,89 @@ export class BlockNodeCommand extends BaseCommand {
 
           remoteConfig.components.addNewComponent(config.newBlockNodeComponent);
         });
+      },
+    };
+  }
+
+  private displayHealthcheckData(
+    task: SoloListrTaskWrapper<BlockNodeDeployContext>,
+  ): (attempt: number, maxAttempt: number, color?: 'yellow' | 'green' | 'red', additionalData?: string) => void {
+    const baseTitle: string = task.title;
+
+    return function (
+      attempt: number,
+      maxAttempt: number,
+      color: 'yellow' | 'green' | 'red' = 'yellow',
+      additionalData: string = '',
+    ): void {
+      task.title = `${baseTitle} - ${chalk[color](`[${attempt}/${maxAttempt}]`)} ${chalk[color](additionalData)}`;
+    };
+  }
+
+  private checkBlockNodeReadiness(): SoloListrTask<BlockNodeDeployContext> {
+    return {
+      title: 'Check block node readiness',
+      task: async (context_, task): Promise<void> => {
+        const config: BlockNodeDeployConfigClass = context_.config;
+
+        const displayHealthcheckCallback: (
+          attempt: number,
+          maxAttempt: number,
+          color?: 'yellow' | 'green' | 'red',
+          additionalData?: string,
+        ) => void = this.displayHealthcheckData(task);
+
+        const blockNodePodReference: PodReference = await this.k8Factory
+          .getK8(config.context)
+          .pods()
+          .list(config.namespace, [`app.kubernetes.io/instance=${config.releaseName}`])
+          .then(pods => pods[0].podReference);
+
+        const containerReference: ContainerReference = ContainerReference.of(
+          blockNodePodReference,
+          constants.BLOCK_NODE_CONTAINER_NAME,
+        );
+
+        const maxAttempts: number = constants.BLOCK_NODE_ACTIVE_MAX_ATTEMPTS;
+        let attempt: number = 1;
+        let success: boolean = false;
+
+        displayHealthcheckCallback(attempt, maxAttempts);
+
+        while (attempt < maxAttempts) {
+          try {
+            const response: string = await helpers.withTimeout(
+              this.k8Factory
+                .getK8(config.context)
+                .containers()
+                .readByRef(containerReference)
+                .execContainer(['bash', '-c', 'curl -s http://localhost:8080/healthz/readyz']),
+              Duration.ofMillis(constants.BLOCK_NODE_ACTIVE_TIMEOUT),
+              'Healthcheck timed out',
+            );
+
+            if (response !== 'OK') {
+              throw new SoloError('Bad response status');
+            }
+
+            success = true;
+            break;
+          } catch (error) {
+            // Guard
+            console.error(error);
+          }
+
+          attempt++;
+          await sleep(Duration.ofSeconds(constants.BLOCK_NODE_ACTIVE_DELAY));
+          displayHealthcheckCallback(attempt, maxAttempts);
+        }
+
+        if (!success) {
+          displayHealthcheckCallback(attempt, maxAttempts, 'red', 'max attempts reached');
+          throw new SoloError('Max attempts reached');
+        }
+
+        displayHealthcheckCallback(attempt, maxAttempts, 'green', 'success');
       },
     };
   }
