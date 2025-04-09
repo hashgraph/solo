@@ -43,16 +43,16 @@ endToEndTestSuite(testName, argv, {startNodes: false}, bootstrapResp => {
 
     afterEach(async () => await sleep(Duration.ofMillis(5)));
 
-    it('Should succeed with deploy command', async function () {
+    it('Should succeed with add command', async function () {
       this.timeout(Duration.ofMinutes(5).toMillis());
 
       try {
         await commandInvoker.invoke({
           argv: argv,
           command: BlockNodeCommand.COMMAND_NAME,
-          subcommand: 'node deploy',
+          subcommand: 'node add',
           // @ts-expect-error to access private property
-          callback: async argv => blockNodeCommand.deploy(argv),
+          callback: async argv => blockNodeCommand.add(argv),
         });
       } catch (error) {
         logger.showUserError(error);
