@@ -27,7 +27,6 @@ import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import * as helpers from '../core/helpers.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import fs from 'node:fs';
-import {Templates} from '../core/templates.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 
 interface ExplorerDeployConfigClass {
@@ -37,6 +36,7 @@ interface ExplorerDeployConfigClass {
   clusterContext: string;
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
+  explorerIngressValueFile: string;
   hederaExplorerTlsHostName: string;
   hederaExplorerStaticIp: string | '';
   hederaExplorerVersion: string;
@@ -89,6 +89,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.chartDirectory,
       flags.clusterRef,
       flags.enableIngress,
+      flags.explorerIngressValueFile,
       flags.enableHederaExplorerTls,
       flags.hederaExplorerTlsHostName,
       flags.hederaExplorerStaticIp,
@@ -116,10 +117,10 @@ export class ExplorerCommand extends BaseCommand {
    * @param config - the configuration object
    */
   private async prepareHederaExplorerValuesArg(config: ExplorerDeployConfigClass): Promise<string> {
-    let valuesArgument = '';
+    let valuesArgument: string = '';
 
-    const profileName = this.configManager.getFlag<string>(flags.profileName) as string;
-    const profileValuesFile = await this.profileManager.prepareValuesHederaExplorerChart(profileName);
+    const profileName: string = this.configManager.getFlag<string>(flags.profileName) as string;
+    const profileValuesFile: string = await this.profileManager.prepareValuesHederaExplorerChart(profileName);
     if (profileValuesFile) {
       valuesArgument += prepareValuesFiles(profileValuesFile);
     }
@@ -147,39 +148,40 @@ export class ExplorerCommand extends BaseCommand {
         'ingress.hosts[0].host': config.domainName,
       });
 
-      // create a secret "ca-secret-hiero-explorer" with the CA certificate
-      // use function generateTLS to generate TLS certficate and key
-      // and create the secret
-      const caSecretName = 'ca-secret-hiero-explorer';
-      const generateDir = PathEx.join(config.cacheDir);
-      const {certificatePath, keyPath} = generateTLS(this.logger, generateDir, config.domainName);
+      if (config.tlsClusterIssuerType === 'self-signed') {
+        // use function generateTLS to generate TLS certficate and key
+        // and create the secret
+        const caSecretName: string = 'ca-secret-hiero-explorer';
+        const generateDirectory: string = PathEx.join(config.cacheDir);
+        const {certificatePath, keyPath} = generateTLS(this.logger, generateDirectory, config.domainName);
 
-      // sleep two seconds
-      await new Promise(resolve => setTimeout(resolve, 2000));
+        // sleep two seconds
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-      const certData = fs.readFileSync(certificatePath).toString();
-      const keyData = fs.readFileSync(keyPath).toString();
+        const certData: string = fs.readFileSync(certificatePath).toString();
+        const keyData: string = fs.readFileSync(keyPath).toString();
 
-      const data: Record<string, string> = {
-        'tls.crt': Buffer.from(certData).toString('base64'),
-        'tls.key': Buffer.from(keyData).toString('base64'),
-      }
-      try {
-        const namespace = this.configManager.getFlag<NamespaceName>(flags.namespace);
-        const isSecretCreated = await this.k8Factory
-        .default()
-        .secrets()
-        .createOrReplace(namespace, caSecretName, SecretType.OPAQUE, data);
-        if (!isSecretCreated) {
-          throw new SoloError(`failed to create secret for explorer TLS certificates`);
+        const data: Record<string, string> = {
+          'tls.crt': Buffer.from(certData).toString('base64'),
+          'tls.key': Buffer.from(keyData).toString('base64'),
+        };
+        try {
+          const namespace: NamespaceName = this.configManager.getFlag<NamespaceName>(flags.namespace);
+          const isSecretCreated: boolean = await this.k8Factory
+            .default()
+            .secrets()
+            .createOrReplace(namespace, caSecretName, SecretType.OPAQUE, data);
+          if (!isSecretCreated) {
+            throw new SoloError('failed to create secret for explorer TLS certificates');
+          }
+          if (config.enableIngress) {
+            valuesArgument += ` --set ingress.tls[0].hosts[0]=${config.domainName}`;
+          }
+        } catch (error: Error | any) {
+          const errorMessage: string =
+            'failed to create secret for explorer TLS certificates, please check if the secret already exists';
+          throw new SoloError(errorMessage, error);
         }
-        if (config.enableIngress) {
-          valuesArgument += ` --set ingress.tls[0].hosts[0]=${config.domainName}`;
-        }
-      } catch (error: Error | any) {
-        const errorMessage =
-          'failed to create secret for explorer TLS certificates, please check if the secret already exists';
-        throw new SoloError(errorMessage, error);
       }
     }
 
@@ -242,6 +244,7 @@ export class ExplorerCommand extends BaseCommand {
             flags.disablePrompts([
               flags.enableHederaExplorerTls,
               flags.hederaExplorerTlsHostName,
+              flags.explorerIngressValueFile,
               flags.hederaExplorerStaticIp,
               flags.hederaExplorerVersion,
               flags.mirrorNamespace,
@@ -370,6 +373,10 @@ export class ExplorerCommand extends BaseCommand {
               explorerIngressControllerValuesArgument += ` --set controller.service.loadBalancerIP=${config.hederaExplorerStaticIp}`;
             }
             explorerIngressControllerValuesArgument += ` --set fullnameOverride=${constants.EXPLORER_INGRESS_CONTROLLER}`;
+
+            if (config.tlsClusterIssuerType === 'self-signed') {
+              explorerIngressControllerValuesArgument += prepareValuesFiles(config.explorerIngressValueFile);
+            }
 
             await self.chartManager.install(
               config.namespace,

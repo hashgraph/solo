@@ -23,8 +23,12 @@ env:
   # NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1="
   ENABLE_EXPLORER_INGRESS: "--enable-ingress"
   ENABLE_MIRROR_INGRESS: "--enable-ingress"
+  MIRROR_DEPLOY_DOMAIN: '--domain-name {{ .mirror_domain_name }}'
   EXPLORER_NAME_SPACE: "explorer-name-space"
   EXPLORER_DEPLOYMENT: "explorer-deployment"
   EXPLORER_CLUSTER_CONTEXT: kind-{{.SOLO_CLUSTER_NAME}}
+  EXPLORER_DEPLOY_EXTRA_FLAGS: '--domain-name {{ .explorer_domain_name }}'
 vars:
   use_port_forwards: "true"
+  explorer_domain_name: "localhost"
+  mirror_domain_name: "localhost"

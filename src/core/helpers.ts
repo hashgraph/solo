@@ -571,9 +571,7 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
 
 export function generateTLS(logger: SoloLogger, directory: string, name: string = 'localhost') {
   // Define attributes for the certificate
-  const attributes: { name: string; value: string }[] = [
-    { name: 'commonName', value: name }, // Correct domain name
-  ];
+  const attributes: {name: string; value: string}[] = [{name: 'commonName', value: name}];
   const certificatePath = PathEx.join(directory, `${name}.crt`);
   const keyPath = PathEx.join(directory, `${name}.key`);
 

@@ -923,6 +923,17 @@ export class Flags {
     },
   };
 
+  public static readonly explorerIngressValueFile: CommandFlag = {
+    constName: 'explorerIngressValueFile',
+    name: 'explorer-ingress-values-file',
+    definition: {
+      describe: 'The value file to use for the Hedera Explorer ingress, defaults to ""',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   public static readonly hederaExplorerStaticIp: CommandFlag = {
     constName: 'hederaExplorerStaticIp',
     name: 'hedera-explorer-static-ip',
@@ -2427,6 +2438,7 @@ export class Flags {
     Flags.grpcWebTlsCertificatePath,
     Flags.grpcWebTlsKeyPath,
     Flags.haproxyIps,
+    Flags.explorerIngressValueFile,
     Flags.hederaExplorerTlsHostName,
     Flags.hederaExplorerStaticIp,
     Flags.hederaExplorerVersion,

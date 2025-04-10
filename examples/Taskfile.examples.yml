@@ -14,6 +14,8 @@ vars:
   solo_logs_dir: "{{ .solo_user_dir }}/logs"
   solo_keys_dir: "{{ .solo_cache_dir }}/keys"
   solo_bin_dir: "{{ .solo_user_dir }}/bin"
+  self_signed_value_file: "--explorer-ingress-values-file {{.USER_WORKING_DIR}}/haproxy-ingress-values.yaml"
+
   temp_prefix:
     sh: (echo "/tmp/solo-${USER}-$(date +%Y%m%d%H%M%S)")
   run_build_file:
@@ -113,6 +115,7 @@ tasks:
       - echo "SOLO_CHARTS_DIR_FLAG=${SOLO_CHARTS_DIR_FLAG}"
       - echo "LOAD_BALANCER_FLAG=${LOAD_BALANCER_FLAG}"
       - echo "ENABLE_EXPLORER_TLS_FLAG=${ENABLE_EXPLORER_TLS_FLAG}"
+      - echo "TLS_CLUSTER_ISSUER_TYPE_FLAG=${TLS_CLUSTER_ISSUER_TYPE_FLAG}"
       - echo "ENABLE_EXPLORER_INGRESS=${ENABLE_EXPLORER_INGRESS}"
       - echo "ENABLE_MIRROR_INGRESS=${ENABLE_MIRROR_INGRESS}"
       - echo "CLUSTER_TLS_FLAGS=${CLUSTER_TLS_FLAGS}"
@@ -525,6 +528,10 @@ tasks:
       - task: "init"
     cmds:
       - |
+        if [[ "${TLS_CLUSTER_ISSUER_TYPE_FLAG}" == *"self-signed"* ]]; then
+          export EXPLORER_DEPLOY_EXTRA_FLAGS="${EXPLORER_DEPLOY_EXTRA_FLAGS} {{ .self_signed_value_file }}"
+          echo "EXPLORER_DEPLOY_EXTRA_FLAGS=${EXPLORER_DEPLOY_EXTRA_FLAGS}"
+        fi
         if [[ "${EXPLORER_DEPLOYMENT}" != "" ]]; then
           # create deployment on different namespace
           SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment create --deployment ${EXPLORER_DEPLOYMENT} --namespace ${EXPLORER_NAME_SPACE}  
@@ -537,11 +544,13 @@ tasks:
           export EXPLORER_DEPLOYED_NAME_SPACE=${SOLO_NAMESPACE}
         fi
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
-          echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
-          echo "Port forwarding for Hedera Explorer: http://localhost:8080"
-          explorer_svc="$(kubectl get svc -l app.kubernetes.io/component=hedera-explorer -n ${EXPLORER_DEPLOYED_NAME_SPACE} --output json | jq -r '.items[].metadata.name')"
-          /bin/bash -c "nohup kubectl port-forward -n \"${EXPLORER_DEPLOYED_NAME_SPACE}\" \"svc/${explorer_svc}\" 8080:80 > /dev/null 2>&1 &"
-          sleep 4
+          if [[ "${ENABLE_EXPLORER_INGRESS}" == "" ]]; then
+            echo "Enable port forwarding for Hedera Explorer & Mirror Node Network"
+            echo "Port forwarding for Hedera Explorer: http://localhost:8080"
+            explorer_svc="$(kubectl get svc -l app.kubernetes.io/component=hedera-explorer -n ${EXPLORER_DEPLOYED_NAME_SPACE} --output json | jq -r '.items[].metadata.name')"
+            /bin/bash -c "nohup kubectl port-forward -n \"${EXPLORER_DEPLOYED_NAME_SPACE}\" \"svc/${explorer_svc}\" 8080:443 > /dev/null 2>&1 &"
+            sleep 4
+          fi
         fi
 
   solo:destroy-mirror-node:
