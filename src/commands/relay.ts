@@ -457,7 +457,7 @@ export class RelayCommand extends BaseCommand {
           task: async context_ => {
             const config = context_.config;
 
-            await this.chartManager.uninstall(config.namespace, config.releaseName, context_.config.context);
+            await this.chartManager.uninstall(config.namespace, config.releaseName, config.context);
 
             this.logger.showList(
               'Destroyed Relays',
