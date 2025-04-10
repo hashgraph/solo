@@ -664,7 +664,7 @@ Version			: v0.66.0
 ```
 
 #### Access Hedera Services 
-Next: [Access Hedera Services](https://hashgraph.github.io/solo/User/AccessHederaServices/)
+Next: [Access Hedera Services](https://solo.hiero.org/User/AccessHederaServices/)
 
 #### Destroy relay node
 ```

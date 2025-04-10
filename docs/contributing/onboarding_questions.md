@@ -60,7 +60,7 @@ Check: <https://github.com/hashgraph/solo/blob/main/DEV.md>
 
 ### What documentation exists and where does it live currently.
 
-Our official docs site: <https://hashgraph.github.io/solo/>
+Our official docs site: <https://solo.hiero.org/>
 
 ### Where are we in the roadmap, what's been done, what's on deck and what's next?
 
