@@ -2410,6 +2410,28 @@ export class Flags {
     prompt: undefined,
   };
 
+  public static readonly blockNodeId: CommandFlag = {
+    constName: 'blockNodeId',
+    name: 'id',
+    definition: {
+      describe:
+        'ID of the block node which you want to destroy' +
+        'id is the same as the one inside the remote config and is an integer starting from 0',
+      type: 'number',
+    },
+    prompt: async function (task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
+      return await Flags.prompt(
+        'number',
+        task,
+        input,
+        undefined,
+        'Specify ID of the block node you want to destory? ',
+        null,
+        Flags.blockNodeId.name,
+      );
+    },
+  };
+
   public static readonly allFlags: CommandFlag[] = [
     Flags.accountId,
     Flags.adminKey,
@@ -2536,6 +2558,7 @@ export class Flags {
     Flags.domainNames,
     Flags.blockNodeChartVersion,
     Flags.blockNodeVersion,
+    Flags.blockNodeId,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

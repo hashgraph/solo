@@ -128,6 +128,24 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     return filteredComponents;
   }
 
+  public getComponentById<T extends BaseComponent>(type: ComponentTypes, id: number): T {
+    let filteredComponent: T;
+
+    const getComponentByIdCallback: (components: Record<ComponentName, T>) => void = components => {
+      filteredComponent = Object.values(components).find(
+        component => ComponentNameTemplates.parseComponentName(component.name) === id,
+      );
+    };
+
+    this.applyCallbackToComponentGroup(type, getComponentByIdCallback);
+
+    if (!filteredComponent) {
+      throw new SoloError(`Component of type ${type} with id ${id} was not found in remote config`);
+    }
+
+    return filteredComponent;
+  }
+
   /**
    * Method used to map the type to the specific component group
    * and pass it to a callback to apply modifications
