@@ -58,9 +58,9 @@ defaults:
 
 jobs:
   # Build job
-  Build:
+  build:
+    name: Build
     runs-on: solo-linux-medium
-
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
@@ -103,7 +103,7 @@ jobs:
       # Upload the built site to GitHub Pages
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        if: ${{ endsWith(github.ref, 'main') }}
+        if: ${{ endsWith(github.ref, 'nonExisting') }}
         with:
           path: ./docs/site/public
 
@@ -115,14 +115,15 @@ jobs:
           path: ./docs/site/public
 
   # Deployment job
-  Deploy:
-    # Temporarily disabled publish to GitHub Pages
-    if: ${{ endsWith(github.ref, 'nonExisting') }}
+  deploy:
+    name: Deploy
+    runs-on: solo-linux-medium
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: solo-linux-medium
-    needs: Build
+    needs:
+      - build
+    if: ${{ endsWith(github.ref, 'nonExisting') }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
