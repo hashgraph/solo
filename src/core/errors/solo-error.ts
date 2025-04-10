@@ -12,8 +12,8 @@ export class SoloError extends Error {
    * @param meta additional metadata (if any)
    */
   public constructor(
-    public message: string,
-    public cause: Error | any = {},
+    public override message: string,
+    public override cause: Error | any = {},
     public meta: any = {},
   ) {
     super(message);
