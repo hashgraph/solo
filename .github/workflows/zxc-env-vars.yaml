@@ -77,6 +77,9 @@ on:
       e2e-relay-test-subdir:
         description: "E2E Relay Test Subdirectory"
         value: ${{ jobs.env-vars.outputs.e2e_relay_test_subdir }}
+      e2e-block-node-test-subdir:
+        description: "E2E Block Node Test Subdirectory"
+        value: ${{ jobs.env-vars.outputs.e2e_block_node_test_subdir }}
       e2e-integration-coverage-report:
         description: "E2E Integration Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_integration_coverage_report }}
@@ -128,6 +131,9 @@ on:
       e2e-relay-coverage-report:
         description: "E2E Relay Tests Coverage Report"
         value: ${{ jobs.env-vars.outputs.e2e_relay_coverage_report }}
+      e2e-block-node-coverage-report:
+        description: "E2E Block Node Tests Coverage Report"
+        value: ${{ jobs.env-vars.outputs.e2e_block_node_coverage_report }}
 
 defaults:
   run:
@@ -158,6 +164,7 @@ jobs:
       e2e_node_upgrade_test_subdir: e2e-node-upgrade
       e2e_node_upgrade_separate_commands_test_subdir: e2e-node-upgrade-separate
       e2e_relay_test_subdir: e2e-relay
+      e2e_block_node_test_subdir: e2e-block-node
       e2e_integration_coverage_report: "E2E Integration Tests Coverage Report"
       e2e_dual_cluster_full_coverage_report: "E2E Dual Cluster Full Tests Coverage Report"
       e2e_standard_coverage_report: "E2E Standard Tests Coverage Report"
@@ -176,6 +183,7 @@ jobs:
       e2e_node_upgrade_coverage_report: "E2E Node Upgrade Tests Coverage Report"
       e2e_node_upgrade_separate_commands_coverage_report: "E2E Node Upgrade - Separate commands Tests Coverage Report"
       e2e_relay_coverage_report: "E2E Relay Tests Coverage Report"
+      e2e_block_node_coverage_report: "E2E Block Node Tests Coverage Report"
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1

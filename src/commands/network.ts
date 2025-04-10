@@ -11,13 +11,14 @@ import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
+import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
-  resolveValidJsonFilePath,
-  sleep,
   parseNodeAliases,
+  resolveValidJsonFilePath,
   showVersionBanner,
+  sleep,
 } from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import fs from 'node:fs';
@@ -27,12 +28,8 @@ import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
 import {type AnyYargs, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
-import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
-import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
-import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
-import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
+import {type CommandDefinition, type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
@@ -42,9 +39,10 @@ import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
-import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -1260,8 +1258,8 @@ export class NetworkCommand extends BaseCommand {
     return networkDestroySuccess;
   }
 
-  getCommandDefinition() {
-    const self = this;
+  public getCommandDefinition(): CommandDefinition {
+    const self: this = this;
     return {
       command: NetworkCommand.COMMAND_NAME,
       desc: 'Manage solo network deployment',
@@ -1328,28 +1326,30 @@ export class NetworkCommand extends BaseCommand {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
-        const {
-          config: {namespace},
-        } = context_;
+        const {namespace} = context_.config;
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of context_.config.consensusNodes) {
-            remoteConfig.components.edit(
-              new ConsensusNodeComponent(
-                consensusNode.name,
-                consensusNode.cluster,
-                namespace.name,
-                ConsensusNodeStates.REQUESTED,
-                consensusNode.nodeId,
+            const nodeAlias: NodeAlias = consensusNode.name;
+            const clusterReference: ClusterReference = consensusNode.cluster;
+
+            remoteConfig.components.changeNodeState(nodeAlias, ConsensusNodeStates.REQUESTED);
+
+            remoteConfig.components.addNewComponent(
+              ComponentFactory.createNewEnvoyProxyComponent(
+                this.remoteConfigManager,
+                clusterReference,
+                namespace,
+                nodeAlias,
               ),
             );
-
-            remoteConfig.components.add(
-              new EnvoyProxyComponent(`envoy-proxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
-            );
-
-            remoteConfig.components.add(
-              new HaProxyComponent(`haproxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
+            remoteConfig.components.addNewComponent(
+              ComponentFactory.createNewHaProxyComponent(
+                this.remoteConfigManager,
+                clusterReference,
+                namespace,
+                nodeAlias,
+              ),
             );
           }
         });

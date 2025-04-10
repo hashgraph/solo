@@ -140,6 +140,11 @@ on:
         type: string
         required: false
         default: "e2e-relay"
+      e2e-block-node-test-subdir:
+        description: "E2E Block Node Test Subdirectory:"
+        type: string
+        required: false
+        default: "e2e-block-node"
       e2e-integration-coverage-report:
         description: "E2E Integration Coverage Report:"
         type: string
@@ -225,6 +230,11 @@ on:
         type: string
         required: false
         default: "E2E Relay Tests Coverage Report"
+      e2e-block-node-coverage-report:
+        description: "E2E Block Node Coverage Report:"
+        type: string
+        required: false
+        default: "E2E Block Node Tests Coverage Report"
     secrets:
       snyk-token:
         description: "The Snyk access token is used by Snyk to analyze the code for vulnerabilities "
@@ -400,6 +410,13 @@ jobs:
         with:
           name: ${{ inputs.e2e-relay-coverage-report }}
           path: 'coverage/${{ inputs.e2e-relay-test-subdir }}'
+
+      - name: Download E2E Block Node Coverage Report
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        with:
+          name: ${{ inputs.e2e-block-node-coverage-report }}
+          path: 'coverage/${{ inputs.e2e-block-node-test-subdir }}'
 
       - name: Download E2E Test Report
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1

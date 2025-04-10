@@ -8,13 +8,14 @@ import {Flags, Flags as flags} from '../commands/flags.js';
 import type * as yargs from 'yargs';
 import {type CommandFlag} from '../types/flag-types.js';
 import {patchInject} from './dependency-injection/container-helper.js';
-import * as constants from '../core/constants.js';
+import {StorageType} from './constants.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ArgvStruct, type AnyListrContext, type AnyObject, type AnyYargs} from '../types/aliases.js';
 import {type Optional, type SoloListrTaskWrapper} from '../types/index.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {getSoloVersion} from '../../version.js';
+import {isValidEnum} from './util/validation-helpers.js';
 
 /**
  * ConfigManager cache command flag values so that user doesn't need to enter the same values repeatedly.
@@ -115,7 +116,7 @@ export class ConfigManager {
 
         case 'StorageType': {
           // @ts-expect-error: TS2475: const enums can only be used in property or index access expressions
-          if (Object.values(constants.StorageType).includes(`${value}`)) {
+          if (isValidEnum(`${value}`, StorageType)) {
             this.config.flags[flag.name] = value;
           } else {
             throw new SoloError(`Invalid storage type value '${value}'`);

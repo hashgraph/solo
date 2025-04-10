@@ -2,7 +2,7 @@
 
 import * as constants from '../core/constants.js';
 import * as version from '../../version.js';
-import {type CommandFlag} from '../types/flag-types.js';
+import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import fs from 'node:fs';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
@@ -1028,6 +1028,17 @@ export class Flags {
     },
   };
 
+  public static readonly blockNodeChartVersion: CommandFlag = {
+    constName: 'chartVersion',
+    name: 'chart-version',
+    definition: {
+      describe: 'Block nodes chart version',
+      defaultValue: version.BLOCK_NODE_VERSION,
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
   public static readonly applicationProperties: CommandFlag = {
     constName: 'applicationProperties',
     name: 'application-properties',
@@ -1580,6 +1591,29 @@ export class Flags {
     name: 'mirror-node-version',
     definition: {
       describe: 'Mirror node chart version',
+      defaultValue: version.MIRROR_NODE_VERSION,
+      type: 'string',
+    },
+    prompt: async function promptMirrorNodeVersion(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: boolean,
+    ): Promise<boolean> {
+      return await Flags.promptToggle(
+        task,
+        input,
+        Flags.mirrorNodeVersion.definition.defaultValue as boolean,
+        'Would you like to choose mirror node version? ',
+        null,
+        Flags.mirrorNodeVersion.name,
+      );
+    },
+  };
+
+  public static readonly blockNodeVersion: CommandFlag = {
+    constName: 'blockNodeVersion',
+    name: 'block-node-version',
+    definition: {
+      describe: 'Block nodes chart version',
       defaultValue: version.MIRROR_NODE_VERSION,
       type: 'string',
     },
@@ -2523,6 +2557,8 @@ export class Flags {
     Flags.dnsConsensusNodePattern,
     Flags.domainName,
     Flags.domainNames,
+    Flags.blockNodeChartVersion,
+    Flags.blockNodeVersion,
   ];
 
   /** Resets the definition.disablePrompt for all flags */
@@ -2549,7 +2585,7 @@ export class Flags {
 
   public static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
 
-  public static readonly DEFAULT_FLAGS = {
+  public static readonly DEFAULT_FLAGS: CommandFlags = {
     required: [],
     optional: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
   };

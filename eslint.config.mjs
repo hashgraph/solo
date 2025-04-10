@@ -137,7 +137,7 @@ export default [
         'warn',
         {
           allowExpressions: false,
-          allowTypedFunctionExpressions: false,
+          allowTypedFunctionExpressions: true,
           allowHigherOrderFunctions: false,
         },
       ],

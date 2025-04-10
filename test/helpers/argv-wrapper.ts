@@ -42,7 +42,11 @@ export class Argv implements CloneTrait<Argv> {
 
     const _: string[] = [this.command];
     if (this.subcommand) {
-      _.push(this.subcommand);
+      if (this.subcommand.includes(' ')) {
+        _.push(...this.subcommand.split(' '));
+      } else {
+        _.push(this.subcommand);
+      }
     }
     rawArguments._ = _;
 

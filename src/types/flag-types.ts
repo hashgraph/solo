@@ -19,3 +19,8 @@ export interface Definition {
   disablePrompt?: boolean;
   dataMask?: string;
 }
+
+export interface CommandFlags {
+  required: CommandFlag[];
+  optional: CommandFlag[];
+}

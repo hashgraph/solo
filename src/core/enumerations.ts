@@ -26,7 +26,7 @@ export const NodeStatusEnums = {
   9: 'CHECKING',
   10: 'RECONNECT_COMPLETE',
   11: 'CATASTROPHIC_FAILURE',
-};
+} as const;
 
 /**
  * - GRPC - Represents HAProxy Proxy

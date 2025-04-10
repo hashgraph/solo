@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ToObject} from '../../../types/index.js';
-import {type ClusterReference, type DeploymentName, type ICluster, type NamespaceNameAsString} from './types.js';
+import {type ClusterReference, type DeploymentName, type NamespaceNameAsString} from './types.js';
 import {SoloError} from '../../errors/solo-error.js';
+import {type ClusterStruct} from './interfaces/cluster-struct.js';
 
-export class Cluster implements ICluster, ToObject<ICluster> {
+export class Cluster implements ClusterStruct, ToObject<ClusterStruct> {
   public constructor(
     public readonly name: string,
     public readonly namespace: NamespaceNameAsString,
@@ -15,6 +16,7 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     if (!name) {
       throw new SoloError('name is required');
     }
+
     if (typeof name !== 'string') {
       throw new SoloError(`Invalid type for name: ${typeof name}`);
     }
@@ -22,6 +24,7 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     if (!namespace) {
       throw new SoloError('namespace is required');
     }
+
     if (typeof namespace !== 'string') {
       throw new SoloError(`Invalid type for namespace: ${typeof namespace}`);
     }
@@ -29,12 +32,13 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     if (!deployment) {
       throw new SoloError('deployment is required');
     }
+
     if (typeof deployment !== 'string') {
       throw new SoloError(`Invalid type for deployment: ${typeof deployment}`);
     }
   }
 
-  public toObject(): ICluster {
+  public toObject(): ClusterStruct {
     return {
       name: this.name,
       namespace: this.namespace,
@@ -44,7 +48,7 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     };
   }
 
-  public static fromObject(cluster: ICluster) {
+  public static fromObject(cluster: ClusterStruct) {
     return new Cluster(
       cluster.name,
       cluster.namespace,
@@ -63,7 +67,7 @@ export class Cluster implements ICluster, ToObject<ICluster> {
     const clusters: Record<ClusterReference, Cluster> = {};
 
     for (const [reference, cluster] of Object.entries(object)) {
-      clusters[reference] = Cluster.fromObject(cluster as ICluster);
+      clusters[reference] = Cluster.fromObject(cluster as ClusterStruct);
     }
 
     return clusters;

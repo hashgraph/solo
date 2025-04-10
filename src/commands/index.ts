@@ -9,33 +9,26 @@ import {RelayCommand} from './relay.js';
 import {AccountCommand} from './account.js';
 import {DeploymentCommand} from './deployment.js';
 import {ExplorerCommand} from './explorer.js';
+import {BlockNodeCommand} from './block-node.js';
 import {type Options} from './base.js';
+import {type CommandDefinition} from '../types/index.js';
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
- * @param opts it is an Options object containing logger
+ * @param options it is an Options object containing logger
  * @returns an array of Yargs command builder
  */
-export function Initialize(options: Options) {
-  const initCmd = new InitCommand(options);
-  const clusterCmd = new ClusterCommand(options);
-  const networkCommand = new NetworkCommand(options);
-  const nodeCmd = new NodeCommand(options);
-  const relayCmd = new RelayCommand(options);
-  const accountCmd = new AccountCommand(options);
-  const mirrorNodeCmd = new MirrorNodeCommand(options);
-  const explorerCommand = new ExplorerCommand(options);
-  const deploymentCommand = new DeploymentCommand(options);
-
+export function Initialize(options: Options): CommandDefinition[] {
   return [
-    initCmd.getCommandDefinition(),
-    accountCmd.getCommandDefinition(),
-    clusterCmd.getCommandDefinition(),
-    networkCommand.getCommandDefinition(),
-    nodeCmd.getCommandDefinition(),
-    relayCmd.getCommandDefinition(),
-    mirrorNodeCmd.getCommandDefinition(),
-    explorerCommand.getCommandDefinition(),
-    deploymentCommand.getCommandDefinition(),
+    new InitCommand(options).getCommandDefinition(),
+    new ClusterCommand(options).getCommandDefinition(),
+    new NetworkCommand(options).getCommandDefinition(),
+    new NodeCommand(options).getCommandDefinition(),
+    new RelayCommand(options).getCommandDefinition(),
+    new AccountCommand(options).getCommandDefinition(),
+    new MirrorNodeCommand(options).getCommandDefinition(),
+    new ExplorerCommand(options).getCommandDefinition(),
+    new DeploymentCommand(options).getCommandDefinition(),
+    new BlockNodeCommand(options).getCommandDefinition(),
   ];
 }
