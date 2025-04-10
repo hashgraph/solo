@@ -397,7 +397,7 @@ export class ExplorerCommand extends BaseCommand {
               .update(config.namespace, constants.HEDERA_EXPLORER_RELEASE_NAME, {
                 metadata: {
                   annotations: {
-                    'haproxy-ingress.github.io/backend-protocol': 'h2-ssl',
+                    'haproxy-ingress.github.io/backend-protocol': 'h1',
                   },
                 },
               });

@@ -4,7 +4,7 @@ set -eo pipefail
 source .github/workflows/script/helper.sh
 
 if [ -z "${STORAGE_TYPE}" ]; then
-  storageType="minio_only"
+  storageType="gcs_only"
 else
   storageType=${STORAGE_TYPE}
 fi
@@ -97,7 +97,11 @@ if [ "${storageType}" == "minio_only" ]; then
   task default-with-mirror
   cd -
 else
-  kind create cluster -n "${SOLO_CLUSTER_NAME}"
+  # get current script base directory
+  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  echo "script_dir: ${script_dir}"
+  # Use custom kind config file to expose ports used by explorer ingress controller NodePort configuration
+  kind create cluster -n "${SOLO_CLUSTER_NAME}" --config "${script_dir}"/kind-config.yaml
   npm run solo-test -- init
   npm run solo-test -- cluster-ref setup \
     -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
@@ -119,12 +123,29 @@ else
     --storage-type "${storageType}" \
     "${MIRROR_STORAGE_OPTIONS[@]}" \
 
-  npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME}
+  npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" \
+    --cluster-ref kind-${SOLO_CLUSTER_NAME} --enable-ingress --tls-cluster-issuer-type self-signed --enable-hedera-explorer-tls \
+    --explorer-ingress-values-file "${script_dir}"/haproxy-ingress-values.yaml
 
   kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 
   explorer_svc="$(kubectl get svc -l app.kubernetes.io/component=hedera-explorer -n ${SOLO_NAMESPACE} --output json | jq -r '.items[].metadata.name')"
   kubectl port-forward -n "${SOLO_NAMESPACE}" svc/"${explorer_svc}" 8080:80 > /dev/null 2>&1 &
+
+  curl_output=$(curl -k https://localhost:31001)
+  if [[ $curl_output == *"Hedera Mirror Node Explorer"* ]]; then
+    echo "Explorer https is up and running"
+  else
+    echo "Explorer https is not up and running"
+    exit 1
+  fi
+  curl_output=$(curl http://localhost:31000)
+  if [[ $curl_output == *"Hedera Mirror Node Explorer"* ]]; then
+    echo "Explorer http is up and running"
+  else
+    echo "Explorer http is not up and running"
+    exit 1
+  fi
 fi
 
 cd ..; create_test_account ${SOLO_DEPLOYMENT}; cd -

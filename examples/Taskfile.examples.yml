@@ -14,7 +14,6 @@ vars:
   solo_logs_dir: "{{ .solo_user_dir }}/logs"
   solo_keys_dir: "{{ .solo_cache_dir }}/keys"
   solo_bin_dir: "{{ .solo_user_dir }}/bin"
-  self_signed_value_file: "--explorer-ingress-values-file {{.USER_WORKING_DIR}}/haproxy-ingress-values.yaml"
 
   temp_prefix:
     sh: (echo "/tmp/solo-${USER}-$(date +%Y%m%d%H%M%S)")
@@ -528,10 +527,6 @@ tasks:
       - task: "init"
     cmds:
       - |
-        if [[ "${TLS_CLUSTER_ISSUER_TYPE_FLAG}" == *"self-signed"* ]]; then
-          export EXPLORER_DEPLOY_EXTRA_FLAGS="${EXPLORER_DEPLOY_EXTRA_FLAGS} {{ .self_signed_value_file }}"
-          echo "EXPLORER_DEPLOY_EXTRA_FLAGS=${EXPLORER_DEPLOY_EXTRA_FLAGS}"
-        fi
         if [[ "${EXPLORER_DEPLOYMENT}" != "" ]]; then
           # create deployment on different namespace
           SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo-test -- deployment create --deployment ${EXPLORER_DEPLOYMENT} --namespace ${EXPLORER_NAME_SPACE}  
