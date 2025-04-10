@@ -32,7 +32,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
     return new RelayComponent(name, cluster, namespace, consensusNodeAliases);
   }
 
-  public validate(): void {
+  public override validate(): void {
     super.validate();
 
     for (const alias of this.consensusNodeAliases) {
@@ -42,7 +42,7 @@ export class RelayComponent extends BaseComponent implements IRelayComponent, To
     }
   }
 
-  public toObject(): IRelayComponent {
+  public override toObject(): IRelayComponent {
     return {
       consensusNodeAliases: this.consensusNodeAliases,
       ...super.toObject(),

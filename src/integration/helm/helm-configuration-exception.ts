@@ -44,5 +44,5 @@ export class HelmConfigurationException extends Error {
     this.name = 'HelmConfigurationException';
   }
 
-  cause?: Error;
+  override cause?: Error;
 }

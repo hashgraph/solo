@@ -7,7 +7,7 @@ export class InvalidSemanticVersionException extends Error {
   /**
    * The cause of this exception.
    */
-  public cause?: Error;
+  public override cause?: Error;
 
   /**
    * Constructs a new instance of an {@link InvalidSemanticVersionException}.

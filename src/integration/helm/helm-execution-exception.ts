@@ -137,7 +137,7 @@ export class HelmExecutionException extends Error {
    * Returns a string representation of the exception.
    * @returns A string representation of the exception
    */
-  toString(): string {
+  override toString(): string {
     return `HelmExecutionException{message=${this.message}, exitCode=${this.getExitCode()}, stdOut='${this.getStdOut()}', stdErr='${this.getStdErr()}'}`;
   }
 }

@@ -26,7 +26,8 @@
     "forceConsistentCasingInFileNames": true,
     "strict": false, // TODO: set to true (which is default), fix a few issues as often as possible, until we can leave true
     "noImplicitReturns": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "noImplicitOverride": true
   },
   "include": [
     "src",

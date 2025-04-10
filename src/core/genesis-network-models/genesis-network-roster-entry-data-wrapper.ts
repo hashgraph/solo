@@ -8,7 +8,7 @@ export class GenesisNetworkRosterEntryDataWrapper
   extends GenesisNetworkDataWrapper
   implements GenesisNetworkRosterStructure, ToObject<GenesisNetworkRosterStructure>
 {
-  constructor(public readonly nodeId: NodeId) {
+  public constructor(public override readonly nodeId: NodeId) {
     super(nodeId);
   }
 

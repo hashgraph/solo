@@ -48,7 +48,7 @@ export class ConsensusNodeComponent
     return new ConsensusNodeComponent(name, cluster, namespace, state, nodeId);
   }
 
-  public validate(): void {
+  public override validate(): void {
     super.validate();
 
     if (!Object.values(ConsensusNodeStates).includes(this.state)) {
@@ -64,7 +64,7 @@ export class ConsensusNodeComponent
     }
   }
 
-  public toObject(): IConsensusNodeComponent {
+  public override toObject(): IConsensusNodeComponent {
     return {
       ...super.toObject(),
       state: this.state,
