@@ -44,7 +44,7 @@ async function main() {
     console.log(`topic id = ${createReceipt.topicId.toString()}`);
 
     console.log('Wait a few seconds to create subscribe to new topic');
-    await new Promise(resolve => setTimeout(resolve, 15000));
+    await new Promise(resolve => setTimeout(resolve, 25000));
     // Create a subscription to the topic
     const mirrorClient = (
       await Client.forMirrorNetwork(mirrorNetwork)
