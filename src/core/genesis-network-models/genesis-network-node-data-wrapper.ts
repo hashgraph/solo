@@ -54,7 +54,11 @@ export class GenesisNetworkNodeDataWrapper
   } {
     return {
       nodeId: this.nodeId,
-      accountId: {accountNum: `${this.accountId.num}`} as unknown as NodeAccountId,
+      accountId: {
+        realmNum: `${this.accountId.realm}`,
+        shardNum: `${this.accountId.shard}`,
+        accountNum: `${this.accountId.num}`,
+      } as unknown as NodeAccountId,
       description: this.description,
       gossipEndpoint: this.gossipEndpoint,
       serviceEndpoint: this.serviceEndpoint,
