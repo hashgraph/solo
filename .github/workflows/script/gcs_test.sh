@@ -106,6 +106,7 @@ echo "MIRROR_STORAGE_OPTIONS: " "${MIRROR_STORAGE_OPTIONS[@]}"
 
 echo "Using bucket name: ${streamBucket}"
 echo "Test storage type: ${storageType}"
+echo "streamBucket: ${streamBucket}"
 
 SOLO_CLUSTER_NAME=solo-e2e
 SOLO_NAMESPACE=solo-e2e

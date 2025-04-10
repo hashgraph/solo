@@ -159,7 +159,7 @@ sleep 30
 
 echo "Run mirror node acceptance test"
 
-helm upgrade mirror mirror/hedera-mirror  -n solo-e2e --reuse-values --set test.enabled=true --set test.image.pullPolicy=Always --set test.image.registry=ssheehy --set test.image.repository=hedera-mirror-test --set test.image.tag=latest --set test.config.hedera.mirror.test.acceptance.network=OTHER --set test.config.hedera.mirror.test.acceptance.operatorId="${OPERATOR_ID}" --set test.config.hedera.mirror.test.acceptance.operatorKey="${OPERATOR_KEY}"
+helm upgrade mirror mirror/hedera-mirror  -n solo-e2e --reuse-values --set test.enabled=true --set test.image.pullPolicy=Always --set test.image.registry=ssheehy --set test.image.repository=hedera-mirror-test --set test.image.tag=latest --set test.config.hedera.mirror.test.acceptance.network=OTHER
 
 helm test mirror -n solo-e2e --timeout 10m
 check_monitor_log
