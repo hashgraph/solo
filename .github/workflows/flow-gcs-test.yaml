@@ -118,6 +118,8 @@ jobs:
         env:
           GCS_ACCESS_KEY: ${{ secrets.GCP_S3_ACCESS_KEY }}
           GCS_SECRET_KEY: ${{ secrets.GCP_S3_SECRET_KEY }}
+          AWS_ACCESS_KEY: ${{ secrets.AWS_S3_ACCESS_KEY }}
+          AWS_SECRET_KEY: ${{ secrets.AWS_S3_SECRET_KEY }}
           BUCKET_NAME: ${{ env.BUCKET_NAME }}
           PREFIX: ${{ env.PREFIX }}
           BACKUP_BUCKET_NAME: ${{ env.BACKUP_BUCKET_NAME }}/${{ steps.jobs.outputs.job_id }}
@@ -127,7 +129,8 @@ jobs:
           .github/workflows/script/gcs_test.sh
 
       - name: Delete Test Directory after Test
-        if: matrix.storageType == 'gcs_only' || matrix.storageType == 'aws_only'
+        # use always() to make sure bucket is deleted even if the test fails
+        if: always() && matrix.storageType == 'gcs_only' || matrix.storageType == 'aws_only'
         run: |
           gcloud storage rm --recursive gs://${BUCKET_NAME}/${{ steps.jobs.outputs.job_id }} --project=${{ vars.GCP_S3_PROJECT_ID }}
           gcloud storage rm --recursive gs://${BACKUP_BUCKET_NAME}/${{ steps.jobs.outputs.job_id }} --project=${{ vars.GCP_S3_PROJECT_ID }}
