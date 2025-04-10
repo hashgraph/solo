@@ -213,11 +213,15 @@ export function endToEndTestSuite(
     nodeCmdArg,
     accountCmdArg,
     startNodes,
-  }: Cmd & {startNodes?: boolean},
+    deployNetwork,
+  }: Cmd & {startNodes?: boolean; deployNetwork?: boolean},
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ): void {
   if (typeof startNodes !== 'boolean') {
     startNodes = true;
+  }
+  if (typeof deployNetwork !== 'boolean') {
+    deployNetwork = true;
   }
 
   const bootstrapResp = bootstrapTestVariables(testName, argv, {
@@ -321,14 +325,16 @@ export function endToEndTestSuite(
         });
       }).timeout(Duration.ofMinutes(2).toMillis());
 
-      it('should succeed with network deploy', async () => {
-        await commandInvoker.invoke({
-          argv: argv,
-          command: NetworkCommand.COMMAND_NAME,
-          subcommand: 'deploy',
-          callback: async argv => networkCmd.deploy(argv),
-        });
-      }).timeout(Duration.ofMinutes(5).toMillis());
+      if (deployNetwork) {
+        it('should succeed with network deploy', async () => {
+          await commandInvoker.invoke({
+            argv: argv,
+            command: NetworkCommand.COMMAND_NAME,
+            subcommand: 'deploy',
+            callback: async argv => networkCmd.deploy(argv),
+          });
+        }).timeout(Duration.ofMinutes(5).toMillis());
+      }
 
       if (startNodes) {
         it('should succeed with node setup command', async () => {
