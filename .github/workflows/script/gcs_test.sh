@@ -133,12 +133,13 @@ cd ..; create_test_account ${SOLO_DEPLOYMENT}; cd -
 
 ps -ef |grep port-forward
 
-curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
+fi
 
 grpcurl -plaintext -d '{"file_id": {"fileNum": 102}, "limit": 0}' localhost:5600 com.hedera.mirror.api.proto.NetworkService/getNodes
 
 node examples/create-topic.js
-
 
 npm run solo-test -- node stop -i node1 --deployment "${SOLO_DEPLOYMENT}"
 
