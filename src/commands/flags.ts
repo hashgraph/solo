@@ -1631,17 +1631,6 @@ export class Flags {
     prompt: undefined,
   };
 
-  public static readonly enableMirrorTLS: CommandFlag = {
-    constName: 'enableMirrorTLS',
-    name: 'enable-mirror-tls',
-    definition: {
-      describe: 'Enable TLS for the mirror node',
-      defaultValue: false,
-      type: 'boolean',
-    },
-    prompt: undefined,
-  };
-
   public static readonly hederaExplorerVersion: CommandFlag = {
     constName: 'hederaExplorerVersion',
     name: 'hedera-explorer-version',
@@ -2480,7 +2469,6 @@ export class Flags {
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
-    Flags.enableMirrorTLS,
     Flags.mirrorNamespace,
     Flags.namespace,
     Flags.networkDeploymentValuesFile,

@@ -150,7 +150,6 @@ export class ExplorerCommand extends BaseCommand {
 
       if (config.tlsClusterIssuerType === 'self-signed') {
         // use function generateTLS to generate TLS certficate and key
-        // and create the secret
         const caSecretName: string = 'ca-secret-hiero-explorer';
         const generateDirectory: string = PathEx.join(config.cacheDir);
         const {certificatePath, keyPath} = generateTLS(this.logger, generateDirectory, config.domainName);
@@ -165,6 +164,7 @@ export class ExplorerCommand extends BaseCommand {
           'tls.crt': Buffer.from(certData).toString('base64'),
           'tls.key': Buffer.from(keyData).toString('base64'),
         };
+        // create k8 secret with the generated certificate and key
         try {
           const namespace: NamespaceName = this.configManager.getFlag<NamespaceName>(flags.namespace);
           const isSecretCreated: boolean = await this.k8Factory

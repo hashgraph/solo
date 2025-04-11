@@ -169,7 +169,7 @@ else
   check_service_health "http://localhost:31000" "Hedera Mirror Node Explorer" "Explorer" "http" || exit 1
 
   # Check Mirror API endpoints
-  check_service_health "https://localhost:32001/api/v1/accounts" "accounts" "Explorer" "https" || exit 1
+  check_service_health "https://localhost:32001/api/v1/accounts" "accounts" "Mirror" "https" || exit 1
   check_service_health "http://localhost:32000/api/v1/accounts" "accounts" "Mirror" "http" || exit 1
 fi
 

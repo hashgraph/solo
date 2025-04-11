@@ -49,7 +49,6 @@ interface MirrorNodeDeployConfigClass {
   enableIngress: boolean;
   ingressControllerValueFile: string;
   mirrorStaticIp: string;
-  enableMirrorTLS: string;
   profileFile: string;
   profileName: string;
   valuesFile: string;
@@ -120,7 +119,6 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.enableIngress,
       flags.ingressControllerValueFile,
       flags.mirrorStaticIp,
-      flags.enableMirrorTLS,
       flags.profileFile,
       flags.profileName,
       flags.quiet,
