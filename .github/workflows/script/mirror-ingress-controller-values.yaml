@@ -1,3 +1,6 @@
+# Value file for mirror-ingress-controller
+# to accept http request on NodePort 32000 and forward to 9090,
+# and accept https request on NodePort 32001 and forward to 9443
 controller:
   service:
     type: NodePort
@@ -12,4 +15,4 @@ controller:
   config:
     http-port: "9090"
     https-port: "9443"
-    ssl-redirect: "false" # Allow HTTP traffic (disable forced redirect to HTTPS)
+    ssl-redirect: "false"

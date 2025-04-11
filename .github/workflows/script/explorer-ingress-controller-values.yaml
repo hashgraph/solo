@@ -1,3 +1,6 @@
+# Value file for explorer-ingress-controller
+# to accept http request on NodePort 31000 and forward to 8080,
+# and accept https request on NodePort 31001 and forward to 8443
 controller:
   service:
     type: NodePort
