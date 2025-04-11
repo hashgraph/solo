@@ -315,4 +315,17 @@ export class Templates {
 
     return `${dnsConsensusNodePattern}.${dnsBaseDomain}`;
   }
+
+  /**
+   * @param serviceName - name of the service
+   * @param namespace - the pattern to use for the consensus node
+   * @param dnsBaseDomain - the base domain of the cluster
+   */
+  public static renderSvcFullyQualifiedDomainName(
+    serviceName: string,
+    namespace: NamespaceNameAsString,
+    dnsBaseDomain: string,
+  ): string {
+    return `${serviceName}.${namespace}.${dnsBaseDomain}`;
+  }
 }

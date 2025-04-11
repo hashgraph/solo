@@ -11,7 +11,7 @@ import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
-import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
+import {SOLO_CACHE_DIR, SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
@@ -66,6 +66,9 @@ import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Service} from '../integration/kube/resources/service/service.js';
 import {type LoadBalancerIngress} from '../integration/kube/resources/load-balancer-ingress.js';
 import {type K8} from '../integration/kube/k8.js';
+import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
+import {type BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
+import {BlockNodesJsonWrapper} from '../core/block-nodes-json-wrapper.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -118,6 +121,9 @@ export interface NetworkDeployConfigClass {
   clusterRefs: ClusterReferences;
   domainNames?: string;
   domainNamesMapping?: Record<NodeAlias, string>;
+  blockNodeComponents: BlockNodeComponent[];
+  debugNodeAlias: NodeAlias;
+  app: string;
 }
 
 interface NetworkDeployContext {
@@ -388,35 +394,7 @@ export class NetworkCommand extends BaseCommand {
    * Prepare values args string for each cluster-ref
    * @param config
    */
-  private async prepareValuesArgMap(config: {
-    chartDirectory?: string;
-    app?: string;
-    nodeAliases: string[];
-    debugNodeAlias?: NodeAlias;
-    enablePrometheusSvcMonitor?: boolean;
-    releaseTag?: string;
-    persistentVolumeClaims?: string;
-    valuesFile?: string;
-    haproxyIpsParsed?: Record<NodeAlias, IP>;
-    envoyIpsParsed?: Record<NodeAlias, IP>;
-    storageType: constants.StorageType;
-    resolvedThrottlesFile: string;
-    gcsWriteAccessKey: string;
-    gcsWriteSecrets: string;
-    gcsEndpoint: string;
-    gcsBucket: string;
-    gcsBucketPrefix: string;
-    awsWriteAccessKey: string;
-    awsWriteSecrets: string;
-    awsEndpoint: string;
-    awsBucket: string;
-    awsBucketPrefix: string;
-    backupBucket: string;
-    loadBalancerEnabled: boolean;
-    clusterRefs: ClusterReferences;
-    consensusNodes: ConsensusNode[];
-    domainNamesMapping?: Record<NodeAlias, string>;
-  }): Promise<Record<ClusterReference, string>> {
+  private async prepareValuesArgMap(config: NetworkDeployConfigClass): Promise<Record<ClusterReference, string>> {
     const valuesArguments: Record<ClusterReference, string> = this.prepareValuesArg(config);
 
     // prepare values files for each cluster
@@ -450,33 +428,7 @@ export class NetworkCommand extends BaseCommand {
    * Prepare the values argument for the helm chart for a given config
    * @param config
    */
-  private prepareValuesArg(config: {
-    chartDirectory?: string;
-    app?: string;
-    consensusNodes: ConsensusNode[];
-    debugNodeAlias?: NodeAlias;
-    enablePrometheusSvcMonitor?: boolean;
-    releaseTag?: string;
-    persistentVolumeClaims?: string;
-    valuesFile?: string;
-    haproxyIpsParsed?: Record<NodeAlias, IP>;
-    envoyIpsParsed?: Record<NodeAlias, IP>;
-    storageType: constants.StorageType;
-    resolvedThrottlesFile: string;
-    gcsWriteAccessKey: string;
-    gcsWriteSecrets: string;
-    gcsEndpoint: string;
-    gcsBucket: string;
-    gcsBucketPrefix: string;
-    awsWriteAccessKey: string;
-    awsWriteSecrets: string;
-    awsEndpoint: string;
-    awsBucket: string;
-    awsBucketPrefix: string;
-    backupBucket: string;
-    loadBalancerEnabled: boolean;
-    domainNamesMapping?: Record<NodeAlias, string>;
-  }): Record<ClusterReference, string> {
+  private prepareValuesArg(config: NetworkDeployConfigClass): Record<ClusterReference, string> {
     const valuesArguments: Record<ClusterReference, string> = {};
     const clusterReferences: ClusterReference[] = [];
     let extraEnvironmentIndex: number = 0;
@@ -617,6 +569,20 @@ export class NetworkCommand extends BaseCommand {
           ' --set "defaults.haproxy.service.type=LoadBalancer"' +
           ' --set "defaults.envoyProxy.service.type=LoadBalancer"' +
           ' --set "defaults.consensus.service.type=LoadBalancer"';
+      }
+    }
+
+    if (config.blockNodeComponents.length > 0) {
+      for (const clusterReference of clusterReferences) {
+        const blockNodesJsonData: string = new BlockNodesJsonWrapper(
+          config.blockNodeComponents,
+          this.remoteConfigManager.clusters,
+        ).toJSON();
+
+        const blockNodesJsonPath: string = PathEx.join(constants.SOLO_CACHE_DIR, 'block-nodes.json');
+        fs.writeFileSync(blockNodesJsonPath, blockNodesJsonData);
+
+        valuesArguments[clusterReference] += ` --set-file "hedera.configMaps.blockNodesJson=${blockNodesJsonPath}"`;
       }
     }
 
@@ -763,6 +729,10 @@ export class NetworkCommand extends BaseCommand {
     config.clusterRefs = this.remoteConfigManager.getClusterRefs();
     config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed, config.consensusNodes, this.configManager);
     argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases.join(',');
+
+    config.blockNodeComponents = Object.values(this.remoteConfigManager.components.blockNodes).filter(
+      blockNodeComponent => blockNodeComponent.state === ComponentStates.ACTIVE,
+    );
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);
 
