@@ -326,6 +326,6 @@ export class Templates {
     namespace: NamespaceNameAsString,
     dnsBaseDomain: string,
   ): string {
-    return `${serviceName}.${namespace}.${dnsBaseDomain}`;
+    return `${serviceName}.${namespace}.svc.${dnsBaseDomain}`;
   }
 }

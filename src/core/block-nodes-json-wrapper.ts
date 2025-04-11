@@ -45,7 +45,6 @@ export class BlockNodesJsonWrapper implements ToJSON {
       blockItemBatchSize: constants.BLOCK_ITEM_BATCH_SIZE,
     };
 
-    console.log(JSON.stringify(data));
     return JSON.stringify(data);
   }
 }
