@@ -923,11 +923,11 @@ export class Flags {
     },
   };
 
-  public static readonly explorerIngressValueFile: CommandFlag = {
-    constName: 'explorerIngressValueFile',
-    name: 'explorer-ingress-values-file',
+  public static readonly ingressControllerValueFile: CommandFlag = {
+    constName: 'ingressControllerValueFile',
+    name: 'ingress-controller-value-file',
     definition: {
-      describe: 'The value file to use for the Hedera Explorer ingress, defaults to ""',
+      describe: 'The value file to use for ingress controller, defaults to ""',
       defaultValue: '',
       type: 'string',
     },
@@ -1627,6 +1627,17 @@ export class Flags {
       describe: 'static IP address for the mirror node',
       defaultValue: '',
       type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly enableMirrorTLS: CommandFlag = {
+    constName: 'enableMirrorTLS',
+    name: 'enable-mirror-tls',
+    definition: {
+      describe: 'Enable TLS for the mirror node',
+      defaultValue: false,
+      type: 'boolean',
     },
     prompt: undefined,
   };
@@ -2459,7 +2470,7 @@ export class Flags {
     Flags.grpcWebTlsCertificatePath,
     Flags.grpcWebTlsKeyPath,
     Flags.haproxyIps,
-    Flags.explorerIngressValueFile,
+    Flags.ingressControllerValueFile,
     Flags.hederaExplorerTlsHostName,
     Flags.hederaExplorerStaticIp,
     Flags.hederaExplorerVersion,
@@ -2469,6 +2480,7 @@ export class Flags {
     Flags.log4j2Xml,
     Flags.mirrorNodeVersion,
     Flags.mirrorStaticIp,
+    Flags.enableMirrorTLS,
     Flags.mirrorNamespace,
     Flags.namespace,
     Flags.networkDeploymentValuesFile,
